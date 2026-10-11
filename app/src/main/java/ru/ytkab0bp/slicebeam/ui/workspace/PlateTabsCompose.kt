@@ -71,7 +71,7 @@ internal fun PlateTabs(
     LazyColumn(
         state = listState,
         modifier = Modifier
-            .width(72.dp)
+            .width(64.dp)
             .fillMaxHeight(),
         contentPadding = PaddingValues(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -113,7 +113,7 @@ private fun PlateTab(
         contentColor = foreground,
     ) {
         Row(
-            modifier = Modifier.width(72.dp),
+            modifier = Modifier.width(64.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
@@ -123,7 +123,7 @@ private fun PlateTab(
                     .defaultMinSize(minHeight = 48.dp)
                     .selectable(selected = selected, role = Role.Tab, onClick = onSelect)
                     .semantics { contentDescription = label }
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
@@ -134,10 +134,10 @@ private fun PlateTab(
                     maxLines = 1,
                 )
             }
-            IconButton(
+            if (selected) IconButton(
                 onClick = onClose,
                 modifier = Modifier
-                    .width(36.dp)
+                    .width(30.dp)
                     .defaultMinSize(minHeight = 48.dp)
                     .semantics { contentDescription = closeDescription },
             ) {
@@ -153,7 +153,7 @@ private fun AddPlateButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(8.dp)
     Surface(
         modifier = Modifier
-            .width(72.dp)
+            .width(64.dp)
             .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
             .clip(shape)
             .semantics { contentDescription = description }

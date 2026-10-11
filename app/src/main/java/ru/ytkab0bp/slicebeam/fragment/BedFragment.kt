@@ -1305,7 +1305,7 @@ workspace.addView(header, LinearLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 val bedRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
 bedRow.addView(plateTabsScroll, LinearLayout.LayoutParams(
-ViewUtils.dp(72), ViewGroup.LayoutParams.MATCH_PARENT))
+ViewUtils.dp(64), ViewGroup.LayoutParams.MATCH_PARENT))
 bedRow.addView(glView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
 workspace.addView(bedRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 workspace.addView(selectedObjectBar, LinearLayout.LayoutParams(
@@ -1355,8 +1355,8 @@ glView!!.requestRender()
 }
 private fun updateAdaptiveOverlayMargins(portrait:Boolean) {
 val params = snackbarsLayout?.layoutParams as? FrameLayout.LayoutParams ?: return
-params.leftMargin = if (portrait) ViewUtils.dp(72)
-    else ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP + MENU_SIZE_DP + 72)
+params.leftMargin = if (portrait) ViewUtils.dp(64)
+    else ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP + MENU_SIZE_DP + 64)
 params.bottomMargin = if (portrait)
     ViewUtils.dp(menuPortraitHeightDp() + AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP) else 0
 snackbarsLayout!!.layoutParams = params
