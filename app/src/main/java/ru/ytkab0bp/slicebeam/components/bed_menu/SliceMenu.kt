@@ -102,6 +102,12 @@ class SliceMenu : ListBedMenu() {
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
             }
+            val sourceFilamentTypes = try {
+                SlicePreparationTools.readFilamentTypes(gcode)
+            } catch (_: IOException) {
+                SliceUploadController.showPreparationFailure(bed)
+                return@execute
+            }
             val toolCount = maxOf(1, (activeTools.maxOrNull() ?: 0) + 1)
             ViewUtils.postOnMainThread {
                 if (bed.getContext() != null) {
@@ -111,6 +117,7 @@ class SliceMenu : ListBedMenu() {
                         print,
                         toolCount,
                         activeTools,
+                        sourceFilamentTypes,
                         this::activatePrinterProfile,
                     ) { sendType, sendHost, sendApiKey, targetPrinter, shouldPrint ->
                         SliceUploadController.upload(

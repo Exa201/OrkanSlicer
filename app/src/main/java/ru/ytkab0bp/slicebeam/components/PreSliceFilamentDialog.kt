@@ -76,6 +76,18 @@ object PreSliceFilamentDialog {
         val assignmentsMatch = PreSliceFilamentAssignments.allUseSameSlot(initialSlots)
         val usedTools = (0 until objectCount).flatMap { model?.getUsedFilaments(it)?.toList().orEmpty() }
             .distinct().sorted().map { it - 1 }.toIntArray()
+        val sliceTemperatures = runCatching {
+            val snapshot = SliceBeam.buildCurrentConfigObject(model?.requiredFilamentCount ?: -1)
+            usedTools.map { tool ->
+                fun value(key: String): String {
+                    val values = snapshot[key].orEmpty().split(',').map(String::trim)
+                    return (values.getOrNull(tool) ?: values.lastOrNull()).orEmpty().ifBlank { "?" }
+                }
+                context.getString(R.string.PreSliceTemperatureRow, tool,
+                    value("hot_plate_temp_initial_layer"), value("hot_plate_temp"),
+                    value("nozzle_temperature_initial_layer"), value("nozzle_temperature"))
+            }
+        }.getOrDefault(emptyList())
         val hasPartColors = usedTools.size > 1 ||
             (TemporaryProjectSettings.active && (model?.requiredFilamentCount ?: 1) > 1)
         val config = SliceBeam.CONFIG
@@ -119,6 +131,7 @@ object PreSliceFilamentDialog {
                         physicalGates = physicalGates,
                         colorMapping = colorMapping.value,
                         usedTools = usedTools,
+                        sliceTemperatures = sliceTemperatures,
                         onColorMappingChange = { colorMapping.value = it },
                         onePhysicalGate = onePhysicalGate.intValue,
                         onOnePhysicalGateChange = { onePhysicalGate.intValue = it },
@@ -131,6 +144,14 @@ object PreSliceFilamentDialog {
             .setView(composeView)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(positiveLabel, null)
+            .apply {
+                if (sliceTemperatures.isNotEmpty() && context is ru.ytkab0bp.slicebeam.MainActivity) {
+                    setNeutralButton(R.string.PreSliceEditTemperatures) { _, _ ->
+                        (context.navigationDelegate as? ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+                            ?.switchToSlot(3)
+                    }
+                }
+            }
             .show()
 
         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -193,6 +214,7 @@ private fun PreSliceFilamentContent(
     physicalGates: IntArray,
     colorMapping: List<Int>,
     usedTools: IntArray,
+    sliceTemperatures: List<String>,
     onColorMappingChange: (List<Int>) -> Unit,
     onePhysicalGate: Int,
     onOnePhysicalGateChange: (Int) -> Unit,
@@ -239,6 +261,10 @@ private fun PreSliceFilamentContent(
 
         if (preserveColors) {
             Text(stringResource(R.string.PreSliceKeepModelColorsHelp), color = secondaryColor, fontSize = 13.sp)
+            if (sliceTemperatures.isNotEmpty()) {
+                Text(stringResource(R.string.PreSliceTemperatureHeading), color = primaryColor, fontSize = 13.sp)
+                sliceTemperatures.forEach { row -> Text(row, color = secondaryColor, fontSize = 13.sp) }
+            }
             if (physicalGates.isNotEmpty()) {
                 MmuAssignmentContent(printerTitle, colorMapping.size, physicalGates, slots, colorMapping,
                     usedTools = usedTools, showHelp = false, onMappingChange = onColorMappingChange)

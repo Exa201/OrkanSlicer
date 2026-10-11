@@ -4,6 +4,7 @@ import ru.ytkab0bp.slicebeam.utils.GCodeToolMapper
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
+import java.io.RandomAccessFile
 import java.util.Locale
 
 /** File and printer checks used while preparing a sliced job for upload. */
@@ -22,6 +23,9 @@ internal object SlicePreparationTools {
 
     fun didPrinterChange(originalTitle: String?, selectedTitle: String?): Boolean =
         selectedTitle != originalTitle
+
+    fun materialMatchesSlicedFile(sliced: String?, loaded: String?): Boolean =
+        !sliced.isNullOrBlank() && !loaded.isNullOrBlank() && sliced.trim().equals(loaded.trim(), true)
 
     enum class PrinterActivationResult { UNCHANGED, ACTIVATED, FAILED }
 
@@ -66,5 +70,24 @@ internal object SlicePreparationTools {
             }
         }
         return if (used.isEmpty()) intArrayOf(0) else used.toIntArray()
+    }
+
+    /** Read material names from the sliced file, rather than from a palette edited after slicing. */
+    @JvmStatic
+    @Throws(IOException::class)
+    fun readFilamentTypes(gcode: File?): List<String> {
+        if (gcode == null || !gcode.isFile || gcode.length() == 0L) {
+            throw IOException("Sliced G-code is missing or empty")
+        }
+        RandomAccessFile(gcode, "r").use { reader ->
+            val start = (reader.length() - 512 * 1024L).coerceAtLeast(0L)
+            reader.seek(start)
+            val bytes = ByteArray((reader.length() - start).toInt())
+            reader.readFully(bytes)
+            val tail = String(bytes, Charsets.UTF_8)
+            val match = Regex("(?m)^;\\s*filament_type\\s*=\\s*(.*)\\r?$")
+                .findAll(tail).lastOrNull() ?: return emptyList()
+            return match.groupValues[1].split(';').map(String::trim)
+        }
     }
 }

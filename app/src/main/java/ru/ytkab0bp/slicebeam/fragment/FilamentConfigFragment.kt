@@ -58,7 +58,8 @@ class FilamentConfigFragment : ProfileListFragment() {
         // Keep one general bed temperature in the UI and synchronize Orca's surface fields.
         val stage = if (def.key.endsWith("_initial_layer")) "_initial_layer" else ""
         val options = PrintConfigDef.getInstance().options
-        for (surface in arrayOf("cool_plate_temp", "eng_plate_temp", "textured_plate_temp", "supertack_plate_temp")) {
+        for (surface in arrayOf("cool_plate_temp", "eng_plate_temp", "textured_plate_temp",
+            "textured_cool_plate_temp", "supertack_plate_temp")) {
             val surfaceOption = options["$surface$stage"]
             if (surfaceOption != null) super.updateConfigField(surfaceOption, index, value)
         }

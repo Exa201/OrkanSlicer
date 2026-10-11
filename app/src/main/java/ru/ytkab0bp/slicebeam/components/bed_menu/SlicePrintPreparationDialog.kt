@@ -43,7 +43,6 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
-import ru.ytkab0bp.slicebeam.utils.Prefs
 
 /** Shows printer, auto-leveling and ACE slot checks before sending a sliced job. */
 object SlicePrintPreparationDialog {
@@ -62,6 +61,7 @@ object SlicePrintPreparationDialog {
         print: Boolean,
         gcodeToolCount: Int,
         activeTools: IntArray,
+        sourceFilamentTypes: List<String>,
         activateProfile: PrinterProfileAction,
         sendAction: SliceMenuItems.SendAction,
     ) {
@@ -160,7 +160,7 @@ object SlicePrintPreparationDialog {
             }
             if (print && isAnycubicKobra(targetPrinter)) {
                 val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(),
-                    gcodeToolCount, activeTools)
+                    gcodeToolCount, activeTools, sourceFilamentTypes)
                 if (mismatch != null) {
                     BeamAlertDialogBuilder(context)
                         .setTitle(R.string.PrintPrepareMaterialMismatchTitle)
@@ -183,15 +183,14 @@ object SlicePrintPreparationDialog {
                                         val third: Int, val fourth: String)
 
     private fun firstMaterialMismatch(printerTitle: String, toolCount: Int,
-                                      activeTools: IntArray): MaterialMismatch? {
+                                      activeTools: IntArray, sourceFilamentTypes: List<String>): MaterialMismatch? {
         val gates = MmuFilamentSync.getSelectedGates(printerTitle, toolCount) ?: return null
-        val slots = Prefs.getFilamentSlots()
         for (tool in activeTools) {
-            val source = slots.getOrNull(tool)?.type?.trim().orEmpty()
+            val source = sourceFilamentTypes.getOrNull(tool)?.trim().orEmpty()
             val gate = gates.getOrNull(tool) ?: continue
             val actual = MmuFilamentSync.gateSlot(printerTitle, gate)?.type?.trim().orEmpty()
-            if (source.isNotEmpty() && actual.isNotEmpty() && !source.equals(actual, true)) {
-                return MaterialMismatch(tool, source, gate + 1, actual)
+            if (!SlicePreparationTools.materialMatchesSlicedFile(source, actual)) {
+                return MaterialMismatch(tool, source.ifBlank { "?" }, gate + 1, actual.ifBlank { "?" })
             }
         }
         return null

@@ -43,6 +43,9 @@
     <string name="ProjectBooleanOff">Off</string>
     <string name="ProjectBooleanOn">On</string>
     <string name="PreSliceKeepModelColorsHelp">Parts keep their 3MF filaments. Next, assign the colors used by the model to the printer slots.</string>
+    <string name="PreSliceTemperatureHeading">Temperatures used for slicing (change them in Filament):</string>
+    <string name="PreSliceTemperatureRow">T%1$d: bed %2$s/%3$s °C, nozzle %4$s/%5$s °C (first/other layers)</string>
+    <string name="PreSliceEditTemperatures">Temperatures</string>
     <string name="ProjectSettingsUseOwn">Use own</string>
     <string name="ProjectSettingsProfileTitle">3MF project settings</string>
     <string name="ProjectSettingsTemporaryHelp">Changes apply only to this project. Your saved profiles remain unchanged.</string>

@@ -43,6 +43,9 @@
     <string name="ProjectBooleanOff">Aus</string>
     <string name="ProjectBooleanOn">Ein</string>
     <string name="PreSliceKeepModelColorsHelp">Die Farben und die Zuordnung der Modellteile bleiben erhalten. Bei einem Drucker mit ACE kannst du jeder Farbe einen Slot zuweisen.</string>
+    <string name="PreSliceTemperatureHeading">Temperaturen für diesen Slice (änderbar im Menü Filament):</string>
+    <string name="PreSliceTemperatureRow">T%1$d: Bett %2$s/%3$s °C, Düse %4$s/%5$s °C (erste/weitere Schichten)</string>
+    <string name="PreSliceEditTemperatures">Temperaturen</string>
     <string name="ProjectSettingsUseOwn">Eigene nutzen</string>
     <string name="ProjectSettingsProfileTitle">3MF-Projekteinstellungen</string>
     <string name="ProjectSettingsTemporaryHelp">Änderungen gelten nur für dieses Projekt. Deine gespeicherten Profile bleiben erhalten.</string>

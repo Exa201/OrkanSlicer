@@ -95,6 +95,26 @@ class SlicePreparationToolsTest {
         }
     }
 
+    @Test
+    fun readsSlicedMaterialInsteadOfAChangedPalette() {
+        val file = File.createTempFile("slice-material", ".gcode")
+        try {
+            file.writeText("T1 ; change extruder\nM104 S205\n; filament_type = PETG;PLA\n")
+            assertEquals(listOf("PETG", "PLA"), SlicePreparationTools.readFilamentTypes(file))
+            assertArrayEquals(intArrayOf(1), SlicePreparationTools.readUsedTools(file))
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun unknownOrDifferentLoadedMaterialCannotStartPrinting() {
+        assertTrue(SlicePreparationTools.materialMatchesSlicedFile("PLA", "pla"))
+        assertFalse(SlicePreparationTools.materialMatchesSlicedFile("PLA", "PETG"))
+        assertFalse(SlicePreparationTools.materialMatchesSlicedFile("", "PLA"))
+        assertFalse(SlicePreparationTools.materialMatchesSlicedFile("PLA", null))
+    }
+
     @Test(expected = IOException::class)
     fun rejectsAnEmptyGcodeFileBeforeShowingPrintPreparation() {
         val file = File.createTempFile("slice-tools-empty", ".gcode")

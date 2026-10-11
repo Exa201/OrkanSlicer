@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.195 (alpha)
+
+- Apply the filament editor's general bed temperature to every Orca plate surface in the temporary slice config, preventing a hidden Cool Plate value from lowering a print to 35 °C.
+- Show the actual first-layer and later nozzle/bed temperatures for each used 3MF tool before slicing.
+- Provide a direct Filament-menu action in that dialog and ask for slot confirmation again after temperature or profile changes.
+- Compare the material recorded in the sliced G-code with the loaded ACE gate before direct printing. Missing or mismatched material information offers upload-only instead of starting the print.
+- Reproduced the 35/215/205 °C values in a previously uploaded G-code file; no live print was started for this check.
+
 ## 0.8.194 (alpha)
 
 - Preserve an imported 3MF model's T1/part-color assignment by default instead of silently flattening it to one slot before slicing.

@@ -233,6 +233,8 @@ private var preparedFilamentModel: Model? = null
 private var preparedFilamentObjectCount = -1
 private var preparedFilamentPrinter = ""
 private var preparedFilamentPalette = ""
+private var preparedFilamentSettingsRevision = -1L
+private var preparedFilamentConfigUid = -1
 
 private fun filamentPaletteSignature(): String = Prefs.getFilamentSlots().joinToString("|") {
     "${it.color}:${it.type.orEmpty()}"
@@ -263,6 +265,8 @@ private fun applyFilamentAssignment(model: Model, selectedSlots: IntArray, after
             preparedFilamentObjectCount = model.objectsCount
             preparedFilamentPrinter = printerTitle
             preparedFilamentPalette = filamentPaletteSignature()
+            preparedFilamentSettingsRevision = TemporaryProjectSettings.sliceRevision
+            preparedFilamentConfigUid = SliceBeam.CONFIG_UID
             after()
         }
     }
@@ -309,7 +313,9 @@ val activeModel = model ?: return
 if (preparedFilamentModel === activeModel &&
     preparedFilamentObjectCount == activeModel.objectsCount &&
     preparedFilamentPrinter == SliceBeam.CONFIG?.presets?.get("printer").orEmpty() &&
-    preparedFilamentPalette == filamentPaletteSignature()) {
+    preparedFilamentPalette == filamentPaletteSignature() &&
+    preparedFilamentSettingsRevision == TemporaryProjectSettings.sliceRevision &&
+    preparedFilamentConfigUid == SliceBeam.CONFIG_UID) {
     runSlice(activeModel, onSuccess)
     return
 }

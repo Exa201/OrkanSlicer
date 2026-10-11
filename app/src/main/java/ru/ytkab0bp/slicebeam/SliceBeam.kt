@@ -417,6 +417,7 @@ open class SliceBeam : Application() {
                 singleObject.put("filament_type", types.toString())
             }
             TemporaryProjectSettings.applyTo(singleObject, activeFilamentCount)
+            ru.ytkab0bp.slicebeam.config.SliceTemperatureNormalizer.applyGeneralBedTemperature(singleObject)
             return singleObject
         }
 
