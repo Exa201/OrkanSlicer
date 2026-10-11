@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +60,8 @@ fun ProfileFilterBar(
         mutableIntStateOf(initialLevel.coerceIn(0, (levels.size - 1).coerceAtLeast(0)))
     }
     var favoritesOnly by rememberSaveable { mutableStateOf(initialFavoritesOnly) }
+    LaunchedEffect(initialQuery) { query = initialQuery }
+    LaunchedEffect(initialFavoritesOnly) { favoritesOnly = initialFavoritesOnly }
     var filtersExpanded by rememberSaveable { mutableStateOf(false) }
     val showFilters = expanded ?: filtersExpanded
     val stacked = ProfileSettingsMenuLayoutPolicy.usesStackedFilterControls(
@@ -137,7 +140,7 @@ fun ProfileFilterBar(
                 )
             }
         }
-        search(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp))
+        if (showFilters) search(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp))
         if (showFilters && stacked) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),

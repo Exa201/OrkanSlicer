@@ -32,7 +32,6 @@ class ProfileSettingsFilterController(
     private val resetSelectedTab: Runnable,
     private val applyFilter: Runnable,
 ) {
-    private var filtersExpanded by mutableStateOf(false)
     private var query = if (viewModel != null && profileType != -1) {
         viewModel.searchQuery(profileType)
     } else ""
@@ -40,12 +39,27 @@ class ProfileSettingsFilterController(
     private var favoritesOnly = if (viewModel != null && profileType != -1) {
         viewModel.favoritesOnly(profileType)
     } else false
+    private var filtersExpanded by mutableStateOf(query.isNotBlank() || favoritesOnly)
     private val favoriteKeys = HashSet<String>(
         Prefs.getPrefs()?.getStringSet(PREF_SETTING_FAVORITES, emptySet()) ?: emptySet(),
     )
 
     val searchQuery: String
         get() = query
+
+    private fun toggleFilters() {
+        filtersExpanded = !filtersExpanded
+        if (filtersExpanded || (query.isBlank() && !favoritesOnly)) return
+        // A collapsed search must not leave an invisible filter on the settings list.
+        query = ""
+        favoritesOnly = false
+        if (viewModel != null && profileType != -1) {
+            viewModel.setSearchQuery(profileType, "")
+            viewModel.setFavoritesOnly(profileType, false)
+        }
+        resetSelectedTab.run()
+        applyFilter.run()
+    }
 
     fun emptyStateMessage(context: Context): CharSequence = context.getString(
         when {
@@ -59,7 +73,7 @@ class ProfileSettingsFilterController(
     @Composable
     fun ToggleContent() {
         OutlinedIconButton(
-            onClick = { filtersExpanded = !filtersExpanded },
+            onClick = ::toggleFilters,
             modifier = Modifier.size(48.dp),
             shape = RoundedCornerShape(10.dp),
         ) {
@@ -78,7 +92,7 @@ class ProfileSettingsFilterController(
             initialLevel = level,
             initialFavoritesOnly = favoritesOnly,
             expanded = filtersExpanded,
-            onToggle = { filtersExpanded = !filtersExpanded },
+            onToggle = ::toggleFilters,
             showToggle = showToggle,
             onQueryChanged = { updatedQuery ->
                 query = updatedQuery

@@ -143,7 +143,7 @@
     <string name="MenuOrientAllObjects">Orient all objects</string>
     <string name="MenuOrientAllObjectsDone">All objects oriented.</string>
     <string name="OwnFilamentSlotHelp">Choose T0, T1 … The profile below applies to that slot. Copy or choose a profile for independent settings.</string>
-    <string name="OwnFilamentMaterialNotice">Slot material %1$s, profile material %2$s: check temperatures.</string>
+    <string name="OwnFilamentMaterialNotice">Slot %1$s ≠ profile %2$s – check temperatures</string>
     <string name="WorkspaceMore">More</string>
     <string name="WorkspaceMoreTitle">More tools</string>
     <string name="WorkspaceProfilesTitle">Print setup</string>

@@ -653,7 +653,7 @@ def main() -> None:
     if "also { it.categoryIndex = activeCategoryIndex }" not in category_builder:
         raise AssertionError("Accordion child rows must retain the index of their parent category")
     filter_bar = (JAVA / "ui/settings/ComposeProfileFilterBar.kt").read_text(encoding="utf-8")
-    if "ProfileSearchField(" not in filter_bar or "maxLines = if (stacked) 2 else 1" not in filter_bar:
+    if "ProfileSearchField(" not in filter_bar or "if (showFilters) search(" not in filter_bar or "maxLines = if (stacked) 2 else 1" not in filter_bar:
         raise AssertionError("Profile search and level controls are missing their adaptive readable layout")
     if "ProfileSettingsFavoritesToggle" not in filter_bar:
         raise AssertionError("The favorites-only icon is missing an accessibility label")
@@ -1071,7 +1071,8 @@ def main() -> None:
         "ProfileDropdownMenuPolicy.selectedIndex(", "dropdownItemsSnapshot.getOrNull(safeIndex)",
         "selectItem(selected)", "refreshProfileDropdownTitle()", "refreshPendingActions()",
         "deleteCurrentProfile()", "cloneCurrentProfile()", "onUpdateConfigItems()",
-        "profileList.Content()", "profileFilterController?.Content(showToggle = !showFilamentPalette())",
+        "profileList.Content()", "profileFilterController?.ToggleContent()",
+        "profileFilterController?.Content(showToggle = false)",
         "categoryTabsController?.Content()", "profileFooter?.Content(isPortrait)",
     ):
         if contract not in profile_host:

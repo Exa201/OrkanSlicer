@@ -283,7 +283,7 @@ abstract class ProfileListFragment : Fragment() {
                                     },
                                 )
                             }
-                            if (showFilamentPalette()) profileFilterController?.ToggleContent()
+                            profileFilterController?.ToggleContent()
                         }
                         if (profileSettingsViewModel != null) {
                             ComposeProfileSettingsStatus(profileSettingsViewModel!!)
@@ -309,7 +309,7 @@ abstract class ProfileListFragment : Fragment() {
                         }
                         if (useTabs()) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                profileFilterController?.Content(showToggle = !showFilamentPalette())
+                                profileFilterController?.Content(showToggle = false)
                                 if (!useAccordionCategories()) categoryTabsController?.Content()
                             }
                         }

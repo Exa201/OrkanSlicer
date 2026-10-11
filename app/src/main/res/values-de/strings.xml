@@ -143,7 +143,7 @@
     <string name="MenuOrientAllObjects">Alle Objekte ausrichten</string>
     <string name="MenuOrientAllObjectsDone">Alle Objekte ausgerichtet.</string>
     <string name="OwnFilamentSlotHelp">T0, T1 … wählen. Das Profil darunter gilt für diesen Slot. Für eigene Werte je Slot ein Profil kopieren oder wählen.</string>
-    <string name="OwnFilamentMaterialNotice">Slotmaterial %1$s, Profilmaterial %2$s: Temperaturen prüfen.</string>
+    <string name="OwnFilamentMaterialNotice">Slot %1$s ≠ Profil %2$s – Temperaturen prüfen</string>
     <string name="WorkspaceMore">Mehr</string>
     <string name="WorkspaceMoreTitle">Weitere Werkzeuge</string>
     <string name="WorkspaceProfilesTitle">Druck vorbereiten</string>

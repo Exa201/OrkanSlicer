@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.197 (alpha)
+
+- Hide the settings search and filter controls until the search button beside the profile selector is tapped in Print, Filament and Printer menus.
+- Clear an active query and favorites filter when closing search, so hidden filters cannot leave an incomplete settings list.
+- Move the long own-filament slot explanation behind an info button, keeping material mismatch warnings visible in a compact form.
+- Verify the settings menus in portrait and landscape on Honor Magic7 Pro.
+
 ## 0.8.196 (alpha)
 
 - On 3MF import, prefer temperatures from the user's saved filament profile with the same material for each tool; keep the 3MF model colors and do not alter saved profiles.
