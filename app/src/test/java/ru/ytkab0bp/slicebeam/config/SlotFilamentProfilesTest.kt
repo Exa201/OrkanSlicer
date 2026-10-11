@@ -6,6 +6,34 @@ import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType
 
 class SlotFilamentProfilesTest {
+    @Test fun swappedAceGatesUseTheMatchingPhysicalSlotTemperatures() {
+        val slotOne = ConfigObject("Slot 1").apply {
+            put("nozzle_temperature", "205")
+            put("hot_plate_temp", "55")
+        }
+        val slotTwo = ConfigObject("Slot 2").apply {
+            put("nozzle_temperature", "245")
+            put("hot_plate_temp", "80")
+        }
+        val profiles = listOf(slotOne, slotTwo)
+        val swappedGates = intArrayOf(1, 0)
+        val ordered = (0..1).map { tool ->
+            profiles[SlotFilamentProfiles.profileSlotForTool(tool, swappedGates, profiles.size)]
+        }
+        val target = ConfigObject().apply { put("filament_colour", "#111111;#EEEEEE") }
+        val definitions = mapOf(
+            "nozzle_temperature" to ConfigOptionDef().apply { key = "nozzle_temperature"; type = ConfigOptionType.INTS },
+            "hot_plate_temp" to ConfigOptionDef().apply { key = "hot_plate_temp"; type = ConfigOptionType.INTS },
+        )
+
+        SlotFilamentProfiles.applyProfileVectors(target, ordered, definitions, temperatureOnly = true)
+
+        assertEquals("245,205", target["nozzle_temperature"])
+        assertEquals("80,55", target["hot_plate_temp"])
+        assertEquals("#111111;#EEEEEE", target["filament_colour"])
+        assertEquals(0, SlotFilamentProfiles.profileSlotForTool(0, intArrayOf(3, 2), profiles.size))
+    }
+
     @Test fun differentToolProfilesBecomeSeparateNativeValuesWithoutChangingPrinterOffsets() {
         val pla = ConfigObject("PLA").apply {
             put("nozzle_temperature", "205")

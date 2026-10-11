@@ -417,6 +417,12 @@ open class SliceBeam : Application() {
                 singleObject.put("filament_type", types.toString())
             }
             TemporaryProjectSettings.applyTo(singleObject, activeFilamentCount)
+            if (TemporaryProjectSettings.active) {
+                ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles.applyOwnTemperaturesTo(
+                    singleObject, current,
+                    if (activeFilamentCount > 0) activeFilamentCount else Prefs.getFilamentSlots().size,
+                )
+            }
             ru.ytkab0bp.slicebeam.config.SliceTemperatureNormalizer.applyGeneralBedTemperature(singleObject)
             return singleObject
         }

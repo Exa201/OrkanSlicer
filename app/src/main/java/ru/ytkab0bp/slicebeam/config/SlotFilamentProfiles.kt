@@ -5,6 +5,7 @@ import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 
 /** A saved Orca filament preset for each T-index in the user's own palette. */
 object SlotFilamentProfiles {
@@ -64,7 +65,11 @@ object SlotFilamentProfiles {
         if (count <= 1) return
         val pending = ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_FILAMENT)
         val slots = Prefs.getStoredFilamentSlots()
-        val profiles = (0 until count).map { slot ->
+        val printerTitle = config.presets?.get("printer").orEmpty()
+        val gates = if (Prefs.isMmuSyncedPrinter(printerTitle))
+            MmuFilamentSync.getSelectedGates(printerTitle, count) else null
+        val profiles = (0 until count).map { tool ->
+            val slot = profileSlotForTool(tool, gates, slots.size)
             val assigned = titleFor(slot, currentTitle)
             val profile = slots.getOrNull(slot)?.type?.let { material ->
                 OwnFilamentTemperatureProfiles.choose(config.filamentConfigs, assigned, currentTitle, material)
@@ -79,9 +84,29 @@ object SlotFilamentProfiles {
         }
     }
 
+    /** T numbers are logical tools; a selected ACE gate names the physical filament profile. */
+    internal fun profileSlotForTool(tool: Int, gates: IntArray?, storedSlotCount: Int): Int =
+        gates?.getOrNull(tool)?.takeIf { it in 0 until storedSlotCount } ?: tool
+
+    /** An imported 3MF is temporary, but explicit own slot temperatures still win. */
+    fun applyOwnTemperaturesTo(target: ConfigObject, config: Slic3rConfigWrapper, count: Int) {
+        if (count <= 0) return
+        val slots = Prefs.getStoredFilamentSlots()
+        val printerTitle = config.presets?.get("printer").orEmpty()
+        val gates = if (Prefs.isMmuSyncedPrinter(printerTitle))
+            MmuFilamentSync.getSelectedGates(printerTitle, count) else null
+        val profiles = (0 until count).map { tool ->
+            val slot = profileSlotForTool(tool, gates, slots.size)
+            val title = titleFor(slot, null)
+            title?.let(config::findFilament)
+        }
+        applyProfileVectors(target, profiles, PrintConfigDef.getInstance().options, temperatureOnly = true)
+    }
+
     internal fun applyProfileVectors(target: ConfigObject, profiles: List<ConfigObject?>,
-                                     definitions: Map<String, ConfigOptionDef>) {
+                                     definitions: Map<String, ConfigOptionDef>, temperatureOnly: Boolean = false) {
         for ((key, definition) in definitions) {
+            if (temperatureOnly && !OwnFilamentTemperatureProfiles.isTemperatureKey(key)) continue
             if (!definition.type.list || profiles.none { it?.has(key) == true }) continue
             val fallback = TemporaryProjectSettings.splitValue(target[key].orEmpty(), definition.type)
             val values = profiles.mapIndexed { index, profile ->
