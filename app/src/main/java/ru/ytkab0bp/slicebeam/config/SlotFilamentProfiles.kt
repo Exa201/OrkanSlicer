@@ -63,13 +63,16 @@ object SlotFilamentProfiles {
     fun applyTo(target: ConfigObject, config: Slic3rConfigWrapper, currentTitle: String?, count: Int) {
         if (count <= 1) return
         val pending = ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_FILAMENT)
+        val slots = Prefs.getStoredFilamentSlots()
         val profiles = (0 until count).map { slot ->
-            val profile = config.findFilament(titleFor(slot, currentTitle)) ?: config.findFilament(currentTitle)
+            val assigned = titleFor(slot, currentTitle)
+            val profile = slots.getOrNull(slot)?.type?.let { material ->
+                OwnFilamentTemperatureProfiles.choose(config.filamentConfigs, assigned, currentTitle, material)
+            } ?: config.findFilament(assigned) ?: config.findFilament(currentTitle)
             if (profile != null && profile.title == currentTitle && pending.isNotEmpty())
                 ConfigObject(profile).apply { values.putAll(pending) } else profile
         }
         applyProfileVectors(target, profiles, PrintConfigDef.getInstance().options)
-        val slots = Prefs.getStoredFilamentSlots()
         if (slots.isNotEmpty()) {
             target.put("filament_colour", ProfileStringVectorCodec.serialize((0 until count).map { colorText(slots.getOrElse(it) { slots.last() }.color) }))
             target.put("filament_type", ProfileStringVectorCodec.serialize((0 until count).map { slots.getOrElse(it) { slots.last() }.type ?: "PLA" }))

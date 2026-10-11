@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.196 (alpha)
+
+- On 3MF import, prefer temperatures from the user's saved filament profile with the same material for each tool; keep the 3MF model colors and do not alter saved profiles.
+- Resolve stale slot-to-profile mappings by material, so a PETG slot cannot silently inherit ABS temperatures from an old mapping.
+- Test the effective first-layer temperatures in actual G-code on an Honor device.
+
 ## 0.8.195 (alpha)
 
 - Apply the filament editor's general bed temperature to every Orca plate surface in the temporary slice config, preventing a hidden Cool Plate value from lowering a print to 35 °C.

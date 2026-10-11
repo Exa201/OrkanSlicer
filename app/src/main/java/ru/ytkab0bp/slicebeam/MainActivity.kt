@@ -1341,7 +1341,14 @@ SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 if (project3mf)
 {
 ViewUtils.postOnMainThread {
-    TemporaryProjectSettings.activate(projectImport.settings)
+    val ownProfiles = projectImport.settings?.filaments?.mapIndexed { index, imported ->
+        val config = SliceBeam.requireConfig()
+        val selected = config.presets?.get("filament")
+        val assigned = ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles.titleFor(index, selected)
+        ru.ytkab0bp.slicebeam.config.OwnFilamentTemperatureProfiles.choose(
+            config.filamentConfigs, assigned, selected, imported["filament_type"])
+    }.orEmpty()
+    TemporaryProjectSettings.activate(projectImport.settings, ownProfiles)
     fragment.refreshProfileStatus()
     fragment.glView?.requestRender()
     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(if (TemporaryProjectSettings.active)

@@ -48,9 +48,18 @@ object TemporaryProjectSettings {
     fun ownsKey(profileType: Int, key: String): Boolean = owns(profileType) ||
         (active && profileType == ConfigObject.PROFILE_LIST_PRINTER && key == "curr_bed_type")
 
-    @Synchronized fun activate(settings: ThreeMfProjectSettings?) {
+    @Synchronized fun activate(settings: ThreeMfProjectSettings?, ownTemperatureProfiles: List<ConfigObject?> = emptyList()) {
         data = settings?.takeIf { it.hasSettings }?.let { source -> source.copy(
-            process = LinkedHashMap(source.process), filaments = source.filaments.map { LinkedHashMap(it) },
+            process = LinkedHashMap(source.process), filaments = source.filaments.mapIndexed { index, imported ->
+                LinkedHashMap(imported).apply {
+                    ownTemperatureProfiles.getOrNull(index)?.values?.forEach { (key, raw) ->
+                        if (key in source.filamentTypes && OwnFilamentTemperatureProfiles.isTemperatureKey(key)) {
+                            val scalar = splitValue(raw, source.filamentTypes[key]).firstOrNull()
+                            if (!scalar.isNullOrBlank()) put(key, scalar)
+                        }
+                    }
+                }
+            },
             filamentTypes = LinkedHashMap(source.filamentTypes), filamentTitles = source.filamentTitles.toList(),
         ) }
         processEdits.clear()

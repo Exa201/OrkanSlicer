@@ -1,11 +1,11 @@
 {
   "formatVersion": 1,
   "abi": "arm64-v8a",
-  "appVersion": "0.8.195",
-  "versionCode": 230,
+  "appVersion": "0.8.196",
+  "versionCode": 231,
   "nativeSourceFingerprint": "d79427752a52d8831db3ac5da205d67c7e8cf823fa713eda2d09e321c6d9b06c",
-  "sourceApk": "app\\build\\outputs\\apk\\debug\\OrkanSlicer_ebbe3d9cf6.apk",
-  "sourceApkSha256": "eedd42d43f3eeb43f901d39dc7a7bc01fa94bcc987eda36648c0ec9543fecb6a",
+  "sourceApk": "app\\build\\outputs\\apk\\debug\\OrkanSlicer_69ee8093fb.apk",
+  "sourceApkSha256": "9a097a839e6d09920fe6330960bbe4132833c4e746008404df86238367809dfc",
   "files": [
     {
       "name": "libTKBO.so",
@@ -275,7 +275,7 @@
     {
       "name": "libslic3r.so",
       "size": 36157960,
-      "sha256": "aceddaecd81db4074e44635f31247f969c0562b04395324e45709deb2c2ee43c"
+      "sha256": "5164baadd9eb0b915c339ca9396c4a7969306bdb233aeb80e97d843cb2d9d1b0"
     }
   ]
 }
