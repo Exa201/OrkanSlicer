@@ -88,6 +88,12 @@ internal class TransformMenuItems(
             selectionAction(R.string.MenuTransformScale, R.drawable.arrow_up_right_corner_outline_24, availability) {
                 showScaleMenu.accept(it)
             },
+            selectionAction(R.string.ObjectActionDuplicate, R.drawable.folder_simple_plus_outline_28, availability) {
+                fragment.glView!!.duplicateSelectedModel { fragment.updateModel() }
+            },
+            selectionAction(R.string.ObjectActionMore, R.drawable.settings_outline_28, availability) {
+                fragment.showSelectedModelContextMenu()
+            },
             selectionAction(R.string.ModelSimplify, R.drawable.sliders_outline_28, availability, ::showSimplifyDialog),
             BedComposeMenuAction(
                 R.string.MenuOrientationFlatten,

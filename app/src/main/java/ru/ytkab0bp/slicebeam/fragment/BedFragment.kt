@@ -59,18 +59,15 @@ import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
-import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.OptionsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
-import ru.ytkab0bp.slicebeam.components.bed_menu.TransformScaleMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.SlicingProgressEvent
-import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
@@ -82,8 +79,6 @@ import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
-import ru.ytkab0bp.slicebeam.ui.workspace.SelectedObjectActionsBar
-import ru.ytkab0bp.slicebeam.ui.workspace.SelectedObjectQuickAction
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabsPolicy
@@ -155,12 +150,6 @@ private var profileStatusTitle by mutableStateOf("")
 private var profileStatusSummary by mutableStateOf("")
 private var profileStatusDescription by mutableStateOf("")
 private var profileStatusThemeRevision by mutableIntStateOf(0)
-private var selectedObjectBar: ComposeView? = null
-private var selectedObjectBarVisible by mutableStateOf(false)
-private var selectedObjectBarTitle by mutableStateOf("")
-private var selectedObjectBarThemeRevision by mutableIntStateOf(0)
-// Recompose the selected-object bar for each selection event so old actions never reopen.
-private var selectedObjectBarSelectionRevision by mutableIntStateOf(0)
 private var compactPortraitLayout:Boolean = false
 private var sessionRestored:Boolean = false
 private val undoHistory = ArrayDeque<Model>()
@@ -566,17 +555,6 @@ dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
     dialog.dismiss()
 }
 }
-@EventHandler(runOnMainThread = true)
-fun onSelectedObjectChanged(event:SelectedObjectChangedEvent) {
- if (event.showActionBar) {
- selectedObjectBarSelectionRevision++
- refreshSelectedObjectBar()
- }
- else {
- selectedObjectBarVisible = false
- selectedObjectBar?.setVisibility(View.GONE)
- }
-}
 fun showUnfoldMenu(menu:UnfoldMenu, from:View) {
 if (currentUnfoldMenu != null) return
 menu.setOnDismiss({ if (menu.isAttached()) return@setOnDismiss
@@ -652,68 +630,8 @@ Toast.makeText(ctx, R.string.ModelContextDeletedAll, Toast.LENGTH_SHORT).show() 
 .setNegativeButton(android.R.string.cancel, null)
 .show()
 }
-private fun buildSelectedObjectBar(ctx:Context) {
-val composeView = ComposeView(ctx)
-composeView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-composeView.setContent {
-val revision = selectedObjectBarThemeRevision
-val selectionRevision = selectedObjectBarSelectionRevision
-if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
-if (selectedObjectBarVisible) {
-SelectedObjectActionsBar(
-    title = selectedObjectBarTitle,
-    selectionKey = selectionRevision,
-    onAction = ::runObjectQuickAction,
-)
-}
-}
-}
-selectedObjectBar = composeView
-selectedObjectBar!!.setVisibility(View.GONE)
-refreshSelectedObjectBar()
-}
-private fun refreshSelectedObjectBar() {
-if (selectedObjectBar == null || glView == null || glView!!.renderer == null) {
-selectedObjectBarVisible = false
-selectedObjectBar?.setVisibility(View.GONE)
-return
-}
-val selected = glView!!.renderer.selectedObject
-val model = glView!!.renderer.model
-val visible = model != null && selected >= 0 && selected < model.objectsCount
-selectedObjectBar!!.setVisibility(if (visible) View.VISIBLE else View.GONE)
-selectedObjectBarVisible = visible
-if (!visible) {
-selectedObjectBarTitle = ""
-return
-}
-var name = model.getObjectName(selected)
-val ctx = getContext()
-if (ctx == null) return
-if (name == null || name.trim().isEmpty()) name = ctx.getString(R.string.MenuFileObjectNumber, selected + 1)
-selectedObjectBarTitle = ctx.getString(R.string.ObjectActionSelected, name)
-}
-private fun runObjectQuickAction(action:SelectedObjectQuickAction) {
-val selected = if (glView == null) -1 else glView!!.renderer.selectedObject
-if (selected < 0) return
-val ctx = getContext()
-if (ctx == null) return
-when (action) {
-SelectedObjectQuickAction.MOVE -> {
-val orientation = OrientationMenu()
-orientation.onSetBed(this)
-showUnfoldMenu(orientation.PositionMenu(), selectedObjectBar ?: return)
-}
-SelectedObjectQuickAction.ROTATE -> {
-val rotation = OrientationMenu()
-rotation.onSetBed(this)
-showUnfoldMenu(rotation.RotationMenu(), selectedObjectBar ?: return)
-}
-SelectedObjectQuickAction.SCALE -> showUnfoldMenu(TransformScaleMenu(this), selectedObjectBar ?: return)
-SelectedObjectQuickAction.DUPLICATE -> glView!!.duplicateSelectedModel({ updateModel()
-refreshSelectedObjectBar() })
-SelectedObjectQuickAction.MORE -> showModelContextMenu(selected)
-}
+fun showSelectedModelContextMenu() {
+    showModelContextMenu(glView?.renderer?.selectedObject ?: -1)
 }
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
@@ -1207,7 +1125,6 @@ PrinterWebOpenButton(hostConfigured = printerWebAvailable, onOpen = ::openPrinte
 }
 }
 }
-buildSelectedObjectBar(ctx)
 contentView = createWorkspaceContent(ctx, portrait)
 overlayLayout!!.addView(contentView, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -1279,10 +1196,10 @@ private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, sl
     }
     selectMenu(ctx, bottomNavigation, slot)
 }
-/** The viewport has no toolbar overlays: profiles above, plates beside, object actions below. */
+/** Keep the model viewport clear; object actions are available from the Edit menu. */
 private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
 listOfNotNull(glView, menuView, navigationView, profileStatusText, printerWebButton, projectSettingsBar,
-    plateTabsScroll, selectedObjectBar).forEach(::detachFromParent)
+    plateTabsScroll).forEach(::detachFromParent)
 detachFromParent(swipeDownLayout)
 swipeDownLayout.removeAllViews()
 val workspace = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
@@ -1308,8 +1225,6 @@ bedRow.addView(plateTabsScroll, LinearLayout.LayoutParams(
 ViewUtils.dp(64), ViewGroup.LayoutParams.MATCH_PARENT))
 bedRow.addView(glView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
 workspace.addView(bedRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-workspace.addView(selectedObjectBar, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 navigationView = createMenuNavigationView(ctx, bottomNavigation = portrait)
 if (portrait) {
 workspace.addView(menuView, LinearLayout.LayoutParams(
@@ -1350,7 +1265,6 @@ configureMenuNavigation()
 overlayLayout!!.addView(contentView, 0, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 updateAdaptiveOverlayMargins(portrait)
-refreshSelectedObjectBar()
 glView!!.requestRender()
 }
 private fun updateAdaptiveOverlayMargins(portrait:Boolean) {
@@ -1944,7 +1858,6 @@ glView!!.requestRender()
 }
 override fun onApplyTheme() {
 super.onApplyTheme()
-selectedObjectBarThemeRevision++
 plateTabsThemeRevision++
 profileStatusThemeRevision++
 printerWebThemeRevision++
@@ -1994,7 +1907,6 @@ while (undoHistory.size > MAX_HISTORY) undoHistory.removeFirst().release()
 }
 clearHistoryDeque(redoHistory)
 stableModelSnapshot = if (currentModel != null) Model.merge(currentModel) else null
-refreshSelectedObjectBar()
 }
 private fun syncCurrentModel() {
 if (!platesModels.isEmpty() && glView != null)

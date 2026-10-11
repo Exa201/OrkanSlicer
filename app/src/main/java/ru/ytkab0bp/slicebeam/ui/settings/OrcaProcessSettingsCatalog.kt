@@ -25,7 +25,7 @@ object OrcaProcessSettingsCatalog {
                 section("Ironing", "ironing_type", "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_angle_fixed", "ironing_inset", "ironing_expansion"),
                 section("Wall generator", "wall_generator", "wall_transition_angle", "wall_transition_filter_deviation", "wall_transition_length", "wall_distribution_count", "min_bead_width", "min_feature_size"),
                 section("Walls and surfaces", "extra_perimeters_on_overhangs", "precise_outer_wall", "ensure_vertical_shell_thickness", "reduce_crossing_wall", "max_travel_detour_distance", "only_one_wall_top", "only_one_wall_first_layer", "wall_sequence", "wall_direction", "gap_fill_target", "reduce_infill_retraction", "is_infill_first"),
-                section("Overhangs", "detect_overhang_wall", "make_overhang_printable", "make_overhang_printable_angle", "make_overhang_printable_hole_size", "overhang_reverse", "overhang_reverse_threshold", "overhang_reverse_internal_only", "overhang_flow_ratio"),
+                section("Overhangs", "detect_overhang_wall", "overhang_reverse", "overhang_reverse_threshold", "overhang_reverse_internal_only", "overhang_flow_ratio"),
                 section("Bridging", "thick_bridges", "bridge_angle", "internal_bridge_angle", "dont_filter_internal_bridges", "thick_internal_bridges", "enable_extra_bridge_layer", "counterbore_hole_bridging"),
             ),
         ),
@@ -89,6 +89,7 @@ object OrcaProcessSettingsCatalog {
         ),
         OrcaSettingsCategory(
             "Advanced", R.drawable.settings_outline_28, listOf(
+                section("Make overhangs printable", "make_overhang_printable", "make_overhang_printable_angle", "make_overhang_printable_hole_size"),
                 section("Special mode", "slicing_mode", "spiral_mode", "print_sequence", "print_order", "spiral_mode_smooth", "spiral_mode_max_xy_smoothing", "spiral_starting_flow_ratio", "spiral_finishing_flow_ratio", "timelapse_type", "enable_timelapse", "enable_wrapping_detection", "extruder_clearance_radius", "extruder_clearance_height_to_rod"),
                 section("Fuzzy Skin", "fuzzy_skin", "fuzzy_skin_thickness", "fuzzy_skin_point_distance", "fuzzy_skin_mode", "fuzzy_skin_first_layer", "fuzzy_skin_noise_type", "fuzzy_skin_scale", "fuzzy_skin_octaves", "fuzzy_skin_persistence"),
             ),
