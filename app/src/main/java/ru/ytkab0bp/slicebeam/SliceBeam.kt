@@ -27,6 +27,7 @@ import ru.ytkab0bp.slicebeam.events.TemporaryProjectSettingsChangedEvent
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.config.ProfileConfigSnapshot
 import ru.ytkab0bp.slicebeam.config.ProfileSelectionTransaction
+import ru.ytkab0bp.slicebeam.config.PrinterScopedProcessProfile
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.NativeEnumValueSanitizer
@@ -174,6 +175,10 @@ open class SliceBeam : Application() {
         ): Boolean {
             val config = CONFIG ?: return false
             val presets = config.presets ?: return false
+            if (printer != null && config.findPrinter(printer) == null ||
+                process != null && config.findPrint(process) == null ||
+                filament != null && config.findFilament(filament) == null) return false
+            if (!TemporaryProjectSettings.active && !ensurePrinterScopedProcess()) return false
             val projectProcess = if (TemporaryProjectSettings.active) process?.let(config::findPrint) else null
             val projectFilament = if (TemporaryProjectSettings.active) filament?.let(config::findFilament) else null
             if (TemporaryProjectSettings.active && printer == null && (process != null || filament != null)) {
@@ -207,6 +212,7 @@ open class SliceBeam : Application() {
                 persist = ::saveConfig,
             )
             if (!applied) return false
+            if (!TemporaryProjectSettings.active && !ensurePrinterScopedProcess()) return false
             if (previousPrinter != presets["printer"]) TemporaryProjectSettings.physicalPrinterChanged()
             projectProcess?.let { TemporaryProjectSettings.useProfile(ConfigObject.PROFILE_LIST_PRINT, it) }
             projectFilament?.let { TemporaryProjectSettings.useProfile(ConfigObject.PROFILE_LIST_FILAMENT, it) }
@@ -232,6 +238,30 @@ open class SliceBeam : Application() {
             }
             if (!saved) {
                 Log.w("Config", "Profile selection was saved, but its per-printer restore point could not be updated")
+            }
+            return true
+        }
+
+        /** A printer owns an editable process copy, even when its starting preset is shared. */
+        @JvmStatic
+        @Synchronized
+        fun ensurePrinterScopedProcess(): Boolean {
+            if (TemporaryProjectSettings.active) return true
+            val config = CONFIG ?: return false
+            val presets = config.presets ?: return false
+            val printer = presets["printer"]?.takeIf(String::isNotBlank) ?: return true
+            val source = config.findPrint(presets["print"]) ?: return true
+            if (PrinterScopedProcessProfile.belongsTo(source, printer)) return true
+            val targetTitle = PrinterScopedProcessProfile.title(source.title.orEmpty(), printer)
+            val existing = config.findPrint(targetTitle)
+            val copy = if (existing == null) PrinterScopedProcessProfile.copy(source, printer) else null
+            if (copy != null) config.printConfigs.add(copy)
+            val previous = presets["print"]
+            presets.put("print", targetTitle)
+            if (!saveConfig()) {
+                if (previous == null) presets.remove("print") else presets.put("print", previous)
+                if (copy != null) config.printConfigs.remove(copy)
+                return false
             }
             return true
         }

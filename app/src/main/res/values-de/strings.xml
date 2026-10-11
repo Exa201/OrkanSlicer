@@ -1002,6 +1002,8 @@
     <string name="ProfileNumericToggleSign">Vorzeichen der Zahl wechseln</string>
     <string name="ProfileNumericAsAbsolute">Absoluter Wert</string>
     <string name="ProfileNumericAsPercent">Prozentwert</string>
+    <string name="LineWidthAutoHint">In diesem Profil automatisch. Eine Änderung setzt die Linienbreite relativ zur Düse.</string>
+    <string name="LineWidthApply">Linienbreite übernehmen</string>
     <string name="PrinterHostOctoPrint">OctoPrint</string>
     <string name="PrinterHostMoonraker">Moonraker / Klipper</string>
     <string name="ProfileVectorInputLabel">Werte</string>

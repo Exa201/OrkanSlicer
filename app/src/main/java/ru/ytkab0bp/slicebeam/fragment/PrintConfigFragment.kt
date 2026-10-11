@@ -46,6 +46,7 @@ class PrintConfigFragment : ProfileListFragment() {
 
     override fun onCreate() {
         super.onCreate()
+        SliceBeam.ensurePrinterScopedProcess()
         onResetConfig()
     }
 
@@ -55,6 +56,7 @@ class PrintConfigFragment : ProfileListFragment() {
     }
 
     override fun onResume() {
+        SliceBeam.ensurePrinterScopedProcess()
         super.onResume()
         // Refresh printer-dependent controls when returning from another profile screen.
         toolsThemeRevision++
@@ -374,7 +376,7 @@ class PrintConfigFragment : ProfileListFragment() {
             getContext()?.let { Toast.makeText(it, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show() }
             return false
         }
-        currentConfig = ConfigObject(item as ConfigObject)
+        onResetConfig()
         compatItems = null
         return true
     }

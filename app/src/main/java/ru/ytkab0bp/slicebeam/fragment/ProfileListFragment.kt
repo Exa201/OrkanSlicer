@@ -456,7 +456,7 @@ abstract class ProfileListFragment : Fragment() {
         val safeIndex = ProfileDropdownMenuPolicy.selectedIndex(dropdownMenu, index) ?: return
         val selected = dropdownItemsSnapshot.getOrNull(safeIndex) ?: return
         if (selectItem(selected)) {
-            dropdownTitle = selected.title
+            dropdownTitle = getCurrentConfig()?.title ?: selected.title
             refreshPendingActions()
             onUpdateConfigItems()
             refreshWorkspaceProfileStatus()

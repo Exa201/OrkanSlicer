@@ -4,9 +4,11 @@ import android.content.Context
 import android.graphics.Color
 import androidx.compose.runtime.Composable
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.ColorChooserSheet
 import ru.ytkab0bp.slicebeam.config.ProfilePointValueValidator
 import ru.ytkab0bp.slicebeam.config.ProfileStringVectorCodec
+import ru.ytkab0bp.slicebeam.config.LineWidthConversion
 import ru.ytkab0bp.slicebeam.config.ProfileVectorValueValidator
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
@@ -17,6 +19,7 @@ import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileEnumOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileEnumVectorOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileFallbackOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileNumericOption
+import ru.ytkab0bp.slicebeam.ui.settings.ComposeLineWidthOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileOpenOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfilePointOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileStringOption
@@ -44,6 +47,17 @@ object ProfileOptionComposePresenter {
         onLongClick: Runnable,
         onEditorStateChanged: (Boolean) -> Unit = {},
     ) {
+        if (def.key in LineWidthConversion.keys &&
+            def.type == ConfigOptionDef.ConfigOptionType.FLOAT_OR_PERCENT) {
+            val printer = SliceBeam.CONFIG?.let { config ->
+                config.presets?.get("printer")?.let(config::findPrinter)
+            }
+            val nozzle = LineWidthConversion.nozzle(printer?.get("nozzle_diameter"))
+            if (nozzle != null) {
+                ComposeLineWidthOption.Content(localized(def.getLabel()), initialValue, nozzle, onChanged)
+                return
+            }
+        }
         when (ProfileOptionDirectComposePolicy.kind(def, elementIndex, initialValue)) {
             ProfileOptionDirectComposePolicy.Kind.BOOLEAN -> ComposeProfileBooleanOption.Content(
                 localized(def.getLabel()),
