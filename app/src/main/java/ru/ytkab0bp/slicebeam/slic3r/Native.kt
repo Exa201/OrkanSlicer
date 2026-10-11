@@ -1,0 +1,383 @@
+package ru.ytkab0bp.slicebeam.slic3r
+
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import ru.ytkab0bp.slicebeam.SliceBeam
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.nio.charset.StandardCharsets
+import java.util.zip.ZipInputStream
+
+/** JNI entry points and Orca profile-bundle helpers. Keep native names stable for beam_native.cpp. */
+class Native {
+    companion object {
+        init {
+            System.loadLibrary("c++_shared")
+            System.loadLibrary("gmp")
+            System.loadLibrary("gmpxx")
+            System.loadLibrary("mpfr")
+            OCCTLoader.load()
+            System.loadLibrary("slic3r")
+            set_svg_path_prefix(SliceBeam.INSTANCE!!.cacheDir.absolutePath)
+        }
+
+    @JvmStatic
+    external fun get_print_config_def(def: PrintConfigDef): Unit
+    @JvmStatic
+    external fun set_svg_path_prefix(prefix: String): Unit
+    @JvmStatic
+    external fun shader_init_from_texts(name: String, fragment: String, vertex: String): Long
+    @JvmStatic
+    external fun shader_get_id(ptr: Long): Int
+    @JvmStatic
+    external fun shader_get_uniform_location(ptr: Long, name: String): Int
+    @JvmStatic
+    external fun shader_get_attrib_location(ptr: Long, name: String): Int
+    @JvmStatic
+    external fun shader_start_using(ptr: Long): Unit
+    @JvmStatic
+    external fun shader_stop_using(ptr: Long): Unit
+    @JvmStatic
+    external fun shader_release(ptr: Long): Unit
+    @JvmStatic
+    external fun glmodel_create(): Long
+    @JvmStatic
+    external fun glmodel_init_from_model(ptr: Long, model: Long): Unit
+    @JvmStatic
+    external fun glmodel_init_from_model_object(ptr: Long, model: Long, i: Int): Unit
+    @JvmStatic
+    external fun glmodel_init_raycast_data(ptr: Long): Unit
+    @JvmStatic
+    external fun glmodel_set_color(ptr: Long, red: Float, green: Float, blue: Float, alpha: Float): Unit
+    @JvmStatic
+    external fun glmodel_render(ptr: Long): Unit
+    @JvmStatic
+    external fun glmodel_stilized_arrow(ptr: Long, tipRadius: Float, tipLength: Float, stemRadius: Float, stemLength: Float): Unit
+    @JvmStatic
+    external fun glmodel_init_background_triangles(ptr: Long): Unit
+    @JvmStatic
+    external fun glmodel_init_box(ptr: Long, width: Float, depth: Float, height: Float): Unit
+    @JvmStatic
+    external fun glmodel_init_bounding_box(ptr: Long, modelPtr: Long, i: Int): Unit
+    @JvmStatic
+    external fun glmodel_is_initialized(ptr: Long): Boolean
+    @JvmStatic
+    external fun glmodel_is_empty(ptr: Long): Boolean
+    @JvmStatic
+    external fun glmodel_raycast_closest_hit(ptr: Long, point: DoubleArray, direction: DoubleArray): DoubleArray
+    @JvmStatic
+    external fun glmodel_reset(ptr: Long): Unit
+    @JvmStatic
+    external fun glmodel_release(ptr: Long): Unit
+    @JvmStatic
+    external fun bed_create(data: LongArray): Long
+    @JvmStatic
+    external fun bed_get_bounding_volume_max_size(ptr: Long): Int
+    @JvmStatic
+    external fun bed_get_bounding_volume(ptr: Long): DoubleArray
+    @JvmStatic
+    external fun bed_configure(ptr: Long, configPath: String): Unit
+    @JvmStatic
+    external fun bed_init_triangles_mesh(ptr: Long, triangles: Long): Unit
+    @JvmStatic
+    external fun bed_arrange(ptr: Long, modelPtr: Long): Boolean
+    @JvmStatic
+    external fun bed_release(ptr: Long): Unit
+    @JvmStatic
+    external fun models_merge(vararg ptrs: Long): Long
+    @JvmStatic
+    external fun model_create(): Long
+    @JvmStatic
+    @Throws(Slic3rRuntimeError::class)
+    external fun model_read_from_file(path: String, baseName: String, plateId: Int): Long
+    @JvmStatic
+    external fun model_get_objects_count(ptr: Long): Int
+    @JvmStatic
+    external fun model_get_object_name(ptr: Long, i: Int): String
+    @JvmStatic
+    external fun model_get_triangle_count(ptr: Long, i: Int): Int
+    @JvmStatic
+    external fun model_simplify(ptr: Long, i: Int, keepRatio: Float): Int
+    @JvmStatic
+    external fun model_add_object_from_another(ptr: Long, from: Long, i: Int): Unit
+    @JvmStatic
+    external fun model_delete_object(ptr: Long, i: Int): Unit
+    @JvmStatic
+    external fun model_split(ptr: Long, i: Int): Int
+    @JvmStatic
+    external fun model_get_translation(ptr: Long, objectIndex: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_scale(ptr: Long, objectIndex: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_mirror(ptr: Long, objectIndex: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_rotation(ptr: Long, objectIndex: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_bounding_box_exact(ptr: Long, i: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_bounding_box_approx(ptr: Long, i: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_bounding_box_exact_global(ptr: Long): DoubleArray
+    @JvmStatic
+    external fun model_get_bounding_box_approx_global(ptr: Long): DoubleArray
+    @JvmStatic
+    external fun model_is_left_handed(ptr: Long, i: Int): Boolean
+    @JvmStatic
+    external fun model_translate(ptr: Long, i: Int, x: Double, y: Double, z: Double): Unit
+    @JvmStatic
+    external fun model_translate_global(ptr: Long, x: Double, y: Double, z: Double): Unit
+    @JvmStatic
+    external fun model_ensure_on_bed(ptr: Long, i: Int): Unit
+    @JvmStatic
+    external fun model_scale(ptr: Long, i: Int, x: Double, y: Double, z: Double): Unit
+    @JvmStatic
+    external fun model_rotate(ptr: Long, i: Int, x: Double, y: Double, z: Double): Unit
+    @JvmStatic
+    external fun model_flatten_rotate(ptr: Long, i: Int, surfacePtr: Long): Unit
+    @JvmStatic
+    external fun model_create_flatten_planes(ptr: Long, i: Int): LongArray
+    @JvmStatic
+    external fun model_cut(ptr: Long, i: Int, zHeight: Double, rotX: Double, rotY: Double, keepUpper: Boolean, keepLower: Boolean): Boolean
+    @JvmStatic
+    external fun model_add_connector(ptr: Long, objIdx: Int, x: Double, y: Double, z: Double, radius: Float, height: Float, type: Int): Unit
+    @JvmStatic
+    external fun model_add_connector_on_plane(ptr: Long, objIdx: Int, x: Double, y: Double, z: Double, radius: Float, height: Float, type: Int, rotX: Double, rotY: Double): Unit
+    @JvmStatic
+    external fun model_remove_connector(ptr: Long, objIdx: Int, connIdx: Int): Unit
+    @JvmStatic
+    external fun model_clear_connectors(ptr: Long, objIdx: Int): Unit
+    @JvmStatic
+    external fun model_auto_orient(ptr: Long, i: Int): Unit
+    @JvmStatic
+    external fun model_is_big_object(ptr: Long, i: Int): Boolean
+    @JvmStatic
+    external fun model_get_extruder(ptr: Long, i: Int): Int
+    @JvmStatic
+    external fun model_set_extruder(ptr: Long, i: Int, extruder: Int): Unit
+    @JvmStatic
+    external fun model_get_used_filaments(ptr: Long, i: Int): IntArray
+    @JvmStatic
+    external fun model_set_uniform_filament(ptr: Long, i: Int, filament: Int): Unit
+    @JvmStatic
+    external fun model_apply_adaptive_layer_height(ptr: Long, i: Int, configPath: String, qualityFactor: Float): Unit
+    @JvmStatic
+    external fun model_clear_adaptive_layer_height(ptr: Long, i: Int): Unit
+    @JvmStatic
+    external fun model_has_adaptive_layer_height(ptr: Long, i: Int): Boolean
+    @JvmStatic
+    external fun model_emboss_text(ptr: Long, i: Int, fontPath: String, text: String, size: Float, depth: Float, type: Int, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double): Unit
+    @JvmStatic
+    external fun paint_begin(modelPtr: Long, objIdx: Int, mode: Int): Long
+    @JvmStatic
+    external fun paint_raycast(sessionPtr: Long, origin: DoubleArray, dir: DoubleArray): DoubleArray
+    @JvmStatic
+    external fun paint_brush(sessionPtr: Long, hit: DoubleArray, facetStart: Int, radius: Double, filamentIdx: Int, cameraPos: DoubleArray, sphere: Boolean): Unit
+    @JvmStatic
+    external fun paint_bucket(sessionPtr: Long, hit: DoubleArray, facetStart: Int, filamentIdx: Int, propagate: Boolean, angle: Double): Unit
+    @JvmStatic
+    external fun paint_height(sessionPtr: Long, zMin: Double, zMax: Double, filamentIdx: Int): Unit
+    @JvmStatic
+    external fun paint_clear(sessionPtr: Long): Unit
+    @JvmStatic
+    external fun paint_commit(sessionPtr: Long): Unit
+    @JvmStatic
+    external fun paint_get_mesh(sessionPtr: Long, filamentIdx: Int): FloatArray
+    @JvmStatic
+    external fun glmodel_init_from_paint(glPtr: Long, sessionPtr: Long, filamentIdx: Int): Int
+    @JvmStatic
+    external fun paint_end(sessionPtr: Long): Unit
+    @JvmStatic
+    external fun model_build_paint_overlay(modelPtr: Long, objIdx: Int, glPtr: Long, filamentIdx: Int): Int
+    @JvmStatic
+    external fun model_has_paint(modelPtr: Long, objIdx: Int): Boolean
+    @JvmStatic
+    external fun model_paint_max_filament(modelPtr: Long, objIdx: Int): Int
+    @JvmStatic
+    @Throws(Slic3rRuntimeError::class)
+    external fun model_slice(ptr: Long, configPath: String, path: String, listener: SliceListener?, numFilaments: Int, filamentColors: IntArray?, calibMode: Int, calibStart: Double, calibEnd: Double, calibStep: Double): Long
+    @JvmStatic
+    @Throws(Slic3rRuntimeError::class)
+    external fun model_export_3mf(ptr: Long, configPath: String, path: String): Unit
+    @JvmStatic
+    external fun model_release(ptr: Long): Unit
+    @JvmStatic
+    external fun gcoderesult_load_file(path: String, name: String): Long
+    @JvmStatic
+    external fun gcoderesult_get_recommended_name(ptr: Long): String
+    @JvmStatic
+    external fun gcoderesult_get_used_filament_mm(ptr: Long, role: Int): Double
+    @JvmStatic
+    external fun gcoderesult_get_used_filament_g(ptr: Long, role: Int): Double
+    @JvmStatic
+    external fun gcoderesult_release(ptr: Long): Unit
+    @JvmStatic
+    external fun vgcode_create(): Long
+    @JvmStatic
+    external fun vgcode_init(ptr: Long): Unit
+    @JvmStatic
+    external fun vgcode_is_initialized(ptr: Long): Boolean
+    @JvmStatic
+    external fun vgcode_set_colors(ptr: Long, colors: IntArray): Unit
+    @JvmStatic
+    external fun vgcode_get_layers_count(ptr: Long): Long
+    @JvmStatic
+    external fun vgcode_load(ptr: Long, resultPtr: Long): Unit
+    @JvmStatic
+    external fun vgcode_render(ptr: Long, viewMatrix: FloatArray, projectionMatrix: FloatArray): Unit
+    @JvmStatic
+    external fun vgcode_set_layers_view_range(ptr: Long, min: Long, max: Long): Unit
+    @JvmStatic
+    external fun vgcode_set_infill_visibility_depth(ptr: Long, depth: Int): Unit
+    @JvmStatic
+    external fun vgcode_set_fast_mode(ptr: Long, fastMode: Boolean): Unit
+    @JvmStatic
+    external fun vgcode_set_selected_object_id(ptr: Long, id: Int): Unit
+    @JvmStatic
+    external fun vgcode_get_layers_view_range(ptr: Long): LongArray
+    @JvmStatic
+    external fun vgcode_get_estimated_time(ptr: Long): Float
+    @JvmStatic
+    external fun vgcode_get_estimated_time_role(ptr: Long, role: Int): Float
+    @JvmStatic
+    external fun vgcode_is_extrusion_role_visible(ptr: Long, role: Int): Boolean
+    @JvmStatic
+    external fun vgcode_toggle_extrusion_role_visibility(ptr: Long, role: Int): Unit
+    @JvmStatic
+    external fun vgcode_set_view_type(ptr: Long, type: Int): Unit
+    @JvmStatic
+    external fun vgcode_get_view_type(ptr: Long): Int
+    @JvmStatic
+    external fun vgcode_set_tool_colors(ptr: Long, colors: IntArray): Unit
+    @JvmStatic
+    external fun vgcode_is_option_visible(ptr: Long, optionType: Int): Boolean
+    @JvmStatic
+    external fun vgcode_toggle_option_visibility(ptr: Long, optionType: Int): Unit
+    @JvmStatic
+    external fun vgcode_reset(ptr: Long): Unit
+    @JvmStatic
+    external fun vgcode_release(ptr: Long): Unit
+    @JvmStatic
+    external fun utils_config_create(config: String?): Long
+    @JvmStatic
+    external fun utils_config_check_compatibility(ptr: Long, condition: String): Boolean
+    @JvmStatic
+    @Throws(Slic3rRuntimeError::class)
+    external fun utils_config_eval(ptr: Long, condition: String?): String?
+    @JvmStatic
+    external fun utils_config_release(ptr: Long): Unit
+    @JvmStatic
+    external fun utils_calc_view_normal_matrix(viewMatrix: DoubleArray, worldMatrix: DoubleArray, normalMatrix: DoubleArray): Unit
+    @JvmStatic
+    external fun utils_unproject(viewMatrix: DoubleArray, projectionMatrix: DoubleArray, screenWidth: Int, screenHeight: Int, x: Double, y: Double): DoubleArray
+
+    @JvmStatic
+    @Throws(IOException::class, JSONException::class)
+    fun orca_bundle_read(archivePath: String, extractDir: String): String {
+        val extractRoot = File(extractDir)
+        if (!extractRoot.exists() && !extractRoot.mkdirs()) {
+            throw IOException("Failed to create extraction directory: $extractRoot")
+        }
+        try {
+            unzipArchive(File(archivePath), extractRoot)
+            val files = JSONArray()
+            val bundleStructureJson = collectJsonFiles(extractRoot, extractRoot, files)
+                ?: throw IOException("bundle_structure.json not found in Orca bundle")
+            val result = JSONObject()
+            result.put("bundle_structure_json", bundleStructureJson)
+            result.put("files", files)
+            return result.toString()
+        } finally {
+            deleteRecursively(extractRoot)
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun unzipArchive(archive: File, extractRoot: File) {
+        val rootPath = extractRoot.canonicalPath + File.separator
+        val rootCanonicalPath = extractRoot.canonicalPath
+        val buffer = ByteArray(8192)
+        ZipInputStream(FileInputStream(archive)).use { zis ->
+            while (true) {
+                val entry = zis.nextEntry ?: break
+                val outFile = File(extractRoot, entry.name)
+                val outPath = outFile.canonicalPath
+                if (outPath != rootCanonicalPath && !outPath.startsWith(rootPath)) {
+                    throw IOException("Zip entry escapes extraction directory: ${entry.name}")
+                }
+                if (entry.isDirectory) {
+                    if (!outFile.exists() && !outFile.mkdirs()) {
+                        throw IOException("Failed to create directory: $outFile")
+                    }
+                    continue
+                }
+                val parent = outFile.parentFile
+                if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                    throw IOException("Failed to create directory: $parent")
+                }
+                FileOutputStream(outFile).use { fos ->
+                    while (true) {
+                        val read = zis.read(buffer)
+                        if (read == -1) break
+                        fos.write(buffer, 0, read)
+                    }
+                }
+            }
+        }
+    }
+
+    @Throws(IOException::class, JSONException::class)
+    private fun collectJsonFiles(root: File, current: File, files: JSONArray): String? {
+        var bundleStructureJson: String? = null
+        val children = current.listFiles() ?: return null
+        for (child in children) {
+            if (child.isDirectory) {
+                val nested = collectJsonFiles(root, child, files)
+                if (bundleStructureJson == null && nested != null) bundleStructureJson = nested
+                continue
+            }
+            if (!child.name.endsWith(".json")) continue
+            val content = readTextFile(child)
+            if (child.name == "bundle_structure.json") bundleStructureJson = content
+            val item = JSONObject()
+            item.put("path", relativePath(root, child))
+            item.put("content", content)
+            files.put(item)
+        }
+        return bundleStructureJson
+    }
+
+    @Throws(IOException::class)
+    private fun readTextFile(file: File): String {
+        val bos = ByteArrayOutputStream()
+        FileInputStream(file).use { input ->
+            val buffer = ByteArray(8192)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                bos.write(buffer, 0, read)
+            }
+        }
+        return String(bos.toByteArray(), StandardCharsets.UTF_8)
+    }
+
+    @Throws(IOException::class)
+    private fun relativePath(root: File, child: File): String {
+        val rootPath = root.canonicalPath
+        val childPath = child.canonicalPath
+        val prefix = if (rootPath.endsWith(File.separator)) rootPath else rootPath + File.separator
+        if (!childPath.startsWith(prefix)) throw IOException("File is outside the profile bundle: $child")
+        return childPath.substring(prefix.length).replace('\\', '/')
+    }
+
+    private fun deleteRecursively(file: File?) {
+        if (file == null || !file.exists()) return
+        file.listFiles()?.forEach { child -> deleteRecursively(child) }
+        file.delete()
+    }
+    }
+}
+

@@ -1,0 +1,4 @@
+Kromacut 4.0.0
+Source: https://github.com/vycdev/Kromacut/tree/d5d8c490e68b96a015fa29e2508dca53076ca69e
+Android integration source: https://github.com/Exa201/OrkanSlicer/tree/v0.8.194/third_party/kromacut-patches
+License: AGPL-3.0-only

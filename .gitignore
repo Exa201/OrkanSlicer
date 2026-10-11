@@ -45,6 +45,18 @@ app/src/main/assets/update.json
 vendor/upstream-apk/
 app/src/prebuiltNative/jniLibs/
 
+# Local build results and device diagnostics; release APKs belong in GitHub Releases.
+.kotlin/
+/outputs/
+/*.apk
+/result.json
+/tmp/
+scripts/__pycache__/
+scripts/tests/bin/
+scripts/tests/bin-gcode-upload/
+third_party/Kromacut/
+app/src/main/assets/kromacut/
+
 # Local tooling / transient files (not part of the app)
 venv/
 .agents/

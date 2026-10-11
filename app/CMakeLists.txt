@@ -22,9 +22,9 @@ add_compile_options(-fsigned-char)
 # Suppress all warnings
 add_definitions(-w)
 add_definitions(-DNDEBUG)
-add_definitions(-DSLIC3R_VERSION=${SLIC3R_VERSION})
+add_definitions(-DSLIC3R_VERSION=\"${SLIC3R_VERSION}\")
 add_definitions(-DSLIC3R_BUILD_ID=${SLIC3R_BUILD_ID})
-add_definitions(-DSoftFever_VERSION=${SLIC3R_VERSION})
+add_definitions(-DSoftFever_VERSION=\"${SLIC3R_VERSION}\")
 
 set(jni_imports ${CMAKE_SOURCE_DIR}/src/main/jniImports)
 set(jni_libs ${CMAKE_SOURCE_DIR}/src/main/jniLibs)
@@ -41,10 +41,10 @@ elseif (${ANDROID_ABI} STREQUAL "x86")
     set(BOOST_ARCH "x32")
 endif()
 
-set(BOOST_LIBS atomic charconv chrono container context contract coroutine date_time exception fiber
+set(BOOST_LIBS atomic charconv chrono container context contract coroutine date_time fiber
         filesystem graph iostreams json log log_setup math_c99 math_c99f math_c99l math_tr1 math_tr1f
         math_tr1l nowide prg_exec_monitor program_options random regex serialization stacktrace_basic
-        stacktrace_noop system test_exec_moinotr thread timer type_erasure unit_test_framework url wave
+        stacktrace_noop system test_exec_monitor thread timer type_erasure unit_test_framework url wave
         wserialization)
 
 foreach (NAME IN LISTS BOOST_LIBS)
@@ -55,7 +55,7 @@ endforeach()
 
 # OCCT
 set(OCCT_JNI_LIBS ${CMAKE_SOURCE_DIR}/src/main/occt/jniLibs)
-set(OCCT_LIBS TKDESTEP TKXCAF TKCAF TKLCAF TKCDF TKV3d TKMesh TKXMesh TKBO TKPrim TKHLR TKShHealing TKTopAlgo TKGeomAlgo TKGeomBase TKBRep TKG3d TKG2d TKMath TKernel)
+set(OCCT_LIBS TKXDESTEP TKXCAF TKCAF TKLCAF TKCDF TKV3d TKMesh TKXMesh TKBO TKPrim TKHLR TKShHealing TKTopAlgo TKGeomAlgo TKGeomBase TKBRep TKG3d TKG2d TKMath TKernel)
 
 foreach (NAME IN LISTS OCCT_LIBS)
     add_library(occt_${NAME} SHARED IMPORTED)
@@ -464,6 +464,10 @@ set(MCUT_BUILD_TESTS OFF)
 set(MCUT_BUILD_TUTORIALS OFF)
 add_subdirectory(src/main/jni/mcut)
 
+# Use the same Clipper2 1.5.2 geometry implementation as the locked OrcaSlicer
+# revision. This enables the upstream multiline infill implementation below.
+add_subdirectory(src/main/jni/deps_src/clipper2)
+
 add_library(slic3r
         SHARED
         src/main/jni/semver/semver.c
@@ -792,6 +796,8 @@ add_library(slic3r
         src/main/jni/libslic3r/clipper.hpp
         src/main/jni/libslic3r/ClipperUtils.cpp
         src/main/jni/libslic3r/ClipperUtils.hpp
+        src/main/jni/libslic3r/Clipper2Utils.cpp
+        src/main/jni/libslic3r/Clipper2Utils.hpp
 
         src/main/jni/libslic3r/ClipperZUtils.hpp
         src/main/jni/libslic3r/Color.cpp
@@ -1248,6 +1254,7 @@ target_link_libraries(slic3r PRIVATE
         openvdb
         tbbmalloc
         heatshrink
+        Clipper2
         jpeg-static
         OCCTWrapper
         mcut
@@ -1262,7 +1269,6 @@ target_link_libraries(slic3r PRIVATE
         boost_contract
         boost_coroutine
         boost_date_time
-        boost_exception
         boost_fiber
         boost_filesystem
         boost_graph

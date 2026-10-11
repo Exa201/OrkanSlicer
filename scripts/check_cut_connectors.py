@@ -19,26 +19,26 @@ def require(text: str, needle: str, label: str) -> None:
     if needle not in text:
         raise AssertionError(f"missing {label}: {needle}")
 
-native_java = read("app/src/main/java/ru/ytkab0bp/slicebeam/slic3r/Native.java")
-model_java = read("app/src/main/java/ru/ytkab0bp/slicebeam/slic3r/Model.java")
-renderer_java = read("app/src/main/java/ru/ytkab0bp/slicebeam/render/GLRenderer.java")
-transform_java = read("app/src/main/java/ru/ytkab0bp/slicebeam/components/bed_menu/TransformMenu.java")
+native_kotlin = read("app/src/main/java/ru/ytkab0bp/slicebeam/slic3r/Native.kt")
+model_kotlin = read("app/src/main/java/ru/ytkab0bp/slicebeam/slic3r/Model.kt")
+renderer_java = read("app/src/main/java/ru/ytkab0bp/slicebeam/render/GLRenderer.kt")
+transform_cut = read("app/src/main/java/ru/ytkab0bp/slicebeam/components/bed_menu/TransformCutMenu.kt")
 beam_native = read("app/src/main/jni/slicebeam/beam_native.cpp")
 
 for needle, label in [
-    ("static native void model_add_connector(long ptr, int objIdx, double x, double y, double z, float radius, float height, int type);", "specified add connector JNI declaration"),
-    ("static native void model_remove_connector(long ptr, int objIdx, int connIdx);", "remove connector JNI declaration"),
-    ("static native void model_clear_connectors(long ptr, int objIdx);", "clear connector JNI declaration"),
-    ("static native void model_add_connector_on_plane", "rotated-plane connector JNI declaration"),
+    ("external fun model_add_connector(ptr: Long, objIdx: Int, x: Double, y: Double, z: Double, radius: Float, height: Float, type: Int): Unit", "specified add connector JNI declaration"),
+    ("external fun model_remove_connector(ptr: Long, objIdx: Int, connIdx: Int): Unit", "remove connector JNI declaration"),
+    ("external fun model_clear_connectors(ptr: Long, objIdx: Int): Unit", "clear connector JNI declaration"),
+    ("external fun model_add_connector_on_plane", "rotated-plane connector JNI declaration"),
 ]:
-    require(native_java, needle, label)
+    require(native_kotlin, needle, label)
 
 for needle, label in [
-    ("public void addConnector(int objectIndex", "Model.addConnector wrapper"),
-    ("public void removeConnector(int objectIndex", "Model.removeConnector wrapper"),
-    ("public void clearConnectors(int objectIndex", "Model.clearConnectors wrapper"),
+    ("open fun addConnector(", "Model.addConnector wrapper"),
+    ("open fun removeConnector(objectIndex", "Model.removeConnector wrapper"),
+    ("open fun clearConnectors(objectIndex", "Model.clearConnectors wrapper"),
 ]:
-    require(model_java, needle, label)
+    require(model_kotlin, needle, label)
 
 for needle, label in [
     ("Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1connector", "native add connector implementation"),
@@ -60,11 +60,13 @@ for needle, label in [
     require(renderer_java, needle, label)
 
 for needle, label in [
-    ("Add Connector", "CutMenu add connector toggle"),
-    ("Radius", "CutMenu radius control"),
-    ("Height", "CutMenu height control"),
-    ("Clear Connectors", "CutMenu clear connector action"),
+    ("R.string.CutAddConnector", "CutMenu add connector toggle"),
+    ("R.string.CutConnectorRadius", "CutMenu radius control"),
+    ("R.string.CutConnectorHeight", "CutMenu height control"),
+    ("R.string.CutClearConnectors", "CutMenu clear connector action"),
+    ("setCutConnectorPlacement(connectorMode)", "CutMenu connector placement toggle"),
+    ("renderer.clearAllCutConnectorPreviews()", "CutMenu connector preview cleanup"),
 ]:
-    require(transform_java, needle, label)
+    require(transform_cut, needle, label)
 
 print("cut connector bridge checks passed")

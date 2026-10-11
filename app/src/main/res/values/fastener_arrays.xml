@@ -1,0 +1,5 @@
+<resources>
+    <string-array name="FastenerTypes"><item>Screw</item><item>Hex nut</item><item>Washer</item></string-array>
+    <string-array name="FastenerSizes"><item>M2</item><item>M2.5</item><item>M3</item><item>M4</item><item>M5</item><item>M6</item><item>M8</item><item>M10</item><item>M12</item></string-array>
+    <string-array name="FastenerThreadClearancePresets"><item>Tight · 0.12 mm</item><item>Balanced · 0.20 mm</item><item>Loose · 0.30 mm</item></string-array>
+</resources>

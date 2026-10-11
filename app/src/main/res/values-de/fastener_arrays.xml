@@ -1,0 +1,5 @@
+<resources>
+    <string-array name="FastenerTypes"><item>Schraube</item><item>Sechskantmutter</item><item>Unterlegscheibe</item></string-array>
+    <string-array name="FastenerSizes"><item>M2</item><item>M2.5</item><item>M3</item><item>M4</item><item>M5</item><item>M6</item><item>M8</item><item>M10</item><item>M12</item></string-array>
+    <string-array name="FastenerThreadClearancePresets"><item>Eng · 0,12 mm</item><item>Ausgewogen · 0,20 mm</item><item>Locker · 0,30 mm</item></string-array>
+</resources>

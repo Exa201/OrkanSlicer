@@ -1,0 +1,67 @@
+package ru.ytkab0bp.slicebeam.components.bed_menu
+
+import android.content.Context
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import ru.ytkab0bp.eventbus.EventHandler
+import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
+import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent
+import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
+import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
+import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
+
+/** Exposes workspace tools directly instead of hiding them behind the File menu's More dialog. */
+class OptionsMenu : ListBedMenu() {
+    private val actionSource = FileMenu()
+    private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
+
+    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
+        val themedView = ThemeAwareComposeView(ctx)
+        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+        refreshActions()
+        themedView.setContent {
+            BeamComposeTheme(themeRevision = themedView.themeRevision) {
+                BedMenuActionsContent(composeActions.value, portrait)
+            }
+        }
+        return themedView
+    }
+
+    override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
+
+    private fun refreshActions() {
+        actionSource.onSetBed(fragment)
+        composeActions.value = actionSource.createOptionsItems().map { item ->
+            BedComposeMenuAction(
+                titleRes = item.titleRes,
+                iconRes = item.iconRes,
+                onClick = { anchor ->
+                    if (item.isCheckable) {
+                        item.isChecked = !item.isChecked
+                        item.checkedChangeListener?.onCheckedChanged(item.isChecked)
+                        refreshActions()
+                    } else {
+                        item.clickListener?.invoke(anchor)
+                    }
+                },
+                selected = item.isCheckable && item.isChecked,
+                toggleable = item.isCheckable,
+                sectionBreakBefore = item.sectionBreakBefore,
+                enabled = item.isEnabled,
+            )
+        }
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onObjectsChanged(event: ObjectsListChangedEvent) = refreshActions()
+
+    @EventHandler(runOnMainThread = true)
+    fun onSelectionChanged(event: SelectedObjectChangedEvent) = refreshActions()
+
+    @EventHandler(runOnMainThread = true)
+    fun onCloudFeaturesUpdated(event: CloudFeaturesUpdatedEvent) = refreshActions()
+
+    @EventHandler(runOnMainThread = true)
+    fun onCloudModelsRemainingUpdated(event: CloudModelsRemainingCountUpdatedEvent) = refreshActions()
+}

@@ -1,0 +1,18 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'java-library'
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = '1.8'
+        freeCompilerArgs += ['-jvm-default=no-compatibility']
+    }
+}

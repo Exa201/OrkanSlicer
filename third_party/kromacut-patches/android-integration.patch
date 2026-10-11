@@ -1,0 +1,308 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2908e32..dd0dc53 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,12 @@
+ 
+ All notable changes to Kromacut are documented in this file.
+ 
++## Unreleased
++
++### Fixed
++
++- Anchored the image-size badge at the bottom of the canvas so it stays clear of wrapped toolbars in either orientation.
++
+ ## v4.0.0 - 2026-09-10
+ 
+ ### Upgrade notes
+diff --git a/src/App.tsx b/src/App.tsx
+index 4d57627..56cdb4c 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -58,6 +58,7 @@ import {
+ import { buildDocsPath, parseDocsLocation } from './lib/docs/navigation';
+ import { applyAppSeo } from './lib/seo';
+ import { appPath, markLaunched } from './lib/routes';
++import { isOrcaMobile } from './lib/orcaMobile';
+ import { isTauri } from '@tauri-apps/api/core';
+ import {
+     migrateLegacyFilamentTd,
+@@ -218,7 +219,9 @@ const saveAutoPaintPersisted = (value: AutoPaintPersisted) => {
+ };
+ 
+ function App(): React.ReactElement | null {
+-    const toolPath = appPath(isTauri());
++    const toolPath = isOrcaMobile()
++        ? '/assets/kromacut/index.html'
++        : appPath(isTauri());
+     // Multi-plate mode (issue #35) is still a stub. Per the plan, the flow diverges
+     // at *image upload*, not at app start — so until an image is uploaded the app
+     // must look and behave exactly like today. The experimental "Multi-plate mode"
+diff --git a/src/components/CanvasPreview.tsx b/src/components/CanvasPreview.tsx
+index e5876f3..323a982 100644
+--- a/src/components/CanvasPreview.tsx
++++ b/src/components/CanvasPreview.tsx
+@@ -1407,7 +1407,7 @@ const CanvasPreview = forwardRef<CanvasPreviewHandle, Props>(
+                 {/* small HUD showing image size and crop size (when active) */}
+                 {imageLoaded && imgRef.current ? (
+                     <div
+-                        className="absolute top-2 left-2 z-40 px-2 py-1 rounded-full bg-background/90 text-primary text-xs font-mono font-semibold shadow-sm"
++                        className="canvas-image-size-hud pointer-events-none absolute bottom-2 left-2 z-40 px-2 py-1 rounded-full bg-background/90 text-primary text-xs font-mono font-semibold shadow-sm"
+                         aria-hidden
+                     >
+                         {(() => {
+diff --git a/src/components/Header.tsx b/src/components/Header.tsx
+index e8c4050..044c9a7 100644
+--- a/src/components/Header.tsx
++++ b/src/components/Header.tsx
+@@ -49,6 +49,7 @@ import {
+ import logo from '../assets/logo.png';
+ import redditIcon from '../assets/reddit.svg';
+ import { landingPath } from '@/lib/routes';
++import { isOrcaMobile } from '@/lib/orcaMobile';
+ import { isTauri } from '@tauri-apps/api/core';
+ import {
+     getAutoPaintDiagnosticsEnabled,
+@@ -254,7 +255,8 @@ export const Header: React.FC<Props> = ({ docsOpen, onBackToApp, onOpenDocs }) =
+                     </button>
+                 ) : (
+                     <a
+-                        href={landingPath(isTauri())}
++                        href={isOrcaMobile() ? '#' : landingPath(isTauri())}
++                        onClick={isOrcaMobile() ? (event) => event.preventDefault() : undefined}
+                         className="flex items-center gap-2 rounded-md p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                         aria-label="Kromacut home"
+                         title="Back to Kromacut home"
+diff --git a/src/components/ResizableSplitter.tsx b/src/components/ResizableSplitter.tsx
+index b164c3d..8993522 100644
+--- a/src/components/ResizableSplitter.tsx
++++ b/src/components/ResizableSplitter.tsx
+@@ -1,4 +1,4 @@
+-import React, { useState, useRef, useCallback } from 'react';
++import React, { useState, useRef, useCallback, useEffect } from 'react';
+ import { Separator } from '@/components/ui/separator';
+ 
+ interface ResizableSplitterProps {
+@@ -17,78 +17,104 @@ export const ResizableSplitter: React.FC<ResizableSplitterProps> = ({
+     className = '',
+ }) => {
+     const [leftWidth, setLeftWidth] = useState(defaultSize);
++    const [userResized, setUserResized] = useState(false);
++    const [stacked, setStacked] = useState(() => window.innerHeight > window.innerWidth);
+     const separatorRef = useRef<HTMLDivElement>(null);
+     const containerRef = useRef<HTMLDivElement>(null);
+     const isDraggingRef = useRef(false);
+-    const dragStartRef = useRef({ startX: 0, startWidth: 0 });
++    const dragStartRef = useRef({ startPosition: 0, startSize: 0 });
++
++    useEffect(() => {
++        const container = containerRef.current;
++        if (!container) return;
++        const updateOrientation = () => {
++            const { width, height } = container.getBoundingClientRect();
++            setStacked(height > width);
++        };
++        updateOrientation();
++        const observer = new ResizeObserver(updateOrientation);
++        observer.observe(container);
++        return () => observer.disconnect();
++    }, []);
++
++    const initialSize = stacked
++        ? Math.min(maxSize, Math.max(minSize, 48))
++        : Math.min(maxSize, Math.max(minSize, 38));
++    const visibleSize = userResized ? leftWidth : initialSize;
+ 
+     const handleMouseDown = useCallback(
+-        (e: React.MouseEvent) => {
++        (e: React.PointerEvent) => {
+             e.preventDefault();
+             e.stopPropagation();
+ 
+             isDraggingRef.current = true;
++            const startPosition = stacked ? e.clientY : e.clientX;
+             dragStartRef.current = {
+-                startX: e.clientX,
+-                startWidth: leftWidth,
++                startPosition,
++                startSize: visibleSize,
+             };
+ 
+             const container = containerRef.current;
+             if (!container) return;
+ 
+-            const handleMouseMove = (e: MouseEvent) => {
++            const handlePointerMove = (e: PointerEvent) => {
+                 if (!isDraggingRef.current) return;
+ 
+-                const deltaX = e.clientX - dragStartRef.current.startX;
+-                const containerWidth = container.clientWidth;
+-                const deltaPercent = (deltaX / containerWidth) * 100;
+-                const newWidth = dragStartRef.current.startWidth + deltaPercent;
++                const position = stacked ? e.clientY : e.clientX;
++                const delta = position - dragStartRef.current.startPosition;
++                const dimension = stacked ? container.clientHeight : container.clientWidth;
++                const deltaPercent = (delta / dimension) * 100;
++                const newWidth = dragStartRef.current.startSize + deltaPercent;
+ 
+                 // Constrain the width within min/max bounds
+                 const constrainedWidth = Math.max(minSize, Math.min(maxSize, newWidth));
+                 setLeftWidth(constrainedWidth);
++                setUserResized(true);
+             };
+ 
+             const handleMouseUp = () => {
+                 isDraggingRef.current = false;
+-                document.removeEventListener('mousemove', handleMouseMove);
+-                document.removeEventListener('mouseup', handleMouseUp);
++                document.removeEventListener('pointermove', handlePointerMove);
++                document.removeEventListener('pointerup', handleMouseUp);
++                document.removeEventListener('pointercancel', handleMouseUp);
+                 document.body.style.cursor = '';
+                 document.body.style.userSelect = '';
+             };
+ 
+-            document.addEventListener('mousemove', handleMouseMove);
+-            document.addEventListener('mouseup', handleMouseUp);
+-            document.body.style.cursor = 'col-resize';
++            document.addEventListener('pointermove', handlePointerMove);
++            document.addEventListener('pointerup', handleMouseUp);
++            document.addEventListener('pointercancel', handleMouseUp);
++            document.body.style.cursor = stacked ? 'row-resize' : 'col-resize';
+             document.body.style.userSelect = 'none';
+         },
+-        [leftWidth, minSize, maxSize]
++        [visibleSize, minSize, maxSize, stacked]
+     );
++    const panelBasis = `${visibleSize}%`;
+ 
+     return (
+         <div
+             ref={containerRef}
+-            className={`flex h-full w-full overflow-hidden ${className}`}
++            className={`flex h-full w-full overflow-hidden ${stacked ? 'flex-col' : 'flex-row'} ${className}`}
+             style={
+                 {
+                     height: '100%',
+-                    '--left-width': `${leftWidth}%`,
++                    '--left-width': panelBasis,
+                 } as React.CSSProperties
+             }
+         >
+             <div
+                 className="flex flex-col min-h-0 flex-shrink-0 overflow-hidden"
+-                style={{ flexBasis: `${leftWidth}%` }}
++                style={{ flexBasis: panelBasis, minWidth: 0, minHeight: 0 }}
+             >
+                 {children[0]}
+             </div>
+             <Separator
+                 ref={separatorRef}
+-                orientation="vertical"
+-                className="bg-border hover:bg-primary cursor-col-resize transition-colors flex-shrink-0 w-2"
+-                onMouseDown={handleMouseDown}
++                orientation={stacked ? 'horizontal' : 'vertical'}
++                className={`bg-border hover:bg-primary transition-colors flex-shrink-0 touch-none ${stacked ? 'h-2 w-full cursor-row-resize' : 'w-2 cursor-col-resize'}`}
++                onPointerDown={handleMouseDown}
+             />
+-            <div className="overflow-hidden min-w-0 h-full flex-1">{children[1]}</div>
++            <div className="overflow-hidden min-w-0 min-h-0 w-full h-full flex-1">{children[1]}</div>
+         </div>
+     );
+ };
+diff --git a/src/hooks/saveBlobToFile.ts b/src/hooks/saveBlobToFile.ts
+index 0a604c9..be5531b 100644
+--- a/src/hooks/saveBlobToFile.ts
++++ b/src/hooks/saveBlobToFile.ts
+@@ -8,6 +8,44 @@ export interface SaveBlobOptions {
+     filterName: string;
+ }
+ 
++interface OrcaMobileBridge {
++    beginDownload(fileName: string): void;
++    writeData(base64Chunk: string): void;
++    finishDownload(): void;
++    failDownload(message: string): void;
++}
++
++declare global {
++    interface Window {
++        OrcaMobile?: OrcaMobileBridge;
++    }
++}
++
++async function writeBlobToOrcaMobile(fileName: string, blob: Blob) {
++    const bridge = window.OrcaMobile;
++    if (!bridge) return false;
++
++    try {
++        bridge.beginDownload(fileName);
++        const bytes = new Uint8Array(await blob.arrayBuffer());
++        // Keep JavaScript strings and WebView bridge messages small on large 3MF exports.
++        const chunkSize = 48 * 1024;
++        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
++            const chunk = bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length));
++            let binary = '';
++            for (let index = 0; index < chunk.length; index += 8192) {
++                binary += String.fromCharCode(...chunk.subarray(index, index + 8192));
++            }
++            bridge.writeData(btoa(binary));
++        }
++        bridge.finishDownload();
++        return true;
++    } catch (error) {
++        bridge.failDownload(error instanceof Error ? error.message : String(error));
++        throw error;
++    }
++}
++
+ async function writeBlobToTauriFile(filePath: string, blob: Blob) {
+     const file = await open(filePath, {
+         read: false,
+@@ -33,6 +71,10 @@ export async function saveBlobToFile(
+     blob: Blob,
+     options: SaveBlobOptions
+ ): Promise<string | null> {
++    if (await writeBlobToOrcaMobile(options.defaultFileName, blob)) {
++        return options.defaultFileName;
++    }
++
+     if (isTauri()) {
+         const filePath = await save({
+             title: `Save ${options.filterName}`,
+diff --git a/src/main.tsx b/src/main.tsx
+index 04536a6..36279a0 100644
+--- a/src/main.tsx
++++ b/src/main.tsx
+@@ -5,6 +5,7 @@ import './index.css';
+ import LandingPage from './components/LandingPage.tsx';
+ import { applyThemeMode, getStoredThemeMode } from './lib/theme';
+ import { applyAppSeo, applyHomeSeo } from './lib/seo';
++import { isOrcaMobile } from './lib/orcaMobile';
+ import {
+     hasLaunched,
+     selectRoute,
+@@ -14,7 +15,8 @@ import {
+ // Apply the saved theme preference before React paints.
+ applyThemeMode(getStoredThemeMode());
+ 
+-const desktopRuntime = isTauri();
++// The embedded editor is served from an Android asset path rather than public `/app`.
++const desktopRuntime = isTauri() || isOrcaMobile();
+ if (
+     shouldRedirectHomeToApp(
+         window.location,
+diff --git a/vite.config.ts b/vite.config.ts
+index af23ae0..f18b435 100644
+--- a/vite.config.ts
++++ b/vite.config.ts
+@@ -10,7 +10,8 @@ const packageJson = JSON.parse(
+ 
+ // https://vite.dev/config/
+ export default defineConfig({
+-    base: '/',
++    // Relative paths allow the production bundle to run from Android's local asset host.
++    base: './',
+     plugins: [react(), tailwindcss()],
+     define: {
+         __APP_VERSION__: JSON.stringify(packageJson.version),

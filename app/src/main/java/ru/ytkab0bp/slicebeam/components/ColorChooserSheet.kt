@@ -1,0 +1,225 @@
+package ru.ytkab0bp.slicebeam.components
+
+import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.graphics.ColorUtils
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.mrudultora.colorpicker.ColorPickerPopUp
+import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.utils.CssColors
+import java.util.Locale
+
+/** Bottom sheet for choosing a custom color or a named CSS color. */
+open class ColorChooserSheet(
+    context: Context,
+    private val initialColor: Int,
+    private val callback: OnColorChosen?,
+) : BottomSheetDialog(context) {
+
+    fun interface OnColorChosen {
+        fun onColorChosen(color: Int)
+    }
+
+    init {
+        val composeView = ComposeView(context).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+            setContent {
+                BeamComposeTheme {
+                    ColorChooserContent(
+                        onPickColor = ::choose,
+                        onOpenWheel = { openWheel(context) },
+                    )
+                }
+            }
+        }
+        setContentView(
+            composeView,
+            android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+    }
+
+    private fun choose(color: Int) {
+        callback?.onColorChosen(color or OPAQUE_ALPHA)
+        dismiss()
+    }
+
+    private fun openWheel(context: Context) {
+        dismiss()
+        BeamColorPickerPopUp(context)
+            .setDialogTitle(context.getString(R.string.ColorChooserCustom))
+            .setDefaultColor(initialColor)
+            .setShowAlpha(false)
+            .setOnPickColorListener(object : ColorPickerPopUp.OnPickColorListener {
+                override fun onColorPicked(color: Int) {
+                    callback?.onColorChosen(color or OPAQUE_ALPHA)
+                }
+
+                override fun onCancel() = Unit
+            })
+            .show()
+    }
+
+    private companion object {
+        const val OPAQUE_ALPHA = -0x1000000
+    }
+}
+
+@Composable
+private fun ColorChooserContent(
+    onPickColor: (Int) -> Unit,
+    onOpenWheel: () -> Unit,
+) {
+    val configuration = LocalConfiguration.current
+    val columns = ColorChooserPalette.columnsForWidth(configuration.screenWidthDp)
+    val commonColors = remember { ColorChooserPalette.commonColors() }
+    val allColors = remember { ColorChooserPalette.allColors() }
+    val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = configuration.screenHeightDp.dp * 0.9f)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.ColorChooserCustom),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Button(
+            onClick = onOpenWheel,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
+            Text(stringResource(R.string.OpenColorWheel), fontSize = 16.sp)
+        }
+
+        ColorSectionTitle(R.string.ColorChooserCommon)
+        ColorSwatchGrid(colors = commonColors, columns = columns, onPickColor = onPickColor)
+
+        ColorSectionTitle(R.string.ColorChooserCss)
+        ColorSwatchGrid(colors = allColors, columns = columns, onPickColor = onPickColor)
+    }
+}
+
+@Composable
+private fun ColorSectionTitle(textRes: Int) {
+    Text(
+        text = stringResource(textRes),
+        modifier = Modifier.padding(top = 8.dp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.titleSmall,
+    )
+}
+
+@Composable
+private fun ColorSwatchGrid(
+    colors: List<Int>,
+    columns: Int,
+    onPickColor: (Int) -> Unit,
+) {
+    Column {
+        colors.chunked(columns).forEach { rowColors ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                rowColors.forEach { color ->
+                    ColorSwatch(color = color, onClick = { onPickColor(color) })
+                }
+                if (rowColors.size < columns) {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColorSwatch(color: Int, onClick: () -> Unit) {
+    val opaqueColor = color or OPAQUE_ALPHA
+    val shape = RoundedCornerShape(8.dp)
+    val colorLabel = stringResource(
+        R.string.ColorChooserSwatchDescription,
+        String.format(Locale.ROOT, "#%06X", color and COLOR_MASK),
+    )
+    val swatchModifier = Modifier
+        .padding(SWATCH_MARGIN_DP.dp)
+        .size(SWATCH_SIZE_DP.dp)
+        .clip(shape)
+        .background(Color(opaqueColor))
+        .then(
+            if (ColorUtils.calculateLuminance(opaqueColor) > WHITE_OUTLINE_THRESHOLD) {
+                Modifier.border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            } else {
+                Modifier
+            },
+        )
+        .semantics { contentDescription = colorLabel }
+        .clickable(role = Role.Button, onClick = onClick)
+
+    Box(
+        modifier = swatchModifier,
+        contentAlignment = Alignment.Center,
+    ) {}
+}
+
+/** Palette data and width policy are kept outside Compose so they can be verified on the JVM. */
+internal object ColorChooserPalette {
+    fun commonColors(): List<Int> = CssColors.COMMON.mapNotNull { CssColors.ALL[it] }
+
+    fun allColors(): List<Int> = CssColors.ALL.values.toList()
+
+    fun columnsForWidth(screenWidthDp: Int): Int =
+        ((screenWidthDp - HORIZONTAL_PADDING_DP) / CELL_WIDTH_DP).coerceIn(MIN_COLUMNS, MAX_COLUMNS)
+
+    private const val HORIZONTAL_PADDING_DP = 32
+    private const val CELL_WIDTH_DP = 52
+    private const val MIN_COLUMNS = 2
+    private const val MAX_COLUMNS = 8
+}
+
+private const val OPAQUE_ALPHA = -0x1000000
+private const val COLOR_MASK = 0xFFFFFF
+private const val SWATCH_SIZE_DP = 44
+private const val SWATCH_MARGIN_DP = 4
+private const val WHITE_OUTLINE_THRESHOLD = 0.85

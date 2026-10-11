@@ -1,0 +1,139 @@
+package ru.ytkab0bp.slicebeam.ui.settings
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class OrcaProcessSettingsCatalogTest {
+    @Test
+    fun processCategoriesUseTheSliceBeamOrderAndGermanLabels() {
+        val categories = OrcaProcessSettingsCatalog.categories()
+        assertEquals(
+            listOf(
+                "Layers and perimeters",
+                "Top/bottom layers",
+                "Infill",
+                "Skirt and brim",
+                "Support material",
+                "Speed",
+                "Cooling",
+                "Multiple Extruders",
+                "Advanced",
+                "Output options",
+            ),
+            categories.map { it.title },
+        )
+        assertEquals(
+            listOf(
+                "Schichten und Wandungen",
+                "Obere / untere Schichten",
+                "Füllung",
+                "Haftung, Skirt und Brim",
+                "Stützstrukturen",
+                "Geschwindigkeit",
+                "Kühlung",
+                "Mehrere Extruder",
+                "Erweitert",
+                "Ausgabeoptionen",
+            ),
+            categories.map { category ->
+                OrcaProfileGroupLocalizer.mobileGroup(category.title, "de")
+            },
+        )
+    }
+
+    @Test
+    fun eachProcessOptionHasOnePresentationEntry() {
+        val keys = OrcaProcessSettingsCatalog.categories()
+            .flatMap { category -> category.sections.flatMap { it.keys } }
+        val duplicates = keys.groupingBy { it }.eachCount().filterValues { it > 1 }
+
+        assertTrue("Repeated process options: $duplicates", duplicates.isEmpty())
+        assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
+    }
+
+    @Test
+    fun filamentAndBedValuesAreNotPresentedAsProcessSettings() {
+        val processKeys = OrcaProcessSettingsCatalog.processKeys().toSet()
+        val filamentOnlyKeys = setOf(
+            "enable_pressure_advance",
+            "pressure_advance",
+            "adaptive_pressure_advance",
+            "adaptive_pressure_advance_model",
+            "adaptive_pressure_advance_overhangs",
+            "adaptive_pressure_advance_bridges",
+            "hot_plate_temp",
+            "hot_plate_temp_initial_layer",
+        )
+
+        filamentOnlyKeys.forEach { key -> assertFalse("$key must stay in its owning profile", key in processKeys) }
+        assertTrue("Process catalog should not be empty", processKeys.isNotEmpty())
+    }
+
+    @Test
+    fun beamInterlockingOptionsAreGroupedAndGermanLabelIsAvailable() {
+        val options = setOf(
+            "interlocking_beam",
+            "interlocking_beam_width",
+            "interlocking_orientation",
+            "interlocking_beam_layer_count",
+            "interlocking_depth",
+            "interlocking_boundary_avoidance",
+        )
+        val categories = OrcaProcessSettingsCatalog.categories()
+        val multimaterial = categories.single { it.title == "Multiple Extruders" }
+        val beamSection = multimaterial.sections.single { it.title == "Beam interlocking" }
+
+        assertTrue("Every Orca beam-interlocking option should be visible", beamSection.keys.toSet() == options)
+        assertTrue("Beam interlocking settings must be in the process profile", options.all { it in OrcaProcessSettingsCatalog.processKeys() })
+        assertTrue(
+            "The section heading should be translated for German users",
+            OrcaProfileGroupLocalizer.mobileGroup("Beam interlocking", "de") == "Mehrmaterial-Verzahnung",
+        )
+    }
+
+    @Test
+    fun supportAndOverhangFlowControlsAreVisibleInTheirOwningGroups() {
+        val categories = OrcaProcessSettingsCatalog.categories()
+        val support = categories.single { it.title == "Support material" }
+        val supportFlow = support.sections.single { it.title == "Support flow" }
+        val basicSupport = support.sections.single { it.title == "Support" }
+        val advancedSupport = support.sections.single { it.title == "Advanced" }
+        val overhangs = categories.single { it.title == "Layers and perimeters" }.sections.single { it.title == "Overhangs" }
+
+        assertTrue(supportFlow.keys.toSet() == setOf("support_flow_ratio", "support_interface_flow_ratio"))
+        assertTrue("support_threshold_overlap" in basicSupport.keys)
+        assertTrue("support_bottom_interface_spacing" in advancedSupport.keys)
+        assertTrue("overhang_flow_ratio" in overhangs.keys)
+        assertTrue(
+            "The support-flow group should be translated for German users",
+            OrcaProfileGroupLocalizer.mobileGroup("Support flow", "de") == "Stützfluss",
+        )
+    }
+
+    @Test
+    fun firstLayerTravelJerkIsGroupedWithItsBaseTravelSetting() {
+        val speed = OrcaProcessSettingsCatalog.categories().single { it.title == "Speed" }
+        val jerk = speed.sections.single { it.title == "Jerk (XY)" }
+
+        assertTrue("Travel jerk should be available", "travel_jerk" in jerk.keys)
+        assertTrue("First-layer travel jerk should use Orca's native profile option", "initial_layer_travel_jerk" in jerk.keys)
+        assertTrue("The first-layer override must be unique and routed", "initial_layer_travel_jerk" in OrcaProcessSettingsCatalog.processKeys())
+    }
+
+    @Test
+    fun advancedIroningControlsUseProcessProfileWithoutDuplicatingFilamentFanSpeed() {
+        val processKeys = OrcaProcessSettingsCatalog.processKeys().toSet()
+        val ironing = OrcaProcessSettingsCatalog.categories()
+            .single { it.title == "Layers and perimeters" }
+            .sections.single { it.title == "Ironing" }
+        val filamentKeys = OrcaFilamentSettingsCatalog.filamentKeys().toSet()
+
+        assertTrue("Fixed ironing angle should be available in the process profile", "ironing_angle_fixed" in ironing.keys)
+        assertTrue("Ironing expansion should be available in the process profile", "ironing_expansion" in ironing.keys)
+        assertTrue("Ironing fan speed remains owned by the filament profile", "ironing_fan_speed" in filamentKeys)
+        assertFalse("Filament-owned ironing fan speed must not be duplicated", "ironing_fan_speed" in processKeys)
+        assertTrue("The German group label should remain available", OrcaProfileGroupLocalizer.mobileGroup("Ironing", "de") == "Glätten")
+    }
+}

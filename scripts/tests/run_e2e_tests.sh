@@ -22,9 +22,24 @@ GRADLE_CLASSPATH=$(./gradlew -q -I scripts/tests/init.gradle :app:printClasspath
 
 echo "=== 4. Compiling E2ETestSuite and E2ETestRunner ==="
 javac -d scripts/tests/bin \
-  -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/:$GRADLE_CLASSPATH:$ANDROID_JAR" \
+  -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/:app/build/tmp/kotlin-classes/debug/:$GRADLE_CLASSPATH:$ANDROID_JAR" \
   scripts/tests/E2ETestSuite.java scripts/tests/E2ETestRunner.java
 
 echo "=== 5. Running Headless E2E Test Suite ==="
-java -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/:$GRADLE_CLASSPATH" \
+java -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/:app/build/tmp/kotlin-classes/debug/:$GRADLE_CLASSPATH" \
   scripts.tests.E2ETestRunner
+
+echo "=== 6. Testing G-code slot routing and Anycubic upload preparation ==="
+javac -d scripts/tests/bin \
+  -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/:app/build/tmp/kotlin-classes/debug/:$GRADLE_CLASSPATH" \
+  scripts/tests/GCodeToolMapperTest.java \
+  scripts/tests/AnycubicGCodeProcessorTest.java
+java -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/:app/build/tmp/kotlin-classes/debug/:$GRADLE_CLASSPATH" scripts.tests.GCodeToolMapperTest
+java -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/:app/build/tmp/kotlin-classes/debug/:$GRADLE_CLASSPATH" scripts.tests.AnycubicGCodeProcessorTest
+
+echo "=== 7. Testing native lithophane STL output ==="
+javac -d scripts/tests/bin \
+  -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/" \
+  scripts/tests/LithophaneStlWriterTest.java
+java -cp "scripts/tests/bin:app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/" \
+  scripts.tests.LithophaneStlWriterTest

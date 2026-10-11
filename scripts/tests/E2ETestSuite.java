@@ -7,10 +7,14 @@ import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef;
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef;
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper;
 import ru.ytkab0bp.slicebeam.config.ConfigObject;
+import ru.ytkab0bp.slicebeam.config.ProfileConfigSnapshot;
+import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository;
 import ru.ytkab0bp.slicebeam.SliceBeam;
 import ru.ytkab0bp.slicebeam.utils.FillBedPlanner;
 import ru.ytkab0bp.slicebeam.utils.Prefs;
 import ru.ytkab0bp.slicebeam.utils.Vec3d;
+import ru.ytkab0bp.slicebeam.ui.workspace.SelectedObjectQuickAction;
+import ru.ytkab0bp.slicebeam.view.TapGestureGate;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +25,57 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class E2ETestSuite {
+
+    public static void testPressureAdvanceAndZOffsetStayInTheirOwnProfiles() throws Exception {
+        resetEnvironment();
+        String configText = "filament_settings_id = PA Regression PLA\n"
+                + "enable_pressure_advance = 1\n"
+                + "pressure_advance = 0.1234\n"
+                + "printer_settings_id = Z Regression Printer\n"
+                + "z_offset = 0.42\n";
+        Slic3rConfigWrapper imported = new Slic3rConfigWrapper(
+                new java.io.ByteArrayInputStream(configText.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        ConfigObject filament = imported.findFilament("PA Regression PLA");
+        ConfigObject printer = imported.findPrinter("Z Regression Printer");
+        assertTrue(filament != null, "Imported filament preset must be retained");
+        assertTrue(printer != null, "Imported printer preset must be retained");
+        assertEquals("0.1234", filament.get("pressure_advance"),
+                "Filament Pressure Advance must survive profile import under its own setting key");
+        assertEquals("1", filament.get("enable_pressure_advance"),
+                "Filament Pressure Advance enable flag must survive profile import");
+        assertTrue(filament.get("z_offset") == null,
+                "Printer Z offset must not be created from the filament Pressure Advance value");
+        assertTrue(filament.get("start_filament_gcode") == null,
+                "Pressure Advance must not be rewritten as custom start G-code");
+
+        assertEquals("0.42", printer.get("z_offset"),
+                "Printer Z offset must remain in the printer profile");
+        assertTrue(printer.get("pressure_advance") == null,
+                "Filament Pressure Advance must not be written as printer Z offset");
+
+        assertTrue(Slic3rConfigWrapper.FILAMENT_CONFIG_KEYS.contains("pressure_advance"),
+                "Pressure Advance must be classified as a filament profile option");
+        assertTrue(Slic3rConfigWrapper.PRINTER_CONFIG_KEYS.contains("z_offset"),
+                "Z offset must be classified as a printer profile option");
+
+        try {
+            File configFile = SliceBeam.getConfigFile();
+            Files.write(configFile.toPath(), imported.serialize().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Model model = new Model();
+            File gcodeFile = new File(SliceBeam.INSTANCE.getFilesDir(), "pressure-advance-regression.gcode");
+            model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
+            String nativeConfig = Native.getLastSliceConfig();
+            assertTrue(nativeConfig.contains("pressure_advance = 0.1234"),
+                    "Slicing must pass the filament Pressure Advance value to the native engine");
+            assertTrue(nativeConfig.contains("z_offset = 0.42"),
+                    "Slicing must pass the independent printer Z offset to the native engine");
+            assertTrue(!nativeConfig.contains("SET_PRESSURE_ADVANCE ADVANCE=0.1234"),
+                    "Pressure Advance must not be duplicated or smuggled through custom filament start G-code");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     // Custom Assertion Helpers
     private static void assertTrue(boolean condition, String message) {
@@ -44,12 +99,13 @@ public class E2ETestSuite {
 
     // Environment Reset
     private static void resetEnvironment() {
-        Native.getMockModels().clear();
-        Native.getMockBeds().clear();
+        Native.resetMockState();
 
         SliceBeam.INSTANCE = new ru.ytkab0bp.slicebeam.SliceBeam();
         SliceBeam.CONFIG = null;
         SliceBeam.CONFIG_UID = 0;
+        SliceBeam.AUTO_BRIM_SELECTED = false;
+        ProfileSettingsRepository.clearAllDrafts();
 
         Prefs.init(SliceBeam.INSTANCE);
 
@@ -80,21 +136,18 @@ public class E2ETestSuite {
         config.presets.put("print", "MyPrint");
         config.presets.put("filament", "MyFilament");
 
-        ConfigObject printer = new ConfigObject();
-        printer.put("title", "MyPrinter");
+        ConfigObject printer = new ConfigObject("MyPrinter");
         printer.put("printer_model", "CustomModel");
         printer.put("brim_type", "auto_brim");
         config.printerConfigs = new ArrayList<>();
         config.printerConfigs.add(printer);
 
-        ConfigObject print = new ConfigObject();
-        print.put("title", "MyPrint");
+        ConfigObject print = new ConfigObject("MyPrint");
         print.put("brim_type", "auto_brim");
         config.printConfigs = new ArrayList<>();
         config.printConfigs.add(print);
 
-        ConfigObject filament = new ConfigObject();
-        filament.put("title", "MyFilament");
+        ConfigObject filament = new ConfigObject("MyFilament");
         filament.put("filament_type", "PLA");
         config.filamentConfigs = new ArrayList<>();
         config.filamentConfigs.add(filament);
@@ -328,7 +381,7 @@ public class E2ETestSuite {
         resetEnvironment();
         double distance = 14.5678;
         String label = String.format("%.2f mm", distance);
-        assertEquals("14.57 mm", label, "Distance measurement label formatting should round to two decimals");
+        assertEquals("14,57 mm", label, "Distance measurement label formatting should use German decimal notation");
     }
 
     public static void testMeasureAxisProjection() {
@@ -393,20 +446,40 @@ public class E2ETestSuite {
     // FEATURE 4: LONG-PRESS CONTEXT MENU (Tests 31-40)
     // =========================================================================
 
-    public static void testLongPressOnModelTriggersMenu() {
+    public static void testLongPressOnModelDoesNotOpenMenu() {
         resetEnvironment();
-        boolean menuTriggered = false;
-        // Simulate long press hit on model
-        menuTriggered = true;
-        assertTrue(menuTriggered, "Long pressing on a model object should trigger context menu event");
+        TapGestureGate gate = new TapGestureGate();
+        gate.begin(1, 40f, 60f, 1_000L);
+        // GLView invalidates the tap when its long-press handler starts a model drag.
+        gate.invalidate();
+        boolean actionMenuOpened = gate.finish(1, false, false, 1_510L, 40f, 60f, 300L, 32f, 500L);
+        assertTrue(!actionMenuOpened, "Long pressing a model must not dispatch a click that could open its action menu");
     }
 
-    public static void testLongPressOnBedTriggersMenu() {
+    public static void testLongPressOnBedDoesNotOpenMenu() {
         resetEnvironment();
-        boolean bedMenuTriggered = false;
-        // Simulate long press on bed empty space
-        bedMenuTriggered = true;
-        assertTrue(bedMenuTriggered, "Long pressing on the bed empty space should trigger bed menu event");
+        TapGestureGate gate = new TapGestureGate();
+        gate.begin(1, 80f, 120f, 2_000L);
+        boolean actionMenuOpened = gate.finish(1, false, false, 2_500L, 80f, 120f, 300L, 32f, 500L);
+        assertTrue(!actionMenuOpened, "Holding the empty build plate must not dispatch a click or open an action menu");
+    }
+
+    public static void testRepeatedBuildPlateTapsInTheSameSpotAreCoalesced() {
+        resetEnvironment();
+        TapGestureGate gate = new TapGestureGate();
+        gate.begin(1, 160f, 220f, 3_000L);
+        assertTrue(gate.finish(1, false, false, 3_080L, 160f, 220f, 300L, 32f, 500L),
+                "The first intentional tap should remain available to the workspace");
+
+        gate.begin(1, 161f, 221f, 3_170L);
+        boolean duplicateClick = gate.finish(1, false, false, 3_230L, 161f, 221f, 300L, 32f, 500L);
+        assertTrue(!duplicateClick, "A quick repeated touch at the same point must not dispatch a second click");
+    }
+
+    public static void testExplicitMoreActionOpensMenu() {
+        resetEnvironment();
+        assertEquals("MORE", SelectedObjectQuickAction.MORE.name(),
+                "The visible selected-object action must retain its explicit More entry point");
     }
 
     public static void testLongPressMenuOptionsList() {
@@ -592,9 +665,144 @@ public class E2ETestSuite {
     public static void testSetupCompletionSavesConfig() {
         resetEnvironment();
         setupMockConfig();
-        SliceBeam.saveConfig();
+        assertTrue(SliceBeam.saveConfig(), "Saving setup configuration should complete atomically");
         File configFile = SliceBeam.getConfigFile();
         assertTrue(configFile.exists(), "Saving configuration should create a physical slic3r.ini profile file");
+    }
+
+    public static void testProfileSnapshotRestoresFailedMutation() {
+        resetEnvironment();
+        Slic3rConfigWrapper config = new Slic3rConfigWrapper();
+        ConfigObject printer = new ConfigObject("Snapshot Printer");
+        printer.profileListType = ConfigObject.PROFILE_LIST_PRINTER;
+        printer.thumbnailUrl = "before.png";
+        printer.put("printer_model", "Before");
+        config.printerConfigs.add(printer);
+        ConfigObject presets = new ConfigObject();
+        presets.put("printer", "Snapshot Printer");
+        config.presets = presets;
+
+        ProfileConfigSnapshot snapshot = new ProfileConfigSnapshot(config);
+        printer.put("printer_model", "After");
+        config.printerConfigs.add(new ConfigObject("Unsaved Printer"));
+        presets.put("printer", "Unsaved Printer");
+        snapshot.restore();
+
+        assertEquals(1, config.printerConfigs.size(), "Failed profile saves must discard newly added in-memory profiles");
+        assertTrue(config.printerConfigs.get(0) == printer, "Rollback should preserve references held by active profile editors");
+        assertEquals("Before", printer.get("printer_model"), "Rollback must restore replaced profile values");
+        assertEquals(ConfigObject.PROFILE_LIST_PRINTER, printer.profileListType, "Rollback must restore profile category metadata");
+        assertEquals("before.png", printer.thumbnailUrl, "Rollback must restore profile thumbnails");
+        assertTrue(config.presets == presets, "Rollback should preserve the active preset object reference");
+        assertEquals("Snapshot Printer", presets.get("printer"), "Rollback must restore the selected printer");
+    }
+
+    public static void testPrinterChangePersistsCompatibleProfiles() {
+        resetEnvironment();
+        setupMockConfig();
+        Slic3rConfigWrapper config = SliceBeam.CONFIG;
+        ConfigObject currentPrinter = config.findPrinter("MyPrinter");
+        currentPrinter.profileListType = ConfigObject.PROFILE_LIST_PRINTER;
+        ConfigObject alternatePrinter = new ConfigObject("Alternate Printer");
+        alternatePrinter.profileListType = ConfigObject.PROFILE_LIST_PRINTER;
+        alternatePrinter.put("printer_model", "AlternateModel");
+        alternatePrinter.put("nozzle_diameter", "0.4");
+        config.printerConfigs.add(alternatePrinter);
+
+        ConfigObject currentPrint = config.findPrint("MyPrint");
+        currentPrint.put("compatible_printers", "MyPrinter");
+        ConfigObject firstCompatiblePrint = new ConfigObject("First Compatible Quality");
+        firstCompatiblePrint.profileListType = ConfigObject.PROFILE_LIST_PRINT;
+        firstCompatiblePrint.put("compatible_printers", "MyPrinter");
+        firstCompatiblePrint.put("layer_height", "0.06");
+        firstCompatiblePrint.put("line_width", "0.4");
+        config.printConfigs.add(0, firstCompatiblePrint);
+        ConfigObject alternatePrint = new ConfigObject("Alternate Quality");
+        alternatePrint.profileListType = ConfigObject.PROFILE_LIST_PRINT;
+        alternatePrint.put("compatible_printers", "AlternateModel");
+        alternatePrint.put("layer_height", "0.2");
+        config.printConfigs.add(alternatePrint);
+
+        ConfigObject currentFilament = config.findFilament("MyFilament");
+        currentFilament.put("compatible_printers", "MyPrinter");
+        ConfigObject firstCompatibleFilament = new ConfigObject("First Compatible PLA");
+        firstCompatibleFilament.profileListType = ConfigObject.PROFILE_LIST_FILAMENT;
+        firstCompatibleFilament.put("compatible_printers", "MyPrinter");
+        firstCompatibleFilament.put("filament_type", "PLA");
+        config.filamentConfigs.add(0, firstCompatibleFilament);
+        ConfigObject alternateFilament = new ConfigObject("Alternate PLA");
+        alternateFilament.profileListType = ConfigObject.PROFILE_LIST_FILAMENT;
+        alternateFilament.put("compatible_printers", "AlternateModel");
+        alternateFilament.put("filament_type", "PLA");
+        config.filamentConfigs.add(alternateFilament);
+
+        assertTrue(SliceBeam.applyProfileSelection("Alternate Printer", null, null),
+                "Selecting a saved printer profile should succeed");
+        assertEquals("Alternate Printer", config.presets.get("printer"), "The selected printer should change");
+        assertEquals("Alternate Quality", config.presets.get("print"),
+                "Changing printers should immediately choose a compatible print profile");
+        assertEquals("Alternate PLA", config.presets.get("filament"),
+                "Changing printers should immediately choose a compatible filament profile");
+
+        assertTrue(SliceBeam.applyProfileSelection("MyPrinter", null, null),
+                "Returning to a previously used printer profile should succeed");
+        assertEquals("MyPrint", config.presets.get("print"),
+                "Returning to a printer should restore its previous print profile instead of the first compatible preset");
+        assertEquals("MyFilament", config.presets.get("filament"),
+                "Returning to a printer should restore its previous filament instead of the first compatible preset");
+
+        assertTrue(SliceBeam.applyProfileSelection("Alternate Printer", null, null),
+                "Switching back to the second printer should succeed");
+        assertEquals("Alternate Quality", config.presets.get("print"),
+                "The second printer should also restore its own print choice");
+        assertEquals("Alternate PLA", config.presets.get("filament"),
+                "The second printer should also restore its own filament choice");
+
+        try {
+            Slic3rConfigWrapper reloaded = new Slic3rConfigWrapper(SliceBeam.getConfigFile());
+            assertEquals("Alternate Printer", reloaded.presets.get("printer"),
+                    "The selected printer should survive reloading the saved configuration");
+            assertEquals("Alternate Quality", reloaded.presets.get("print"),
+                    "The compatible print profile should survive reloading the saved configuration");
+            assertEquals("Alternate PLA", reloaded.presets.get("filament"),
+                    "The compatible filament profile should survive reloading the saved configuration");
+            SliceBeam.CONFIG = reloaded;
+            assertTrue(SliceBeam.applyProfileSelection("MyPrinter", null, null),
+                    "Per-printer selections should remain available after reloading the saved configuration");
+            assertEquals("MyPrint", reloaded.presets.get("print"),
+                    "The original print profile should be restored after configuration reload");
+            assertEquals("MyFilament", reloaded.presets.get("filament"),
+                    "The original filament should be restored after configuration reload");
+            assertTrue(Files.deleteIfExists(SliceBeam.getConfigFile().toPath()),
+                    "Reading a profile file must release its handle so Windows can replace or remove it");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void testBackgroundSavePersistsPendingProfileEdits() {
+        resetEnvironment();
+        setupMockConfig();
+        ConfigObject printer = SliceBeam.CONFIG.findPrinter("MyPrinter");
+        printer.put("z_offset", "0");
+        ProfileSettingsRepository.setPendingValue(
+                ConfigObject.PROFILE_LIST_PRINTER, "z_offset", "0", "0.25");
+
+        assertTrue(SliceBeam.savePendingProfileSettings(),
+                "Leaving the app should commit pending profile edits to the config file");
+        assertEquals("0.25", printer.get("z_offset"), "The active printer profile should receive the pending edit");
+        assertEquals(0, ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER),
+                "Successfully saved edits should no longer be marked pending");
+
+        try {
+            Slic3rConfigWrapper reloaded = new Slic3rConfigWrapper(SliceBeam.getConfigFile());
+            assertEquals("0.25", reloaded.findPrinter("MyPrinter").get("z_offset"),
+                    "The pending edit should survive reloading the app configuration");
+            assertTrue(Files.deleteIfExists(SliceBeam.getConfigFile().toPath()),
+                    "Reading a profile file must release its handle so Windows can replace or remove it");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void testSetupPreferenceStorage() {
@@ -643,11 +851,10 @@ public class E2ETestSuite {
     public static void testSetupProfileSelectionCustomPrinter() {
         resetEnvironment();
         setupMockConfig();
-        ConfigObject customPrinter = new ConfigObject();
-        customPrinter.put("title", "MyCustomK3D");
+        ConfigObject customPrinter = new ConfigObject("MyCustomK3D");
         SliceBeam.CONFIG.printerConfigs.add(customPrinter);
         SliceBeam.CONFIG.presets.put("printer", "MyCustomK3D");
-        assertEquals("MyCustomK3D", SliceBeam.CONFIG.findPrinter("MyCustomK3D").get("title"), "Custom printer selection should be registerable");
+        assertEquals("MyCustomK3D", SliceBeam.CONFIG.findPrinter("MyCustomK3D").getTitle(), "Custom printer selection should be registerable");
     }
 
     public static void testSetupImportProfilesDuringRedirection() {
@@ -655,13 +862,14 @@ public class E2ETestSuite {
         setupMockConfig();
         File importFile = new File(SliceBeam.INSTANCE.getFilesDir(), "imported.ini");
         try {
-            Files.write(importFile.toPath(), "[presets]\nprinter=ImportedPrinter\n[printer:ImportedPrinter]\ntitle=ImportedPrinter\n".getBytes());
+            Files.write(importFile.toPath(), "[presets]\nprinter = ImportedPrinter\n[printer:ImportedPrinter]\nprinter_model = ImportedModel\n".getBytes());
             Slic3rConfigWrapper imported = new Slic3rConfigWrapper(importFile);
             SliceBeam.CONFIG = imported;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         assertEquals("ImportedPrinter", SliceBeam.CONFIG.presets.get("printer"), "Imported configurations during setup should parse correctly");
+        assertEquals("ImportedPrinter", SliceBeam.CONFIG.findPrinter("ImportedPrinter").getTitle(), "Imported printer profile should be indexed by its section name");
     }
 
     public static void testSetupRedirectionTwiceBypassed() {
@@ -690,6 +898,11 @@ public class E2ETestSuite {
             File currentConfigFile = SliceBeam.getCurrentConfigFile();
             String configContent = new String(Files.readAllBytes(currentConfigFile.toPath()));
             assertTrue(!configContent.contains("brim_type = auto_brim"), "Generated slicing config must replace auto_brim with outer_only to prevent engine crashes");
+            assertTrue(SliceBeam.AUTO_BRIM_SELECTED, "Selected auto-brim state must be remembered while generating the safe bed-rendering config");
+            new Model().slice(currentConfigFile.getAbsolutePath(),
+                    new File(SliceBeam.INSTANCE.getFilesDir(), "auto-brim.gcode").getAbsolutePath(), null);
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"),
+                    "The original auto-brim setting must be restored before the native slicer runs");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -711,7 +924,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = no_brim"), "Flat PLA models should resolve auto_brim to no_brim");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Native slicer must receive auto_brim for a flat PLA model");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -733,7 +946,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = outer_only"), "Tall models should resolve auto_brim to outer_only");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Native slicer must receive auto_brim for a tall model");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -755,7 +968,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = outer_only"), "ABS filament must force auto_brim to resolve to outer_only");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Native slicer must receive auto_brim for ABS");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -777,7 +990,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = outer_only"), "ASA filament must force auto_brim to resolve to outer_only");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Native slicer must receive auto_brim for ASA");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -799,7 +1012,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = no_brim"), "PLA flat models must resolve auto_brim to no_brim");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Native slicer must receive auto_brim for PLA");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -823,7 +1036,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = outer_only"), "If any model object on the bed plate is tall, auto_brim must resolve to outer_only");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Native slicer must receive auto_brim for multi-object plates");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1000,7 +1213,7 @@ public class E2ETestSuite {
         
         // Slicing tall model with auto_brim
         Model model = new Model();
-        Native.MockModel mockModel = Native.getMockModels().get(1);
+        Native.MockModel mockModel = Native.getMockModels().get(model.getPointer());
         mockModel.objects.get(0).boundingBox = new double[]{-10, -10, 0, 10, 10, 180}; // tall
         
         try {
@@ -1010,7 +1223,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = outer_only"), "Auto-brim must update settings properly during setup-initialized runs");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Setup-initialized slicing must pass auto_brim to the native slicer");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1108,7 +1321,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = outer_only"), "Auto brim must resolve to outer_only based on arranged tall models");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "Auto-brim must still reach the native slicer after model arrangement");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1144,7 +1357,7 @@ public class E2ETestSuite {
             model.slice(configFile.getAbsolutePath(), gcodeFile.getAbsolutePath(), null);
             
             String updatedConfig = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(updatedConfig.contains("brim_type = outer_only"), "Auto-brim must sanitize configuration during slice");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "End-to-end slicing must pass auto_brim to the native slicer");
             
             // 5. Verify Output G-code Metadata
             String recommendedGcode = Native.gcoderesult_get_recommended_name(5000L);
@@ -1231,13 +1444,13 @@ public class E2ETestSuite {
             Files.write(configFile.toPath(), "brim_type = auto_brim\nfilament_type = PLA\n".getBytes());
             model.slice(configFile.getAbsolutePath(), new File(SliceBeam.INSTANCE.getFilesDir(), "pla.gcode").getAbsolutePath(), null);
             String configPLA = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(configPLA.contains("brim_type = no_brim"), "PLA migration should resolve auto_brim to no_brim");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "PLA auto-brim rule must reach the native slicer");
             
             // Migration Scenario 2: Switch to ABS
             Files.write(configFile.toPath(), "brim_type = auto_brim\nfilament_type = ABS\n".getBytes());
             model.slice(configFile.getAbsolutePath(), new File(SliceBeam.INSTANCE.getFilesDir(), "abs.gcode").getAbsolutePath(), null);
             String configABS = new String(Files.readAllBytes(configFile.toPath()));
-            assertTrue(configABS.contains("brim_type = outer_only"), "ABS migration should resolve auto_brim to outer_only");
+            assertTrue(Native.getLastSliceConfig().contains("brim_type = auto_brim"), "ABS auto-brim rule must reach the native slicer");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1247,7 +1460,7 @@ public class E2ETestSuite {
         resetEnvironment();
         setupMockConfig();
         Model model = new Model();
-        Native.MockModel mockModel = Native.getMockModels().get(1);
+        Native.MockModel mockModel = Native.getMockModels().get(model.getPointer());
         mockModel.objects.get(0).colorIndex = 4;
         
         // Perform State Reset (crash simulation recovery)

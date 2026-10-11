@@ -1,0 +1,281 @@
+{
+  "formatVersion": 1,
+  "abi": "arm64-v8a",
+  "appVersion": "0.8.193",
+  "versionCode": 228,
+  "nativeSourceFingerprint": "d79427752a52d8831db3ac5da205d67c7e8cf823fa713eda2d09e321c6d9b06c",
+  "sourceApk": "app\\build\\outputs\\apk\\debug\\OrkanSlicer_d996a9cadb.apk",
+  "sourceApkSha256": "a43462de6ead0a1acc9b8a5308a5b2a8f9363c91c41903e128d9aa35df95a009",
+  "files": [
+    {
+      "name": "libTKBO.so",
+      "size": 2423968,
+      "sha256": "a7ed225dd3212abfdcb4ad6ca3662ddc7dea1dce5104ce7259641cddabf1b649"
+    },
+    {
+      "name": "libTKBRep.so",
+      "size": 1158912,
+      "sha256": "8dc98fb325b684c343b3373bcd764ecd27cdb9f35a046cb298a7aa37e93ee04b"
+    },
+    {
+      "name": "libTKBin.so",
+      "size": 178856,
+      "sha256": "776cbac8369ecb799a9f4360d216dd83542e4c41f9ad3d623bc6e796437fba9f"
+    },
+    {
+      "name": "libTKBinL.so",
+      "size": 386616,
+      "sha256": "532b5a73ec888fa02c0486eb8552fae25d0d5f734a6625becda3142ed7d106bc"
+    },
+    {
+      "name": "libTKBinTObj.so",
+      "size": 105640,
+      "sha256": "41e20b081103d4a32bfbe26a2959f5a1b34a8de344ba68abe31b90596219ba17"
+    },
+    {
+      "name": "libTKBinXCAF.so",
+      "size": 179016,
+      "sha256": "f1ea396bbfa4c45632bddba2b0d2008dc28939bdc06bacb9806d5fff43cd6b3f"
+    },
+    {
+      "name": "libTKBool.so",
+      "size": 3720056,
+      "sha256": "c10aa93d6cb2b2b3cd594bdf2af2a8334f23c1170a192ff7f4ca9650fbeb08ca"
+    },
+    {
+      "name": "libTKCAF.so",
+      "size": 630168,
+      "sha256": "36ab303c3a9e2265ce4e78ce0bec0b039f66201a16ca50057206a194e5002f14"
+    },
+    {
+      "name": "libTKCDF.so",
+      "size": 397696,
+      "sha256": "977da56f74b0eb4dc320caf586955da1da90d2f24d415b534c0fc808ea04e3c4"
+    },
+    {
+      "name": "libTKExpress.so",
+      "size": 255080,
+      "sha256": "f6150fe66e5ba51cf1bee4e4d37f4343f4a850adb522f94b1f4a96a7054e8961"
+    },
+    {
+      "name": "libTKFeat.so",
+      "size": 1123384,
+      "sha256": "f6e3f94e1b0a352499c11998cc93465cb1fd959a9240a663b5e40c6fe099a421"
+    },
+    {
+      "name": "libTKFillet.so",
+      "size": 2275032,
+      "sha256": "07712c1b16255e9dd1edec38a60dbcf44f07441d4c22ee1c8f87cf909bfa4975"
+    },
+    {
+      "name": "libTKG2d.so",
+      "size": 379688,
+      "sha256": "a654a0d68a11313483c721666044c3e3f38f9e19b3bdce59ecef12031716abb0"
+    },
+    {
+      "name": "libTKG3d.so",
+      "size": 1045992,
+      "sha256": "7c52ceb55f019bf376a1e8594201c82e8aecfe7b7c80dd6fe0fc984043c67d1b"
+    },
+    {
+      "name": "libTKGeomAlgo.so",
+      "size": 4207888,
+      "sha256": "86bc42f00aac70e4da4aa8be556f42e478892167457a9bfd7e8b0ac25df4d580"
+    },
+    {
+      "name": "libTKGeomBase.so",
+      "size": 4572216,
+      "sha256": "d365f4d9b06ac7bf4a1026c54542cbb2f4635b1fd30acfe2d561f7b5d4916eca"
+    },
+    {
+      "name": "libTKHLR.so",
+      "size": 1026552,
+      "sha256": "b90260f26ba5fad1116be5dd76ec29ac09227628b2683261ea3efe3a9bf8857a"
+    },
+    {
+      "name": "libTKIGES.so",
+      "size": 4004472,
+      "sha256": "ec5390bff245311a305137836c1ac9823b32810a5bb8187f366be15b7b24b1e2"
+    },
+    {
+      "name": "libTKLCAF.so",
+      "size": 961056,
+      "sha256": "90268a2c9028d0b8bc2290a73b7063a32fcb84cc5d480bff7a50c364f2273485"
+    },
+    {
+      "name": "libTKMath.so",
+      "size": 2463176,
+      "sha256": "b1ad4b2352aa915a217e447b8d859a9b1d3975effd3505723d25f17aa7eca928"
+    },
+    {
+      "name": "libTKMesh.so",
+      "size": 1123128,
+      "sha256": "9c23030ba2936ca2e644f070a697af40dfcb4f235cd386eb9199bf0693ad5724"
+    },
+    {
+      "name": "libTKMeshVS.so",
+      "size": 407120,
+      "sha256": "85f0d5de39bbf571525f65503d8925ea91ffc80e6233bb4908a60ca36244059f"
+    },
+    {
+      "name": "libTKOffset.so",
+      "size": 1942800,
+      "sha256": "3a3cf1e6fdc4dfe0e508e84350ee8c5547cc4948a49b33f1973b83f2bf06d338"
+    },
+    {
+      "name": "libTKOpenGles.so",
+      "size": 1497200,
+      "sha256": "deb1496f6f39496eb843bd4df07b74662329b3a194e16364a5347f5825ac8557"
+    },
+    {
+      "name": "libTKPrim.so",
+      "size": 397712,
+      "sha256": "7adc5dd925dc04fb7ab5c653889f6d373e4a6a8224b330f46cac8878c20596f4"
+    },
+    {
+      "name": "libTKRWMesh.so",
+      "size": 534800,
+      "sha256": "185ba795a6e4554b368df4ab2ec03cce7c44de87adab860a59dd1a91ffa54236"
+    },
+    {
+      "name": "libTKSTEP.so",
+      "size": 3562488,
+      "sha256": "d0d7889447a1313918d0733a064eb3e2a9fdff1024230004934c76e28f15cfb2"
+    },
+    {
+      "name": "libTKSTEP209.so",
+      "size": 680840,
+      "sha256": "bac51f45a68fec3b5f112ea266f4c7c60eafd517b42a2ddc2425f04681ac34b7"
+    },
+    {
+      "name": "libTKSTEPAttr.so",
+      "size": 1894240,
+      "sha256": "b9c513b6aaf60719b07063daccfeb9c4afd514f817b9954c5a04d4eb326ace84"
+    },
+    {
+      "name": "libTKSTEPBase.so",
+      "size": 2574680,
+      "sha256": "e00d88e949e966f3f5a47132db4efbb4dcaf03a3fc5a0e9c809d0e5d13130d42"
+    },
+    {
+      "name": "libTKSTL.so",
+      "size": 143208,
+      "sha256": "88224d0b24466b2f853551d5576e23e77ac92a5a29d6f74809114523fbeb1f52"
+    },
+    {
+      "name": "libTKService.so",
+      "size": 1208696,
+      "sha256": "6a43458cca49196f265d25ae255997f9ab7caca1488154ff00a07907d8c7077f"
+    },
+    {
+      "name": "libTKShHealing.so",
+      "size": 2713360,
+      "sha256": "1ffc7c012dc46b01c28421ca44bd7558906c25c5e3cedbb561a9763f1b6bfd8a"
+    },
+    {
+      "name": "libTKStd.so",
+      "size": 1200976,
+      "sha256": "c5627dd58d489373d48ef3310acd9f2a87c3fd93f65cae7515ae2a6cb7ef0905"
+    },
+    {
+      "name": "libTKStdL.so",
+      "size": 490608,
+      "sha256": "ddad216e0c64cacc65a4040f0da6e1e258d314e97f165b4ba6aaa4684e70abd9"
+    },
+    {
+      "name": "libTKTObj.so",
+      "size": 325728,
+      "sha256": "cc11db944dc9302e5d70c48bec9f7851ae6ee30d00b859634648228215269592"
+    },
+    {
+      "name": "libTKTopAlgo.so",
+      "size": 2802376,
+      "sha256": "741444b53f5df549adae73d401f55cd72b02389fecb52b3f2a0dd3f38e961124"
+    },
+    {
+      "name": "libTKV3d.so",
+      "size": 3099528,
+      "sha256": "cad094db6891ed9ff914a2b7e7c0a5a04c53835e8b6e22add0ae3eb7a2f0e620"
+    },
+    {
+      "name": "libTKVCAF.so",
+      "size": 272672,
+      "sha256": "0040376e7bd60ddd414347e802d6f40f35be84932bc17190946df0f7e0aeab7c"
+    },
+    {
+      "name": "libTKVRML.so",
+      "size": 617128,
+      "sha256": "f42a6ef5b029baed0a4f9f31413ef4b18aa1a1786ae18b5f8def815e60e9da98"
+    },
+    {
+      "name": "libTKXCAF.so",
+      "size": 1012616,
+      "sha256": "29635466462027f9e822e3471abe5cd6fce3b6a9822f83daf23cefb9649763e3"
+    },
+    {
+      "name": "libTKXDE.so",
+      "size": 136792,
+      "sha256": "d6b40b496264edbf2f7541631b31e0b23e2afcced347f0d926077b27940f0323"
+    },
+    {
+      "name": "libTKXDECascade.so",
+      "size": 122840,
+      "sha256": "4b246b03cde4d2e73dd76c2d65ca99671a2aefbf35878eebf8aa0d92cd5ea886"
+    },
+    {
+      "name": "libTKXDEIGES.so",
+      "size": 198888,
+      "sha256": "332a571ef1c648d918bb0f002433b68372e451563ebeb1badc59dae27a061fb9"
+    },
+    {
+      "name": "libTKXDESTEP.so",
+      "size": 896096,
+      "sha256": "d71a72a38e2a3bef7757e35b70ccee0561934b8acc95d852beca3cdddbc941c8"
+    },
+    {
+      "name": "libTKXMesh.so",
+      "size": 34336,
+      "sha256": "0d0b9c5f99e1123d0b5a0163204e47ce4f87a07c5729a010b1e948dbaef86c39"
+    },
+    {
+      "name": "libTKXSBase.so",
+      "size": 2691224,
+      "sha256": "0e18a7abd83b499dd785d4f1de45121d914caa22f5d7cd7167935279d1f40479"
+    },
+    {
+      "name": "libTKXml.so",
+      "size": 216760,
+      "sha256": "6a82f5c8a5fdc4e135664a4148a0fa913a32f3a1cb7c817075e874997f20d5f3"
+    },
+    {
+      "name": "libTKXmlL.so",
+      "size": 445336,
+      "sha256": "424e321cf2a7abf810f12bbcb3cf825789463b48121d88d257c025446ea1a8d1"
+    },
+    {
+      "name": "libTKXmlTObj.so",
+      "size": 98112,
+      "sha256": "bcd4e32669e4fe8d2a2f35eb7bfb77f0cd312385e5e58d464e82b75741e82ec5"
+    },
+    {
+      "name": "libTKXmlXCAF.so",
+      "size": 204880,
+      "sha256": "7d89598b7ad281079d50c4182ee833b6d9890b106a7009a6a2b03c72d32babde"
+    },
+    {
+      "name": "libTKernel.so",
+      "size": 1960560,
+      "sha256": "3de949ec7f268170d9bf40a16d4b6d62c311760571cf4f1bfc832cf4d0e1a673"
+    },
+    {
+      "name": "libandroidx.graphics.path.so",
+      "size": 10096,
+      "sha256": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6"
+    },
+    {
+      "name": "libslic3r.so",
+      "size": 36157960,
+      "sha256": "ea64743c84f07e50e1580fc0c38e2fc9edcc1a725dcf0b4cb558f724a76e9fee"
+    }
+  ]
+}

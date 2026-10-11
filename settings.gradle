@@ -1,7 +1,30 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+
+    // Kotlin 2.4 metadata requires R8 9.1.29 or newer. Use Google's
+    // compatible R8 release while keeping the Android 16-capable AGP line.
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+        }
+        dependencies {
+            classpath("com.android.tools:r8:9.1.43")
+        }
+    }
+}
+
 rootProject.name = "OrcaSlicer Mobile"
 include ':app', ':eventbus', ':eventbus_api', ':eventbus_processor', ':sapil'
+include ':eventbusdemo', ':sapildemo'
 
 project(':eventbus').projectDir = file('EventBus/eventbus')
 project(':eventbus_api').projectDir = file('EventBus/eventbus_api')
 project(':eventbus_processor').projectDir = file('EventBus/eventbus_processor')
 project(':sapil').projectDir = file('SAPIL/sapil')
+project(':eventbusdemo').projectDir = file('EventBus/app')
+project(':sapildemo').projectDir = file('SAPIL/demo')

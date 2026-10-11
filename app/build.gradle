@@ -1,5 +1,8 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'org.jetbrains.kotlin.kapt'
 }
 
 def commit = getGitCommitHash(file('.'))
@@ -7,17 +10,19 @@ def usePrebuiltNative = (project.findProperty("usePrebuiltNative") ?: "false").t
 
 android {
     namespace 'ru.ytkab0bp.slicebeam'
-    compileSdk 35
+    compileSdk 36
+    testBuildType "sliceTest"
 
     defaultConfig {
         applicationId "com.codemastercody3d.orcaslicermobile"
-        minSdk 21
-        targetSdk 35
-        versionCode 4
-        versionName "0.4.6"
+        minSdk 23
+        targetSdk 36
+        versionCode 229
+        versionName "0.8.194"
+        buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders = [fileProviderAuthority: "${applicationId}.provider"]
+        manifestPlaceholders = [fileProviderAuthority: "${applicationId}.slicermore.files"]
 
         if (!usePrebuiltNative) {
             externalNativeBuild {
@@ -32,9 +37,11 @@ android {
     }
     sourceSets {
         main {
-            jniLibs.srcDirs += file('src/main/occt/jniLibs')
+            assets.exclude '**/kromacut/**'
             if (usePrebuiltNative) {
                 jniLibs.srcDirs += file('src/prebuiltNative/jniLibs')
+            } else {
+                jniLibs.srcDirs += file('src/main/occt/jniLibs')
             }
         }
     }
@@ -59,10 +66,18 @@ android {
                 abiFilters "arm64-v8a"
             }
         }
+        sliceTest {
+            initWith debug
+            resValue "string", "AppName", "OrkanSlicer Tests"
+            applicationIdSuffix ".slicetest"
+            manifestPlaceholders = [fileProviderAuthority: "${defaultConfig.applicationId}.slicermore.slicetest.files"]
+            matchingFallbacks = ['debug']
+        }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     ndkVersion "23.1.7779620"
@@ -77,13 +92,47 @@ android {
 
     buildFeatures {
         buildConfig true
+        compose true
+    }
+
+    lint {
+        // The inherited SliceBeam translations are intentionally partial; untranslated
+        // values fall back to the complete default resource set.
+        disable 'MissingTranslation'
     }
 
     applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = "OrcaSlicerMobile_" + commit + ".apk"
+            outputFileName = "OrkanSlicer_" + commit + ".apk"
         }
     }
+}
+
+if (usePrebuiltNative) {
+    tasks.register('verifyPrebuiltNativeBundle') {
+        doLast {
+            def verificationOutput = new ByteArrayOutputStream()
+            def pythonCommand = System.getenv('PYTHON') ?: 'python'
+            def verification = exec {
+                workingDir rootProject.projectDir
+                commandLine pythonCommand, 'scripts/sync_native_cache.py', 'check'
+                standardOutput = verificationOutput
+                errorOutput = verificationOutput
+                ignoreExitValue = true
+            }
+            logger.lifecycle(verificationOutput.toString('UTF-8').trim())
+            if (verification.exitValue != 0) {
+                throw new GradleException('Refusing to package unverified native libraries. Run a successful source-native build first.')
+            }
+        }
+    }
+    tasks.named('preBuild').configure {
+        dependsOn tasks.named('verifyPrebuiltNativeBundle')
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 static String getGitCommitHash(File dir) {
@@ -96,18 +145,45 @@ static String getGitCommitHash(File dir) {
     }
 }
 
+// Kromacut's upstream web bundle is retained under third_party for reference,
+// but the Android app uses the native generator and must not package the site.
+tasks.configureEach { mergeTask ->
+    if (mergeTask.name in ['mergeDebugAssets', 'mergeReleaseAssets', 'mergeSliceTestAssets']) {
+        def variantName = mergeTask.name.substring('merge'.length(), mergeTask.name.length() - 'Assets'.length())
+        variantName = variantName.substring(0, 1).toLowerCase() + variantName.substring(1)
+        mergeTask.doLast {
+            delete(layout.buildDirectory.dir("intermediates/assets/${variantName}/${mergeTask.name}/kromacut"))
+        }
+    }
+}
+
 dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.1.5'
+    // Compose 1.12 requires API 37 / AGP 9.1; keep the app on API 36 / AGP 8.9 for Android 16.
+    implementation platform('androidx.compose:compose-bom:2026.06.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    testImplementation 'junit:junit:4.13.2'
+
     implementation project(":eventbus")
     implementation project(":eventbus_api")
-    annotationProcessor project(":eventbus_processor")
+    kapt project(":eventbus_processor")
     implementation project(":sapil")
 
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'com.github.instacart:truetime-android:4.0.0.alpha'
     implementation 'com.github.mrudultora:Colorpicker:1.2.0'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'com.google.android.material:material:1.12.0'
+    // Stay on the latest releases that retain minSdk 21 support.
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.13.0'
     implementation 'com.loopj.android:android-async-http:1.4.11'
-    implementation 'androidx.activity:activity:1.10.1'
+    implementation 'androidx.activity:activity:1.11.0'
+    implementation 'androidx.webkit:webkit:1.14.0'
+
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+
 }

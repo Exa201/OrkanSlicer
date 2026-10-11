@@ -1,0 +1,51 @@
+package ru.ytkab0bp.slicebeam.ui.navigation
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class AdaptiveNavigationPolicyTest {
+    @Test
+    fun expandedNavigationRailKeepsAStableFiniteWidth() {
+        assertEquals(64, AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP)
+    }
+
+    @Test
+    fun compactWindowUsesBottomNavigationRegardlessOfOrientation() {
+        assertTrue(AdaptiveNavigationPolicy.usesBottomNavigation(599, true))
+        assertTrue(AdaptiveNavigationPolicy.usesBottomNavigation(599, false))
+    }
+
+    @Test
+    fun expandedWindowUsesRailNavigationRegardlessOfOrientation() {
+        assertFalse(AdaptiveNavigationPolicy.usesBottomNavigation(600, true))
+        assertFalse(AdaptiveNavigationPolicy.usesBottomNavigation(600, false))
+        assertFalse(AdaptiveNavigationPolicy.usesBottomNavigation(840, true))
+    }
+
+    @Test
+    fun missingWindowWidthFallsBackToDeviceOrientation() {
+        assertTrue(AdaptiveNavigationPolicy.usesBottomNavigation(0, true))
+        assertFalse(AdaptiveNavigationPolicy.usesBottomNavigation(-1, false))
+    }
+
+    @Test
+    fun windowShapeOverridesDeviceOrientationForResizableWindows() {
+        assertFalse(AdaptiveNavigationPolicy.isPortraitWindow(720, 540, true))
+        assertTrue(AdaptiveNavigationPolicy.isPortraitWindow(540, 720, false))
+    }
+
+    @Test
+    fun missingWindowBoundsFallBackToDeviceOrientation() {
+        assertTrue(AdaptiveNavigationPolicy.isPortraitWindow(0, 720, true))
+        assertFalse(AdaptiveNavigationPolicy.isPortraitWindow(600, 0, false))
+    }
+
+    @Test
+    fun compactPortraitLayoutRequiresNarrowAndTallWindow() {
+        assertTrue(AdaptiveNavigationPolicy.usesCompactPortraitLayout(540, 720, false))
+        assertFalse(AdaptiveNavigationPolicy.usesCompactPortraitLayout(720, 900, true))
+        assertFalse(AdaptiveNavigationPolicy.usesCompactPortraitLayout(540, 480, true))
+    }
+}

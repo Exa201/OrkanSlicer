@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Smooth isolated dithered pixels before building the model." />
+        <meta
+            name="keywords"
+            content="Kromacut, free image to 3D print, color lithophane, filament swaps, palette quantization, STL export, 3MF export"
+        />
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/docs/dedithering-cleanup" />
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Dedithering And Cleanup | Kromacut Docs" />
+        <meta property="og:description" content="Smooth isolated dithered pixels before building the model." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut logo" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Dedithering And Cleanup | Kromacut Docs" />
+        <meta name="twitter:description" content="Smooth isolated dithered pixels before building the model." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut logo" />
+        <title>Dedithering And Cleanup | Kromacut Docs</title>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "WebSite",
+                        "@id": "https://kromacut.com/#website",
+                        "url": "https://kromacut.com/",
+                        "name": "Kromacut",
+                        "description": "Turn 2D images into stacked, color-layered 3D prints.",
+                        "potentialAction": {
+                            "@type": "CreateAction",
+                            "target": "https://kromacut.com/app"
+                        }
+                    },
+                    {
+                        "@type": "SoftwareApplication",
+                        "@id": "https://kromacut.com/#application",
+                        "name": "Kromacut",
+                        "applicationCategory": "DesignApplication",
+                        "operatingSystem": "Web, Windows, macOS, Linux",
+                        "url": "https://kromacut.com/",
+                        "description": "Browser-first image-to-3D color-layer print generator with STL and 3MF export.",
+                        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+                    }
+                ]
+            }
+        </script>
+      <script type="module" crossorigin src="./assets/index-BitRc1L5.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DjVXpfYh.css">
+    </head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/">Kromacut home</a>
+                    <a href="/app">Open Kromacut</a>
+                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Dedithering And Cleanup</h1>
+<p>Dedithering is a cleanup pass for images that contain isolated pixels or noisy dither patterns after color reduction. It is separate from quantization.</p>
+<h2 id="when-to-use-dedither">When To Use Dedither</h2>
+<p>Use <strong>Dedither</strong> when:</p>
+<ul><li>The reduced image has many one-pixel speckles.</li><li>A region should be solid but has scattered off-color pixels.</li><li>The 3D preview would create tiny color islands that are hard to print.</li></ul>
+<p>Avoid dedithering when:</p>
+<ul><li>The stippled pattern is intentional.</li><li>Small details are important.</li><li>You have not reduced colors yet.</li></ul>
+<h2 id="weight">Weight</h2>
+<p><strong>Weight</strong> controls how many neighboring pixels must match before a pixel is kept. Lower values preserve more detail. Higher values smooth more aggressively.</p>
+<p>Start at the default value. If speckles remain, increase <strong>Weight</strong> one step at a time.</p>
+<h2 id="passes">Passes</h2>
+<p><strong>Passes</strong> controls how many times the cleanup runs. More passes can smooth stubborn noise, but they can also erase small details.</p>
+<p>Use one pass first. Increase only when the image still looks noisy.</p>
+<h2 id="apply-the-result">Apply The Result</h2>
+<p>Click <strong>Apply</strong> in the Dedither panel to create a cleaned image. You can use <strong>Undo</strong> if the result removes too much detail.</p>
+<h2 id="dedither-versus-height-dithering">Dedither Versus Height Dithering</h2>
+<p>Dedither and Auto-paint <strong>Height dithering</strong> are different tools.</p>
+<table><thead><tr><th>Tool</th><th>Where it appears</th><th>What it changes</th></tr></thead><tbody><tr><td>Dedither</td><td>2D mode</td><td>The image pixels before 3D generation.</td></tr><tr><td>Height dithering</td><td>Auto-paint in 3D mode</td><td>The generated height map for smoother tonal transitions.</td></tr></tbody></table>
+<p>Next: <a href="/docs/3d-mode">3D mode</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

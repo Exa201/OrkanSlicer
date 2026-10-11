@@ -2,6 +2,7 @@
 #include <typeinfo>
 #include <set>
 #include <algorithm>
+#include <memory>
 
 #include <thread>
 
@@ -9,6 +10,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/QuadricEdgeCollapse.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/Print.hpp"
@@ -162,6 +164,7 @@ extern "C" {
         jfieldID multilineField = env->GetFieldID(configOptionDefClass, "multiline", "Z");
         jfieldID fullWidthField = env->GetFieldID(configOptionDefClass, "fullWidth", "Z");
         jfieldID readonlyField = env->GetFieldID(configOptionDefClass, "readonly", "Z");
+        jfieldID nullableField = env->GetFieldID(configOptionDefClass, "nullable", "Z");
         jfieldID heightField = env->GetFieldID(configOptionDefClass, "height", "I");
         jfieldID widthField = env->GetFieldID(configOptionDefClass, "width", "I");
         jfieldID minField = env->GetFieldID(configOptionDefClass, "min", "F");
@@ -244,6 +247,7 @@ extern "C" {
                     break;
                 case Slic3r::coEnums:
                     typeStr = "ENUMS";
+                    isEnum = true;
                     break;
             }
 
@@ -275,6 +279,13 @@ extern "C" {
                     guiTypeStr = "ONE_STRING";
                     break;
             }
+
+            // Open enums keep native suggestions in enum_values/enum_labels even when
+            // their stored option type is numeric or string rather than coEnum.
+            isEnum = isEnum
+                    || nCfgDef->gui_type == Slic3r::ConfigOptionDef::GUIType::i_enum_open
+                    || nCfgDef->gui_type == Slic3r::ConfigOptionDef::GUIType::f_enum_open
+                    || nCfgDef->gui_type == Slic3r::ConfigOptionDef::GUIType::select_open;
 
             const char* techStr;
             switch (nCfgDef->printer_technology) {
@@ -333,6 +344,7 @@ extern "C" {
             env->SetBooleanField(cfgDef, multilineField, nCfgDef->multiline);
             env->SetBooleanField(cfgDef, fullWidthField, nCfgDef->full_width);
             env->SetBooleanField(cfgDef, readonlyField, nCfgDef->readonly);
+            env->SetBooleanField(cfgDef, nullableField, nCfgDef->nullable);
             env->SetIntField(cfgDef, heightField, nCfgDef->height);
             env->SetIntField(cfgDef, widthField, nCfgDef->width);
             env->SetFloatField(cfgDef, minField, nCfgDef->min);
@@ -388,12 +400,22 @@ extern "C" {
     }
 
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file(JNIEnv *env, jclass, jstring path, jstring base_name, jint plateId) {
+        if (path == nullptr || base_name == nullptr) {
+            jclass exceptionClass = env->FindClass("java/lang/IllegalArgumentException");
+            if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, "Model path and name are required");
+            return 0;
+        }
         const char* chars = env->GetStringUTFChars(path, JNI_FALSE);
+        if (chars == nullptr) return 0;
         const char* baseChars = env->GetStringUTFChars(base_name, JNI_FALSE);
+        if (baseChars == nullptr) {
+            env->ReleaseStringUTFChars(path, chars);
+            return 0;
+        }
 
-        ModelRef* ref;
+        std::unique_ptr<ModelRef> ref;
         try {
-            ref = new ModelRef();
+            ref = std::make_unique<ModelRef>();
             LoadStrategy load_strategy = LoadStrategy::AddDefaultInstances;
             if (boost::algorithm::iends_with(std::string(chars), ".3mf")) {
                 load_strategy = LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel;
@@ -401,17 +423,29 @@ extern "C" {
             ref->model = Model::read_from_file(std::string(chars), nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, plateId, nullptr);
             ref->base_name = std::string(baseChars);
         } catch (const Slic3r::RuntimeError& e) {
-            env->ThrowNew(env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError"), e.what());
+            env->ReleaseStringUTFChars(path, chars);
+            env->ReleaseStringUTFChars(base_name, baseChars);
+            jclass exceptionClass = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, e.what());
             return 0;
         } catch (const std::exception& e) {
-            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+            env->ReleaseStringUTFChars(path, chars);
+            env->ReleaseStringUTFChars(base_name, baseChars);
+            jclass exceptionClass = env->FindClass("java/lang/RuntimeException");
+            if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, e.what());
+            return 0;
+        } catch (...) {
+            env->ReleaseStringUTFChars(path, chars);
+            env->ReleaseStringUTFChars(base_name, baseChars);
+            jclass exceptionClass = env->FindClass("java/lang/RuntimeException");
+            if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, "Unknown native model loading failure");
             return 0;
         }
 
         env->ReleaseStringUTFChars(path, chars);
         env->ReleaseStringUTFChars(base_name, baseChars);
 
-        return (jlong) (intptr_t) ref;
+        return (jlong) (intptr_t) ref.release();
     }
 
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create(JNIEnv *env, jclass) {
@@ -436,6 +470,52 @@ extern "C" {
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1objects_1count(JNIEnv* env, jclass, jlong ptr) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         return model->model.objects.size();
+    }
+
+    JNIEXPORT jstring JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1name(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) {
+            return nullptr;
+        }
+        const ModelObject* object = model->model.objects[i];
+        if (object == nullptr) return nullptr;
+        std::string name = object->name;
+        if (name.empty()) name = object->input_file;
+        return name.empty() ? nullptr : env->NewStringUTF(name.c_str());
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1triangle_1count(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;
+        size_t count = 0;
+        for (const ModelVolume* volume : model->model.objects[i]->volumes) {
+            if (volume != nullptr && volume->is_model_part()) count += volume->mesh().facets_count();
+        }
+        return static_cast<jint>(std::min(count, static_cast<size_t>(INT32_MAX)));
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1simplify(JNIEnv* env, jclass, jlong ptr, jint i, jfloat keepRatio) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;
+        ModelObject* object = model->model.objects[i];
+        const float ratio = std::max(0.01f, std::min(0.99f, keepRatio));
+        size_t result = 0;
+        for (ModelVolume* volume : object->volumes) {
+            if (volume == nullptr || !volume->is_model_part()) continue;
+            indexed_triangle_set mesh = volume->mesh().its;
+            if (mesh.indices.size() > 4) {
+                const uint32_t target = std::max<uint32_t>(4, static_cast<uint32_t>(mesh.indices.size() * ratio));
+                auto painting = volume->save_painting();
+                its_quadric_edge_collapse(mesh, target);
+                volume->set_mesh(std::move(mesh));
+                volume->calculate_convex_hull();
+                volume->restore_painting(painting);
+                volume->set_new_unique_id();
+            }
+            result += volume->mesh().facets_count();
+        }
+        object->invalidate_bounding_box();
+        return static_cast<jint>(std::min(result, static_cast<size_t>(INT32_MAX)));
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1object_1from_1another(JNIEnv* env, jclass, jlong ptr, jlong fromPtr, jint i) {
@@ -635,12 +715,24 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1scale(JNIEnv* env, jclass, jlong ptr, jint i, jdouble x, jdouble y, jdouble z) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        Vec3d factor(x, y, z);
-        ModelVolumePtrs ptrs = model->model.objects[i]->volumes;
-        for (int i = 0, c = ptrs.size(); i < c; i++) {
-            ptrs[i]->set_scaling_factor(factor);
+        if (model == nullptr || i < 0 || i >= (jint) model->model.objects.size()) return;
+        ModelObject* object = model->model.objects[i];
+        const ModelVolumePtrs& volumes = object->volumes;
+        if (volumes.empty()) return;
+
+        // The UI supplies an absolute scale for the first volume. Apply its relative change
+        // to every volume AND its local offset, so imported 3MF assemblies scale as one model.
+        const Vec3d target(x, y, z);
+        const Vec3d reference = volumes.front()->get_scaling_factor();
+        if (!target.allFinite() || !reference.allFinite() ||
+            (target.array() <= 0.0).any() || (reference.array() <= 0.0).any()) return;
+        const Vec3d ratio = target.cwiseQuotient(reference);
+        if (!ratio.allFinite()) return;
+        for (ModelVolume* volume : volumes) {
+            volume->set_scaling_factor(volume->get_scaling_factor().cwiseProduct(ratio));
+            volume->set_offset(volume->get_offset().cwiseProduct(ratio));
         }
-        model->model.objects[i]->invalidate_bounding_box();
+        object->invalidate_bounding_box();
     }
 
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1is_1left_1handed(JNIEnv* env, jclass, jlong ptr, jint i) {
@@ -1006,6 +1098,38 @@ extern "C" {
         ModelRef* model = (ModelRef*) (intptr_t) ptr;
         ModelObject* obj = model->model.objects[i];
         obj->config.set("extruder", extruder);
+    }
+
+    // Material assignments can live on assembly parts, not just on the parent object.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1used_1filaments(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        std::set<jint> used;
+        if (model != nullptr && i >= 0 && i < (int) model->model.objects.size()) {
+            for (const ModelVolume* volume : model->model.objects[i]->volumes) {
+                if (!volume->is_model_part()) continue;
+                used.insert(std::max(1, volume->extruder_id()));
+                const auto& states = volume->mmu_segmentation_facets.get_data().used_states;
+                for (size_t state = 1; state < states.size(); ++state)
+                    if (states[state]) used.insert((jint) state);
+            }
+        }
+        std::vector<jint> values(used.begin(), used.end());
+        jintArray result = env->NewIntArray((jsize) values.size());
+        if (result != nullptr && !values.empty()) env->SetIntArrayRegion(result, 0, (jsize) values.size(), values.data());
+        return result;
+    }
+
+    // Only an explicit single-material choice removes part colors and facet painting.
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1set_1uniform_1filament(JNIEnv*, jclass, jlong ptr, jint i, jint filament) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || i >= (int) model->model.objects.size() || filament < 1 || filament > 16) return;
+        ModelObject* object = model->model.objects[i];
+        object->config.set("extruder", (int) filament);
+        for (ModelVolume* volume : object->volumes) {
+            if (!volume->is_model_part()) continue;
+            volume->config.erase("extruder");
+            volume->mmu_segmentation_facets.reset();
+        }
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1apply_1adaptive_1layer_1height(JNIEnv* env, jclass, jlong ptr, jint i, jstring configPath, jfloat qualityFactor) {
@@ -2493,21 +2617,26 @@ extern "C" {
             const Slic3r::Transform3d inst_m = inst->get_matrix();
             for (const Slic3r::ModelVolume* v : obj->volumes) {
                 if (!v->is_model_part()) continue;
-                const auto& data = v->mmu_segmentation_facets.get_data();
-                if (data.triangles_to_split.empty()) continue;
-                TriangleMesh vmesh = v->mesh();
-                Slic3r::TriangleSelector sel(vmesh);
-                sel.deserialize(data, true);
-                indexed_triangle_set part = sel.get_facets(state);
-                if (part.indices.empty()) continue;
                 const Slic3r::Transform3d m = inst_m * v->get_matrix();
-                const int base = (int) out.vertices.size();
-                out.vertices.reserve(out.vertices.size() + part.vertices.size());
-                for (const stl_vertex& vert : part.vertices)
-                    out.vertices.emplace_back((m * vert.cast<double>()).cast<float>());
-                out.indices.reserve(out.indices.size() + part.indices.size());
-                for (const stl_triangle_vertex_indices& tri : part.indices)
-                    out.indices.emplace_back(tri + stl_triangle_vertex_indices(base, base, base));
+                auto append = [&](const indexed_triangle_set& part) {
+                    const int base = (int) out.vertices.size();
+                    out.vertices.reserve(out.vertices.size() + part.vertices.size());
+                    for (const stl_vertex& vert : part.vertices)
+                        out.vertices.emplace_back((m * vert.cast<double>()).cast<float>());
+                    out.indices.reserve(out.indices.size() + part.indices.size());
+                    for (const stl_triangle_vertex_indices& tri : part.indices)
+                        out.indices.emplace_back(tri + stl_triangle_vertex_indices(base, base, base));
+                };
+                const auto& data = v->mmu_segmentation_facets.get_data();
+                const bool base_matches = std::max(1, v->extruder_id()) == (int) state;
+                if (data.triangles_to_split.empty()) {
+                    if (base_matches) append(v->mesh().its);
+                    continue;
+                }
+                Slic3r::TriangleSelector sel(v->mesh());
+                sel.deserialize(data, true);
+                append(sel.get_facets(state));
+                if (base_matches) append(sel.get_facets(Slic3r::EnforcerBlockerType::NONE));
             }
         }
         return out;

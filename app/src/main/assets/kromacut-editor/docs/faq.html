@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Short answers to common Kromacut questions." />
+        <meta
+            name="keywords"
+            content="Kromacut, free image to 3D print, color lithophane, filament swaps, palette quantization, STL export, 3MF export"
+        />
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/docs/faq" />
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="FAQ | Kromacut Docs" />
+        <meta property="og:description" content="Short answers to common Kromacut questions." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/docs/faq" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut logo" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="FAQ | Kromacut Docs" />
+        <meta name="twitter:description" content="Short answers to common Kromacut questions." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut logo" />
+        <title>FAQ | Kromacut Docs</title>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "WebSite",
+                        "@id": "https://kromacut.com/#website",
+                        "url": "https://kromacut.com/",
+                        "name": "Kromacut",
+                        "description": "Turn 2D images into stacked, color-layered 3D prints.",
+                        "potentialAction": {
+                            "@type": "CreateAction",
+                            "target": "https://kromacut.com/app"
+                        }
+                    },
+                    {
+                        "@type": "SoftwareApplication",
+                        "@id": "https://kromacut.com/#application",
+                        "name": "Kromacut",
+                        "applicationCategory": "DesignApplication",
+                        "operatingSystem": "Web, Windows, macOS, Linux",
+                        "url": "https://kromacut.com/",
+                        "description": "Browser-first image-to-3D color-layer print generator with STL and 3MF export.",
+                        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+                    }
+                ]
+            }
+        </script>
+      <script type="module" crossorigin src="./assets/index-BitRc1L5.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DjVXpfYh.css">
+    </head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/">Kromacut home</a>
+                    <a href="/app">Open Kromacut</a>
+                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="faq">FAQ</h1>
+<h2 id="what-is-hiding-distance">What Is Hiding Distance?</h2>
+<p>Hiding Distance, or <strong>HD</strong>, is the depth of material (in mm) at which a filament visually hides whatever is beneath it when viewed front-lit — the way finished prints are actually seen. Auto-paint uses HD to estimate how stacked filament layers will look.</p>
+<p>Lower HD means a more opaque filament that covers in fewer layers. Higher HD means a more translucent filament that needs more depth.</p>
+<p>HD replaces the Transmission Distance (TD) shown in earlier versions. Conventional TD describes backlit transmission (as measured by lithophane TD test prints) and is roughly 10× the hiding distance; you can still enter a conventional TD via the convert button on a filament row and Kromacut converts it for you.</p>
+<h2 id="should-i-use-manual-or-auto-paint">Should I Use Manual Or Auto-paint?</h2>
+<p>Use <strong>Manual</strong> when you want direct artistic control over color order and layer heights.</p>
+<p>Use <strong>Auto-paint</strong> when you have real filament colors and hiding distance values and want Kromacut to plan the stack automatically.</p>
+<h2 id="do-i-need-to-calibrate-filaments">Do I Need To Calibrate Filaments?</h2>
+<p>You can start with estimated hiding distances. You can also check whether the filament maker, seller, or community has published Transmission Distance values for the exact filament you own — enter those through the convert button and Kromacut turns them into hiding distances.</p>
+<p>Calibration usually improves Auto-paint results, especially when published values are unavailable or the result still looks wrong. Calibration is most useful when:</p>
+<ul><li>A filament is translucent.</li><li>Two filaments are visually similar.</li><li>You want repeatable results across projects.</li></ul>
+<h2 id="what-is-the-difference-between-palette-colors-and-filament-colors">What Is The Difference Between Palette Colors And Filament Colors?</h2>
+<p>Palette colors are image colors used in 2D mode and Manual mode.</p>
+<p>Filament colors are physical materials used by Auto-paint. Auto-paint can generate virtual layer colors from the physical filament stack, but the exported print plan is still based on real filaments.</p>
+<h2 id="why-does-the-3d-preview-need-a-build-button">Why Does The 3D Preview Need A Build Button?</h2>
+<p>3D generation can be expensive. Kromacut waits for <strong>Build 3D Model</strong> so changing a setting does not repeatedly start and cancel heavy work.</p>
+<h2 id="can-i-export-without-using-3d-mode">Can I Export Without Using 3D Mode?</h2>
+<p>Use 2D mode to download the processed image. Use 3D mode to build and export STL or 3MF models.</p>
+<h2 id="does-layer-preview-change-the-export">Does Layer Preview Change The Export?</h2>
+<p>No. The <strong>Layer Preview</strong> range only changes what is visible in the preview. STL and 3MF exports include the full generated model.</p>
+<h2 id="which-file-should-i-print">Which File Should I Print?</h2>
+<p>Choose <strong>Download STL</strong> for broad slicer compatibility and manual filament swaps.</p>
+<p>Choose <strong>Download 3MF</strong> when your slicer supports color-aware 3MF files and you want to preserve colored layer objects.</p>
+<h2 id="why-are-heights-approximate">Why Are Heights Approximate?</h2>
+<p>Layer numbers depend on slicer behavior, especially first-layer height. Use the values shown in <strong>Print Instructions</strong>, then confirm the final swap layers in your slicer preview.</p>
+<h2 id="can-i-share-my-settings">Can I Share My Settings?</h2>
+<p>Yes. Export custom 2D palettes as <code>.kpal</code> files and Auto-paint filament profiles as <code>.kfil</code> files. Older <code>.kapp</code> filament profile files can still be imported.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

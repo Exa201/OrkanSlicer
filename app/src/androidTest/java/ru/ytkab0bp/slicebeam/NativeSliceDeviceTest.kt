@@ -1,0 +1,76 @@
+package ru.ytkab0bp.slicebeam
+
+import android.app.Application
+import android.content.Context
+import android.util.Log
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.utils.Prefs
+import java.io.File
+import java.io.FileOutputStream
+
+/** Runs an ARM64 native slice in an isolated app id, away from production app data. */
+@RunWith(AndroidJUnit4::class)
+class NativeSliceDeviceTest {
+    @Test
+    fun bundledKobraProfileSlicesBoxLocally() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        context.assets.open("orca_profiles/Anycubic.ini").use { input ->
+            SliceBeam.CONFIG = Slic3rConfigWrapper(input)
+        }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer: ConfigObject? = config.findPrinter("Anycubic Kobra 3 0.4 nozzle")
+        val process: ConfigObject? = config.findPrint("0.16mm Standard")
+        val filament: ConfigObject? = config.findFilament("Anycubic Generic PLA")
+        assertNotNull("Bundled Kobra 3 printer preset", printer)
+        assertNotNull("Bundled print preset", process)
+        assertNotNull("Bundled PLA filament preset", filament)
+
+        val selectedPresets = ConfigObject("presets")
+        config.presets = selectedPresets
+        selectedPresets.put("printer", requireNotNull(printer).title)
+        selectedPresets.put("print", requireNotNull(process).title)
+        selectedPresets.put("filament", requireNotNull(filament).title)
+
+        val modelFile = File(context.cacheDir, "native-slice-device-test.stl")
+        val gcodeFile = File(context.cacheDir, "native-slice-device-test.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("models/box.stl").use { input ->
+                FileOutputStream(modelFile).use { output -> input.copyTo(output) }
+            }
+            model = Model(modelFile)
+            assertTrue("The bundled STL must load as one object", model.objectsCount == 1)
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath,
+                gcodeFile.absolutePath,
+                null,
+            )
+            assertTrue(
+                "Native Orca/libslic3r must produce non-empty G-code",
+                gcodeFile.isFile && gcodeFile.length() > 0,
+            )
+            Log.i("NativeSliceDeviceTest", "PASS local G-code bytes=${gcodeFile.length()}")
+        } finally {
+            result?.release()
+            model?.release()
+            modelFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            gcodeFile.delete()
+        }
+    }
+}

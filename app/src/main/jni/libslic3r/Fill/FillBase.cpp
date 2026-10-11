@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
@@ -2708,16 +2709,64 @@ void Fill::connect_base_support(Polylines &&infill_ordered, const Polygons &boun
     connect_base_support(std::move(infill_ordered), polygons_src, bbox, polylines_out, spacing, params);
 }
 
-// Fill Multiline. The desktop Orca source uses Clipper2 here, but this Android
-// port does not ship Clipper2. Keep the original single-line fill instead of
-// failing the native build.
+// Fill Multiline - Clipper2 implementation from the locked OrcaSlicer revision.
 void multiline_fill(Polylines& polylines, const FillParams& params, float spacing)
 {
-    (void)params;
-    (void)spacing;
+    if (params.multiline <= 1)
+        return;
+
+    const int n_lines     = params.multiline;
+    const int n_polylines = static_cast<int>(polylines.size());
+    Polylines all_polylines;
+    all_polylines.reserve(n_lines * n_polylines);
+
     polylines.erase(std::remove_if(polylines.begin(), polylines.end(),
                               [](const Polyline& p) { return p.size() < 2; }),
                polylines.end());
+
+    if (polylines.empty())
+        return;
+
+    Clipper2Lib::Paths64 subject_paths = Slic3rPolylines_to_Paths64(polylines);
+    const double miter_limit = 2.0;
+    const int    rings       = n_lines / 2;
+
+    std::vector<double> offsets;
+    offsets.reserve(n_lines);
+    if (n_lines % 2 != 0) {
+        offsets.push_back(0.0);
+        for (int i = 1; i <= rings; ++i)
+            offsets.push_back(i * spacing);
+    } else {
+        const double start = 0.5 * spacing;
+        for (int i = 0; i < rings; ++i)
+            offsets.push_back(start + i * spacing);
+    }
+
+    Clipper2Lib::ClipperOffset offsetter(miter_limit);
+    offsetter.AddPaths(subject_paths, Clipper2Lib::JoinType::Round, Clipper2Lib::EndType::Round);
+    for (double offset : offsets) {
+        if (offset == 0.0) {
+            all_polylines.insert(all_polylines.end(), polylines.begin(), polylines.end());
+            continue;
+        }
+
+        Clipper2Lib::Paths64 offset_paths;
+        offsetter.Execute(scale_(offset), offset_paths);
+        if (offset_paths.empty())
+            continue;
+
+        Polylines new_polylines = Paths64_to_polylines(offset_paths);
+        for (Polyline& polyline : new_polylines) {
+            if (polyline.points.size() < 3)
+                continue;
+            if (polyline.points.front() != polyline.points.back())
+                polyline.points.push_back(polyline.points.front());
+            all_polylines.emplace_back(std::move(polyline));
+        }
+    }
+
+    polylines = std::move(all_polylines);
 }
 
 } // namespace Slic3r

@@ -1,0 +1,288 @@
+package ru.ytkab0bp.slicebeam.utils
+
+import java.io.BufferedReader
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.nio.charset.StandardCharsets
+import java.util.Locale
+import java.util.regex.Pattern
+
+/** Pure file transformation for the G-code metadata expected by Anycubic Kobra 3 firmware. */
+class AnycubicGCodeProcessor private constructor() {
+    class ScanResult private constructor(
+        @JvmField val maxTool: Int,
+        @JvmField val density: Double,
+        @JvmField val densities: DoubleArray,
+        @JvmField val volume: Double,
+        @JvmField val totalMass: Double,
+        @JvmField val hasReportedTotalMass: Boolean,
+        @JvmField val computedFilamentMasses: DoubleArray,
+        @JvmField val needsMassBreakdownRewrite: Boolean,
+        @JvmField val hasFilamentMass: Boolean,
+        @JvmField val hasFilamentMap: Boolean,
+        @JvmField val hasToolSelection: Boolean,
+        @JvmField val materials: Array<String>,
+    ) {
+        companion object {
+            internal fun create(
+                maxTool: Int,
+                density: Double,
+                densities: DoubleArray,
+                volume: Double,
+                totalMass: Double,
+                hasReportedTotalMass: Boolean,
+                computedFilamentMasses: DoubleArray,
+                needsMassBreakdownRewrite: Boolean,
+                hasFilamentMass: Boolean,
+                hasFilamentMap: Boolean,
+                hasToolSelection: Boolean,
+                materials: Array<String>,
+            ) = ScanResult(maxTool, density, densities, volume, totalMass, hasReportedTotalMass,
+                computedFilamentMasses, needsMassBreakdownRewrite, hasFilamentMass, hasFilamentMap,
+                hasToolSelection, materials)
+        }
+    }
+
+    class Options {
+        @JvmField var remappedTools: IntArray? = null
+        @JvmField var gates: IntArray? = null
+        @JvmField var modelInstances: Int = 1
+        @JvmField var versionName: String = ""
+        @JvmField var paintInfo: String = "[]"
+        @JvmField var colors: String = "#19C8A0"
+        @JvmField var materials: String = "PLA"
+        @JvmField var smallThumbnail: String = ""
+        @JvmField var largeThumbnail: String = ""
+    }
+
+    companion object {
+        private val LIST_SEPARATOR = Pattern.compile("[,;]")
+        private val EXTRUSION_MOVE = Pattern.compile("(?i)^G[0-3](?=\\s|$).*\\sE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:\\s|$).*")
+        private const val DEFAULT_FILAMENT_DENSITY = 1.24
+
+        /** Formats Anycubic's base64 thumbnail block with 76-character data rows. */
+        @JvmStatic
+        fun formatThumbnailBlock(width: Int, height: Int, encoded: String?, top: Boolean): String {
+            require(width > 0 && height > 0 && encoded != null) {
+                "Thumbnail dimensions and data are required"
+            }
+            val data = encoded
+            val block = StringBuilder()
+            block.append("; THUMBNAIL_BLOCK_START\n")
+            block.append("; thumbnail begin ").append(width).append('x').append(height).append(' ')
+                .append(data.length).append(if (top) " top" else "").append('\n')
+            var offset = 0
+            while (offset < data.length) {
+                block.append("; ").append(data, offset, minOf(offset + 76, data.length)).append('\n')
+                offset += 76
+            }
+            return block.append("; thumbnail end\n; THUMBNAIL_BLOCK_END\n").toString()
+        }
+
+        /** AnycubicSlicerNext uses semicolons between filament palette entries. */
+        @JvmStatic
+        fun formatMappedPalette(mappedTools: IntArray, slots: List<FilamentSlot>, colors: Boolean): String {
+            val highest = maxOf(0, mappedTools.maxOrNull() ?: 0)
+            val mappedSlots = HashMap<Int, FilamentSlot>()
+            mappedTools.forEachIndexed { logicalTool, printerTool ->
+                slots.getOrNull(logicalTool)?.let { mappedSlots.putIfAbsent(printerTool, it) }
+            }
+            return (0..highest).joinToString(";") { tool ->
+                val slot = mappedSlots[tool]
+                if (colors) slot?.let { String.format(Locale.ROOT, "#%06X", it.color and 0xFFFFFF) } ?: "#19C8A0"
+                else slot?.type ?: "PLA"
+            }
+        }
+
+        @JvmStatic
+        @Throws(IOException::class)
+        fun scan(source: File): ScanResult {
+            var densities = doubleArrayOf(DEFAULT_FILAMENT_DENSITY)
+            var volumesByTool = DoubleArray(0)
+            var massesByTool = DoubleArray(0)
+            var reportedTotalMass = 0.0
+            var hasReportedTotalMass = false
+            var maxTool = -1
+            var hasFilamentMass = false
+            var hasFilamentMap = false
+            var hasToolSelection = false
+            var materials = arrayOf("PLA")
+            BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8)).use { reader ->
+                while (true) {
+                    val line = reader.readLine() ?: break
+                    when {
+                        line.startsWith("; filament_density = ") || line.startsWith("; filament_density:") -> {
+                            val separator = maxOf(line.indexOf('='), line.indexOf(':'))
+                            val parsed = parseNumbers(line.substring(separator + 1))
+                            if (parsed.any { it.isFinite() && it > 0 }) densities = parsed
+                        }
+                        line.startsWith("; filament used [cm3] = ") -> {
+                            volumesByTool = parseNumbers(line.substring(line.indexOf('=') + 1))
+                        }
+                        line.startsWith("; filament used [g] = ") -> {
+                            massesByTool = parseNumbers(line.substring(line.indexOf('=') + 1))
+                            hasFilamentMass = true
+                        }
+                        line.startsWith("; total filament used [g] = ") -> {
+                            reportedTotalMass = parseFirstPositiveNumber(line.substring(line.indexOf('=') + 1))
+                            hasReportedTotalMass = reportedTotalMass > 0
+                        }
+                        line.startsWith("; filament_type = ") -> {
+                            materials = LIST_SEPARATOR.split(line.substring(line.indexOf('=') + 1).trim())
+                        }
+                    }
+                    hasFilamentMap = hasFilamentMap || GCodeToolMapper.isFilamentMapLine(line)
+                    val tool = GCodeToolMapper.parseToolCommand(line)
+                    if (tool >= 0) {
+                        hasToolSelection = true
+                        maxTool = maxOf(maxTool, tool)
+                    }
+                }
+            }
+            val normalizedDensities = normalizeDensities(densities)
+            val massCount = maxOf(massesByTool.size, volumesByTool.size)
+            val computedMasses = DoubleArray(massCount) { index ->
+                val reportedMass = massesByTool.getOrNull(index)?.takeIf { it.isFinite() && it > 0 }
+                if (reportedMass != null) reportedMass else {
+                    val volume = volumesByTool.getOrNull(index)?.takeIf { it.isFinite() && it > 0 } ?: 0.0
+                    volume * normalizedDensities[index.coerceAtMost(normalizedDensities.lastIndex)]
+                }
+            }
+            val needsMassBreakdownRewrite = computedMasses.isNotEmpty() &&
+                (!hasFilamentMass || volumesByTool.indices.any { index ->
+                    val volume = volumesByTool[index].takeIf { it.isFinite() && it > 0 } ?: 0.0
+                    volume > 0 && (massesByTool.getOrNull(index)?.takeIf { it.isFinite() && it > 0 } == null)
+                })
+            val volume = volumesByTool.sumOf { if (it.isFinite() && it > 0) it else 0.0 }
+            val totalMass = if (hasReportedTotalMass) reportedTotalMass else computedMasses.sum()
+            return ScanResult.create(maxTool, normalizedDensities.first(), normalizedDensities, volume,
+                totalMass, hasReportedTotalMass, computedMasses, needsMassBreakdownRewrite,
+                hasFilamentMass, hasFilamentMap, hasToolSelection, materials)
+        }
+
+        /** Writes vendor-compatible G-code. Returns false when no header block was found. */
+        @JvmStatic
+        @Throws(IOException::class)
+        fun rewrite(source: File, destination: File, scan: ScanResult, options: Options): Boolean {
+            val remappedTools = options.remappedTools
+                ?: throw IllegalArgumentException("Tool routing and physical gates are required")
+            val gates = options.gates
+                ?: throw IllegalArgumentException("Tool routing and physical gates are required")
+
+            val mass = String.format(Locale.ROOT, "%.2f", scan.totalMass)
+            val massBreakdown = scan.computedFilamentMasses.joinToString(",") {
+                String.format(Locale.ROOT, "%.2f", it)
+            }
+            val densityList = scan.densities.joinToString(",") { formatDensity(it) }
+            var headerClosed = false
+            var toolSelectionInserted = false
+            try {
+                BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8)).use { reader ->
+                    BufferedWriter(OutputStreamWriter(FileOutputStream(destination, false), StandardCharsets.UTF_8)).use { writer ->
+                        while (true) {
+                            var line = reader.readLine() ?: break
+                            if (line.trim().startsWith("; filament_colour_type")) continue
+                            if (!headerClosed && line.startsWith("; generated by Slice Beam ")) {
+                                line = line.replaceFirst("; generated by Slice Beam ", "; generated by OrcaSlicer ")
+                            }
+                            if (line.startsWith("; filament_density:")) {
+                                line = "; filament_density: $densityList"
+                            } else if (line.startsWith("; filament_density = ")) {
+                                line = "; filament_density = $densityList"
+                            } else if (line.startsWith("; total filament used [g] = ") && scan.totalMass > 0) {
+                                if (scan.needsMassBreakdownRewrite && !scan.hasFilamentMass && massBreakdown.isNotEmpty()) {
+                                    writer.write("; filament used [g] = $massBreakdown\n")
+                                }
+                                if (!scan.hasReportedTotalMass) line = "; total filament used [g] = $mass"
+                            }
+                            if (!headerClosed && line == "; HEADER_BLOCK_END") {
+                                writer.write("; model_instances: ${maxOf(1, options.modelInstances)}\n")
+                                writer.write("; source_info: {\"models\":[{\"file_source\":0,\"mo_file_id\":-1,\"name\":\"OrkanSlicer_model\",\"referrer_source\":-1}],\"models_from\":0,\"plate_index\":1,\"slice_paras_process\":1,\"software_version\":\"OrkanSlicer ${options.versionName}\"}\n")
+                                writer.write("; paint_info = ${options.paintInfo}\n")
+                                if (!scan.hasFilamentMap) {
+                                    writer.write("; filament: ${GCodeToolMapper.formatGateList(gates)}\n")
+                                }
+                                writer.write("; project_info = {\"flush_multiplier\":1.0,\"flush_volumes_chan_multipliers\":[1.0,1.0,1.0,1.0],\"flush_volumes_matrix\":[0.0],\"flush_volumes_vector\":[140.0,140.0,140.0,140.0,140.0,140.0,140.0,140.0]}\n")
+                                writer.write("; flush_multiplier_calculate_by_acnext: 1\n")
+                                writer.write("; test_mode: 0\n")
+                                headerClosed = true
+                            }
+                            if (GCodeToolMapper.parseToolCommand(line) >= 0) {
+                                line = GCodeToolMapper.remapToolLine(line, remappedTools)
+                            } else if (GCodeToolMapper.isFilamentMapLine(line)) {
+                                line = "; filament: ${GCodeToolMapper.formatGateList(gates)}"
+                            }
+                            if (line.startsWith("; filament_colour = ")) {
+                                line = "; filament_colour = ${options.colors}"
+                            } else if (line.startsWith("; filament_type = ")) {
+                                line = "; filament_type = ${options.materials}"
+                            } else if (line.startsWith("; filament used [g] = ") &&
+                                scan.needsMassBreakdownRewrite && massBreakdown.isNotEmpty()) {
+                                line = "; filament used [g] = $massBreakdown"
+                            }
+                            // Custom start scripts may omit M106 S0. Select the physical
+                            // slot before their first extrusion/retraction in that case.
+                            if (headerClosed && !scan.hasToolSelection && !toolSelectionInserted &&
+                                (line.trim() == "M106 S0" || EXTRUSION_MOVE.matcher(line.substringBefore(';').trim()).matches())) {
+                                val initialTool = remappedTools.firstOrNull()
+                                    ?: throw IllegalArgumentException("No ACE slot selected for the initial tool")
+                                writer.write("; filament start gcode\nT$initialTool\n")
+                                toolSelectionInserted = true
+                            }
+                            writer.write(line)
+                            writer.newLine()
+                            if (headerClosed && line == "; HEADER_BLOCK_END") {
+                                writer.newLine()
+                                writer.write(options.smallThumbnail)
+                                writer.newLine()
+                                writer.write(options.largeThumbnail)
+                            }
+                        }
+                    }
+                }
+            } catch (error: IOException) {
+                destination.delete()
+                throw error
+            } catch (error: RuntimeException) {
+                destination.delete()
+                throw error
+            }
+            if (!headerClosed) {
+                destination.delete()
+                return false
+            }
+            return true
+        }
+
+        private fun parseFirstPositiveNumber(value: String): Double {
+            return try {
+                val parsed = LIST_SEPARATOR.split(value.trim()).firstOrNull()?.trim()?.toDouble() ?: 0.0
+                if (parsed.isFinite() && parsed > 0) parsed else 0.0
+            } catch (_: NumberFormatException) {
+                0.0
+            }
+        }
+
+        private fun parseNumbers(value: String): DoubleArray = LIST_SEPARATOR.split(value.trim()).map { part ->
+            try {
+                part.trim().toDouble().takeIf { it.isFinite() && it > 0 } ?: 0.0
+            } catch (_: NumberFormatException) {
+                0.0
+            }
+        }.toDoubleArray()
+
+        private fun normalizeDensities(values: DoubleArray): DoubleArray {
+            val fallback = values.firstOrNull { it.isFinite() && it > 0 } ?: DEFAULT_FILAMENT_DENSITY
+            return if (values.isEmpty()) doubleArrayOf(DEFAULT_FILAMENT_DENSITY)
+            else DoubleArray(values.size) { index -> values[index].takeIf { it.isFinite() && it > 0 } ?: fallback }
+        }
+
+        private fun formatDensity(value: Double): String =
+            java.lang.Double.toString(value)
+    }
+}

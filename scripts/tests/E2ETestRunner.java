@@ -28,6 +28,7 @@ public class E2ETestRunner {
                     System.out.println("FAIL");
                     Throwable cause = e.getCause() != null ? e.getCause() : e;
                     results.add(new TestResult(m.getName(), false, cause.toString()));
+                    if (failed == 0) cause.printStackTrace(System.out);
                     failed++;
                 }
             }

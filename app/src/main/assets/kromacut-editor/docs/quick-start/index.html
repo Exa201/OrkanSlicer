@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="A practical first run from image to export." />
+        <meta
+            name="keywords"
+            content="Kromacut, free image to 3D print, color lithophane, filament swaps, palette quantization, STL export, 3MF export"
+        />
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/docs/quick-start" />
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Quick Start | Kromacut Docs" />
+        <meta property="og:description" content="A practical first run from image to export." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/docs/quick-start" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut logo" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Quick Start | Kromacut Docs" />
+        <meta name="twitter:description" content="A practical first run from image to export." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut logo" />
+        <title>Quick Start | Kromacut Docs</title>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "WebSite",
+                        "@id": "https://kromacut.com/#website",
+                        "url": "https://kromacut.com/",
+                        "name": "Kromacut",
+                        "description": "Turn 2D images into stacked, color-layered 3D prints.",
+                        "potentialAction": {
+                            "@type": "CreateAction",
+                            "target": "https://kromacut.com/app"
+                        }
+                    },
+                    {
+                        "@type": "SoftwareApplication",
+                        "@id": "https://kromacut.com/#application",
+                        "name": "Kromacut",
+                        "applicationCategory": "DesignApplication",
+                        "operatingSystem": "Web, Windows, macOS, Linux",
+                        "url": "https://kromacut.com/",
+                        "description": "Browser-first image-to-3D color-layer print generator with STL and 3MF export.",
+                        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+                    }
+                ]
+            }
+        </script>
+      <script type="module" crossorigin src="./assets/index-BitRc1L5.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DjVXpfYh.css">
+    </head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/">Kromacut home</a>
+                    <a href="/app">Open Kromacut</a>
+                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="quick-start">Quick Start</h1>
+<p>This guide walks through a typical project from image loading to export.</p>
+<h2 id="load-or-import-an-image">Load Or Import An Image</h2>
+<p>Use the upload button in the preview toolbar or drag an image into the 2D preview.</p>
+<p>After loading, use the mouse wheel to zoom and drag the preview to pan. If the image has transparency, the checkerboard button can make transparent areas easier to see.</p>
+<h2 id="adjust-the-image">Adjust The Image</h2>
+<p>In <strong>2D</strong>, use <strong>Adjustments</strong> before reducing colors. Exposure, contrast, highlights, shadows, whites, blacks, saturation, vibrance, hue, temperature, tint, and clarity can all change which colors the palette tools find.</p>
+<p>Click <strong>Apply</strong> in the Adjustments panel when you want to bake the current adjustments into the image.</p>
+<h2 id="resize-if-needed">Resize If Needed</h2>
+<p>If the image is much larger than the detail you want to print, use <strong>Resize Image</strong> to downscale it by percentage before reducing colors. This reduces the actual pixel dimensions, which can make the later 3D model faster to build and easier to size physically.</p>
+<h2 id="reduce-colors">Reduce Colors</h2>
+<p>In <strong>Quantization Settings</strong>:</p>
+<ol><li>Leave <strong>Palette</strong> on <strong>Auto</strong> unless you already have a specific palette in mind.</li><li>Start with <strong>Number of Colors</strong> set to <strong>16</strong>. Lower it if you need fewer filament changes, or raise it if the preview needs more detail.</li><li>Leave <strong>Algorithm</strong> on the default <strong>K-means</strong> option. It is the recommended starting algorithm for most images.</li><li>Click <strong>Apply</strong>.</li></ol>
+<p>Use the <strong>Image colors</strong> panel to inspect the result. Click a swatch to edit or delete that color.</p>
+<h2 id="dedither-or-clean-up">Dedither Or Clean Up</h2>
+<p>If color reduction leaves isolated speckles, use <strong>Dedither</strong> as a denoising pass. It is especially useful because individual stray pixels in the 2D image can become individual bits of geometry in the 3D model.</p>
+<p>Start with the default <strong>Weight</strong> and <strong>Passes</strong>, then click <strong>Apply</strong>. Increase passes only when the image still has too many isolated pixels after one pass.</p>
+<h2 id="enable-3d-mode">Enable 3D Mode</h2>
+<p>Click <strong>3D</strong>. Set the print basics first:</p>
+<ul><li><strong>Pixel Size (XY)</strong> controls the physical width and depth of each image pixel.</li><li><strong>Layer Height</strong> should match the slicer layer height you plan to use.</li><li><strong>First Layer Height</strong> should match your slicer first-layer setting.</li><li><strong>Smooth Meshing</strong> can soften connected color boundaries for smoother geometry.</li></ul>
+<h2 id="choose-manual-or-auto-paint">Choose Manual Or Auto-paint</h2>
+<p>Use <strong>Manual</strong> when you want direct control over the reduced image colors. Manual mode uses the swatches from <strong>Image colors</strong>: drag colors into the print order you want, then use each row slider to decide how much height that color contributes. This is a good first choice when you already know the layer order you want or you are matching a small, simple palette.</p>
+<p>Use <strong>Auto-paint</strong> when you want Kromacut to plan the physical filament stack for you. Auto-paint starts from your real filaments instead of the reduced image swatches, then uses each filament's color and <strong>Hiding Distance (HD)</strong> — the depth at which it hides what's beneath — to estimate how stacked layers will look.</p>
+<p>For a first Auto-paint run:</p>
+<ol><li>Add the filaments you actually plan to print with.</li><li>Set each filament color as accurately as you can.</li><li>Set each filament's <strong>HD</strong>. The wand estimate is fine for experimenting, and you can convert a conventional TD value (≈10× the HD); calibrated hiding distances usually give the best results.</li><li>Leave <strong>Max Height</strong> on <strong>Auto</strong> at first.</li><li>Enable <strong>Enhanced color matching</strong> if the first result misses important colors or you want the optimizer to search for a better filament order.</li></ol>
+<p>After Auto-paint computes a stack, check the transition zones and confidence details before exporting. Low confidence usually means the filament set is missing a useful color, the hiding distances need calibration, or the max height is too restrictive.</p>
+<h2 id="generate-and-export">Generate And Export</h2>
+<p>Click <strong>Build 3D Model</strong>. When the model appears, use the <strong>Layer Preview</strong> slider to inspect how the print builds from bottom to top.</p>
+<p>Open the download menu and choose <strong>Download STL</strong> or <strong>Download 3MF</strong>. Then copy the <strong>Print Instructions</strong> so you have the start color, swap layers, and recommended slicer settings.</p>
+<p>Next: <a href="/docs/generating-exporting-output#before-you-export">Generating and exporting output</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

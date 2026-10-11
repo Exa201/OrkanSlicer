@@ -1,8 +1,20 @@
 <resources>
+    <string name="PrinterWebRetry">Повторить</string>
+    <string name="PrinterWebOpenInBrowser">Открыть в браузере</string>
+    <string name="ConverterProgressPreparing">Подготовка…</string>
+    <string name="ConverterProgressPercent">%1$d%%</string>
+    <string name="ConverterProgressElapsed">Прошло времени: %1$s</string>
+    <string name="ConverterProgressRemaining">Осталось примерно: %1$s</string>
+    <string name="ConverterProgressComplete">Готово · 100%% · прошло %1$s</string>
     <string name="SlotBed">Просмотр</string>
     <string name="SlotPrintConfig">Печать</string>
     <string name="SlotPrintConfigTooltip">Профиль печати</string>
     <string name="SlotFilamentConfig">Филамент</string>
+    <string name="FilamentSlotColor">Цвет</string>
+    <string name="ColorChooserCustom">Свой цвет</string>
+    <string name="ColorChooserCommon">Часто используемые цвета</string>
+    <string name="ColorChooserCss">Цвета CSS</string>
+    <string name="ColorChooserSwatchDescription">Цвет %1$s</string>
     <string name="SlotFilamentConfigTooltip">Профиль филамента</string>
     <string name="SlotPrinterConfig">Принтер</string>
     <string name="SlotPrinterConfigTooltip">Профиль принтера</string>
@@ -17,15 +29,15 @@
     <string name="MenuFileOpenFileLoading">Загрузка файла…</string>
     <string name="MenuFileDelete">Убрать модель</string>
     <string name="ModelContextMenuTitle">Действия с моделью</string>
+    <string name="ObjectActionShow">Действия</string>
+    <string name="ObjectActionHide">Скрыть</string>
     <string name="ModelContextFillBed">Заполнить стол этой моделью</string>
-    <string name="ModelContextFillBedFinished">Добавлено копий: %1$d.</string>
     <string name="ModelContextFillBedNoRoom">Больше копий не помещается на стол.</string>
     <string name="MenuFileAIGenerator">Модель\nпо фото</string>
     <string name="MenuFileAIGeneratorPleaseWaitSetup">Пожалуйста, подождите…</string>
     <string name="MenuFileAIGeneratorErrorNotLoadedUserAccount">Ошибка: данные о пользователе пока не загружены.</string>
     <string name="MenuFileAIGeneratorFromCamera">Сделать фото</string>
     <string name="MenuFileAIGeneratorFromGallery">Выбрать из галереи</string>
-    <string name="MenuFileAIGeneratorRemaining">Осталось: %1$d / %2$d генераций</string>
     <string name="MenuFileAIGeneratorUploading">Загрузка изображения…</string>
     <string name="MenuFileAIGeneratorProcessing">Обработка изображения…</string>
     <string name="MenuFileAIGeneratorDownloading">Скачивание модели…</string>
@@ -53,6 +65,25 @@
     <string name="MenuFileImportProfilesFailedBaseProfileNotFound">Родительский профиль не найден: %s</string>
     <string name="MenuFileImportProfilesFailedNotIni">Не файл .ini</string>
     <string name="MenuFileImportProfilesFailedEmpty">Файл не содержит профилей</string>
+    <string name="MenuFileImportProfilesExisting">%1$s (уже существует)</string>
+    <string name="MenuFileImportProfilesConflictTitle">Профили уже существуют</string>
+    <string name="MenuFileImportProfilesConflictMessage">%1$s\n\nЗаменить выбранные профили или пропустить существующие?</string>
+    <string name="MenuFileImportProfilesOverwrite">Заменить</string>
+    <string name="MenuFileImportProfilesSkipExisting">Пропустить существующие</string>
+    <string name="MenuFileImportProfilesWarningsTitle">Замечания импорта</string>
+    <string name="MenuFileImportProfilesWarningsMessage">%1$s</string>
+    <string name="MenuFileImportProfilesWarningMissingParent">Для профиля «%1$s» не найден базовый профиль «%2$s». Он будет импортирован без его унаследованных параметров.</string>
+    <string name="MenuFileImportProfilesWarningUnknownKey">Профиль «%1$s» содержит параметр «%2$s», который приложение может не поддерживать.</string>
+    <string name="MenuFileImportProfilesWarningInvalidValue">В профиле «%1$s» у параметра «%2$s» указано значение «%3$s»: %4$s.</string>
+    <string name="MenuFileImportProfilesWarningInvalidNumber">Значение не является допустимым числом.</string>
+    <string name="MenuFileImportProfilesWarningOutOfRange">Значение выходит за допустимый диапазон OrcaSlicer.</string>
+    <string name="MenuFileImportProfilesWarningUnknownEnum">Этот вариант недоступен в текущей версии OrcaSlicer.</string>
+    <string name="MenuFileImportProfilesWarningInvalidBoolean">Ожидается логическое значение 0 или 1.</string>
+    <string name="MenuFileImportProfilesWarningInvalidPoint">Координаты неполные или содержат недопустимое число.</string>
+    <string name="MenuFileImportProfilesWarningValidationUnavailable">Не удалось проверить значения профиля по схеме OrcaSlicer. Продолжайте, только если доверяете этому профилю.</string>
+    <plurals name="MenuFileImportProfilesWarningsMore"><item quantity="one">%1$d дополнительное предупреждение не показано.</item><item quantity="few">%1$d дополнительных предупреждения не показаны.</item><item quantity="many">%1$d дополнительных предупреждений не показано.</item><item quantity="other">%1$d дополнительных предупреждений не показано.</item></plurals>
+    <plurals name="MenuFileImportProfilesImportedCount"><item quantity="one">Импортирован %1$d профиль.</item><item quantity="few">Импортировано %1$d профиля.</item><item quantity="many">Импортировано %1$d профилей.</item><item quantity="other">Импортировано профилей: %1$d.</item></plurals>
+    <plurals name="MenuFileImportProfilesSkippedCount"><item quantity="one">Пропущен %1$d существующий профиль.</item><item quantity="few">Пропущено %1$d существующих профиля.</item><item quantity="many">Пропущено %1$d существующих профилей.</item><item quantity="other">Пропущено существующих профилей: %1$d.</item></plurals>
     <string name="MenuFileExportProfiles">Экспорт. профилей</string>
     <string name="MenuFileExportProfilesPrints">Профили печати</string>
     <string name="MenuFileExportProfilesFilaments">Филаменты</string>
@@ -96,6 +127,7 @@
     <string name="MenuOrientationRotationYValue">Y = %.2f°</string>
     <string name="MenuOrientationRotationZValue">Z = %.2f°</string>
     <string name="MenuOrientationRotationApply">Применить</string>
+    <string name="OrientationManualValue">Значение</string>
     <string name="MenuOrientationPositionBack">Назад</string>
     <string name="MenuTransform">Изменение</string>
     <string name="MenuTransformScale">Размер</string>
@@ -104,6 +136,10 @@
     <string name="MenuTransformScaleYValue">Y = %1$.2f %% | %2$.2f мм</string>
     <string name="MenuTransformScaleZValue">Z = %1$.2f %% | %2$.2f мм</string>
     <string name="MenuTransformScaleMM">Ввод в мм</string>
+    <string name="ScaleManualDialogTitle">Задать масштаб вручную</string>
+    <string name="ScaleManualPercent">Масштаб (%)</string>
+    <string name="ScaleManualMillimeters">Целевой размер (мм)</string>
+    <string name="ScaleCurrentPercent">%1$d%%</string>
     <string name="MenuTransformMirror">Отразить</string>
     <string name="MenuTransformPaint">Покраска</string>
     <string name="MenuTransformMirrorX">Отразить по X</string>
@@ -119,6 +155,8 @@
     <string name="MenuSliceInfoLength">мм.</string>
     <string name="MenuSliceLayers">Слои</string>
     <string name="MenuSliceInfoLayers">Слои %1$d - %2$d</string>
+    <string name="GCodeLayerRangeStart">Начальный слой</string>
+    <string name="GCodeLayerRangeEnd">Конечный слой</string>
     <string name="MenuSliceExportToFile">Экспорт. в файл</string>
     <string name="MenuSliceShare">Отправка</string>
     <string name="MenuSliceSendToPrinter">Отправ. на принтер</string>
@@ -144,13 +182,15 @@
     <string name="IntroNoReposDescription">Вам необходимо настроить репозитории или использовать пользовательский профиль.</string>
     <string name="IntroNoProfiles">Профили не настроены</string>
     <string name="IntroNoProfilesDescription">Вы должны выбрать хотя бы один профиль.</string>
+    <string name="SetupSelectPrintersTitle">Выберите принтер</string>
+    <string name="SetupSelectPrintersSubtitle">Выберите все принтеры, которые хотите использовать. Вы сможете изменить выбор позже.</string>
     <string name="IntroBoostyTitle">Поддерживается этими замечательными людьми на Boosty:</string>
     <string name="IntroBoostySupport">Подписаться на Boosty</string>
     <string name="IntroNext">Далее</string>
     <string name="IntroConfigured">Похоже всё настроено.\nПросто нажмите завершить!</string>
     <string name="IntroFinish">Завершить</string>
     <string name="IntroEarlyAccess">Ранний доступ</string>
-    <string name="IntroEarlyAccessMessage">Вы используете раннюю bootstrap-сборку OrcaSlicer Mobile.\nНекоторые функции могут быть недоступны, содержать ошибки или всё ещё быть унаследованы от Slice Beam до завершения Android-порта.</string>
+    <string name="IntroEarlyAccessMessage">Вы используете раннюю версию OrkanSlicer для Android.\nНекоторые функции ещё разрабатываются.</string>
     <string name="SettingsResetToDefault">Сбросить настройки по-умолчанию</string>
     <string name="SettingsResetToDefaultTitle">Вы уверены?</string>
     <string name="SettingsResetToDefaultDescription">Это действие не может быть отменено.</string>
@@ -158,6 +198,9 @@
     <string name="SettingsResetProfileDescription">Это действие не может быть отменено.</string>
     <string name="SettingsSave">Сохранить</string>
     <string name="SettingsSaveTitle">Сохранить профиль?</string>
+    <string name="SettingsProfileName">Название профиля</string>
+    <string name="SettingsProfileNameInvalid">Удалите символы, недопустимые в названии профиля.</string>
+    <string name="SettingsResetProfileAction">Сбросить изменения профиля</string>
     <string name="SettingsBoosty">Boosty разработчика</string>
     <string name="SettingsTelegram">Telegram разработчика</string>
     <string name="SettingsK3D">Чат K3D</string>
@@ -171,7 +214,7 @@
     <string name="SettingsInterfaceResolutionScale">Масштаб разрешения 3D</string>
     <string name="SettingsInterfaceResolutionScaleDescription">Может увеличить производительность путём снижения разрешения</string>
     <string name="SettingsAbout">О приложении</string>
-    <string name="SettingsAboutVersion">v%s\nOrcaSlicer Mobile bootstrap\nОсновано на Slice Beam, PrusaSlicer, Slic3r и OrcaSlicer-совместимых профилях\n\nСоздано YTKAB0BP</string>
+    <string name="SettingsAboutVersion">OrkanSlicer для Android · версия %s\n\nПриложение и развитие: CodeMasterCody3D\nОснова для Android: SliceBeam от utkabobr (YTKAB0BP)\nДвижок нарезки: OrcaSlicer от SoftFever и сообщества\nТехническая основа: Bambu Studio, PrusaSlicer и Slic3r\nИнструмент цветных моделей: Kromacut от vycdev\n\nСпасибо всем участникам проектов с открытым кодом. Лицензии и ссылки на исходный код указаны в проекте.</string>
     <string name="SettingsProfileCopy">%s - Копия</string>
     <string name="SettingsCloneProfile">Клон. текущий</string>
     <string name="SettingsDeleteProfile">Удалить текущий</string>
@@ -182,12 +225,11 @@
     <string name="SettingsCloudManageTitle">Аккаунт Beam 3D</string>
     <string name="SettingsCloudManageDescription">Даёт следующие преимущества:</string>
     <string name="SettingsCloudManageFeatureEarlyAccess">Ранний доступ</string>
-    <string name="SettingsCloudManageFeatureEarlyAccessDescription">Отключено в bootstrap-сборках OrcaSlicer Mobile</string>
+    <string name="SettingsCloudManageFeatureEarlyAccessDescription">Недоступно в этой версии OrkanSlicer</string>
     <string name="SettingsCloudManageFeatureCloudSync">Облачная синхронизация профилей</string>
     <string name="SettingsCloudManageFeatureCloudSyncDescription">Храните свои профили в облаке Beam</string>
     <string name="SettingsCloudManageFeatureAIGenerator">ИИ генератор моделей</string>
-    <string name="SettingsCloudManageFeatureAIGeneratorDescription">%1$d моделей по фото в месяц</string>
-    <string name="SettingsCloudManageFeatureFreeForAll">OrcaSlicer Mobile остаётся локальным приложением</string>
+    <string name="SettingsCloudManageFeatureFreeForAll">OrkanSlicer остаётся локальным приложением</string>
     <string name="SettingsCloudManageFeatureFreeForAllDescription">Ваш ник будет написан в списке поддержавших.\nСпасибо за вашу поддержку!</string>
     <string name="SettingsCloudManageLevelRedirectMessage">При подписке на данный уровень вы соглашаетесь с условиями обслуживания.</string>
     <string name="SettingsCloudManageLevelRedirectAlreadySubscribed">Уже подписаны?</string>
@@ -202,10 +244,12 @@
     <string name="SettingsCloudManageButtonLogOut">Выйти</string>
     <string name="SettingsCloudManageLoggedInAs">Вошли как «%1$s»</string>
     <string name="SettingsCloudManageSubscription">Управление подпиской</string>
+    <string name="CloudManageLinkOpenFailed">Не удалось открыть ссылку управления подпиской.</string>
     <string name="Changelog">Список изменений</string>
     <string name="ChangelogBoostyDescription">Выход данного обновления поддержали:</string>
     <string name="ChangelogNext">Далее</string>
     <string name="ChangelogOK">ОК</string>
+    <string name="ChangelogSupportLinkOpenFailed">Не удалось открыть страницу поддержки.</string>
     <string name="OrcaConversionPleaseWait">Конвертация профилей, пожалуйста, подождите…</string>
     <string name="OrcaConversionNotAConfigBundle">Это не пакет конфигураций</string>
     <string name="AppCrashed">Что-то пошло не так</string>
@@ -224,4 +268,24 @@
     <string name="CloudSyncConflictChooseLocal">Оставить локальные профили</string>
     <string name="Yes">Да</string>
     <string name="No">Нет</string>
+    <plurals name="ModelContextFillBedFinished"><item quantity="one">Добавлена %1$d копия.</item><item quantity="few">Добавлены %1$d копии.</item><item quantity="many">Добавлено %1$d копий.</item><item quantity="other">Добавлено копий: %1$d.</item></plurals>
+    <plurals name="MenuFileAIGeneratorRemaining"><item quantity="one">Осталось: %1$d / %2$d генерация</item><item quantity="few">Осталось: %1$d / %2$d генерации</item><item quantity="many">Осталось: %1$d / %2$d генераций</item><item quantity="other">Осталось: %1$d / %2$d генерации</item></plurals>
+    <plurals name="SettingsCloudManageFeatureAIGeneratorDescription"><item quantity="one">%1$d модель по фото в месяц</item><item quantity="few">%1$d модели по фото в месяц</item><item quantity="many">%1$d моделей по фото в месяц</item><item quantity="other">%1$d модели по фото в месяц</item></plurals>
+    <string name="ProfileGroupStateExpanded">Развернуто</string>
+    <string name="ProfileGroupStateCollapsed">Свернуто</string>
+    <string name="ProfileGroupExpandAction">Развернуть группу настроек</string>
+    <string name="ProfileGroupCollapseAction">Свернуть группу настроек</string>
+    <string name="ProfileNullableVectorHint">Значение «nil» для слота берёт общее значение из профиля печати.</string>
+    <string name="ProfileNullableVectorInheritAll">Использовать значение профиля печати для всех элементов</string>
+    <string name="ProfileNullableVectorInherited">Профиль печати</string>
+    <string name="MeasureTitle">Инструмент измерения</string>
+    <string name="MeasureDistance">Расстояние:</string>
+    <string name="MeasureDeltaX">ΔX:</string>
+    <string name="MeasureDeltaY">ΔY:</string>
+    <string name="MeasureDeltaZ">ΔZ:</string>
+    <string name="MeasureValueMillimeters">%1$s мм</string>
+    <plurals name="ProfileSettingsPending"><item quantity="one">%1$d несохранённое изменение</item><item quantity="few">%1$d несохранённых изменения</item><item quantity="many">%1$d несохранённых изменений</item><item quantity="other">%1$d несохранённых изменений</item></plurals>
+    <plurals name="GCodeIntegrityLayerMismatch"><item quantity="one">В файле указан %1$d слой, но найдено %2$s. Файл не отправлен.</item><item quantity="few">В файле указано %1$d слоя, но найдено %2$s. Файл не отправлен.</item><item quantity="many">В файле указано %1$d слоёв, но найдено %2$s. Файл не отправлен.</item><item quantity="other">В файле указано %1$d слоёв, но найдено %2$s. Файл не отправлен.</item></plurals>
+    <string name="SetupOrcaCoreVersion">Движок печати OrcaSlicer</string>
+    <plurals name="GCodeIntegrityLayerStarts"><item quantity="one">%1$d начало слоя</item><item quantity="few">%1$d начала слоя</item><item quantity="many">%1$d начал слоя</item><item quantity="other">%1$d начала слоя</item></plurals>
 </resources>
