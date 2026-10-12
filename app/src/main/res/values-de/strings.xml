@@ -128,6 +128,17 @@
     <string name="MenuFile">Modelle</string>
     <string name="MenuPlates">Druckplatten</string>
     <string name="PlateNumber">Druckplatte %1$s</string>
+    <string name="PlatePickerTitle">Druckplatten</string>
+    <string name="PlateObjectsShort">Objekte</string>
+    <string name="EditUndoShort">Zurück</string>
+    <string name="EditRedoShort">Erneut</string>
+    <string name="EditArrangeShort">Anordnen</string>
+    <string name="EditOrientShort">Ausrichten</string>
+    <string name="PlateDeleteConfirm">Diese Druckplatte und ihre Modelle löschen?</string>
+    <string name="ImportSimplifyTitle">Modell vereinfachen?</string>
+    <string name="ImportSimplifyMessage">Dieses Modell hat mehr als 500.000 Dreiecke. Eine Vereinfachung kann die Leistung verbessern, aber Details entfernen. Möchtest du das Original behalten oder es vor dem Laden vereinfachen?</string>
+    <string name="ImportSimplifyAccept">Vereinfachen</string>
+    <string name="ImportSimplifyKeep">Original beibehalten</string>
     <string name="MenuAddPlate">Druckplatte hinzufügen</string>
     <string name="MenuSwitchPlate">Druckplatte wechseln</string>
     <string name="MenuRemovePlate">Druckplatte entfernen</string>

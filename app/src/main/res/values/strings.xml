@@ -128,6 +128,17 @@
     <string name="MenuFile">File</string>
     <string name="MenuPlates">Plates</string>
     <string name="PlateNumber">Plate %1$s</string>
+    <string name="PlatePickerTitle">Build plates</string>
+    <string name="PlateObjectsShort">objects</string>
+    <string name="EditUndoShort">Undo</string>
+    <string name="EditRedoShort">Redo</string>
+    <string name="EditArrangeShort">Arrange all</string>
+    <string name="EditOrientShort">Orient all</string>
+    <string name="PlateDeleteConfirm">Delete this plate and its models?</string>
+    <string name="ImportSimplifyTitle">Simplify model?</string>
+    <string name="ImportSimplifyMessage">This model has more than 500,000 triangles. Simplifying it can improve performance but may remove details. Keep the original or simplify before loading?</string>
+    <string name="ImportSimplifyAccept">Simplify</string>
+    <string name="ImportSimplifyKeep">Keep original</string>
     <string name="MenuAddPlate">Add plate</string>
     <string name="MenuSwitchPlate">Switch plate</string>
     <string name="MenuRemovePlate">Remove plate</string>

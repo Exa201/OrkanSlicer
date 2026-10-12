@@ -256,14 +256,6 @@ class FileMenu : ListBedMenu() {
         return listOf(
             BedMenuItem(R.string.WorkspaceAddModelAction, R.drawable.folder_simple_plus_outline_28)
                 .onClick(::openModel),
-            BedMenuItem(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28)
-                .onClick(::showObjectsDialog),
-            BedMenuItem(R.string.ModelColorSlotsAction, R.drawable.print_filament_sync_24)
-                .setEnabled(hasObjects())
-                .onClick { bed.showModelColorSlots() },
-            BedMenuItem(R.string.WorkspaceArrange, R.drawable.grid_layout_outline_28)
-                .setEnabled(hasObjects())
-                .onClick { bed.glView!!.arrange(bed::updateModel) },
             BedMenuItem(R.string.MenuFileExport3mf, R.drawable.arrow_down_to_square_outline_28)
                 .setEnabled(hasObjects())
                 .onClick {

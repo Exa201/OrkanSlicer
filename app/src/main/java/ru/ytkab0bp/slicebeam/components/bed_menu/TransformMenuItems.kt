@@ -32,6 +32,12 @@ internal class TransformMenuItems(
         val renderer = fragment.glView!!.renderer
         val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
         return listOf(
+            BedComposeMenuAction(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28, {
+                FileMenuObjectActions(fragment).showObjectsDialog(it)
+            }, enabled = (renderer.model?.objectsCount ?: 0) > 0),
+            BedComposeMenuAction(R.string.ModelColorSlotsAction, R.drawable.print_filament_sync_24, {
+                fragment.showModelColorSlots()
+            }, enabled = (renderer.model?.objectsCount ?: 0) > 0),
             BedComposeMenuAction(R.string.ModelUndo, R.drawable.arrow_left_outline_28, {
                 fragment.undoModelEdit()
             }),

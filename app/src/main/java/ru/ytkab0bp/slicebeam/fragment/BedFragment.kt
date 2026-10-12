@@ -47,6 +47,8 @@ import java.util.ArrayDeque
 import java.util.HashSet
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
@@ -82,6 +84,8 @@ import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabsPolicy
+import ru.ytkab0bp.slicebeam.ui.workspace.PlateFootprint
+import ru.ytkab0bp.slicebeam.ui.workspace.PlateThumbnail
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceProfileStatus
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebCloseButton
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
@@ -139,6 +143,10 @@ private var sourceProjectPlateCount:Int = 0
 private var plateTabsScroll: ComposeView? = null
 private var plateTabCount by mutableIntStateOf(1)
 private var selectedPlateTabIndex by mutableIntStateOf(0)
+private var plateObjectCounts by mutableStateOf<List<Int>>(emptyList())
+private var plateThumbnails by mutableStateOf<List<PlateThumbnail>>(emptyList())
+@Volatile private var platePreviewRevision = 0
+private var platePreviewBuiltRevision = -1
 private var plateTabsThemeRevision by mutableIntStateOf(0)
 private var printerWebButton: ComposeView? = null
 private var printerWebCloseButton: ComposeView? = null
@@ -159,6 +167,7 @@ private var modelHistoryDisabledForMemory:Boolean = false
 private var largeModelWarningShown:Boolean = false
 @Volatile private var modelLoadInProgress:Boolean = false
 @Volatile private var modelImportGeneration:Int = 0
+@Volatile private var importSimplifyDecision: Boolean? = null
 @Volatile private var plateLoadGeneration:Int = 0
 @Volatile private var destroyed:Boolean = false
 private val pendingPlateModelsLock = Object()
@@ -1025,6 +1034,9 @@ if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
 PlateTabs(
 plateCount = plateTabCount,
 selectedIndex = selectedPlateTabIndex,
+objectCounts = plateObjectCounts,
+thumbnails = plateThumbnails,
+onOpen = ::refreshPlateThumbnails,
             onSelect = { index -> if (index != currentPlateIndex) switchPlate(index) },
 onClose = { index -> removePlate(index) },
 onAdd = { addNewPlate() },
@@ -1216,14 +1228,15 @@ setPadding(ViewUtils.dp(6), ViewUtils.dp(4), ViewUtils.dp(6), ViewUtils.dp(4))
 }
 header.addView(profileStatusText, LinearLayout.LayoutParams(
 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+header.addView(plateTabsScroll, LinearLayout.LayoutParams(
+ViewUtils.dp(48), ViewUtils.dp(48)).apply { leftMargin = ViewUtils.dp(4) })
 header.addView(printerWebButton, LinearLayout.LayoutParams(
 ViewUtils.dp(48), ViewUtils.dp(48)).apply { leftMargin = ViewUtils.dp(4) })
 workspace.addView(header, LinearLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-val bedRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
-bedRow.addView(plateTabsScroll, LinearLayout.LayoutParams(
-ViewUtils.dp(64), ViewGroup.LayoutParams.MATCH_PARENT))
-bedRow.addView(glView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
+val bedRow = FrameLayout(ctx)
+bedRow.addView(glView, FrameLayout.LayoutParams(
+ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 workspace.addView(bedRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 navigationView = createMenuNavigationView(ctx, bottomNavigation = portrait)
 if (portrait) {
@@ -1269,8 +1282,8 @@ glView!!.requestRender()
 }
 private fun updateAdaptiveOverlayMargins(portrait:Boolean) {
 val params = snackbarsLayout?.layoutParams as? FrameLayout.LayoutParams ?: return
-params.leftMargin = if (portrait) ViewUtils.dp(64)
-    else ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP + MENU_SIZE_DP + 64)
+params.leftMargin = if (portrait) ViewUtils.dp(8)
+    else ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP + MENU_SIZE_DP + 8)
 params.bottomMargin = if (portrait)
     ViewUtils.dp(menuPortraitHeightDp() + AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP) else 0
 snackbarsLayout!!.layoutParams = params
@@ -1372,8 +1385,10 @@ fun onFailed(error:Exception) {}
 }
 private data class ImportReduction(val before: Long, val after: Long)
 
-/** Reduce large imported meshes before any GL model is created or placed on a bed. */
+/** All import paths pass here before the renderer sees a large mesh. A dismissal preserves it. */
 private fun simplifyImportedModel(model: Model): ImportReduction? {
+    val oversized = (0 until model.objectsCount).any { model.getTriangleCount(it) > IMPORT_TRIANGLE_LIMIT }
+    if (!oversized || !confirmImportSimplification()) return null
     var beforeTotal = 0L
     var afterTotal = 0L
     for (index in 0 until model.objectsCount) {
@@ -1395,6 +1410,38 @@ private fun simplifyImportedModel(model: Model): ImportReduction? {
     return if (beforeTotal > 0L) ImportReduction(beforeTotal, afterTotal) else null
 }
 
+private fun confirmImportSimplification(): Boolean {
+    importSimplifyDecision?.let { return it }
+    val decision = java.util.concurrent.atomic.AtomicBoolean(false)
+    val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
+    val dialogRef = java.util.concurrent.atomic.AtomicReference<AlertDialog?>()
+    val completed = CountDownLatch(1)
+    ViewUtils.postOnMainThread {
+        val ctx = getContext()
+        if (destroyed || ctx == null || timedOut.get()) {
+            completed.countDown()
+            return@postOnMainThread
+        }
+        val dialog = BeamAlertDialogBuilder(ctx)
+            .setTitle(R.string.ImportSimplifyTitle)
+            .setMessage(R.string.ImportSimplifyMessage)
+            .setPositiveButton(R.string.ImportSimplifyAccept) { _, _ -> decision.set(true) }
+            .setNegativeButton(R.string.ImportSimplifyKeep) { _, _ -> decision.set(false) }
+            .setOnDismissListener { completed.countDown() }
+            .create()
+        dialogRef.set(dialog)
+        dialog.show()
+    }
+    // Import runs off the main thread. A lost activity must not strand its worker.
+    if (!completed.await(2, TimeUnit.MINUTES)) {
+        timedOut.set(true)
+        ViewUtils.postOnMainThread { dialogRef.getAndSet(null)?.dismiss() }
+    }
+    val approved = !timedOut.get() && decision.get()
+    importSimplifyDecision = approved
+    return approved
+}
+
 private fun reportImportReduction(reduction: ImportReduction?) {
     if (reduction != null) {
         ViewUtils.postOnMainThread({
@@ -1406,6 +1453,7 @@ private fun reportImportReduction(reduction: ImportReduction?) {
     }
 }
 private fun addNewPlate() {
+platePreviewRevision++
 platesModels.add(Model())
 while (projectPlateIds.size < platesModels.size - 1) projectPlateIds.add(0)
 projectPlateIds.add(0)
@@ -1414,6 +1462,21 @@ switchPlate(platesModels.size - 1)
 updatePlateIndicator()
 }
 private fun removePlate(plateIndex:Int) {
+if (plateIndex !in platesModels.indices) return
+val hasModels = platesModels[plateIndex]?.objectsCount?.let { it > 0 } ?: (getProjectPlateId(plateIndex) > 0)
+if (hasModels) {
+    val ctx = getContext() ?: return
+    BeamAlertDialogBuilder(ctx)
+        .setMessage(R.string.PlateDeleteConfirm)
+        .setPositiveButton(android.R.string.ok) { _, _ -> removePlateConfirmed(plateIndex) }
+        .setNegativeButton(android.R.string.cancel, null)
+        .show()
+    return
+}
+removePlateConfirmed(plateIndex)
+}
+private fun removePlateConfirmed(plateIndex:Int) {
+platePreviewRevision++
 val closeDecision = PlateTabsPolicy.afterClose(platesModels.size, currentPlateIndex, plateIndex) ?: return
 if (closeDecision.resetOnlyPlate)
 {
@@ -1563,6 +1626,8 @@ loaded.resetBoundingBox()
 }
 pendingPlateModels.remove(loaded)
 platesModels.set(requestedPlate, loaded)
+platePreviewRevision++
+updatePlateIndicator()
 glView!!.renderer.model = loaded
 glView!!.renderer.resetGlModels()
 resetModelHistory()
@@ -1599,7 +1664,46 @@ if (plateTabsScroll == null) return
 ViewUtils.postOnMainThread({ if (destroyed || plateTabsScroll == null || getContext() == null) return@postOnMainThread
 plateTabCount = platesModels.size
 selectedPlateTabIndex = if (platesModels.isEmpty()) 0 else currentPlateIndex.coerceIn(0, platesModels.size - 1)
+plateObjectCounts = platesModels.map { it?.objectsCount ?: -1 }
 })
+}
+/** Reuse the native model bounds to draw tiny XY footprints; never render a second 3D scene. */
+private fun refreshPlateThumbnails() {
+    val viewport = glView ?: return
+    val revision = platePreviewRevision
+    if (platePreviewBuiltRevision == revision && plateThumbnails.size == platesModels.size) return
+    val models = platesModels.toList()
+    viewport.queueEvent {
+        val bed = viewport.renderer.bed
+        val minimum = bed?.getVolumeMin()
+        val maximum = bed?.getVolumeMax()
+        val width = if (minimum != null && maximum != null) maximum.x - minimum.x else 0.0
+        val depth = if (minimum != null && maximum != null) maximum.y - minimum.y else 0.0
+        val previews = models.map { model ->
+            val footprints = ArrayList<PlateFootprint>()
+            if (model != null && minimum != null && width > 0.0 && depth > 0.0) try {
+                val lower = Vec3d()
+                val upper = Vec3d()
+                val previewLimit = if (models.size > 6) 6 else 24
+                for (objectIndex in 0 until model.objectsCount.coerceAtMost(previewLimit)) {
+                    model.getBoundingBoxExact(objectIndex, lower, upper)
+                    val left = ((lower.x - minimum.x) / width).toFloat().coerceIn(0f, 1f)
+                    val bottom = ((lower.y - minimum.y) / depth).toFloat().coerceIn(0f, 1f)
+                    val right = ((upper.x - minimum.x) / width).toFloat().coerceIn(0f, 1f)
+                    val top = ((upper.y - minimum.y) / depth).toFloat().coerceIn(0f, 1f)
+                    if (right > left && top > bottom) footprints.add(PlateFootprint(left, bottom, right - left, top - bottom))
+                }
+            } catch (error: Exception) {
+                Log.w("BedFragment", "Plate thumbnail unavailable", error)
+            }
+            PlateThumbnail(footprints)
+        }
+        ViewUtils.postOnMainThread {
+            if (destroyed || revision != platePreviewRevision || models.size != platesModels.size) return@postOnMainThread
+            plateThumbnails = previews
+            platePreviewBuiltRevision = revision
+        }
+    }
 }
 @Throws(Slic3rRuntimeError::class)
 @JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null) {
@@ -1612,6 +1716,8 @@ return
 }
 modelLoadInProgress = true
 val importGeneration = ++modelImportGeneration
+platePreviewRevision++
+importSimplifyDecision = null
 plateLoadGeneration++
 Thread({ try
 {
@@ -1691,6 +1797,7 @@ val haveFileBed = readProjectBedSize(f, fileBed)
  val firstPlate = Model(f, 1)
  val reduction = try { simplifyImportedModel(firstPlate) } catch (e: Exception) { firstPlate.release(); throw e }
  platesModels.set(0, firstPlate)
+platePreviewRevision++
 val finalCallback = callback
 glView!!.queueEvent(object:Runnable {
 override fun run() {
@@ -1889,8 +1996,10 @@ menuView.addView(currentMenu.getView(), FrameLayout.LayoutParams(ViewGroup.Layou
 }
 fun updateModel() {
 if (platesModels.isEmpty()) return
+platePreviewRevision++
 val currentModel = glView!!.renderer.model
 platesModels.set(currentPlateIndex, currentModel)
+updatePlateIndicator()
 if (!modelLoadInProgress && platesModels.all { it != null && it.objectsCount == 0 }) TemporaryProjectSettings.clear()
 if (isLargeModelInMemory)
 {

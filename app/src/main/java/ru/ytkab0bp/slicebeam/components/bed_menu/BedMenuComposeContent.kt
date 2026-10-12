@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -134,6 +135,10 @@ private fun BedMenuActionTile(
 ) {
     val fullTitle = stringResource(action.titleRes)
     val compactLabel = when (action.titleRes) {
+        R.string.ModelUndo -> R.string.EditUndoShort
+        R.string.ModelRedo -> R.string.EditRedoShort
+        R.string.MenuArrangeAllObjects -> R.string.EditArrangeShort
+        R.string.MenuOrientAllObjects -> R.string.EditOrientShort
         R.string.ModelColorSlotsAction -> R.string.ModelColorSlotsShort
         R.string.MenuSlicePerformance -> R.string.GCodePerformanceShort
         R.string.MenuSliceExportToFile -> R.string.GCodeExportShort
@@ -166,7 +171,7 @@ private fun BedMenuActionTile(
     }
     Surface(
         modifier = modifier.padding(3.dp).semantics { contentDescription = fullTitle }.then(interaction),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         color = background,
         contentColor = foreground,
     ) {
@@ -185,8 +190,8 @@ private fun BedMenuActionTile(
                 Text(
                     text = stringResource(compactLabel),
                     color = foreground,
-                    fontSize = 11.sp,
-                    lineHeight = 13.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -195,7 +200,7 @@ private fun BedMenuActionTile(
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 3.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = OrkanUiTokens.touchTarget).padding(horizontal = 3.dp, vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -208,8 +213,8 @@ private fun BedMenuActionTile(
                 Text(
                     text = stringResource(compactLabel),
                     color = foreground,
-                    fontSize = 11.sp,
-                    lineHeight = 13.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
