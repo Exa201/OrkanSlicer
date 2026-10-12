@@ -148,6 +148,7 @@ private var plateThumbnails by mutableStateOf<List<PlateThumbnail>>(emptyList())
 @Volatile private var platePreviewRevision = 0
 private var platePreviewBuiltRevision = -1
 private var plateTabsThemeRevision by mutableIntStateOf(0)
+private val platePickerOpen = mutableStateOf(false)
 private var printerWebButton: ComposeView? = null
 private var printerWebCloseButton: ComposeView? = null
 private var printerWebAvailable by mutableStateOf(false)
@@ -1032,6 +1033,7 @@ setContent {
 val revision = plateTabsThemeRevision
 if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
 PlateTabs(
+openState = platePickerOpen,
 plateCount = plateTabCount,
 selectedIndex = selectedPlateTabIndex,
 objectCounts = plateObjectCounts,
@@ -1168,7 +1170,11 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
         val label = ctx.getString(category.titleRes)
         WorkspaceNavigationItem(
             slot = category.ordinal,
-            label = ctx.getString(category.navigationTitleRes),
+            label = ctx.getString(if (!bottomNavigation) when (category) {
+                MenuCategory.TRANSFORM -> R.string.MenuToolbarNavigationCompact
+                MenuCategory.OPTIONS -> R.string.MenuOptionsCompact
+                else -> category.navigationTitleRes
+            } else category.navigationTitleRes),
             icon = category.iconRes,
             accessibilityLabel = label,
         )

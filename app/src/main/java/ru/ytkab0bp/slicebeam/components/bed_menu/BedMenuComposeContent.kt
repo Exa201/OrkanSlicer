@@ -61,7 +61,7 @@ internal data class BedComposeMenuAction(
 internal object BedMenuActionTileWidthPolicy {
     fun widthDp(screenWidthDp: Int, actionCount: Int): Int = when {
         actionCount <= 0 -> 72
-        else -> ((screenWidthDp.coerceAtLeast(320) - 8) / actionCount.coerceIn(1, 5)).coerceIn(64, 128)
+        else -> ((screenWidthDp.coerceAtLeast(320) - 8) / actionCount.coerceIn(1, 4)).coerceIn(72, 128)
     }
 }
 
@@ -190,8 +190,8 @@ private fun BedMenuActionTile(
                 Text(
                     text = stringResource(compactLabel),
                     color = foreground,
-                    fontSize = 12.sp,
-                    lineHeight = 14.sp,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -213,8 +213,8 @@ private fun BedMenuActionTile(
                 Text(
                     text = stringResource(compactLabel),
                     color = foreground,
-                    fontSize = 12.sp,
-                    lineHeight = 14.sp,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,

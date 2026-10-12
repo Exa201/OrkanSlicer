@@ -14,14 +14,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +66,7 @@ internal object PlateTabsPolicy {
 /** A single control leaves the full width of the renderer available. */
 @Composable
 internal fun PlateTabs(
+    openState: MutableState<Boolean>,
     plateCount: Int,
     selectedIndex: Int,
     objectCounts: List<Int>,
@@ -75,7 +76,7 @@ internal fun PlateTabs(
     onClose: (Int) -> Unit,
     onAdd: () -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
+    var open by openState
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
     val label = stringResource(R.string.PlateNumber, (selectedIndex + 1).toString())
     Surface(
@@ -119,6 +120,7 @@ internal fun PlateTabs(
                         }
                     } else LazyVerticalGrid(
                         columns = GridCells.Adaptive(88.dp),
+                        state = rememberLazyGridState(initialFirstVisibleItemIndex = selectedIndex.coerceIn(0, (plateCount - 1).coerceAtLeast(0))),
                         modifier = Modifier.fillMaxWidth().height((((plateCount + 3) / 3) * 108).coerceIn(108, (screenHeightDp - 150).coerceAtLeast(108).coerceAtMost(420)).dp),
                         horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.regularGap),
                         verticalArrangement = Arrangement.spacedBy(OrkanUiTokens.regularGap),
@@ -148,6 +150,7 @@ private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
         stringResource(R.string.PlateNumber, (index + 1).toString()))
     Surface(modifier = modifier.size(width = 80.dp, height = 100.dp),
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+        border = if (selected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Column(Modifier.fillMaxWidth().height(52.dp).clickable(role = Role.Button, onClick = onSelect),

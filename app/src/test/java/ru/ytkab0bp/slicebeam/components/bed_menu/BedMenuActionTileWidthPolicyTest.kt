@@ -4,16 +4,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BedMenuActionTileWidthPolicyTest {
-    @Test fun fiveActionsFitOnAnOrdinaryPhone() {
+    @Test fun fourReadableActionsFitOnAnOrdinaryPhone() {
         for (width in listOf(360, 365, 411)) {
             val tile = BedMenuActionTileWidthPolicy.widthDp(width, 10)
-            assertTrue(tile * 5 + 8 <= width)
-            assertTrue(tile >= 64)
+            assertTrue(tile * 4 + 8 <= width)
+            assertTrue(tile >= 72)
         }
     }
 
     @Test fun narrowPhonesKeepReadableActionTargets() {
-        assertTrue(BedMenuActionTileWidthPolicy.widthDp(320, 10) >= 64)
+        assertTrue(BedMenuActionTileWidthPolicy.widthDp(320, 10) >= 72)
     }
 
     @Test fun shortMenusKeepAllActionsVisibleWithRoomForTheirLabels() {

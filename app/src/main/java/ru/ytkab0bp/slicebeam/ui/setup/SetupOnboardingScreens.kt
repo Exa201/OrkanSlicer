@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 @Composable
 internal fun SetupIntroScreen(onNext: () -> Unit) {
@@ -147,11 +148,17 @@ internal fun SetupAboutScreen(versionName: String, updateStatus: String, onCheck
         Button(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 52.dp)) {
             Text("Auf GitHub nach Updates suchen")
         }
-        if (updateStatus.isNotEmpty()) Text(
-            text = updateStatus,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        if (updateStatus.isNotEmpty()) Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Text(
+                text = updateStatus,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         SetupPrimaryButton(labelRes = android.R.string.ok, onClick = onClose)
         Spacer(modifier = Modifier.height(16.dp))
     }
