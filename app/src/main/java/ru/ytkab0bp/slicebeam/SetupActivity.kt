@@ -1026,13 +1026,24 @@ Toast.makeText(this, R.string.ChangelogSupportLinkOpenFailed, Toast.LENGTH_SHORT
 }
 }
 private inner class AboutItem:SetupComposePage {
+private var updateStatus by mutableStateOf("")
+private var updateRunning = false
 private val versionName = try {
 packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
 } catch (ignored:PackageManager.NameNotFoundException) { "" }
 
 @Composable
 override fun Content() {
-SetupAboutScreen(versionName, onClose = { finish() })
+SetupAboutScreen(versionName, updateStatus, onCheckUpdate = {
+    if (!updateRunning) {
+        updateRunning = true
+        updateStatus = "Suche nach neuer Version …"
+        ru.ytkab0bp.slicebeam.utils.GitHubUpdater.check(this@SetupActivity) { message ->
+            updateStatus = message
+            if (!message.contains("wird geladen") && !message.contains("gefunden.")) updateRunning = false
+        }
+    }
+}, onClose = { finish() })
 }
 
 override fun onPageCreated() = Unit

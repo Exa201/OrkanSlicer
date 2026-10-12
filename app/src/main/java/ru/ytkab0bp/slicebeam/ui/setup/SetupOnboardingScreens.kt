@@ -126,7 +126,7 @@ internal fun SetupPresetSourceScreen(
 }
 
 @Composable
-internal fun SetupAboutScreen(versionName: String, onClose: () -> Unit) {
+internal fun SetupAboutScreen(versionName: String, updateStatus: String, onCheckUpdate: () -> Unit, onClose: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().navigationBarsPadding(), verticalArrangement = Arrangement.Bottom) {
         Spacer(modifier = Modifier.weight(1f))
         Surface(
@@ -144,6 +144,14 @@ internal fun SetupAboutScreen(versionName: String, onClose: () -> Unit) {
                 textAlign = TextAlign.Start,
             )
         }
+        Button(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 52.dp)) {
+            Text("Auf GitHub nach Updates suchen")
+        }
+        if (updateStatus.isNotEmpty()) Text(
+            text = updateStatus,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
         SetupPrimaryButton(labelRes = android.R.string.ok, onClick = onClose)
         Spacer(modifier = Modifier.height(16.dp))
     }
