@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.206 (alpha)
+
+- Reject a send attempt cleanly if the sliced result has become unavailable, and ask the user to slice again instead of crashing on a missing preview result.
+- Reconcile the prioritized feature and UI list with the current implementation; retain real print and device checks as open acceptance work.
+
 ## 0.8.197 (alpha)
 
 - Hide the settings search and filter controls until the search button beside the profile selector is tapped in Print, Filament and Printer menus.

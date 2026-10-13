@@ -68,6 +68,11 @@ object SliceUploadController {
         printer: ConfigObject,
     ) {
         val context = fragment.getContext() ?: return
+        val slicedResult = fragment.glView?.renderer?.gcodeResult
+        if (!fragment.hasSliceResult() || slicedResult == null) {
+            showPreparationFailure(fragment, context.getString(R.string.UploadSliceMissing))
+            return
+        }
         val progress = ProgressDialog(context).apply {
             setTitle(R.string.MenuSliceSendToPrinterLoading)
             setMessage(context.getString(R.string.UploadPreparingGcode))
@@ -76,7 +81,7 @@ object SliceUploadController {
             setCancelable(false)
             show()
         }
-        val name = fragment.glView!!.renderer.gcodeResult!!.getRecommendedName()
+        val name = slicedResult.getRecommendedName()
         val source = BedFragment.tempGCodePath
         val currentModel: Model? = fragment.currentModel
         val modelInstances = currentModel?.objectsCount?.coerceAtLeast(1) ?: 1

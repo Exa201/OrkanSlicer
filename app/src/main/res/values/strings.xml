@@ -522,6 +522,7 @@
     <string name="PrintPrepareResliceForAssignment">Assignment changed. Slice again to include it in the print file.</string>
     <string name="PrintPrepareReslicing">Applying assignments and slicing again. The file will be sent after slicing finishes.</string>
     <string name="UploadPreparingGcode">Preparing print file …</string>
+    <string name="UploadSliceMissing">The slice is no longer available. Slice the model again before sending it.</string>
     <string name="UploadProgressPercent">Transferring to printer: %1$d%%</string>
     <string name="UploadPrinterProcessing">Transfer complete. The printer is processing the file …</string>
     <string name="PrintTemperatureCentralHint">Filament temperatures, colors, and material values are managed in the Filament tab. This keeps plate temperatures in one place.</string>

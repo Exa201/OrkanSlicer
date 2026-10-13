@@ -516,6 +516,7 @@
     <string name="PrintPrepareResliceForAssignment">Zuordnung geändert. Bitte erneut slicen, damit sie in die Druckdatei übernommen wird.</string>
     <string name="PrintPrepareReslicing">Zuordnung wird übernommen und neu gesliced. Danach wird die Datei automatisch gesendet.</string>
     <string name="UploadPreparingGcode">Druckdatei wird vorbereitet …</string>
+    <string name="UploadSliceMissing">Das Slice-Ergebnis ist nicht mehr verfügbar. Slice das Modell vor dem Senden erneut.</string>
     <string name="UploadProgressPercent">Wird zum Drucker übertragen: %1$d%%</string>
     <string name="UploadPrinterProcessing">Übertragung fertig. Der Drucker verarbeitet die Datei …</string>
     <string name="PrintTemperatureCentralHint">Filamenttemperaturen, Farben und Materialwerte werden zentral im Filament-Menü gepflegt. So bleiben Druckplattentemperaturen an einem Ort.</string>
