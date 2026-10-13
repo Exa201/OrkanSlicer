@@ -60,6 +60,10 @@ object OrcaModelBridge {
     @JvmStatic
     fun errorMessage(error: Throwable): String = when (error) {
         is LinkageError -> "Der native Orca-Kern konnte das Modell nicht laden. Prüfe die Gerätearchitektur und die mitgelieferten Bibliotheken."
+        is Slic3rRuntimeError -> if (error.message == "STL_NO_CONNECTED_FACETS")
+            "Die STL enthält nach der Reparatur keine zusammenhängenden, druckbaren Flächen. Repariere das Modell in einem Desktop-Slicer und exportiere es erneut als STL oder 3MF."
+        else error.message?.takeIf { it.isNotBlank() }
+            ?: "Das Modell konnte nicht geladen werden. Prüfe, ob die Datei beschädigt oder unvollständig ist."
         else -> error.message?.takeIf { it.isNotBlank() }
             ?: "Das Modell konnte nicht geladen werden. Prüfe, ob die Datei beschädigt oder unvollständig ist."
     }

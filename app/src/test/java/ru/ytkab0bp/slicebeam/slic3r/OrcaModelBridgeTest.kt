@@ -53,6 +53,13 @@ class OrcaModelBridgeTest {
     }
 
     @Test
+    fun emptyAfterRepairHasAnActionableMessage() {
+        val message = OrcaModelBridge.errorMessage(Slic3rRuntimeError("STL_NO_CONNECTED_FACETS"))
+        assertTrue(message.contains("keine zusammenhängenden"))
+        assertTrue(message.contains("Desktop-Slicer"))
+    }
+
+    @Test
     fun emptyRegularFilesPassTheFilesystemPreflight() {
         val emptyFile = File.createTempFile("orca-model-preflight", ".stl")
         try {

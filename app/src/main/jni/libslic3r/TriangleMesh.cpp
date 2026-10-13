@@ -234,6 +234,8 @@ bool TriangleMesh::ReadSTLFile(const char *input_file, bool repair, ImportstlPro
         return false;
     if (stlFn) stlFn(0.5f);
     const bool loaded = from_stl(stl, repair);
+    if (!loaded)
+        throw RuntimeError("STL_NO_CONNECTED_FACETS");
     if (stlFn && loaded) stlFn(1.0f);
     return loaded;
 }

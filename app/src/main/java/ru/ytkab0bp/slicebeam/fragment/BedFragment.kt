@@ -1771,7 +1771,7 @@ if (e is ImportCancelledException || e is java.util.concurrent.CancellationExcep
 Log.e("BedFragment", "Could not load model", e)
 if (plateCount > 1) resetFailedMultiPlateImport(importGeneration)
 ViewUtils.postOnMainThread({ if (destroyed || importGeneration != modelImportGeneration) return@postOnMainThread
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileFailed))
+if (callback == null) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileFailed))
 if (callback != null) callback?.onFailed(e) })
 }
 finally
