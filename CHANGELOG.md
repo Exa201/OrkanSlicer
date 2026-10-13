@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.210 (alpha)
+
+- Expose the native Orca bridge line width and relative bridge angle settings together with the existing bridge controls; move bridge flow and density into the same group so they appear only once.
+- Show bridge line width as linked nozzle-relative percent and millimeter fields, capped at 100% to match the native slicer's validation. Add a compact Auto (0) action to the paired line-width editor.
+- Add German text for the bridge-width control and explanation, and verify the actual localization catalog through a unit test.
+
 ## 0.8.209 (alpha)
 
 - Keep checking a printer's top-level error code when an HTTP-success response also contains a neutral `error: 0` or `error: false` field. A file parser error can no longer be mistaken for a successful upload in this case.

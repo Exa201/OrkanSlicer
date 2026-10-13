@@ -1053,7 +1053,8 @@
     <string name="ProfileNumericAsAbsolute">Absolute value</string>
     <string name="ProfileNumericAsPercent">Percentage value</string>
     <string name="LineWidthAutoHint">Auto in this preset. Editing either value sets a nozzle-relative line width.</string>
-    <string name="LineWidthApply">Apply line width</string>
+    <string name="LineWidthApply">Apply</string>
+    <string name="LineWidthAutomatic">Auto (0)</string>
     <string name="PrinterHostOctoPrint">OctoPrint</string>
     <string name="PrinterHostMoonraker">Moonraker / Klipper</string>
     <string name="ProfileVectorInputLabel">Values</string>

@@ -13357,6 +13357,12 @@ msgstr ""
 msgid "Relative bridge angle"
 msgstr "Relativer Brückenwinkel"
 
+msgid "Bridge line width"
+msgstr "Brückenlinienbreite"
+
+msgid "Bridge line width in mm or % of the nozzle diameter. Maximum: nozzle diameter. 0 uses the internal solid infill width."
+msgstr "Brückenlinienbreite in mm oder Prozent des Düsendurchmessers. Höchstens so breit wie die Düse. Bei 0 wird die Breite der inneren Vollfüllung verwendet."
+
 msgid "When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it."
 msgstr "Wenn aktiviert, werden die Brückenwinkelwerte zur automatisch berechneten Brückenrichtung hinzugefügt, anstatt sie zu überschreiben."
 

@@ -136,4 +136,17 @@ class OrcaProcessSettingsCatalogTest {
         assertFalse("Filament-owned ironing fan speed must not be duplicated", "ironing_fan_speed" in processKeys)
         assertTrue("The German group label should remain available", OrcaProfileGroupLocalizer.mobileGroup("Ironing", "de") == "Glätten")
     }
+
+    @Test
+    fun bridgeWidthAndDirectionStayTogetherInTheProcessProfile() {
+        val bridging = OrcaProcessSettingsCatalog.categories()
+            .single { it.title == "Layers and perimeters" }
+            .sections.single { it.title == "Bridging" }
+
+        assertTrue(bridging.keys.containsAll(listOf(
+            "bridge_line_width", "bridge_flow", "bridge_density",
+            "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
+        )))
+        assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
+    }
 }

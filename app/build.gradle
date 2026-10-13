@@ -17,8 +17,8 @@ android {
         applicationId "com.codemastercody3d.orcaslicermobile"
         minSdk 23
         targetSdk 36
-        versionCode 244
-        versionName "0.8.209"
+        versionCode 245
+        versionName "0.8.210"
         buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
