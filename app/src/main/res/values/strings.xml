@@ -139,6 +139,9 @@
     <string name="ImportSimplifyMessage">This model has more than 500,000 triangles. Simplifying it can improve performance but may remove details. Keep the original or simplify before loading?</string>
     <string name="ImportSimplifyAccept">Simplify</string>
     <string name="ImportSimplifyKeep">Keep original</string>
+    <string name="ImportLargeStlTitle">Large STL file</string>
+    <string name="ImportLargeStlMessage">This STL contains %1$s triangles. Reading it may take several minutes and use a lot of memory. Continue loading? You can decide whether to simplify it after reading.</string>
+    <string name="ImportLargeStlContinue">Continue loading</string>
     <string name="MenuAddPlate">Add plate</string>
     <string name="MenuSwitchPlate">Switch plate</string>
     <string name="MenuRemovePlate">Remove plate</string>

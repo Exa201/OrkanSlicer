@@ -1312,12 +1312,13 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileLoaded)
 }
 else
 {
-fragment.loadModel(f, project3mf, plateCount, BedFragment.ModelLoadCallback { model, firstNewObject, addedObjects->
+fragment.loadModel(f, project3mf, plateCount, object : BedFragment.ModelLoadCallback {
+override fun onLoaded(model: Model, firstNewObject: Int, addedObjects: Int) {
 android.util.Log.e("MainActivity", "loadModel callback fired: model=" + model.pointer + " firstNew=" + firstNewObject + " added=" + addedObjects)
 if (fragment.glView!!.renderer.bed == null)
 {
 android.util.Log.e("MainActivity", "Returning early because the print bed is not ready")
-return@ModelLoadCallback
+return
 }
 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 var bigObject = false
@@ -1366,7 +1367,13 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileLoaded)
 if (bigObject)
 {
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.WARNING, R.string.MenuFileOpenFileBigObject))
-} })
+}
+}
+override fun onCancelled() {
+    SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+    f.delete()
+}
+})
 }
 }
 catch (e:Slic3rRuntimeError) {
@@ -1587,6 +1594,10 @@ loadMultipleStlFileAt(files, index + 1, loaded, failed + 1, tag)
 override fun onFailed(error:Exception) {
 cachedFile.delete()
 loadMultipleStlFileAt(files, index + 1, loaded, failed + 1, tag)
+}
+override fun onCancelled() {
+cachedFile.delete()
+SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 }
 }) }) })
 }

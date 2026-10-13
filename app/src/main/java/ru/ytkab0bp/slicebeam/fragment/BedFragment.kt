@@ -96,6 +96,7 @@ import ru.ytkab0bp.slicebeam.events.TemporaryProjectSettingsChangedEvent
 import ru.ytkab0bp.slicebeam.ui.settings.TemporaryProjectSettingsBar
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
+import ru.ytkab0bp.slicebeam.utils.StlImportPreflight
 import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.BedSwipeDownLayout
@@ -1388,6 +1389,34 @@ next()
 fun interface ModelLoadCallback {
 fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int)
 fun onFailed(error:Exception) {}
+fun onCancelled() {}
+}
+private class ImportCancelledException : Exception()
+
+private fun confirmLargeStlImport(triangles: Long): Boolean {
+    val approved = java.util.concurrent.atomic.AtomicBoolean(false)
+    val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
+    val completed = CountDownLatch(1)
+    val dialogRef = java.util.concurrent.atomic.AtomicReference<AlertDialog?>()
+    ViewUtils.postOnMainThread {
+        val ctx = getContext()
+        if (destroyed || ctx == null || timedOut.get()) { completed.countDown(); return@postOnMainThread }
+        val dialog = BeamAlertDialogBuilder(ctx)
+            .setTitle(R.string.ImportLargeStlTitle)
+            .setMessage(ctx.getString(R.string.ImportLargeStlMessage, java.text.NumberFormat.getIntegerInstance().format(triangles)))
+            .setPositiveButton(R.string.ImportLargeStlContinue) { _, _ -> approved.set(true) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setOnDismissListener { completed.countDown() }
+            .create()
+        dialogRef.set(dialog)
+        dialog.show()
+    }
+    if (!completed.await(2, TimeUnit.MINUTES)) {
+        timedOut.set(true)
+        ViewUtils.postOnMainThread { dialogRef.getAndSet(null)?.dismiss() }
+        return false
+    }
+    return approved.get() && !destroyed
 }
 private data class ImportReduction(val before: Long, val after: Long)
 
@@ -1727,9 +1756,16 @@ importSimplifyDecision = null
 plateLoadGeneration++
 Thread({ try
 {
+StlImportPreflight.largeTriangleCount(f, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
+    if (!confirmLargeStlImport(it)) throw ImportCancelledException()
+}
 loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, callback)
 }
 catch (e:Exception) {
+if (e is ImportCancelledException) {
+    ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onCancelled() }
+    return@Thread
+}
 Log.e("BedFragment", "Could not load model", e)
 if (plateCount > 1) resetFailedMultiPlateImport(importGeneration)
 ViewUtils.postOnMainThread({ if (destroyed || importGeneration != modelImportGeneration) return@postOnMainThread
