@@ -40,6 +40,14 @@ class PrinterResponseInspectorTest {
             """{"error":{"code":0,"message":"ok"},"result":{"filename":"test.gcode"}}""")))
     }
 
+    @Test fun explicitRejectionIsNotACompletedUpload() {
+        assertEquals("Printer busy", PrinterResponseInspector.embeddedError(bytes(
+            """{"success":false,"message":"Printer busy","code":0}""")))
+        assertEquals("Der Drucker hat den Auftrag abgelehnt.", PrinterResponseInspector.embeddedError(bytes(
+            """{"success":false,"result":null}""")))
+        assertNull(PrinterResponseInspector.embeddedError(bytes("""{"success":true,"result":"ok"}""")))
+    }
+
     @Test fun stringErrorAndMalformedFailureBodiesRemainReadable() {
         assertEquals("Unable to start", PrinterResponseInspector.embeddedError(bytes("""{"error":"Unable to start"}""")))
         assertEquals("Bad gateway", PrinterResponseInspector.failureDetail(bytes("Bad gateway"), "fallback"))

@@ -36,6 +36,7 @@ import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 import ru.ytkab0bp.slicebeam.utils.GCodeIntegrityValidator
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.MoonrakerResponseInspector
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
 import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
@@ -298,6 +299,22 @@ object SliceUploadController {
                         showUploadFailure(fragment, 0, responseBody, IOException(detail), progress)
                         return
                     }
+                    val acknowledgement = MoonrakerResponseInspector.uploadedFile(responseBody)
+                    if (acknowledgement == null) {
+                        showUploadFailure(fragment, 0, null,
+                            IOException("Der Drucker hat den Datei-Upload nicht bestätigt. Es wurde kein Druck gestartet."),
+                            progress)
+                        return
+                    }
+                    if (acknowledgement.printStarted || acknowledgement.printQueued) {
+                        dismissSendProgress(progress)
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                            SnackbarsLayout.Type.INFO,
+                            if (acknowledgement.printStarted) R.string.UploadPrinterAlreadyStarted
+                            else R.string.UploadPrinterQueued,
+                        ))
+                        return
+                    }
                     if (!print) {
                         dismissSendProgress(progress)
                         SliceBeam.EVENT_BUS.fireEvent(
@@ -309,7 +326,7 @@ object SliceUploadController {
                         progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadPrinterProcessing))
                     }
                     val startParams = RequestParams().apply {
-                        put("filename", name)
+                        put("filename", acknowledgement.path)
                         if (qidiQ2) put("plateindex", "1")
                     }
                     try {
@@ -323,6 +340,12 @@ object SliceUploadController {
                             override fun onSuccess(code: Int, headers: Array<Header>, body: ByteArray) {
                                 PrinterResponseInspector.embeddedError(body)?.let { detail ->
                                     showUploadFailure(fragment, 0, body, IOException(detail), progress)
+                                    return
+                                }
+                                if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
+                                    showUploadFailure(fragment, 0, null,
+                                        IOException("Der Drucker hat den Druckstart nicht bestätigt. Bitte den Druckerstatus prüfen."),
+                                        progress)
                                     return
                                 }
                                 dismissSendProgress(progress)

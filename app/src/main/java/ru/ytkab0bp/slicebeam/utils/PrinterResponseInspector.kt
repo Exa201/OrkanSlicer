@@ -25,6 +25,9 @@ object PrinterResponseInspector {
         if (!code.isNullOrEmpty() && code != "0" && code != "200") {
             return format(message(root), code) ?: "Druckerfehler $code"
         }
+        if (root.get("success")?.let(::scalar)?.trim()?.lowercase() in setOf("false", "0")) {
+            return format(message(root), null) ?: "Der Drucker hat den Auftrag abgelehnt."
+        }
         return null
     }
 

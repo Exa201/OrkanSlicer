@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.211 (alpha)
+
+- Treat printer responses with `success: false` as rejected requests, even when HTTP and the top-level code report success.
+- Require a confirmed Moonraker upload before starting a print. Use the file path acknowledged by Moonraker rather than assuming the requested filename was stored unchanged.
+- Respect `print_started` and `print_queued` upload flags, avoiding a duplicate start request and showing the actual printer state.
+- Require an explicit `ok` response to the Moonraker print-start request before reporting that the print started. Unknown responses ask the user to check the printer state instead of silently claiming success.
+- Add regression cases for malformed acknowledgements, unsafe paths, queued jobs and print-start responses.
+
 ## 0.8.210 (alpha)
 
 - Expose the native Orca bridge line width and relative bridge angle settings together with the existing bridge controls; move bridge flow and density into the same group so they appear only once.

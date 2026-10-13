@@ -521,6 +521,8 @@
     <string name="UploadSliceMissing">Das Slice-Ergebnis ist nicht mehr verfügbar. Slice das Modell vor dem Senden erneut.</string>
     <string name="UploadProgressPercent">Wird zum Drucker übertragen: %1$d%%</string>
     <string name="UploadPrinterProcessing">Übertragung fertig. Der Drucker verarbeitet die Datei …</string>
+    <string name="UploadPrinterAlreadyStarted">Der Drucker hat diesen Auftrag bereits gestartet.</string>
+    <string name="UploadPrinterQueued">Der Drucker hat diesen Auftrag eingereiht.</string>
     <string name="PrintTemperatureCentralHint">Filamenttemperaturen, Farben und Materialwerte werden zentral im Filament-Menü gepflegt. So bleiben Druckplattentemperaturen an einem Ort.</string>
     <string name="ModelContextFilamentSlot">T%1$d · %2$s · %3$s</string>
     <string name="ModelContextFilamentSlotApplied">Objekt wurde T%1$d zugeordnet.</string>
