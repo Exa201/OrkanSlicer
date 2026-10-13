@@ -608,7 +608,7 @@ object SliceUploadController {
                     if (viewer != null && originalRange != null) {
                         viewer.setLayersViewRange(selected?.from?.toLong()?.minus(1) ?: originalRange!!.first,
                             selected?.to?.toLong()?.minus(1) ?: originalRange!!.second)
-                        viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled())
+                        viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled() || Prefs.isLowRamDevice())
                         view.requestRender()
                     }
                 }

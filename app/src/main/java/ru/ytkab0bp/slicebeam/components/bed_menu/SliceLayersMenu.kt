@@ -108,7 +108,7 @@ class SliceLayersMenu : UnfoldMenu() {
         viewport.queueEvent {
             if (viewport.renderer.gcodeResult !== result) return@queueEvent
             val viewer = viewport.renderer.viewer ?: return@queueEvent
-            viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled())
+            viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled() || Prefs.isLowRamDevice())
             if (viewer.getLayersCount() > 0) viewer.setLayersViewRange(from.toLong() - 1L, to.toLong() - 1L)
             viewport.requestRender()
             viewport.postInvalidate()

@@ -87,7 +87,7 @@ internal fun ProfileDropdownContent(
                     text = title.orEmpty(),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = if (compactPhone) 2 else 1,
+                    maxLines = if (compactPhone) 3 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.width(8.dp))
@@ -117,7 +117,7 @@ internal fun ProfileDropdownContent(
                     text = {
                         Text(
                             text = profileTitle,
-                            maxLines = 2,
+                            maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodyLarge,
                         )

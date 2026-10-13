@@ -90,7 +90,7 @@ object SliceMenuItems {
                 Prefs.setPerformanceModeEnabled(enabled)
                 val viewport = fragment.glView ?: return@BedComposeMenuAction
                 viewport.queueEvent {
-                    viewport.renderer.viewer?.applyPerformanceMode(enabled)
+                    viewport.renderer.viewer?.applyPerformanceMode(enabled || Prefs.isLowRamDevice())
                     viewport.requestRender()
                 }
                 parentMenu.refreshInfoItems()

@@ -75,6 +75,16 @@ class ThreeMfProjectSettingsReaderTest {
         assertEquals(listOf("210","230","250"), result.filaments.map { it["nozzle_temperature"] })
     }
 
+    @Test fun twoColorsAndSixNozzleVariantsKeepTwoLogicalFilaments() {
+        // Mirrors the two-color/three-variants-per-filament layout found in a user 3MF.
+        val result = read(mapOf("Metadata/project_settings.config" to """{
+            "filament_colour":["#112233","#FFEEDD"],"filament_type":["PLA","PETG"],
+            "filament_self_index":["1","1","1","2","2","2"],
+            "nozzle_temperature":["211","212","213","231","232","233"] }"""))
+        assertEquals(2, result.filaments.size)
+        assertEquals(listOf("211", "231"), result.filaments.map { it["nozzle_temperature"] })
+    }
+
     @Test fun modernJsonKeepsDifferentValuesForTwoFilamentsAndIgnoresPrinterData() {
         val result = read(mapOf("Metadata/project_settings.config" to """{
             "layer_height":"0.24", "wall_loops":"3", "sparse_infill_density":"25%", "enable_support":true,

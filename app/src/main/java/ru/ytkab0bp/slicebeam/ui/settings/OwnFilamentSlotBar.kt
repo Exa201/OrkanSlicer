@@ -40,7 +40,7 @@ fun OwnFilamentSlotBar(profileTitle: String?, onSelect: (Int) -> Unit) {
                     FilterChip(
                         selected = selected == index,
                         onClick = { selected = index; onSelect(index) },
-                        label = { Text("T$index · ${slot.type.orEmpty()}") },
+                        label = { Text("T$index ${slot.type.orEmpty()}", maxLines = 1) },
                     )
                 }
             }

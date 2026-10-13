@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.213 (alpha)
+
+- Show the full selected printer name on the workspace card and allow longer profile names in the print, filament and printer selectors.
+- Compact the filament-slot labels so more T-slots are visible on a phone without losing the material name.
+- Add a regression case for two logical 3MF filaments with six nozzle-temperature variants, matching a user project layout.
+- Validate an existing multicolor G-code sample for layer completeness, final extrusion and end order; inspect the printer and Honor portrait/landscape menus without starting a physical print.
+- Save GPU memory in the default performance mode by drawing inactive plates as simple model bounds; rebuild their lightweight previews after an app switch without losing plate positions.
+- Use 70% viewport resolution and a 25-layer initial G-code preview on Android low-RAM devices while preserving the complete slicing model and exported G-code. Drop obsolete object meshes after deletions.
+
 ## 0.8.212 (alpha)
 
 - Validate OctoPrint file-upload responses instead of treating any `files` or `action` field as a successful print.
