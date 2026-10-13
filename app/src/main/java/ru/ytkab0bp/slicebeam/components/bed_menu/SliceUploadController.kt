@@ -22,7 +22,6 @@ import com.loopj.android.http.RequestParams
 import cz.msebera.android.httpclient.Header
 import cz.msebera.android.httpclient.entity.ContentType
 import cz.msebera.android.httpclient.message.BasicHeader
-import org.json.JSONException
 import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.BuildConfig
 import ru.ytkab0bp.slicebeam.R
@@ -37,6 +36,7 @@ import ru.ytkab0bp.slicebeam.utils.GCodeIntegrityValidator
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.MoonrakerResponseInspector
+import ru.ytkab0bp.slicebeam.utils.OctoPrintResponseInspector
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
 import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
@@ -48,7 +48,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 import java.util.Locale
 
 /** Owns the complete post-slice file preparation, validation and printer upload flow. */
@@ -216,22 +215,27 @@ object SliceUploadController {
                         showUploadFailure(fragment, 0, responseBody, IOException(detail), progress)
                         return
                     }
-                    try {
-                        val response = JSONObject(String(responseBody, StandardCharsets.UTF_8))
-                        if (!response.has("action") && !response.has("files")) {
-                            throw JSONException(response.toString())
-                        }
-                        dismissSendProgress(progress)
-                        SliceBeam.EVENT_BUS.fireEvent(
-                            NeedSnackbarEvent(
-                                if (print) SnackbarsLayout.Type.INFO else SnackbarsLayout.Type.DONE,
-                                if (print) R.string.MenuSliceSendToPrinterPrintStarted
-                                else R.string.MenuSliceSendToPrinterOK,
-                            ),
-                        )
-                    } catch (error: JSONException) {
-                        onFailure(0, headers, responseBody, error)
+                    val acknowledgement = OctoPrintResponseInspector.uploadedFile(responseBody)
+                    if (acknowledgement == null) {
+                        showUploadFailure(fragment, 0, null,
+                            IOException(SliceBeam.requireInstance().getString(R.string.UploadFileNotConfirmed)), progress)
+                        return
                     }
+                    dismissSendProgress(progress)
+                    val outcome = acknowledgement.outcome(print)
+                    val message = when (outcome) {
+                        OctoPrintResponseInspector.UploadOutcome.PRINT_STARTED -> R.string.MenuSliceSendToPrinterPrintStarted
+                        OctoPrintResponseInspector.UploadOutcome.SELECTED_NOT_STARTED -> R.string.UploadSelectedNotStarted
+                        OctoPrintResponseInspector.UploadOutcome.PRINT_NOT_STARTED -> R.string.UploadPrintNotStarted
+                        OctoPrintResponseInspector.UploadOutcome.PROCESSING -> R.string.UploadStillProcessing
+                        OctoPrintResponseInspector.UploadOutcome.UPLOADED -> R.string.MenuSliceSendToPrinterOK
+                    }
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                        if (outcome == OctoPrintResponseInspector.UploadOutcome.PRINT_STARTED ||
+                            outcome == OctoPrintResponseInspector.UploadOutcome.UPLOADED)
+                            SnackbarsLayout.Type.DONE else SnackbarsLayout.Type.INFO,
+                        message,
+                    ))
                 }
 
                 override fun onProgress(bytesWritten: Long, totalSize: Long) {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.212 (alpha)
+
+- Validate OctoPrint file-upload responses instead of treating any `files` or `action` field as a successful print.
+- Confirm the returned local file path and reject unrelated folder acknowledgements or unsafe paths.
+- Distinguish a received file from one that OctoPrint is still processing (`done`).
+- Respect `effectiveSelect` and `effectivePrint`: a requested print is reported as started only when OctoPrint confirms it.
+- Show clear German and English messages when a file is selected but not started, or when the print start remains unconfirmed; add protocol regression tests.
+
 ## 0.8.211 (alpha)
 
 - Treat printer responses with `success: false` as rejected requests, even when HTTP and the top-level code report success.
