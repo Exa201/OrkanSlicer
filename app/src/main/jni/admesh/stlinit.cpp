@@ -145,7 +145,7 @@ static FILE* stl_open_count_facets(stl_file *stl, const char *file)
 /* Reads the contents of the file pointed to by fp into the stl structure,
    starting at facet first_facet.  The second argument says if it's our first
    time running this for the stl and therefore we should reset our max and min stats. */
-static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first)
+static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first, const std::function<void(float)> &progress)
 {
 	if (stl->stats.type == binary)
     	fseek(fp, HEADER_SIZE, SEEK_SET);
@@ -225,6 +225,8 @@ static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first)
 		// Write the facet into memory.
 		stl->facet_start[i] = facet;
 		stl_facet_stats(stl, facet, first);
+        if (progress && ((i & 4095u) == 0u || i + 1 == stl->stats.number_of_facets))
+            progress(0.5f * float(i + 1) / float(stl->stats.number_of_facets));
   	}
   
   	stl->stats.size = stl->stats.max - stl->stats.min;
@@ -232,7 +234,7 @@ static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first)
   	return true;
 }
 
-bool stl_open(stl_file *stl, const char *file)
+bool stl_open(stl_file *stl, const char *file, const std::function<void(float)> &progress)
 {
     Slic3r::CNumericLocalesSetter locales_setter;
 	stl->clear();
@@ -240,7 +242,7 @@ bool stl_open(stl_file *stl, const char *file)
 	if (fp == nullptr)
 		return false;
 	stl_allocate(stl);
-	bool result = stl_read(stl, fp, 0, true);
+	bool result = stl_read(stl, fp, 0, true, progress);
   	fclose(fp);
   	return result;
 }

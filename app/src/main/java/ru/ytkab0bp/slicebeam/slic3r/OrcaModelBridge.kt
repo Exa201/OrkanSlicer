@@ -14,7 +14,7 @@ class OrcaModelLoadResult internal constructor(
 /** Narrow Kotlin boundary for loading one STL/3MF plate through the existing Orca JNI entry point. */
 object OrcaModelBridge {
     @JvmStatic
-    fun load(path: String, plateId: Int): OrcaModelLoadResult {
+    fun load(path: String, plateId: Int, progress: ImportProgressCallback? = null): OrcaModelLoadResult {
         val source = File(path)
         val validationError = validateRequest(path, plateId, source.isFile, source.canRead())
         if (validationError != null) {
@@ -22,7 +22,7 @@ object OrcaModelBridge {
         }
 
         return try {
-            val pointer = Native.model_read_from_file(path, baseName(source.name), plateId)
+            val pointer = Native.model_read_from_file(path, baseName(source.name), plateId, progress)
             if (pointer == 0L) {
                 val error = Slic3rRuntimeError("Der Orca-Kern hat kein Modell zurückgegeben.")
                 failed(error, errorMessage(error))

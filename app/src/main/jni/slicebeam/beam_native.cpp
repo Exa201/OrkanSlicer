@@ -399,7 +399,7 @@ extern "C" {
         }
     }
 
-    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file(JNIEnv *env, jclass, jstring path, jstring base_name, jint plateId) {
+    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file(JNIEnv *env, jclass, jstring path, jstring base_name, jint plateId, jobject progressCallback) {
         if (path == nullptr || base_name == nullptr) {
             jclass exceptionClass = env->FindClass("java/lang/IllegalArgumentException");
             if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, "Model path and name are required");
@@ -413,6 +413,21 @@ extern "C" {
             return 0;
         }
 
+        ImportstlProgressFn progressFn;
+        if (progressCallback != nullptr) {
+            jclass callbackClass = env->GetObjectClass(progressCallback);
+            jmethodID onProgress = env->GetMethodID(callbackClass, "onProgress", "(F)V");
+            env->DeleteLocalRef(callbackClass);
+            if (onProgress == nullptr) {
+                env->ReleaseStringUTFChars(path, chars);
+                env->ReleaseStringUTFChars(base_name, baseChars);
+                return 0;
+            }
+            progressFn = [env, progressCallback, onProgress](float fraction) {
+                if (!env->ExceptionCheck()) env->CallVoidMethod(progressCallback, onProgress, fraction);
+            };
+        }
+
         std::unique_ptr<ModelRef> ref;
         try {
             ref = std::make_unique<ModelRef>();
@@ -420,7 +435,7 @@ extern "C" {
             if (boost::algorithm::iends_with(std::string(chars), ".3mf")) {
                 load_strategy = LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel;
             }
-            ref->model = Model::read_from_file(std::string(chars), nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, plateId, nullptr);
+            ref->model = Model::read_from_file(std::string(chars), nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, progressFn, nullptr, plateId, nullptr);
             ref->base_name = std::string(baseChars);
         } catch (const Slic3r::RuntimeError& e) {
             env->ReleaseStringUTFChars(path, chars);

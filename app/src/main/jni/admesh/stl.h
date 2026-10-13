@@ -30,6 +30,7 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 #include <Eigen/Geometry>
 
 // Size of the binary STL header, free form.
@@ -228,7 +229,7 @@ struct indexed_triangle_set
     bool operator==(const indexed_triangle_set& other) const { return this->indices == other.indices && this->vertices == other.vertices; }
 };
 
-extern bool stl_open(stl_file *stl, const char *file);
+extern bool stl_open(stl_file *stl, const char *file, const std::function<void(float)> &progress = {});
 extern void stl_stats_out(stl_file *stl, FILE *file, char *input_file);
 extern bool stl_print_neighbors(stl_file *stl, char *file);
 extern bool stl_write_ascii(stl_file *stl, const char *file, const char *label);

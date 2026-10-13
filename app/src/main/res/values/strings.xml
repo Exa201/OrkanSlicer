@@ -142,6 +142,8 @@
     <string name="ImportLargeStlTitle">Large STL file</string>
     <string name="ImportLargeStlMessage">This STL contains %1$s triangles. Reading it may take several minutes and use a lot of memory. Continue loading? You can decide whether to simplify it after reading.</string>
     <string name="ImportLargeStlContinue">Continue loading</string>
+    <string name="MenuFileOpenStlReading">Reading STL facets: %1$d%%</string>
+    <string name="MenuFileOpenStlPreparing">STL read · Preparing geometry…</string>
     <string name="MenuAddPlate">Add plate</string>
     <string name="MenuSwitchPlate">Switch plate</string>
     <string name="MenuRemovePlate">Remove plate</string>

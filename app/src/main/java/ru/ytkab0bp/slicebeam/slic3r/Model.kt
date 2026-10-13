@@ -36,6 +36,9 @@ open class Model private constructor(@JvmField var pointer: Long) {
     @Throws(Slic3rRuntimeError::class)
     constructor(path: String, plateId: Int) : this(readModelPointer(path, plateId))
 
+    @Throws(Slic3rRuntimeError::class)
+    constructor(file: File, plateId: Int, progress: ImportProgressCallback) : this(readModelPointer(file.absolutePath, plateId, progress))
+
     open fun getBoundingBoxExact(i: Int, min: Vec3d, max: Vec3d) {
         val data = Native.model_get_bounding_box_exact(pointer, i)
         min.set(data[0], data[1], data[2])
@@ -392,8 +395,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     companion object {
-        private fun readModelPointer(path: String, plateId: Int): Long {
-            val result = OrcaModelBridge.load(path, plateId)
+        private fun readModelPointer(path: String, plateId: Int, progress: ImportProgressCallback? = null): Long {
+            val result = OrcaModelBridge.load(path, plateId, progress)
             if (!result.isSuccess()) {
                 throw Slic3rRuntimeError(result.errorMessage, result.cause)
             }

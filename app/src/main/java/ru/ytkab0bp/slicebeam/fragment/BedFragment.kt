@@ -74,6 +74,7 @@ import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.ImportProgressCallback
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -1390,6 +1391,7 @@ fun interface ModelLoadCallback {
 fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int)
 fun onFailed(error:Exception) {}
 fun onCancelled() {}
+fun onProgress(fraction:Float) {}
 }
 private class ImportCancelledException : Exception()
 
@@ -1898,7 +1900,9 @@ updatePlateIndicator()
 @Throws(Slic3rRuntimeError::class)
 private fun loadModelInternal(f:File, preserveProjectLayout:Boolean, callback:ModelLoadCallback?) {
 // Wait, if it's a 3mf project, it already passed plate count, so currentPlateIndex is correct.
- val m = Model(f, currentPlateIndex + 1) // 1-based in JNI for specific plate, or 0 for default
+ val m = if (callback != null && f.name.endsWith(".stl", ignoreCase = true))
+     Model(f, currentPlateIndex + 1, ImportProgressCallback { fraction -> callback.onProgress(fraction) })
+ else Model(f, currentPlateIndex + 1) // 1-based in JNI for specific plate, or 0 for default
  val reduction = try { simplifyImportedModel(m) } catch (e: Exception) { m.release(); throw e }
 val currentModel = currentModel
 if (currentModel != null && currentModel.objectsCount > 0)

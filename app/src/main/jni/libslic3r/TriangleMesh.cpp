@@ -211,14 +211,15 @@ bool TriangleMesh::from_stl(stl_file& stl, bool repair)
 
 bool TriangleMesh::ReadSTLFile(const char *input_file, bool repair, ImportstlProgressFn stlFn, int custom_header_length)
 {
-    // The OrcaSlicer admesh stl_open() no longer takes a progress callback or custom header
-    // length; those SliceBeam extensions are dropped (STL load progress is no longer reported).
-    (void) stlFn;
+    // Reading reports real facet progress. Repair and vertex merging are separate phases.
     (void) custom_header_length;
     stl_file stl;
-    if (!stl_open(&stl, input_file))
+    if (!stl_open(&stl, input_file, stlFn))
         return false;
-    return from_stl(stl, repair);
+    if (stlFn) stlFn(0.5f);
+    const bool loaded = from_stl(stl, repair);
+    if (stlFn && loaded) stlFn(1.0f);
+    return loaded;
 }
 
 bool TriangleMesh::write_ascii(const char* output_file) const

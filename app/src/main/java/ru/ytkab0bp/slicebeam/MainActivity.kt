@@ -1313,6 +1313,15 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileLoaded)
 else
 {
 fragment.loadModel(f, project3mf, plateCount, object : BedFragment.ModelLoadCallback {
+private var lastReadStep = -1
+override fun onProgress(fraction: Float) {
+    val step = if (fraction >= 0.5f) 10 else ((fraction.coerceAtLeast(0f) * 20f).toInt()).coerceIn(0, 9)
+    if (step == lastReadStep) return
+    lastReadStep = step
+    val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
+        else getString(R.string.MenuFileOpenStlReading, step * 10)
+    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title).tag(tag))
+}
 override fun onLoaded(model: Model, firstNewObject: Int, addedObjects: Int) {
 android.util.Log.e("MainActivity", "loadModel callback fired: model=" + model.pointer + " firstNew=" + firstNewObject + " added=" + addedObjects)
 if (fragment.glView!!.renderer.bed == null)
@@ -1370,6 +1379,10 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.WARNING, R.
 }
 }
 override fun onCancelled() {
+    SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+    f.delete()
+}
+override fun onFailed(error: Exception) {
     SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
     f.delete()
 }
@@ -1579,6 +1592,15 @@ val current = navigationDelegate.getCurrentFragment()
 if (!(current is BedFragment)) throw IOException("Die Druckplattenansicht ist nicht verfÃ¼gbar.")
 val bed = current
 bed.loadModel(cachedFile, false, 1, object:BedFragment.ModelLoadCallback {
+private var lastReadStep = -1
+override fun onProgress(fraction: Float) {
+    val step = if (fraction >= 0.5f) 10 else ((fraction.coerceAtLeast(0f) * 20f).toInt()).coerceIn(0, 9)
+    if (step == lastReadStep) return
+    lastReadStep = step
+    val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
+        else getString(R.string.MenuFileOpenStlReading, step * 10)
+    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title).tag(tag))
+}
 override fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int) {
 ViewUtils.postOnMainThread({ cachedFile.delete()
 if (addedObjects > 0)
