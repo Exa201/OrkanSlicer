@@ -5,6 +5,7 @@
 - Expose the native Orca bridge line width and relative bridge angle settings together with the existing bridge controls; move bridge flow and density into the same group so they appear only once.
 - Show bridge line width as linked nozzle-relative percent and millimeter fields, capped at 100% to match the native slicer's validation. Add a compact Auto (0) action to the paired line-width editor.
 - Add German text for the bridge-width control and explanation, and verify the actual localization catalog through a unit test.
+- Run project-settings regression checks against the bundled two-color 3MF and a real Orca Benchy 3MF; confirm filament colors and temperatures remain separate while printer overrides are ignored.
 
 ## 0.8.209 (alpha)
 
