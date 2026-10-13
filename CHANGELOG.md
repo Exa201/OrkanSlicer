@@ -7,6 +7,7 @@
 - Distinguish a received file from one that OctoPrint is still processing (`done`).
 - Respect `effectiveSelect` and `effectivePrint`: a requested print is reported as started only when OctoPrint confirms it.
 - Show clear German and English messages when a file is selected but not started, or when the print start remains unconfirmed; add protocol regression tests.
+- Refresh the in-app release notes, which still showed version 0.8.202 on startup.
 
 ## 0.8.211 (alpha)
 
