@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.208 (alpha)
+
+- Inspect successful printer API responses for embedded errors before reporting an upload or print as complete. This covers OctoPrint-compatible, Moonraker upload, and Moonraker print-start responses.
+- Present compact server error text and codes, including Anycubic's unknown-filament and file-parser responses, instead of dumping an entire JSON response.
+- Catch synchronous request setup failures so the upload progress dialog closes with an error rather than remaining stuck.
+
 ## 0.8.207 (alpha)
 
 - Read only relevant 3MF settings entries, cap their count and expanded size, and reject duplicate settings entries before parsing to reduce memory pressure from large or malformed archives.

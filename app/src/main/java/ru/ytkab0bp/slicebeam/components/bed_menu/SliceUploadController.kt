@@ -37,6 +37,7 @@ import ru.ytkab0bp.slicebeam.utils.GCodeIntegrityValidator
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.UploadFileValidator
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -199,6 +200,7 @@ object SliceUploadController {
         params.put("select", print.toString())
         params.put("print", print.toString())
 
+        try {
         client.post(
             SliceBeam.requireInstance(),
             "$uploadHost/api/files/local",
@@ -207,6 +209,10 @@ object SliceUploadController {
             null,
             object : AsyncHttpResponseHandler() {
                 override fun onSuccess(statusCode: Int, headers: Array<Header>, responseBody: ByteArray) {
+                    PrinterResponseInspector.embeddedError(responseBody)?.let { detail ->
+                        showUploadFailure(fragment, 0, responseBody, IOException(detail), progress)
+                        return
+                    }
                     try {
                         val response = JSONObject(String(responseBody, StandardCharsets.UTF_8))
                         if (!response.has("action") && !response.has("files")) {
@@ -221,7 +227,7 @@ object SliceUploadController {
                             ),
                         )
                     } catch (error: JSONException) {
-                        onFailure(statusCode, headers, responseBody, error)
+                        onFailure(0, headers, responseBody, error)
                     }
                 }
 
@@ -239,6 +245,9 @@ object SliceUploadController {
                 }
             },
         )
+        } catch (error: RuntimeException) {
+            showUploadFailure(fragment, 0, null, error, progress)
+        }
     }
 
     private fun uploadMoonraker(
@@ -270,6 +279,7 @@ object SliceUploadController {
         }
         params.put("root", "gcodes")
         params.put("path", "")
+        try {
         client.post(
             SliceBeam.requireInstance(),
             "$uploadHost/server/files/upload",
@@ -278,6 +288,10 @@ object SliceUploadController {
             null,
             object : AsyncHttpResponseHandler() {
                 override fun onSuccess(statusCode: Int, responseHeaders: Array<Header>, responseBody: ByteArray) {
+                    PrinterResponseInspector.embeddedError(responseBody)?.let { detail ->
+                        showUploadFailure(fragment, 0, responseBody, IOException(detail), progress)
+                        return
+                    }
                     if (!print) {
                         dismissSendProgress(progress)
                         SliceBeam.EVENT_BUS.fireEvent(
@@ -292,6 +306,7 @@ object SliceUploadController {
                         put("filename", name)
                         if (qidiQ2) put("plateindex", "1")
                     }
+                    try {
                     client.post(
                         SliceBeam.requireInstance(),
                         "$uploadHost/printer/print/start",
@@ -300,6 +315,10 @@ object SliceUploadController {
                         null,
                         object : AsyncHttpResponseHandler() {
                             override fun onSuccess(code: Int, headers: Array<Header>, body: ByteArray) {
+                                PrinterResponseInspector.embeddedError(body)?.let { detail ->
+                                    showUploadFailure(fragment, 0, body, IOException(detail), progress)
+                                    return
+                                }
                                 dismissSendProgress(progress)
                                 SliceBeam.EVENT_BUS.fireEvent(
                                     NeedSnackbarEvent(
@@ -319,6 +338,9 @@ object SliceUploadController {
                             }
                         },
                     )
+                    } catch (error: RuntimeException) {
+                        showUploadFailure(fragment, 0, null, error, progress)
+                    }
                 }
 
                 override fun onProgress(bytesWritten: Long, totalSize: Long) {
@@ -335,6 +357,9 @@ object SliceUploadController {
                 }
             },
         )
+        } catch (error: RuntimeException) {
+            showUploadFailure(fragment, 0, null, error, progress)
+        }
     }
 
     private fun updateSendProgress(
@@ -374,27 +399,13 @@ object SliceUploadController {
         progress: ProgressDialog,
     ) {
         dismissSendProgress(progress)
-        var detail = error?.toString().orEmpty()
-        if (responseBody != null && responseBody.isNotEmpty()) {
-            try {
-                val response = JSONObject(String(responseBody, StandardCharsets.UTF_8))
-                val responseError = response.optJSONObject("error")
-                val responseMessage = responseError?.optString("message")
-                detail = if (responseError != null && !TextUtils.isEmpty(responseMessage)) {
-                    responseMessage.orEmpty()
-                } else {
-                    response.toString()
-                }
-            } catch (_: JSONException) {
-                detail = String(responseBody, StandardCharsets.UTF_8)
-            }
-        }
-        if (statusCode > 0) detail = "HTTP $statusCode: $detail"
+        val detail = PrinterResponseInspector.failureDetail(responseBody, error?.localizedMessage ?: error?.toString())
         ViewUtils.postOnMainThread {
             val context = fragment.getContext() ?: return@postOnMainThread
             BeamAlertDialogBuilder(context)
                 .setTitle(R.string.MenuSliceSendToPrinterFailed)
-                .setMessage(detail)
+                .setMessage((if (statusCode > 0) "HTTP $statusCode: " else "") +
+                    detail.ifBlank { context.getString(R.string.MenuSliceSendToPrinterFailed) })
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
         }
