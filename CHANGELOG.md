@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.214 (alpha)
+
+- Release native raycast trees and bed meshes when previews and build plates are recreated; this prevents retained memory after repeated model and printer changes.
+- Simplify the displayed mesh of large, unpainted active models in performance mode while keeping the original geometry for slicing and export. Painting switches back to exact geometry.
+- Explain when a printer API address returns an HTML page instead of confirming a file upload or print start; never report such a response as a started print.
+- Reserve space for both actions in the pre-slice filament dialog so large-font phone layouts can scroll the content without hiding Cancel.
+- Check the user Mewtwo 3MF on Honor and audit existing two-color G-code; the older Bulbasaur sample is incomplete and is explicitly excluded from print verification.
+- Fix the Kotlin static JNI binding found by the Honor large-model test; retest a closed 259,200-triangle STL and the three-color Mewtwo project on device.
+
 ## 0.8.213 (alpha)
 
 - Show the full selected printer name on the workspace card and allow longer profile names in the print, filament and printer selectors.

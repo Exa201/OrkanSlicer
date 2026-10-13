@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam.render
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -17,5 +18,12 @@ class DevicePerformancePolicyTest {
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(true, false))
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(false, true))
         assertFalse(DevicePerformancePolicy.useSimpleInactivePlatePreview(false, false))
+    }
+
+    @Test fun activePreviewHasABoundedMeshOnlyInPerformanceOrLowRamMode() {
+        assertEquals(120_000, DevicePerformancePolicy.activePreviewTriangleBudget(false, true))
+        assertEquals(120_000, DevicePerformancePolicy.activePreviewTriangleBudget(true, true))
+        assertEquals(250_000, DevicePerformancePolicy.activePreviewTriangleBudget(true, false))
+        assertNull(DevicePerformancePolicy.activePreviewTriangleBudget(false, false))
     }
 }

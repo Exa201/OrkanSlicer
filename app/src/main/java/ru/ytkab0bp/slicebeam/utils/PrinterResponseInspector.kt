@@ -9,6 +9,15 @@ import java.nio.charset.StandardCharsets
 object PrinterResponseInspector {
     private const val MAX_DETAIL_CHARS = 500
 
+    /** A web page from an API endpoint usually means the host type, port or proxy is wrong. */
+    @JvmStatic
+    fun missingAcknowledgement(body: ByteArray?, fallback: String): String {
+        val prefix = body?.toString(StandardCharsets.UTF_8)?.trimStart()?.take(256)?.lowercase().orEmpty()
+        return if (prefix.startsWith("<!doctype html") || prefix.startsWith("<html"))
+            "Die Druckeradresse liefert eine Webseite statt einer API-Antwort. Hosttyp und Port prüfen; es wurde kein Druck gestartet."
+        else fallback
+    }
+
     @JvmStatic
     fun embeddedError(body: ByteArray?): String? {
         val root = parseObject(body) ?: return null

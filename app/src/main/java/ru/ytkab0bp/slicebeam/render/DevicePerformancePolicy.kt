@@ -8,4 +8,11 @@ object DevicePerformancePolicy {
         performanceMode || lowRamDevice
 
     fun initialLayerBlockSize(lowRamDevice: Boolean): Int = if (lowRamDevice) 25 else 50
+
+    /** Limit only the on-screen mesh. The Model retained for slicing is never changed. */
+    fun activePreviewTriangleBudget(performanceMode: Boolean, lowRamDevice: Boolean): Int? = when {
+        lowRamDevice -> 120_000
+        performanceMode -> 250_000
+        else -> null
+    }
 }

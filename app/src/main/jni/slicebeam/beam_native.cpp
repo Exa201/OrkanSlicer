@@ -62,9 +62,11 @@ struct ModelImportCancelled : std::exception {
 struct GLModelRef {
     GLModel model;
     TriangleMesh mesh;
-    AABBMesh* emesh;
+    AABBMesh* emesh = nullptr;
     std::vector<stl_normal> normals;
     Vec3d flatten_normal;
+
+    ~GLModelRef() { delete emesh; }
 };
 // Multi-color painting session, bound to one ModelObject's first volume. Holds a TriangleSelector
 // over the volume mesh plus an AABBMesh for ray-casting touch points to a facet.
@@ -83,6 +85,7 @@ struct ShaderRef {
 struct BedRef {
     DynamicPrintConfig config;
     ExPolygon contour;
+    GLModelRef* meshes = nullptr;
     GLModel* triangles;
     GLModel* gridlines;
     GLModel* contourlines;
@@ -1747,6 +1750,8 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1raycast_1data(JNIEnv* env, jclass, jlong ptr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        delete ref->emesh;
+        ref->emesh = nullptr;
         ref->emesh = new AABBMesh(ref->mesh, true);
         ref->normals = its_face_normals(ref->mesh.its);
     }
@@ -1778,6 +1783,8 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model(JNIEnv* env, jclass, jlong ptr, jlong model) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        delete ref->emesh;
+        ref->emesh = nullptr;
         ref->mesh = mRef->model.mesh();
         ref->model.init_from(ref->mesh.its);
     }
@@ -1785,7 +1792,26 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model_1object(JNIEnv* env, jclass, jlong ptr, jlong model, jint i) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        delete ref->emesh;
+        ref->emesh = nullptr;
         ref->mesh = mRef->model.objects[i]->mesh();
+        ref->model.init_from(ref->mesh.its);
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model_1object_1preview(JNIEnv* env, jclass, jlong ptr, jlong model, jint i, jint max_triangles) {
+        GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        delete ref->emesh;
+        ref->emesh = nullptr;
+        ref->mesh = mRef->model.objects[i]->mesh();
+        if (max_triangles >= 4 && ref->mesh.its.indices.size() > static_cast<size_t>(max_triangles)) {
+            try {
+                its_quadric_edge_collapse(ref->mesh.its, static_cast<uint32_t>(max_triangles));
+            } catch (const std::exception& e) {
+                __android_log_print(ANDROID_LOG_WARN, TAG, "Preview simplification failed: %s", e.what());
+                ref->mesh = mRef->model.objects[i]->mesh();
+            }
+        }
         ref->model.init_from(ref->mesh.its);
     }
 
@@ -1825,6 +1851,7 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ref->model.reset();
         ref->mesh.clear();
+        delete ref->emesh;
         ref->emesh = nullptr;
         ref->normals.clear();
 
@@ -1951,8 +1978,9 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1reset(JNIEnv* env, jclass, jlong ptr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ref->model.reset();
-        ref->mesh.clear();
+        delete ref->emesh;
         ref->emesh = nullptr;
+        ref->mesh.clear();
         ref->normals.clear();
     }
 
@@ -2105,11 +2133,9 @@ extern "C" {
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1create(JNIEnv* env, jclass, jlongArray data) {
         BedRef* ref = new BedRef();
         GLModelRef* refs = new GLModelRef[3];
-        refs[0] = GLModelRef();
+        ref->meshes = refs;
         ref->triangles = &refs[0].model;
-        refs[1] = GLModelRef();
         ref->gridlines = &refs[1].model;
-        refs[2] = GLModelRef();
         ref->contourlines = &refs[2].model;
 
         for (int i = 0; i < 3; i++) {
@@ -2225,6 +2251,7 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1release(JNIEnv* env, jclass, jlong ptr) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;
+        delete[] ref->meshes;
         delete ref;
     }
 

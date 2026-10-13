@@ -217,8 +217,9 @@ object SliceUploadController {
                     }
                     val acknowledgement = OctoPrintResponseInspector.uploadedFile(responseBody)
                     if (acknowledgement == null) {
-                        showUploadFailure(fragment, 0, null,
-                            IOException(SliceBeam.requireInstance().getString(R.string.UploadFileNotConfirmed)), progress)
+                        showUploadFailure(fragment, 0, null, IOException(
+                            PrinterResponseInspector.missingAcknowledgement(responseBody,
+                                SliceBeam.requireInstance().getString(R.string.UploadFileNotConfirmed))), progress)
                         return
                     }
                     dismissSendProgress(progress)
@@ -306,7 +307,8 @@ object SliceUploadController {
                     val acknowledgement = MoonrakerResponseInspector.uploadedFile(responseBody)
                     if (acknowledgement == null) {
                         showUploadFailure(fragment, 0, null,
-                            IOException("Der Drucker hat den Datei-Upload nicht bestätigt. Es wurde kein Druck gestartet."),
+                            IOException(PrinterResponseInspector.missingAcknowledgement(responseBody,
+                                "Der Drucker hat den Datei-Upload nicht bestätigt. Es wurde kein Druck gestartet.")),
                             progress)
                         return
                     }
@@ -348,7 +350,8 @@ object SliceUploadController {
                                 }
                                 if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
                                     showUploadFailure(fragment, 0, null,
-                                        IOException("Der Drucker hat den Druckstart nicht bestätigt. Bitte den Druckerstatus prüfen."),
+                                        IOException(PrinterResponseInspector.missingAcknowledgement(body,
+                                            "Der Drucker hat den Druckstart nicht bestätigt. Bitte den Druckerstatus prüfen.")),
                                         progress)
                                     return
                                 }

@@ -30,6 +30,10 @@ open class GLModel internal constructor(
         Native.glmodel_init_from_model_object(pointer, model.pointer, i)
     }
 
+    open fun initPreviewFrom(model: Model, i: Int, maxTriangles: Int) {
+        Native.glmodel_init_from_model_object_preview(pointer, model.pointer, i, maxTriangles)
+    }
+
     /** Build this model from facets painted with the given filament in a paint session (mesh-local coords). */
     open fun initFromPaint(paintSessionPtr: Long, filamentIdx: Int): Int =
         Native.glmodel_init_from_paint(pointer, paintSessionPtr, filamentIdx)

@@ -60,4 +60,11 @@ class PrinterResponseInspectorTest {
         assertFalse(detail.contains("fallback"))
         assertTrue(detail.all { it == 'x' })
     }
+
+    @Test fun htmlFromPrinterApiIsExplainedWithoutClaimingPrintStarted() {
+        val fallback = "Keine Upload-Bestätigung"
+        assertTrue(PrinterResponseInspector.missingAcknowledgement(
+            bytes("<html><body><center>200 OK</center></body></html>"), fallback).contains("Webseite"))
+        assertEquals(fallback, PrinterResponseInspector.missingAcknowledgement(bytes("{}"), fallback))
+    }
 }

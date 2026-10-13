@@ -219,7 +219,8 @@ private fun PreSliceFilamentContent(
     onePhysicalGate: Int,
     onOnePhysicalGateChange: (Int) -> Unit,
 ) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
+    // Leave space for the dialog title and both action rows, including large font scales.
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.56f
     val secondaryColor = MaterialTheme.colorScheme.onSurfaceVariant
     val primaryColor = MaterialTheme.colorScheme.onSurface
     val shape = RoundedCornerShape(12.dp)

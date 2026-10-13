@@ -546,9 +546,22 @@ if (i < glModels.size)
 {
 val glModel = glModels.get(i)
 glModel.reset()
-glModel.initFrom(this.model!!, i)
+initObjectPreview(glModel, i)
 }
 invalidateCommittedOverlays(i)
+}
+private fun initObjectPreview(glModel: GLModel, index: Int) {
+    val source = model ?: return
+    val budget = DevicePerformancePolicy.activePreviewTriangleBudget(
+        Prefs.isPerformanceModeEnabled(), Prefs.isLowRamDevice()
+    )
+    // Painted facets require the exact surface for color placement and touch tools.
+    if (budget != null && source.getTriangleCount(index) > budget && !source.hasPaint(index) &&
+        !(isPaintMode && paintObject == index)) {
+        glModel.initPreviewFrom(source, index, budget)
+    } else {
+        glModel.initFrom(source, index)
+    }
 }
 fun invalidateSelectionObject() {
 if (selectionModel != null)
@@ -565,7 +578,7 @@ for (i in 0 until this.model!!.objectsCount)
 if (i >= glModels.size) continue
 val glModel = glModels.get(i)
 glModel.reset()
-glModel.initFrom(this.model!!, i)
+initObjectPreview(glModel, i)
 }
 }
 /** Release mesh buffers that can be rebuilt from the retained native model. */
@@ -792,7 +805,7 @@ shader.setUniform("volume_mirrored", left)
 if (glModels.size < i + 1)
 {
 val glModel = GLModel()
-glModel.initFrom(this.model!!, i)
+initObjectPreview(glModel, i)
 glModels.add(glModel)
 }
 val glModel = glModels.get(i)
@@ -1420,6 +1433,10 @@ val gm = GLModel()
 gm.initFrom(this.model!!, glModels.size)
 glModels.add(gm)
 }
+// Editing/painting must raycast against the full-resolution model, even if the
+// normal viewport was using a reduced mesh for this object.
+glModels[objIdx].reset()
+glModels[objIdx].initFrom(this.model!!, objIdx)
 paintModeKind = mode
 paintSession = PaintSession(this.model!!, objIdx, mode)
 if (!paintSession!!.isValid()) {
