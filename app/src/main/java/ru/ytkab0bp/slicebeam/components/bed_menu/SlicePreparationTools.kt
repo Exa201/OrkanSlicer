@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import ru.ytkab0bp.slicebeam.utils.GCodeToolMapper
+import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
@@ -16,7 +17,7 @@ internal object SlicePreparationTools {
         model?.lowercase(Locale.ROOT)?.startsWith("anycubic kobra 3") == true
 
     fun isSendTarget(hostType: String?, printHost: String?): Boolean =
-        (hostType ?: "octoprint") in supportedSendTypes && !printHost.isNullOrEmpty()
+        (hostType ?: "octoprint") in supportedSendTypes && PrinterUploadUrl.baseUrl(printHost) != null
 
     fun hasAutomaticBedLeveling(machineStartGcode: String?): Boolean =
         machineStartGcode?.matches(autoLevelCommand) == true

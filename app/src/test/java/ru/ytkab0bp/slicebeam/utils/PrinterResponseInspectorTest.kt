@@ -27,6 +27,19 @@ class PrinterResponseInspectorTest {
         assertEquals("The device cannot parse the file (Code 10011725)", detail)
     }
 
+    @Test fun zeroErrorFieldDoesNotHideTopLevelDeviceError() {
+        for (neutralError in listOf("0", "false", "\"\"", "{\"code\":0,\"message\":\"ok\"}")) {
+            val detail = PrinterResponseInspector.embeddedError(bytes(
+                """{"error":$neutralError,"code":10011725,"message":"The device cannot parse the file"}"""))
+            assertEquals("The device cannot parse the file (Code 10011725)", detail)
+        }
+    }
+
+    @Test fun zeroErrorObjectWithoutDeviceCodeIsSuccess() {
+        assertNull(PrinterResponseInspector.embeddedError(bytes(
+            """{"error":{"code":0,"message":"ok"},"result":{"filename":"test.gcode"}}""")))
+    }
+
     @Test fun stringErrorAndMalformedFailureBodiesRemainReadable() {
         assertEquals("Unable to start", PrinterResponseInspector.embeddedError(bytes("""{"error":"Unable to start"}""")))
         assertEquals("Bad gateway", PrinterResponseInspector.failureDetail(bytes("Bad gateway"), "fallback"))

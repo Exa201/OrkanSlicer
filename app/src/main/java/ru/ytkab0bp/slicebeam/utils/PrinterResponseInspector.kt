@@ -13,13 +13,13 @@ object PrinterResponseInspector {
     fun embeddedError(body: ByteArray?): String? {
         val root = parseObject(body) ?: return null
         val error = root.get("error")
-        if (error != null && !error.isJsonNull) {
-            if (scalar(error)?.trim()?.lowercase() in setOf("0", "false", "")) return null
+        if (error != null && !error.isJsonNull && scalar(error)?.trim()?.lowercase() !in setOf("0", "false", "")) {
             val errorObject = error.takeIf { it.isJsonObject }?.asJsonObject
             val message = if (errorObject != null) message(errorObject) else scalar(error)
             val code = errorObject?.get("code")?.let(::scalar)
-            if (code == "0" && message.isNullOrBlank()) return null
-            return format(message, code) ?: "Der Drucker hat einen Fehler gemeldet."
+            if (code?.trim() != "0") {
+                return format(message, code) ?: "Der Drucker hat einen Fehler gemeldet."
+            }
         }
         val code = root.get("code")?.let(::scalar)?.trim()
         if (!code.isNullOrEmpty() && code != "0" && code != "200") {

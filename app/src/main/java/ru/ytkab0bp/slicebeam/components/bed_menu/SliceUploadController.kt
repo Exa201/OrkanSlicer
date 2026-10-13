@@ -38,6 +38,7 @@ import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
+import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.UploadFileValidator
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -178,9 +179,10 @@ object SliceUploadController {
             return
         }
 
-        var uploadHost = host
-        if (!uploadHost.startsWith("http://") && !uploadHost.startsWith("https://")) {
-            uploadHost = "http://$uploadHost"
+        val uploadUrl = PrinterUploadUrl.endpoint(host, "/api/files/local")
+        if (uploadUrl == null) {
+            showUploadFailure(fragment, 0, null, IOException("Die Druckeradresse ist ungültig. Prüfe Hostname und Port."), progress)
+            return
         }
         val headers: Array<Header> = if (TextUtils.isEmpty(apiKey)) emptyArray()
         else arrayOf(BasicHeader("X-Api-Key", apiKey))
@@ -203,7 +205,7 @@ object SliceUploadController {
         try {
         client.post(
             SliceBeam.requireInstance(),
-            "$uploadHost/api/files/local",
+            uploadUrl,
             headers,
             params,
             null,
@@ -260,8 +262,12 @@ object SliceUploadController {
         progress: ProgressDialog,
         qidiQ2: Boolean,
     ) {
-        val uploadHost = if (host.startsWith("http://") || host.startsWith("https://")) host
-        else "http://$host"
+        val uploadUrl = PrinterUploadUrl.endpoint(host, "/server/files/upload")
+        val startUrl = PrinterUploadUrl.endpoint(host, "/printer/print/start")
+        if (uploadUrl == null || startUrl == null) {
+            showUploadFailure(fragment, 0, null, IOException("Die Druckeradresse ist ungültig. Prüfe Hostname und Port."), progress)
+            return
+        }
         val headers: Array<Header> = if (TextUtils.isEmpty(apiKey)) emptyArray()
         else arrayOf(BasicHeader("X-Api-Key", apiKey))
         val params = RequestParams()
@@ -282,7 +288,7 @@ object SliceUploadController {
         try {
         client.post(
             SliceBeam.requireInstance(),
-            "$uploadHost/server/files/upload",
+            uploadUrl,
             headers,
             params,
             null,
@@ -309,7 +315,7 @@ object SliceUploadController {
                     try {
                     client.post(
                         SliceBeam.requireInstance(),
-                        "$uploadHost/printer/print/start",
+                        startUrl,
                         headers,
                         startParams,
                         null,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.209 (alpha)
+
+- Keep checking a printer's top-level error code when an HTTP-success response also contains a neutral `error: 0` or `error: false` field. A file parser error can no longer be mistaken for a successful upload in this case.
+- Validate the configured printer host before sending, reject blank or malformed addresses, and build consistent API URLs for both OctoPrint and Moonraker, including trailing slashes and reverse-proxy paths.
+- Add regression tests for mixed printer response fields and printer URL construction; the real printer acceptance tests remain open.
+
 ## 0.8.208 (alpha)
 
 - Inspect successful printer API responses for embedded errors before reporting an upload or print as complete. This covers OctoPrint-compatible, Moonraker upload, and Moonraker print-start responses.
