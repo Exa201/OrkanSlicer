@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.215 (alpha)
+
+- Require explicit confirmation before slicing when an ACE slot's material differs from the model filament, while preserving manual slot assignments.
+- Recheck material compatibility after assigning slots in the print dialog; a mismatched job can be uploaded without starting a print.
+- Rebuild the active model mesh when the simplified-preview setting changes, so it takes effect immediately without altering slicing geometry.
+- Add a regression test proving a second 3MF project does not retain colors, temperatures, edits or ACE mappings from the first.
+- Allow two-line navigation labels for larger Android font settings; check the Honor layout at 130% system font size.
+- Recheck the Kobra status endpoint; it still returns HTML rather than usable printer status JSON, so physical print verification remains open.
+
 ## 0.8.214 (alpha)
 
 - Release native raycast trees and bed meshes when previews and build plates are recreated; this prevents retained memory after repeated model and printer changes.

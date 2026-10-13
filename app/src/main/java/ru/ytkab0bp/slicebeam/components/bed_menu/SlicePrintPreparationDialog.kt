@@ -124,6 +124,28 @@ object SlicePrintPreparationDialog {
             )
             .show()
 
+        fun sendChecked(targetPrinter: ConfigObject, targetType: String, targetHost: String,
+                        targetApiKey: String?) {
+            if (print && isAnycubicKobra(targetPrinter)) {
+                val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(),
+                    gcodeToolCount, activeTools, sourceFilamentTypes)
+                if (mismatch != null) {
+                    BeamAlertDialogBuilder(context)
+                        .setTitle(R.string.PrintPrepareMaterialMismatchTitle)
+                        .setMessage(context.getString(R.string.PrintPrepareMaterialMismatch,
+                            mismatch.first, mismatch.second, mismatch.third, mismatch.fourth))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.PrintPrepareUploadOnly) { _, _ ->
+                            dialog.dismiss()
+                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, false)
+                        }.show()
+                    return
+                }
+            }
+            dialog.dismiss()
+            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, print)
+        }
+
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val targetPrinter = selectedPrinter.value
             val targetType = targetPrinter.get("host_type") ?: "octoprint"
@@ -137,7 +159,7 @@ object SlicePrintPreparationDialog {
                     dialog.dismiss()
                     Toast.makeText(context, R.string.PrintPrepareReslicing, Toast.LENGTH_LONG).show()
                     fragment.startSlicing {
-                        sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, print)
+                        sendChecked(targetPrinter, targetType, targetHost, targetApiKey)
                     }
                     return@setOnClickListener
                 }
@@ -152,30 +174,12 @@ object SlicePrintPreparationDialog {
                     gcodeToolCount,
                     activeTools,
                 ) {
-                    dialog.dismiss()
-                    sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, print)
+                    sendChecked(targetPrinter, targetType, targetHost, targetApiKey)
                 }
                 if (!shown) showNoLoadedGates(context)
                 return@setOnClickListener
             }
-            if (print && isAnycubicKobra(targetPrinter)) {
-                val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(),
-                    gcodeToolCount, activeTools, sourceFilamentTypes)
-                if (mismatch != null) {
-                    BeamAlertDialogBuilder(context)
-                        .setTitle(R.string.PrintPrepareMaterialMismatchTitle)
-                        .setMessage(context.getString(R.string.PrintPrepareMaterialMismatch,
-                            mismatch.first, mismatch.second, mismatch.third, mismatch.fourth))
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .setPositiveButton(R.string.PrintPrepareUploadOnly) { _, _ ->
-                            dialog.dismiss()
-                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, false)
-                        }.show()
-                    return@setOnClickListener
-                }
-            }
-            dialog.dismiss()
-            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, print)
+            sendChecked(targetPrinter, targetType, targetHost, targetApiKey)
         }
     }
 

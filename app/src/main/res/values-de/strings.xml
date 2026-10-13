@@ -34,6 +34,9 @@
     <string name="PrintPrepareMaterialMismatch">T%1$d wurde für %2$s gesliced, aber ACE-Slot %3$d enthält %4$s. Passe die Filamenteinstellungen an und slice erneut, bevor du den Druck startest. Die Datei kannst du ohne Druckstart hochladen.</string>
     <string name="PrintPrepareUploadOnly">Nur hochladen</string>
     <string name="PreSliceMaterialMismatchHint">Der gewählte ACE-Slot enthält ein anderes Material. Prüfe vor dem Drucken die Filamenteinstellungen.</string>
+    <string name="PreSliceMaterialMismatchTitle">Unterschiedliche Materialien gewählt</string>
+    <string name="PreSliceMaterialMismatchConfirm">Modellfilament und gewählter ACE-Slot enthalten unterschiedliche Materialien. Du kannst die Slot-Zuordnung übernehmen. Passe vor dem Druck die Filamenttemperaturen an und slice erneut. Mit dieser Zuordnung slicen?</string>
+    <string name="PreSliceMaterialMismatchContinue">Trotzdem slicen</string>
     <string name="MakerTitle">Maker</string>
     <string name="MakerBack">Zurück</string>
     <string name="ProjectSettingsTemporarySource">Temporäre 3MF-Werte\n%1$s</string>
@@ -644,7 +647,7 @@
     <string name="MenuToolbar">Bearbeiten</string>
     <string name="MenuToolbarNavigation">Bearbeiten</string>
     <string name="MenuOptions">Werkzeuge</string>
-    <string name="MenuToolbarNavigationCompact">Bearb.</string>
+    <string name="MenuToolbarNavigationCompact">Ändern</string>
     <string name="MenuOptionsCompact">Tools</string>
     <string name="MenuToolbarNotImplemented">%1$s ist noch nicht verfügbar.</string>
     <string name="MenuToolbarSplit">Teile trennen</string>
@@ -695,7 +698,7 @@
     <string name="GCodeLayerRangeEnd">Endschicht</string>
     <string name="MenuSliceExportToFile">In Datei exportieren</string>
     <string name="MenuSliceShare">Teilen</string>
-    <string name="MenuSlicePerformance">Leistungsmodus</string>
+    <string name="MenuSlicePerformance">Vereinfachte Vorschau</string>
     <string name="MenuSliceFilamentView">Filamentansicht</string>
     <string name="GCodeColorScheme">Farbschema</string>
     <string name="GCodeShowSeams">Nähte anzeigen</string>

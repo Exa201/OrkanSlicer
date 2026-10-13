@@ -89,8 +89,9 @@ private fun Destination(
             )
         }
         Text(
-            item.label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center, fontSize = if (compactRail) 11.sp else 12.sp, lineHeight = 15.sp,
+            item.label, maxLines = 2, softWrap = true, overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center, fontSize = 11.sp, lineHeight = 13.sp,
+            modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         )

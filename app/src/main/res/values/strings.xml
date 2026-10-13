@@ -34,6 +34,9 @@
     <string name="PrintPrepareMaterialMismatch">T%1$d was sliced for %2$s, but ACE slot %3$d contains %4$s. Change the project filament settings and slice again before starting a print. You can upload the file without starting it.</string>
     <string name="PrintPrepareUploadOnly">Upload only</string>
     <string name="PreSliceMaterialMismatchHint">The selected ACE slot contains a different material. Check the filament settings before printing.</string>
+    <string name="PreSliceMaterialMismatchTitle">Different materials selected</string>
+    <string name="PreSliceMaterialMismatchConfirm">The model filament and the selected ACE slot contain different materials. You can keep this slot assignment, but adjust the filament temperatures and slice again before printing. Continue slicing with this assignment?</string>
+    <string name="PreSliceMaterialMismatchContinue">Continue slicing</string>
     <string name="MakerTitle">Maker</string>
     <string name="MakerBack">Back</string>
     <string name="ProjectSettingsTemporarySource">Temporary 3MF settings\n%1$s</string>
@@ -702,7 +705,7 @@
     <string name="GCodeLayerRangeEnd">End layer</string>
     <string name="MenuSliceExportToFile">Export to file</string>
     <string name="MenuSliceShare">Share</string>
-    <string name="MenuSlicePerformance">Performance</string>
+    <string name="MenuSlicePerformance">Simplified preview</string>
     <string name="MenuSliceFilamentView">Filament view</string>
     <string name="GCodeColorScheme">Color scheme</string>
     <string name="GCodeShowSeams">Show seams</string>

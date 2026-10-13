@@ -3,7 +3,6 @@ package ru.ytkab0bp.slicebeam.components
 import android.content.Context
 import android.graphics.Color as AndroidColor
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -162,17 +161,26 @@ object PreSliceFilamentDialog {
             } else allSlotIndex.intValue
             val result = PreSliceFilamentAssignments.resolve(selectedSlots.value.toIntArray(),
                 oneSource, useOneSlot.value, preserveColors.value)
-            if (colorMapping.value.isNotEmpty() && (preserveColors.value || useOneSlot.value)) {
-                val gates = colorMapping.value.toMutableList()
+            val gates = colorMapping.value.toMutableList()
+            val activeTools = if (preserveColors.value) usedTools.toList() else listOf(oneSource)
+            if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value)) {
                 if (!preserveColors.value) gates[oneSource] = onePhysicalGate.intValue
-                val activeTools = if (preserveColors.value) usedTools.toList() else listOf(oneSource)
-                if (MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, gates, activeTools)) {
-                    Toast.makeText(context, R.string.ModelColorSlotsMaterialMismatch, Toast.LENGTH_LONG).show()
-                }
-                MmuFilamentSync.setSelectedGates(printerTitle, gates.toIntArray())
             }
-            dialog.dismiss()
-            callback.onSelected(result)
+            val finish = {
+                if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value))
+                    MmuFilamentSync.setSelectedGates(printerTitle, gates.toIntArray())
+                dialog.dismiss()
+                callback.onSelected(result)
+            }
+            if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) &&
+                MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, gates, activeTools)) {
+                BeamAlertDialogBuilder(context)
+                    .setTitle(R.string.PreSliceMaterialMismatchTitle)
+                    .setMessage(R.string.PreSliceMaterialMismatchConfirm)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.PreSliceMaterialMismatchContinue) { _, _ -> finish() }
+                    .show()
+            } else finish()
         }
     }
 }

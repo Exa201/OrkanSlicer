@@ -46,6 +46,27 @@ class TemporaryProjectSettingsTest {
         assertEquals("200", saved["nozzle_temperature"])
     }
 
+    @Test fun openingAnotherProjectDiscardsOldColorsTemperaturesAndEdits() {
+        val saved = ConfigObject("Own PLA").apply { put("nozzle_temperature", "205") }
+        TemporaryProjectSettings.activate(project())
+        TemporaryProjectSettings.selectFilament(1)
+        TemporaryProjectSettings.setValue(filament, "nozzle_temperature", "250")
+        TemporaryProjectSettings.setSelectedGates("Printer", intArrayOf(0, 2))
+
+        val next = ThreeMfProjectSettings("single.3mf", mapOf("layer_height" to "0.16"),
+            listOf(mapOf("filament_colour" to "#ABCDEF", "filament_type" to "PLA",
+                "nozzle_temperature" to "215")), project().filamentTypes)
+        TemporaryProjectSettings.activate(next)
+
+        assertEquals(1, TemporaryProjectSettings.slots()?.size)
+        assertEquals("215", TemporaryProjectSettings.valueFor(filament, "nozzle_temperature", true))
+        assertNull(TemporaryProjectSettings.selectedGates("Printer", 1))
+        val effective = ConfigObject(saved)
+        TemporaryProjectSettings.applyTo(effective)
+        assertEquals("215", effective["nozzle_temperature"])
+        assertEquals("205", saved["nozzle_temperature"])
+    }
+
     @Test fun editsAndCommitAreProjectLocalAndOldDraftsReappearAfterClear() {
         val saved = ConfigObject("Own").apply { put("layer_height", "0.16") }
         ProfileSettingsRepository.setPendingValue(print, "layer_height", "0.16", "0.20")

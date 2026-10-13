@@ -1168,11 +1168,12 @@ syncCurrentModel()
 rebuildAdaptiveLayout(ctx, portrait)
 }
 private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): ComposeView {
+    val compactLabels = !bottomNavigation || ctx.resources.configuration.fontScale >= 1.15f
     val items = MenuCategory.values().map { category ->
         val label = ctx.getString(category.titleRes)
         WorkspaceNavigationItem(
             slot = category.ordinal,
-            label = ctx.getString(if (!bottomNavigation) when (category) {
+            label = ctx.getString(if (compactLabels) when (category) {
                 MenuCategory.TRANSFORM -> R.string.MenuToolbarNavigationCompact
                 MenuCategory.OPTIONS -> R.string.MenuOptionsCompact
                 else -> category.navigationTitleRes

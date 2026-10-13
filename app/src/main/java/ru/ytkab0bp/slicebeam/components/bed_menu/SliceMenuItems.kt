@@ -91,6 +91,9 @@ object SliceMenuItems {
                 val viewport = fragment.glView ?: return@BedComposeMenuAction
                 viewport.queueEvent {
                     viewport.renderer.viewer?.applyPerformanceMode(enabled || Prefs.isLowRamDevice())
+                    // Rebuild the active model as well; otherwise the quality switch only
+                    // affects G-code until a model is loaded again.
+                    viewport.renderer.resetGlModels()
                     viewport.requestRender()
                 }
                 parentMenu.refreshInfoItems()
