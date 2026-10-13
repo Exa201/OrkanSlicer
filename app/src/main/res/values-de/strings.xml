@@ -53,6 +53,8 @@
     <string name="Project3mfLoadedGeometry">3MF-Modell geladen. Die Datei enthält keine nutzbaren Projekteinstellungen.</string>
     <string name="ProjectSettingsReslice">Die Einstellungen wurden während des Slicens geändert. Bitte slice erneut.</string>
     <string name="ProjectSettingsInvalidValues">%1$d ungültige Projektwerte wurden ausgelassen. Deine Profile bleiben erhalten.</string>
+    <string name="ProjectSettingsImportFailed">Das Modell wurde geladen, aber seine Projekteinstellungen konnten nicht gelesen werden. Deine gespeicherten Profile bleiben erhalten. Prüfe Drucker und Filament vor dem Slicen.</string>
+    <string name="ProjectSettingsMissingProfiles">In der 3MF fehlen die Basisprofile %1$s. Prüfe die aktiven Einstellungen vor dem Slicen.</string>
     <string name="MakerSubtitle">Erstelle druckbare Modelle aus Bildern, Texten und praktischen Vorlagen.</string>
     <string name="MakerConverters">Konverter</string>
     <string name="MakerConvertersDescription">Bilder in Druckmodelle oder Vektorgrafiken umwandeln.</string>

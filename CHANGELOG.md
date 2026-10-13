@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.207 (alpha)
+
+- Read only relevant 3MF settings entries, cap their count and expanded size, and reject duplicate settings entries before parsing to reduce memory pressure from large or malformed archives.
+- Limit expanded plate metadata to 8 MiB. When project metadata cannot be read, keep loading the geometry and show a warning rather than silently dropping the project settings.
+- Name missing inherited process and filament profiles in the import warning so users can review the active values before slicing.
+
 ## 0.8.206 (alpha)
 
 - Reject a send attempt cleanly if the sliced result has become unavailable, and ask the user to slice again instead of crashing on a missing preview result.

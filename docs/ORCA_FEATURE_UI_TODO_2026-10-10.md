@@ -2,7 +2,7 @@
 
 Die Priorität richtet sich nach Drucksicherheit, Nutzen auf dem Telefon und Umsetzungsaufwand. Ein vorhandener Orca-Konfigurationsschlüssel bedeutet noch nicht, dass die Bedienung oder der Druckpfad vollständig geprüft sind.
 
-Stand 0.8.206 (13.10.2026): Der 3MF-Projektimport mit temporären Profilen, die Zuordnung eigener Filamenttemperaturen, Drucker-bezogene Prozesseinstellungen und die mobile Plattenleiste sind inzwischen umgesetzt. Der STL-Import bietet Vorwarnung, echten Lesefortschritt, Abbruch und einen Reparaturhinweis. Der Sendeweg weist ein inzwischen ungültiges Slice-Ergebnis zurück, bevor ein Upload beginnt. Die in diesem Dokument beschriebenen Abnahmen mit realem Zweifarbdruck, mehreren 3MF-Varianten und einer vollständigen Geräte-/Querformatprüfung bleiben offen. Ein Telefon war zuletzt über ADB nicht erreichbar; ein bestandener Gerätetest für 0.8.206 wird daher nicht behauptet.
+Stand 0.8.207 (13.10.2026): Der 3MF-Projektimport mit temporären Profilen, die Zuordnung eigener Filamenttemperaturen, Drucker-bezogene Prozesseinstellungen und die mobile Plattenleiste sind inzwischen umgesetzt. Der STL-Import bietet Vorwarnung, echten Lesefortschritt, Abbruch und einen Reparaturhinweis. Der Sendeweg weist ein inzwischen ungültiges Slice-Ergebnis zurück, bevor ein Upload beginnt. Die 3MF-Metadatenverarbeitung begrenzt nun auch Anzahl und entpackte Größe der relevanten Profile sowie die Plattenmetadaten; fehlende Basisprofile werden benannt. Die in diesem Dokument beschriebenen Abnahmen mit realem Zweifarbdruck, mehreren 3MF-Varianten und einer vollständigen Geräte-/Querformatprüfung bleiben offen. Ein Telefon war zuletzt über ADB nicht erreichbar; ein bestandener Gerätetest für 0.8.207 wird daher nicht behauptet.
 
 ## Orca-Funktionen
 
