@@ -131,6 +131,10 @@ static void trianglemesh_repair_on_import(stl_file &stl)
         stl_remove_unconnected_facets(&stl);
         assert(stl_validate(&stl));
     }
+    // A completely disconnected STL can lose every facet here. Volume calculation
+    // accesses facet 0, so let the normal empty-mesh import error handle this case.
+    if (stl.stats.number_of_facets == 0)
+        return;
     
     // fill_holes
 #if 0
@@ -189,6 +193,9 @@ bool TriangleMesh::from_stl(stl_file& stl, bool repair)
 {
     if (repair)
         trianglemesh_repair_on_import(stl);
+
+    if (stl.stats.number_of_facets == 0)
+        return false;
 
     if (stl.progress) stl.progress(0.89f);
 

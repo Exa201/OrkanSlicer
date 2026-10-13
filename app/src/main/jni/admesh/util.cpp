@@ -34,6 +34,7 @@ void stl_verify_neighbors(stl_file *stl)
 	stl->stats.backwards_edges = 0;
 
 	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i) {
+		if (stl->progress && (i & 4095u) == 0u) stl->progress(0.87f);
 		for (int j = 0; j < 3; ++ j) {
 			struct stl_edge {
 				stl_vertex p1;
@@ -279,6 +280,7 @@ static float get_volume(stl_file *stl)
   	stl_vertex p0 = stl->facet_start[0].vertex[0];
   	float volume = 0.f;
   	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i) {
+		if (stl->progress && (i & 4095u) == 0u) stl->progress(0.83f);
     	// Do dot product to get distance from point to plane.
     	float height = stl->facet_start[i].normal.dot(stl->facet_start[i].vertex[0] - p0);
     	float area   = get_area(&stl->facet_start[i]);

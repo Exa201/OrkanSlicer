@@ -148,8 +148,11 @@ void stl_fix_normal_directions(stl_file *stl)
   	// Say that we've fixed this facet:
   	norm_sw[facet_num] = 1;
 	int checked = 1;
+	uint32_t next_unvisited_facet = 0;
+	uint64_t processed_steps = 0;
 
   	for (;;) {
+		if (stl->progress && ((++processed_steps & 4095u) == 0u)) stl->progress(0.76f);
     	// Add neighbors_to_list. Add unconnected neighbors to the list.
     	bool force_exit = false;
     	for (int j = 0; j < 3; ++ j) {
@@ -202,18 +205,19 @@ void stl_fix_normal_directions(stl_file *stl)
         		// All of the facets have been checked.  Bail out.
         		break;
     		// There is another part here.  Find it and continue.
-    		for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i)
-      			if (norm_sw[i] == 0) {
-        			// This is the first facet of the next part.
-        			facet_num = i;
-        			if (check_normal_vector(stl, i, 0)) {
-            			reverse_facet(stl, i);
-            			reversed_ids.emplace_back(i);
-        			}
-        			norm_sw[facet_num] = 1;
-        			++ checked;
-        			break;
-      			}
+        // A facet only changes from unseen to seen. Keep the first unseen index
+        // instead of rescanning from zero for every disconnected component.
+        while (next_unvisited_facet < stl->stats.number_of_facets && norm_sw[next_unvisited_facet] != 0)
+            ++next_unvisited_facet;
+        if (next_unvisited_facet == stl->stats.number_of_facets)
+            break;
+        facet_num = next_unvisited_facet++;
+        if (check_normal_vector(stl, facet_num, 0)) {
+            reverse_facet(stl, facet_num);
+            reversed_ids.emplace_back(facet_num);
+        }
+        norm_sw[facet_num] = 1;
+        ++checked;
     	}
   	}
 
@@ -223,14 +227,17 @@ void stl_fix_normal_directions(stl_file *stl)
 
 void stl_fix_normal_values(stl_file *stl)
 {
-	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i)
+	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i) {
+		if (stl->progress && (i & 4095u) == 0u) stl->progress(0.80f);
     	check_normal_vector(stl, i, 1);
+	}
 }
 
 void stl_reverse_all_facets(stl_file *stl)
 {
 	stl_normal normal;
   	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i) {
+		if (stl->progress && (i & 4095u) == 0u) stl->progress(0.84f);
     	reverse_facet(stl, i);
     	stl_calculate_normal(normal, &stl->facet_start[i]);
     	stl_normalize_vector(normal);
