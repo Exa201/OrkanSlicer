@@ -56,6 +56,9 @@ struct ModelRef {
     Model model;
     std::string base_name;
 };
+struct ModelImportCancelled : std::exception {
+    const char *what() const noexcept override { return "Model import canceled"; }
+};
 struct GLModelRef {
     GLModel model;
     TriangleMesh mesh;
@@ -416,7 +419,7 @@ extern "C" {
         ImportstlProgressFn progressFn;
         if (progressCallback != nullptr) {
             jclass callbackClass = env->GetObjectClass(progressCallback);
-            jmethodID onProgress = env->GetMethodID(callbackClass, "onProgress", "(F)V");
+            jmethodID onProgress = env->GetMethodID(callbackClass, "onProgress", "(F)Z");
             env->DeleteLocalRef(callbackClass);
             if (onProgress == nullptr) {
                 env->ReleaseStringUTFChars(path, chars);
@@ -424,7 +427,13 @@ extern "C" {
                 return 0;
             }
             progressFn = [env, progressCallback, onProgress](float fraction) {
-                if (!env->ExceptionCheck()) env->CallVoidMethod(progressCallback, onProgress, fraction);
+                const jboolean keepGoing = env->CallBooleanMethod(progressCallback, onProgress, fraction);
+                if (env->ExceptionCheck()) {
+                    env->ExceptionClear();
+                    throw std::runtime_error("Model import progress callback failed");
+                }
+                if (!keepGoing)
+                    throw ModelImportCancelled();
             };
         }
 
@@ -437,6 +446,12 @@ extern "C" {
             }
             ref->model = Model::read_from_file(std::string(chars), nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, progressFn, nullptr, plateId, nullptr);
             ref->base_name = std::string(baseChars);
+        } catch (const ModelImportCancelled&) {
+            env->ReleaseStringUTFChars(path, chars);
+            env->ReleaseStringUTFChars(base_name, baseChars);
+            jclass exceptionClass = env->FindClass("java/util/concurrent/CancellationException");
+            if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, "Model import canceled");
+            return 0;
         } catch (const Slic3r::RuntimeError& e) {
             env->ReleaseStringUTFChars(path, chars);
             env->ReleaseStringUTFChars(base_name, baseChars);

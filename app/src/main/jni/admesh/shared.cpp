@@ -47,6 +47,7 @@ void stl_generate_shared_vertices(stl_file *stl, indexed_triangle_set &its)
 	std::vector<unsigned int> fan_traversal_facet_visited(stl->stats.number_of_facets, 0);
 
 	for (uint32_t facet_idx = 0; facet_idx < stl->stats.number_of_facets; ++ facet_idx) {
+		if (stl->progress && (facet_idx & 4095u) == 0u) stl->progress(0.90f);
 		for (int j = 0; j < 3; ++ j) {
 			if (its.indices[facet_idx][j] != -1)
 				// Shared vertex was already assigned.

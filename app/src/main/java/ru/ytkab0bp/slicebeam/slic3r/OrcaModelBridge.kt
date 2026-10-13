@@ -33,6 +33,8 @@ object OrcaModelBridge {
             failed(error, errorMessage(error))
         } catch (error: LinkageError) {
             failed(error, errorMessage(error))
+        } catch (cancelled: java.util.concurrent.CancellationException) {
+            throw cancelled
         } catch (error: RuntimeException) {
             failed(error, errorMessage(error))
         }

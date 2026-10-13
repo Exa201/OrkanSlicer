@@ -1391,7 +1391,7 @@ fun interface ModelLoadCallback {
 fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int)
 fun onFailed(error:Exception) {}
 fun onCancelled() {}
-fun onProgress(fraction:Float) {}
+fun onProgress(fraction:Float):Boolean = true
 }
 private class ImportCancelledException : Exception()
 
@@ -1764,7 +1764,7 @@ StlImportPreflight.largeTriangleCount(f, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
 loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, callback)
 }
 catch (e:Exception) {
-if (e is ImportCancelledException) {
+if (e is ImportCancelledException || e is java.util.concurrent.CancellationException) {
     ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onCancelled() }
     return@Thread
 }

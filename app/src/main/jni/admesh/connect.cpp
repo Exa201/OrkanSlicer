@@ -441,7 +441,9 @@ void stl_check_facets_exact(stl_file *stl)
   	// If any two of the three vertices are found to be exactally the same, call them degenerate and remove the facet.
   	// Do it before the next step, as the next step stores references to the face indices in the hash tables and removing a facet
   	// will break the references.
+	uint32_t checked_facets = 0;
   	for (uint32_t i = 0; i < stl->stats.number_of_facets;) {
+		if (stl->progress && (checked_facets++ & 4095u) == 0u) stl->progress(0.55f);
 		stl_facet &facet = stl->facet_start[i];
 	  	if (facet.vertex[0] == facet.vertex[1] || facet.vertex[1] == facet.vertex[2] || facet.vertex[0] == facet.vertex[2]) {
 		  	// Remove the degenerate facet.
@@ -461,6 +463,7 @@ void stl_check_facets_exact(stl_file *stl)
 
   	// Connect neighbor edges.
 	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i) {
+		if (stl->progress && (i & 4095u) == 0u) stl->progress(0.60f);
 		const stl_facet &facet = stl->facet_start[i];
 		for (int j = 0; j < 3; ++ j) {
 			HashEdge edge;
@@ -490,6 +493,7 @@ void stl_check_facets_nearby(stl_file *stl, float tolerance)
 
   	HashTableEdges hash_table(stl->stats.number_of_facets);
   	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i) {
+		if (stl->progress && (i & 4095u) == 0u) stl->progress(0.70f);
     	//FIXME is the copy necessary?
     	stl_facet facet = stl->facet_start[i];
     	for (int j = 0; j < 3; j++) {
@@ -628,7 +632,9 @@ void stl_remove_unconnected_facets(stl_file *stl)
 	};
 
 	// remove degenerate facets
-	for (uint32_t i = 0; i < stl->stats.number_of_facets;)
+	uint32_t checked_degenerate = 0;
+	for (uint32_t i = 0; i < stl->stats.number_of_facets;) {
+		if (stl->progress && (checked_degenerate++ & 4095u) == 0u) stl->progress(0.74f);
 		if (stl->facet_start[i].vertex[0] == stl->facet_start[i].vertex[1] ||
 			stl->facet_start[i].vertex[0] == stl->facet_start[i].vertex[2] ||
 			stl->facet_start[i].vertex[1] == stl->facet_start[i].vertex[2]) {
@@ -636,16 +642,20 @@ void stl_remove_unconnected_facets(stl_file *stl)
 //			assert(stl_validate(stl));
 		} else
 			++ i;
+	}
 
 	if (stl->stats.connected_facets_1_edge < (int)stl->stats.number_of_facets) {
 		// There are some faces with no connected edge at all. Remove completely unconnected facets.
-		for (uint32_t i = 0; i < stl->stats.number_of_facets;)
+		uint32_t checked_unconnected = 0;
+		for (uint32_t i = 0; i < stl->stats.number_of_facets;) {
+			if (stl->progress && (checked_unconnected++ & 4095u) == 0u) stl->progress(0.75f);
 			if (stl->neighbors_start[i].num_neighbors() == 0) {
 				// This facet is completely unconnected.  Remove it.
 				remove_facet(i);
 				assert(stl_validate(stl));
 			} else
 				++ i;
+		}
 	}
 }
 

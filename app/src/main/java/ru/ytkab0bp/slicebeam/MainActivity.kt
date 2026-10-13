@@ -1271,6 +1271,18 @@ IOUtils.IO_POOL.submit {
     }
 }
 }
+private fun showStlImportProgress(tag: String, step: Int, cancelled: java.util.concurrent.atomic.AtomicBoolean) {
+    val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
+        else getString(R.string.MenuFileOpenStlReading, step * 10)
+    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title)
+        .tag(tag)
+        .button(android.R.string.cancel, android.view.View.OnClickListener {
+            cancelled.set(true)
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                SnackbarsLayout.Type.LOADING, R.string.MenuFileOpenStlCancelling).tag(tag))
+        }))
+}
+
 private fun loadFile(f:File, autoorient:Boolean) {
 val tag = UUID.randomUUID().toString()
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, R.string.MenuFileOpenFileLoading).tag(tag))
@@ -1314,13 +1326,15 @@ else
 {
 fragment.loadModel(f, project3mf, plateCount, object : BedFragment.ModelLoadCallback {
 private var lastReadStep = -1
-override fun onProgress(fraction: Float) {
+private val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
+override fun onProgress(fraction: Float): Boolean {
+    if (cancelled.get()) return false
     val step = if (fraction >= 0.5f) 10 else ((fraction.coerceAtLeast(0f) * 20f).toInt()).coerceIn(0, 9)
-    if (step == lastReadStep) return
-    lastReadStep = step
-    val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
-        else getString(R.string.MenuFileOpenStlReading, step * 10)
-    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title).tag(tag))
+    if (step != lastReadStep) {
+        lastReadStep = step
+        showStlImportProgress(tag, step, cancelled)
+    }
+    return !cancelled.get()
 }
 override fun onLoaded(model: Model, firstNewObject: Int, addedObjects: Int) {
 android.util.Log.e("MainActivity", "loadModel callback fired: model=" + model.pointer + " firstNew=" + firstNewObject + " added=" + addedObjects)
@@ -1593,13 +1607,15 @@ if (!(current is BedFragment)) throw IOException("Die Druckplattenansicht ist ni
 val bed = current
 bed.loadModel(cachedFile, false, 1, object:BedFragment.ModelLoadCallback {
 private var lastReadStep = -1
-override fun onProgress(fraction: Float) {
+private val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
+override fun onProgress(fraction: Float): Boolean {
+    if (cancelled.get()) return false
     val step = if (fraction >= 0.5f) 10 else ((fraction.coerceAtLeast(0f) * 20f).toInt()).coerceIn(0, 9)
-    if (step == lastReadStep) return
-    lastReadStep = step
-    val title = if (step == 10) getString(R.string.MenuFileOpenStlPreparing)
-        else getString(R.string.MenuFileOpenStlReading, step * 10)
-    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, title).tag(tag))
+    if (step != lastReadStep) {
+        lastReadStep = step
+        showStlImportProgress(tag, step, cancelled)
+    }
+    return !cancelled.get()
 }
 override fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int) {
 ViewUtils.postOnMainThread({ cachedFile.delete()

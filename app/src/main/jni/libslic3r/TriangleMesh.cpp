@@ -83,6 +83,7 @@ static void trianglemesh_repair_on_import(stl_file &stl)
         return;
 
     BOOST_LOG_TRIVIAL(debug) << "TriangleMesh::repair() started";
+    if (stl.progress) stl.progress(0.52f);
 
     // checking exact
 #ifdef SLIC3R_TRACE_REPAIR
@@ -91,6 +92,7 @@ static void trianglemesh_repair_on_import(stl_file &stl)
     assert(stl_validate(&stl));
     stl_check_facets_exact(&stl);
     assert(stl_validate(&stl));
+    if (stl.progress) stl.progress(0.63f);
     stl.stats.facets_w_1_bad_edge = (stl.stats.connected_facets_2_edge - stl.stats.connected_facets_3_edge);
     stl.stats.facets_w_2_bad_edge = (stl.stats.connected_facets_1_edge - stl.stats.connected_facets_2_edge);
     stl.stats.facets_w_3_bad_edge = (stl.stats.number_of_facets - stl.stats.connected_facets_1_edge);
@@ -119,6 +121,7 @@ static void trianglemesh_repair_on_import(stl_file &stl)
         }
     }
     assert(stl_validate(&stl));
+    if (stl.progress) stl.progress(0.73f);
     
     // remove_unconnected
     if (stl.stats.connected_facets_3_edge < (int)stl.stats.number_of_facets) {
@@ -147,6 +150,7 @@ static void trianglemesh_repair_on_import(stl_file &stl)
     BOOST_LOG_TRIVIAL(trace) << "\tstl_fix_normal_directions";
 #endif /* SLIC3R_TRACE_REPAIR */
     stl_fix_normal_directions(&stl);
+    if (stl.progress) stl.progress(0.78f);
     assert(stl_validate(&stl));
 
     // normal_values
@@ -154,6 +158,7 @@ static void trianglemesh_repair_on_import(stl_file &stl)
     BOOST_LOG_TRIVIAL(trace) << "\tstl_fix_normal_values";
 #endif /* SLIC3R_TRACE_REPAIR */
     stl_fix_normal_values(&stl);
+    if (stl.progress) stl.progress(0.82f);
     assert(stl_validate(&stl));
     
     // always calculate the volume and reverse all normals if volume is negative
@@ -162,6 +167,7 @@ static void trianglemesh_repair_on_import(stl_file &stl)
 #endif /* SLIC3R_TRACE_REPAIR */
     // If the volume is negative, all the facets are flipped and added to stats.facets_reversed.
     stl_calculate_volume(&stl);
+    if (stl.progress) stl.progress(0.85f);
     assert(stl_validate(&stl));
     
     // neighbors
@@ -169,6 +175,7 @@ static void trianglemesh_repair_on_import(stl_file &stl)
     BOOST_LOG_TRIVIAL(trace) << "\tstl_verify_neighbors";
 #endif /* SLIC3R_TRACE_REPAIR */
     stl_verify_neighbors(&stl);
+    if (stl.progress) stl.progress(0.88f);
     assert(stl_validate(&stl));
 
     //FIXME The admesh repair function may break the face connectivity, rather refresh it here as the slicing code relies on it.
@@ -182,6 +189,8 @@ bool TriangleMesh::from_stl(stl_file& stl, bool repair)
 {
     if (repair)
         trianglemesh_repair_on_import(stl);
+
+    if (stl.progress) stl.progress(0.89f);
 
 #if 0
     m_stats.number_of_facets = stl.stats.number_of_facets;

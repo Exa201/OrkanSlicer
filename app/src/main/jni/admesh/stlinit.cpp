@@ -238,12 +238,19 @@ bool stl_open(stl_file *stl, const char *file, const std::function<void(float)> 
 {
     Slic3r::CNumericLocalesSetter locales_setter;
 	stl->clear();
+	stl->progress = progress;
 	FILE *fp = stl_open_count_facets(stl, file);
 	if (fp == nullptr)
 		return false;
 	stl_allocate(stl);
-	bool result = stl_read(stl, fp, 0, true, progress);
-  	fclose(fp);
+	bool result = false;
+	try {
+		result = stl_read(stl, fp, 0, true, progress);
+	} catch (...) {
+		fclose(fp);
+		throw;
+	}
+	fclose(fp);
   	return result;
 }
 

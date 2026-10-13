@@ -144,6 +144,7 @@
     <string name="ImportLargeStlContinue">Laden fortsetzen</string>
     <string name="MenuFileOpenStlReading">STL-Dreiecke werden eingelesen: %1$d%%</string>
     <string name="MenuFileOpenStlPreparing">STL eingelesen · Geometrie wird aufbereitet…</string>
+    <string name="MenuFileOpenStlCancelling">STL-Import wird beendet…</string>
     <string name="MenuAddPlate">Druckplatte hinzufügen</string>
     <string name="MenuSwitchPlate">Druckplatte wechseln</string>
     <string name="MenuRemovePlate">Druckplatte entfernen</string>

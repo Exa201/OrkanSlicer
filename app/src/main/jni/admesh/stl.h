@@ -152,6 +152,7 @@ struct stl_file {
 
 	std::vector<stl_facet>     		facet_start;
 	std::vector<stl_neighbors> 		neighbors_start;
+	std::function<void(float)> progress;
 	// Statistics
 	stl_stats     					stats;
 };

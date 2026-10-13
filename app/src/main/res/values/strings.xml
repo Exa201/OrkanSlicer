@@ -144,6 +144,7 @@
     <string name="ImportLargeStlContinue">Continue loading</string>
     <string name="MenuFileOpenStlReading">Reading STL facets: %1$d%%</string>
     <string name="MenuFileOpenStlPreparing">STL read · Preparing geometry…</string>
+    <string name="MenuFileOpenStlCancelling">Stopping STL import…</string>
     <string name="MenuAddPlate">Add plate</string>
     <string name="MenuSwitchPlate">Switch plate</string>
     <string name="MenuRemovePlate">Remove plate</string>
