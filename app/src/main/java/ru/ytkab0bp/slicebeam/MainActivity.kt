@@ -19,6 +19,12 @@ import android.util.SparseArray
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import android.widget.ArrayAdapter
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.TextView
 import androidx.annotation.NonNull
 import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
@@ -61,6 +67,7 @@ import ru.ytkab0bp.slicebeam.components.UnfoldMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
+import ru.ytkab0bp.slicebeam.config.ThreeMfImportSelection
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.config.ProfileConfigImportValidator
 import ru.ytkab0bp.slicebeam.config.ProfileConfigLoadWarning
@@ -588,6 +595,7 @@ internal var plateCount:Int = 1
 internal var settings: ThreeMfProjectSettings? = null
 internal var settingsError:Boolean = false
 internal var missingProfileIds:List<String> = emptyList()
+internal var hasFileFilaments:Boolean = false
 }
 @Throws(IOException::class)
 private fun readZipEntryText(zip:ZipFile, entry:ZipEntry):String {
@@ -730,6 +738,7 @@ val read = ThreeMfProjectSettingsReader.read(file, PrintConfigDef.getInstance().
     config.filamentConfigs.associate { it.title.orEmpty() to HashMap(it.values) },
     preferredExtruderVariant = config.findPrinter(config.presets?.get("printer"))?.get("extruder_variant")?.substringBefore(','))
 result.missingProfileIds = read.missingProfileIds
+result.hasFileFilaments = read.filaments.any { it.isNotEmpty() }
 val fallback = Prefs.getStoredFilamentSlots()
 val projectFilaments = read.filaments.ifEmpty { fallback.map { emptyMap<String, String>() } }
 result.settings = if (!read.hasSettings) null else read.copy(filaments = projectFilaments.mapIndexed { index, values ->
@@ -744,6 +753,81 @@ catch (e:Exception) {
  Log.w("MainActivity", "Failed to import embedded 3MF profiles from " + file, e)
 }
 return result
+}
+private fun show3mfImportChoice(fragment: BedFragment, projectImport: Project3mfImportResult) {
+    // A cancelled choice must never leave settings from the previously opened project active.
+    TemporaryProjectSettings.clear()
+    val config = SliceBeam.requireConfig()
+    val names = config.printerConfigs.mapNotNull { it.title }.distinct()
+    val filePrinter = projectImport.settings?.printerTitle.orEmpty()
+    val filePrinterIndex = names.indexOf(filePrinter)
+    val currentPrinter = config.presets?.get("printer")
+    val ownPrinterIndex = names.indexOf(currentPrinter).coerceAtLeast(0)
+    val root = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(ViewUtils.dp(20), ViewUtils.dp(4), ViewUtils.dp(20), ViewUtils.dp(8))
+    }
+    fun label(text: String) = TextView(this).apply {
+        this.text = text
+        textSize = 15f
+        setPadding(0, ViewUtils.dp(8), 0, ViewUtils.dp(6))
+    }
+    root.addView(label(getString(R.string.Project3mfImportExplanation)))
+    root.addView(label(getString(R.string.Project3mfTargetPrinter)))
+    val printerSpinner = Spinner(this).apply {
+        adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, names)
+        setSelection(ownPrinterIndex)
+        isEnabled = names.isNotEmpty()
+    }
+    root.addView(printerSpinner)
+    val printerCheck = CheckBox(this).apply {
+        text = if (filePrinterIndex >= 0) getString(R.string.Project3mfUseFilePrinter, filePrinter)
+            else getString(R.string.Project3mfFilePrinterUnavailable, filePrinter.ifBlank { "–" })
+        isEnabled = filePrinterIndex >= 0
+        isChecked = false
+        setOnCheckedChangeListener { _, checked ->
+            printerSpinner.setSelection(if (checked) filePrinterIndex else ownPrinterIndex)
+            printerSpinner.isEnabled = !checked && names.isNotEmpty()
+        }
+    }
+    root.addView(printerCheck)
+    val printCheck = CheckBox(this).apply {
+        text = getString(R.string.Project3mfUsePrintSettings)
+        isEnabled = projectImport.settings?.process?.any { it.key != "curr_bed_type" } == true
+    }
+    root.addView(printCheck)
+    val filamentCheck = CheckBox(this).apply {
+        text = getString(R.string.Project3mfUseFilamentSettings)
+        isEnabled = projectImport.hasFileFilaments
+    }
+    root.addView(filamentCheck)
+    root.addView(label(getString(R.string.Project3mfImportTemporaryNote)))
+    val scroll = ScrollView(this).apply {
+        addView(root)
+        isFillViewport = false
+    }
+    val dialog = BeamAlertDialogBuilder(this)
+        .setTitle(R.string.Project3mfImportTitle)
+        .setView(scroll)
+        .setPositiveButton(R.string.Project3mfApplyChoice, null)
+        .setNegativeButton(android.R.string.cancel, null)
+        .show()
+    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+        val target = names.getOrNull(printerSpinner.selectedItemPosition)
+        if (target != null && target != config.presets?.get("printer") && !SliceBeam.applyProfileSelection(printer = target)) {
+            Toast.makeText(this, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
+            return@setOnClickListener
+        }
+        val selected = projectImport.settings?.let { source ->
+            ThreeMfImportSelection.select(source, printCheck.isChecked, filamentCheck.isChecked,
+                Prefs.getStoredFilamentSlots(), printerCheck.isChecked)
+        }
+        TemporaryProjectSettings.activate(selected)
+        fragment.refreshProfileStatus()
+        fragment.glView?.requestRender()
+        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.Project3mfChoiceApplied))
+        dialog.dismiss()
+    }
 }
 private fun deleteRecursively(file:File) {
 if (!file.exists())
@@ -1347,18 +1431,7 @@ SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 if (project3mf)
 {
 ViewUtils.postOnMainThread {
-    val ownProfiles = projectImport.settings?.filaments?.mapIndexed { index, imported ->
-        val config = SliceBeam.requireConfig()
-        val selected = config.presets?.get("filament")
-        val assigned = ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles.titleFor(index, selected)
-        ru.ytkab0bp.slicebeam.config.OwnFilamentTemperatureProfiles.choose(
-            config.filamentConfigs, assigned, selected, imported["filament_type"])
-    }.orEmpty()
-    TemporaryProjectSettings.activate(projectImport.settings, ownProfiles)
-    fragment.refreshProfileStatus()
-    fragment.glView?.requestRender()
-    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(if (TemporaryProjectSettings.active)
-        R.string.Project3mfLoadedTemporary else R.string.Project3mfLoadedGeometry))
+    show3mfImportChoice(fragment, projectImport)
     projectImport.settings?.ignoredValues?.takeIf { it > 0 }?.let { count ->
         SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.WARNING,
             getString(R.string.ProjectSettingsInvalidValues, count)))

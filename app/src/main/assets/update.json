@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.220\n\n• Moonraker startet nur die Datei, deren Upload bestätigt wurde.\n• Bei unklarem Druckstart fordert die App eine Statusprüfung vor erneutem Senden.\n• Zwei 3MF-Druckplatten mit unterschiedlichen Filamenten wurden auf Android geprüft.",
-  "en": "OrkanSlicer 0.8.220\n\n• Moonraker starts only the file confirmed by the upload response.\n• An uncertain print start prompts a status check before retrying.\n• Two 3MF plates with different filaments were checked on Android.",
-  "ru": "OrkanSlicer 0.8.220\n\n• Moonraker запускает только файл, подтверждённый ответом загрузки.\n• При неясном запуске перед повторной отправкой предлагается проверить статус принтера.\n• Две пластины 3MF с разными филаментами проверены на Android."
+  "de": "OrkanSlicer 0.8.221\n\n• Beim Öffnen einer 3MF Drucker sowie Druck- und Filamenteinstellungen getrennt wählen.\n• Eigene Profile bleiben standardmäßig aktiv; Modellfarben bleiben sichtbar.\n• Importierte Dateiwerte gelten nur für das aktuelle Modell.",
+  "en": "OrkanSlicer 0.8.221\n\n• Choose printer, print and filament settings independently when opening a 3MF.\n• Own profiles stay active by default; model colors remain visible.\n• Imported file settings apply only to the current model.",
+  "ru": "OrkanSlicer 0.8.221\n\n• При открытии 3MF отдельно выбираются принтер, параметры печати и филамента.\n• По умолчанию остаются собственные профили, цвета модели сохраняются.\n• Импортированные настройки действуют только для текущей модели."
 }

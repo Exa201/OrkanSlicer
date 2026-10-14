@@ -33,15 +33,24 @@ fun TemporaryProjectSettingsBar(modifier: Modifier = Modifier, showFilamentSelec
                     modifier = Modifier.weight(1f), fontSize = 12.sp, lineHeight = 15.sp,
                     maxLines = 2, overflow = TextOverflow.Ellipsis)
                 TextButton(onClick = {
-                    val imported = Prefs.getFilamentSlots()
-                    val own = Prefs.getStoredFilamentSlots()
-                    if (imported.size > own.size) Prefs.setStoredFilamentSlots(own + imported.drop(own.size))
                     TemporaryProjectSettings.clear()
                 }) {
                     Text(stringResource(R.string.ProjectSettingsUseOwn), fontSize = 12.sp)
                 }
             }
         }
+        val imported = buildList {
+            if (project.printSettingsImported) add(stringResource(R.string.ProjectSettingsImportPrint))
+            if (project.filamentSettingsImported) add(stringResource(R.string.ProjectSettingsImportFilament))
+            if (project.printerSettingsImported) add(stringResource(R.string.ProjectSettingsImportPrinter))
+        }
+        Text(
+            text = if (imported.isEmpty()) stringResource(R.string.ProjectSettingsColorsOnly)
+                else stringResource(R.string.ProjectSettingsImportedAreas, imported.joinToString(" · ")),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(start = 8.dp, top = 2.dp, bottom = 2.dp),
+        )
         if (showFilamentSelector) {
             val slots = Prefs.getFilamentSlots()
             Row(Modifier.widthIn(max = 1200.dp).fillMaxWidth().horizontalScroll(rememberScrollState()),

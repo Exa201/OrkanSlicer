@@ -39,6 +39,7 @@ object ThreeMfProjectSettingsReader {
         val processProfiles = LinkedHashMap<String, Map<String, List<String>>>()
         val filamentProfiles = LinkedHashMap<String, Map<String, List<String>>>()
         var processId = ""
+        var printerId = ""
         var filamentIds = emptyList<String>()
         var ignored = 0
         val invalidValues = ArrayList<ProfileConfigLoadWarning.InvalidValue>()
@@ -80,6 +81,7 @@ object ThreeMfProjectSettingsReader {
                         // The final project values are authoritative over inherited preset defaults.
                         flat.putAll(values)
                         values["print_settings_id"]?.firstOrNull()?.let { processId = it }
+                        values["printer_settings_id"]?.firstOrNull()?.let { printerId = it }
                         values["filament_settings_id"]?.let { filamentIds = it }
                     } else {
                         val id = values["name"]?.firstOrNull()
@@ -163,7 +165,7 @@ object ThreeMfProjectSettingsReader {
             }
         }
         return ThreeMfProjectSettings(file.name, process, filaments, types, selectedProcess, ids, ignored, invalidValues,
-            missingProfiles.toList())
+            missingProfiles.toList(), printerTitle = printerId)
     }
 
     private fun isSettingsEntry(name: String): Boolean = name.endsWith(".config") && (

@@ -412,7 +412,7 @@ open class SliceBeam : Application() {
             // Apply unsaved profile edits last so a slice uses the currently visible setting values.
             ProfileSettingsRepository.applyPendingTo(singleObject)
 
-            if (!TemporaryProjectSettings.active) {
+            if (!TemporaryProjectSettings.importsFilamentSettings) {
                 ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles.applyTo(
                     singleObject, current, current.presets!!["filament"], activeFilamentCount,
                 )
@@ -447,7 +447,7 @@ open class SliceBeam : Application() {
                 singleObject.put("filament_type", types.toString())
             }
             TemporaryProjectSettings.applyTo(singleObject, activeFilamentCount)
-            if (TemporaryProjectSettings.active) {
+            if (TemporaryProjectSettings.active && TemporaryProjectSettings.prefersOwnFilamentTemperatures) {
                 ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles.applyOwnFilamentSettingsTo(
                     singleObject, current,
                     if (activeFilamentCount > 0) activeFilamentCount else Prefs.getFilamentSlots().size,

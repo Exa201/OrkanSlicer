@@ -103,6 +103,16 @@ class ThreeMfProjectSettingsReaderTest {
         assertEquals(0, result.ignoredValues)
     }
 
+    @Test fun recordsPrinterIdentityWithoutAcceptingMachineOverrides() {
+        val result = read(mapOf("Metadata/project_settings.config" to """{
+            "printer_settings_id":"My Kobra 3 V2", "filament_colour":["#112233"],
+            "layer_height":"0.2", "z_offset":"9", "print_host":"untrusted.local"
+        }"""))
+        assertEquals("My Kobra 3 V2", result.printerTitle)
+        assertFalse(result.process.containsKey("z_offset"))
+        assertFalse(result.process.containsKey("print_host"))
+    }
+
     @Test fun legacyIniMigratesAliasesAndNativeVectors() {
         val result = read(mapOf("Metadata/Slic3r_PE.config" to """
             # old Prusa/Orca project

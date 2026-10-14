@@ -15,6 +15,11 @@ data class ThreeMfProjectSettings(
     val ignoredValues: Int = 0,
     val invalidValues: List<ProfileConfigLoadWarning.InvalidValue> = emptyList(),
     val missingProfileIds: List<String> = emptyList(),
+    val printerTitle: String = "",
+    val printerSettingsImported: Boolean = false,
+    val printSettingsImported: Boolean = true,
+    val filamentSettingsImported: Boolean = true,
+    val preferOwnFilamentTemperatures: Boolean = true,
 ) {
     val hasSettings: Boolean get() = process.isNotEmpty() || filaments.any { it.isNotEmpty() }
 }
@@ -23,6 +28,9 @@ data class TemporaryProjectState(
     val sourceName: String = "",
     val selectedFilament: Int = 0,
     val filamentCount: Int = 0,
+    val printSettingsImported: Boolean = false,
+    val filamentSettingsImported: Boolean = false,
+    val printerSettingsImported: Boolean = false,
     val revision: Long = 0,
     val generation: Long = 0,
 ) { val active: Boolean get() = sourceName.isNotEmpty() }
@@ -43,17 +51,16 @@ object TemporaryProjectSettings {
         private set
     val active: Boolean get() = data != null
 
-    fun owns(profileType: Int): Boolean = active && profileType in listOf(
-        ConfigObject.PROFILE_LIST_PRINT, ConfigObject.PROFILE_LIST_FILAMENT,
-    )
+    fun owns(profileType: Int): Boolean = active && ((profileType == ConfigObject.PROFILE_LIST_PRINT && data?.printSettingsImported == true) ||
+        (profileType == ConfigObject.PROFILE_LIST_FILAMENT && data?.filamentSettingsImported == true))
     fun ownsKey(profileType: Int, key: String): Boolean = owns(profileType) ||
-        (active && profileType == ConfigObject.PROFILE_LIST_PRINTER && key == "curr_bed_type")
+        (active && profileType == ConfigObject.PROFILE_LIST_PRINTER && key == "curr_bed_type" && data?.process?.containsKey(key) == true)
 
     @Synchronized fun activate(settings: ThreeMfProjectSettings?, ownTemperatureProfiles: List<ConfigObject?> = emptyList()) {
         data = settings?.takeIf { it.hasSettings }?.let { source -> source.copy(
             process = LinkedHashMap(source.process), filaments = source.filaments.mapIndexed { index, imported ->
                 LinkedHashMap(imported).apply {
-                    ownTemperatureProfiles.getOrNull(index)?.values?.forEach { (key, raw) ->
+                    (if (source.preferOwnFilamentTemperatures) ownTemperatureProfiles.getOrNull(index) else null)?.values?.forEach { (key, raw) ->
                         if (key in source.filamentTypes && OwnFilamentTemperatureProfiles.isOwnFilamentOverrideKey(key)) {
                             val scalar = splitValue(raw, source.filamentTypes[key]).firstOrNull()
                             if (!scalar.isNullOrBlank()) put(key, scalar)
@@ -71,12 +78,23 @@ object TemporaryProjectSettings {
         }
         gateChoices.clear()
         syncedPrinter = null
-        state.value = TemporaryProjectState(data?.sourceName.orEmpty(), 0, palette?.size ?: 0,
-            state.value.revision + 1, state.value.generation + 1)
+        state.value = TemporaryProjectState(
+            sourceName = data?.sourceName.orEmpty(),
+            selectedFilament = 0,
+            filamentCount = palette?.size ?: 0,
+            printSettingsImported = data?.printSettingsImported == true,
+            filamentSettingsImported = data?.filamentSettingsImported == true,
+            printerSettingsImported = data?.printerSettingsImported == true,
+            revision = state.value.revision + 1,
+            generation = state.value.generation + 1,
+        )
         changed()
     }
 
     fun clear() { if (active) activate(null) }
+
+    val importsFilamentSettings: Boolean get() = data?.filamentSettingsImported == true
+    val prefersOwnFilamentTemperatures: Boolean get() = data?.preferOwnFilamentTemperatures == true
 
     private fun changed(settingsChanged: Boolean = true) {
         if (settingsChanged) sliceRevision++

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.221 (alpha)
+
+- Ask for the target printer after opening a 3MF and let the user independently choose file print settings, filament settings, or an exactly matching installed printer profile. Own profiles are the default; raw machine commands and connection details from the file are never imported.
+- Keep model colors visible when the user retains own filament values. A selected file filament profile, including temperatures and pressure advance, is applied only to the current model; saved profiles remain unchanged.
+- Clear the previous project's temporary settings before showing the new choice, including when the dialog is cancelled. Add selection and reader regression tests.
+
 ## 0.8.220 (alpha)
 
 - Require the Moonraker upload acknowledgement to identify the same filename that the app sent; an unrelated stored path can no longer be started.
