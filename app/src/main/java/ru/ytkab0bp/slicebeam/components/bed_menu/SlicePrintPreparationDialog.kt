@@ -78,6 +78,7 @@ object SlicePrintPreparationDialog {
         val selectedPrinter = mutableStateOf(printer)
         val printerChanged = mutableStateOf(false)
         val mappingRevision = mutableIntStateOf(0)
+        lateinit var dialog: AlertDialog
 
         val composeView = ComposeView(context).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -103,11 +104,13 @@ object SlicePrintPreparationDialog {
                         jobName = jobName,
                         printer = currentPrinter,
                         availablePrinters = availablePrinters,
+                        resliceRequired = printerChanged.value,
                         mappingSummary = mappingSummary.takeIf {
+                            !printerChanged.value &&
                             isAnycubicKobra(currentPrinter) && activeTools.isNotEmpty()
                         },
                         emptyAceSlots = emptyAceSlots.takeIf {
-                            isAnycubicKobra(currentPrinter) && it.isNotEmpty()
+                            !printerChanged.value && isAnycubicKobra(currentPrinter) && it.isNotEmpty()
                         },
                         pressureAdvance = pressureAdvance,
                         onSelectPrinter = { chosen ->
@@ -115,6 +118,11 @@ object SlicePrintPreparationDialog {
                             printerChanged.value = SlicePreparationTools.didPrinterChange(
                                 printer.title,
                                 chosen.title,
+                            )
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setText(
+                                if (printerChanged.value) R.string.PrintPrepareResliceButton
+                                else if (print) R.string.MenuSliceSendToPrinterAndPrint
+                                else R.string.MenuSliceSendToPrinter,
                             )
                         },
                         onEditMapping = {
@@ -129,7 +137,7 @@ object SlicePrintPreparationDialog {
                 }
             }
         }
-        val dialog = BeamAlertDialogBuilder(context)
+        dialog = BeamAlertDialogBuilder(context)
             .setTitle(R.string.PrintPrepareTitle)
             .setView(composeView)
             .setNegativeButton(android.R.string.cancel, null)
@@ -267,6 +275,7 @@ private fun PrintPreparationContent(
     jobName: String,
     printer: ConfigObject,
     availablePrinters: List<ConfigObject>,
+    resliceRequired: Boolean,
     mappingSummary: String?,
     emptyAceSlots: IntArray?,
     pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
@@ -341,23 +350,33 @@ private fun PrintPreparationContent(
             lineHeight = 20.sp,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
-        val filamentPa = pressureAdvance.filament.joinToString(", ")
-        val customPa = pressureAdvance.custom.joinToString(", ")
-        Text(
-            text = when {
-                filamentPa.isNotEmpty() -> stringResource(R.string.PrintPreparePressureAdvanceFilament, filamentPa)
-                customPa.isNotEmpty() -> stringResource(R.string.PrintPreparePressureAdvanceCustomOnly, customPa)
-                else -> stringResource(R.string.PrintPreparePressureAdvanceNone)
-            },
-            color = if (filamentPa.isEmpty()) MaterialTheme.colorScheme.error else secondary,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
-        if (filamentPa.isNotEmpty() && customPa.isNotEmpty() && customPa != filamentPa) {
-            Text(stringResource(R.string.PrintPreparePressureAdvanceAlsoCustom, customPa),
-                color = MaterialTheme.colorScheme.error, fontSize = 13.sp, lineHeight = 18.sp,
-                modifier = Modifier.padding(horizontal = 4.dp))
+        if (resliceRequired) {
+            Text(
+                stringResource(R.string.PrintPrepareResliceHint),
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        } else {
+            val filamentPa = pressureAdvance.filament.joinToString(", ")
+            val customPa = pressureAdvance.custom.joinToString(", ")
+            Text(
+                text = when {
+                    filamentPa.isNotEmpty() -> stringResource(R.string.PrintPreparePressureAdvanceFilament, filamentPa)
+                    customPa.isNotEmpty() -> stringResource(R.string.PrintPreparePressureAdvanceCustomOnly, customPa)
+                    else -> stringResource(R.string.PrintPreparePressureAdvanceNone)
+                },
+                color = if (filamentPa.isEmpty()) MaterialTheme.colorScheme.error else secondary,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            if (filamentPa.isNotEmpty() && customPa.isNotEmpty() && customPa != filamentPa) {
+                Text(stringResource(R.string.PrintPreparePressureAdvanceAlsoCustom, customPa),
+                    color = MaterialTheme.colorScheme.error, fontSize = 13.sp, lineHeight = 18.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp))
+            }
         }
         if (mappingSummary != null) {
             Text(

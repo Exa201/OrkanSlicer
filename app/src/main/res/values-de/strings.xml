@@ -525,6 +525,8 @@
     <string name="PrintPrepareObjectSlot">%1$s → Slot %2$d · %3$s</string>
     <string name="PrintPrepareResliceForAssignment">Zuordnung geändert. Bitte erneut slicen, damit sie in die Druckdatei übernommen wird.</string>
     <string name="PrintPrepareReslicing">Druckerprofil wird übernommen und neu gesliced. Danach wird die Druckdatei erneut geprüft.</string>
+    <string name="PrintPrepareResliceButton">Neu slicen und prüfen</string>
+    <string name="PrintPrepareResliceHint">Drucker gewechselt. Die angezeigten Filament- und G-Code-Werte gehören noch zum vorherigen Slice. Slice mit dem neuen Drucker erneut und prüfe danach die aktualisierten Werte, bevor du sendest.</string>
     <string name="PrintPrepareToolOrder">Farben im G-Code (erste Verwendung): %1$s</string>
     <string name="PrintPrepareAceGapTitle">ACE-Slot-Lücke prüfen</string>
     <string name="PrintPrepareAceGapHint">Vor einer verwendeten Farbe ist ACE-Slot %1$s leer. Ältere Rinkhals-Versionen können dadurch den falschen Slot laden.</string>

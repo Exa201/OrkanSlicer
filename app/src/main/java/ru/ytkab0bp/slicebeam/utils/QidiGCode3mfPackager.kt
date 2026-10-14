@@ -11,6 +11,7 @@ import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
@@ -18,6 +19,7 @@ import java.util.zip.ZipOutputStream
 /** Builds the single-plate QIDI print package expected by the Q2 Moonraker workflow. */
 object QidiGCode3mfPackager {
     private const val PLATE = 1
+    private const val MAX_THUMBNAIL_BYTES = 4 * 1024 * 1024
     private val settingLine = Regex("^;\\s*([^=]+?)\\s*=\\s*(.*?)\\s*$")
     private val layerLine = Regex("(?i)^;\\s*total layer number\\s*:\\s*(\\d+)\\s*$")
     private val objectLine = Regex("(?i)^EXCLUDE_OBJECT_DEFINE\\s+NAME=([^\\s]+).*?POLYGON=(.*)$")
@@ -157,15 +159,17 @@ object QidiGCode3mfPackager {
                 val modelEntry = zip.getEntry("3D/3dmodel.model") ?: return false
                 val expected = zip.getInputStream(md5Entry).bufferedReader(StandardCharsets.US_ASCII).use { it.readText() }.trim()
                 val actual = zip.getInputStream(codeEntry).use { input -> digest(input) }
+                if (pngEntry.size > MAX_THUMBNAIL_BYTES) return false
                 val thumbnail = zip.getInputStream(pngEntry).use { input ->
-                    val header = ByteArray(24)
-                    var offset = 0
-                    while (offset < header.size) {
-                        val count = input.read(header, offset, header.size - offset)
+                    val output = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(16 * 1024)
+                    while (true) {
+                        val count = input.read(buffer)
                         if (count < 0) break
-                        offset += count
+                        if (output.size() + count > MAX_THUMBNAIL_BYTES) return false
+                        output.write(buffer, 0, count)
                     }
-                    if (offset == header.size) header else ByteArray(0)
+                    output.toByteArray()
                 }
                 expected.equals(actual, ignoreCase = true) && isPng(thumbnail) &&
                     infoEntry.size > 0 && modelEntry.size > 0
@@ -293,8 +297,9 @@ object QidiGCode3mfPackager {
                 val line = reader.readLine() ?: break
                 if (!active) {
                     val match = thumbnailBegin.matchEntire(line.trim()) ?: continue
-                    active = true
                     expectedChars = match.groupValues[3].toIntOrNull() ?: 0
+                    if (expectedChars <= 0 || expectedChars > (MAX_THUMBNAIL_BYTES * 4 / 3 + 8)) continue
+                    active = true
                     encoded.setLength(0)
                     continue
                 }
@@ -308,6 +313,10 @@ object QidiGCode3mfPackager {
                     continue
                 }
                 encoded.append(line.trim().removePrefix(";").trim())
+                if (encoded.length > MAX_THUMBNAIL_BYTES * 4 / 3 + 8) {
+                    active = false
+                    encoded.setLength(0)
+                }
             }
             return best
         }
@@ -349,10 +358,36 @@ object QidiGCode3mfPackager {
         return this + List(size - this.size) { fallback ?: last() }
     }
 
-    private fun isPng(bytes: ByteArray): Boolean = bytes.size >= 24 &&
-        bytes.copyOfRange(0, 8).contentEquals(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) &&
-        bytes.copyOfRange(12, 16).contentEquals(byteArrayOf(0x49, 0x48, 0x44, 0x52)) &&
-        pngUInt32(bytes, 16) > 0L && pngUInt32(bytes, 20) > 0L
+    private fun isPng(bytes: ByteArray): Boolean {
+        if (bytes.size !in 45..MAX_THUMBNAIL_BYTES ||
+            !bytes.copyOfRange(0, 8).contentEquals(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))) return false
+        var offset = 8
+        var sawHeader = false
+        var sawImage = false
+        while (offset <= bytes.size - 12) {
+            val length = pngUInt32(bytes, offset)
+            if (length > MAX_THUMBNAIL_BYTES || length > bytes.size - offset - 12) return false
+            val size = length.toInt()
+            val typeOffset = offset + 4
+            val dataOffset = typeOffset + 4
+            val type = String(bytes, typeOffset, 4, StandardCharsets.US_ASCII)
+            val crc = CRC32().apply { update(bytes, typeOffset, 4 + size) }.value
+            if (crc != pngUInt32(bytes, dataOffset + size)) return false
+            when (type) {
+                "IHDR" -> {
+                    if (sawHeader || offset != 8 || size != 13) return false
+                    val width = pngUInt32(bytes, dataOffset)
+                    val height = pngUInt32(bytes, dataOffset + 4)
+                    if (width !in 1L..4096L || height !in 1L..4096L) return false
+                    sawHeader = true
+                }
+                "IDAT" -> if (size > 0) sawImage = true
+                "IEND" -> return sawHeader && sawImage && size == 0 && dataOffset + 4 == bytes.size
+            }
+            offset = dataOffset + size + 4
+        }
+        return false
+    }
 
     private fun pngUInt32(bytes: ByteArray, offset: Int): Long =
         ((bytes[offset].toLong() and 0xff) shl 24) or

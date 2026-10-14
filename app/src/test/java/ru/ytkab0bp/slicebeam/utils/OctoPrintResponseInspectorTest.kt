@@ -17,6 +17,8 @@ class OctoPrintResponseInspectorTest {
         assertTrue(reply.selected == true)
         assertTrue(reply.printStarted == true)
         assertEquals(OctoPrintResponseInspector.UploadOutcome.PRINT_STARTED, reply.outcome(true))
+        assertEquals("An unexpected remote auto-start must be reported honestly",
+            OctoPrintResponseInspector.UploadOutcome.PRINT_STARTED, reply.outcome(false))
     }
 
     @Test fun rejectedSelectionOrPrintCannotBeReportedAsStarted() {

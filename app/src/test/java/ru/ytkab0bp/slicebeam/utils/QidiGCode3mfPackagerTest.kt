@@ -33,7 +33,7 @@ class QidiGCode3mfPackagerTest {
                     |""".trimMargin(),
             )
             val thumbnail = Base64.getDecoder().decode(
-                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
             )
             val summary = QidiGCode3mfPackager.create(
                 sourceGcode = source,
@@ -97,6 +97,31 @@ class QidiGCode3mfPackagerTest {
                 assertTrue(expected.message.orEmpty().contains("preview"))
             }
             assertFalse(target.length() > 0L)
+        } finally {
+            source.delete()
+            target.delete()
+        }
+    }
+
+    @Test
+    fun rejectsTruncatedOrCorruptedPngPreviewsBeforePackaging() {
+        val source = File.createTempFile("qidi-bad-preview", ".gcode")
+        val target = File.createTempFile("qidi-bad-preview", ".gcode.3mf")
+        try {
+            source.writeText("; total layer number: 1\nT0\n")
+            val png = Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+            )
+            val corrupt = png.clone().also { it[45] = (it[45].toInt() xor 1).toByte() }
+            for (preview in listOf(png.copyOf(24), corrupt)) {
+                try {
+                    QidiGCode3mfPackager.create(source, target, preview, qidiQ2(), emptyList(), "test", "print.gcode.3mf")
+                    throw AssertionError("A broken PNG must not be accepted as a printer preview")
+                } catch (expected: IllegalArgumentException) {
+                    assertTrue(expected.message.orEmpty().contains("preview"))
+                }
+                assertEquals(0L, target.length())
+            }
         } finally {
             source.delete()
             target.delete()

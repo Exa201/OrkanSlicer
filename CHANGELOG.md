@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.218 (alpha)
+
+- After a printer switch in the send dialog, mark the previous slice's filament and G-code values as stale and label the action "Slice again and check" until a new slice is ready.
+- Ignore orphan 3MF thumbnail images when counting build plates; use declared plate elements or actual plate data, with a mobile-safe upper bound.
+- Validate complete QIDI preview PNG data and CRCs before creating or accepting a print package, with a size limit for embedded thumbnails.
+- Report an OctoPrint-confirmed print start even when the app requested upload-only, so unexpected remote behavior is visible rather than silently labelled as an upload.
+- Recheck the Kobra ACE state read-only, add regressions for phantom plates and broken thumbnails, and run Android device checks. Physical multicolor printing and firmware changes remain open.
+
 ## 0.8.217 (alpha)
 
 - Inspect the real G-code tool order in the print dialog, including three-color jobs whose first-use order differs from the logical tool numbers.

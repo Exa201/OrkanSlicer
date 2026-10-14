@@ -531,6 +531,8 @@
     <string name="PrintPrepareObjectSlot">%1$s → Slot %2$d · %3$s</string>
     <string name="PrintPrepareResliceForAssignment">Assignment changed. Slice again to include it in the print file.</string>
     <string name="PrintPrepareReslicing">Applying the printer profile and slicing again. The print file will then be checked again.</string>
+    <string name="PrintPrepareResliceButton">Slice again and check</string>
+    <string name="PrintPrepareResliceHint">Printer changed. The filament and G-code values still belong to the previous slice. Slice again with the selected printer and check the updated values before sending.</string>
     <string name="PrintPrepareToolOrder">Colors in G-code (first use): %1$s</string>
     <string name="PrintPrepareAceGapTitle">Check empty ACE slots</string>
     <string name="PrintPrepareAceGapHint">ACE slot %1$s is empty before a color used by this print. Older Rinkhals versions may load the wrong slot.</string>
