@@ -11,6 +11,7 @@ import java.util.Locale
 /** File and printer checks used while preparing a sliced job for upload. */
 internal object SlicePreparationTools {
     data class PressureAdvanceCommands(val filament: List<String>, val custom: List<String>)
+    data class ToolUsage(val used: IntArray, val firstAppearance: IntArray)
 
     private val klipperPa = Regex("^\\s*SET_PRESSURE_ADVANCE\\b.*?\\bADVANCE=([0-9]+(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
     private val marlinPa = Regex("^\\s*M900\\s+K([0-9]+(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
@@ -60,21 +61,41 @@ internal object SlicePreparationTools {
         return max
     }
 
-    /** Tools actually selected in the sliced file; T1-only jobs need no visible T0 row. */
+    /** Tools actually selected in the sliced file and their first-use order. */
     @JvmStatic
     @Throws(IOException::class)
-    fun readUsedTools(gcode: File?): IntArray {
+    fun readToolUsage(gcode: File?): ToolUsage {
         if (gcode == null || !gcode.isFile || gcode.length() == 0L) {
             throw IOException("Sliced G-code is missing or empty")
         }
         val used = sortedSetOf<Int>()
+        val firstAppearance = linkedSetOf<Int>()
         FileReader(gcode).buffered().use { reader ->
             while (true) {
                 val line = reader.readLine() ?: break
-                GCodeToolMapper.parseToolCommand(line).takeIf { it >= 0 }?.let(used::add)
+                GCodeToolMapper.parseToolCommand(line).takeIf { it >= 0 }?.let { tool ->
+                    used.add(tool)
+                    firstAppearance.add(tool)
+                }
             }
         }
-        return if (used.isEmpty()) intArrayOf(0) else used.toIntArray()
+        if (used.isEmpty()) return ToolUsage(intArrayOf(0), intArrayOf(0))
+        return ToolUsage(used.toIntArray(), firstAppearance.toIntArray())
+    }
+
+    /** Kept for callers that only need the distinct selected tools. */
+    @JvmStatic
+    @Throws(IOException::class)
+    fun readUsedTools(gcode: File?): IntArray = readToolUsage(gcode).used
+
+    /** Older Rinkhals maps sparse physical ACE gates to dense paint indices. Return the empty slots. */
+    fun emptyAceSlotsBeforeUsedGate(activeTools: IntArray, selectedGates: IntArray?, loadedGates: IntArray): IntArray {
+        if (selectedGates == null || loadedGates.isEmpty()) return IntArray(0)
+        val highest = activeTools.map { tool -> selectedGates.getOrNull(tool)?.takeIf { it >= 0 } }
+            .filterNotNull()
+            .maxOrNull() ?: return IntArray(0)
+        val loaded = loadedGates.toSet()
+        return (0 until highest).filter { gate -> gate !in loaded }.map { gate -> gate + 1 }.toIntArray()
     }
 
     /** Read material names from the sliced file, rather than from a palette edited after slicing. */

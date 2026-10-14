@@ -97,6 +97,41 @@ class SlicePreparationToolsTest {
     }
 
     @Test
+    fun readsActualFirstToolUseOrderWhileKeepingDistinctToolsSorted() {
+        val file = File.createTempFile("slice-color-order", ".gcode")
+        try {
+            file.writeText("; T9 is only a comment\nT0\nT2\nG1 X2 E0.1\nT1\nT0\n")
+            val usage = SlicePreparationTools.readToolUsage(file)
+            assertArrayEquals(intArrayOf(0, 1, 2), usage.used)
+            assertArrayEquals(intArrayOf(0, 2, 1), usage.firstAppearance)
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun warnsForSparseAceSlotsInTheThreeColorKobraJob() {
+        val tools = intArrayOf(0, 1, 2)
+        val assignedGates = intArrayOf(0, 3, 2)
+        assertArrayEquals(
+            intArrayOf(2),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf(0, 2, 3)),
+        )
+        assertArrayEquals(
+            intArrayOf(),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf(0, 1, 2, 3)),
+        )
+        assertArrayEquals(
+            intArrayOf(),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(intArrayOf(0), assignedGates, intArrayOf(0, 2, 3)),
+        )
+        assertArrayEquals(
+            intArrayOf(),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf()),
+        )
+    }
+
+    @Test
     fun readsSlicedMaterialInsteadOfAChangedPalette() {
         val file = File.createTempFile("slice-material", ".gcode")
         try {

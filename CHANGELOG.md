@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.217 (alpha)
+
+- Inspect the real G-code tool order in the print dialog, including three-color jobs whose first-use order differs from the logical tool numbers.
+- Warn before starting an Anycubic ACE print when an empty physical slot precedes a selected slot. Older Rinkhals firmware can map sparse slots to the wrong color; the dialog offers upload-only or an explicit firmware-checked start.
+- Show the configured physical slot even when it is empty, instead of silently displaying another loaded slot in the mapping summary.
+- After switching printers in the send dialog, activate the selected profile, slice again, and reopen preparation with the new file and refreshed slot state before any upload.
+- Add regression checks for the observed three-color Kobra assignment, tool order, contiguous slots and one-color jobs. A physical print remains to be verified after the printer firmware is corrected.
+
 ## 0.8.216 (alpha)
 
 - Preserve and apply the selected own-filament pressure advance when importing a 3MF project, alongside own temperature settings. Editing a positive PA value enables it for that filament; the enable switch can still be turned off explicitly.

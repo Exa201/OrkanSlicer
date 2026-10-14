@@ -96,8 +96,8 @@ class SliceMenu : ListBedMenu() {
         val bed = fragment ?: return
         val gcode: File = BedFragment.tempGCodePath
         IOUtils.IO_POOL.execute {
-            val activeTools = try {
-                SlicePreparationTools.readUsedTools(gcode)
+            val toolUsage = try {
+                SlicePreparationTools.readToolUsage(gcode)
             } catch (_: IOException) {
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
@@ -114,6 +114,7 @@ class SliceMenu : ListBedMenu() {
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
             }
+            val activeTools = toolUsage.used
             val toolCount = maxOf(1, (activeTools.maxOrNull() ?: 0) + 1)
             ViewUtils.postOnMainThread {
                 if (bed.getContext() != null) {
@@ -123,9 +124,19 @@ class SliceMenu : ListBedMenu() {
                         print,
                         toolCount,
                         activeTools,
+                        toolUsage.firstAppearance,
                         sourceFilamentTypes,
                         pressureAdvance,
                         this::activatePrinterProfile,
+                        { updatedPrinter ->
+                            refreshMmuAndPrepare(
+                                updatedPrinter.get("host_type") ?: "octoprint",
+                                updatedPrinter.get("print_host").orEmpty(),
+                                updatedPrinter.get("printhost_apikey"),
+                                updatedPrinter,
+                                print,
+                            )
+                        },
                     ) { sendType, sendHost, sendApiKey, targetPrinter, shouldPrint ->
                         SliceUploadController.upload(
                             bed,

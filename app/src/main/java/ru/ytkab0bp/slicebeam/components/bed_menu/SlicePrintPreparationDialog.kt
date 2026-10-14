@@ -61,9 +61,11 @@ object SlicePrintPreparationDialog {
         print: Boolean,
         gcodeToolCount: Int,
         activeTools: IntArray,
+        firstToolUse: IntArray,
         sourceFilamentTypes: List<String>,
         pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
         activateProfile: PrinterProfileAction,
+        reopenAfterReslice: (ConfigObject) -> Unit,
         sendAction: SliceMenuItems.SendAction,
     ) {
         val context = fragment.getContext() ?: return
@@ -87,7 +89,15 @@ object SlicePrintPreparationDialog {
                 BeamComposeTheme {
                     val currentPrinter = selectedPrinter.value
                     val mappingSummary = remember(currentPrinter.title, mappingRevision.intValue) {
-                        formatToolMapping(context, currentPrinter.title.orEmpty(), gcodeToolCount, activeTools)
+                        formatToolMapping(context, currentPrinter.title.orEmpty(), gcodeToolCount, firstToolUse)
+                    }
+                    val emptyAceSlots = remember(currentPrinter.title, mappingRevision.intValue) {
+                        val title = currentPrinter.title.orEmpty()
+                        SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
+                            activeTools,
+                            MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
+                            MmuFilamentSync.loadedGates(title),
+                        )
                     }
                     PrintPreparationContent(
                         jobName = jobName,
@@ -95,6 +105,9 @@ object SlicePrintPreparationDialog {
                         availablePrinters = availablePrinters,
                         mappingSummary = mappingSummary.takeIf {
                             isAnycubicKobra(currentPrinter) && activeTools.isNotEmpty()
+                        },
+                        emptyAceSlots = emptyAceSlots.takeIf {
+                            isAnycubicKobra(currentPrinter) && it.isNotEmpty()
                         },
                         pressureAdvance = pressureAdvance,
                         onSelectPrinter = { chosen ->
@@ -143,6 +156,28 @@ object SlicePrintPreparationDialog {
                         }.show()
                     return
                 }
+                val title = targetPrinter.title.orEmpty()
+                val emptyAceSlots = SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
+                    activeTools,
+                    MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
+                    MmuFilamentSync.loadedGates(title),
+                )
+                if (emptyAceSlots.isNotEmpty()) {
+                    BeamAlertDialogBuilder(context)
+                        .setTitle(R.string.PrintPrepareAceGapTitle)
+                        .setMessage(context.getString(R.string.PrintPrepareAceGapWarning,
+                            emptyAceSlots.joinToString(", ")))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setNeutralButton(R.string.PrintPrepareUploadOnly) { _, _ ->
+                            dialog.dismiss()
+                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, false)
+                        }
+                        .setPositiveButton(R.string.PrintPrepareAceGapFirmwareChecked) { _, _ ->
+                            dialog.dismiss()
+                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, true)
+                        }.show()
+                    return
+                }
             }
             dialog.dismiss()
             sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, print)
@@ -161,7 +196,7 @@ object SlicePrintPreparationDialog {
                     dialog.dismiss()
                     Toast.makeText(context, R.string.PrintPrepareReslicing, Toast.LENGTH_LONG).show()
                     fragment.startSlicing {
-                        sendChecked(targetPrinter, targetType, targetHost, targetApiKey)
+                        reopenAfterReslice(targetPrinter)
                     }
                     return@setOnClickListener
                 }
@@ -203,15 +238,15 @@ object SlicePrintPreparationDialog {
     }
 
     private fun formatToolMapping(context: Context, printerTitle: String, toolCount: Int,
-                                  activeTools: IntArray): String {
+                                  firstToolUse: IntArray): String {
         val mapping = MmuFilamentSync.getSelectedGates(printerTitle, toolCount)
-        val loaded = MmuFilamentSync.loadedGates(printerTitle)
         return buildString {
             append(context.getString(R.string.MmuAssignmentEdit))
-            activeTools.forEach { tool ->
-                var gate = mapping?.getOrNull(tool)
+            append("\n").append(context.getString(R.string.PrintPrepareToolOrder,
+                firstToolUse.joinToString(" → ") { tool -> "T$tool" }))
+            firstToolUse.forEach { tool ->
+                val gate = mapping?.getOrNull(tool)
                     ?: MmuFilamentSync.defaultGateForTool(printerTitle, tool)
-                if (gate < 0 || gate !in loaded) gate = loaded.firstOrNull() ?: -1
                 append("\nT").append(tool).append(" → ")
                     .append(MmuFilamentSync.gateLabel(printerTitle, gate))
             }
@@ -233,6 +268,7 @@ private fun PrintPreparationContent(
     printer: ConfigObject,
     availablePrinters: List<ConfigObject>,
     mappingSummary: String?,
+    emptyAceSlots: IntArray?,
     pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
     onSelectPrinter: (ConfigObject) -> Unit,
     onEditMapping: () -> Unit,
@@ -334,6 +370,15 @@ private fun PrintPreparationContent(
                 color = primary,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
+            )
+        }
+        if (emptyAceSlots != null) {
+            Text(
+                text = stringResource(R.string.PrintPrepareAceGapHint, emptyAceSlots.joinToString(", ")),
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
     }
