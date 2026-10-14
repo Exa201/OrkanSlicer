@@ -37,7 +37,7 @@ class OctoPrintResponseInspectorTest {
         assertFalse(processing!!.processingDone == true)
         assertNull(processing.printStarted)
         assertEquals(OctoPrintResponseInspector.UploadOutcome.PROCESSING, processing.outcome(false))
-        assertEquals(OctoPrintResponseInspector.UploadOutcome.PRINT_NOT_STARTED, processing.outcome(true))
+        assertEquals(OctoPrintResponseInspector.UploadOutcome.PROCESSING, processing.outcome(true))
         val legacy = OctoPrintResponseInspector.uploadedFile(bytes(
             """{"files":{"local":{"name":"legacy.gcode"}}}"""))
         assertNull(legacy?.processingDone)

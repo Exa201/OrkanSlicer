@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.218\n\n• Nach einem Druckerwechsel zeigt der Sendedialog alte Slice-Werte nicht mehr als aktuell an.\n• 3MF-Vorschaubilder erzeugen keine zusätzlichen leeren Druckplatten mehr.\n• Qidi-Vorschaubilder werden vollständig geprüft; ein unerwarteter OctoPrint-Druckstart wird klar gemeldet.",
-  "en": "OrkanSlicer 0.8.218\n\n• After switching printers, the send dialog no longer presents old slice values as current.\n• 3MF thumbnails no longer create extra empty build plates.\n• QIDI previews are fully checked, and an unexpected OctoPrint print start is reported clearly.",
-  "ru": "OrkanSlicer 0.8.218\n\n• После смены принтера старые значения нарезки не показываются как текущие.\n• Миниатюры 3MF больше не создают пустые дополнительные пластины.\n• Изображения QIDI проверяются полностью, а неожиданный запуск печати через OctoPrint показывается явно."
+  "de": "OrkanSlicer 0.8.219\n\n• Qidi-Druckpakete begrenzen Werkzeugdaten und prüfen alle Vorschaubilder.\n• OctoPrint meldet laufende Dateiverarbeitung verständlich.\n• Mehrplattige 3MF-Dateien und große Schrift wurden erneut auf Android geprüft.",
+  "en": "OrkanSlicer 0.8.219\n\n• QIDI packages limit tool metadata and validate every preview.\n• OctoPrint clearly reports uploads that are still processing.\n• Multi-plate 3MF files and larger text were rechecked on Android.",
+  "ru": "OrkanSlicer 0.8.219\n\n• Пакеты QIDI ограничивают данные инструментов и проверяют все изображения.\n• OctoPrint сообщает об обработке загруженного файла.\n• Многоплатные 3MF и крупный шрифт повторно проверены на Android."
 }

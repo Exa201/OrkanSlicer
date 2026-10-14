@@ -8,6 +8,8 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import java.io.File
 import java.util.Base64
 import java.util.zip.ZipFile
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 class QidiGCode3mfPackagerTest {
     @Test
@@ -125,6 +127,58 @@ class QidiGCode3mfPackagerTest {
         } finally {
             source.delete()
             target.delete()
+        }
+    }
+
+    @Test
+    fun rejectsExcessiveToolNumbersBeforeAllocatingFilamentMetadata() {
+        val source = File.createTempFile("qidi-tool-limit", ".gcode")
+        val target = File.createTempFile("qidi-tool-limit", ".gcode.3mf")
+        val png = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+        )
+        try {
+            for (tool in listOf("T16", "T999999999999999999999999")) {
+                source.writeText("; total layer number: 1\n$tool\n")
+                try {
+                    QidiGCode3mfPackager.create(source, target, png, qidiQ2(), emptyList(), "test", "part")
+                    throw AssertionError("Accepted an unsupported tool: $tool")
+                } catch (expected: IllegalArgumentException) {
+                    assertTrue(expected.message.orEmpty().contains("tool number"))
+                }
+            }
+        } finally {
+            source.delete()
+            target.delete()
+        }
+    }
+
+    @Test
+    fun rejectsAnInvalidSecondaryPreviewInsideTheCompletedPackage() {
+        val source = File.createTempFile("qidi-preview-verify", ".gcode")
+        val target = File.createTempFile("qidi-preview-verify", ".gcode.3mf")
+        val damaged = File.createTempFile("qidi-preview-damaged", ".gcode.3mf")
+        val png = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+        )
+        try {
+            source.writeText("; total layer number: 1\nT0\n")
+            QidiGCode3mfPackager.create(source, target, png, qidiQ2(), emptyList(), "test", "part")
+            ZipFile(target).use { zip ->
+                ZipOutputStream(damaged.outputStream()).use { output ->
+                    zip.entries().asSequence().forEach { entry ->
+                        output.putNextEntry(ZipEntry(entry.name))
+                        if (entry.name == "Metadata/top_1.png") output.write(byteArrayOf(1, 2, 3))
+                        else zip.getInputStream(entry).use { it.copyTo(output) }
+                        output.closeEntry()
+                    }
+                }
+            }
+            assertFalse(QidiGCode3mfPackager.verify(damaged))
+        } finally {
+            source.delete()
+            target.delete()
+            damaged.delete()
         }
     }
 

@@ -19,9 +19,9 @@ object OctoPrintResponseInspector {
         fun outcome(printRequested: Boolean): UploadOutcome = when {
             // Report what the printer says happened, even if only an upload was requested.
             printStarted == true -> UploadOutcome.PRINT_STARTED
+            processingDone == false -> UploadOutcome.PROCESSING
             printRequested && selected == true -> UploadOutcome.SELECTED_NOT_STARTED
             printRequested -> UploadOutcome.PRINT_NOT_STARTED
-            processingDone == false -> UploadOutcome.PROCESSING
             else -> UploadOutcome.UPLOADED
         }
     }

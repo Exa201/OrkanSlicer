@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.219 (alpha)
+
+- Bound QIDI Q2 tool metadata to 16 filaments and reject malformed or out-of-range tool numbers before allocating package metadata. Stop retaining embedded thumbnail text during the first G-code pass.
+- Verify every QIDI package preview, not only the primary image, and limit the checksum field before reading it.
+- Keep an unfinished OctoPrint upload in the processing state even if a print was requested; do not claim a final print result before the server finishes processing.
+- Count real 3MF plate elements while ignoring XML comments and CDATA. Verify separate objects and filament assignments on a generated two-plate project with the native Android reader.
+- Recheck main navigation and open screens at 130% system font size on Honor; collect a device memory baseline. Live QIDI/OctoPrint printing and the physical Kobra multicolor run remain open.
+
 ## 0.8.218 (alpha)
 
 - After a printer switch in the send dialog, mark the previous slice's filament and G-code values as stale and label the action "Slice again and check" until a new slice is ready.

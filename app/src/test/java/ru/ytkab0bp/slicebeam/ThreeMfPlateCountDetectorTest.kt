@@ -22,6 +22,11 @@ class ThreeMfPlateCountDetectorTest {
         assertEquals(1, ThreeMfPlateCountDetector.detect(null, listOf("Metadata/plate_9.png")))
     }
 
+    @Test fun ignoresCommentedPlatesAndRecognizesSelfClosingPlates() {
+        val xml = """<config><!-- <plate/> --><![CDATA[<plate/>]]><plate id="1"/><plate /></config>"""
+        assertEquals(2, ThreeMfPlateCountDetector.detect(xml, listOf("Metadata/plate_3.png")))
+    }
+
     @Test(expected = IOException::class)
     fun rejectsUnreasonablePlateIndexesBeforeAllocatingModels() {
         ThreeMfPlateCountDetector.detect(null, listOf("Metadata/plate_1000000.json"))

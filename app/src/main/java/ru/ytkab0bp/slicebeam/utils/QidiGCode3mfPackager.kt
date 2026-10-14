@@ -20,12 +20,15 @@ import java.util.zip.ZipOutputStream
 object QidiGCode3mfPackager {
     private const val PLATE = 1
     private const val MAX_THUMBNAIL_BYTES = 4 * 1024 * 1024
+    private const val MAX_FILAMENTS = 16
     private val settingLine = Regex("^;\\s*([^=]+?)\\s*=\\s*(.*?)\\s*$")
     private val layerLine = Regex("(?i)^;\\s*total layer number\\s*:\\s*(\\d+)\\s*$")
     private val objectLine = Regex("(?i)^EXCLUDE_OBJECT_DEFINE\\s+NAME=([^\\s]+).*?POLYGON=(.*)$")
     private val number = Regex("[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)")
     private val durationPart = Regex("(\\d+(?:\\.\\d+)?)\\s*([dhms])", RegexOption.IGNORE_CASE)
     private val thumbnailBegin = Regex("(?i)^;\\s*thumbnail\\s+begin\\s+(\\d+)x(\\d+)\\s+(\\d+)(?:\\s+.*)?$")
+    private val toolLine = Regex("(?i)^T(\\d+)(?:\\s|$)")
+    private val remainingTimeLine = Regex("(?i)^M73\\s+P(\\d+)\\s+R(\\d+)")
 
     data class PackageSummary(
         val layers: Int,
@@ -154,24 +157,31 @@ object QidiGCode3mfPackager {
                 if (requiredEntries.any { zip.getEntry(it) == null }) return false
                 val md5Entry = zip.getEntry("Metadata/plate_$PLATE.gcode.md5") ?: return false
                 val codeEntry = zip.getEntry("Metadata/plate_$PLATE.gcode") ?: return false
-                val pngEntry = zip.getEntry("Metadata/plate_$PLATE.png") ?: return false
                 val infoEntry = zip.getEntry("Metadata/slice_info.config") ?: return false
                 val modelEntry = zip.getEntry("3D/3dmodel.model") ?: return false
+                if (md5Entry.size !in 1L..64L) return false
                 val expected = zip.getInputStream(md5Entry).bufferedReader(StandardCharsets.US_ASCII).use { it.readText() }.trim()
+                if (!expected.matches(Regex("[0-9A-Fa-f]{32}"))) return false
                 val actual = zip.getInputStream(codeEntry).use { input -> digest(input) }
-                if (pngEntry.size > MAX_THUMBNAIL_BYTES) return false
-                val thumbnail = zip.getInputStream(pngEntry).use { input ->
-                    val output = java.io.ByteArrayOutputStream()
-                    val buffer = ByteArray(16 * 1024)
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        if (output.size() + count > MAX_THUMBNAIL_BYTES) return false
-                        output.write(buffer, 0, count)
+                val previewPaths = listOf("plate_$PLATE.png", "plate_no_light_$PLATE.png", "top_$PLATE.png", "pick_$PLATE.png")
+                val previews = previewPaths.map { path ->
+                    val entry = zip.getEntry("Metadata/$path") ?: return false
+                    if (entry.size > MAX_THUMBNAIL_BYTES) return false
+                    val bytes = zip.getInputStream(entry).use { input ->
+                        val output = java.io.ByteArrayOutputStream()
+                        val buffer = ByteArray(16 * 1024)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            if (output.size() + count > MAX_THUMBNAIL_BYTES) return false
+                            output.write(buffer, 0, count)
+                        }
+                        output.toByteArray()
                     }
-                    output.toByteArray()
+                    if (!isPng(bytes)) return false
+                    bytes
                 }
-                expected.equals(actual, ignoreCase = true) && isPng(thumbnail) &&
+                expected.equals(actual, ignoreCase = true) && previews.all { it.contentEquals(previews[0]) } &&
                     infoEntry.size > 0 && modelEntry.size > 0
             }
         } catch (_: Exception) {
@@ -198,23 +208,21 @@ object QidiGCode3mfPackager {
         var seconds = 0
         var firstLayer = 0.0
         var maxTool = 0
-        var thumbnailLines: MutableList<String>? = null
+        var inThumbnail = false
         var thumbnailSeen = false
         BufferedReader(InputStreamReader(FileInputStream(file), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
             while (true) {
                 val line = reader.readLine() ?: break
-                if (thumbnailLines != null) {
+                if (inThumbnail) {
                     if (line.trim().startsWith("; thumbnail end", ignoreCase = true)) {
-                        thumbnailLines = null
-                    } else {
-                        thumbnailLines.add(line.trim().removePrefix(";").trim())
+                        inThumbnail = false
                     }
                     continue
                 }
                 val thumb = thumbnailBegin.matchEntire(line.trim())
                 if (thumb != null) {
                     thumbnailSeen = true
-                    thumbnailLines = ArrayList()
+                    inThumbnail = true
                     continue
                 }
                 val layer = layerLine.matchEntire(line.trim())
@@ -234,8 +242,11 @@ object QidiGCode3mfPackager {
                     normalized.startsWith("; total filament weight [g] :", ignoreCase = true) -> settings["total filament weight [g]"] = normalized.substringAfter(':').trim()
                     normalized.startsWith("; total filament used [g] =", ignoreCase = true) -> settings["total filament used [g]"] = normalized.substringAfter('=').trim()
                 }
-                val tool = Regex("(?i)^T(\\d+)(?:\\s|$)").find(normalized)?.groupValues?.get(1)?.toIntOrNull()
-                if (tool != null) {
+                val toolMatch = toolLine.find(normalized)
+                if (toolMatch != null) {
+                    val tool = toolMatch.groupValues[1].toIntOrNull()
+                        ?: throw IllegalArgumentException("The QIDI file has an invalid tool number.")
+                    require(tool in 0 until MAX_FILAMENTS) { "The QIDI file uses an unsupported tool number T$tool." }
                     maxTool = maxOf(maxTool, tool)
                     val oneBased = tool + 1
                     if (sequence.lastOrNull() != oneBased) sequence.add(oneBased)
@@ -257,6 +268,7 @@ object QidiGCode3mfPackager {
         if (layers == 0) layers = settings["total layer number"]?.toIntOrNull() ?: 0
 
         val toolCount = maxOf(maxTool + 1, csv(settings["filament_type"]).size, csv(settings["filament_colour"]).size, 1)
+        require(toolCount <= MAX_FILAMENTS) { "The QIDI file declares too many filaments." }
         val materials = (0 until toolCount).map { i ->
             csv(settings["filament_type"]).getOrNull(i)?.ifBlank { null }
                 ?: slots.getOrNull(i)?.type?.takeIf { it.isNotBlank() } ?: "PLA"
@@ -327,13 +339,13 @@ object QidiGCode3mfPackager {
         BufferedReader(InputStreamReader(FileInputStream(file), StandardCharsets.US_ASCII), 32 * 1024).use { reader ->
             while (true) {
                 val line = reader.readLine() ?: break
-                val match = Regex("(?i)^M73\\s+P(\\d+)\\s+R(\\d+)").find(line.trim()) ?: continue
+                val match = remainingTimeLine.find(line.trim()) ?: continue
                 val percent = match.groupValues[1].toIntOrNull() ?: continue
                 val minutes = match.groupValues[2].toIntOrNull() ?: continue
                 if (percent <= 1) remainingMinutes = maxOf(remainingMinutes ?: 0, minutes)
             }
         }
-        return (remainingMinutes ?: 0) * 60
+        return (remainingMinutes ?: 0).coerceAtMost(Int.MAX_VALUE / 60) * 60
     }
 
     private fun parseDuration(value: String): Int {
