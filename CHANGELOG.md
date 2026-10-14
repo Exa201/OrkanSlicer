@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.223 (alpha)
+
+- Refresh the plate object count and invalidate its thumbnail cache only after a model import actually commits to the active native model. This fixes a stale "0 objects" label observed after keeping the original geometry of a 502,002-triangle STL.
+- Recheck the large-model import consent on Honor: the import warning and the independent simplification choice appear before any geometry reduction.
+
 ## 0.8.222 (alpha)
 
 - Keep the compact plate picker usable on narrow and short screens: show the circular layout only when it fits, otherwise use the scrollable grid. Generate its miniature model footprints from inexpensive approximate bounds without changing slice geometry.

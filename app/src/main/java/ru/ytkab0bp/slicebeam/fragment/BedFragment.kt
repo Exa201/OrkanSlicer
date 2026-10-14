@@ -1705,6 +1705,11 @@ selectedPlateTabIndex = if (platesModels.isEmpty()) 0 else currentPlateIndex.coe
 plateObjectCounts = platesModels.map { it?.objectsCount ?: -1 }
 })
 }
+/** Import commits happen on the GL thread after the earlier placeholder count was published. */
+private fun onModelImportCommitted() {
+    platePreviewRevision++
+    updatePlateIndicator()
+}
 /** Reuse the native model bounds to draw tiny XY footprints; never render a second 3D scene. */
 private fun refreshPlateThumbnails() {
     val viewport = glView ?: return
@@ -1872,6 +1877,7 @@ if (finalCallback != null)
 {
 finalCallback.onLoaded(first, 0, first.objectsCount)
 }
+onModelImportCommitted()
 reportImportReduction(reduction)
 }
 })
@@ -1947,6 +1953,7 @@ if (callback != null)
 {
 callback?.onLoaded(currentModel, firstNewObject, addedObjects)
 }
+onModelImportCommitted()
 reportImportReduction(reduction)
 }
 })
@@ -2005,6 +2012,7 @@ if (callback != null)
 {
 callback?.onLoaded(m, 0, addedObjects)
 }
+onModelImportCommitted()
 reportImportReduction(reduction)
 }
 })
