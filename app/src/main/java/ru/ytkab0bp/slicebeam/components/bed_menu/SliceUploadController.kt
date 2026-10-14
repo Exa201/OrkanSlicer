@@ -59,6 +59,13 @@ object SliceUploadController {
         setConnectTimeout(15000)
         setMaxRetriesAndTimeout(0, 10000)
     }
+    private val printStartClient = AsyncHttpClient().apply {
+        setLoggingEnabled(true)
+        // Uploads may take minutes; a print-start acknowledgement should not.
+        setTimeout(30000)
+        setConnectTimeout(15000)
+        setMaxRetriesAndTimeout(0, 10000)
+    }
 
     @JvmStatic
     fun upload(
@@ -304,7 +311,7 @@ object SliceUploadController {
                         showUploadFailure(fragment, 0, responseBody, IOException(detail), progress)
                         return
                     }
-                    val acknowledgement = MoonrakerResponseInspector.uploadedFile(responseBody)
+                    val acknowledgement = MoonrakerResponseInspector.uploadedFile(responseBody, name)
                     if (acknowledgement == null) {
                         showUploadFailure(fragment, 0, null,
                             IOException(PrinterResponseInspector.missingAcknowledgement(responseBody,
@@ -336,7 +343,7 @@ object SliceUploadController {
                         if (qidiQ2) put("plateindex", "1")
                     }
                     try {
-                    client.post(
+                    printStartClient.post(
                         SliceBeam.requireInstance(),
                         startUrl,
                         headers,
@@ -345,14 +352,14 @@ object SliceUploadController {
                         object : AsyncHttpResponseHandler() {
                             override fun onSuccess(code: Int, headers: Array<Header>, body: ByteArray) {
                                 PrinterResponseInspector.embeddedError(body)?.let { detail ->
-                                    showUploadFailure(fragment, 0, body, IOException(detail), progress)
+                                    showUploadFailure(fragment, 0, body, IOException(detail), progress, printStartAttempt = true)
                                     return
                                 }
                                 if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
                                     showUploadFailure(fragment, 0, null,
                                         IOException(PrinterResponseInspector.missingAcknowledgement(body,
                                             "Der Drucker hat den Druckstart nicht bestätigt. Bitte den Druckerstatus prüfen.")),
-                                        progress)
+                                        progress, printStartAttempt = true)
                                     return
                                 }
                                 dismissSendProgress(progress)
@@ -370,12 +377,12 @@ object SliceUploadController {
                                 body: ByteArray,
                                 error: Throwable,
                             ) {
-                                showUploadFailure(fragment, code, body, error, progress)
+                                showUploadFailure(fragment, code, body, error, progress, printStartAttempt = true)
                             }
                         },
                     )
                     } catch (error: RuntimeException) {
-                        showUploadFailure(fragment, 0, null, error, progress)
+                        showUploadFailure(fragment, 0, null, error, progress, printStartAttempt = true)
                     }
                 }
 
@@ -433,9 +440,12 @@ object SliceUploadController {
         responseBody: ByteArray?,
         error: Throwable?,
         progress: ProgressDialog,
+        printStartAttempt: Boolean = false,
     ) {
         dismissSendProgress(progress)
-        val detail = PrinterResponseInspector.failureDetail(responseBody, error?.localizedMessage ?: error?.toString())
+        val detail = if (printStartAttempt)
+            PrinterResponseInspector.printStartFailureDetail(responseBody, error?.localizedMessage ?: error?.toString())
+        else PrinterResponseInspector.failureDetail(responseBody, error?.localizedMessage ?: error?.toString())
         ViewUtils.postOnMainThread {
             val context = fragment.getContext() ?: return@postOnMainThread
             BeamAlertDialogBuilder(context)

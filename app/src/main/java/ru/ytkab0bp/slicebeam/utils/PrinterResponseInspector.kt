@@ -8,11 +8,14 @@ import java.nio.charset.StandardCharsets
 /** Some printer APIs return an error object with HTTP 200; never report those as started prints. */
 object PrinterResponseInspector {
     private const val MAX_DETAIL_CHARS = 500
+    private const val MAX_RESPONSE_BYTES = 256 * 1024
 
     /** A web page from an API endpoint usually means the host type, port or proxy is wrong. */
     @JvmStatic
     fun missingAcknowledgement(body: ByteArray?, fallback: String): String {
-        val prefix = body?.toString(StandardCharsets.UTF_8)?.trimStart()?.take(256)?.lowercase().orEmpty()
+        val prefix = body?.let {
+            String(it, 0, minOf(it.size, 256), StandardCharsets.UTF_8).trimStart().lowercase()
+        }.orEmpty()
         return if (prefix.startsWith("<!doctype html") || prefix.startsWith("<html"))
             "Die Druckeradresse liefert eine Webseite statt einer API-Antwort. Hosttyp und Port prüfen; es wurde kein Druck gestartet."
         else fallback
@@ -42,6 +45,8 @@ object PrinterResponseInspector {
 
     @JvmStatic
     fun failureDetail(body: ByteArray?, fallback: String?): String {
+        if (body != null && body.size > MAX_RESPONSE_BYTES)
+            return "Die Druckerantwort ist zu groß. Hosttyp und Port prüfen."
         embeddedError(body)?.let { return it }
         val root = parseObject(body)
         if (root != null) message(root)?.let { return limit(it) }
@@ -49,8 +54,17 @@ object PrinterResponseInspector {
         return limit(raw.ifBlank { fallback.orEmpty() })
     }
 
+    /** A timed-out start request is ambiguous: the printer may already be printing. */
+    @JvmStatic
+    fun printStartFailureDetail(body: ByteArray?, fallback: String?): String {
+        embeddedError(body)?.let { return limit("Druckstart abgelehnt: $it") }
+        val cause = failureDetail(body, fallback).takeIf { it.isNotBlank() }
+        val message = "Druckstart nicht bestätigt. Druckerstatus prüfen, bevor du erneut sendest."
+        return limit(if (cause == null) message else "$message $cause")
+    }
+
     private fun parseObject(body: ByteArray?): JsonObject? {
-        if (body == null || body.isEmpty()) return null
+        if (body == null || body.isEmpty() || body.size > MAX_RESPONSE_BYTES) return null
         return try {
             JsonParser.parseString(body.toString(StandardCharsets.UTF_8)).takeIf { it.isJsonObject }?.asJsonObject
         } catch (_: RuntimeException) {

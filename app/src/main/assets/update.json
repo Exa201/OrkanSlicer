@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.219\n\n• Qidi-Druckpakete begrenzen Werkzeugdaten und prüfen alle Vorschaubilder.\n• OctoPrint meldet laufende Dateiverarbeitung verständlich.\n• Mehrplattige 3MF-Dateien und große Schrift wurden erneut auf Android geprüft.",
-  "en": "OrkanSlicer 0.8.219\n\n• QIDI packages limit tool metadata and validate every preview.\n• OctoPrint clearly reports uploads that are still processing.\n• Multi-plate 3MF files and larger text were rechecked on Android.",
-  "ru": "OrkanSlicer 0.8.219\n\n• Пакеты QIDI ограничивают данные инструментов и проверяют все изображения.\n• OctoPrint сообщает об обработке загруженного файла.\n• Многоплатные 3MF и крупный шрифт повторно проверены на Android."
+  "de": "OrkanSlicer 0.8.220\n\n• Moonraker startet nur die Datei, deren Upload bestätigt wurde.\n• Bei unklarem Druckstart fordert die App eine Statusprüfung vor erneutem Senden.\n• Zwei 3MF-Druckplatten mit unterschiedlichen Filamenten wurden auf Android geprüft.",
+  "en": "OrkanSlicer 0.8.220\n\n• Moonraker starts only the file confirmed by the upload response.\n• An uncertain print start prompts a status check before retrying.\n• Two 3MF plates with different filaments were checked on Android.",
+  "ru": "OrkanSlicer 0.8.220\n\n• Moonraker запускает только файл, подтверждённый ответом загрузки.\n• При неясном запуске перед повторной отправкой предлагается проверить статус принтера.\n• Две пластины 3MF с разными филаментами проверены на Android."
 }

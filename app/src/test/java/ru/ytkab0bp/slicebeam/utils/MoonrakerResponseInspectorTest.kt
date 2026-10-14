@@ -13,6 +13,8 @@ class MoonrakerResponseInspectorTest {
         val acknowledgement = MoonrakerResponseInspector.uploadedFile(bytes(
             """{"item":{"root":"gcodes","path":"subdir/model-1.gcode"},"action":"create_file","print_started":false,"print_queued":false}"""))
         assertEquals("subdir/model-1.gcode", acknowledgement?.path)
+        assertEquals("subdir/model-1.gcode", MoonrakerResponseInspector.uploadedFile(bytes(
+            """{"item":{"root":"gcodes","path":"subdir/model-1.gcode"}}"""), "model-1.gcode")?.path)
         assertFalse(acknowledgement!!.printStarted)
         assertFalse(acknowledgement.printQueued)
         assertEquals("My model.gcode", MoonrakerResponseInspector.uploadedFile(bytes(
@@ -37,6 +39,11 @@ class MoonrakerResponseInspectorTest {
             """{"item":{"root":"gcodes","path":"other.gcode"},"action":"delete_file"}""")) {
             assertNull("Accepted $payload", MoonrakerResponseInspector.uploadedFile(bytes(payload)))
         }
+    }
+
+    @Test fun acknowledgementForAnotherFileCannotBeStarted() {
+        val reply = bytes("""{"item":{"root":"gcodes","path":"other.gcode"},"action":"create_file"}""")
+        assertNull(MoonrakerResponseInspector.uploadedFile(reply, "wanted.gcode"))
     }
 
     @Test fun printStartRequiresAnExplicitOkResult() {

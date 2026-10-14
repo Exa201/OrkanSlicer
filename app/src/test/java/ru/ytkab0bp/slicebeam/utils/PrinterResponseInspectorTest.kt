@@ -67,4 +67,19 @@ class PrinterResponseInspectorTest {
             bytes("<html><body><center>200 OK</center></body></html>"), fallback).contains("Webseite"))
         assertEquals(fallback, PrinterResponseInspector.missingAcknowledgement(bytes("{}"), fallback))
     }
+
+    @Test fun startTimeoutExplainsThatPrinterStatusMustBeCheckedBeforeRetry() {
+        val detail = PrinterResponseInspector.printStartFailureDetail(null, "Read timed out")
+        assertTrue(detail.contains("Druckerstatus prüfen"))
+        assertTrue(detail.contains("Read timed out"))
+        assertEquals("Druckstart abgelehnt: Printer busy", PrinterResponseInspector.printStartFailureDetail(
+            bytes("""{"error":"Printer busy"}"""), "Read timed out"))
+    }
+
+    @Test fun oversizedPrinterResponseCannotBeParsedOrCopiedIntoAnErrorDialog() {
+        val huge = bytes("<html>" + "x".repeat(300_000))
+        assertNull(PrinterResponseInspector.embeddedError(huge))
+        assertTrue(PrinterResponseInspector.failureDetail(huge, "fallback").contains("zu groß"))
+        assertTrue(PrinterResponseInspector.missingAcknowledgement(huge, "fallback").contains("Webseite"))
+    }
 }

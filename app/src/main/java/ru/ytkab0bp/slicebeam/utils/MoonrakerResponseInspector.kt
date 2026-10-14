@@ -12,13 +12,15 @@ object MoonrakerResponseInspector {
     data class UploadAcknowledgement(val path: String, val printStarted: Boolean, val printQueued: Boolean)
 
     @JvmStatic
-    fun uploadedFile(body: ByteArray?): UploadAcknowledgement? {
+    fun uploadedFile(body: ByteArray?, expectedName: String? = null): UploadAcknowledgement? {
         val root = parseObject(body) ?: return null
         // File uploads are normally unwrapped; accept the result wrapper used by some proxies.
         val payload = childObject(root, "result") ?: root
         val item = childObject(payload, "item") ?: return null
         if (string(item, "root") != "gcodes") return null
         val path = string(item, "path")?.takeIf { it.isNotBlank() && safeRelativePath(it) } ?: return null
+        // A valid-looking acknowledgement for another file must never be used for print/start.
+        if (expectedName != null && path.substringAfterLast('/') != expectedName) return null
         val action = string(payload, "action")
         if (action != null && action !in setOf("create_file", "modify_file")) return null
         return UploadAcknowledgement(

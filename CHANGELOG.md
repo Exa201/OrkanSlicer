@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.220 (alpha)
+
+- Require the Moonraker upload acknowledgement to identify the same filename that the app sent; an unrelated stored path can no longer be started.
+- Give Moonraker print-start requests a separate 30-second timeout with no automatic retry. On a missing start confirmation, direct the user to check printer status before resending because the first request may already have started a print.
+- Bound printer error-response parsing to 256 KiB and inspect only a short prefix when identifying an HTML page from the wrong API endpoint.
+- Exercise the actual workspace's lazy switch between two 3MF plates on Android, including each plate's own object and filament.
+- Recheck the Kobra host read-only: Moonraker and OctoPrint-compatible information endpoints respond, the last job is complete, and ACE slot 2 remains empty. No firmware or physical print was changed.
+
 ## 0.8.219 (alpha)
 
 - Bound QIDI Q2 tool metadata to 16 filaments and reject malformed or out-of-range tool numbers before allocating package metadata. Stop retaining embedded thumbnail text during the first G-code pass.
