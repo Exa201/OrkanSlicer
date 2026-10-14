@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 data class WorkspaceNavigationItem(
     val slot: Int,
@@ -84,13 +85,13 @@ private fun Destination(
         ) {
             Icon(
                 painterResource(item.icon), contentDescription = null,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).size(20.dp),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).size(OrkanUiTokens.navigationIconSize),
                 tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Text(
             item.label, maxLines = 2, softWrap = true, overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center, fontSize = 11.sp, lineHeight = 13.sp,
+            textAlign = TextAlign.Center, fontSize = OrkanUiTokens.navigationLabelSize, lineHeight = 14.sp,
             modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,

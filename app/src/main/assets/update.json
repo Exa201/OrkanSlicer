@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.221\n\n• Beim Öffnen einer 3MF Drucker sowie Druck- und Filamenteinstellungen getrennt wählen.\n• Eigene Profile bleiben standardmäßig aktiv; Modellfarben bleiben sichtbar.\n• Importierte Dateiwerte gelten nur für das aktuelle Modell.",
-  "en": "OrkanSlicer 0.8.221\n\n• Choose printer, print and filament settings independently when opening a 3MF.\n• Own profiles stay active by default; model colors remain visible.\n• Imported file settings apply only to the current model.",
-  "ru": "OrkanSlicer 0.8.221\n\n• При открытии 3MF отдельно выбираются принтер, параметры печати и филамента.\n• По умолчанию остаются собственные профили, цвета модели сохраняются.\n• Импортированные настройки действуют только для текущей модели."
+  "de": "OrkanSlicer 0.8.222\n\n• Die Druckplattenauswahl passt sich schmalen Displays an.\n• Duplizieren, Verschieben und Löschen sind im Bearbeiten-Menü schneller erreichbar; vor dem Löschen wird gefragt.\n• Menüs laden sparsamer und die Schrift auf Akzentflächen bleibt lesbar.",
+  "en": "OrkanSlicer 0.8.222\n\n• The plate picker adapts to narrow screens.\n• Duplicate, move and delete are easier to reach in Edit; deletion asks for confirmation.\n• Menus load more efficiently and accent text stays readable.",
+  "ru": "OrkanSlicer 0.8.222\n\n• Выбор платформ адаптируется к узким экранам.\n• Дублирование, перенос и удаление доступны быстрее; удаление требует подтверждения.\n• Меню используют меньше ресурсов, а текст на цветном фоне остаётся читаемым."
 }

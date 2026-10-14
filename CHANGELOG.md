@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.222 (alpha)
+
+- Keep the compact plate picker usable on narrow and short screens: show the circular layout only when it fits, otherwise use the scrollable grid. Generate its miniature model footprints from inexpensive approximate bounds without changing slice geometry.
+- Move duplicate, move-to-plate, delete and further model actions to the front of the Edit menu. Ask before deleting the selected model.
+- Share menu and navigation sizing tokens, create one-row phone menus lazily, and choose readable text on the selected accent color in both themes.
+- Audit the existing import simplification gate and plate state handling; retain their confirmation and preservation behavior. Add a plate layout regression test and document remaining device and low-memory checks.
+
 ## 0.8.221 (alpha)
 
 - Ask for the target printer after opening a 3MF and let the user independently choose file print settings, filament settings, or an exactly matching installed printer profile. Own profiles are the default; raw machine commands and connection details from the file are never imported.

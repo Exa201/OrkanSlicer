@@ -154,6 +154,8 @@
     <string name="EditRedoShort">Erneut</string>
     <string name="EditArrangeShort">Anordnen</string>
     <string name="EditOrientShort">Ausrichten</string>
+    <string name="EditMovePlateShort">Zu Platte</string>
+    <string name="EditMoreShort">Mehr</string>
     <string name="PlateDeleteConfirm">Diese Druckplatte und ihre Modelle löschen?</string>
     <string name="ImportSimplifyTitle">Modell vereinfachen?</string>
     <string name="ImportSimplifyMessage">Dieses Modell hat mehr als 500.000 Dreiecke. Eine Vereinfachung kann die Leistung verbessern, aber Details entfernen. Möchtest du das Original behalten oder es vor dem Laden vereinfachen?</string>
@@ -202,7 +204,8 @@
     <string name="ObjectActionScale">Skalieren</string>
     <string name="ObjectActionDuplicate">Duplizieren</string>
     <string name="ObjectActionCenter">Zentrieren</string>
-    <string name="ObjectActionMore">Mehr</string>
+    <string name="ObjectActionMore">Weitere Aktionen</string>
+    <string name="ModelDeleteConfirm">Dieses Modell von der Druckplatte löschen?</string>
     <string name="ObjectActionShow">Aktionen</string>
     <string name="ObjectActionHide">Schließen</string>
     <string name="MenuFileKromacut">Farbbild erstellen</string>

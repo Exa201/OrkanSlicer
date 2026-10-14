@@ -32,11 +32,12 @@ fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
     val foreground = Color(ThemesRepo.getColor(android.R.attr.textColorPrimary))
     val secondary = Color(ThemesRepo.getColor(android.R.attr.textColorSecondary))
     val accent = Color(ThemesRepo.getColor(android.R.attr.colorAccent))
+    val onAccent = if (ColorUtils.calculateLuminance(accent.toArgbCompat()) > 0.179) Color.Black else Color.White
     val dark = ColorUtils.calculateLuminance(background.toArgbCompat()) < 0.5
     val colors = if (dark) {
         darkColorScheme(
             primary = accent,
-            onPrimary = Color.White,
+            onPrimary = onAccent,
             background = background,
             onBackground = foreground,
             surface = background,
@@ -46,7 +47,7 @@ fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
     } else {
         lightColorScheme(
             primary = accent,
-            onPrimary = Color.White,
+            onPrimary = onAccent,
             background = background,
             onBackground = foreground,
             surface = background,

@@ -38,6 +38,25 @@ internal class TransformMenuItems(
             BedComposeMenuAction(R.string.ModelColorSlotsAction, R.drawable.print_filament_sync_24, {
                 fragment.showModelColorSlots()
             }, enabled = (renderer.model?.objectsCount ?: 0) > 0),
+            selectionAction(R.string.ObjectActionDuplicate, R.drawable.folder_simple_plus_outline_28, availability) {
+                fragment.glView!!.duplicateSelectedModel { fragment.updateModel() }
+            },
+            BedComposeMenuAction(R.string.MenuFileMoveToPlate, R.drawable.square_stack_up_outline_28, {
+                FileMenuObjectActions(fragment).showMoveToPlateDialog(it)
+            }, enabled = availability.hasSelectedObject && fragment.plateCount > 1),
+            selectionAction(R.string.ModelContextDelete, R.drawable.delete_outline_android_28, availability) { anchor ->
+                BeamAlertDialogBuilder(anchor.context)
+                    .setTitle(R.string.ModelContextDelete)
+                    .setMessage(R.string.ModelDeleteConfirm)
+                    .setPositiveButton(R.string.ModelContextDelete) { _, _ ->
+                        fragment.glView!!.deleteSelectedModel(fragment::updateModel)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            },
+            selectionAction(R.string.ObjectActionMore, R.drawable.settings_outline_28, availability) {
+                fragment.showSelectedModelContextMenu()
+            },
             BedComposeMenuAction(R.string.ModelUndo, R.drawable.arrow_left_outline_28, {
                 fragment.undoModelEdit()
             }),
@@ -93,12 +112,6 @@ internal class TransformMenuItems(
             },
             selectionAction(R.string.MenuTransformScale, R.drawable.arrow_up_right_corner_outline_24, availability) {
                 showScaleMenu.accept(it)
-            },
-            selectionAction(R.string.ObjectActionDuplicate, R.drawable.folder_simple_plus_outline_28, availability) {
-                fragment.glView!!.duplicateSelectedModel { fragment.updateModel() }
-            },
-            selectionAction(R.string.ObjectActionMore, R.drawable.settings_outline_28, availability) {
-                fragment.showSelectedModelContextMenu()
             },
             selectionAction(R.string.ModelSimplify, R.drawable.sliders_outline_28, availability, ::showSimplifyDialog),
             BedComposeMenuAction(

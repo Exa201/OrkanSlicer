@@ -51,4 +51,13 @@ class PlateTabsPolicyTest {
         assertNull(PlateTabsPolicy.afterClose(plateCount = 2, selectedIndex = 2, closedIndex = 0))
         assertNull(PlateTabsPolicy.afterClose(plateCount = 2, selectedIndex = 0, closedIndex = -1))
     }
+
+    @Test
+    fun pickerUsesCircleOnlyWhenCardsFitTheDisplay() {
+        assertEquals(PlatePickerLayout.INLINE, PlatePickerLayoutPolicy.choose(2, 320, 600))
+        assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(4, 360, 800))
+        assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(4, 430, 440))
+        assertEquals(PlatePickerLayout.CIRCLE, PlatePickerLayoutPolicy.choose(4, 430, 800))
+        assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(20, 430, 800))
+    }
 }

@@ -49,6 +49,16 @@ internal data class PlateCloseDecision(val selectedIndex: Int, val resetOnlyPlat
 internal data class PlateFootprint(val x: Float, val y: Float, val width: Float, val height: Float)
 internal data class PlateThumbnail(val footprints: List<PlateFootprint>)
 
+internal enum class PlatePickerLayout { INLINE, CIRCLE, GRID }
+
+internal object PlatePickerLayoutPolicy {
+    fun choose(plateCount: Int, screenWidthDp: Int, screenHeightDp: Int): PlatePickerLayout = when {
+        plateCount <= 2 -> PlatePickerLayout.INLINE
+        plateCount <= 6 && screenWidthDp >= 400 && screenHeightDp >= 480 -> PlatePickerLayout.CIRCLE
+        else -> PlatePickerLayout.GRID
+    }
+}
+
 internal object PlateTabsPolicy {
     fun afterClose(plateCount: Int, selectedIndex: Int, closedIndex: Int): PlateCloseDecision? {
         if (plateCount <= 0 || selectedIndex !in 0 until plateCount || closedIndex !in 0 until plateCount) return null
@@ -77,7 +87,9 @@ internal fun PlateTabs(
     onAdd: () -> Unit,
 ) {
     var open by openState
-    val screenHeightDp = LocalConfiguration.current.screenHeightDp
+    val configuration = LocalConfiguration.current
+    val screenHeightDp = configuration.screenHeightDp
+    val pickerLayout = PlatePickerLayoutPolicy.choose(plateCount, configuration.screenWidthDp, screenHeightDp)
     val label = stringResource(R.string.PlateNumber, (selectedIndex + 1).toString())
     Surface(
         modifier = Modifier.size(OrkanUiTokens.touchTarget).semantics { contentDescription = label }
@@ -95,7 +107,7 @@ internal fun PlateTabs(
             Surface(shape = RoundedCornerShape(OrkanUiTokens.dialogCornerRadius), color = MaterialTheme.colorScheme.surface) {
                 Column(Modifier.padding(OrkanUiTokens.panelPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.PlatePickerTitle), style = MaterialTheme.typography.titleMedium)
-                    if (plateCount in 1..2) {
+                    if (pickerLayout == PlatePickerLayout.INLINE) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically) {
                             (0 until plateCount).forEach { index ->
@@ -105,7 +117,7 @@ internal fun PlateTabs(
                             }
                             AddPlateButton { onAdd(); open = false }
                         }
-                    } else if (plateCount in 3..6 && screenHeightDp >= 440) {
+                    } else if (pickerLayout == PlatePickerLayout.CIRCLE) {
                         Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
                             (0 until plateCount).forEach { index ->
                                 val angle = -PI / 2 + (2 * PI * index / plateCount)

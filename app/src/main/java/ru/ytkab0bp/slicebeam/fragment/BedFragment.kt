@@ -1724,7 +1724,8 @@ private fun refreshPlateThumbnails() {
                 val upper = Vec3d()
                 val previewLimit = if (models.size > 6) 6 else 24
                 for (objectIndex in 0 until model.objectsCount.coerceAtMost(previewLimit)) {
-                    model.getBoundingBoxExact(objectIndex, lower, upper)
+                    // A tiny picker image needs only the transformed extent, not a full mesh walk.
+                    model.getBoundingBoxApprox(objectIndex, lower, upper)
                     val left = ((lower.x - minimum.x) / width).toFloat().coerceIn(0f, 1f)
                     val bottom = ((lower.y - minimum.y) / depth).toFloat().coerceIn(0f, 1f)
                     val right = ((upper.x - minimum.x) / width).toFloat().coerceIn(0f, 1f)

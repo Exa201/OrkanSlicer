@@ -3,10 +3,11 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -88,20 +89,19 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             LocalConfiguration.current.screenWidthDp,
             actions.size,
         ).dp
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                actions.forEach { action ->
-                    if (action.sectionBreakBefore) Spacer(Modifier.width(6.dp))
-                    BedMenuActionTile(
-                        action,
-                        portrait = true,
-                        menuView = menuView,
-                        modifier = Modifier.width(portraitActionTileWidth).height(62.dp),
-                    )
-                }
+        LazyRow(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            itemsIndexed(actions, key = { index, _ -> index }) { _, action ->
+                if (action.sectionBreakBefore) Spacer(Modifier.width(6.dp))
+                BedMenuActionTile(
+                    action,
+                    portrait = true,
+                    menuView = menuView,
+                    modifier = Modifier.width(portraitActionTileWidth).height(OrkanUiTokens.menuTileHeight),
+                )
             }
         }
     } else {
@@ -139,6 +139,8 @@ private fun BedMenuActionTile(
         R.string.ModelRedo -> R.string.EditRedoShort
         R.string.MenuArrangeAllObjects -> R.string.EditArrangeShort
         R.string.MenuOrientAllObjects -> R.string.EditOrientShort
+        R.string.MenuFileMoveToPlate -> R.string.EditMovePlateShort
+        R.string.ObjectActionMore -> R.string.EditMoreShort
         R.string.ModelColorSlotsAction -> R.string.ModelColorSlotsShort
         R.string.MenuSlicePerformance -> R.string.GCodePerformanceShort
         R.string.MenuSliceExportToFile -> R.string.GCodeExportShort
@@ -185,12 +187,12 @@ private fun BedMenuActionTile(
                     painter = painterResource(action.iconRes),
                     contentDescription = null,
                     colorFilter = ColorFilter.tint(foreground),
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(OrkanUiTokens.menuIconSize),
                 )
                 Text(
                     text = stringResource(compactLabel),
                     color = foreground,
-                    fontSize = 13.sp,
+                    fontSize = OrkanUiTokens.menuLabelSize,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
@@ -208,12 +210,12 @@ private fun BedMenuActionTile(
                     painter = painterResource(action.iconRes),
                     contentDescription = null,
                     colorFilter = ColorFilter.tint(foreground),
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(OrkanUiTokens.menuIconSize),
                 )
                 Text(
                     text = stringResource(compactLabel),
                     color = foreground,
-                    fontSize = 13.sp,
+                    fontSize = OrkanUiTokens.menuLabelSize,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 2,

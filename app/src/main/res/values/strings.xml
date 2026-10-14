@@ -154,6 +154,8 @@
     <string name="EditRedoShort">Redo</string>
     <string name="EditArrangeShort">Arrange all</string>
     <string name="EditOrientShort">Orient all</string>
+    <string name="EditMovePlateShort">To plate</string>
+    <string name="EditMoreShort">More</string>
     <string name="PlateDeleteConfirm">Delete this plate and its models?</string>
     <string name="ImportSimplifyTitle">Simplify model?</string>
     <string name="ImportSimplifyMessage">This model has more than 500,000 triangles. Simplifying it can improve performance but may remove details. Keep the original or simplify before loading?</string>
@@ -202,7 +204,8 @@
     <string name="ObjectActionScale">Scale</string>
     <string name="ObjectActionDuplicate">Duplicate</string>
     <string name="ObjectActionCenter">Center</string>
-    <string name="ObjectActionMore">More</string>
+    <string name="ObjectActionMore">More actions</string>
+    <string name="ModelDeleteConfirm">Delete this model from the build plate?</string>
     <string name="ObjectActionShow">Actions</string>
     <string name="ObjectActionHide">Hide</string>
     <string name="MenuFileKromacut">Create color image</string>
