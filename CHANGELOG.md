@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.216 (alpha)
+
+- Preserve and apply the selected own-filament pressure advance when importing a 3MF project, alongside own temperature settings. Editing a positive PA value enables it for that filament; the enable switch can still be turned off explicitly.
+- Inspect executable pressure-advance commands in the finished G-code before upload. The print dialog distinguishes slicer-generated filament values from custom start-code commands and shows the selected printer host.
+- Verify on the Kobra 3 V2 Moonraker endpoint that Klipper accepts `SET_PRESSURE_ADVANCE` and reports the changed value; restore the previous live value after the read-only workflow check. A physical print was not started.
+
 ## 0.8.215 (alpha)
 
 - Require explicit confirmation before slicing when an ACE slot's material differs from the model filament, while preserving manual slot assignments.

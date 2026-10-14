@@ -506,6 +506,11 @@
     <string name="PrintPreparePrinter">Drucker: %1$s</string>
     <string name="PrintPrepareSummary">%1$s · %2$s</string>
     <string name="PrintPrepareSelectPrinter">Drucker auswählen</string>
+    <string name="PrintPrepareTargetHost">Zieladresse: %1$s. Prüfe, ob sie zum gewählten Drucker gehört.</string>
+    <string name="PrintPreparePressureAdvanceFilament">Pressure Advance aus dem Filament im G-Code: %1$s</string>
+    <string name="PrintPreparePressureAdvanceCustomOnly">PA nur aus Start-/Benutzer-G-Code: %1$s. Kein vom Slicer erzeugter Filament-PA-Befehl.</string>
+    <string name="PrintPreparePressureAdvanceNone">Kein Pressure-Advance-Befehl im G-Code gefunden.</string>
+    <string name="PrintPreparePressureAdvanceAlsoCustom">Zusätzlicher PA-Befehl im Start-/Benutzer-G-Code: %1$s. Werte vor dem Druck prüfen.</string>
     <string name="PrintPreparePlate">Druckplatte: %1$s</string>
     <string name="PrintPrepareDefaultPlate">Standard</string>
     <string name="PrintPrepareAutoLevelEnabled">Automatisches Bed-Leveling: im Druckerprofil aktiviert</string>

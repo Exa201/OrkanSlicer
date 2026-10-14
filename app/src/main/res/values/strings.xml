@@ -512,6 +512,11 @@
     <string name="PrintPreparePrinter">Printer: %1$s</string>
     <string name="PrintPrepareSummary">%1$s · %2$s</string>
     <string name="PrintPrepareSelectPrinter">Select printer</string>
+    <string name="PrintPrepareTargetHost">Target address: %1$s. Check that it belongs to the selected printer.</string>
+    <string name="PrintPreparePressureAdvanceFilament">Filament pressure advance in G-code: %1$s</string>
+    <string name="PrintPreparePressureAdvanceCustomOnly">PA only from start/custom G-code: %1$s. No slicer-generated filament PA command.</string>
+    <string name="PrintPreparePressureAdvanceNone">No pressure-advance command found in the G-code.</string>
+    <string name="PrintPreparePressureAdvanceAlsoCustom">Additional PA command in start/custom G-code: %1$s. Check the values before printing.</string>
     <string name="PrintPreparePlate">Build plate: %1$s</string>
     <string name="PrintPrepareDefaultPlate">Default</string>
     <string name="PrintPrepareAutoLevelEnabled">Automatic bed leveling: enabled by the printer profile</string>
