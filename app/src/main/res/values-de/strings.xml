@@ -554,6 +554,10 @@
     <string name="PrintPrepareAceGapHint">Vor einer verwendeten Farbe ist ACE-Slot %1$s leer. Ältere Rinkhals-Versionen können dadurch den falschen Slot laden.</string>
     <string name="PrintPrepareAceGapWarning">ACE-Slot %1$s ist vor einer verwendeten Farbe leer. Ältere Rinkhals-Versionen können dadurch eine falsche Farbe laden. Belege die Slots lückenlos und slice erneut oder aktualisiere Rinkhals auf Version 20260716_02 oder neuer. Du kannst die Datei nur hochladen. Starte den Druck hier erst, wenn du die Firmware geprüft hast.</string>
     <string name="PrintPrepareAceGapFirmwareChecked">Firmware geprüft</string>
+    <string name="PrintPrepareSharedAceTitle">Modellfarben teilen sich ACE-Slots</string>
+    <string name="PrintPrepareSharedAceSummary">%1$d Modellfarben → nur %2$d ACE-Slots</string>
+    <string name="PrintPrepareSharedAceWarning">Das Modell verwendet %1$d Farben, aber die Zuordnung nutzt nur %2$d verschiedene ACE-Slots. Farben mit demselben Slot werden mit demselben Filament gedruckt. Prüfe die Zuordnung vor dem Druck. Wenn das absichtlich so ist, kannst du fortfahren.</string>
+    <string name="PrintPrepareSharedAceConfirm">So drucken</string>
     <string name="UploadPreparingGcode">Druckdatei wird vorbereitet …</string>
     <string name="UploadSliceMissing">Das Slice-Ergebnis ist nicht mehr verfügbar. Slice das Modell vor dem Senden erneut.</string>
     <string name="UploadProgressPercent">Wird zum Drucker übertragen: %1$d%%</string>

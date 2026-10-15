@@ -149,7 +149,7 @@ object SlicePrintPreparationDialog {
             .show()
 
         fun sendChecked(targetPrinter: ConfigObject, targetType: String, targetHost: String,
-                        targetApiKey: String?) {
+                        targetApiKey: String?, sharedGatesConfirmed: Boolean = false) {
             if (isAnycubicKobra(targetPrinter) && activeTools.isNotEmpty()) {
                 val title = targetPrinter.title.orEmpty()
                 val invalidTool = SlicePreparationTools.firstUnavailableAceTool(
@@ -172,6 +172,29 @@ object SlicePrintPreparationDialog {
                 }
             }
             if (print && isAnycubicKobra(targetPrinter)) {
+                val title = targetPrinter.title.orEmpty()
+                val sharedGateCount = SlicePreparationTools.sharedAceGateCount(
+                    activeTools, MmuFilamentSync.getSelectedGates(title, gcodeToolCount))
+                if (sharedGateCount != null && !sharedGatesConfirmed) {
+                    BeamAlertDialogBuilder(context)
+                        .setTitle(R.string.PrintPrepareSharedAceTitle)
+                        .setMessage(context.getString(R.string.PrintPrepareSharedAceWarning,
+                            activeTools.distinct().size, sharedGateCount))
+                        .setNegativeButton(R.string.ModelColorSlotsAction) { _, _ ->
+                            val shown = MmuFilamentAssignmentDialog.showForActiveTools(
+                                context, title, gcodeToolCount, activeTools,
+                            ) { mappingRevision.intValue++ }
+                            if (!shown) showNoLoadedGates(context)
+                        }
+                        .setNeutralButton(R.string.PrintPrepareUploadOnly) { _, _ ->
+                            dialog.dismiss()
+                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, false)
+                        }
+                        .setPositiveButton(R.string.PrintPrepareSharedAceConfirm) { _, _ ->
+                            sendChecked(targetPrinter, targetType, targetHost, targetApiKey, true)
+                        }.show()
+                    return
+                }
                 val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(),
                     gcodeToolCount, activeTools, sourceFilamentTypes)
                 if (mismatch != null) {
@@ -186,7 +209,6 @@ object SlicePrintPreparationDialog {
                         }.show()
                     return
                 }
-                val title = targetPrinter.title.orEmpty()
                 val emptyAceSlots = SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
                     activeTools,
                     MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
@@ -274,6 +296,9 @@ object SlicePrintPreparationDialog {
             append(context.getString(R.string.MmuAssignmentEdit))
             append("\n").append(context.getString(R.string.PrintPrepareToolOrder,
                 firstToolUse.joinToString(" → ") { tool -> "T$tool" }))
+            val sharedCount = SlicePreparationTools.sharedAceGateCount(firstToolUse, mapping)
+            if (sharedCount != null) append("\n").append(context.getString(
+                R.string.PrintPrepareSharedAceSummary, firstToolUse.distinct().size, sharedCount))
             firstToolUse.forEach { tool ->
                 val gate = mapping?.getOrNull(tool)
                     ?: MmuFilamentSync.defaultGateForTool(printerTitle, tool)

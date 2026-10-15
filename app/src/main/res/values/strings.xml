@@ -561,6 +561,10 @@
     <string name="PrintPrepareAceGapHint">ACE slot %1$s is empty before a color used by this print. Older Rinkhals versions may load the wrong slot.</string>
     <string name="PrintPrepareAceGapWarning">ACE slot %1$s is empty before a color used by this print. Older Rinkhals versions may load the wrong color. Fill slots without gaps and slice again, or update Rinkhals to version 20260716_02 or later. You can upload the file without starting the print. Start here only after checking the firmware.</string>
     <string name="PrintPrepareAceGapFirmwareChecked">Firmware checked</string>
+    <string name="PrintPrepareSharedAceTitle">Model colors share ACE slots</string>
+    <string name="PrintPrepareSharedAceSummary">%1$d model colors → only %2$d ACE slots</string>
+    <string name="PrintPrepareSharedAceWarning">The model uses %1$d colors, but the assignment uses only %2$d distinct ACE slots. Colors sharing a slot will print with the same filament. Check the assignment before printing. Continue if this is intentional.</string>
+    <string name="PrintPrepareSharedAceConfirm">Print as assigned</string>
     <string name="UploadPreparingGcode">Preparing print file …</string>
     <string name="UploadSliceMissing">The slice is no longer available. Slice the model again before sending it.</string>
     <string name="UploadProgressPercent">Transferring to printer: %1$d%%</string>

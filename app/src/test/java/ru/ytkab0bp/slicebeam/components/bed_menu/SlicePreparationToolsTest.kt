@@ -143,6 +143,17 @@ class SlicePreparationToolsTest {
     }
 
     @Test
+    fun warnsWhenThreeModelToolsShareOnlyTwoPhysicalAceSlots() {
+        val tools = intArrayOf(0, 1, 2)
+        assertEquals(2, SlicePreparationTools.sharedAceGateCount(tools, intArrayOf(0, 0, 3)))
+        assertEquals(1, SlicePreparationTools.sharedAceGateCount(tools, intArrayOf(0, 0, 0)))
+        assertNull(SlicePreparationTools.sharedAceGateCount(tools, intArrayOf(0, 2, 3)))
+        assertNull(SlicePreparationTools.sharedAceGateCount(intArrayOf(0), intArrayOf(0)))
+        assertNull(SlicePreparationTools.sharedAceGateCount(tools, intArrayOf(0, 2)))
+        assertNull(SlicePreparationTools.sharedAceGateCount(tools, null))
+    }
+
+    @Test
     fun readsSlicedMaterialInsteadOfAChangedPalette() {
         val file = File.createTempFile("slice-material", ".gcode")
         try {

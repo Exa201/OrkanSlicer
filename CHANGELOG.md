@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.230 (alpha)
+
+- Warn before printing when several used model tools point to the same physical ACE gate: the dialog now shows the reduced count of printable filament colors and offers direct assignment editing, upload only, or explicit confirmation for an intentional shared-slot print.
+- Verify the current Kobra 3 V2 ACE state read-only; its second slot remains empty. The printer's Rinkhals version is not exposed by the available status API, so a physical three-color print with that gap still requires firmware verification and supervised testing.
+
 ## 0.8.229 (alpha)
 
 - Show the complete physical ACE slot row in the final send dialog, so a gap remains visible immediately before upload or print.

@@ -105,6 +105,13 @@ internal object SlicePreparationTools {
             gate == null || gate !in routableGates
         }
 
+    /** Multiple model tools can intentionally share one ACE gate, but cannot print distinct colors. */
+    fun sharedAceGateCount(activeTools: IntArray, selectedGates: IntArray?): Int? {
+        if (selectedGates == null || activeTools.isEmpty()) return null
+        val assigned = activeTools.map { tool -> selectedGates.getOrNull(tool) ?: return null }
+        return assigned.distinct().size.takeIf { it < activeTools.distinct().size }
+    }
+
     /** Read material names from the sliced file, rather than from a palette edited after slicing. */
     @JvmStatic
     @Throws(IOException::class)
