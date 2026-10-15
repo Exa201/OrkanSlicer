@@ -32,6 +32,7 @@ import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
+import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
 import ru.ytkab0bp.slicebeam.utils.GCodeIntegrityValidator
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
@@ -570,39 +571,36 @@ object SliceUploadController {
         }
         val logicalToolCount = maxOf(1, scan.maxTool + 1)
         val printerTitle = printer.title.orEmpty()
-        var gates = MmuFilamentSync.getSelectedGates(printerTitle, logicalToolCount)
-        if (gates == null) {
-            gates = IntArray(logicalToolCount)
-            val loaded = MmuFilamentSync.loadedGates(printerTitle)
-            if (loaded.isEmpty()) {
-                showAnycubicMappingError(fragment, R.string.MmuAssignmentNoLoadedSlots)
-                return null
-            }
-            for (tool in 0 until logicalToolCount) {
-                val preferred = MmuFilamentSync.defaultGateForTool(printerTitle, tool)
-                gates[tool] = if (preferred in loaded) preferred else loaded[0]
-            }
-            MmuFilamentSync.setSelectedGates(printerTitle, gates)
+        val usedTools = try {
+            SlicePreparationTools.readToolUsage(source).used
+        } catch (error: IOException) {
+            Log.e("SliceMenu", "Could not inspect ACE tool usage before upload", error)
+            showPreparationFailure(fragment, error.message)
+            return null
         }
-
-        val remappedTools = IntArray(logicalToolCount)
-        for (tool in 0 until logicalToolCount) {
-            val loaded = MmuFilamentSync.loadedGates(printerTitle)
-            val gate = gates[tool]
-            val mappedTool = MmuFilamentSync.toolForGate(printerTitle, gate)
-            if (gate !in loaded || mappedTool < 0 || MmuFilamentSync.gateSlot(printerTitle, gate) == null) {
-                showAnycubicMappingError(fragment, R.plurals.MmuAssignmentToolMismatch, logicalToolCount)
-                return null
-            }
-            remappedTools[tool] = mappedTool
+        val loadedGates = MmuFilamentSync.loadedGates(printerTitle)
+        val routing = AnycubicAceRoutingPolicy.resolve(
+            logicalToolCount,
+            usedTools,
+            loadedGates,
+            IntArray(logicalToolCount) { tool -> MmuFilamentSync.defaultGateForTool(printerTitle, tool) },
+        )
+        val unavailableTool = routing.unavailableTool
+        if (unavailableTool != null) {
+            showPreparationFailure(fragment, SliceBeam.requireInstance().getString(
+                R.string.MmuDirectSlotUnavailable, unavailableTool, unavailableTool + 1,
+            ))
+            return null
         }
+        val gates = routing.gates
+        val remappedTools = routing.toolCommands
 
         val liveSlots = Prefs.getFilamentSlots()
         // Vendor metadata describes the ACE gate that receives the tool, not the
         // source 3MF palette. Keep slicer temperatures unchanged in the G-code.
         val physicalSlots = (0 until logicalToolCount).map { tool ->
             MmuFilamentSync.gateSlot(printerTitle, gates[tool])
-                ?: liveSlots.getOrNull(tool)
+                ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 ?: ru.ytkab0bp.slicebeam.utils.FilamentSlot(Color.rgb(25, 200, 160), "PLA")
         }
         val emittedPaintInfo = BooleanArray(4)
@@ -615,7 +613,8 @@ object SliceUploadController {
                 emittedPaintInfo[mappedTool] = true
                 if (hasPaintInfo) append(',')
                 hasPaintInfo = true
-                val slot = MmuFilamentSync.gateSlot(printerTitle, gates[tool]) ?: liveSlots.getOrNull(tool)
+                val slot = MmuFilamentSync.gateSlot(printerTitle, gates[tool])
+                    ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 val material = slot?.type ?: scan.materials[minOf(tool, scan.materials.lastIndex)].trim()
                 val paintColor = slot?.color ?: Color.rgb(25, 200, 160)
                 append("{\"material_type\":").append(JSONObject.quote(material))

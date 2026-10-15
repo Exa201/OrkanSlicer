@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,11 +38,11 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
-import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
 
 /** Shows printer, auto-leveling and ACE slot checks before sending a sliced job. */
 object SlicePrintPreparationDialog {
@@ -78,7 +77,6 @@ object SlicePrintPreparationDialog {
         }.getOrDefault(listOf(printer))
         val selectedPrinter = mutableStateOf(printer)
         val printerChanged = mutableStateOf(false)
-        val mappingRevision = mutableIntStateOf(0)
         lateinit var dialog: AlertDialog
 
         val composeView = ComposeView(context).apply {
@@ -90,14 +88,14 @@ object SlicePrintPreparationDialog {
             setContent {
                 BeamComposeTheme {
                     val currentPrinter = selectedPrinter.value
-                    val mappingSummary = remember(currentPrinter.title, mappingRevision.intValue) {
-                        formatToolMapping(context, currentPrinter.title.orEmpty(), gcodeToolCount, firstToolUse)
+                    val mappingSummary = remember(currentPrinter.title) {
+                        formatToolMapping(context, currentPrinter.title.orEmpty(), firstToolUse)
                     }
-                    val emptyAceSlots = remember(currentPrinter.title, mappingRevision.intValue) {
+                    val emptyAceSlots = remember(currentPrinter.title) {
                         val title = currentPrinter.title.orEmpty()
                         SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
                             activeTools,
-                            MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
+                            gcodeToolCount,
                             MmuFilamentSync.loadedGates(title),
                         )
                     }
@@ -126,14 +124,6 @@ object SlicePrintPreparationDialog {
                                 else R.string.MenuSliceSendToPrinter,
                             )
                         },
-                        onEditMapping = {
-                            val title = selectedPrinter.value.title.orEmpty()
-                            val shown = MmuFilamentAssignmentDialog.showForActiveTools(
-                                context, title, gcodeToolCount, activeTools) {
-                                mappingRevision.intValue++
-                            }
-                            if (!shown) showNoLoadedGates(context)
-                        },
                     )
                 }
             }
@@ -149,54 +139,28 @@ object SlicePrintPreparationDialog {
             .show()
 
         fun sendChecked(targetPrinter: ConfigObject, targetType: String, targetHost: String,
-                        targetApiKey: String?, sharedGatesConfirmed: Boolean = false) {
+                        targetApiKey: String?) {
             if (isAnycubicKobra(targetPrinter) && activeTools.isNotEmpty()) {
                 val title = targetPrinter.title.orEmpty()
-                val invalidTool = SlicePreparationTools.firstUnavailableAceTool(
+                val routing = AnycubicAceRoutingPolicy.resolve(
+                    gcodeToolCount,
                     activeTools,
-                    MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
-                    MmuFilamentAssignmentDialog.availableGates(title, false),
+                    MmuFilamentSync.loadedGates(title),
+                    IntArray(gcodeToolCount) { tool -> MmuFilamentSync.defaultGateForTool(title, tool) },
                 )
+                val invalidTool = routing.unavailableTool
                 if (invalidTool != null) {
                     BeamAlertDialogBuilder(context)
                         .setTitle(R.string.MmuAssignmentTitle)
-                        .setMessage(context.getString(R.string.MmuAssignmentUnavailable, invalidTool))
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .setPositiveButton(R.string.ModelColorSlotsAction) { _, _ ->
-                            val shown = MmuFilamentAssignmentDialog.showForActiveTools(
-                                context, title, gcodeToolCount, activeTools,
-                            ) { mappingRevision.intValue++ }
-                            if (!shown) showNoLoadedGates(context)
-                        }.show()
+                        .setMessage(context.getString(R.string.MmuDirectSlotUnavailable,
+                            invalidTool, invalidTool + 1))
+                        .setPositiveButton(android.R.string.ok, null).show()
                     return
                 }
             }
             if (print && isAnycubicKobra(targetPrinter)) {
                 val title = targetPrinter.title.orEmpty()
-                val sharedGateCount = SlicePreparationTools.sharedAceGateCount(
-                    activeTools, MmuFilamentSync.getSelectedGates(title, gcodeToolCount))
-                if (sharedGateCount != null && !sharedGatesConfirmed) {
-                    BeamAlertDialogBuilder(context)
-                        .setTitle(R.string.PrintPrepareSharedAceTitle)
-                        .setMessage(context.getString(R.string.PrintPrepareSharedAceWarning,
-                            activeTools.distinct().size, sharedGateCount))
-                        .setNegativeButton(R.string.ModelColorSlotsAction) { _, _ ->
-                            val shown = MmuFilamentAssignmentDialog.showForActiveTools(
-                                context, title, gcodeToolCount, activeTools,
-                            ) { mappingRevision.intValue++ }
-                            if (!shown) showNoLoadedGates(context)
-                        }
-                        .setNeutralButton(R.string.PrintPrepareUploadOnly) { _, _ ->
-                            dialog.dismiss()
-                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, false)
-                        }
-                        .setPositiveButton(R.string.PrintPrepareSharedAceConfirm) { _, _ ->
-                            sendChecked(targetPrinter, targetType, targetHost, targetApiKey, true)
-                        }.show()
-                    return
-                }
-                val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(),
-                    gcodeToolCount, activeTools, sourceFilamentTypes)
+                val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(), activeTools, sourceFilamentTypes)
                 if (mismatch != null) {
                     BeamAlertDialogBuilder(context)
                         .setTitle(R.string.PrintPrepareMaterialMismatchTitle)
@@ -211,7 +175,7 @@ object SlicePrintPreparationDialog {
                 }
                 val emptyAceSlots = SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
                     activeTools,
-                    MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
+                    gcodeToolCount,
                     MmuFilamentSync.loadedGates(title),
                 )
                 if (emptyAceSlots.isNotEmpty()) {
@@ -254,20 +218,6 @@ object SlicePrintPreparationDialog {
                 }
                 SlicePreparationTools.PrinterActivationResult.UNCHANGED -> Unit
             }
-            if (isAnycubicKobra(targetPrinter) && activeTools.isNotEmpty()
-                && MmuFilamentSync.getSelectedGates(targetPrinter.title.orEmpty(), gcodeToolCount) == null
-            ) {
-                val shown = MmuFilamentAssignmentDialog.showForActiveTools(
-                    context,
-                    targetPrinter.title.orEmpty(),
-                    gcodeToolCount,
-                    activeTools,
-                ) {
-                    sendChecked(targetPrinter, targetType, targetHost, targetApiKey)
-                }
-                if (!shown) showNoLoadedGates(context)
-                return@setOnClickListener
-            }
             sendChecked(targetPrinter, targetType, targetHost, targetApiKey)
         }
     }
@@ -275,12 +225,11 @@ object SlicePrintPreparationDialog {
     private data class MaterialMismatch(val first: Int, val second: String,
                                         val third: Int, val fourth: String)
 
-    private fun firstMaterialMismatch(printerTitle: String, toolCount: Int,
+    private fun firstMaterialMismatch(printerTitle: String,
                                       activeTools: IntArray, sourceFilamentTypes: List<String>): MaterialMismatch? {
-        val gates = MmuFilamentSync.getSelectedGates(printerTitle, toolCount) ?: return null
         for (tool in activeTools) {
             val source = sourceFilamentTypes.getOrNull(tool)?.trim().orEmpty()
-            val gate = gates.getOrNull(tool) ?: continue
+            val gate = tool
             val actual = MmuFilamentSync.gateSlot(printerTitle, gate)?.type?.trim().orEmpty()
             if (!SlicePreparationTools.materialMatchesSlicedFile(source, actual)) {
                 return MaterialMismatch(tool, source.ifBlank { "?" }, gate + 1, actual.ifBlank { "?" })
@@ -289,31 +238,16 @@ object SlicePrintPreparationDialog {
         return null
     }
 
-    private fun formatToolMapping(context: Context, printerTitle: String, toolCount: Int,
+    private fun formatToolMapping(context: Context, printerTitle: String,
                                   firstToolUse: IntArray): String {
-        val mapping = MmuFilamentSync.getSelectedGates(printerTitle, toolCount)
         return buildString {
-            append(context.getString(R.string.MmuAssignmentEdit))
-            append("\n").append(context.getString(R.string.PrintPrepareToolOrder,
+            append(context.getString(R.string.PrintPrepareToolOrder,
                 firstToolUse.joinToString(" → ") { tool -> "T$tool" }))
-            val sharedCount = SlicePreparationTools.sharedAceGateCount(firstToolUse, mapping)
-            if (sharedCount != null) append("\n").append(context.getString(
-                R.string.PrintPrepareSharedAceSummary, firstToolUse.distinct().size, sharedCount))
             firstToolUse.forEach { tool ->
-                val gate = mapping?.getOrNull(tool)
-                    ?: MmuFilamentSync.defaultGateForTool(printerTitle, tool)
                 append("\nT").append(tool).append(" → ")
-                    .append(MmuFilamentSync.gateLabel(printerTitle, gate))
+                    .append(MmuFilamentSync.gateLabel(printerTitle, tool))
             }
         }
-    }
-
-    private fun showNoLoadedGates(context: Context) {
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MmuSyncFailed)
-            .setMessage(R.string.MmuAssignmentNoLoadedSlots)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
     }
 }
 
@@ -327,7 +261,6 @@ private fun PrintPreparationContent(
     emptyAceSlots: IntArray?,
     pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
     onSelectPrinter: (ConfigObject) -> Unit,
-    onEditMapping: () -> Unit,
 ) {
     var showPrinterPicker by remember { mutableStateOf(false) }
     val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
@@ -434,7 +367,6 @@ private fun PrintPreparationContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(rowShape)
-                    .clickable(role = Role.Button, onClick = onEditMapping)
                     .padding(horizontal = 12.dp, vertical = 12.dp),
                 color = primary,
                 fontSize = 14.sp,

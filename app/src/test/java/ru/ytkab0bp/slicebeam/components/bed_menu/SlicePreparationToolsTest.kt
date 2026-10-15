@@ -113,22 +113,22 @@ class SlicePreparationToolsTest {
     @Test
     fun warnsForSparseAceSlotsInTheThreeColorKobraJob() {
         val tools = intArrayOf(0, 1, 2)
-        val assignedGates = intArrayOf(0, 3, 2)
+        val toolCount = 3
         assertArrayEquals(
             intArrayOf(2),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf(0, 2, 3)),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, toolCount, intArrayOf(0, 2, 3)),
         )
         assertArrayEquals(
             intArrayOf(),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf(0, 1, 2, 3)),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, toolCount, intArrayOf(0, 1, 2, 3)),
         )
         assertArrayEquals(
             intArrayOf(),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(intArrayOf(0), assignedGates, intArrayOf(0, 2, 3)),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(intArrayOf(0), toolCount, intArrayOf(0, 2, 3)),
         )
         assertArrayEquals(
             intArrayOf(),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf()),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, toolCount, intArrayOf()),
         )
     }
 
