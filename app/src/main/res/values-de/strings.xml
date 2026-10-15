@@ -156,10 +156,17 @@
     <plurals name="PlateObjectCount"><item quantity="one">%d Objekt</item><item quantity="other">%d Objekte</item></plurals>
     <string name="EditUndoShort">Zurück</string>
     <string name="EditRedoShort">Erneut</string>
-    <string name="EditArrangeShort">Anordnen</string>
     <string name="EditOrientShort">Ausrichten</string>
     <string name="EditMovePlateShort">Zu Platte</string>
-    <string name="EditMoreShort">Mehr</string>
+    <string name="EditArrangeAllShort">Alle anordnen</string>
+    <string name="EditPackPlateShort">Auf Platte verteilen</string>
+    <string name="EditFillBedShort">Platte füllen</string>
+    <string name="EditCenterBedShort">Zentrieren</string>
+    <string name="EditResetRotationShort">Drehung zurück</string>
+    <string name="EditResetScaleShort">Skalierung zurück</string>
+    <string name="EditLayFaceShort">Auf Fläche legen</string>
+    <string name="EditSelectAllShort">Alle wählen</string>
+    <string name="EditDeleteAllShort">Alle löschen</string>
     <string name="PlateDeleteConfirm">Diese Druckplatte und ihre Modelle löschen?</string>
     <string name="ImportSimplifyTitle">Modell vereinfachen?</string>
     <string name="ImportSimplifyMessage">Dieses Modell hat mehr als 500.000 Dreiecke. Eine Vereinfachung kann die Leistung verbessern, aber Details entfernen. Möchtest du das Original behalten oder es vor dem Laden vereinfachen?</string>
@@ -208,8 +215,8 @@
     <string name="ObjectActionScale">Skalieren</string>
     <string name="ObjectActionDuplicate">Duplizieren</string>
     <string name="ObjectActionCenter">Zentrieren</string>
-    <string name="ObjectActionMore">Weitere Aktionen</string>
     <string name="ModelDeleteConfirm">Dieses Modell von der Druckplatte löschen?</string>
+    <string name="ModelDeleteAllConfirm">Alle Modelle von dieser Druckplatte entfernen?</string>
     <string name="ObjectActionShow">Aktionen</string>
     <string name="ObjectActionHide">Schließen</string>
     <string name="MenuFileKromacut">Farbbild erstellen</string>
@@ -662,7 +669,7 @@
     <string name="MenuCameraControlModeTwo">Ein Finger: verschieben, zwei Finger: drehen</string>
     <string name="MenuCameraControlModeThree">Nur Bewegung</string>
     <string name="MenuOrientation">Ausrichtung</string>
-    <string name="MenuOrientationArrange">Anordnen</string>
+    <string name="MenuOrientationArrange">Modelle auf Platte verteilen</string>
     <string name="MenuOrientationArrangeFinished">Modelle angeordnet.</string>
     <string name="MenuOrientationFlatten">Auf Fläche legen</string>
     <string name="MenuOrientationAutoOrient">Auto-\nausrichten</string>

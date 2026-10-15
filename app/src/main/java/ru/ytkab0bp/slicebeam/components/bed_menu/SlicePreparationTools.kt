@@ -90,6 +90,7 @@ internal object SlicePreparationTools {
 
     /** Lists empty physical slots before the highest used tool without compacting the tool indices. */
     fun emptyAceSlotsBeforeUsedGate(activeTools: IntArray, toolCount: Int, loadedGates: IntArray): IntArray {
+        if (loadedGates.isEmpty()) return IntArray(0)
         val highest = activeTools.maxOrNull()?.takeIf { it >= 0 && it < toolCount } ?: return IntArray(0)
         val loaded = loadedGates.toSet()
         return (0 until highest).filter { gate -> gate !in loaded }.map { gate -> gate + 1 }.toIntArray()

@@ -157,10 +157,17 @@
     <plurals name="PlateObjectCount"><item quantity="one">%d object</item><item quantity="other">%d objects</item></plurals>
     <string name="EditUndoShort">Undo</string>
     <string name="EditRedoShort">Redo</string>
-    <string name="EditArrangeShort">Arrange all</string>
     <string name="EditOrientShort">Orient all</string>
     <string name="EditMovePlateShort">To plate</string>
-    <string name="EditMoreShort">More</string>
+    <string name="EditArrangeAllShort">Arrange all</string>
+    <string name="EditPackPlateShort">Pack on plate</string>
+    <string name="EditFillBedShort">Fill bed</string>
+    <string name="EditCenterBedShort">Center</string>
+    <string name="EditResetRotationShort">Reset rotation</string>
+    <string name="EditResetScaleShort">Reset scale</string>
+    <string name="EditLayFaceShort">Lay on face</string>
+    <string name="EditSelectAllShort">Select all</string>
+    <string name="EditDeleteAllShort">Delete all</string>
     <string name="PlateDeleteConfirm">Delete this plate and its models?</string>
     <string name="ImportSimplifyTitle">Simplify model?</string>
     <string name="ImportSimplifyMessage">This model has more than 500,000 triangles. Simplifying it can improve performance but may remove details. Keep the original or simplify before loading?</string>
@@ -209,8 +216,8 @@
     <string name="ObjectActionScale">Scale</string>
     <string name="ObjectActionDuplicate">Duplicate</string>
     <string name="ObjectActionCenter">Center</string>
-    <string name="ObjectActionMore">More actions</string>
     <string name="ModelDeleteConfirm">Delete this model from the build plate?</string>
+    <string name="ModelDeleteAllConfirm">Remove every model from this build plate?</string>
     <string name="ObjectActionShow">Actions</string>
     <string name="ObjectActionHide">Hide</string>
     <string name="MenuFileKromacut">Create color image</string>
@@ -670,7 +677,7 @@
     <string name="MenuCameraControlModeTwo">One finger - movement, two fingers - rotation</string>
     <string name="MenuCameraControlModeThree">Only movement</string>
     <string name="MenuOrientation">Orientation</string>
-    <string name="MenuOrientationArrange">Arrange models</string>
+    <string name="MenuOrientationArrange">Pack models on plate</string>
     <string name="MenuOrientationArrangeFinished">Models arranged.</string>
     <string name="MenuOrientationFlatten">On face</string>
     <string name="MenuOrientationAutoOrient">Auto\nOrient.</string>

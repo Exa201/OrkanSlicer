@@ -137,10 +137,17 @@ private fun BedMenuActionTile(
     val compactLabel = when (action.titleRes) {
         R.string.ModelUndo -> R.string.EditUndoShort
         R.string.ModelRedo -> R.string.EditRedoShort
-        R.string.MenuArrangeAllObjects -> R.string.EditArrangeShort
+        R.string.MenuArrangeAllObjects -> R.string.EditArrangeAllShort
         R.string.MenuOrientAllObjects -> R.string.EditOrientShort
         R.string.MenuFileMoveToPlate -> R.string.EditMovePlateShort
-        R.string.ObjectActionMore -> R.string.EditMoreShort
+        R.string.ModelContextFillBed -> R.string.EditFillBedShort
+        R.string.ModelContextCenterOnBed -> R.string.EditCenterBedShort
+        R.string.ModelContextResetRotation -> R.string.EditResetRotationShort
+        R.string.ModelContextResetScale -> R.string.EditResetScaleShort
+        R.string.ModelContextSetOnFace -> R.string.EditLayFaceShort
+        R.string.ModelContextSelectAll -> R.string.EditSelectAllShort
+        R.string.ModelContextDeleteAll -> R.string.EditDeleteAllShort
+        R.string.MenuOrientationArrange -> R.string.EditPackPlateShort
         R.string.ModelColorSlotsAction -> R.string.ModelColorSlotsShort
         R.string.MenuSlicePerformance -> R.string.GCodePerformanceShort
         R.string.MenuSliceExportToFile -> R.string.GCodeExportShort
