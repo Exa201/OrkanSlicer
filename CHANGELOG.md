@@ -3,7 +3,7 @@
 ## 0.8.223 (alpha)
 
 - Refresh the plate object count and invalidate its thumbnail cache only after a model import actually commits to the active native model. This fixes a stale "0 objects" label observed after keeping the original geometry of a 502,002-triangle STL.
-- Recheck the large-model import consent on Honor: the import warning and the independent simplification choice appear before any geometry reduction.
+- Recheck the large-model import consent on Honor with a closed 518,400-triangle STL. Both "keep original" and "simplify" render the model and show one object in the plate picker. A cold restart opens an empty plate while retaining the selected printer.
 
 ## 0.8.222 (alpha)
 
