@@ -502,7 +502,7 @@ object SliceUploadController {
                         if (status?.confirmsStartedFile(uploadedPath) == true) {
                             dismissSendProgress(progress)
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-                                SnackbarsLayout.Type.INFO, R.string.MenuSliceSendToPrinterPrintStarted,
+                                SnackbarsLayout.Type.INFO, R.string.UploadPrinterFileActive,
                             ))
                         } else {
                             val observed = status?.let { " Aktueller Status: ${it.state}" }

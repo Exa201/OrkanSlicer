@@ -574,6 +574,7 @@
     <string name="UploadPrinterProcessing">Übertragung fertig. Der Drucker verarbeitet die Datei …</string>
     <string name="UploadPrinterAlreadyStarted">Der Drucker hat diesen Auftrag bereits gestartet.</string>
     <string name="UploadPrinterQueued">Der Drucker hat diesen Auftrag eingereiht.</string>
+    <string name="UploadPrinterFileActive">Der Drucker meldet diese Datei als laufend oder pausiert.</string>
     <string name="UploadFileNotConfirmed">Der Drucker hat die hochgeladene Datei nicht bestätigt. Prüfe vor einem erneuten Senden seine Dateiliste.</string>
     <string name="UploadStillProcessing">Datei empfangen. Der Drucker verarbeitet sie noch.</string>
     <string name="UploadSelectedNotStarted">Datei hochgeladen und ausgewählt, aber der Druckstart wurde nicht bestätigt.</string>
