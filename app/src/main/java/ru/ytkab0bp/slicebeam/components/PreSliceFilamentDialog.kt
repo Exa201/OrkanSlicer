@@ -293,6 +293,7 @@ private fun PreSliceFilamentContent(
             }
         } else if (useOneSlot) {
             if (physicalGates.isNotEmpty()) {
+                AcePhysicalSlotsBar(MmuFilamentSync.physicalGates(printerTitle))
                 if (MmuFilamentSync.getSnapshot(printerTitle) == null) Text(
                     stringResource(R.string.ModelColorSlotsUnverified), color = secondaryColor, fontSize = 13.sp,
                 )

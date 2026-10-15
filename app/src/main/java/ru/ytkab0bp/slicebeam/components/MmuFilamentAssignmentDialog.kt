@@ -168,6 +168,7 @@ internal fun MmuAssignmentContent(
             .padding(horizontal = 18.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        AcePhysicalSlotsBar(MmuFilamentSync.physicalGates(printerTitle))
         if (showHelp) Text(
             stringResource(R.string.MmuAssignmentHelp),
             color = secondary,

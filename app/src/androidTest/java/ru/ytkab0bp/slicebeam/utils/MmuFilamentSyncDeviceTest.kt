@@ -96,6 +96,20 @@ class MmuFilamentSyncDeviceTest {
         assertArrayEquals(intArrayOf(3), MmuFilamentSync.getSelectedGates(title, 1))
     }
 
+    @Test fun emptySecondAceGateStaysVisibleWithoutShiftingTheOtherGates() {
+        val payload = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 1))
+        assertEquals(3 to null, sync(payload))
+        assertEquals(listOf("PLA", "PETG", "TPU"), Prefs.getFilamentSlots().map { it.type })
+        assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.getSelectedGates(title, 3))
+        val physical = MmuFilamentSync.physicalGates(title)
+        assertEquals(listOf(0, 1, 2, 3), physical.map { it.index })
+        assertEquals(listOf(0, 1, 2, 3), physical.map { it.printerTool })
+        assertEquals(listOf(true, false, true, true), physical.map { it.occupied })
+        assertNull(physical[1].filament)
+        assertEquals("PETG", physical[2].filament?.type)
+        assertEquals("TPU", physical[3].filament?.type)
+    }
+
     @Test fun automaticRefreshKeepsTheUsersSingleFilamentCount() {
         requireNotNull(Prefs.getPrefs()).edit().remove("mmu_choice_gates").commit()
         Prefs.setFilamentSlots(listOf(FilamentSlot(0, "ABS")))

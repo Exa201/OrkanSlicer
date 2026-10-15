@@ -40,6 +40,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.graphics.ColorUtils
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.components.FilamentSlotSheet
+import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
+import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
@@ -69,12 +71,28 @@ class FilamentPaletteController {
         val snapshots = remember(paletteRevision) {
             slots.map { PaletteSlotSnapshot(it.color, it.type) }
         }
-        FilamentPaletteContent(
-            slots = snapshots,
-            modifier = modifier,
-            onSlotClick = { index -> showSlotEditor(context, index) },
-            onAddClick = { showNewSlotEditor(context) },
-        )
+        val printerTitle = SliceBeam.CONFIG?.presets?.get("printer").orEmpty()
+        val syncedGates = remember(paletteRevision, printerTitle) {
+            if (Prefs.isMmuSyncedPrinter(printerTitle))
+                MmuFilamentSync.getSelectedGates(printerTitle, snapshots.size) else null
+        }
+        val physicalGates = remember(paletteRevision, printerTitle) {
+            MmuFilamentSync.physicalGates(printerTitle)
+        }
+        Column(modifier = modifier) {
+            if (physicalGates.isNotEmpty()) {
+                AcePhysicalSlotsBar(physicalGates, Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+                Text(stringResource(R.string.AceModelColorsTitle),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+            }
+            FilamentPaletteContent(
+                slots = snapshots,
+                selectedGates = syncedGates,
+                onSlotClick = { index -> showSlotEditor(context, index) },
+                onAddClick = { showNewSlotEditor(context) },
+            )
+        }
     }
 
     fun reload() {
@@ -138,6 +156,7 @@ class FilamentPaletteController {
 @Composable
 private fun FilamentPaletteContent(
     slots: List<PaletteSlotSnapshot>,
+    selectedGates: IntArray?,
     modifier: Modifier = Modifier,
     onSlotClick: (Int) -> Unit,
     onAddClick: () -> Unit,
@@ -158,6 +177,7 @@ private fun FilamentPaletteContent(
             FilamentPaletteSlot(
                 index = index,
                 slot = slot,
+                physicalGate = selectedGates?.getOrNull(index),
                 onClick = { onSlotClick(index) },
             )
         }
@@ -171,6 +191,7 @@ private fun FilamentPaletteContent(
 private fun FilamentPaletteSlot(
     index: Int,
     slot: PaletteSlotSnapshot,
+    physicalGate: Int?,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(10.dp)
@@ -219,6 +240,12 @@ private fun FilamentPaletteSlot(
             fontSize = 13.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+        if (physicalGate != null) Text(
+            text = stringResource(R.string.AcePaletteAssignment, physicalGate + 1),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 11.sp,
+            maxLines = 1,
         )
     }
 }

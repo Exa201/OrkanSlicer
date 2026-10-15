@@ -20,6 +20,7 @@ class MmuFilamentSync private constructor() {
     }
 
     companion object {
+        data class PhysicalGate(val index: Int, val printerTool: Int, val occupied: Boolean, val filament: FilamentSlot?)
         private const val SNAPSHOT_PRINTER = "mmu_snapshot_printer"
         private const val SNAPSHOT = "mmu_snapshot"
         private const val CHOICE_PRINTER = "mmu_choice_printer"
@@ -188,6 +189,21 @@ class MmuFilamentSync private constructor() {
             val loaded = ArrayList<Int>()
             for (gate in 0 until status.length()) if (status.optInt(gate, 0) > 0) loaded.add(gate)
             return loaded.toIntArray()
+        }
+
+        /** The physical ACE view includes empty gates; never compress it into the slicer's tool palette. */
+        @JvmStatic
+        fun physicalGates(printerTitle: String): List<PhysicalGate> {
+            val mmu = getSnapshot(printerTitle) ?: return emptyList()
+            val status = mmu.optJSONArray("gate_status") ?: return emptyList()
+            val mapping = mmu.optJSONArray("ttg_map")
+            val filaments = try { gateSlots(mmu) } catch (_: JSONException) { emptyList() }
+            return List(minOf(status.length(), Prefs.MAX_FILAMENT_COLORS)) { gate ->
+                val tool = (0 until (mapping?.length() ?: 0)).firstOrNull {
+                    mapping?.optInt(it, -1) == gate
+                } ?: -1
+                PhysicalGate(gate, tool, status.optInt(gate, 0) > 0, filaments.getOrNull(gate))
+            }
         }
 
         @JvmStatic

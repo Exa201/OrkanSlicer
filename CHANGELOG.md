@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.228 (alpha)
+
+- Show every physical ACE gate after filament sync, including an empty gate between loaded ones. The overview distinguishes printer tool numbers from the slicer's compact model-color palette and shows each model color's ACE assignment.
+- Keep empty gates unavailable for assignment while retaining their positions. Regression checks cover ACE gates `1,0,1,1` and the corresponding T0→ACE 1, T1→ACE 3, T2→ACE 4 G-code routing.
+
 ## 0.8.227 (alpha)
 
 - Stop large-model paint sessions before full-resolution mesh and facet overlays are allocated. Offer an explicit simplification choice; cancel keeps the print geometry unchanged.

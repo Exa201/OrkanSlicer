@@ -28,6 +28,18 @@ class FilamentPaletteSyncPolicyTest {
         assertEquals(0xFFFF0000.toInt(), result.slots[1].color)
     }
 
+    @Test fun secondPhysicalSlotEmptyKeepsThirdAndFourthGcodeTools() {
+        val result = FilamentPaletteSyncPolicy.replaceFromPrinter(
+            listOf(slot("PLA", 0x111111), null, slot("PETG", 0x222222), slot("TPU", 0x333333)),
+            intArrayOf(0, 1, 2, 3),
+        )
+        assertArrayEquals(intArrayOf(0, 2, 3), result.gates)
+        assertEquals(listOf("PLA", "PETG", "TPU"), result.slots.map { it.type })
+        assertEquals("T2", GCodeToolMapper.remapToolLine("T1", result.gates))
+        assertEquals("T3", GCodeToolMapper.remapToolLine("T2", result.gates))
+        assertEquals("1,3,4", GCodeToolMapper.formatGateList(result.gates))
+    }
+
     @Test fun duplicateAndInvalidMappingsDoNotCreateExtraSlots() {
         val result = FilamentPaletteSyncPolicy.replaceFromPrinter(listOf(slot("PLA", 0)), intArrayOf(0, 0, -1, 99))
         assertEquals(1, result.slots.size)
