@@ -32,6 +32,7 @@ import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
+import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
 import ru.ytkab0bp.slicebeam.utils.GCodeIntegrityValidator
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
@@ -39,6 +40,7 @@ import ru.ytkab0bp.slicebeam.utils.MoonrakerResponseInspector
 import ru.ytkab0bp.slicebeam.utils.OctoPrintResponseInspector
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
+import ru.ytkab0bp.slicebeam.utils.PrinterUploadReservation
 import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.UploadFileValidator
@@ -49,9 +51,13 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /** Owns the complete post-slice file preparation, validation and printer upload flow. */
 object SliceUploadController {
+    /** One in-flight send/start per printer, including file preparation and upload. */
+    private val activeUploadHosts = PrinterUploadReservation()
+    private val uploadReservations = ConcurrentHashMap<ProgressDialog, String>()
     private val client = AsyncHttpClient().apply {
         setLoggingEnabled(true)
         // Moonraker on Kobra 3 can preprocess uploaded G-code before responding.
@@ -83,6 +89,11 @@ object SliceUploadController {
             showPreparationFailure(fragment, context.getString(R.string.UploadSliceMissing))
             return
         }
+        val reservation = activeUploadHosts.reserve(host)
+        if (reservation == null) {
+            showPreparationFailure(fragment, "Für diesen Drucker läuft bereits ein Upload oder Druckstart. Bitte warte, bis der Auftrag abgeschlossen ist.")
+            return
+        }
         val progress = ProgressDialog(context).apply {
             setTitle(R.string.MenuSliceSendToPrinterLoading)
             setMessage(context.getString(R.string.UploadPreparingGcode))
@@ -91,6 +102,7 @@ object SliceUploadController {
             setCancelable(false)
             show()
         }
+        uploadReservations[progress] = reservation
         val name = slicedResult.getRecommendedName()
         val source = BedFragment.tempGCodePath
         val currentModel: Model? = fragment.currentModel
@@ -373,16 +385,14 @@ object SliceUploadController {
                         startParams,
                         null,
                         object : AsyncHttpResponseHandler() {
-                            override fun onSuccess(code: Int, headers: Array<Header>, body: ByteArray) {
+                            override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
                                 PrinterResponseInspector.embeddedError(body)?.let { detail ->
                                     showUploadFailure(fragment, 0, body, IOException(detail), progress, printStartAttempt = true)
                                     return
                                 }
                                 if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
-                                    showUploadFailure(fragment, 0, null,
-                                        IOException(PrinterResponseInspector.missingAcknowledgement(body,
-                                            "Der Drucker hat den Druckstart nicht bestätigt. Bitte den Druckerstatus prüfen.")),
-                                        progress, printStartAttempt = true)
+                                    checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                        "Der Drucker hat den Druckstart nicht eindeutig bestätigt.")
                                     return
                                 }
                                 dismissSendProgress(progress)
@@ -396,16 +406,19 @@ object SliceUploadController {
 
                             override fun onFailure(
                                 code: Int,
-                                headers: Array<Header>,
+                                responseHeaders: Array<Header>,
                                 body: ByteArray,
                                 error: Throwable,
                             ) {
-                                showUploadFailure(fragment, code, body, error, progress, printStartAttempt = true)
+                                checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                    "Die Antwort auf den Druckstart war unklar${if (code > 0) " (HTTP $code)" else ""}: " +
+                                        PrinterResponseInspector.printStartFailureDetail(body, error.localizedMessage ?: error.toString()))
                             }
                         },
                     )
                     } catch (error: RuntimeException) {
-                        showUploadFailure(fragment, 0, null, error, progress, printStartAttempt = true)
+                        checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                            "Die Startanfrage konnte nicht eindeutig abgeschlossen werden: ${error.localizedMessage ?: error}.")
                     }
                 }
 
@@ -452,8 +465,65 @@ object SliceUploadController {
     }
 
     private fun dismissSendProgress(progress: ProgressDialog) {
+        uploadReservations.remove(progress)?.let(activeUploadHosts::release)
         ViewUtils.postOnMainThread {
             if (progress.isShowing) progress.dismiss()
+        }
+    }
+
+    /** A start request can reach Klipper even when its HTTP response is lost; query once, never retry. */
+    private fun checkUncertainPrintStart(
+        fragment: BedFragment,
+        host: String,
+        headers: Array<Header>,
+        uploadedPath: String,
+        progress: ProgressDialog,
+        reason: String,
+    ) {
+        val statusUrl = PrinterUploadUrl.endpoint(host, "/printer/objects/query?print_stats")
+        if (statusUrl == null) {
+            showUploadFailure(fragment, 0, null, IOException("$reason Druckerstatus konnte nicht abgefragt werden."), progress,
+                printStartAttempt = true)
+            return
+        }
+        ViewUtils.postOnMainThread {
+            if (progress.isShowing) progress.setMessage("Druckstatus wird einmalig geprüft …")
+        }
+        val statusClient = AsyncHttpClient().apply {
+            setTimeout(10_000)
+            setConnectTimeout(5_000)
+            setMaxRetriesAndTimeout(0, 5_000)
+        }
+        try {
+            statusClient.get(SliceBeam.requireInstance(), statusUrl, headers, null,
+                object : AsyncHttpResponseHandler() {
+                    override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
+                        val status = MoonrakerResponseInspector.printStatus(body)
+                        if (status?.confirmsStartedFile(uploadedPath) == true) {
+                            dismissSendProgress(progress)
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                                SnackbarsLayout.Type.INFO, R.string.MenuSliceSendToPrinterPrintStarted,
+                            ))
+                        } else {
+                            val observed = status?.let { " Aktueller Status: ${it.state}" }
+                                ?: " Der Druckerstatus konnte nicht gelesen werden."
+                            showUploadFailure(fragment, 0, null,
+                                IOException("$reason$observed Es wurde kein weiterer Startbefehl gesendet; prüfe den Drucker, bevor du erneut startest."),
+                                progress, printStartAttempt = true)
+                        }
+                    }
+
+                    override fun onFailure(code: Int, responseHeaders: Array<Header>, body: ByteArray, error: Throwable) {
+                        val detail = error.localizedMessage?.takeIf { it.isNotBlank() } ?: "HTTP $code"
+                        showUploadFailure(fragment, code, body,
+                            IOException("$reason Die Statusabfrage ist fehlgeschlagen ($detail). Es wurde kein weiterer Startbefehl gesendet; prüfe den Drucker, bevor du erneut startest."),
+                            progress, printStartAttempt = true)
+                    }
+                })
+        } catch (error: RuntimeException) {
+            showUploadFailure(fragment, 0, null,
+                IOException("$reason Die Statusabfrage konnte nicht ausgeführt werden. Es wurde kein weiterer Startbefehl gesendet.", error),
+                progress, printStartAttempt = true)
         }
     }
 
@@ -501,39 +571,36 @@ object SliceUploadController {
         }
         val logicalToolCount = maxOf(1, scan.maxTool + 1)
         val printerTitle = printer.title.orEmpty()
-        var gates = MmuFilamentSync.getSelectedGates(printerTitle, logicalToolCount)
-        if (gates == null) {
-            gates = IntArray(logicalToolCount)
-            val loaded = MmuFilamentSync.loadedGates(printerTitle)
-            if (loaded.isEmpty()) {
-                showAnycubicMappingError(fragment, R.string.MmuAssignmentNoLoadedSlots)
-                return null
-            }
-            for (tool in 0 until logicalToolCount) {
-                val preferred = MmuFilamentSync.defaultGateForTool(printerTitle, tool)
-                gates[tool] = if (preferred in loaded) preferred else loaded[0]
-            }
-            MmuFilamentSync.setSelectedGates(printerTitle, gates)
+        val usedTools = try {
+            SlicePreparationTools.readToolUsage(source).used
+        } catch (error: IOException) {
+            Log.e("SliceMenu", "Could not inspect ACE tool usage before upload", error)
+            showPreparationFailure(fragment, error.message)
+            return null
         }
-
-        val remappedTools = IntArray(logicalToolCount)
-        for (tool in 0 until logicalToolCount) {
-            val loaded = MmuFilamentSync.loadedGates(printerTitle)
-            val gate = gates[tool]
-            val mappedTool = MmuFilamentSync.toolForGate(printerTitle, gate)
-            if (gate !in loaded || mappedTool < 0 || MmuFilamentSync.gateSlot(printerTitle, gate) == null) {
-                showAnycubicMappingError(fragment, R.plurals.MmuAssignmentToolMismatch, logicalToolCount)
-                return null
-            }
-            remappedTools[tool] = mappedTool
+        val loadedGates = MmuFilamentSync.loadedGates(printerTitle)
+        val routing = AnycubicAceRoutingPolicy.resolve(
+            logicalToolCount,
+            usedTools,
+            loadedGates,
+            IntArray(logicalToolCount) { tool -> MmuFilamentSync.defaultGateForTool(printerTitle, tool) },
+        )
+        val unavailableTool = routing.unavailableTool
+        if (unavailableTool != null) {
+            showPreparationFailure(fragment, SliceBeam.requireInstance().getString(
+                R.string.MmuDirectSlotUnavailable, unavailableTool, unavailableTool + 1,
+            ))
+            return null
         }
+        val gates = routing.gates
+        val remappedTools = routing.toolCommands
 
         val liveSlots = Prefs.getFilamentSlots()
         // Vendor metadata describes the ACE gate that receives the tool, not the
         // source 3MF palette. Keep slicer temperatures unchanged in the G-code.
         val physicalSlots = (0 until logicalToolCount).map { tool ->
             MmuFilamentSync.gateSlot(printerTitle, gates[tool])
-                ?: liveSlots.getOrNull(tool)
+                ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 ?: ru.ytkab0bp.slicebeam.utils.FilamentSlot(Color.rgb(25, 200, 160), "PLA")
         }
         val emittedPaintInfo = BooleanArray(4)
@@ -546,7 +613,8 @@ object SliceUploadController {
                 emittedPaintInfo[mappedTool] = true
                 if (hasPaintInfo) append(',')
                 hasPaintInfo = true
-                val slot = MmuFilamentSync.gateSlot(printerTitle, gates[tool]) ?: liveSlots.getOrNull(tool)
+                val slot = MmuFilamentSync.gateSlot(printerTitle, gates[tool])
+                    ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 val material = slot?.type ?: scan.materials[minOf(tool, scan.materials.lastIndex)].trim()
                 val paintColor = slot?.color ?: Color.rgb(25, 200, 160)
                 append("{\"material_type\":").append(JSONObject.quote(material))

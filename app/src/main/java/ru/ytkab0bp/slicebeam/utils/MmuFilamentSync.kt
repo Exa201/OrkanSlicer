@@ -248,11 +248,9 @@ class MmuFilamentSync private constructor() {
 
         /** Compare only gates used by this sliced job before and after the final printer refresh. */
         fun assignedGates(printerTitle: String, activeTools: IntArray): List<AssignedGate>? {
-            val count = (activeTools.maxOrNull() ?: 0) + 1
-            val selected = getSelectedGates(printerTitle, count) ?: return null
             if (getSnapshot(printerTitle) == null) return null
             return activeTools.map { tool ->
-                val gate = selected.getOrNull(tool) ?: return null
+                val gate = tool
                 val filament = gateSlot(printerTitle, gate)
                 AssignedGate(tool, gate, toolForGate(printerTitle, gate),
                     filament?.type, filament?.color)

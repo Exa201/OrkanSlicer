@@ -11,6 +11,29 @@ object MoonrakerResponseInspector {
 
     data class UploadAcknowledgement(val path: String, val printStarted: Boolean, val printQueued: Boolean)
 
+    data class PrintStatus(val state: String, val filename: String?) {
+        fun confirmsStartedFile(path: String): Boolean =
+            (state.equals("printing", ignoreCase = true) || state.equals("paused", ignoreCase = true)) &&
+                sameFile(filename, path)
+    }
+
+    /** Parse one lightweight print_stats query after a start request with an unclear result. */
+    @JvmStatic
+    fun printStatus(body: ByteArray?): PrintStatus? {
+        val root = parseObject(body) ?: return null
+        val result = childObject(root, "result") ?: return null
+        val status = childObject(result, "status") ?: return null
+        val printStats = childObject(status, "print_stats") ?: return null
+        val state = string(printStats, "state")?.takeIf { it.isNotBlank() } ?: return null
+        return PrintStatus(state, string(printStats, "filename")?.takeIf { it.isNotBlank() })
+    }
+
+    private fun sameFile(actual: String?, expected: String): Boolean {
+        if (actual.isNullOrBlank()) return false
+        return actual.trim().replace('\\', '/').substringAfterLast('/') ==
+            expected.trim().replace('\\', '/').substringAfterLast('/')
+    }
+
     @JvmStatic
     fun uploadedFile(body: ByteArray?, expectedName: String? = null): UploadAcknowledgement? {
         val root = parseObject(body) ?: return null

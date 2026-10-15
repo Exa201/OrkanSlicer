@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.Toast
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
@@ -41,6 +42,24 @@ internal class TransformMenuItems(
             selectionAction(R.string.ObjectActionDuplicate, R.drawable.folder_simple_plus_outline_28, availability) {
                 fragment.glView!!.duplicateSelectedModel { fragment.updateModel() }
             },
+            selectionAction(R.string.ModelContextFillBed, R.drawable.grid_layout_outline_28, availability) { anchor ->
+                fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
+                    fragment.updateModel()
+                    Toast.makeText(
+                        anchor.context,
+                        if (addedCopies > 0) anchor.resources.getQuantityString(
+                            R.plurals.ModelContextFillBedFinished, addedCopies, addedCopies,
+                        ) else anchor.context.getString(R.string.ModelContextFillBedNoRoom),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            },
+            selectionAction(R.string.ModelContextCenterOnBed, R.drawable.view_in_ar_24, availability) { anchor ->
+                fragment.glView!!.centerSelectedOnBed {
+                    fragment.updateModel()
+                    Toast.makeText(anchor.context, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show()
+                }
+            },
             BedComposeMenuAction(R.string.MenuFileMoveToPlate, R.drawable.square_stack_up_outline_28, {
                 FileMenuObjectActions(fragment).showMoveToPlateDialog(it)
             }, enabled = availability.hasSelectedObject && fragment.plateCount > 1),
@@ -54,8 +73,27 @@ internal class TransformMenuItems(
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
             },
-            selectionAction(R.string.ObjectActionMore, R.drawable.settings_outline_28, availability) {
-                fragment.showSelectedModelContextMenu()
+            selectionAction(R.string.ModelContextResetRotation, R.drawable.menu_orientation_rotation_28, availability) {
+                fragment.glView!!.queueEvent {
+                    renderer.setSelectionRotation(0.0, 0.0, 0.0)
+                    renderer.invalidateSelectionObject()
+                    fragment.glView!!.requestRender()
+                    ViewUtils.postOnMainThread {
+                        fragment.updateModel()
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetRotationDone))
+                    }
+                }
+            },
+            selectionAction(R.string.ModelContextResetScale, R.drawable.arrow_up_right_corner_outline_24, availability) {
+                fragment.glView!!.queueEvent {
+                    renderer.setSelectionScale(1.0, 1.0, 1.0)
+                    renderer.invalidateSelectionObject()
+                    fragment.glView!!.requestRender()
+                    ViewUtils.postOnMainThread {
+                        fragment.updateModel()
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetScaleDone))
+                    }
+                }
             },
             BedComposeMenuAction(R.string.ModelUndo, R.drawable.arrow_left_outline_28, {
                 fragment.undoModelEdit()
@@ -127,6 +165,30 @@ internal class TransformMenuItems(
                 toggleable = true,
                 enabled = availability.hasSelectedObject,
             ),
+            BedComposeMenuAction(
+                R.string.ModelContextSetOnFace,
+                R.drawable.menu_orientation_flatten_28,
+                {
+                    flattenEnabled = true
+                    renderer.setInFlattenMode(true)
+                    fragment.glView!!.requestRender()
+                    onItemsChanged()
+                },
+                enabled = availability.hasSelectedObject,
+            ),
+            BedComposeMenuAction(R.string.ModelContextSelectAll, R.drawable.square_stack_up_outline_28, {
+                fragment.glView!!.selectAllModels { fragment.updateModel() }
+            }, enabled = availability.canArrange),
+            BedComposeMenuAction(R.string.ModelContextDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
+                BeamAlertDialogBuilder(anchor.context)
+                    .setTitle(R.string.ModelContextDeleteAll)
+                    .setMessage(R.string.ModelDeleteAllConfirm)
+                    .setPositiveButton(R.string.ModelContextDeleteAll) { _, _ ->
+                        fragment.glView!!.deleteAllModels { fragment.updateModel() }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }, enabled = availability.canArrange),
             selectionAction(R.string.MenuTransformCut, R.drawable.menu_transform_cut_or_mirror_28, availability) {
                 showCutMenu.accept(it)
             },
