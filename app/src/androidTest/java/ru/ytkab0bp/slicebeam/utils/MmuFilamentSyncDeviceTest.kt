@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class MmuFilamentSyncDeviceTest {
     private val saved = LinkedHashMap<String, String?>()
-    private val keys = listOf("filament_palette", "mmu_synced_printer", "mmu_snapshot_printer", "mmu_snapshot", "mmu_choice_printer", "mmu_choice_gates")
+    private val keys = listOf("filament_palette", "mmu_synced_printer", "mmu_snapshot_printer", "mmu_snapshot", "mmu_choice_printer", "mmu_choice_gates", "mmu_palette_printer", "mmu_palette_gates")
     private val title = "MMU sync test fixture"
 
     @Before fun savePreferences() {
@@ -103,6 +103,14 @@ class MmuFilamentSyncDeviceTest {
         assertEquals(3 to null, sync(payload))
         assertEquals(listOf("PLA", "PETG", "TPU"), Prefs.getFilamentSlots().map { it.type })
         assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.getSelectedGates(title, 3))
+        assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.paletteGates(title, 3))
+        MmuFilamentSync.setSelectedGates(title, intArrayOf(3, 0, 2))
+        assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.paletteGates(title, 3))
+        MmuFilamentSync.removeSelectedGate(1, 3)
+        assertArrayEquals(intArrayOf(0, 3), MmuFilamentSync.paletteGates(title, 2))
+        assertArrayEquals(intArrayOf(3, 2), MmuFilamentSync.getSelectedGates(title, 2))
+        MmuFilamentSync.setSelectedGates(title, intArrayOf(0, 2, 3))
+        assertEquals(3 to null, sync(payload))
         val physical = MmuFilamentSync.physicalGates(title)
         assertEquals(listOf(0, 1, 2, 3), physical.map { it.index })
         assertEquals(listOf(0, 1, 2, 3), physical.map { it.printerTool })

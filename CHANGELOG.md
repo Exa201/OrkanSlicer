@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.232 (alpha)
+
+- Keep the saved filament temperatures and pressure-advance values aligned with their physical ACE gates when an empty gate makes the model palette compact (for example, ACE 1, 3 and 4). Changing a model tool's gate now selects the corresponding saved palette profile instead of treating the gate number as a palette index.
+- Preserve the physical gate order of an explicit full sync independently of later tool assignments and keep that order aligned when a palette entry is deleted.
+- When importing a 3MF with the user's own filament settings, reject an obsolete slot profile whose material differs from the slot's current material. Verify a real three-color 3MF import and complete slice on the Honor test app.
+
 ## 0.8.231 (alpha)
 
 - Refresh the Kobra 3 V2 ACE state once more immediately before preparing an upload. A failed final check stops the transfer.

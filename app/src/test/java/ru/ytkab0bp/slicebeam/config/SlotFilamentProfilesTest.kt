@@ -1,11 +1,61 @@
 package ru.ytkab0bp.slicebeam.config
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 
 class SlotFilamentProfilesTest {
+    @Test fun sparseAceGatesKeepDistinctPaletteTemperaturesAfterFullSync() {
+        val profiles = listOf(205, 225, 245).mapIndexed { index, temperature ->
+            ConfigObject("Own slot $index").apply {
+                put("filament_type", "PLA")
+                put("nozzle_temperature", temperature.toString())
+            }
+        }
+        val slots = listOf(
+            FilamentSlot(0x111111, "PLA"), FilamentSlot(0x222222, "PLA"), FilamentSlot(0x333333, "PLA"),
+        )
+        val paletteGates = intArrayOf(0, 2, 3)
+        val selectedGates = intArrayOf(0, 2, 3)
+        val ordered = SlotFilamentProfiles.ownProfilesForTools(
+            profiles, slots, selectedGates, profiles[0].title, 3, paletteGates,
+        ) { slot -> profiles[slot].title }
+        assertEquals(profiles, ordered)
+        assertEquals(1, SlotFilamentProfiles.profileSlotForTool(0, intArrayOf(2, 0, 3), 3, paletteGates))
+        assertEquals(0, SlotFilamentProfiles.profileSlotForTool(1, intArrayOf(2, 0, 3), 3, paletteGates))
+        assertEquals(2, SlotFilamentProfiles.profileSlotForTool(2, intArrayOf(2, 0, 3), 3, paletteGates))
+        assertEquals(1, SlotFilamentProfiles.profileSlotForTool(1, intArrayOf(0, 2, 3), 3, null))
+    }
+
+    @Test fun importedProjectUsesOwnTemperaturesMatchingThePhysicalAceMaterial() {
+        val abs = ConfigObject("Old slot title").apply {
+            put("filament_type", "ABS"); put("nozzle_temperature", "255")
+        }
+        val pla = ConfigObject("Own PLA").apply {
+            put("filament_type", "PLA"); put("nozzle_temperature", "205")
+        }
+        val petg = ConfigObject("Own PETG").apply {
+            put("filament_type", "PETG"); put("nozzle_temperature", "238")
+        }
+        val slots = listOf(FilamentSlot(0x111111, "PLA"), FilamentSlot(0x222222, "PETG"))
+        val ordered = SlotFilamentProfiles.ownProfilesForTools(
+            listOf(abs, pla, petg), slots, intArrayOf(1, 0), abs.title, 2,
+        ) { slot -> if (slot == 1) abs.title else pla.title }
+        assertEquals(listOf(petg, pla), ordered)
+        val target = ConfigObject().apply { put("nozzle_temperature", "190,190") }
+        val definitions = mapOf("nozzle_temperature" to ConfigOptionDef().apply {
+            key = "nozzle_temperature"; type = ConfigOptionType.INTS
+        })
+        SlotFilamentProfiles.applyProfileVectors(target, ordered, definitions, ownValuesOnly = true)
+        assertEquals("238,205", target["nozzle_temperature"])
+        assertNull(SlotFilamentProfiles.ownProfilesForTools(
+            listOf(abs), listOf(FilamentSlot(0x222222, "PETG")), null, abs.title, 1,
+        ) { abs.title }.single())
+    }
+
     @Test fun swappedAceGatesUseTheMatchingPhysicalSlotTemperatures() {
         val slotOne = ConfigObject("Slot 1").apply {
             put("nozzle_temperature", "205")

@@ -7,6 +7,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
+import ru.ytkab0bp.slicebeam.config.ThreeMfImportSelection
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.config.ConfigObject
@@ -17,12 +18,44 @@ import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaFilamentSettingsCatalog
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalog
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import java.io.File
 import org.junit.After
 
 @RunWith(AndroidJUnit4::class)
 class ThreeMfMulticolorDeviceTest {
     @After fun clearProject() { TemporaryProjectSettings.clear(); ProfileSettingsRepository.clearAllDrafts() }
+    @Test fun realThreeColorProjectKeepsOwnTemperaturesWhenOnlyItsColorsAreImported() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")
+        assertTrue(source.isFile)
+        val definitions = PrintConfigDef.getInstance().options
+        val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() +
+            OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
+        val filamentKeys = Slic3rConfigWrapper.FILAMENT_CONFIG_KEYS.toSet() +
+            OrcaFilamentSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
+        val fileSettings = ThreeMfProjectSettingsReader.read(source, definitions, processKeys, filamentKeys)
+        val own = listOf(FilamentSlot(0x111111, "PLA"), FilamentSlot(0x222222, "PETG"),
+            FilamentSlot(0x333333, "PLA"))
+        val selected = requireNotNull(ThreeMfImportSelection.select(fileSettings,
+            printSettings = false, filamentSettings = false, ownSlots = own, printerSettings = false))
+        assertEquals(3, selected.filaments.size)
+        assertTrue(selected.process.isEmpty())
+        assertEquals(listOf("PLA", "PETG", "PLA"), selected.filaments.map { it["filament_type"] })
+        assertTrue(selected.filaments.none { "nozzle_temperature" in it || "hot_plate_temp" in it })
+        TemporaryProjectSettings.activate(selected)
+        val effective = ConfigObject().apply {
+            put("nozzle_temperature", "205,238,210")
+            put("hot_plate_temp", "55,75,60")
+            put("layer_height", "0.16")
+        }
+        TemporaryProjectSettings.applyTo(effective, 3)
+        assertEquals("205,238,210", effective["nozzle_temperature"])
+        assertEquals("55,75,60", effective["hot_plate_temp"])
+        assertEquals("0.16", effective["layer_height"])
+        assertEquals("#C8C8C8;#8671CB;#D02727", effective["filament_colour"])
+    }
+
     @Test fun inspectUserProjectAgainstActualNativeSchema() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")

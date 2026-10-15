@@ -6,6 +6,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 
 /** A saved Orca filament preset for each T-index in the user's own palette. */
 object SlotFilamentProfiles {
@@ -68,25 +69,33 @@ object SlotFilamentProfiles {
         val printerTitle = config.presets?.get("printer").orEmpty()
         val gates = if (Prefs.isMmuSyncedPrinter(printerTitle))
             MmuFilamentSync.getSelectedGates(printerTitle, count) else null
+        val paletteGates = if (gates != null) MmuFilamentSync.paletteGates(printerTitle, slots.size) else null
+        val profileSlots = (0 until count).map { profileSlotForTool(it, gates, slots.size, paletteGates) }
         val profiles = (0 until count).map { tool ->
-            val slot = profileSlotForTool(tool, gates, slots.size)
+            val slot = profileSlots[tool]
             val assigned = titleFor(slot, currentTitle)
-            val profile = slots.getOrNull(slot)?.type?.let { material ->
+            val material = slots.getOrNull(slot)?.type
+            val profile = if (material != null) {
                 OwnFilamentTemperatureProfiles.choose(config.filamentConfigs, assigned, currentTitle, material)
-            } ?: config.findFilament(assigned) ?: config.findFilament(currentTitle)
+            } else config.findFilament(assigned) ?: config.findFilament(currentTitle)
             if (profile != null && profile.title == currentTitle && pending.isNotEmpty())
                 ConfigObject(profile).apply { values.putAll(pending) } else profile
         }
         applyProfileVectors(target, profiles, PrintConfigDef.getInstance().options)
         if (slots.isNotEmpty()) {
-            target.put("filament_colour", ProfileStringVectorCodec.serialize((0 until count).map { colorText(slots.getOrElse(it) { slots.last() }.color) }))
-            target.put("filament_type", ProfileStringVectorCodec.serialize((0 until count).map { slots.getOrElse(it) { slots.last() }.type ?: "PLA" }))
+            target.put("filament_colour", ProfileStringVectorCodec.serialize(profileSlots.map { colorText(slots.getOrElse(it) { slots.last() }.color) }))
+            target.put("filament_type", ProfileStringVectorCodec.serialize(profileSlots.map { slots.getOrElse(it) { slots.last() }.type ?: "PLA" }))
         }
     }
 
-    /** T numbers are logical tools; a selected ACE gate names the physical filament profile. */
-    internal fun profileSlotForTool(tool: Int, gates: IntArray?, storedSlotCount: Int): Int =
-        gates?.getOrNull(tool)?.takeIf { it in 0 until storedSlotCount } ?: tool
+    /** Translate physical ACE gate to its index in the compact saved palette. */
+    internal fun profileSlotForTool(tool: Int, gates: IntArray?, storedSlotCount: Int,
+                                    paletteGates: IntArray? = null): Int {
+        val gate = gates?.getOrNull(tool) ?: return tool
+        if (paletteGates != null) return paletteGates.indexOf(gate).takeIf { it >= 0 } ?: tool
+        if (gates.any { it !in 0 until storedSlotCount }) return tool
+        return gate.takeIf { it in 0 until storedSlotCount } ?: tool
+    }
 
     /** An imported 3MF is temporary; the selected own slot owns heat and pressure compensation. */
     fun applyOwnFilamentSettingsTo(target: ConfigObject, config: Slic3rConfigWrapper, count: Int) {
@@ -95,13 +104,22 @@ object SlotFilamentProfiles {
         val printerTitle = config.presets?.get("printer").orEmpty()
         val gates = if (Prefs.isMmuSyncedPrinter(printerTitle))
             MmuFilamentSync.getSelectedGates(printerTitle, count) else null
-        val profiles = (0 until count).map { tool ->
-            val slot = profileSlotForTool(tool, gates, slots.size)
-            val title = titleFor(slot, null)
-            title?.let(config::findFilament)
-        }
+        val paletteGates = if (gates != null) MmuFilamentSync.paletteGates(printerTitle, slots.size) else null
+        val profiles = ownProfilesForTools(config.filamentConfigs, slots, gates,
+            config.presets?.get("filament"), count, paletteGates) { slot -> titleFor(slot, null) }
         applyProfileVectors(target, profiles, PrintConfigDef.getInstance().options, ownValuesOnly = true)
     }
+
+    /** An obsolete slot title must not supply another material's heat or pressure values. */
+    internal fun ownProfilesForTools(allProfiles: List<ConfigObject>, slots: List<FilamentSlot>,
+                                     gates: IntArray?, currentTitle: String?, count: Int,
+                                     paletteGates: IntArray? = null,
+                                     assignedTitleForSlot: (Int) -> String?): List<ConfigObject?> =
+        (0 until count).map { tool ->
+            val slot = profileSlotForTool(tool, gates, slots.size, paletteGates)
+            OwnFilamentTemperatureProfiles.choose(allProfiles, assignedTitleForSlot(slot), currentTitle,
+                slots.getOrNull(slot)?.type)
+        }
 
     internal fun applyProfileVectors(target: ConfigObject, profiles: List<ConfigObject?>,
                                      definitions: Map<String, ConfigOptionDef>, ownValuesOnly: Boolean = false) {

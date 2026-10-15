@@ -27,6 +27,8 @@ class MmuFilamentSync private constructor() {
         private const val SNAPSHOT = "mmu_snapshot"
         private const val CHOICE_PRINTER = "mmu_choice_printer"
         private const val CHOICE_GATES = "mmu_choice_gates"
+        private const val PALETTE_PRINTER = "mmu_palette_printer"
+        private const val PALETTE_GATES = "mmu_palette_gates"
 
         @JvmStatic
         fun synchronize(printer: ConfigObject, callback: Callback) {
@@ -90,6 +92,7 @@ class MmuFilamentSync private constructor() {
                                 updatedSlots = synced.slots
                                 count = updatedSlots.size
                                 setSelectedGates(printer.title.orEmpty(), synced.gates)
+                                if (!TemporaryProjectSettings.active) setPaletteGates(printer.title.orEmpty(), synced.gates)
                             } else {
                                 // Once assigned, logical T1 may refer to physical gate 3 rather than gate 2.
                                 val choices = getSelectedGates(printer.title.orEmpty(), current.size)
@@ -172,6 +175,25 @@ class MmuFilamentSync private constructor() {
                 ?.apply()
         }
 
+        /** Physical order of the saved compact palette; later tool choices may differ. */
+        private fun setPaletteGates(printerTitle: String, gates: IntArray) {
+            Prefs.getPrefs()?.edit()
+                ?.putString(PALETTE_PRINTER, printerTitle)
+                ?.putString(PALETTE_GATES, gates.joinToString(","))
+                ?.apply()
+        }
+
+        fun paletteGates(printerTitle: String, slotCount: Int): IntArray? {
+            if (slotCount <= 0) return null
+            val prefs = Prefs.getPrefs() ?: return null
+            val saved = if (prefs.getString(PALETTE_PRINTER, null) == printerTitle)
+                prefs.getString(PALETTE_GATES, null) else null
+            val raw = saved ?: getSelectedGates(printerTitle, slotCount)?.sorted()?.joinToString(",")
+            val values = raw?.split(',')?.map { it.toIntOrNull() ?: return null } ?: return null
+            return values.takeIf { it.size == slotCount && it.distinct().size == slotCount && it.all { gate -> gate >= 0 } }
+                ?.toIntArray()
+        }
+
         /** Removing a logical filament also removes its physical choice, so later tools stay aligned. */
         fun removeSelectedGate(index: Int, previousCount: Int) {
             if (TemporaryProjectSettings.active) {
@@ -182,6 +204,9 @@ class MmuFilamentSync private constructor() {
             val printer = prefs.getString(CHOICE_PRINTER, null) ?: return
             val gates = getSelectedGates(printer, previousCount) ?: return
             if (index !in gates.indices) return
+            paletteGates(printer, previousCount)?.let { baseline ->
+                setPaletteGates(printer, baseline.filterIndexed { slot, _ -> slot != index }.toIntArray())
+            }
             setSelectedGates(printer, gates.filterIndexed { tool, _ -> tool != index }.toIntArray())
         }
 
