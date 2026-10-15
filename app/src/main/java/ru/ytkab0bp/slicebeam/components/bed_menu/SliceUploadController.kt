@@ -39,6 +39,7 @@ import ru.ytkab0bp.slicebeam.utils.MoonrakerResponseInspector
 import ru.ytkab0bp.slicebeam.utils.OctoPrintResponseInspector
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
+import ru.ytkab0bp.slicebeam.utils.PrinterUploadReservation
 import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.UploadFileValidator
@@ -49,9 +50,13 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /** Owns the complete post-slice file preparation, validation and printer upload flow. */
 object SliceUploadController {
+    /** One in-flight send/start per printer, including file preparation and upload. */
+    private val activeUploadHosts = PrinterUploadReservation()
+    private val uploadReservations = ConcurrentHashMap<ProgressDialog, String>()
     private val client = AsyncHttpClient().apply {
         setLoggingEnabled(true)
         // Moonraker on Kobra 3 can preprocess uploaded G-code before responding.
@@ -83,6 +88,11 @@ object SliceUploadController {
             showPreparationFailure(fragment, context.getString(R.string.UploadSliceMissing))
             return
         }
+        val reservation = activeUploadHosts.reserve(host)
+        if (reservation == null) {
+            showPreparationFailure(fragment, "Für diesen Drucker läuft bereits ein Upload oder Druckstart. Bitte warte, bis der Auftrag abgeschlossen ist.")
+            return
+        }
         val progress = ProgressDialog(context).apply {
             setTitle(R.string.MenuSliceSendToPrinterLoading)
             setMessage(context.getString(R.string.UploadPreparingGcode))
@@ -91,6 +101,7 @@ object SliceUploadController {
             setCancelable(false)
             show()
         }
+        uploadReservations[progress] = reservation
         val name = slicedResult.getRecommendedName()
         val source = BedFragment.tempGCodePath
         val currentModel: Model? = fragment.currentModel
@@ -373,16 +384,14 @@ object SliceUploadController {
                         startParams,
                         null,
                         object : AsyncHttpResponseHandler() {
-                            override fun onSuccess(code: Int, headers: Array<Header>, body: ByteArray) {
+                            override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
                                 PrinterResponseInspector.embeddedError(body)?.let { detail ->
                                     showUploadFailure(fragment, 0, body, IOException(detail), progress, printStartAttempt = true)
                                     return
                                 }
                                 if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
-                                    showUploadFailure(fragment, 0, null,
-                                        IOException(PrinterResponseInspector.missingAcknowledgement(body,
-                                            "Der Drucker hat den Druckstart nicht bestätigt. Bitte den Druckerstatus prüfen.")),
-                                        progress, printStartAttempt = true)
+                                    checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                        "Der Drucker hat den Druckstart nicht eindeutig bestätigt.")
                                     return
                                 }
                                 dismissSendProgress(progress)
@@ -396,16 +405,19 @@ object SliceUploadController {
 
                             override fun onFailure(
                                 code: Int,
-                                headers: Array<Header>,
+                                responseHeaders: Array<Header>,
                                 body: ByteArray,
                                 error: Throwable,
                             ) {
-                                showUploadFailure(fragment, code, body, error, progress, printStartAttempt = true)
+                                checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                    "Die Antwort auf den Druckstart war unklar${if (code > 0) " (HTTP $code)" else ""}: " +
+                                        PrinterResponseInspector.printStartFailureDetail(body, error.localizedMessage ?: error.toString()))
                             }
                         },
                     )
                     } catch (error: RuntimeException) {
-                        showUploadFailure(fragment, 0, null, error, progress, printStartAttempt = true)
+                        checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                            "Die Startanfrage konnte nicht eindeutig abgeschlossen werden: ${error.localizedMessage ?: error}.")
                     }
                 }
 
@@ -452,8 +464,65 @@ object SliceUploadController {
     }
 
     private fun dismissSendProgress(progress: ProgressDialog) {
+        uploadReservations.remove(progress)?.let(activeUploadHosts::release)
         ViewUtils.postOnMainThread {
             if (progress.isShowing) progress.dismiss()
+        }
+    }
+
+    /** A start request can reach Klipper even when its HTTP response is lost; query once, never retry. */
+    private fun checkUncertainPrintStart(
+        fragment: BedFragment,
+        host: String,
+        headers: Array<Header>,
+        uploadedPath: String,
+        progress: ProgressDialog,
+        reason: String,
+    ) {
+        val statusUrl = PrinterUploadUrl.endpoint(host, "/printer/objects/query?print_stats")
+        if (statusUrl == null) {
+            showUploadFailure(fragment, 0, null, IOException("$reason Druckerstatus konnte nicht abgefragt werden."), progress,
+                printStartAttempt = true)
+            return
+        }
+        ViewUtils.postOnMainThread {
+            if (progress.isShowing) progress.setMessage("Druckstatus wird einmalig geprüft …")
+        }
+        val statusClient = AsyncHttpClient().apply {
+            setTimeout(10_000)
+            setConnectTimeout(5_000)
+            setMaxRetriesAndTimeout(0, 5_000)
+        }
+        try {
+            statusClient.get(SliceBeam.requireInstance(), statusUrl, headers, null,
+                object : AsyncHttpResponseHandler() {
+                    override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
+                        val status = MoonrakerResponseInspector.printStatus(body)
+                        if (status?.confirmsStartedFile(uploadedPath) == true) {
+                            dismissSendProgress(progress)
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                                SnackbarsLayout.Type.INFO, R.string.MenuSliceSendToPrinterPrintStarted,
+                            ))
+                        } else {
+                            val observed = status?.let { " Aktueller Status: ${it.state}" }
+                                ?: " Der Druckerstatus konnte nicht gelesen werden."
+                            showUploadFailure(fragment, 0, null,
+                                IOException("$reason$observed Es wurde kein weiterer Startbefehl gesendet; prüfe den Drucker, bevor du erneut startest."),
+                                progress, printStartAttempt = true)
+                        }
+                    }
+
+                    override fun onFailure(code: Int, responseHeaders: Array<Header>, body: ByteArray, error: Throwable) {
+                        val detail = error.localizedMessage?.takeIf { it.isNotBlank() } ?: "HTTP $code"
+                        showUploadFailure(fragment, code, body,
+                            IOException("$reason Die Statusabfrage ist fehlgeschlagen ($detail). Es wurde kein weiterer Startbefehl gesendet; prüfe den Drucker, bevor du erneut startest."),
+                            progress, printStartAttempt = true)
+                    }
+                })
+        } catch (error: RuntimeException) {
+            showUploadFailure(fragment, 0, null,
+                IOException("$reason Die Statusabfrage konnte nicht ausgeführt werden. Es wurde kein weiterer Startbefehl gesendet.", error),
+                progress, printStartAttempt = true)
         }
     }
 
