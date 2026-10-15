@@ -1,5 +1,8 @@
 <resources>
     <string name="LargeModelPreciseSurfaceUnavailable">Для этого инструмента нужна точная точка на поверхности. Сначала упростите модель; её по-прежнему можно выбрать.</string>
+    <string name="LargeModelSurfaceTitle">Упростить модель для работы с поверхностью?</string>
+    <string name="LargeModelSurfaceMessage">В этой модели %1$d треугольников. Для рисования и тиснения нужно не более %2$d. Упрощение меняет модель на платформе и может убрать детали; исходный файл сохраняется. После упрощения откройте инструмент снова.</string>
+    <string name="LargeModelSurfaceStillDense">Модель всё ещё слишком детализирована для точной работы с поверхностью. Упростите её сильнее.</string>
     <string name="PrinterWebRetry">Повторить</string>
     <string name="PrinterWebOpenInBrowser">Открыть в браузере</string>
     <string name="ConverterProgressPreparing">Подготовка…</string>

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.227 (alpha)
+
+- Stop large-model paint sessions before full-resolution mesh and facet overlays are allocated. Offer an explicit simplification choice; cancel keeps the print geometry unchanged.
+- Apply the same early choice to embossed text. The renderer also refuses an oversized paint session when invoked through another route.
+- Keep the surface-tool threshold in one place and test the suggested reduction for a dense KromaCut-size model.
+- Retry a consented reduction when the native simplifier remains above the safe threshold; report honestly if it still cannot reach the limit. Ignore queued simplification after its model is no longer active.
+
 ## 0.8.226 (alpha)
 
 - Keep large models selectable while preventing approximate box hits from placing paint, embossed text, or measurement points on the wrong surface. Show a localized explanation when precise surface tools need a simpler model.

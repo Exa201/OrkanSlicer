@@ -22,6 +22,7 @@ import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.GLShaderProgram
 import ru.ytkab0bp.slicebeam.slic3r.GLShadersManager
+import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
@@ -1426,6 +1427,9 @@ sourceModel.release()
 }
 @JvmOverloads fun beginPaint(objIdx:Int, mode:Int = PAINT_MODE_COLOR) {
 if (this.model == null || objIdx < 0 || objIdx >= this.model!!.objectsCount) return
+// A paint session copies facet state and overlays. Refuse the high-memory path even if
+// another caller skipped the UI check; the user may explicitly simplify first.
+if (LargeModelPick.needsPreciseSurfaceSimplification(this.model!!.getTriangleCount(objIdx))) return
 endPaintInternal(false)
 // Ensure the object's GLModel + raycast data exist (built lazily in onDrawFrame otherwise).
  while (glModels.size <= objIdx)

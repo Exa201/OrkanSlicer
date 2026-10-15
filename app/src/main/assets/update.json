@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.226\n\n• Malen, Messen und Prägen nutzen bei großen Modellen keine ungenaue Auswahlposition mehr.\n• Die Druckplattenauswahl bietet bei großer Schrift mehr Platz; der Druckername ist besser lesbar.",
-  "en": "OrkanSlicer 0.8.226\n\n• Paint, measure and emboss no longer use an approximate surface point on large models.\n• Plate selection adapts to larger text; printer names are easier to read.",
-  "ru": "OrkanSlicer 0.8.226\n\n• Рисование, измерение и тиснение больше не используют приблизительную точку поверхности больших моделей.\n• Выбор платформы адаптирован к крупному шрифту; имя принтера читается лучше."
+  "de": "OrkanSlicer 0.8.227\n\n• Große Modelle öffnen Malen und Prägen erst nach einer bewusst bestätigten Vereinfachung.\n• Abbrechen bewahrt die unveränderte Druckgeometrie.",
+  "en": "OrkanSlicer 0.8.227\n\n• Dense models offer explicit simplification before paint or emboss tools allocate full-resolution meshes.\n• Cancel keeps the print geometry unchanged.",
+  "ru": "OrkanSlicer 0.8.227\n\n• Для больших моделей упрощение подтверждается до открытия рисования или тиснения.\n• Отмена сохраняет геометрию печати без изменений."
 }

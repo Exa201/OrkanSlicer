@@ -7,6 +7,14 @@ import kotlin.math.abs
 internal object LargeModelPick {
     const val TRIANGLE_LIMIT = 100_000
 
+    fun needsPreciseSurfaceSimplification(triangleCount: Int): Boolean = triangleCount > TRIANGLE_LIMIT
+
+    /** Leave headroom because decimators may return slightly more facets than requested. */
+    fun suggestedKeepRatio(triangleCount: Int): Float =
+        if (needsPreciseSurfaceSimplification(triangleCount))
+            (TRIANGLE_LIMIT * 0.8f / triangleCount).coerceIn(0.000001f, 0.99f)
+        else 1f
+
     fun hit(origin: Vec3d, direction: Vec3d, min: Vec3d, max: Vec3d): GLModel.HitResult? {
         val starts = doubleArrayOf(origin.x, origin.y, origin.z)
         val rays = doubleArrayOf(direction.x, direction.y, direction.z)

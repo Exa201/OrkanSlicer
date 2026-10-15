@@ -40,7 +40,7 @@ open class GLModel internal constructor(
 
     private fun updatePickBounds(model: Model, i: Int) {
         clearPicking()
-        approximatePickBounds = if (model.getTriangleCount(i) > LargeModelPick.TRIANGLE_LIMIT) {
+        approximatePickBounds = if (LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(i))) {
             val min = Vec3d()
             val max = Vec3d()
             model.getBoundingBoxApprox(i, min, max)
