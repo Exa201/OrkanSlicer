@@ -30,8 +30,7 @@ object MoonrakerResponseInspector {
 
     private fun sameFile(actual: String?, expected: String): Boolean {
         if (actual.isNullOrBlank()) return false
-        return actual.trim().replace('\\', '/').substringAfterLast('/') ==
-            expected.trim().replace('\\', '/').substringAfterLast('/')
+        return actual.trim().replace('\\', '/') == expected.trim().replace('\\', '/')
     }
 
     @JvmStatic

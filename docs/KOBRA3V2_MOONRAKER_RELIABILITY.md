@@ -2,7 +2,7 @@
 
 The upload flow reserves the normalized printer origin while a job is being prepared, uploaded, and optionally started. This prevents a second in-app request from racing the first request for that printer. Existing G-code integrity checks and ACE assignment verification still run before upload.
 
-Moonraker file upload is accepted only after its response identifies the expected file under `gcodes`. A print start is never automatically retried. If its response is missing, malformed, or lost, the app issues one lightweight `print_stats` query and reports success only when that file is currently printing or paused. If the state cannot confirm that file, the UI asks the user to inspect the printer before another start.
+Moonraker file upload is accepted only after its response identifies the expected file under `gcodes`. A print start is never automatically retried. If its response is missing, malformed, or lost, the app issues one lightweight `print_stats` query and reports success only when the exact relative file path is currently printing or paused. Matching basenames in different subdirectories are not treated as the same file. If the state cannot confirm that file, the UI asks the user to inspect the printer before another start.
 
 The changes leave printer firmware untouched and retain the existing Anycubic G-code transformation. Unit coverage is added for Moonraker print-state parsing and filename matching, plus concurrent origin reservations.
 

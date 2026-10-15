@@ -59,7 +59,8 @@ class MoonrakerResponseInspectorTest {
         val status = MoonrakerResponseInspector.printStatus(bytes(
             """{"result":{"status":{"print_stats":{"state":"printing","filename":"subdir/model.gcode"}}}}"""))
         assertEquals("printing", status?.state)
-        assertTrue(status!!.confirmsStartedFile("model.gcode"))
+        assertTrue(status!!.confirmsStartedFile("subdir/model.gcode"))
+        assertFalse(status.confirmsStartedFile("model.gcode"))
         assertFalse(status.confirmsStartedFile("other.gcode"))
 
         val paused = MoonrakerResponseInspector.printStatus(bytes(
@@ -71,5 +72,12 @@ class MoonrakerResponseInspectorTest {
         val idle = MoonrakerResponseInspector.printStatus(bytes(
             """{"result":{"status":{"print_stats":{"state":"idle","filename":"model.gcode"}}}}"""))
         assertFalse(idle!!.confirmsStartedFile("model.gcode"))
+    }
+
+    @Test fun sameBasenameInAnotherDirectoryCannotConfirmThePrint() {
+        val status = MoonrakerResponseInspector.printStatus(bytes(
+            """{"result":{"status":{"print_stats":{"state":"printing","filename":"other/model.gcode"}}}}"""))
+        assertFalse(status!!.confirmsStartedFile("requested/model.gcode"))
+        assertFalse(status.confirmsStartedFile("model.gcode"))
     }
 }
