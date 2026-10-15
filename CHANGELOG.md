@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.225 (alpha)
+
+- Avoid the native face-neighbour raycast index when selecting dense KromaCut and other models above 100,000 triangles. Taps use the model's current approximate bounds; slicing geometry stays unchanged.
+- Verify the large-model tap path on Xiaomi 13 after centering a real KromaCut 3MF model (about 1.38 million triangles): repeated taps on the model and empty plate no longer crash. Keep the plate-picker improvements from 0.8.224.
+
 ## 0.8.224 (alpha)
 
 - Use the correct singular and plural object labels in the build-plate picker.

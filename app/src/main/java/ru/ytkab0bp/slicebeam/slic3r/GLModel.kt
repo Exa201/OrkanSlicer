@@ -12,6 +12,7 @@ open class GLModel internal constructor(
     @JvmField var pointer: Long,
 ) {
     private var raycasterCache: MeshRaycaster? = null
+    private var approximatePickBounds: Pair<Vec3d, Vec3d>? = null
 
     @JvmField var hoverProgress: Float = 0f
     @JvmField var isHovering: Boolean = false
@@ -23,15 +24,29 @@ open class GLModel internal constructor(
     }
 
     open fun initFrom(model: Model) {
+        approximatePickBounds = null
+        raycasterCache = null
         Native.glmodel_init_from_model(pointer, model.pointer)
     }
 
     open fun initFrom(model: Model, i: Int) {
+        updatePickBounds(model, i)
         Native.glmodel_init_from_model_object(pointer, model.pointer, i)
     }
 
     open fun initPreviewFrom(model: Model, i: Int, maxTriangles: Int) {
+        updatePickBounds(model, i)
         Native.glmodel_init_from_model_object_preview(pointer, model.pointer, i, maxTriangles)
+    }
+
+    private fun updatePickBounds(model: Model, i: Int) {
+        raycasterCache = null
+        approximatePickBounds = if (model.getTriangleCount(i) > LargeModelPick.TRIANGLE_LIMIT) {
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxApprox(i, min, max)
+            min to max
+        } else null
     }
 
     /** Build this model from facets painted with the given filament in a paint session (mesh-local coords). */
@@ -76,6 +91,7 @@ open class GLModel internal constructor(
     open fun reset() {
         Native.glmodel_reset(pointer)
         raycasterCache = null
+        approximatePickBounds = null
     }
 
     open fun release() {
@@ -83,13 +99,17 @@ open class GLModel internal constructor(
             Native.glmodel_release(pointer)
             pointer = 0L
         }
+        raycasterCache = null
+        approximatePickBounds = null
     }
 
     open val raycaster: MeshRaycaster
         get() {
         var current = raycasterCache
         if (current == null) {
-            Native.glmodel_init_raycast_data(pointer)
+            // AABBMesh builds face-neighbour data for every triangle. KromaCut meshes
+            // can exceed a million facets and crash the process on this tap path.
+            if (approximatePickBounds == null) Native.glmodel_init_raycast_data(pointer)
             current = MeshRaycaster()
             raycasterCache = current
         }
@@ -116,6 +136,10 @@ open class GLModel internal constructor(
             var direction = camera.getDirForward().clone()
             if (!Prefs.isOrthoProjectionEnabled()) {
                 direction = point.clone().add(camera.position.clone().negate()).normalize()
+            }
+            approximatePickBounds?.let { (min, max) ->
+                LargeModelPick.hit(point, direction, min, max)?.let(safeList::add)
+                return
             }
             val hits = Native.glmodel_raycast_closest_hit(pointer, point.asDoubleArray(), direction.asDoubleArray())
             safeList.ensureCapacity(hits.size / 6)
