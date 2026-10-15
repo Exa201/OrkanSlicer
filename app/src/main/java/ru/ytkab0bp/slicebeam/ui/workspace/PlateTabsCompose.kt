@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -53,9 +54,10 @@ internal data class PlateThumbnail(val footprints: List<PlateFootprint>)
 internal enum class PlatePickerLayout { INLINE, CIRCLE, GRID }
 
 internal object PlatePickerLayoutPolicy {
-    fun choose(plateCount: Int, screenWidthDp: Int, screenHeightDp: Int): PlatePickerLayout = when {
+    fun choose(plateCount: Int, screenWidthDp: Int, screenHeightDp: Int,
+               fontScale: Float = 1f): PlatePickerLayout = when {
         plateCount <= 2 -> PlatePickerLayout.INLINE
-        plateCount <= 6 && screenWidthDp >= 400 && screenHeightDp >= 480 -> PlatePickerLayout.CIRCLE
+        plateCount <= 6 && screenWidthDp >= 400 && screenHeightDp >= 480 && fontScale < 1.2f -> PlatePickerLayout.CIRCLE
         else -> PlatePickerLayout.GRID
     }
 }
@@ -90,7 +92,9 @@ internal fun PlateTabs(
     var open by openState
     val configuration = LocalConfiguration.current
     val screenHeightDp = configuration.screenHeightDp
-    val pickerLayout = PlatePickerLayoutPolicy.choose(plateCount, configuration.screenWidthDp, screenHeightDp)
+    val estimatedGridColumns = ((configuration.screenWidthDp - 88) / 104).coerceIn(1, 4)
+    val pickerLayout = PlatePickerLayoutPolicy.choose(plateCount, configuration.screenWidthDp,
+        screenHeightDp, LocalDensity.current.fontScale)
     val label = stringResource(R.string.PlateNumber, (selectedIndex + 1).toString())
     Surface(
         modifier = Modifier.size(OrkanUiTokens.touchTarget).semantics { contentDescription = label }
@@ -132,9 +136,11 @@ internal fun PlateTabs(
                             AddPlateButton { onAdd(); open = false }
                         }
                     } else LazyVerticalGrid(
-                        columns = GridCells.Adaptive(88.dp),
+                        columns = GridCells.Adaptive(96.dp),
                         state = rememberLazyGridState(initialFirstVisibleItemIndex = selectedIndex.coerceIn(0, (plateCount - 1).coerceAtLeast(0))),
-                        modifier = Modifier.fillMaxWidth().height((((plateCount + 3) / 3) * 108).coerceIn(108, (screenHeightDp - 150).coerceAtLeast(108).coerceAtMost(420)).dp),
+                        modifier = Modifier.fillMaxWidth().height((
+                            ((plateCount + estimatedGridColumns) / estimatedGridColumns) * 118
+                        ).coerceIn(110, (screenHeightDp - 150).coerceAtLeast(110).coerceAtMost(420)).dp),
                         horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.regularGap),
                         verticalArrangement = Arrangement.spacedBy(OrkanUiTokens.regularGap),
                     ) {
@@ -161,12 +167,12 @@ private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
                             thumbnail: PlateThumbnail? = null) {
     val deleteDescription = stringResource(R.string.PlateCloseDescription,
         stringResource(R.string.PlateNumber, (index + 1).toString()))
-    Surface(modifier = modifier.size(width = 80.dp, height = 100.dp),
+    Surface(modifier = modifier.size(width = 88.dp, height = 110.dp),
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         border = if (selected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Column(Modifier.fillMaxWidth().height(52.dp).clickable(role = Role.Button, onClick = onSelect),
+            Column(Modifier.fillMaxWidth().height(62.dp).clickable(role = Role.Button, onClick = onSelect),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text((index + 1).toString(), style = MaterialTheme.typography.titleMedium)
@@ -178,7 +184,7 @@ private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
             Box(Modifier.fillMaxWidth().height(OrkanUiTokens.touchTarget)
                 .semantics { contentDescription = deleteDescription }
                 .clickable(role = Role.Button, onClick = onClose), contentAlignment = Alignment.Center) {
-                Text("×", color = MaterialTheme.colorScheme.error)
+                Text("×", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleMedium)
             }
         }
     }

@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.225\n\n• Große KromaCut-Modelle lassen sich antippen, ohne die absturzanfällige Auswahlstruktur aufzubauen.\n• Die Druckplattenübersicht und ihre Miniatur wurden verbessert.",
-  "en": "OrkanSlicer 0.8.225\n\n• Large KromaCut models can be tapped without building the crash-prone selection index.\n• The plate picker and its thumbnail have been improved.",
-  "ru": "OrkanSlicer 0.8.225\n\n• Большие модели KromaCut можно выбирать без создания структуры, вызывавшей сбой.\n• Улучшены выбор платформы и её миниатюра."
+  "de": "OrkanSlicer 0.8.226\n\n• Malen, Messen und Prägen nutzen bei großen Modellen keine ungenaue Auswahlposition mehr.\n• Die Druckplattenauswahl bietet bei großer Schrift mehr Platz; der Druckername ist besser lesbar.",
+  "en": "OrkanSlicer 0.8.226\n\n• Paint, measure and emboss no longer use an approximate surface point on large models.\n• Plate selection adapts to larger text; printer names are easier to read.",
+  "ru": "OrkanSlicer 0.8.226\n\n• Рисование, измерение и тиснение больше не используют приблизительную точку поверхности больших моделей.\n• Выбор платформы адаптирован к крупному шрифту; имя принтера читается лучше."
 }

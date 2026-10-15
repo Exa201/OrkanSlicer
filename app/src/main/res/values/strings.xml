@@ -1,7 +1,9 @@
 <resources>
+    <string name="LargeModelPreciseSurfaceUnavailable">This tool needs an exact surface point. Simplify the model first; selecting it still works.</string>
     <string name="AppName" translatable="false">OrkanSlicer</string>
     <string name="SlotBed">Model</string>
     <string name="NavigationPreview">Preview</string>
+    <string name="NavigationPreviewCompact" translatable="false">3D</string>
     <string name="SlotPrintConfig">Print</string>
     <string name="SlotPrintConfigTooltip">Print profile</string>
     <string name="SlotFilamentConfig">Filament</string>

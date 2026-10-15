@@ -60,6 +60,7 @@ internal object LargeModelPick {
         return GLModel.HitResult(
             Vec3d(origin.x + direction.x * distance, origin.y + direction.y * distance, origin.z + direction.z * distance),
             normal,
+            approximate = true,
         )
     }
 }

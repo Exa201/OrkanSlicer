@@ -58,6 +58,7 @@ class PlateTabsPolicyTest {
         assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(4, 360, 800))
         assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(4, 430, 440))
         assertEquals(PlatePickerLayout.CIRCLE, PlatePickerLayoutPolicy.choose(4, 430, 800))
+        assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(4, 430, 800, 1.3f))
         assertEquals(PlatePickerLayout.GRID, PlatePickerLayoutPolicy.choose(20, 430, 800))
     }
 }

@@ -99,6 +99,7 @@ private lateinit var glView: GLView
 private var translate = Vec3d()
 private var rotate = Vec3d()
 private var raycastHits = ArrayList<GLModel.HitResult>()
+private var lastApproximateSurfaceWarningAt = 0L
 private var bbMin = Vec3d()
 private var bbMax = Vec3d()
 private var isInFlattenMode:Boolean = false
@@ -1486,8 +1487,7 @@ fun paintAt(x:Float, y:Float) {
 if (paintSession == null || paintObject < 0 || paintObject >= glModels.size) return
 val gl = glModels.get(paintObject)
 gl.raycaster.raycast(this, raycastHits, x, y)
-if (raycastHits.isEmpty()) return
-val hit = raycastHits.get(0).position
+val hit = preciseSurfaceHit()?.position ?: return
 val h = doubleArrayOf(hit.x, hit.y, hit.z)
 if (paintTool == PAINT_TOOL_BUCKET)
 {
@@ -1505,6 +1505,20 @@ paintSession!!.brush(h, -1, paintBrushRadius, paintFilament, camera.position.asD
 // Don't commit on every drag event (expensive) â€” the live session overlays show the paint,
  // and endPaint() commits to the model. This keeps fast drags from painting sparsely.
  rebuildPaintOverlays()
+}
+/** A bounding-box hit can select an object, but must never place paint or a surface tool. */
+private fun preciseSurfaceHit(): GLModel.HitResult? {
+val hit = raycastHits.firstOrNull() ?: return null
+if (!hit.approximate) return hit
+val now = android.os.SystemClock.elapsedRealtime()
+if (lastApproximateSurfaceWarningAt == 0L || now - lastApproximateSurfaceWarningAt >= 5_000L) {
+lastApproximateSurfaceWarningAt = now
+ViewUtils.postOnMainThread {
+android.widget.Toast.makeText(SliceBeam.INSTANCE, R.string.LargeModelPreciseSurfaceUnavailable,
+    android.widget.Toast.LENGTH_LONG).show()
+}
+}
+return null
 }
 fun heightPaint(zMin:Double, zMax:Double) {
 if (paintSession == null) return
@@ -1625,10 +1639,11 @@ if (targetObj != -1 && targetObj < glModels.size)
 {
 val glModel = glModels.get(targetObj)
 glModel.raycaster.raycast(this, raycastHits, x, y)
-if (!raycastHits.isEmpty())
+val preciseHit = preciseSurfaceHit()
+if (preciseHit != null)
 {
-val position = raycastHits.get(0).position
-val normal = raycastHits.get(0).normal
+val position = preciseHit.position
+val normal = preciseHit.normal
 SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(position, normal))
 return true
 }
@@ -1646,9 +1661,10 @@ if (targetObj != -1 && targetObj < glModels.size)
 {
 val glModel = glModels.get(targetObj)
 glModel.raycaster.raycast(this, raycastHits, x, y)
-if (!raycastHits.isEmpty())
+val preciseHit = preciseSurfaceHit()
+if (preciseHit != null)
 {
-val hitPoint = raycastHits.get(0).position
+val hitPoint = preciseHit.position
 if (measurePointA == null)
 {
 measurePointA = hitPoint

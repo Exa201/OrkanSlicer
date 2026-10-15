@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.226 (alpha)
+
+- Keep large models selectable while preventing approximate box hits from placing paint, embossed text, or measurement points on the wrong surface. Show a localized explanation when precise surface tools need a simpler model.
+- Clear cached selection data whenever a GL model is rebuilt for another mesh.
+- Give plate cards more room and use the scrollable grid for large system fonts; keep narrow navigation labels whole, shorten the German 3MF save label, and allow long printer names another line when text is enlarged.
+
 ## 0.8.225 (alpha)
 
 - Avoid the native face-neighbour raycast index when selecting dense KromaCut and other models above 100,000 triangles. Taps use the model's current approximate bounds; slicing geometry stays unchanged.

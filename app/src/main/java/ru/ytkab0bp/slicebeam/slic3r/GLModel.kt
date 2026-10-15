@@ -24,8 +24,7 @@ open class GLModel internal constructor(
     }
 
     open fun initFrom(model: Model) {
-        approximatePickBounds = null
-        raycasterCache = null
+        clearPicking()
         Native.glmodel_init_from_model(pointer, model.pointer)
     }
 
@@ -40,7 +39,7 @@ open class GLModel internal constructor(
     }
 
     private fun updatePickBounds(model: Model, i: Int) {
-        raycasterCache = null
+        clearPicking()
         approximatePickBounds = if (model.getTriangleCount(i) > LargeModelPick.TRIANGLE_LIMIT) {
             val min = Vec3d()
             val max = Vec3d()
@@ -50,8 +49,10 @@ open class GLModel internal constructor(
     }
 
     /** Build this model from facets painted with the given filament in a paint session (mesh-local coords). */
-    open fun initFromPaint(paintSessionPtr: Long, filamentIdx: Int): Int =
-        Native.glmodel_init_from_paint(pointer, paintSessionPtr, filamentIdx)
+    open fun initFromPaint(paintSessionPtr: Long, filamentIdx: Int): Int {
+        clearPicking()
+        return Native.glmodel_init_from_paint(pointer, paintSessionPtr, filamentIdx)
+    }
 
     open fun setColor(color: Int) {
         Native.glmodel_set_color(
@@ -64,19 +65,23 @@ open class GLModel internal constructor(
     }
 
     open fun stilizedArrow(tipRadius: Float, tipLength: Float, stemRadius: Float, stemLength: Float) {
+        clearPicking()
         Native.glmodel_stilized_arrow(pointer, tipRadius, tipLength, stemRadius, stemLength)
     }
 
     open fun initBackgroundTriangles() {
+        clearPicking()
         Native.glmodel_init_background_triangles(pointer)
     }
 
     /** Build a simple rectangular prism with origin at the front-left-bottom corner. */
     open fun initBox(width: Float, depth: Float, height: Float) {
+        clearPicking()
         Native.glmodel_init_box(pointer, width, depth, height)
     }
 
     open fun initBoundingBox(model: Model, i: Int) {
+        clearPicking()
         Native.glmodel_init_bounding_box(pointer, model.pointer, i)
     }
 
@@ -90,8 +95,7 @@ open class GLModel internal constructor(
 
     open fun reset() {
         Native.glmodel_reset(pointer)
-        raycasterCache = null
-        approximatePickBounds = null
+        clearPicking()
     }
 
     open fun release() {
@@ -99,6 +103,10 @@ open class GLModel internal constructor(
             Native.glmodel_release(pointer)
             pointer = 0L
         }
+        clearPicking()
+    }
+
+    private fun clearPicking() {
         raycasterCache = null
         approximatePickBounds = null
     }
@@ -156,5 +164,10 @@ open class GLModel internal constructor(
         }
     }
 
-    open class HitResult(@JvmField val position: Vec3d, @JvmField val normal: Vec3d)
+    open class HitResult(
+        @JvmField val position: Vec3d,
+        @JvmField val normal: Vec3d,
+        /** True for a selection-box hit; unsuitable for edits needing a real surface point. */
+        @JvmField val approximate: Boolean = false,
+    )
 }

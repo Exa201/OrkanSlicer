@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -30,6 +31,7 @@ data class WorkspaceNavigationItem(
     val label: String,
     @DrawableRes val icon: Int,
     val accessibilityLabel: String,
+    val compactLabel: String? = null,
 )
 
 /** Compact destinations keep their labels and full touch areas in both window shapes. */
@@ -69,6 +71,13 @@ private fun Destination(
     onSelected: (Int) -> Unit,
     compactRail: Boolean = false,
 ) {
+    // Large system text still grows, but a small adjustment keeps short German labels whole.
+    val largeText = LocalDensity.current.fontScale >= 1.2f
+    val labelSize = when {
+        compactRail && largeText -> 10.sp
+        largeText -> 11.sp
+        else -> OrkanUiTokens.navigationLabelSize
+    }
     Column(
         modifier.heightIn(min = AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP.dp)
             .selectable(selected = selected, role = Role.Tab,
@@ -90,8 +99,10 @@ private fun Destination(
             )
         }
         Text(
-            item.label, maxLines = 2, softWrap = true, overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center, fontSize = OrkanUiTokens.navigationLabelSize, lineHeight = 14.sp,
+            if (compactRail) item.compactLabel ?: item.label else item.label,
+            maxLines = if (compactRail) 1 else 2,
+            softWrap = !compactRail, overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center, fontSize = labelSize, lineHeight = 14.sp,
             modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,

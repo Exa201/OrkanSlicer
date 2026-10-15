@@ -121,6 +121,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                 label = ctx.getString(getSlotNavigationTitle(slot)),
                 icon = getSlotIcon(slot),
                 accessibilityLabel = ctx.getString(getSlotTooltip(slot)),
+                compactLabel = if (slot == MobileNavigationPolicy.PREVIEW_SLOT) ctx.getString(R.string.NavigationPreviewCompact) else null,
             )
         }
         return ComposeView(ctx).apply {

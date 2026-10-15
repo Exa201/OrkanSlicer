@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="LargeModelPreciseSurfaceUnavailable">Dieses Werkzeug braucht einen genauen Oberflächenpunkt. Vereinfache zuerst das Modell; auswählen kannst du es weiterhin.</string>
     <string name="SlotBed">Modell</string>
     <string name="NavigationPreview">Vorschau</string>
     <string name="SlotPrintConfig">Druck</string>
@@ -634,7 +635,7 @@
     <string name="MenuFileExportProfilesPrinters">Drucker</string>
     <string name="MenuFileExportProfilesNoProfiles">Keine Profile ausgewählt.</string>
     <string name="MenuFileExportProfilesSuccess">Profile erfolgreich exportiert.</string>
-    <string name="MenuFileExport3mf">3MF speichern</string>
+    <string name="MenuFileExport3mf">3MF sichern</string>
     <string name="MenuFileExport3mfSuccess">Projekt erfolgreich exportiert.</string>
     <string name="MenuCamera">Ansicht</string>
     <string name="MenuCameraIsometric">Isometrisch</string>
