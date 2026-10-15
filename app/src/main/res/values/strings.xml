@@ -149,7 +149,7 @@
     <string name="MenuPlates">Plates</string>
     <string name="PlateNumber">Plate %1$s</string>
     <string name="PlatePickerTitle">Build plates</string>
-    <string name="PlateObjectsShort">objects</string>
+    <plurals name="PlateObjectCount"><item quantity="one">%d object</item><item quantity="other">%d objects</item></plurals>
     <string name="EditUndoShort">Undo</string>
     <string name="EditRedoShort">Redo</string>
     <string name="EditArrangeShort">Arrange all</string>

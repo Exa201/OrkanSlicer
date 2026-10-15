@@ -1,5 +1,7 @@
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 
+Ergänzung 0.8.224 (15.10.2026): Die Druckplattenauswahl unterscheidet sprachlich zwischen einem Objekt und mehreren Objekten. Ihre einfache XY-Miniatur wird bei jedem Öffnen neu aus den Modellgrenzen berechnet, damit Verschieben oder Skalieren keine veraltete Lage zeigt. Die Wirkung am Gerät und die Anzeige bei vielen Platten werden noch geprüft.
+
 Ergänzung 0.8.223 (15.10.2026): Ein Gerätetest mit einer synthetischen STL mit 502.002 Dreiecken zeigte die Warnung vor großem Import und danach die getrennte Wahl „Original beibehalten“ oder „Vereinfachen“. Bei Ablehnung war die Druckplatten-Miniatur vorhanden, der Objektzähler blieb aber auf „0 Objekte“, weil er vor der Übergabe des importierten Modells aktualisiert wurde. Der Zähler und Miniaturcache werden nun nach dem tatsächlichen Commit des Imports erneuert. Auf dem Honor wurde anschließend eine geschlossene STL mit 518.400 Dreiecken zweimal geladen: Mit „Original beibehalten“ und mit „Vereinfachen“ waren beide Kugeln sichtbar, die Plattenübersicht zeigte jeweils ein Objekt. Nach Kaltstart war die Platte leer und das gewählte Druckerprofil blieb erhalten. Ein Low-RAM-Gerät, die tatsächliche Anzahl reduzierter Dreiecke sowie ein Slicing dieses großen Testmodells bleiben offen.
 
 Die Priorität richtet sich nach Drucksicherheit, Nutzen auf dem Telefon und Umsetzungsaufwand. Ein vorhandener Orca-Konfigurationsschlüssel bedeutet noch nicht, dass die Bedienung oder der Druckpfad vollständig geprüft sind.

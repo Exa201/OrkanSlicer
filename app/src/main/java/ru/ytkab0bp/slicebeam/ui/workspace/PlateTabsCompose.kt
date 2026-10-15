@@ -29,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -171,7 +172,7 @@ private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
                     Text((index + 1).toString(), style = MaterialTheme.typography.titleMedium)
                     PlateFootprintPreview(thumbnail, Modifier.padding(start = 4.dp).size(30.dp))
                 }
-                Text(if (objectCount < 0) "…" else "$objectCount ${stringResource(R.string.PlateObjectsShort)}",
+                Text(if (objectCount < 0) "…" else pluralStringResource(R.plurals.PlateObjectCount, objectCount, objectCount),
                     style = MaterialTheme.typography.labelSmall)
             }
             Box(Modifier.fillMaxWidth().height(OrkanUiTokens.touchTarget)

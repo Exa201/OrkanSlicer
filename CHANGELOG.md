@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.224 (alpha)
+
+- Use the correct singular and plural object labels in the build-plate picker.
+- Refresh the inexpensive plate footprints whenever the picker opens, so a moved or scaled model does not leave an old miniature behind.
+
 ## 0.8.223 (alpha)
 
 - Refresh the plate object count and invalidate its thumbnail cache only after a model import actually commits to the active native model. This fixes a stale "0 objects" label observed after keeping the original geometry of a 502,002-triangle STL.

@@ -1040,7 +1040,11 @@ plateCount = plateTabCount,
 selectedIndex = selectedPlateTabIndex,
 objectCounts = plateObjectCounts,
 thumbnails = plateThumbnails,
-onOpen = ::refreshPlateThumbnails,
+onOpen = {
+    // A model can move or scale without changing the plate list. Refresh its tiny footprint on demand.
+    platePreviewRevision++
+    refreshPlateThumbnails()
+},
             onSelect = { index -> if (index != currentPlateIndex) switchPlate(index) },
 onClose = { index -> removePlate(index) },
 onAdd = { addNewPlate() },

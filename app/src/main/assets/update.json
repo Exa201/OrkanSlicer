@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.223\n\n• Nach einem Modellimport aktualisiert sich die Objektanzahl der Druckplatte zuverlässig.\n• Große Modelle fragen weiterhin vor einer Vereinfachung.",
-  "en": "OrkanSlicer 0.8.223\n\n• The build plate object count now refreshes after a model import completes.\n• Large models still ask before any simplification.",
-  "ru": "OrkanSlicer 0.8.223\n\n• Счётчик объектов обновляется после завершения импорта модели.\n• Упрощение больших моделей по-прежнему требует подтверждения."
+  "de": "OrkanSlicer 0.8.224\n\n• Die Druckplattenübersicht zeigt Einzahl und Mehrzahl korrekt an.\n• Nach Verschieben oder Skalieren eines Modells wird die kleine Plattenvorschau beim Öffnen aktualisiert.",
+  "en": "OrkanSlicer 0.8.224\n\n• The plate picker now labels singular and plural object counts correctly.\n• Plate thumbnails refresh when opened after moving or scaling a model.",
+  "ru": "OrkanSlicer 0.8.224\n\n• Число объектов на панели теперь отображается с правильной формой слова.\n• Миниатюра платформы обновляется после перемещения или изменения размера модели."
 }
