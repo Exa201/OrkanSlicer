@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.229 (alpha)
+
+- Show the complete physical ACE slot row in the final send dialog, so a gap remains visible immediately before upload or print.
+- Recheck every used model color against the freshly synchronized, loaded and firmware-routable ACE slots before sending. If a selected slot became empty or lost its tool mapping, stop and offer to edit the assignment.
+- Exercise the complete three-color Anycubic G-code rewrite with an empty second gate: tool selections route to T0/T2/T3, metadata keeps physical positions, and the final layer and end command remain present.
+
 ## 0.8.228 (alpha)
 
 - Show every physical ACE gate after filament sync, including an empty gate between loaded ones. The overview distinguishes printer tool numbers from the slicer's compact model-color palette and shows each model color's ACE assignment.

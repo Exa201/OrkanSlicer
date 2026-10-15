@@ -917,6 +917,7 @@
     <string name="MmuAssignmentContinue">Weiter zum Slicen</string>
     <string name="MmuAssignmentSyncFailed">Die ACE-Fächer konnten nicht geprüft werden. Verbinde den Drucker und synchronisiere die Filamentliste vor dem Slicen dieses Mehrfarbmodells.</string>
     <string name="MmuAssignmentNoLoadedSlots">Die ACE meldet keine geladenen Filamente. Lege Filament ein und synchronisiere erneut.</string>
+    <string name="MmuAssignmentUnavailable">Modellfarbe T%1$d ist keinem belegten, erreichbaren ACE-Fach zugeordnet. Wähle einen anderen Slot, bevor du den G-Code sendest.</string>
     <string name="MmuAssignmentEdit">Farbe ACE-Fach zuordnen · zum Ändern antippen</string>
     <string name="QuickSliceTitle">Schnell slicen</string>
     <string name="QuickSliceHelp">Wähle Drucker, Material und eine Qualitätsstufe. Die Werte werden vor dem Slicen geprüft.</string>

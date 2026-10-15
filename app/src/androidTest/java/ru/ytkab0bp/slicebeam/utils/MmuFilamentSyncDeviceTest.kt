@@ -15,6 +15,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
+import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -108,6 +109,12 @@ class MmuFilamentSyncDeviceTest {
         assertNull(physical[1].filament)
         assertEquals("PETG", physical[2].filament?.type)
         assertEquals("TPU", physical[3].filament?.type)
+    }
+
+    @Test fun loadedGateWithoutFirmwareToolIsVisibleButNotSelectable() {
+        assertEquals(3 to null, sync(response(intArrayOf(0, 1, 2), intArrayOf(1, 1, 1, 1))))
+        assertEquals(4, MmuFilamentSync.physicalGates(title).size)
+        assertArrayEquals(intArrayOf(0, 1, 2), MmuFilamentAssignmentDialog.availableGates(title, false))
     }
 
     @Test fun automaticRefreshKeepsTheUsersSingleFilamentCount() {

@@ -70,7 +70,10 @@ object MmuFilamentAssignmentDialog {
 
     internal fun availableGates(printerTitle: String, allowUnverified: Boolean): IntArray =
         if (MmuFilamentSync.getSnapshot(printerTitle) == null && allowUnverified) intArrayOf(0, 1, 2, 3)
-        else MmuFilamentSync.loadedGates(printerTitle).filter { MmuFilamentSync.gateSlot(printerTitle, it) != null }.toIntArray()
+        else MmuFilamentSync.loadedGates(printerTitle).filter {
+            MmuFilamentSync.gateSlot(printerTitle, it) != null &&
+                MmuFilamentSync.toolForGate(printerTitle, it) >= 0
+        }.toIntArray()
 
     internal fun initialMapping(printerTitle: String, toolCount: Int, loadedGates: IntArray): IntArray {
         val existing = MmuFilamentSync.getSelectedGates(printerTitle, toolCount)

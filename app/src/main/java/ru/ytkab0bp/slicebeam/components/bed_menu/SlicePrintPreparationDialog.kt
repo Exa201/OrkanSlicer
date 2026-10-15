@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
+import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
 import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -149,6 +150,27 @@ object SlicePrintPreparationDialog {
 
         fun sendChecked(targetPrinter: ConfigObject, targetType: String, targetHost: String,
                         targetApiKey: String?) {
+            if (isAnycubicKobra(targetPrinter) && activeTools.isNotEmpty()) {
+                val title = targetPrinter.title.orEmpty()
+                val invalidTool = SlicePreparationTools.firstUnavailableAceTool(
+                    activeTools,
+                    MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
+                    MmuFilamentAssignmentDialog.availableGates(title, false),
+                )
+                if (invalidTool != null) {
+                    BeamAlertDialogBuilder(context)
+                        .setTitle(R.string.MmuAssignmentTitle)
+                        .setMessage(context.getString(R.string.MmuAssignmentUnavailable, invalidTool))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.ModelColorSlotsAction) { _, _ ->
+                            val shown = MmuFilamentAssignmentDialog.showForActiveTools(
+                                context, title, gcodeToolCount, activeTools,
+                            ) { mappingRevision.intValue++ }
+                            if (!shown) showNoLoadedGates(context)
+                        }.show()
+                    return
+                }
+            }
             if (print && isAnycubicKobra(targetPrinter)) {
                 val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(),
                     gcodeToolCount, activeTools, sourceFilamentTypes)
@@ -336,6 +358,9 @@ private fun PrintPreparationContent(
                 )
             }
             Text("▾", color = secondary, fontSize = 20.sp)
+        }
+        if (!resliceRequired && SlicePrintPreparationDialog.isAnycubicKobra(printer)) {
+            AcePhysicalSlotsBar(MmuFilamentSync.physicalGates(printer.title.orEmpty()))
         }
         Text(
             stringResource(

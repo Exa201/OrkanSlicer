@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -129,6 +130,16 @@ class SlicePreparationToolsTest {
             intArrayOf(),
             SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf()),
         )
+    }
+
+    @Test
+    fun catchesASelectedGateThatBecameEmptyWithoutRejectingSparseValidGates() {
+        val tools = intArrayOf(0, 1, 2)
+        val valid = intArrayOf(0, 2, 3)
+        assertNull(SlicePreparationTools.firstUnavailableAceTool(tools, intArrayOf(0, 2, 3), valid))
+        assertEquals(1, SlicePreparationTools.firstUnavailableAceTool(tools, intArrayOf(0, 1, 3), valid))
+        assertEquals(2, SlicePreparationTools.firstUnavailableAceTool(tools, intArrayOf(0, 2), valid))
+        assertEquals(0, SlicePreparationTools.firstUnavailableAceTool(tools, null, valid))
     }
 
     @Test

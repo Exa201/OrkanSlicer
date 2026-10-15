@@ -98,6 +98,13 @@ internal object SlicePreparationTools {
         return (0 until highest).filter { gate -> gate !in loaded }.map { gate -> gate + 1 }.toIntArray()
     }
 
+    /** A previously selected gate can become empty or lose its firmware tool mapping after a new sync. */
+    fun firstUnavailableAceTool(activeTools: IntArray, selectedGates: IntArray?, routableGates: IntArray): Int? =
+        activeTools.firstOrNull { tool ->
+            val gate = selectedGates?.getOrNull(tool)
+            gate == null || gate !in routableGates
+        }
+
     /** Read material names from the sliced file, rather than from a palette edited after slicing. */
     @JvmStatic
     @Throws(IOException::class)

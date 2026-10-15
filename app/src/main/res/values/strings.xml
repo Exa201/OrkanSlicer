@@ -931,6 +931,7 @@
     <string name="MmuAssignmentContinue">Continue to slice</string>
     <string name="MmuAssignmentSyncFailed">ACE slots could not be checked. Connect to the printer and synchronize the filament list before slicing this multicolor model.</string>
     <string name="MmuAssignmentNoLoadedSlots">The ACE reports no loaded filament slots. Load filament and synchronize again.</string>
+    <string name="MmuAssignmentUnavailable">Model color T%1$d is not assigned to a loaded, routable ACE slot. Choose another slot before sending the G-code.</string>
     <string name="MmuAssignmentEdit">Color to ACE slot mapping · tap to edit</string>
     <string name="QuickSliceTitle">Quick Slice</string>
     <string name="QuickSliceHelp">Choose a printer, material and a simple quality preset. Values are checked before slicing.</string>
