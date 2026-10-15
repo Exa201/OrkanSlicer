@@ -559,6 +559,9 @@
     <string name="PrintPrepareSharedAceWarning">Das Modell verwendet %1$d Farben, aber die Zuordnung nutzt nur %2$d verschiedene ACE-Slots. Farben mit demselben Slot werden mit demselben Filament gedruckt. Prüfe die Zuordnung vor dem Druck. Wenn das absichtlich so ist, kannst du fortfahren.</string>
     <string name="PrintPrepareSharedAceConfirm">So drucken</string>
     <string name="UploadPreparingGcode">Druckdatei wird vorbereitet …</string>
+    <string name="UploadAceChecking">ACE-Fächer werden vor dem Versand erneut geprüft …</string>
+    <string name="UploadAceCheckFailed">Die aktuelle ACE-Belegung konnte nicht geprüft werden. Die Datei wurde nicht gesendet. Prüfe die Druckerverbindung und versuche es erneut.</string>
+    <string name="UploadAceAssignmentChanged">Ein verwendetes ACE-Fach, dessen Material, Farbe oder Werkzeugzuordnung hat sich seit der Druckprüfung geändert. Die Datei wurde nicht gesendet. Öffne „Senden“ erneut und prüfe die Zuordnung.</string>
     <string name="UploadSliceMissing">Das Slice-Ergebnis ist nicht mehr verfügbar. Slice das Modell vor dem Senden erneut.</string>
     <string name="UploadProgressPercent">Wird zum Drucker übertragen: %1$d%%</string>
     <string name="UploadPrinterProcessing">Übertragung fertig. Der Drucker verarbeitet die Datei …</string>

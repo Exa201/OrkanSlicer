@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.231 (alpha)
+
+- Refresh the Kobra 3 V2 ACE state once more immediately before preparing an upload. A failed final check stops the transfer.
+- Compare the used gates, their printer-tool mapping, material and color with the state approved in the send dialog. If any used slot changed while the dialog was open, stop and ask the user to review the assignment again.
+- Exercise the final-refresh behavior against simulated printer responses on an Android device, including a slot becoming empty and a color changing while the slot remains loaded.
+
 ## 0.8.230 (alpha)
 
 - Warn before printing when several used model tools point to the same physical ACE gate: the dialog now shows the reduced count of printable filament colors and offers direct assignment editing, upload only, or explicit confirmation for an intentional shared-slot print.

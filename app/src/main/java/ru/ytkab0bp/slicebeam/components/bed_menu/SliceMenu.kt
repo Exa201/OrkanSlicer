@@ -145,6 +145,7 @@ class SliceMenu : ListBedMenu() {
                             sendApiKey,
                             shouldPrint,
                             targetPrinter,
+                            activeTools,
                         )
                     }
                 }

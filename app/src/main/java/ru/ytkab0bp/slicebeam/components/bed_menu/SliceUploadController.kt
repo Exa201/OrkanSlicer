@@ -75,6 +75,7 @@ object SliceUploadController {
         apiKey: String?,
         print: Boolean,
         printer: ConfigObject,
+        activeTools: IntArray,
     ) {
         val context = fragment.getContext() ?: return
         val slicedResult = fragment.glView?.renderer?.gcodeResult
@@ -96,6 +97,8 @@ object SliceUploadController {
         val modelInstances = currentModel?.objectsCount?.coerceAtLeast(1) ?: 1
         val qidiQ2 = QidiGCode3mfPackager.isQidiQ2(printer)
         val anycubicKobra3 = isAnycubicKobra3(printer)
+        val aceBefore = if (anycubicKobra3) MmuFilamentSync.assignedGates(
+            printer.title.orEmpty(), activeTools) else null
         val uploadName = if (qidiQ2) QidiGCode3mfPackager.uploadName(name) else name
         val continuePreparation: (ByteArray?) -> Unit = { preview -> IOUtils.IO_POOL.execute {
             var uploadFile: File? = null
@@ -149,8 +152,28 @@ object SliceUploadController {
                 }
             }
         } }
-        if (qidiQ2 || anycubicKobra3) captureWorkspacePreview(fragment, continuePreparation)
-        else continuePreparation(null)
+        val startFilePreparation = {
+            if (qidiQ2 || anycubicKobra3) captureWorkspacePreview(fragment, continuePreparation)
+            else continuePreparation(null)
+        }
+        if (anycubicKobra3) {
+            progress.setMessage(context.getString(R.string.UploadAceChecking))
+            MmuFilamentSync.synchronize(printer) { _, error ->
+                if (fragment.getContext() == null) {
+                    dismissSendProgress(progress)
+                } else if (error != null) {
+                    dismissSendProgress(progress)
+                    showPreparationFailure(fragment, context.getString(R.string.UploadAceCheckFailed))
+                } else if (aceBefore == null || aceBefore != MmuFilamentSync.assignedGates(
+                        printer.title.orEmpty(), activeTools)) {
+                    dismissSendProgress(progress)
+                    showPreparationFailure(fragment, context.getString(R.string.UploadAceAssignmentChanged))
+                } else {
+                    progress.setMessage(context.getString(R.string.UploadPreparingGcode))
+                    startFilePreparation()
+                }
+            }
+        } else startFilePreparation()
     }
 
     @JvmStatic

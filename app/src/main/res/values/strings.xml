@@ -566,6 +566,9 @@
     <string name="PrintPrepareSharedAceWarning">The model uses %1$d colors, but the assignment uses only %2$d distinct ACE slots. Colors sharing a slot will print with the same filament. Check the assignment before printing. Continue if this is intentional.</string>
     <string name="PrintPrepareSharedAceConfirm">Print as assigned</string>
     <string name="UploadPreparingGcode">Preparing print file …</string>
+    <string name="UploadAceChecking">Checking ACE slots again before sending …</string>
+    <string name="UploadAceCheckFailed">The current ACE slot state could not be checked. The file was not sent. Check the printer connection and try again.</string>
+    <string name="UploadAceAssignmentChanged">A used ACE slot, its material, color or tool mapping changed after the print check. The file was not sent. Open Send again and review the assignment.</string>
     <string name="UploadSliceMissing">The slice is no longer available. Slice the model again before sending it.</string>
     <string name="UploadProgressPercent">Transferring to printer: %1$d%%</string>
     <string name="UploadPrinterProcessing">Transfer complete. The printer is processing the file …</string>

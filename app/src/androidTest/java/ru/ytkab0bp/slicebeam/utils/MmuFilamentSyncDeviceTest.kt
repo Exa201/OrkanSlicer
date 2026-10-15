@@ -16,6 +16,7 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
+import ru.ytkab0bp.slicebeam.components.bed_menu.SlicePreparationTools
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -115,6 +116,36 @@ class MmuFilamentSyncDeviceTest {
         assertEquals(3 to null, sync(response(intArrayOf(0, 1, 2), intArrayOf(1, 1, 1, 1))))
         assertEquals(4, MmuFilamentSync.physicalGates(title).size)
         assertArrayEquals(intArrayOf(0, 1, 2), MmuFilamentAssignmentDialog.availableGates(title, false))
+    }
+
+    @Test fun freshUploadCheckRejectsASlotEmptiedAfterTheSendDialogOpened() {
+        val tools = intArrayOf(0, 1, 2)
+        MmuFilamentSync.setSelectedGates(title, intArrayOf(0, 1, 2))
+        assertNull(sync(response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1)), full = false).second)
+        val checkedAssignment = MmuFilamentSync.assignedGates(title, tools)
+        assertNotNull(checkedAssignment)
+        assertNull(SlicePreparationTools.firstUnavailableAceTool(
+            tools, MmuFilamentSync.getSelectedGates(title, 3),
+            MmuFilamentAssignmentDialog.availableGates(title, false)))
+
+        assertNull(sync(response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 1)), full = false).second)
+        assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.loadedGates(title))
+        assertNotEquals(checkedAssignment, MmuFilamentSync.assignedGates(title, tools))
+        assertEquals(1, SlicePreparationTools.firstUnavailableAceTool(
+            tools, MmuFilamentSync.getSelectedGates(title, 3),
+            MmuFilamentAssignmentDialog.availableGates(title, false)))
+    }
+
+    @Test fun freshUploadCheckDetectsAChangedColorOrMaterialOnALoadedGate() {
+        MmuFilamentSync.setSelectedGates(title, intArrayOf(0))
+        val first = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))
+        assertNull(sync(first, full = false).second)
+        val before = MmuFilamentSync.assignedGates(title, intArrayOf(0))
+        val changed = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))
+        changed.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
+            .getJSONArray("gate_color").put(0, "FF0000")
+        assertNull(sync(changed, full = false).second)
+        assertNotEquals(before, MmuFilamentSync.assignedGates(title, intArrayOf(0)))
     }
 
     @Test fun automaticRefreshKeepsTheUsersSingleFilamentCount() {

@@ -21,6 +21,8 @@ class MmuFilamentSync private constructor() {
 
     companion object {
         data class PhysicalGate(val index: Int, val printerTool: Int, val occupied: Boolean, val filament: FilamentSlot?)
+        data class AssignedGate(val modelTool: Int, val gate: Int, val printerTool: Int,
+                                val material: String?, val color: Int?)
         private const val SNAPSHOT_PRINTER = "mmu_snapshot_printer"
         private const val SNAPSHOT = "mmu_snapshot"
         private const val CHOICE_PRINTER = "mmu_choice_printer"
@@ -217,6 +219,19 @@ class MmuFilamentSync private constructor() {
             val mapping = getSnapshot(printerTitle)?.optJSONArray("ttg_map") ?: return -1
             for (tool in 0 until mapping.length()) if (mapping.optInt(tool, -1) == gate) return tool
             return -1
+        }
+
+        /** Compare only gates used by this sliced job before and after the final printer refresh. */
+        fun assignedGates(printerTitle: String, activeTools: IntArray): List<AssignedGate>? {
+            val count = (activeTools.maxOrNull() ?: 0) + 1
+            val selected = getSelectedGates(printerTitle, count) ?: return null
+            if (getSnapshot(printerTitle) == null) return null
+            return activeTools.map { tool ->
+                val gate = selected.getOrNull(tool) ?: return null
+                val filament = gateSlot(printerTitle, gate)
+                AssignedGate(tool, gate, toolForGate(printerTitle, gate),
+                    filament?.type, filament?.color)
+            }
         }
 
         @JvmStatic
