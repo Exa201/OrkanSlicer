@@ -87,6 +87,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.IOUtils
+import ru.ytkab0bp.slicebeam.utils.ImageDecodePolicy
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -451,25 +452,53 @@ BeamAlertDialogBuilder(this)
 else if (requestCode == REQUEST_CODE_AI_GENERATOR_TAKE_PHOTO)
 {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissAIGeneratorMenu())
-val bm = BitmapFactory.decodeFile(aiTempFile!!.getAbsolutePath())
-generateAiModel(bm)
-aiTempFile!!.delete()
+val photo = aiTempFile
 aiTempFile = null
+try {
+    val bitmap = photo?.let(::decodeAiBitmap)
+    if (bitmap == null) throw IOException("Captured image could not be decoded")
+    generateAiModel(bitmap)
+} catch (e: Exception) {
+    Log.e("ai_generator", "Failed to decode captured image", e)
+    Toast.makeText(this, R.string.MenuFileAIGeneratorError, Toast.LENGTH_SHORT).show()
+} finally {
+    photo?.delete()
+}
 }
 else if (requestCode == REQUEST_CODE_AI_GENERATOR_CHOOSE_PHOTO)
 {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissAIGeneratorMenu())
 try
 {
-val `in` = getContentResolver().openInputStream(data?.getData() ?: return)
-val bm = BitmapFactory.decodeStream(`in`)
+val uri = data?.getData() ?: return
+val bm = decodeAiBitmap(uri) ?: throw IOException("Selected image could not be decoded")
 generateAiModel(bm)
 }
 catch (e:Exception) {
 Log.e("ai_generator", "Failed to write to downloads", e)
+Toast.makeText(this, R.string.MenuFileAIGeneratorError, Toast.LENGTH_SHORT).show()
 }
 }
 }
+}
+private fun decodeAiBitmap(file: File): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.absolutePath, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = ImageDecodePolicy.sampleSize(bounds.outWidth, bounds.outHeight)
+    }
+    return BitmapFactory.decodeFile(file.absolutePath, options)
+}
+
+private fun decodeAiBitmap(uri: Uri): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = ImageDecodePolicy.sampleSize(bounds.outWidth, bounds.outHeight)
+    }
+    return contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
 }
 private fun registerActivityResultLaunchers() {
     ACTIVITY_RESULT_REQUEST_CODES.forEach { requestCode ->

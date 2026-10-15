@@ -18,14 +18,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
@@ -56,7 +63,7 @@ import java.io.FileOutputStream
 /** Calibration actions and test models opened from the File menu. */
 class CalibrationsMenu : UnfoldMenu() {
     override fun getRequestedSize(into: android.widget.FrameLayout, portrait: Boolean): Int =
-        (if (portrait) into.height * 0.35f else into.width * 0.6f).toInt()
+        (if (portrait) into.height * 0.56f else into.width * 0.6f).toInt()
 
     override fun onCreateView(ctx: Context, portrait: Boolean): View {
         val bed = fragment
@@ -67,8 +74,9 @@ class CalibrationsMenu : UnfoldMenu() {
                     if (bed == null) {
                         Spacer(Modifier.fillMaxSize())
                     } else {
+                        var selectedCalibration by remember { mutableStateOf<CalibrationPreset?>(null) }
                         CalibrationsMenuContent(
-                            onPressureAdvance = { startPressureAdvanceCalibration(ctx, bed) },
+                            onCalibration = { selectedCalibration = it },
                             onModels = {
                                 dismiss(true)
                                 ViewUtils.postOnMainThread({
@@ -77,32 +85,65 @@ class CalibrationsMenu : UnfoldMenu() {
                             },
                             onBack = { dismiss() },
                         )
+                        selectedCalibration?.let { preset ->
+                            CalibrationConfigurationDialog(
+                                preset = preset,
+                                onDismiss = { selectedCalibration = null },
+                                onStart = { start, endOrStep, step ->
+                                    selectedCalibration = null
+                                    startCalibration(ctx, bed, preset, start, endOrStep, step)
+                                },
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    internal fun startPressureAdvanceCalibration(context: Context, bed: BedFragment) {
-        SliceBeam.PENDING_CALIB_MODE = 1 // CalibMode::Calib_PA_Line
-        SliceBeam.PENDING_CALIB_START = 0.0
-        SliceBeam.PENDING_CALIB_END = 0.1
-        SliceBeam.PENDING_CALIB_STEP = 0.002
-
-        val model = bed.glView!!.renderer.model
+    private fun startCalibration(
+        context: Context,
+        bed: BedFragment,
+        preset: CalibrationPreset,
+        start: Double,
+        endOrStep: Double,
+        step: Double?,
+    ) {
+        val bedGeometry = bed.glView?.renderer?.bed
+        if (bedGeometry == null || !bedGeometry.isValid()) {
+            Toast.makeText(context, R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
+            return
+        }
+        SliceBeam.PENDING_CALIB_MODE = preset.mode
+        SliceBeam.PENDING_CALIB_START = start
+        SliceBeam.PENDING_CALIB_END = if (preset.inputMode != CalibrationInputMode.START_AND_STEP) endOrStep else 0.0
+        SliceBeam.PENDING_CALIB_STEP = step ?: preset.step ?: endOrStep
+        val model = bed.glView?.renderer?.model
         if (model == null || model.objectsCount == 0) {
+            if (preset.mode != CalibrationPresets.PA_LINE) {
+                clearPendingCalibration()
+                Toast.makeText(context, R.string.CalibrationNeedsModel, Toast.LENGTH_LONG).show()
+                return
+            }
             ensurePlaceholderModel(bed) {
-                finishPressureAdvanceSelection(context)
+                finishCalibrationSelection(context)
             }
         } else {
-            finishPressureAdvanceSelection(context)
+            finishCalibrationSelection(context)
         }
     }
 
-    private fun finishPressureAdvanceSelection(context: Context) {
-        Toast.makeText(context, R.string.CalibrationPressureAdvanceReady, Toast.LENGTH_LONG).show()
+    private fun finishCalibrationSelection(context: Context) {
+        Toast.makeText(context, R.string.CalibrationReadyToSlice, Toast.LENGTH_LONG).show()
         SliceBeam.EVENT_BUS.fireEvent(NeedDismissCalibrationsMenu())
         dismiss(true)
+    }
+
+    private fun clearPendingCalibration() {
+        SliceBeam.PENDING_CALIB_MODE = 0
+        SliceBeam.PENDING_CALIB_START = 0.0
+        SliceBeam.PENDING_CALIB_END = 0.0
+        SliceBeam.PENDING_CALIB_STEP = 0.0
     }
 
     private fun ensurePlaceholderModel(bed: BedFragment, onLoaded: () -> Unit) {
@@ -114,7 +155,7 @@ class CalibrationsMenu : UnfoldMenu() {
                 }
                 ViewUtils.postOnMainThread {
                     bed.loadModel(file, false, 1, object : BedFragment.ModelLoadCallback {
-                        override fun onLoaded(model: ru.ytkab0bp.slicebeam.slic3r.Model, firstNewObject: Int, addedObjects: Int) {
+                        override fun onLoaded(loadedModel: ru.ytkab0bp.slicebeam.slic3r.Model, firstNewObject: Int, addedObjects: Int) {
                             ViewUtils.postOnMainThread {
                                 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
                                 onLoaded()
@@ -122,12 +163,14 @@ class CalibrationsMenu : UnfoldMenu() {
                         }
 
                         override fun onFailed(error: Exception) {
+                            clearPendingCalibration()
                             showLoadError(bed, error)
                         }
                     })
                 }
             } catch (error: Exception) {
                 android.util.Log.e("FileMenu", "Failed to load PA placeholder model", error)
+                clearPendingCalibration()
                 ViewUtils.postOnMainThread { showLoadError(bed, error) }
             }
         }, "CalibrationPlaceholderLoader").start()
@@ -225,7 +268,7 @@ class CalibrationModelsMenu : UnfoldMenu() {
         }
         try {
             bed.loadModel(files[index], false, 1, object : BedFragment.ModelLoadCallback {
-                override fun onLoaded(model: ru.ytkab0bp.slicebeam.slic3r.Model, firstNewObject: Int, addedObjects: Int) {
+                override fun onLoaded(loadedModel: ru.ytkab0bp.slicebeam.slic3r.Model, firstNewObject: Int, addedObjects: Int) {
                     ViewUtils.postOnMainThread { loadNextModel(bed, files, index + 1) }
                 }
 
@@ -255,33 +298,102 @@ private data class CalibrationModel(val title: String, val icon: Int, val assets
 
 @Composable
 private fun CalibrationsMenuContent(
-    onPressureAdvance: () -> Unit,
+    onCalibration: (CalibrationPreset) -> Unit,
     onModels: (View) -> Unit,
     onBack: () -> Unit,
 ) {
     val anchor = LocalView.current
     Column(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            CalibrationActionRow(
-                icon = R.drawable.menu_calibrate_la_28,
-                title = stringResource(R.string.CalibrationPressureAdvance),
-                subtitle = stringResource(R.string.CalibrationPressureAdvanceDescription),
-                onClick = onPressureAdvance,
-            )
-            CalibrationActionRow(
-                icon = R.drawable.deployed_code_24,
-                title = stringResource(R.string.MenuFileCalibrationsModels),
-                subtitle = stringResource(R.string.MenuFileCalibrationsModelsDescription),
-                onClick = { onModels(anchor) },
-            )
+            items(CalibrationPresets.supported()) { preset ->
+                CalibrationActionRow(
+                    icon = if (preset.mode == CalibrationPresets.PA_LINE || preset.mode == CalibrationPresets.PA_TOWER) R.drawable.menu_calibrate_la_28 else R.drawable.deployed_code_24,
+                    title = stringResource(preset.titleRes),
+                    subtitle = stringResource(preset.descriptionRes),
+                    onClick = { onCalibration(preset) },
+                )
+            }
+            item {
+                CalibrationActionRow(
+                    icon = R.drawable.deployed_code_24,
+                    title = stringResource(R.string.MenuFileCalibrationsModels),
+                    subtitle = stringResource(R.string.MenuFileCalibrationsModelsDescription),
+                    onClick = { onModels(anchor) },
+                )
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         CalibrationBackBar(onBack)
     }
+}
+
+@Composable
+private fun CalibrationConfigurationDialog(
+    preset: CalibrationPreset,
+    onDismiss: () -> Unit,
+    onStart: (Double, Double, Double?) -> Unit,
+) {
+    val config = remember(preset.mode) { SliceBeam.buildCurrentConfigObject() }
+    val profileTemp = config["nozzle_temperature"]?.substringBefore(';')?.toDoubleOrNull()
+        ?: config["nozzle_temperature_initial_layer"]?.substringBefore(';')?.toDoubleOrNull()
+        ?: preset.start
+    val initialStart = if (preset.mode == CalibrationPresets.TEMP_TOWER) profileTemp else preset.start
+    val initialEnd = if (preset.mode == CalibrationPresets.TEMP_TOWER) profileTemp - 20.0 else preset.endOrStep
+    var start by remember(preset.mode) { mutableStateOf(initialStart.toString()) }
+    var endOrStep by remember(preset.mode) { mutableStateOf(initialEnd.toString()) }
+    var step by remember(preset.mode) { mutableStateOf((preset.step ?: 0.0).toString()) }
+    var invalid by remember(preset.mode) { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(preset.titleRes)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(if (preset.mode == CalibrationPresets.TEMP_TOWER) R.string.CalibrationTemperatureProfileHint else R.string.CalibrationParameterHint),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                CalibrationNumberField(stringResource(R.string.CalibrationStart), start, { start = it; invalid = false })
+                if (preset.inputMode != CalibrationInputMode.START_AND_STEP) {
+                    CalibrationNumberField(stringResource(R.string.CalibrationEnd), endOrStep, { endOrStep = it; invalid = false })
+                }
+                if (preset.inputMode == CalibrationInputMode.RANGE_AND_STEP) {
+                    CalibrationNumberField(stringResource(R.string.CalibrationStep), step, { step = it; invalid = false })
+                } else if (preset.inputMode == CalibrationInputMode.START_AND_STEP) {
+                    CalibrationNumberField(stringResource(R.string.CalibrationIncrement), endOrStep, { endOrStep = it; invalid = false })
+                }
+                if (invalid) Text(stringResource(R.string.CalibrationInvalidParameters), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val startValue = start.trim().replace(',', '.').toDoubleOrNull()
+                val endValue = endOrStep.trim().replace(',', '.').toDoubleOrNull()
+                val stepValue = if (preset.inputMode == CalibrationInputMode.RANGE_AND_STEP) step.trim().replace(',', '.').toDoubleOrNull() else null
+                if (startValue == null || endValue == null ||
+                    (preset.inputMode == CalibrationInputMode.RANGE_AND_STEP && stepValue == null) ||
+                    !CalibrationPresets.validate(preset, startValue, endValue, stepValue)) {
+                    invalid = true
+                } else onStart(startValue, endValue, stepValue)
+            }) { Text(stringResource(R.string.CalibrationPrepare)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun CalibrationNumberField(label: String, value: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { candidate ->
+            if (candidate.length <= 12 && candidate.all { it.isDigit() || it == '.' || it == ',' || it == '-' }) onValueChange(candidate)
+        },
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

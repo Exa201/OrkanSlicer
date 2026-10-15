@@ -24,7 +24,7 @@
     <string name="SlotPrinterConfigTooltip">Профиль принтера</string>
     <string name="SlotAppSettings">Приложение</string>
     <string name="SlotAppSettingsTooltip">Настройки приложения</string>
-    <string name="MenuFile">Файл</string>
+    <string name="MenuFile">Модель</string>
     <string name="MenuFileOpen">Открыть модель</string>
     <string name="MenuFileOpenFileLoaded">Файл загружен.</string>
     <string name="MenuFileOpenFileFailed">Не удалось открыть модель</string>

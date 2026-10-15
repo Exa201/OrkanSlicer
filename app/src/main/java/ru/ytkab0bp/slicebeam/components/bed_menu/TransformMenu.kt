@@ -5,7 +5,6 @@ import android.view.View
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.eventbus.EventHandler
-import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -28,7 +27,6 @@ class TransformMenu : ListBedMenu() {
                 Consumer<View> { view -> bed.showUnfoldMenu(OrientationRotationMenu(bed), view) },
                 Consumer<View> { view -> bed.showUnfoldMenu(TransformScaleMenu(bed), view) },
                 Consumer<View> { view -> bed.showUnfoldMenu(TransformCutMenu(bed), view) },
-                ::refreshActionItems,
             )
             menuItems = items
             composeActions.value = items.createItems()
@@ -44,20 +42,12 @@ class TransformMenu : ListBedMenu() {
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
 
     @EventHandler(runOnMainThread = true)
-    fun onFlattenModeReset(event: FlattenModeResetEvent) {
-        menuItems?.onFlattenModeReset()
-        refreshActionItems()
-    }
-
-    @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {
-        menuItems?.onObjectsChanged()
         refreshActionItems()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectionChanged(event: SelectedObjectChangedEvent) {
-        menuItems?.onSelectionChanged()
         refreshActionItems()
     }
 

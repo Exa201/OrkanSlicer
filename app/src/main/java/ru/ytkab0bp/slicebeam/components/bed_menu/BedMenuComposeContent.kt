@@ -139,6 +139,7 @@ private fun BedMenuActionTile(
         R.string.ModelRedo -> R.string.EditRedoShort
         R.string.MenuArrangeAllObjects -> R.string.EditArrangeAllShort
         R.string.MenuOrientAllObjects -> R.string.EditOrientShort
+        R.string.MenuOrientationArrange -> R.string.EditPackPlateShort
         R.string.MenuFileMoveToPlate -> R.string.EditMovePlateShort
         R.string.ModelContextFillBed -> R.string.EditFillBedShort
         R.string.ModelContextCenterOnBed -> R.string.EditCenterBedShort

@@ -57,6 +57,7 @@ import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
 import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent
+import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.NeedDismissAIGeneratorMenu
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
@@ -79,11 +80,13 @@ internal fun aiGenerationQuotaProgress(total: Int, generated: Int): Float =
 class FileMenu : ListBedMenu() {
     private var wasPortrait = false
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
+    private var modelMenuItems: ModelMenuItems? = null
 
     override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
         wasPortrait = portrait
         val themedView = ThemeAwareComposeView(ctx)
         themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+        modelMenuItems = fragment?.let { ModelMenuItems(it, ::refreshComposeActions) }
         composeActions.value = createComposeActions(portrait)
         themedView.setContent {
             BeamComposeTheme(themeRevision = themedView.themeRevision) {
@@ -112,7 +115,7 @@ class FileMenu : ListBedMenu() {
                 sectionBreakBefore = menuItem.sectionBreakBefore,
                 enabled = menuItem.isEnabled,
             )
-        }
+        } + modelMenuItems?.createItems().orEmpty()
 
     private fun refreshComposeActions() {
         composeActions.value = createComposeActions(wasPortrait)
@@ -222,16 +225,8 @@ class FileMenu : ListBedMenu() {
                 }
         }
 
-        items += BedMenuItem(R.string.MenuFileCalibrationsModels, R.drawable.deployed_code_24)
-            .onClick { view -> bed.showUnfoldMenu(CalibrationModelsMenu(), view) }
-        items += BedMenuItem(R.string.CalibrationPressureAdvanceShort, R.drawable.menu_calibrate_la_28)
-            .onClick {
-                if (!bed.glView!!.renderer.bed!!.isValid()) {
-                    Toast.makeText(bed.getContext(), R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
-                    return@onClick
-                }
-                CalibrationsMenu().startPressureAdvanceCalibration(bed.getContext()!!, bed)
-            }
+        items += BedMenuItem(R.string.MenuFileCalibrations, R.drawable.menu_calibrate_la_28)
+            .onClick { view -> bed.showUnfoldMenu(CalibrationsMenu(), view) }
         items += BedMenuItem(R.string.MenuFileImportProfiles, R.drawable.folder_simple_arrow_up_outline_28)
             .onClick {
                 val activity = bed.getContext() as? Activity ?: return@onClick
@@ -339,11 +334,19 @@ class FileMenu : ListBedMenu() {
 
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {
+        modelMenuItems?.resetFlattenMode()
         refreshComposeActions()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectionChanged(event: SelectedObjectChangedEvent) {
+        modelMenuItems?.resetFlattenMode()
+        refreshComposeActions()
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onFlattenModeReset(event: FlattenModeResetEvent) {
+        modelMenuItems?.resetFlattenMode()
         refreshComposeActions()
     }
 

@@ -73,8 +73,6 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     context.getString(R.string.MenuFileDuplicateCount),
                     context.getString(R.string.MenuFileMoveToPlate),
                     context.getString(R.string.ModelContextSelectFilamentSlot),
-                    context.getString(R.string.ModelContextCenterOnBed),
-                    context.getString(R.string.MenuOrientationArrange),
                     context.getString(R.string.MenuToolbarSplit),
                     context.getString(R.string.MenuFileDelete),
                 ),
@@ -83,13 +81,8 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     0 -> showDuplicateDialog(view)
                     1 -> showMoveToPlateDialog(view)
                     2 -> showObjectFilamentSlotDialog(view)
-                    3 -> fragment.glView!!.centerSelectedOnBed(fragment::updateModel)
-                    4 -> {
-                        fragment.glView!!.arrange()
-                        fragment.updateModel()
-                    }
-                    5 -> fragment.splitSelectedObject()
-                    6 -> fragment.glView!!.deleteSelectedModel(fragment::updateModel)
+                    3 -> fragment.splitSelectedObject()
+                    4 -> fragment.glView!!.deleteSelectedModel(fragment::updateModel)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
