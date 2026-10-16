@@ -61,6 +61,13 @@ Prüfung am 16.10.2026: Debug- und Slice-Unit-Suites bestanden mit jeweils 515 T
 4. Layout-Tests mit messbaren Sichtbarkeits- und Überlappungsbedingungen ergänzen, wo die vorhandene UI-Testinfrastruktur das erlaubt.
 5. Alte Oberflächen und ungenutzte Abhängigkeiten erst entfernen, wenn die jeweilige Funktion in der neuen Route nachweislich erhalten ist.
 
+Die drei aktuellen Gestaltungsentscheidungen konkretisieren diese Migration: Die Druckplatte
+bleibt die größte zusammenhängende Fläche; dauerhaft sichtbare Leisten bleiben schmal. Die
+Filamentliste öffnet sich erst nach Antippen des kompakten Farbindikator-Knopfs. Panels und
+Werkzeugleisten verwenden dieselben Komponenten, Größen und festen Ankerpositionen, damit
+kontextabhängige Aktionen beim Wechsel nicht springen oder andere Aktionen verdecken. Diese
+Regeln werden beim Ersetzen der globalen Routen Druck, Filament, Drucker und App angewendet.
+
 ## Grenzen
 
 Etappe 1 ist noch keine vollständige UI-2.0-Umstellung. Insbesondere die globalen Bereiche und viele vorhandene Dialoge behalten ihre bisherigen Routen, bis ihre Funktionen schrittweise migriert und geprüft wurden. Es wurden keine Änderungen an der Slicer-Engine oder Druckerfirmware vorgenommen.

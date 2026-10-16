@@ -126,4 +126,13 @@ Quellen: [Orca Flush-Optionen](https://github.com/OrcaSlicer/OrcaSlicer/wiki/mul
 | P1 | Druckplatten und Objektliste vereinfachen | Platten als kompakte vertikale Zahlenleiste; Objektname, Farbe/Slot und Aktionen ohne verschachtelte Menüs; leere Platten nicht unbeabsichtigt erzeugen. |
 | P2 | Vorschau und Status vereinheitlichen | Klare Legende für Werkzeug/Farbe, Druckzeit und Filament; Upload-Fortschritt und Fehler direkt beim Auftrag anzeigen. |
 
+P1-Abnahme am 16.10.2026: Ein isolierter Android-Gerätetest slicet den gebündelten Orca-Cube
+mit angepasster Brückenbreite, Brückenfluss und äußeren/inneren Brückenwinkeln. Der Test
+prüft, dass diese Werte in der von der App erzeugten Native-Konfiguration ankommen und der
+native Slice Bridge-Rollen im G-Code erzeugt. Derselbe Slice prüft, dass ein eingetragener
+Pressure-Advance-Wert aus dem Filamentprofil als `SET_PRESSURE_ADVANCE` im Klipper-G-Code
+erscheint. Damit sind Profilrouting und G-Code-Ausgabe auf dem Honor belegt; ein gedrucktes
+Kalibriermodell, visuelle Qualitätsbewertung, andere Orca-Drucker und physische Bridge-Qualität
+bleiben offen. Kein Druck wurde gestartet.
+
 Auf dem Honor Magic 7 Pro wurden Startansicht, Druckmenü, Suche und Credits geprüft. Dabei fallen ein abgeschnittener langer Druckername, sehr hohe Filament- und Aktionsreihen sowie zwei Navigationsebenen auf; im Druckmenü bleibt dadurch wenig Platz für Einstellungen. Die Credits sind nach der Änderung lesbar. Eine vollständige visuelle Prüfung aller Dialoge und des Xiaomi steht noch aus.

@@ -73,4 +73,73 @@ class NativeSliceDeviceTest {
             gcodeFile.delete()
         }
     }
+
+    @Test
+    fun bridgeSettingsReachNativeConfigAndGenerateBridgeGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        context.assets.open("orca_profiles/Anycubic.ini").use { input ->
+            SliceBeam.CONFIG = Slic3rConfigWrapper(input)
+        }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        process.put("bridge_line_width", "0.35")
+        process.put("bridge_flow", "1.05")
+        process.put("bridge_angle", "37")
+        process.put("internal_bridge_angle", "61")
+        process.put("relative_bridge_angle", "1")
+        filament.put("enable_pressure_advance", "1")
+        filament.put("pressure_advance", "0.042")
+
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val modelFile = File(context.cacheDir, "bridge-settings-device-test.stl")
+        val gcodeFile = File(context.cacheDir, "bridge-settings-device-test.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("models/OrcaCube_v2.stl").use { input ->
+                FileOutputStream(modelFile).use { output -> input.copyTo(output) }
+            }
+            model = Model(modelFile)
+            assertTrue("The Orca Cube fixture must load", model.objectsCount == 1)
+            SliceBeam.genCurrentConfig(model)
+            val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue(nativeConfig.contains("bridge_line_width = 0.35"))
+            assertTrue(nativeConfig.contains("bridge_flow = 1.05"))
+            assertTrue(nativeConfig.contains("bridge_angle = 37"))
+            assertTrue(nativeConfig.contains("internal_bridge_angle = 61"))
+            assertTrue(nativeConfig.contains("relative_bridge_angle = 1"))
+            assertTrue(nativeConfig.contains("enable_pressure_advance = 1"))
+            assertTrue(nativeConfig.contains("pressure_advance = 0.042"))
+
+            result = model.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath,
+                gcodeFile.absolutePath,
+                null,
+            )
+            assertTrue("Native Orca/libslic3r must produce bridge G-code",
+                gcodeFile.isFile && gcodeFile.length() > 0)
+            val gcode = gcodeFile.readText()
+            assertTrue("The Orca Cube slice must contain a bridge role", gcode.contains("TYPE:Bridge"))
+            assertTrue("A staged filament pressure-advance value must reach Klipper G-code",
+                gcode.contains("SET_PRESSURE_ADVANCE ADVANCE=0.042"))
+            Log.i("NativeSliceDeviceTest", "PASS bridge G-code bytes=${gcodeFile.length()}")
+        } finally {
+            result?.release()
+            model?.release()
+            modelFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            gcodeFile.delete()
+        }
+    }
 }
