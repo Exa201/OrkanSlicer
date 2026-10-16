@@ -554,3 +554,11 @@ Verifikation des Quellstands vor dem finalen Commit:
 
 Der abschließende APK-Pfad und SHA-256 werden nach dem Commit in PR #2 ergänzt. Der Build ist eine
 lokale Debug-APK und kein öffentliches Release.
+
+Finaler APK-Artefakt nach Commit `6b9b3c0423b9eb1d075521a2bd97eaeec330e10d`:
+
+- `app/build/outputs/apk/debug/OrkanSlicer_6b9b3c0423.apk`
+- 156.885.758 Byte; SHA-256 `E27CBF94377B3D694F4B4D9F8BC7EF8D6EB972DF15878BC9CDAA2F2C73AB6AD6`.
+- Diese Debug-APK wurde nach dem Build erneut auf dem Honor installiert und gestartet. Das Paket
+  blieb als `MainActivity` aktiv; der geprüfte Logcat-Auszug zeigte keinen FATAL-, ANR- oder
+  OOM-Eintrag.
