@@ -125,6 +125,9 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                     BeamComposeTheme {
                         val compactLabels = AdaptiveNavigationPolicy.usesCompactLabels(
                             LocalDensity.current.fontScale,
+                        ) && !AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
+                            LocalDensity.current.fontScale,
+                            MobileNavigationPolicy.destinations().size,
                         )
                         val items = MobileNavigationPolicy.destinations().map { slot ->
                             val fullTitle = getSlotNavigationTitle(slot)

@@ -14,6 +14,14 @@ class AdaptiveNavigationPolicyTest {
     }
 
     @Test
+    fun largeTextUsesTwoNavigationRowsWhenLabelsNeedRoom() {
+        assertFalse(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 3))
+        assertTrue(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 5))
+        assertEquals(146, AdaptiveNavigationPolicy.navigationBarHeightDp(1.3f, 6))
+        assertEquals(56, AdaptiveNavigationPolicy.navigationBarHeightDp(1f, 6))
+    }
+
+    @Test
     fun expandedNavigationRailAdaptsWidthForLargeSystemText() {
         assertEquals(80, AdaptiveNavigationPolicy.navigationRailWidthDp(1f))
         assertEquals(96, AdaptiveNavigationPolicy.navigationRailWidthDp(1.2f))

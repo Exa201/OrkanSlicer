@@ -1,5 +1,7 @@
 package ru.ytkab0bp.slicebeam.ui.navigation
 
+import kotlin.math.ceil
+
 /** Chooses compact bottom navigation or an expanded rail from the current app-window width. */
 object AdaptiveNavigationPolicy {
     const val EXPANDED_WIDTH_DP = 600
@@ -10,6 +12,18 @@ object AdaptiveNavigationPolicy {
 
     @JvmStatic
     fun usesCompactLabels(fontScale: Float): Boolean = fontScale >= COMPACT_LABEL_FONT_SCALE
+
+    @JvmStatic
+    fun usesTwoRowBottomNavigation(fontScale: Float, itemCount: Int): Boolean =
+        usesCompactLabels(fontScale) && itemCount > 3
+
+    @JvmStatic
+    fun navigationBarHeightDp(fontScale: Float, itemCount: Int): Int =
+        if (usesTwoRowBottomNavigation(fontScale, itemCount)) {
+            (NAVIGATION_BAR_HEIGHT_DP * fontScale.coerceAtLeast(1f)).let { ceil(it).toInt() } * 2
+        } else {
+            NAVIGATION_BAR_HEIGHT_DP
+        }
 
     /** Wider rail space preserves system text scaling and readable destination names. */
     @JvmStatic

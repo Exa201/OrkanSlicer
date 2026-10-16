@@ -1259,7 +1259,11 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
             key(menuNavigationThemeRevision) {
                 BeamComposeTheme(themeRevision = menuNavigationThemeRevision) {
                     val compactLabels = !bottomNavigation ||
-                        AdaptiveNavigationPolicy.usesCompactLabels(androidx.compose.ui.platform.LocalDensity.current.fontScale)
+                        AdaptiveNavigationPolicy.usesCompactLabels(androidx.compose.ui.platform.LocalDensity.current.fontScale) &&
+                        !AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
+                            androidx.compose.ui.platform.LocalDensity.current.fontScale,
+                            WorkspaceDestination.values().size,
+                        )
                     val items = WorkspaceDestination.values().map { destination ->
                         val fullLabel = ctx.getString(destination.navigationTitleRes)
                         val compactTitleRes = when (destination) {
@@ -1274,7 +1278,7 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
                             label = ctx.getString(if (compactLabels) compactTitleRes else destination.navigationTitleRes),
                             icon = destination.iconRes,
                             accessibilityLabel = fullLabel,
-                            compactLabel = ctx.getString(compactTitleRes),
+                            compactLabel = if (compactLabels) ctx.getString(compactTitleRes) else null,
                         )
                     }
                     AdaptiveWorkspaceNavigation(
@@ -1399,7 +1403,7 @@ params.leftMargin = if (portrait) ViewUtils.dp(8)
     else ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(fontScale) + MENU_SIZE_DP + 8)
 params.bottomMargin = if (portrait)
     ViewUtils.dp(WorkspaceToolPanelPolicy.reservedHeightDp(true, menuToolsExpanded, menuPortraitHeightDp()) +
-        AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP) else 0
+        AdaptiveNavigationPolicy.navigationBarHeightDp(fontScale, WorkspaceDestination.values().size)) else 0
 snackbarsLayout!!.layoutParams = params
 }
 internal fun restoreWorkspaceAfterMenuDismiss() {

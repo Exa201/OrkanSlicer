@@ -49,15 +49,33 @@ fun AdaptiveWorkspaceNavigation(
     showPanelToggleIndicator: Boolean = false,
     onSelected: (Int) -> Unit,
 ) {
+    val fontScale = LocalDensity.current.fontScale
+    val twoRowBottomNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(fontScale, items.size)
     Surface(color = MaterialTheme.colorScheme.surface) {
         if (isBottomNavigation) {
-            Row(Modifier.fillMaxWidth().selectableGroup()) {
-                items.forEach { item ->
-                    Destination(item, item.slot == selectedSlot, Modifier.weight(1f), onSelected,
-                        bottomLabel = item.compactLabel ?: item.label,
-                        panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
-                        panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
-                        showPanelToggleIndicator = showPanelToggleIndicator)
+            if (twoRowBottomNavigation) {
+                Column(Modifier.fillMaxWidth().selectableGroup()) {
+                    items.chunked(3).forEach { rowItems ->
+                        Row(Modifier.fillMaxWidth()) {
+                            rowItems.forEach { item ->
+                                Destination(item, item.slot == selectedSlot, Modifier.weight(1f), onSelected,
+                                    bottomLabel = item.compactLabel ?: item.label,
+                                    panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
+                                    panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
+                                    showPanelToggleIndicator = showPanelToggleIndicator)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(Modifier.fillMaxWidth().selectableGroup()) {
+                    items.forEach { item ->
+                        Destination(item, item.slot == selectedSlot, Modifier.weight(1f), onSelected,
+                            bottomLabel = item.compactLabel ?: item.label,
+                            panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
+                            panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
+                            showPanelToggleIndicator = showPanelToggleIndicator)
+                    }
                 }
             }
         } else {
