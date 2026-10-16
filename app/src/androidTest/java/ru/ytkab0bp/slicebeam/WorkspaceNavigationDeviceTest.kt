@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam
 
 import android.os.SystemClock
 import android.webkit.WebView
+import androidx.compose.ui.platform.ComposeView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -345,6 +346,13 @@ class WorkspaceNavigationDeviceTest {
 
     private fun assertMenuAttached(bed: BedFragment, expectedType: Class<*>) {
         assertSame("menu navigation must keep the GLView instance stable", workspaceRenderer, bed.glView)
+        val workspaceRoot = BedFragment::class.java.getDeclaredField("contentView")
+            .apply { isAccessible = true }.get(bed) as android.view.View
+        assertEquals(
+            "workspace shell should not host nested ComposeView wrappers for its controls",
+            1,
+            findViews(workspaceRoot).filterIsInstance<ComposeView>().count(),
+        )
         val controller = BedFragment::class.java.getDeclaredField("workspaceController")
             .apply { isAccessible = true }.get(bed)
         val currentSlot = controller.javaClass.getDeclaredMethod("getSelectedDestinationSlot")
