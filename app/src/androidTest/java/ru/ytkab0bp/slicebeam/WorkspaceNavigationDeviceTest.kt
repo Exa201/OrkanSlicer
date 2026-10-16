@@ -6,6 +6,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +27,9 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** Confirms workspace menu transitions and direct Compose tool routes clean up correctly. */
 @RunWith(AndroidJUnit4::class)
@@ -83,6 +87,7 @@ class WorkspaceNavigationDeviceTest {
             exerciseComposeToolRoute(scenario, SliceLayersMenu::class.java) { SliceLayersMenu() }
             exerciseComposeToolRoute(scenario, FileMenu.AIGeneratorMenu::class.java) { FileMenu.AIGeneratorMenu() }
             exerciseComposeToolRoute(scenario, KromacutEditorMenu::class.java) { KromacutEditorMenu() }
+            exercisePaintCancellationAgainstLoadedModel(scenario, context)
         } finally {
             scenario.close()
             SliceBeam.CONFIG = previousConfig
@@ -163,15 +168,22 @@ class WorkspaceNavigationDeviceTest {
         val deadline = SystemClock.uptimeMillis() + 5_000L
         while (SystemClock.uptimeMillis() < deadline) {
             instrumentation.waitForIdleSync()
-            var animating = true
+            var settled = false
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-                animating = field.getBoolean(bed)
+                val menuMap = BedFragment::class.java.getDeclaredField("menuMap")
+                    .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
+                val attachedRoutes = (0 until menuMap.size()).count { index ->
+                    val menu = menuMap.valueAt(index) ?: return@count false
+                    val routeView = menu.javaClass.getMethod("getView").invoke(menu) as? android.view.View
+                    routeView?.isAttachedToWindow == true
+                }
+                settled = !field.getBoolean(bed) && attachedRoutes == 1
             }
-            if (!animating) return
+            if (settled) return
             SystemClock.sleep(40L)
         }
-        throw AssertionError("Workspace menu transition did not finish")
+        throw AssertionError("Workspace menu transition did not finish with exactly one route attached")
     }
 
     private fun findViews(view: android.view.View): Sequence<android.view.View> = sequence {
@@ -179,6 +191,70 @@ class WorkspaceNavigationDeviceTest {
         if (view is android.view.ViewGroup) {
             for (index in 0 until view.childCount) yieldAll(findViews(view.getChildAt(index)))
         }
+    }
+
+    private fun exercisePaintCancellationAgainstLoadedModel(
+        scenario: ActivityScenario<MainActivity>,
+        context: android.content.Context,
+    ) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val modelFile = File(context.cacheDir, "workspace-paint-cancel-fixture.3mf")
+        instrumentation.context.assets.open("models/two-color-project.3mf").use { input ->
+            modelFile.outputStream().use { input.copyTo(it) }
+        }
+        try {
+            val loaded = CountDownLatch(1)
+            var loadFailure: Exception? = null
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: ru.ytkab0bp.slicebeam.slic3r.Model, firstNewObject: Int, addedObjects: Int) {
+                        loaded.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        loadFailure = error
+                        loaded.countDown()
+                    }
+                })
+            }
+            assertTrue("bundled paint fixture should load", loaded.await(60, TimeUnit.SECONDS))
+            assertEquals("fixture import failed", null, loadFailure)
+
+            val modelRef = arrayOfNulls<ru.ytkab0bp.slicebeam.slic3r.Model>(1)
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                modelRef[0] = bed.currentModel
+                assertTrue("paint fixture must contain a model object", requireNotNull(bed.currentModel).objectsCount > 0)
+                bed.enterPaintMode(0)
+            }
+            val model = requireNotNull(modelRef[0])
+            awaitRendererPaintMode(scenario, expected = true)
+            assertFalse("starting a paint session must not mutate facets", model.hasPaint(0))
+
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                assertTrue("Android Back should close the active paint tool", bed.onBackPressed())
+            }
+            awaitRendererPaintMode(scenario, expected = false)
+            assertFalse("cancelling paint with Android Back must discard the native preview", model.hasPaint(0))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    private fun awaitRendererPaintMode(scenario: ActivityScenario<MainActivity>, expected: Boolean) {
+        val reached = CountDownLatch(1)
+        val actual = booleanArrayOf(!expected)
+        scenario.onActivity { activity ->
+            val glView = requireNotNull((activity.navigationDelegate.getCurrentFragment() as BedFragment).glView)
+            glView.queueEvent {
+                actual[0] = glView.renderer.isPaintMode
+                reached.countDown()
+            }
+        }
+        assertTrue("GL renderer did not reach paint mode=$expected", reached.await(10, TimeUnit.SECONDS))
+        assertEquals(expected, actual[0])
     }
 
     private fun assertMenuAttached(bed: BedFragment, expectedType: Class<*>) {
