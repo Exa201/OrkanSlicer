@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.os.SystemClock
+import android.webkit.WebView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -20,6 +21,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationRotationMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformCutMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformScaleMenu
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.KromacutEditorMenu
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -80,6 +82,7 @@ class WorkspaceNavigationDeviceTest {
             exerciseComposeToolRoute(scenario, SliceInfoMenu::class.java) { SliceInfoMenu(SliceMenu()) }
             exerciseComposeToolRoute(scenario, SliceLayersMenu::class.java) { SliceLayersMenu() }
             exerciseComposeToolRoute(scenario, FileMenu.AIGeneratorMenu::class.java) { FileMenu.AIGeneratorMenu() }
+            exerciseComposeToolRoute(scenario, KromacutEditorMenu::class.java) { KromacutEditorMenu() }
         } finally {
             scenario.close()
             SliceBeam.CONFIG = previousConfig
@@ -134,6 +137,15 @@ class WorkspaceNavigationDeviceTest {
                     .apply { isAccessible = true }.get(menu))
             assertTrue("${expectedType.simpleName} Compose lifecycle should be active", UnfoldMenu::class.java
                 .getDeclaredField("workspaceCompositionVisible").apply { isAccessible = true }.getBoolean(menu))
+            if (expectedType == KromacutEditorMenu::class.java) {
+                val webView = findViews(requireNotNull(bed.overlayLayout))
+                    .filterIsInstance<WebView>()
+                    .firstOrNull { it.isAttachedToWindow }
+                assertTrue("Kromacut should embed its editor WebView in the Compose workspace", webView != null)
+                val editor = requireNotNull(webView)
+                assertTrue("Kromacut editor must keep file access disabled", editor.settings.allowFileAccess.not())
+                assertTrue("Kromacut editor must keep JavaScript enabled for its bundled editor", editor.settings.javaScriptEnabled)
+            }
             assertTrue("Android back should close ${expectedType.simpleName}", bed.onBackPressed())
         }
         instrumentation.waitForIdleSync()
@@ -160,6 +172,13 @@ class WorkspaceNavigationDeviceTest {
             SystemClock.sleep(40L)
         }
         throw AssertionError("Workspace menu transition did not finish")
+    }
+
+    private fun findViews(view: android.view.View): Sequence<android.view.View> = sequence {
+        yield(view)
+        if (view is android.view.ViewGroup) {
+            for (index in 0 until view.childCount) yieldAll(findViews(view.getChildAt(index)))
+        }
     }
 
     private fun assertMenuAttached(bed: BedFragment, expectedType: Class<*>) {
