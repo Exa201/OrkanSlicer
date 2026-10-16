@@ -4,7 +4,7 @@ Updated: 2026-10-16
 
 ## Current phase
 
-Phase 2/3 — the shared workspace route adapter renders nine concrete tool routes directly in Compose. `BedFragment` still supplies legacy `View` content for Kromacut and retains renderer/domain integration. The full UI 2.0 migration is not complete.
+Phase 4 — workspace overlay migration is continuing. The model context menu now renders in the existing `WorkspaceShell` instead of a separately attached `ComposeView`. `BedFragment` still retains renderer/domain integration, generic message/custom dialog hosts, Kromacut, and Android back/inset coordination. The full UI 2.0 migration is not complete.
 
 ## Completed in this execution
 
@@ -24,6 +24,7 @@ Phase 2/3 — the shared workspace route adapter renders nine concrete tool rout
 - Bumped the app to alpha `0.8.244` / `versionCode 279`; updated both the repository changelog and localized in-app release notes.
 - Added a device Compose test for the workspace-hosted UnfoldMenu lifecycle and an assertion for panel-fraction state ownership.
 - SliceBeam was explicitly uninstalled from the Honor device (`ru.ytkab0bp.slicebeam`). The OrkanSlicer package (`com.codemastercody3d.orcaslicermobile`) was separately reinstalled and launched; only that package was used for the final screenshot and launch verification.
+- Moved model context-menu composition ownership into `WorkspaceController.activePanelContent` and `WorkspaceShell`; removed the separate context-menu `ComposeView` attach/detach path from `BedFragment`. Existing action callbacks remain unchanged and Back/exclusive overlay dismissal still clears the same panel state.
 
 ## Remaining active routes and technical boundaries
 
@@ -31,7 +32,8 @@ Phase 2/3 — the shared workspace route adapter renders nine concrete tool rout
 - Migrated tool routes retain `onCreateView` ComposeView fallbacks for non-workspace compatibility. The active BedFragment workspace uses direct Compose for the nine routes listed above.
 - `SliceLayersMenu` direct route was opened and dismissed on device without a populated G-code preview; its preview slider actions still need a sliced-project device test.
 - `UnfoldMenu` retains the standalone Android overlay API for compatibility. `MainActivity.showUnfoldMenu` remains declared but has no in-repository call sites; Kromacut is reached through BedFragment.
-- `BedFragment` still owns the GLView/renderer and domain integration, a manual `ComposeView` attachment for the model context menu, workspace message-dialog attachment, menu-view lifecycle, and Android back/inset coordination. These were not migrated in this pass.
+- `BedFragment` still owns the GLView/renderer and domain integration, menu-view lifecycle, and Android back/inset coordination.
+- Generic message/custom dialogs remain in a manually attached ComposeView on the existing overlay host. A WorkspaceShell-only host attempt failed the Honor Back sequence for camera-control and numeric duplicate dialogs and was fully reverted.
 - Global menu actions, the full menu-by-menu audit, large-font/small-display matrix, and full specialty-tool edit/undo/abort behavior remain unverified.
 - BedFragment retains technical GLView/renderer lifecycle, domain-controller entry points, and Android configuration handling; these require selective migration and testing.
 - The GL renderer and native Slicer engine remain necessary technical integrations and were not rewritten.
@@ -40,21 +42,22 @@ Phase 2/3 — the shared workspace route adapter renders nine concrete tool rout
 
 ## Verification in this execution
 
-- Current `:app:testDebugUnitTest`: 548 tests, 0 failures, 0 errors, 0 skipped.
-- Current `:app:testSliceTestUnitTest`: 548 tests, 0 failures, 0 errors, 0 skipped.
+- Previous baseline at the version-0.8.244 code commit: Debug 548 tests, 0 failures, 0 errors, 0 skipped.
+- Previous baseline at the version-0.8.244 code commit: Slice 548 tests, 0 failures, 0 errors, 0 skipped.
 - On Honor PTP-N49 / Android 16, `WorkspaceNavigationDeviceTest`: 1 test, 0 failures/skips; it verifies nine direct Compose routes attach and clean up through Back, plus File → Model → File transition.
+- After moving the model context menu to workspace overlay state, `MainActivityTouchDeviceTest`: 1 test passed on Honor PTP-N49 / Android 16 after reverting the unsuccessful generic-dialog host experiment. Both full unit suites passed: Debug 549/549 and Slice 549/549 (0 failures, 0 errors, 0 skipped each). A test run during the dialog-host experiment failed at camera-control Back and duplicate-input Back; that experiment and its changes were reverted. Emulator `emulator-5554` remains offline and was skipped.
 - Final `:app:assembleDebug`: passed. The final APK was installed under the exact OrkanSlicer application ID and launched with `MainActivity` top-resumed. Logcat after launch had no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` matches. `ru.ytkab0bp.slicebeam` is the source namespace/activity, not an installed standalone SliceBeam app; the device package check showed only `com.codemastercody3d.orcaslicermobile`.
 - Emulator `emulator-5554` remains offline and was skipped by Gradle. No 320/360/400 dp or font-scale matrix was run; the Honor was used at its physical 1280x2800 / 560 dpi configuration.
 - The prior broader device run on the previous code commit reported 51 tests, 0 failures, 0 errors, and 3 skips due to unavailable private fixtures; this execution did not rerun that full device suite. `emulator-5554` remains offline.
 - The added device test exercises Compose-hosted legacy route attach, dismiss, and cleanup. It does not claim to validate every route's GL model-edit behavior.
-- Final Debug APK from code commit `c29695d408186970e124f582e9c5967820448a3e`: `app/build/outputs/apk/debug/OrkanSlicer_c29695d408.apk`, 157,006,085 bytes; SHA-256 `B25B71F1843EC26701239624A7EE47594B7CAE2D2082E4825AB486D4D6259BDA` (versionCode 279, versionName 0.8.244).
-- The final APK was installed on Honor PTP-N49 / Android 16 under the explicit Orkan package `com.codemastercody3d.orcaslicermobile`; `MainActivity` was top-resumed. Screenshot `app/build/orkan_0244.png` shows the OrkanSlicer profile controls, visible build plate, and workspace navigation. Recent logcat had no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` lines. The standalone SliceBeam package was absent in the package check.
+- Final Debug APK from code commit `ba596dbea946f973626f1ef0399ad4594e0b3df4`: `app/build/outputs/apk/debug/OrkanSlicer_ba596dbea9.apk`, 157,572,357 bytes; SHA-256 `7A2CCD450D8E71D6F56A1ACD33C5239108C750922D6763797FDA9C98AB32531B` (versionCode 279, versionName 0.8.244).
+- The final APK above was reinstalled on Honor PTP-N49 / Android 16 under the explicit OrkanSlicer application ID `com.codemastercody3d.orcaslicermobile`; `MainActivity` was top-resumed. Logcat captured after a clean and fresh launch had no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` matches. The standalone SliceBeam package was absent in the package check.
 - No printer job was started and no firmware was changed.
 
 ## Git and continuation
 
 - Branch: `codex/rinkhals-safe-start-audit`.
-- New code commit: `00bbb63d8f8019a2e13d5aa0970ab1a2b8e833ca` (`Render tool routes directly in Compose workspace`). Version commit: `c29695d408186970e124f582e9c5967820448a3e` (`Bump alpha version to 0.8.244`). Changelog/state updates are still uncommitted.
+- New code commits: `00bbb63d8f8019a2e13d5aa0970ab1a2b8e833ca` (`Render tool routes directly in Compose workspace`), `c29695d408186970e124f582e9c5967820448a3e` (`Bump alpha version to 0.8.244`), `ba596dbea946f973626f1ef0399ad4594e0b3df4` (`Host model context menu in workspace Compose overlay`). The model context menu renders through exclusive WorkspaceShell overlay content; its separate ComposeView attachment/removal path is gone. Generic dialog hosts remain unchanged after the attempted migration failed the Honor Back/keyboard test and was reverted.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; never stage it.
 - PR #2 remains open, unmerged, and targets `master`. Branch synchronization was verified after push; GitHub reports `MERGEABLE` / `CLEAN`. No merge or release was performed.
-- Next implementation task: commit/push the changelog and execution-state record, update PR #2, then migrate the remaining BedFragment-owned UI state/hosts and continue the menu, layout, and accessibility audit. Do not claim the overall migration complete.
+- Next implementation task: commit the context-menu migration evidence and update PR #2, then continue with remaining GL tool routes and menu/layout/accessibility work. Keep generic dialog hosts unchanged until an IME-aware device test is in place. Do not claim the overall migration complete.

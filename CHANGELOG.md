@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Render the model context menu through Compose workspace overlay state instead of attaching a separate `ComposeView` host from `BedFragment`; preserve exclusive-panel and Back dismissal behavior.
+- Verify Compose overlay content replacement and cleanup in `WorkspaceController` tests and the Honor context-menu dismissal test. Keep the existing dialog hosts until focused-input Back behavior is proven on device.
+
 ## 0.8.244 (alpha)
 
 - Move workspace menu route transitions into `WorkspaceShell` with Compose `AnimatedContent`; keep the GL renderer host stable.
