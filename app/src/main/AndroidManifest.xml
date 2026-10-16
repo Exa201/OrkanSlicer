@@ -35,7 +35,7 @@
             android:allowTaskReparenting="true"
             android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|fontScale"
             android:exported="true"
             android:theme="@style/Theme.SliceBeam">
             <intent-filter>
