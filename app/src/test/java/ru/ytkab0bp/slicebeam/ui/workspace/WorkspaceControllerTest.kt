@@ -63,4 +63,20 @@ class WorkspaceControllerTest {
         assertTrue(dialogDismissed)
         assertNull(controller.activePanel)
     }
+
+    @Test
+    fun messageDialogReplacesOtherOverlayAndBackDismissesIt() {
+        val controller = WorkspaceController()
+        var oldPanelDismissed = false
+        var messageDismissed = false
+        controller.activatePanel(WorkspaceOverlayPanel.PROFILE_PICKER) { oldPanelDismissed = true }
+
+        controller.activatePanel(WorkspaceOverlayPanel.MESSAGE_DIALOG) { messageDismissed = true }
+
+        assertTrue(oldPanelDismissed)
+        assertEquals(WorkspaceOverlayPanel.MESSAGE_DIALOG, controller.activePanel)
+        assertTrue(controller.dismissActivePanel())
+        assertTrue(messageDismissed)
+        assertNull(controller.activePanel)
+    }
 }

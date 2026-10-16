@@ -3,7 +3,6 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import android.widget.Toast
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -85,27 +84,23 @@ internal class ModelMenuItems(
                 onItemsChanged()
             }, selected = flattenEnabled, toggleable = true, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuDeleteSelected, R.drawable.delete_outline_android_28, { anchor ->
-                BeamAlertDialogBuilder(anchor.context)
-                    .setTitle(R.string.ModelMenuDeleteSelected)
-                    .setMessage(R.string.ModelDeleteConfirm)
-                    .setPositiveButton(R.string.ModelMenuDeleteSelected) { _, _ ->
-                        fragment.glView!!.deleteSelectedModel(fragment::updateModel)
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
+                fragment.showWorkspaceMessageDialog(
+                    anchor.context.getString(R.string.ModelMenuDeleteSelected),
+                    anchor.context.getString(R.string.ModelDeleteConfirm),
+                    anchor.context.getString(R.string.ModelMenuDeleteSelected),
+                    anchor.context.getString(android.R.string.cancel),
+                ) { fragment.glView!!.deleteSelectedModel(fragment::updateModel) }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuSelectAll, R.drawable.square_stack_up_outline_28, {
                 fragment.glView!!.selectAllModels { fragment.updateModel() }
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
-                BeamAlertDialogBuilder(anchor.context)
-                    .setTitle(R.string.ModelMenuDeleteAll)
-                    .setMessage(R.string.ModelDeleteAllConfirm)
-                    .setPositiveButton(R.string.ModelMenuDeleteAll) { _, _ ->
-                        fragment.glView!!.deleteAllModels { fragment.updateModel() }
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
+                fragment.showWorkspaceMessageDialog(
+                    anchor.context.getString(R.string.ModelMenuDeleteAll),
+                    anchor.context.getString(R.string.ModelDeleteAllConfirm),
+                    anchor.context.getString(R.string.ModelMenuDeleteAll),
+                    anchor.context.getString(android.R.string.cancel),
+                ) { fragment.glView!!.deleteAllModels { fragment.updateModel() } }
             }, enabled = availability.canArrange),
         )
     }

@@ -97,6 +97,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
@@ -156,6 +157,7 @@ set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
 private var currentUnfoldMenu: UnfoldMenu? = null
 private var modelContextMenuView: ComposeView? = null
+private var workspaceDialogView: ComposeView? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
@@ -300,8 +302,11 @@ fun showModelColorSlots(synchronize: Boolean = false) {
             ViewUtils.postOnMainThread {
                 if (destroyed || currentModel !== model || getContext() == null) return@postOnMainThread
                 if (error == null) showModelColorSlots()
-                else BeamAlertDialogBuilder(context).setTitle(R.string.MmuSyncFailed).setMessage(error)
-                    .setPositiveButton(android.R.string.ok, null).show()
+                else showWorkspaceMessageDialog(
+                    context.getString(R.string.MmuSyncFailed),
+                    error,
+                    context.getString(android.R.string.ok),
+                )
             }
         }
         return
@@ -342,11 +347,11 @@ if (ctx == null || glView == null) return
 val model = glView!!.renderer.model
 if (model == null)
 {
-BeamAlertDialogBuilder(ctx)
-.setTitle(R.string.SliceFailed)
-.setMessage(R.string.SliceFailedNoModels)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showWorkspaceMessageDialog(
+    ctx.getString(R.string.SliceFailed),
+    ctx.getString(R.string.SliceFailedNoModels),
+    ctx.getString(android.R.string.ok),
+)
 return
 }
 val activeModel = model ?: return
@@ -365,10 +370,12 @@ PreSliceFilamentDialog.show(ctx, activeModel, { selectedSlots ->
 }
 private fun showMmuSyncFailure(context:Context, onContinue: Runnable) {
 if (getContext() == null) return
-BeamAlertDialogBuilder(context).setTitle(R.string.MmuSyncFailed)
-.setMessage(R.string.MmuAssignmentSyncFailed)
-.setPositiveButton(R.string.PreSliceOffline) { _, _ -> onContinue.run() }
-.setNegativeButton(android.R.string.cancel, null).show()
+showWorkspaceMessageDialog(
+    context.getString(R.string.MmuSyncFailed),
+    context.getString(R.string.MmuAssignmentSyncFailed),
+    context.getString(R.string.PreSliceOffline),
+    context.getString(android.R.string.cancel),
+) { onContinue.run() }
 }
 private fun runSlice(model:Model, onSuccess:Runnable? = null) {
 val ctx = getContext()
@@ -419,12 +426,14 @@ if (onSuccess != null) onSuccess.run() })
 }
 catch (e:Exception) {
 Log.e("BedFragment", "Slice failed", e)
-ViewUtils.postOnMainThread({ SliceBeam.EVENT_BUS.fireEvent(SlicingProgressEvent(100, ""))
-BeamAlertDialogBuilder(ctx)
-.setTitle(R.string.SliceFailed)
-.setMessage(e.message)
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({
+    SliceBeam.EVENT_BUS.fireEvent(SlicingProgressEvent(100, ""))
+    showWorkspaceMessageDialog(
+        ctx.getString(R.string.SliceFailed),
+        e.message ?: ctx.getString(R.string.SliceFailed),
+        ctx.getString(android.R.string.ok),
+    )
+})
 }
 }).start()
 }
@@ -749,10 +758,52 @@ if (modelContextMenuView === view) modelContextMenuView = null
 (view.parent as? ViewGroup)?.removeView(view)
 workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
 }
+internal fun showWorkspaceMessageDialog(
+    title: String?,
+    message: String,
+    confirmLabel: String,
+    dismissLabel: String? = null,
+    onConfirm: () -> Unit = {},
+) {
+    val context = getContext() ?: return
+    val root = overlayLayout ?: return
+    workspaceController.dismissActivePanel()
+    currentUnfoldMenu?.dismiss()
+    val host = ComposeView(context)
+    var resolved = false
+    fun close(confirmed: Boolean) {
+        if (resolved) return
+        resolved = true
+        if (workspaceDialogView === host) workspaceDialogView = null
+        (host.parent as? ViewGroup)?.removeView(host)
+        workspaceController.clearPanel(WorkspaceOverlayPanel.MESSAGE_DIALOG)
+        if (confirmed) onConfirm()
+    }
+    host.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+    host.setContent {
+        BeamComposeTheme {
+            WorkspaceMessageDialog(
+                title = title,
+                message = message,
+                confirmLabel = confirmLabel,
+                dismissLabel = dismissLabel,
+                onDismiss = { close(false) },
+                onConfirm = { close(true) },
+            )
+        }
+    }
+    workspaceDialogView = host
+    root.addView(host, FrameLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.MATCH_PARENT,
+    ))
+    workspaceController.activatePanel(WorkspaceOverlayPanel.MESSAGE_DIALOG) { close(false) }
+}
 fun showSelectedModelContextMenu() {
     showModelContextMenu(glView?.renderer?.selectedObject ?: -1)
 }
 internal fun isModelContextMenuAttached(): Boolean = modelContextMenuView?.isAttachedToWindow == true
+internal fun isWorkspaceMessageDialogAttached(): Boolean = workspaceDialogView?.isAttachedToWindow == true
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
 if (ctx == null || glView == null || objectIndex == -1 || paintModeView != null) return
@@ -831,18 +882,17 @@ val model = currentModel ?: return false
 if (objectIndex < 0 || objectIndex >= model.objectsCount) return false
 val triangles = model.getTriangleCount(objectIndex)
 if (!LargeModelPick.needsPreciseSurfaceSimplification(triangles)) return true
-BeamAlertDialogBuilder(ctx)
-    .setTitle(R.string.LargeModelSurfaceTitle)
-    .setMessage(ctx.getString(R.string.LargeModelSurfaceMessage,
-        triangles, LargeModelPick.TRIANGLE_LIMIT))
-    .setPositiveButton(R.string.ModelSimplifyStart) { _, _ ->
+showWorkspaceMessageDialog(
+    ctx.getString(R.string.LargeModelSurfaceTitle),
+    ctx.getString(R.string.LargeModelSurfaceMessage, triangles, LargeModelPick.TRIANGLE_LIMIT),
+    ctx.getString(R.string.ModelSimplifyStart),
+    ctx.getString(android.R.string.cancel),
+) {
         if (currentModel === model && glView?.renderer?.selectedObject == objectIndex) {
             simplifySelectedObject(LargeModelPick.suggestedKeepRatio(triangles),
                 LargeModelPick.TRIANGLE_LIMIT)
         }
     }
-    .setNegativeButton(android.R.string.cancel, null)
-    .show()
 return false
 }
 private fun exitEmbossMode() {
@@ -910,6 +960,11 @@ return super.onBackPressed()
 override fun onDestroy() {
 super.onDestroy()
 modelContextMenuView?.let(::dismissModelContextMenu)
+workspaceDialogView?.let { dialog ->
+    (dialog.parent as? ViewGroup)?.removeView(dialog)
+    workspaceDialogView = null
+    workspaceController.clearPanel(WorkspaceOverlayPanel.MESSAGE_DIALOG)
+}
 destroyed = true
 modelImportGeneration++
 plateLoadGeneration++
@@ -967,12 +1022,13 @@ if (TextUtils.isEmpty(configuredWebHost) || panelWebViewContainer == null || get
 {
 if (getContext() is ru.ytkab0bp.slicebeam.MainActivity)
 {
-BeamAlertDialogBuilder(getContext()!!).setTitle(R.string.PrinterWebSetupTitle)
-.setMessage(R.string.PrinterWebSetupMessage)
-.setNegativeButton(android.R.string.cancel, null)
-.setPositiveButton(R.string.PrinterWebSetupAction, { dialog, which-> ((getContext() as ru.ytkab0bp.slicebeam.MainActivity).navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
-.switchToSlot(4) })
-.show()
+showWorkspaceMessageDialog(
+    getContext()!!.getString(R.string.PrinterWebSetupTitle),
+    getContext()!!.getString(R.string.PrinterWebSetupMessage),
+    getContext()!!.getString(R.string.PrinterWebSetupAction),
+    getContext()!!.getString(android.R.string.cancel),
+) { ((getContext() as ru.ytkab0bp.slicebeam.MainActivity).navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+.switchToSlot(4) }
 }
 else if (getContext() != null)
 {
@@ -1667,11 +1723,12 @@ if (plateIndex !in platesModels.indices) return
 val hasModels = platesModels[plateIndex]?.objectsCount?.let { it > 0 } ?: (getProjectPlateId(plateIndex) > 0)
 if (hasModels) {
     val ctx = getContext() ?: return
-    BeamAlertDialogBuilder(ctx)
-        .setMessage(R.string.PlateDeleteConfirm)
-        .setPositiveButton(android.R.string.ok) { _, _ -> removePlateConfirmed(plateIndex) }
-        .setNegativeButton(android.R.string.cancel, null)
-        .show()
+    showWorkspaceMessageDialog(
+        title = null,
+        message = ctx.getString(R.string.PlateDeleteConfirm),
+        confirmLabel = ctx.getString(android.R.string.ok),
+        dismissLabel = ctx.getString(android.R.string.cancel),
+    ) { removePlateConfirmed(plateIndex) }
     return
 }
 removePlateConfirmed(plateIndex)

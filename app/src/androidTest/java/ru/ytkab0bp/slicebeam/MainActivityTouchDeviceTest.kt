@@ -191,6 +191,24 @@ class MainActivityTouchDeviceTest {
                 assertTrue("Back should leave the workspace activity active", activity.isFinishing.not())
                 assertFalse("Back should dismiss the model action dialog", requireNotNull(bed).isModelContextMenuAttached())
             }
+
+            scenario.onActivity { activity ->
+                val workspace = requireNotNull(bed)
+                workspace.showWorkspaceMessageDialog(
+                    title = "Test confirmation",
+                    message = "Confirm route",
+                    confirmLabel = "OK",
+                    dismissLabel = "Cancel",
+                )
+                assertTrue("Compose confirmation should attach to the workspace", workspace.isWorkspaceMessageDialogAttached())
+            }
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Back should leave the workspace activity active", activity.isFinishing.not())
+                assertFalse("Back should close the Compose confirmation", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
         } finally {
             scenario.close()
             modelFile.delete()
