@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — 0.8.249 (2026-10-17)
+
+- Code commit: `8f2315154399afdc18bc0775e1901a89503c50ef` (`Compose workspace controls directly in shell`).
+- Workspace profile status, project settings bar, filament entry point, plate picker, and printer-web entry point now render as direct Compose content in `WorkspaceShell`; their former `ComposeView` wrappers and BedFragment references were removed. The GL renderer remains hosted through the stable AndroidView adapter.
+- `WorkspaceNavigationDeviceTest` asserts the same GLView instance survives workspace route switches. Lazy plate-load failures and cancellations now complete `ModelLoadCallback`, and the integration test records a concrete load error instead of waiting only for a timeout.
+- Version `0.8.249` alpha / versionCode `284`. Debug build passed. APK: `app/build/outputs/apk/debug/OrkanSlicer_8f23151543.apk`, 157,022,242 bytes; SHA-256 `262A9AB3C4C1417FEEED8033B4AFB8ED07ECAAD4B66B7207F45DEC3EE301382A`.
+- Debug and Slice unit tasks passed (both up-to-date, 549 tests each from the current suite). Full Honor `:app:connectedSliceTestAndroidTest` passed: 55 tests reported, 0 failures/errors, 3 private multi-color fixture tests skipped (52 executed passed). The targeted `MultiPlateProjectDeviceTest` also passed 4/4. Emulator `emulator-5554` remains offline.
+- Installed APK on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`; verified version 0.8.249 / code 284 and resumed `MainActivity`. Fresh logcat sample had no crash, ANR, or OOM markers. No screenshots were captured.
+- The new native export still handles the active plate/model only; preserve the multi-plate warning. Full project persistence remains separate and incomplete.
+- Next implementation: continue the global action-by-action menu audit and migrate safe remaining BedFragment-owned UI controls into `WorkspaceShell`. Generic message/custom-dialog host requires an IME-aware regression before changing it. Full responsive/system accessibility matrix, all menu action verification, and complete multi-plate persistence remain open; do not call the UI migration complete.
+
 Updated: 2026-10-16
 
 ## Current continuation (0.8.248)
