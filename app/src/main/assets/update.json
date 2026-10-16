@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.248\n\n• Alle sechs Workspace-Hauptmenüs werden direkt in der gemeinsamen Compose WorkspaceShell gerendert.\n• EventBus-Listener folgen dem aktiven Menü-Lifecycle; Honor-Navigation prüft die Routen ohne alte Menü-Views.",
-  "en": "OrkanSlicer 0.8.248\n\n• All six workspace main menus now render directly in the shared Compose WorkspaceShell.\n• EventBus listeners follow the active menu lifecycle; Honor navigation verifies the routes without legacy menu views.",
-  "ru": "OrkanSlicer 0.8.248\n\n• Все шесть основных меню workspace отображаются непосредственно в общей Compose WorkspaceShell.\n• Слушатели EventBus привязаны к жизненному циклу активного меню; навигация на Honor проверяет маршруты без старых представлений меню."
+  "de": "OrkanSlicer 0.8.249\n\n• Profilstatus, Projektleiste, Filamentzugang und Plattenauswahl werden direkt im Compose Workspace gerendert.\n• Menüwechsel behalten dieselbe GLView-Instanz; die sechs Hauptmenüs wurden auf Honor geprüft.",
+  "en": "OrkanSlicer 0.8.249\n\n• Profile status, project bar, filament access, and plate selection render directly in the Compose workspace.\n• Menu navigation retains the same GLView instance; all six main menus were checked on Honor.",
+  "ru": "OrkanSlicer 0.8.249\n\n• Статус профиля, панель проекта, доступ к филаментам и выбор платформы отображаются непосредственно в Compose workspace.\n• Навигация сохраняет тот же экземпляр GLView; все шесть основных меню проверены на Honor."
 }

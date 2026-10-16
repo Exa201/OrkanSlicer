@@ -78,7 +78,6 @@ import ru.ytkab0bp.slicebeam.slic3r.ImportProgressCallback
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
@@ -161,7 +160,6 @@ private var workspaceDialogView: ComposeView? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
-private var plateTabsScroll: ComposeView? = null
 private var plateTabCount by mutableIntStateOf(1)
 private var plateObjectCounts by mutableStateOf<List<Int>>(emptyList())
 private var plateThumbnails by mutableStateOf<List<PlateThumbnail>>(emptyList())
@@ -169,13 +167,9 @@ private var plateThumbnails by mutableStateOf<List<PlateThumbnail>>(emptyList())
 private var platePreviewBuiltRevision = -1
 private var plateTabsThemeRevision by mutableIntStateOf(0)
 private val platePickerOpen = mutableStateOf(false)
-private var printerWebButton: ComposeView? = null
-private var filamentPaletteButton: ComposeView? = null
 private var printerWebCloseButton: ComposeView? = null
 private var printerWebAvailable by mutableStateOf(false)
 private var printerWebThemeRevision by mutableIntStateOf(0)
-private var profileStatusText: ComposeView? = null
-private var projectSettingsBar: ComposeView? = null
 private var profileStatusTitle by mutableStateOf("")
 private var profileStatusSummary by mutableStateOf("")
 private var profileStatusDescription by mutableStateOf("")
@@ -1223,9 +1217,10 @@ destroyPrinterWebView()
 glView!!.onPause()
 }
 private fun updateProfileStatus() {
-if (profileStatusText == null || SliceBeam.CONFIG == null) return
+val context = getContext() ?: return
+if (SliceBeam.CONFIG == null) return
 val printer = SliceBeam.CONFIG!!.findPrinter(SliceBeam.CONFIG!!.presets!!.get("printer"))
-val unavailable = getContext()!!.getString(R.string.WorkspaceSettingsUnknown)
+val unavailable = context.getString(R.string.WorkspaceSettingsUnknown)
 val printerName = if (printer != null) printer.title else unavailable
 var nozzle = if (printer != null) printer.get("printer_variant") else null
 if (TextUtils.isEmpty(nozzle) && printer != null) nozzle = printer.get("nozzle_diameter")
@@ -1233,16 +1228,16 @@ if (TextUtils.isEmpty(nozzle)) nozzle = unavailable
 val projectSlots = TemporaryProjectSettings.slots()
 val filament = if (!projectSlots.isNullOrEmpty()) {
     val materials = projectSlots.mapNotNull { it.type?.takeIf(String::isNotBlank) }.distinct()
-    getContext()!!.getString(R.string.WorkspaceProjectFilaments,
+    context.getString(R.string.WorkspaceProjectFilaments,
         materials.joinToString("/"), projectSlots.size)
 } else SliceBeam.CONFIG!!.presets!!.get("filament")
 val process = SliceBeam.CONFIG!!.presets!!.get("print")
 profileStatusTitle = printerName ?: unavailable
-profileStatusSummary = getContext()!!.getString(
+profileStatusSummary = context.getString(
 R.string.WorkspaceProfileStatusSummary,
 nozzle,
 if (TextUtils.isEmpty(filament)) unavailable else filament)
-profileStatusDescription = getContext()!!.getString(
+profileStatusDescription = context.getString(
 R.string.WorkspaceProfilesStatusDescription,
 printerName, nozzle, if (TextUtils.isEmpty(filament)) unavailable else filament,
 if (TextUtils.isEmpty(process)) unavailable else process)
@@ -1278,48 +1273,7 @@ currentUnfoldMenu!!.relayout()
 }
 }
 }
-plateTabsScroll = ComposeView(ctx).apply {
-setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-setContent {
-val revision = plateTabsThemeRevision
-if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
-PlateTabs(
-openState = platePickerOpen,
-plateCount = plateTabCount,
-selectedIndex = workspaceController.activePlateIndex,
-objectCounts = plateObjectCounts,
-thumbnails = plateThumbnails,
-onOpen = {
-    workspaceController.activatePanel(WorkspaceOverlayPanel.PLATE_PICKER) {
-        platePickerOpen.value = false
-    }
-    // A model can move or scale without changing the plate list. Refresh its tiny footprint on demand.
-    platePreviewRevision++
-    refreshPlateThumbnails()
-},
-onDismiss = { workspaceController.clearPanel(WorkspaceOverlayPanel.PLATE_PICKER) },
-            onSelect = { index -> if (index != currentPlateIndex) switchPlate(index) },
-onClose = { index -> removePlate(index) },
-onAdd = { addNewPlate() },
-)
-}
-}
-}
 updatePlateIndicator()
-profileStatusText = ComposeView(ctx).apply {
-setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-setContent {
-val revision = profileStatusThemeRevision
-BeamComposeTheme(themeRevision = revision) {
-WorkspaceProfileStatus(
-title = profileStatusTitle,
-summary = profileStatusSummary,
-accessibilityDescription = profileStatusDescription.ifBlank { ctx.getString(R.string.WorkspaceProfilesOpenDescription) },
- onOpen = { showWorkspaceProfileSheet(ctx) },
-)
-}
-}
-}
 updateProfileStatus()
 val portrait = usesCompactPortraitLayout(ctx)
 compactPortraitLayout = portrait
@@ -1370,14 +1324,6 @@ rightMargin = ViewUtils.dp(12)
 topMargin = rightMargin
 }
 })
-printerWebButton = ComposeView(ctx).apply {
-setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-setContent {
-BeamComposeTheme(themeRevision = printerWebThemeRevision) {
-PrinterWebOpenButton(hostConfigured = printerWebAvailable, onOpen = ::openPrinterWebView)
-}
-}
-}
 contentView = createWorkspaceContent(ctx, portrait)
 overlayLayout!!.addView(contentView, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -1440,30 +1386,7 @@ private fun setPortraitToolPanelExpanded(expanded: Boolean) {
 }
 /** Keep the model viewport clear; object actions are available from the Edit menu. */
 private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
-    listOfNotNull(
-        rendererAdapter, profileStatusText, printerWebButton,
-        filamentPaletteButton, projectSettingsBar, plateTabsScroll,
-    ).forEach(::detachFromParent)
-
-    if (projectSettingsBar == null) projectSettingsBar = ComposeView(ctx).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-        setContent { BeamComposeTheme { TemporaryProjectSettingsBar() } }
-    }
-    if (filamentPaletteButton == null) filamentPaletteButton = ComposeView(ctx).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-        setContent {
-            val revision = filamentPaletteRevision
-            key(revision) {
-                BeamComposeTheme {
-                    WorkspaceFilamentButton(
-                        slots = Prefs.getFilamentSlots(),
-                        enabled = true,
-                        onClick = ::showWorkspaceFilamentPalette,
-                    )
-                }
-            }
-        }
-    }
+    rendererAdapter?.let(::detachFromParent)
     return ComposeView(ctx).apply {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
         setContent {
@@ -1491,11 +1414,58 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         } else false
                     },
                     onMenuTransitionSettled = { isAnimatingMenu = false },
-                    projectSettingsView = projectSettingsBar!!,
-                    profileStatusView = profileStatusText!!,
-                    filamentButtonView = filamentPaletteButton!!,
-                    platePickerView = plateTabsScroll!!,
-                    printerWebButtonView = printerWebButton!!,
+                    projectSettingsContent = { BeamComposeTheme { TemporaryProjectSettingsBar() } },
+                    profileStatusContent = {
+                        BeamComposeTheme(themeRevision = profileStatusThemeRevision) {
+                            WorkspaceProfileStatus(
+                                title = profileStatusTitle,
+                                summary = profileStatusSummary,
+                                accessibilityDescription = profileStatusDescription.ifBlank {
+                                    ctx.getString(R.string.WorkspaceProfilesOpenDescription)
+                                },
+                                onOpen = { showWorkspaceProfileSheet(ctx) },
+                            )
+                        }
+                    },
+                    filamentButtonContent = {
+                        key(filamentPaletteRevision) {
+                            BeamComposeTheme {
+                                WorkspaceFilamentButton(
+                                    slots = Prefs.getFilamentSlots(),
+                                    enabled = true,
+                                    onClick = ::showWorkspaceFilamentPalette,
+                                )
+                            }
+                        }
+                    },
+                    platePickerContent = {
+                        val revision = plateTabsThemeRevision
+                        if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
+                            PlateTabs(
+                                openState = platePickerOpen,
+                                plateCount = plateTabCount,
+                                selectedIndex = workspaceController.activePlateIndex,
+                                objectCounts = plateObjectCounts,
+                                thumbnails = plateThumbnails,
+                                onOpen = {
+                                    workspaceController.activatePanel(WorkspaceOverlayPanel.PLATE_PICKER) {
+                                        platePickerOpen.value = false
+                                    }
+                                    platePreviewRevision++
+                                    refreshPlateThumbnails()
+                                },
+                                onDismiss = { workspaceController.clearPanel(WorkspaceOverlayPanel.PLATE_PICKER) },
+                                onSelect = { index -> if (index != currentPlateIndex) switchPlate(index) },
+                                onClose = { index -> removePlate(index) },
+                                onAdd = { addNewPlate() },
+                            )
+                        }
+                    },
+                    printerWebButtonContent = {
+                        BeamComposeTheme(themeRevision = printerWebThemeRevision) {
+                            PrinterWebOpenButton(hostConfigured = printerWebAvailable, onOpen = ::openPrinterWebView)
+                        }
+                    },
                     modePanelContent = workspaceController.activeToolPanelContent,
                     modePanelFraction = workspaceController.activeToolPanelFraction,
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },
@@ -1802,11 +1772,16 @@ reduction = try { simplifyImportedModel(loaded) } catch (e: Exception) { loaded.
 }
 catch (e:Exception) {
 android.util.Log.e("BedFragment", "Failed to load plate " + (requestedPlate + 1), e)
-ViewUtils.postOnMainThread({ if (!destroyed && loadGeneration == plateLoadGeneration && getContext() != null)
-{
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent("plate-load"))
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileFailed))
-} })
+ViewUtils.postOnMainThread({
+    if (destroyed) return@postOnMainThread
+    if (loadGeneration == plateLoadGeneration && requestedPlate == currentPlateIndex && getContext() != null) {
+        SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent("plate-load"))
+        if (loadCallback != null) loadCallback.onFailed(e)
+        else SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuFileOpenFileFailed))
+    } else {
+        loadCallback?.onCancelled()
+    }
+})
 return@execute
 }
 synchronized (pendingPlateModelsLock) {
@@ -1827,6 +1802,7 @@ if ((destroyed || loadGeneration != plateLoadGeneration || requestedPlate != cur
 {
 pendingPlateModels.remove(loaded)
 loaded.release()
+if (!destroyed) ViewUtils.postOnMainThread { loadCallback?.onCancelled() }
 return
 }
 val bed = glView!!.renderer.bed
@@ -1889,8 +1865,7 @@ if (loadCallback != null)
 }
 }
 private fun updatePlateIndicator() {
-if (plateTabsScroll == null) return
-ViewUtils.postOnMainThread({ if (destroyed || plateTabsScroll == null || getContext() == null) return@postOnMainThread
+ViewUtils.postOnMainThread({ if (destroyed || getContext() == null) return@postOnMainThread
 filamentPaletteRevision++
 plateTabCount = platesModels.size
 if (platesModels.isNotEmpty()) currentPlateIndex = currentPlateIndex.coerceIn(0, platesModels.size - 1)

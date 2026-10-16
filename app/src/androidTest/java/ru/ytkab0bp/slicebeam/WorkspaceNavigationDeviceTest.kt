@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,7 +40,10 @@ import java.util.concurrent.TimeUnit
 /** Confirms workspace menu transitions and direct Compose tool routes clean up correctly. */
 @RunWith(AndroidJUnit4::class)
 class WorkspaceNavigationDeviceTest {
+    private var workspaceRenderer: android.view.View? = null
+
     @Test fun switchingBetweenFileAndModelRoutesKeepsOnlyTheSelectedMenuAttached() {
+        workspaceRenderer = null
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val app = context.applicationContext as SliceBeam
@@ -69,6 +73,7 @@ class WorkspaceNavigationDeviceTest {
         try {
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                workspaceRenderer = requireNotNull(bed.glView)
                 selectWorkspaceRoute(bed, 1)
             }
             awaitMenuTransition(scenario)
@@ -86,25 +91,13 @@ class WorkspaceNavigationDeviceTest {
             awaitMenuTransition(scenario)
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-                val menuMap = BedFragment::class.java.getDeclaredField("menuMap")
-                    .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
-                val cameraMenu = menuMap.get(WorkspaceDestination.CAMERA.ordinal)
-                assertTrue("camera destination should be a direct Compose menu route",
-                    cameraMenu is WorkspaceComposeBedMenu)
-                assertEquals("direct Compose camera route must not allocate its legacy ThemeAwareComposeView",
-                    null, (cameraMenu as CameraMenu).getView())
+                assertMenuAttached(bed, CameraMenu::class.java)
                 selectWorkspaceRoute(bed, WorkspaceDestination.EDIT.ordinal)
             }
             awaitMenuTransition(scenario)
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-                val menuMap = BedFragment::class.java.getDeclaredField("menuMap")
-                    .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
-                val transformMenu = menuMap.get(WorkspaceDestination.EDIT.ordinal)
-                assertTrue("edit destination should be a direct Compose menu route",
-                    transformMenu is WorkspaceComposeBedMenu)
-                assertEquals("direct Compose edit route must not allocate its legacy ThemeAwareComposeView",
-                    null, (transformMenu as TransformMenu).getView())
+                assertMenuAttached(bed, TransformMenu::class.java)
                 selectWorkspaceRoute(bed, WorkspaceDestination.PROJECT.ordinal)
             }
             awaitMenuTransition(scenario)
@@ -351,6 +344,7 @@ class WorkspaceNavigationDeviceTest {
     }
 
     private fun assertMenuAttached(bed: BedFragment, expectedType: Class<*>) {
+        assertSame("menu navigation must keep the GLView instance stable", workspaceRenderer, bed.glView)
         val controller = BedFragment::class.java.getDeclaredField("workspaceController")
             .apply { isAccessible = true }.get(bed)
         val currentSlot = controller.javaClass.getDeclaredMethod("getSelectedDestinationSlot")

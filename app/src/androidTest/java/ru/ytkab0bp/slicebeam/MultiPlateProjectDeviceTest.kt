@@ -204,6 +204,7 @@ class MultiPlateProjectDeviceTest {
         val firstLoaded = CountDownLatch(1)
         val secondLoaded = CountDownLatch(1)
         val loadFailure = AtomicReference<Exception?>()
+        val secondLoadFailure = AtomicReference<Exception?>()
         val scenario = ActivityScenario.launch(MainActivity::class.java)
         try {
             scenario.onActivity { activity ->
@@ -228,9 +229,24 @@ class MultiPlateProjectDeviceTest {
                 val switch = BedFragment::class.java.getDeclaredMethod("switchPlate",
                     Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, BedFragment.ModelLoadCallback::class.java)
                     .apply { isAccessible = true }
-                switch.invoke(bed, 1, true, BedFragment.ModelLoadCallback { _, _, _ -> secondLoaded.countDown() })
+                switch.invoke(bed, 1, true, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        secondLoaded.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        secondLoadFailure.set(error)
+                        secondLoaded.countDown()
+                    }
+
+                    override fun onCancelled() {
+                        secondLoadFailure.set(IllegalStateException("Plate load was cancelled"))
+                        secondLoaded.countDown()
+                    }
+                })
             }
             assertTrue("Second plate did not finish loading", secondLoaded.await(60, TimeUnit.SECONDS))
+            secondLoadFailure.get()?.let { throw AssertionError("Second plate failed", it) }
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
                 assertEquals(2, bed.plateCount)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.249 (alpha)
+
+- Render project settings, profile status, filament access, plate selection, and printer-web access directly in `WorkspaceShell` Compose content instead of separate AndroidView-wrapped ComposeViews.
+- Keep the GLView host stable across workspace navigation and verify that it is not recreated while switching all six main-menu routes on Honor.
+
 ## 0.8.248 (alpha)
 
 - Render all six workspace main-menu destinations directly in the shared Compose `WorkspaceShell`; retain legacy view rendering only as a compatibility fallback.

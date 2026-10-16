@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -58,11 +59,11 @@ internal fun WorkspaceShell(
     menuViewForSlot: (Int) -> View,
     menuComposeContentForSlot: @Composable (Int) -> Boolean,
     onMenuTransitionSettled: () -> Unit,
-    projectSettingsView: View,
-    profileStatusView: View,
-    filamentButtonView: View,
-    platePickerView: View,
-    printerWebButtonView: View,
+    projectSettingsContent: @Composable () -> Unit,
+    profileStatusContent: @Composable () -> Unit,
+    filamentButtonContent: @Composable () -> Unit,
+    platePickerContent: @Composable () -> Unit,
+    printerWebButtonContent: @Composable () -> Unit,
     modePanelContent: (@Composable () -> Unit)?,
     modePanelFraction: Float?,
     onModePanelDismiss: () -> Unit,
@@ -110,17 +111,16 @@ internal fun WorkspaceShell(
                 .heightIn(min = OrkanUiTokens.touchTarget)
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         ) {
-            AndroidView(
-                factory = { profileStatusView },
+            Box(
                 modifier = Modifier.weight(1f).widthIn(min = 0.dp).heightIn(min = OrkanUiTokens.touchTarget),
-            )
+            ) { profileStatusContent() }
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.compactGap),
             ) {
-                WorkspaceActionControl(filamentButtonView)
-                WorkspaceActionControl(platePickerView)
-                WorkspaceActionControl(printerWebButtonView)
+                WorkspaceActionControl(filamentButtonContent)
+                WorkspaceActionControl(platePickerContent)
+                WorkspaceActionControl(printerWebButtonContent)
             }
         }
     }
@@ -128,10 +128,7 @@ internal fun WorkspaceShell(
     Box(Modifier.fillMaxSize().background(background)) {
       if (portrait) {
         Column(Modifier.fillMaxSize()) {
-            AndroidView(
-                factory = { projectSettingsView },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 0.dp),
-            )
+            Box(Modifier.fillMaxWidth().heightIn(min = 0.dp)) { projectSettingsContent() }
             header(Modifier)
             AndroidView(
                 factory = { rendererView },
@@ -183,10 +180,7 @@ internal fun WorkspaceShell(
                 modifier = Modifier.width(menuWidthDp.dp).fillMaxHeight(),
             )
             Column(Modifier.weight(1f).fillMaxHeight()) {
-                AndroidView(
-                    factory = { projectSettingsView },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 0.dp),
-                )
+                Box(Modifier.fillMaxWidth().heightIn(min = 0.dp)) { projectSettingsContent() }
                 header(Modifier)
                 AndroidView(
                     factory = { rendererView },
@@ -241,11 +235,11 @@ private fun WorkspaceMenuHost(
 }
 
 @Composable
-private fun WorkspaceActionControl(view: View) {
-    AndroidView(
-        factory = { view },
-        modifier = Modifier.width(OrkanUiTokens.touchTarget).height(OrkanUiTokens.touchTarget),
-    )
+private fun WorkspaceActionControl(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.size(OrkanUiTokens.touchTarget),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) { content() }
 }
 
 /** Measurable policy for the portion of a compact workspace reserved for the actual build plate. */
