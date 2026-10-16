@@ -212,10 +212,50 @@ class MainActivityTouchDeviceTest {
                 assertFalse("Back should close the Compose confirmation", requireNotNull(bed).isWorkspaceMessageDialogAttached())
                 assertTrue("Back should resolve the Compose confirmation as dismissed", workspaceDialogDismissed.get())
             }
+
+            assertImportPromptDismissesWithoutApproval(
+                scenario, instrumentation, requireNotNull(bed), "confirmImportSimplification",
+                emptyArray<Class<*>>(), emptyArray<Any>(),
+            )
+            assertImportPromptDismissesWithoutApproval(
+                scenario,
+                instrumentation,
+                requireNotNull(bed),
+                "confirmLargeStlImport",
+                arrayOf(Long::class.javaPrimitiveType!!),
+                arrayOf(1_000_000L),
+            )
         } finally {
             scenario.close()
             modelFile.delete()
         }
+    }
+
+    private fun assertImportPromptDismissesWithoutApproval(
+        scenario: ActivityScenario<MainActivity>,
+        instrumentation: android.app.Instrumentation,
+        bed: BedFragment,
+        methodName: String,
+        parameterTypes: Array<Class<*>>,
+        arguments: Array<Any>,
+    ) {
+        val decision = AtomicReference<Boolean?>()
+        val method = BedFragment::class.java.getDeclaredMethod(methodName, *parameterTypes).apply { isAccessible = true }
+        val worker = Thread { decision.set(method.invoke(bed, *arguments) as Boolean) }
+        worker.start()
+
+        val deadline = SystemClock.uptimeMillis() + 5_000L
+        var attached = false
+        while (!attached && SystemClock.uptimeMillis() < deadline) {
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { attached = bed.isWorkspaceMessageDialogAttached() }
+            if (!attached) SystemClock.sleep(50L)
+        }
+        assertTrue("$methodName should show the Compose workspace dialog", attached)
+        instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        worker.join(5_000L)
+        assertTrue("$methodName should release its waiting import worker", !worker.isAlive)
+        assertEquals("Back must refuse $methodName unless the user explicitly confirms", false, decision.get())
     }
 
     private fun assertSameModelSelection(bed: BedFragment?, model: Model) {
