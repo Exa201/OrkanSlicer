@@ -63,7 +63,6 @@ import ru.ytkab0bp.slicebeam.cloud.CloudAPI
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.ChangeLogBottomSheet
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
@@ -98,7 +97,6 @@ private var id:Int = 0
 val navigationDelegate:NavigationDelegate
 get() = delegate ?: throw IllegalStateException("Navigation is not initialized")
 private var delegate: NavigationDelegate? = null
-private var unfoldMenu: UnfoldMenu? = null
 private var exitConfirmationDialog: AlertDialog? = null
 private val activityResultLaunchers = HashMap<Int, ActivityResultLauncher<Intent>>()
 private fun interface BundleProfileFinder {
@@ -1812,18 +1810,7 @@ return true
 private fun onCreateDelegate():NavigationDelegate {
 return MobileNavigationDelegate()
 }
-fun showUnfoldMenu(menu:UnfoldMenu, v:View) {
-if (unfoldMenu != null) return
-menu.setOnDismiss({ unfoldMenu = null })
-menu.show(v, navigationDelegate.getOverlayView() ?: return)
-unfoldMenu = menu
-}
 private fun handleAppBack():Boolean {
-if (unfoldMenu != null)
-{
-unfoldMenu!!.dismiss()
-return true
-}
 if (delegate?.onBackPressed() == true) return true
 if (exitConfirmationDialog?.isShowing == true) return true
 exitConfirmationDialog = BeamAlertDialogBuilder(this)
