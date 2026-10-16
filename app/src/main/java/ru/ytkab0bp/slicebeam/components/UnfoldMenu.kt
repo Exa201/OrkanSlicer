@@ -6,6 +6,7 @@ import android.widget.FrameLayout
 import androidx.annotation.CallSuper
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -28,6 +29,7 @@ abstract class UnfoldMenu {
     private var workspaceDismiss: (() -> Unit)? = null
     private var workspaceContent: View? = null
     private var workspaceAttachListener: View.OnAttachStateChangeListener? = null
+    private var workspaceCompositionVisible = false
 
     open fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
         ((if (portrait) into.height else into.width) * 0.6f).toInt()
@@ -48,15 +50,24 @@ abstract class UnfoldMenu {
     protected abstract fun onCreateView(ctx: Context, portrait: Boolean): View
 
     /**
-     * Creates route content for the Compose-owned workspace panel. The route's existing View or
-     * ComposeView remains a compatibility boundary; only its old overlay host is bypassed.
+     * Creates route content for the Compose-owned workspace panel. Migrated tool routes render
+     * directly in Compose; remaining Android-backed routes keep a compatibility boundary while
+     * sharing the same workspace overlay and back handling.
      */
-    internal fun createWorkspaceContent(context: Context, portrait: Boolean, fragment: BedFragment): View? {
+    internal fun createWorkspaceContent(
+        context: Context,
+        portrait: Boolean,
+        fragment: BedFragment,
+    ): WorkspaceUnfoldContent? {
         if (isVisible) return null
         this.fragment = fragment
         isVisible = true
         isDismissing = false
         workspaceDismiss = null
+        if (this is ComposeWorkspaceUnfoldMenu) {
+            workspaceContent = null
+            return WorkspaceUnfoldContent.Compose(portrait)
+        }
         val content = try {
             onCreateView(context, portrait)
         } catch (error: Throwable) {
@@ -64,7 +75,7 @@ abstract class UnfoldMenu {
             throw error
         }
         workspaceContent = content
-        return content
+        return WorkspaceUnfoldContent.AndroidViewContent(content)
     }
 
     internal fun setWorkspaceDismiss(dismiss: (() -> Unit)?) {
@@ -72,31 +83,46 @@ abstract class UnfoldMenu {
     }
 
     @Composable
-    internal fun WorkspaceContent(content: View) {
-        AndroidView(
-            factory = {
-                val listener = workspaceAttachListener ?: object : View.OnAttachStateChangeListener {
-                    override fun onViewAttachedToWindow(view: View) {
-                        if (!contentCreated) {
-                            contentCreated = true
-                            onCreate()
+    internal fun WorkspaceContent(content: WorkspaceUnfoldContent) {
+        when (content) {
+            is WorkspaceUnfoldContent.Compose -> {
+                val composeMenu = this as ComposeWorkspaceUnfoldMenu
+                DisposableEffect(this) {
+                    workspaceCompositionVisible = true
+                    if (!contentCreated) {
+                        contentCreated = true
+                        onCreate()
+                    }
+                    onDispose { finishWorkspaceContent() }
+                }
+                composeMenu.ComposeContent(content.portrait)
+            }
+            is WorkspaceUnfoldContent.AndroidViewContent -> AndroidView(
+                factory = {
+                    val view = content.view
+                    val listener = workspaceAttachListener ?: object : View.OnAttachStateChangeListener {
+                        override fun onViewAttachedToWindow(view: View) {
+                            if (!contentCreated) {
+                                contentCreated = true
+                                onCreate()
+                            }
                         }
-                    }
 
-                    override fun onViewDetachedFromWindow(view: View) {
-                        finishWorkspaceContent()
-                    }
-                }.also { workspaceAttachListener = it }
-                content.addOnAttachStateChangeListener(listener)
-                content
-            },
-            modifier = Modifier.fillMaxSize(),
-            update = {},
-            onRelease = { view ->
-                finishWorkspaceContent()
-                view.clearAnimation()
-            },
-        )
+                        override fun onViewDetachedFromWindow(view: View) {
+                            finishWorkspaceContent()
+                        }
+                    }.also { workspaceAttachListener = it }
+                    view.addOnAttachStateChangeListener(listener)
+                    view
+                },
+                modifier = Modifier.fillMaxSize(),
+                update = {},
+                onRelease = { view ->
+                    finishWorkspaceContent()
+                    view.clearAnimation()
+                },
+            )
+        }
     }
 
     private fun finishWorkspaceContent() {
@@ -108,6 +134,7 @@ abstract class UnfoldMenu {
         workspaceAttachListener = null
         val wasCreated = contentCreated
         contentCreated = false
+        workspaceCompositionVisible = false
         isVisible = false
         isDismissing = true
         workspaceContent = null
@@ -201,7 +228,7 @@ abstract class UnfoldMenu {
     protected open fun onShown() = Unit
 
     open fun isAttached(): Boolean =
-        (rootView?.view?.parent != null || workspaceContent?.isAttachedToWindow == true) && !isDismissing
+        (rootView?.view?.parent != null || workspaceCompositionVisible || workspaceContent?.isAttachedToWindow == true) && !isDismissing
 
     open fun relayout() {
         rootView?.view?.requestLayout()
@@ -217,10 +244,24 @@ abstract class UnfoldMenu {
         val dismissWorkspace = workspaceDismiss
         if (dismissWorkspace != null) {
             dismissWorkspace.invoke()
+            // Compose removes the panel on the next frame. End the tool session now so back and
+            // tool switching cannot leave an active renderer mode during that frame.
+            if (this is ComposeWorkspaceUnfoldMenu) finishWorkspaceContent()
         } else {
             rootView?.dismiss(animated = alphaOnly)
         }
     }
+}
+
+internal sealed interface WorkspaceUnfoldContent {
+    data class Compose(val portrait: Boolean) : WorkspaceUnfoldContent
+    data class AndroidViewContent(val view: View) : WorkspaceUnfoldContent
+}
+
+/** Tool content that can be composed directly in the workspace while retaining an Android host fallback. */
+internal interface ComposeWorkspaceUnfoldMenu {
+    @Composable
+    fun ComposeContent(portrait: Boolean)
 }
 
 /** Bounds requested sheet sizes to the available workspace space. */

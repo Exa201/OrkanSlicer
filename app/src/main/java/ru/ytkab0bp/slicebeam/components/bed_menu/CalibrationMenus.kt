@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -53,6 +54,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.NeedDismissCalibrationsMenu
@@ -67,77 +69,83 @@ import java.io.File
 import java.io.FileOutputStream
 
 /** Calibration actions and test models opened from the File menu. */
-class CalibrationsMenu : UnfoldMenu() {
+class CalibrationsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     override fun getRequestedSize(into: android.widget.FrameLayout, portrait: Boolean): Int =
         (if (portrait) into.height * 0.56f else into.width * 0.6f).toInt()
 
     override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val bed = fragment
         return ThemeAwareComposeView(ctx).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
             setContent {
                 BeamComposeTheme(themeRevision = themeRevision) {
-                    if (bed == null) {
-                        Spacer(Modifier.fillMaxSize())
-                    } else {
-                        var selectedCalibration by remember { mutableStateOf<CalibrationPreset?>(null) }
-                        var recordResult by remember { mutableStateOf(false) }
-                        CalibrationsMenuContent(
-                            onCalibration = { selectedCalibration = it },
-                            onRecordResult = { recordResult = true },
-                            onModels = {
-                                dismiss(true)
-                                ViewUtils.postOnMainThread({
-                                    bed.glView?.let { bed.showUnfoldMenu(CalibrationModelsMenu(), it) }
-                                }, 180)
-                            },
-                            onBack = { dismiss() },
-                        )
-                        selectedCalibration?.let { preset ->
-                            CalibrationConfigurationDialog(
-                                preset = preset,
-                                onDismiss = { selectedCalibration = null },
-                                onStart = { start, endOrStep, step ->
-                                    selectedCalibration = null
-                                    startCalibration(ctx, bed, preset, start, endOrStep, step)
-                                },
-                            )
-                        }
-                        if (recordResult) {
-                            CalibrationResultDialog(
-                                onDismiss = { recordResult = false },
-                                onSave = { mode, rawValue ->
-                                    val target = CalibrationResultPolicy.targetFor(mode)
-                                    val value = target?.let { CalibrationResultPolicy.parseValue(rawValue, it) }
-                                    if (target == null || value == null) {
-                                        false
-                                    } else {
-                                        val config = SliceBeam.requireConfig()
-                                        val profileKey = if (target.profileType == ConfigObject.PROFILE_LIST_FILAMENT)
-                                            "filament" else "print"
-                                        val profileName = config.presets?.get(profileKey)
-                                        val profile = when (target.profileType) {
-                                            ConfigObject.PROFILE_LIST_FILAMENT -> config.findFilament(profileName)
-                                            ConfigObject.PROFILE_LIST_PRINT -> config.findPrint(profileName)
-                                            else -> null
-                                        } ?: return@CalibrationResultDialog false
-                                        ProfileConfigValueController.stageValue(
-                                            target.profileType,
-                                            profile,
-                                            target.key,
-                                            guiType = null,
-                                            index = target.vectorIndex,
-                                            editedValue = value,
-                                            defaultValue = profile.get(target.key),
-                                        )
-                                        Toast.makeText(context, R.string.CalibrationResultStaged, Toast.LENGTH_LONG).show()
-                                        true
-                                    }
-                                },
-                            )
-                        }
-                    }
+                    ComposeContent(portrait)
                 }
+            }
+        }
+    }
+
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
+        val context = LocalContext.current
+        val bed = fragment
+        if (bed == null) {
+            Spacer(Modifier.fillMaxSize())
+        } else {
+            var selectedCalibration by remember { mutableStateOf<CalibrationPreset?>(null) }
+            var recordResult by remember { mutableStateOf(false) }
+            CalibrationsMenuContent(
+                onCalibration = { selectedCalibration = it },
+                onRecordResult = { recordResult = true },
+                onModels = {
+                    dismiss(true)
+                    ViewUtils.postOnMainThread({
+                        bed.glView?.let { bed.showUnfoldMenu(CalibrationModelsMenu(), it) }
+                    }, 180)
+                },
+                onBack = { dismiss() },
+            )
+            selectedCalibration?.let { preset ->
+                CalibrationConfigurationDialog(
+                    preset = preset,
+                    onDismiss = { selectedCalibration = null },
+                    onStart = { start, endOrStep, step ->
+                        selectedCalibration = null
+                        startCalibration(context, bed, preset, start, endOrStep, step)
+                    },
+                )
+            }
+            if (recordResult) {
+                CalibrationResultDialog(
+                    onDismiss = { recordResult = false },
+                    onSave = { mode, rawValue ->
+                        val target = CalibrationResultPolicy.targetFor(mode)
+                        val value = target?.let { CalibrationResultPolicy.parseValue(rawValue, it) }
+                        if (target == null || value == null) {
+                            false
+                        } else {
+                            val config = SliceBeam.requireConfig()
+                            val profileKey = if (target.profileType == ConfigObject.PROFILE_LIST_FILAMENT)
+                                "filament" else "print"
+                            val profileName = config.presets?.get(profileKey)
+                            val profile = when (target.profileType) {
+                                ConfigObject.PROFILE_LIST_FILAMENT -> config.findFilament(profileName)
+                                ConfigObject.PROFILE_LIST_PRINT -> config.findPrint(profileName)
+                                else -> null
+                            } ?: return@CalibrationResultDialog false
+                            ProfileConfigValueController.stageValue(
+                                target.profileType,
+                                profile,
+                                target.key,
+                                guiType = null,
+                                index = target.vectorIndex,
+                                editedValue = value,
+                                defaultValue = profile.get(target.key),
+                            )
+                            Toast.makeText(context, R.string.CalibrationResultStaged, Toast.LENGTH_LONG).show()
+                            true
+                        }
+                    },
+                )
             }
         }
     }
@@ -242,37 +250,45 @@ class CalibrationsMenu : UnfoldMenu() {
     }
 }
 
-class CalibrationModelsMenu : UnfoldMenu() {
+class CalibrationModelsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     override fun getRequestedSize(into: android.widget.FrameLayout, portrait: Boolean): Int =
         if (portrait) into.height - into.paddingTop - into.paddingBottom else into.width
 
     override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val bed = fragment
-        val models = listOf(
-            CalibrationModel("Orca Cube", R.drawable.model_thumb_orcacube_v2, listOf("OrcaCube_v2.stl", "OrcaPlug_v2.stl")),
-            CalibrationModel("Orca Tolerance Test", R.drawable.model_thumb_orcatolerancetest, listOf("OrcaToleranceTest.stl")),
-            CalibrationModel(ctx.getString(R.string.MenuFileCalibrationsModels3DBenchy), R.drawable.model_thumb_3dbenchy, listOf("3dbenchy.stl")),
-            CalibrationModel("Cali Cat", R.drawable.model_thumb_calicat, listOf("calicat.stl")),
-            CalibrationModel("Autodesk FDM Test", R.drawable.model_thumb_ksr_fdmtest_v4, listOf("ksr_fdmtest_v4.stl")),
-            CalibrationModel("Voron Cube", R.drawable.model_thumb_voron_design_cube_v7, listOf("Voron_Design_Cube_v7.stl")),
-            CalibrationModel("Stanford Bunny", R.drawable.model_thumb_stanford_bunny, listOf("Stanford_Bunny.stl")),
-            CalibrationModel("Orca String Hell", R.drawable.model_thumb_orca_stringhell, listOf("Orca_stringhell.stl")),
-        )
         return ThemeAwareComposeView(ctx).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
             setContent {
                 BeamComposeTheme(themeRevision = themeRevision) {
-                    if (bed == null) {
-                        Spacer(Modifier.fillMaxSize())
-                    } else {
-                        CalibrationModelsContent(
-                            models = models,
-                            onBack = { dismiss() },
-                            onSelect = { model -> loadModels(bed, model.assets) },
-                        )
-                    }
+                    ComposeContent(portrait)
                 }
             }
+        }
+    }
+
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
+        val context = LocalContext.current
+        val bed = fragment
+        val models = remember(context) {
+            listOf(
+                CalibrationModel("Orca Cube", R.drawable.model_thumb_orcacube_v2, listOf("OrcaCube_v2.stl", "OrcaPlug_v2.stl")),
+                CalibrationModel("Orca Tolerance Test", R.drawable.model_thumb_orcatolerancetest, listOf("OrcaToleranceTest.stl")),
+                CalibrationModel(context.getString(R.string.MenuFileCalibrationsModels3DBenchy), R.drawable.model_thumb_3dbenchy, listOf("3dbenchy.stl")),
+                CalibrationModel("Cali Cat", R.drawable.model_thumb_calicat, listOf("calicat.stl")),
+                CalibrationModel("Autodesk FDM Test", R.drawable.model_thumb_ksr_fdmtest_v4, listOf("ksr_fdmtest_v4.stl")),
+                CalibrationModel("Voron Cube", R.drawable.model_thumb_voron_design_cube_v7, listOf("Voron_Design_Cube_v7.stl")),
+                CalibrationModel("Stanford Bunny", R.drawable.model_thumb_stanford_bunny, listOf("Stanford_Bunny.stl")),
+                CalibrationModel("Orca String Hell", R.drawable.model_thumb_orca_stringhell, listOf("Orca_stringhell.stl")),
+            )
+        }
+        if (bed == null) {
+            Spacer(Modifier.fillMaxSize())
+        } else {
+            CalibrationModelsContent(
+                models = models,
+                onBack = { dismiss() },
+                onSelect = { model -> loadModels(bed, model.assets) },
+            )
         }
     }
 

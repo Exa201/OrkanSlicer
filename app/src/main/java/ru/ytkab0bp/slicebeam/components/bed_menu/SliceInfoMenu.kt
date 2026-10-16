@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
@@ -67,7 +69,7 @@ import ru.ytkab0bp.slicebeam.view.SegmentsView
 import java.text.DecimalFormat
 
 /** Post-slice G-code information panel and visibility controls. */
-class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
+class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     private var state by mutableStateOf(SliceInfoUiState())
     private var invalidateGl: Runnable? = null
     private var visible = false
@@ -78,23 +80,29 @@ class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
     private fun getResult(): GCodeProcessorResult? = fragment?.glView?.renderer?.gcodeResult
 
     override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val schemeNames = ctx.resources.getStringArray(R.array.GCodeColorSchemes).toList()
         return ThemeAwareComposeView(ctx).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
             setContent {
                 BeamComposeTheme(themeRevision = themeRevision) {
-                    SliceInfoContent(
-                        state = state,
-                        schemeNames = schemeNames,
-                        timelineVisible = timelineVisible,
-                        onSchemeSelected = ::selectScheme,
-                        onSeamsChanged = ::setSeamsVisible,
-                        onRoleVisibilityChanged = ::setRoleVisible,
-                        onDismiss = ::dismiss,
-                    )
+                    ComposeContent(portrait)
                 }
             }
         }
+    }
+
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
+        val context = LocalContext.current
+        val schemeNames = remember(context) { context.resources.getStringArray(R.array.GCodeColorSchemes).toList() }
+        SliceInfoContent(
+            state = state,
+            schemeNames = schemeNames,
+            timelineVisible = timelineVisible,
+            onSchemeSelected = ::selectScheme,
+            onSeamsChanged = ::setSeamsVisible,
+            onRoleVisibilityChanged = ::setRoleVisible,
+            onDismiss = ::dismiss,
+        )
     }
 
     override fun onCreate() {

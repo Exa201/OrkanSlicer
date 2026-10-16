@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.BeamServerData
@@ -54,6 +55,7 @@ import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
@@ -360,7 +362,7 @@ class FileMenu : ListBedMenu() {
     }
 
     /** Camera, gallery and quota controls for the optional cloud model generator. */
-    class AIGeneratorMenu : UnfoldMenu() {
+    class AIGeneratorMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
         private var remainingLabel by mutableStateOf("")
         private var quotaProgress by mutableFloatStateOf(0f)
 
@@ -376,16 +378,22 @@ class FileMenu : ListBedMenu() {
             themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
             themedView.setContent {
                 BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                    AIGeneratorMenuContent(
-                        remainingLabel = remainingLabel,
-                        quotaProgress = quotaProgress,
-                        onCamera = { openCamera(ctx) },
-                        onGallery = { openGallery(ctx) },
-                        onBack = { dismiss() },
-                    )
+                    ComposeContent(portrait)
                 }
             }
             return themedView
+        }
+
+        @Composable
+        override fun ComposeContent(portrait: Boolean) {
+            val context = LocalContext.current
+            AIGeneratorMenuContent(
+                remainingLabel = remainingLabel,
+                quotaProgress = quotaProgress,
+                onCamera = { openCamera(context) },
+                onGallery = { openGallery(context) },
+                onBack = { dismiss() },
+            )
         }
 
         override fun onCreate() {

@@ -10,12 +10,22 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationsMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationModelsMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.SliceInfoMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.SliceLayersMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.SliceMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationPositionMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationRotationMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.TransformCutMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.TransformScaleMenu
+import ru.ytkab0bp.slicebeam.components.UnfoldMenu
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
-/** Confirms menu transitions remove the previous View-backed host after its animation. */
+/** Confirms workspace menu transitions and direct Compose tool routes clean up correctly. */
 @RunWith(AndroidJUnit4::class)
 class WorkspaceNavigationDeviceTest {
     @Test fun switchingBetweenFileAndModelRoutesKeepsOnlyTheSelectedMenuAttached() {
@@ -61,6 +71,15 @@ class WorkspaceNavigationDeviceTest {
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
                 assertMenuAttached(bed, FileMenu::class.java)
             }
+            exerciseComposeToolRoute(scenario, OrientationPositionMenu::class.java) { OrientationPositionMenu(it) }
+            exerciseComposeToolRoute(scenario, OrientationRotationMenu::class.java) { OrientationRotationMenu(it) }
+            exerciseComposeToolRoute(scenario, TransformScaleMenu::class.java) { TransformScaleMenu(it) }
+            exerciseComposeToolRoute(scenario, TransformCutMenu::class.java) { TransformCutMenu(it) }
+            exerciseComposeToolRoute(scenario, CalibrationsMenu::class.java) { CalibrationsMenu() }
+            exerciseComposeToolRoute(scenario, CalibrationModelsMenu::class.java) { CalibrationModelsMenu() }
+            exerciseComposeToolRoute(scenario, SliceInfoMenu::class.java) { SliceInfoMenu(SliceMenu()) }
+            exerciseComposeToolRoute(scenario, SliceLayersMenu::class.java) { SliceLayersMenu() }
+            exerciseComposeToolRoute(scenario, FileMenu.AIGeneratorMenu::class.java) { FileMenu.AIGeneratorMenu() }
         } finally {
             scenario.close()
             SliceBeam.CONFIG = previousConfig
@@ -83,6 +102,47 @@ class WorkspaceNavigationDeviceTest {
             "onMenuNavigationSelected", Boolean::class.javaPrimitiveType, Int::class.javaPrimitiveType,
         ).apply { isAccessible = true }
         method.invoke(bed, true, slot)
+    }
+
+    private fun <T : UnfoldMenu> exerciseComposeToolRoute(
+        scenario: ActivityScenario<MainActivity>,
+        expectedType: Class<T>,
+        create: (BedFragment) -> T,
+    ) {
+        var launchedMenu: T? = null
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            launchedMenu = create(bed)
+            bed.showUnfoldMenu(requireNotNull(launchedMenu), requireNotNull(bed.glView))
+        }
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val deadline = SystemClock.uptimeMillis() + 3_000L
+        var attached = false
+        while (SystemClock.uptimeMillis() < deadline && !attached) {
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { attached = requireNotNull(launchedMenu).isAttached() }
+            if (!attached) SystemClock.sleep(40L)
+        }
+        assertTrue("${expectedType.simpleName} Compose content should attach", attached)
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            val menu = requireNotNull(launchedMenu)
+            assertTrue("${expectedType.simpleName} should be the active tool", expectedType.isInstance(menu))
+            assertTrue("${expectedType.simpleName} direct Compose content should be visible", menu.isAttached())
+            assertEquals("${expectedType.simpleName} should not allocate an Android route View", null,
+                UnfoldMenu::class.java.getDeclaredField("workspaceContent")
+                    .apply { isAccessible = true }.get(menu))
+            assertTrue("${expectedType.simpleName} Compose lifecycle should be active", UnfoldMenu::class.java
+                .getDeclaredField("workspaceCompositionVisible").apply { isAccessible = true }.getBoolean(menu))
+            assertTrue("Android back should close ${expectedType.simpleName}", bed.onBackPressed())
+        }
+        instrumentation.waitForIdleSync()
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            assertEquals("${expectedType.simpleName} dismissal should clear the route", null,
+                BedFragment::class.java.getDeclaredField("currentUnfoldMenu")
+                    .apply { isAccessible = true }.get(bed))
+        }
     }
 
     private fun awaitMenuTransition(scenario: ActivityScenario<MainActivity>) {

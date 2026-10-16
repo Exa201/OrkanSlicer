@@ -67,6 +67,7 @@ import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -107,7 +108,7 @@ private data class TransformScaleDimensions(val x: Double, val y: Double, val z:
 }
 
 /** Compose-based, responsive scale editor for the selected model. */
-class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
+class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     private val rulerValues = mutableStateOf(TransformScaleRulerValues(100, 100, 100))
     private val actualScale = mutableStateOf(TransformScaleValues(1.0, 1.0, 1.0))
     private val dimensionsMm = mutableStateOf(TransformScaleDimensions(0.0, 0.0, 0.0))
@@ -336,37 +337,37 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
         themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
         themedView.setContent {
             BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                val values = rulerValues.value
-                val actual = actualScale.value
-                val sizes = dimensionsMm.value
-                val linked = linkedState.value
-                val selected = hasSelection.value
-                TransformScaleEditorContent(
-                    values = values,
-                    scale = actual,
-                    dimensionsMm = sizes,
-                    enabled = selected,
-                    linked = linked,
-                    portrait = portrait,
-                    xColor = Color(ThemesRepo.getColor(R.attr.xTrackColor)),
-                    yColor = Color(ThemesRepo.getColor(R.attr.yTrackColor)),
-                    zColor = Color(ThemesRepo.getColor(R.attr.zTrackColor)),
-                    manualAxis = manualAxis.value,
-                    manualValue = manualText.value,
-                    manualInMillimeters = manualInMillimeters.value,
-                    onManualAxisChanged = { manualAxis.value = it },
-                    onManualValueChanged = { manualText.value = it },
-                    onToggleManualUnits = ::toggleManualUnits,
-                    onConfirmManual = ::confirmManualEditor,
-                    onRulerChanged = ::setRulerValue,
-                    onCommitScale = ::commitScale,
-                    onOpenManual = ::openManualEditor,
-                    onLinkedChanged = ::setLinked,
-                    onBack = ::dismiss,
-                )
+                ComposeContent(portrait)
             }
         }
         return themedView
+    }
+
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
+        TransformScaleEditorContent(
+            values = rulerValues.value,
+            scale = actualScale.value,
+            dimensionsMm = dimensionsMm.value,
+            enabled = hasSelection.value,
+            linked = linkedState.value,
+            portrait = portrait,
+            xColor = Color(ThemesRepo.getColor(R.attr.xTrackColor)),
+            yColor = Color(ThemesRepo.getColor(R.attr.yTrackColor)),
+            zColor = Color(ThemesRepo.getColor(R.attr.zTrackColor)),
+            manualAxis = manualAxis.value,
+            manualValue = manualText.value,
+            manualInMillimeters = manualInMillimeters.value,
+            onManualAxisChanged = { manualAxis.value = it },
+            onManualValueChanged = { manualText.value = it },
+            onToggleManualUnits = ::toggleManualUnits,
+            onConfirmManual = ::confirmManualEditor,
+            onRulerChanged = ::setRulerValue,
+            onCommitScale = ::commitScale,
+            onOpenManual = ::openManualEditor,
+            onLinkedChanged = ::setLinked,
+            onBack = ::dismiss,
+        )
     }
 
     override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =

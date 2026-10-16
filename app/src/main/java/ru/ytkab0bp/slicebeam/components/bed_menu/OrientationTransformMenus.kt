@@ -46,6 +46,7 @@ import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -79,7 +80,7 @@ internal object OrientationTransformPolicy {
 }
 
 /** Shared Compose shell and decimal-entry dialog for position and rotation editors. */
-abstract class OrientationTransformMenuBase(fragment: BedFragment) : UnfoldMenu() {
+abstract class OrientationTransformMenuBase(fragment: BedFragment) : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     private val manualDialogVisible = mutableStateOf(false)
     private val manualDialogTitle = mutableIntStateOf(R.string.MenuOrientationPositionX)
     private val manualValue = mutableStateOf("")
@@ -244,7 +245,12 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
         }
     }
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): View = themedComposeView(ctx) { themedView ->
+    override fun onCreateView(ctx: Context, portrait: Boolean): View = themedComposeView(ctx) { _ ->
+        ComposeContent(portrait)
+    }
+
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
         val values = rulerValues.value
         val point = position.value
         val available = hasSelection.value
@@ -420,7 +426,12 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
         glView.requestRender()
     }
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): View = themedComposeView(ctx) { themedView ->
+    override fun onCreateView(ctx: Context, portrait: Boolean): View = themedComposeView(ctx) { _ ->
+        ComposeContent(portrait)
+    }
+
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
         val values = rulerValues.value
         val degrees = rotation.value
         val available = hasSelection.value
