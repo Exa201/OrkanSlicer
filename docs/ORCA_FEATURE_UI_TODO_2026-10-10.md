@@ -10,6 +10,14 @@ wurde auf dem Honor installiert; die Druckerroute, Hostanzeige und nicht überla
 wurden visuell geprüft. Es wurde keine Weboberfläche geöffnet und kein Druck gestartet. Die
 vollständige Ablösung der alten globalen Routen bleibt offen.
 
+Ergänzung 0.8.240: Farb-, Stütz-, Naht- und Fuzzy-Malen übernehmen ihre abgeschlossene
+Änderung jetzt erst auf dem GL-Thread und aktualisieren danach die Modellhistorie auf dem
+UI-Thread. Rückgängig/Wiederholen greifen damit auf den abgeschlossenen Malstand zu. Die
+Werkzeug- und Statuswahl sowie Filamentfarbfelder sind mindestens 48 dp hoch und melden ihren
+Namen beziehungsweise Zustand an TalkBack. Der Gerätetest kontrolliert Touchhöhe, aktive
+Werkzeugsemantik, Pinselradius und die Beschriftung der Pausieren-Schaltfläche. Noch offen sind
+mehrstufiges Rückgängigmachen einzelner Pinselstriche sowie ein echter bemalter 3MF-Rundlauf.
+
 Ergänzung 0.8.237 (16.10.2026): Der Pinselradius-Regler im Farb-/Stütz-/Nahtmalen
 war vorhanden, wurde aber nicht in das Werkzeugpanel eingesetzt. Er ist jetzt sichtbar,
 mindestens 48 dp hoch und zeigt den Radius in Millimetern mit zugänglicher Beschriftung.

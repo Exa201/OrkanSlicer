@@ -32,6 +32,7 @@ class PaintModeView @JvmOverloads constructor(
     private val slots: List<FilamentSlot> = Prefs.getFilamentSlots()
     private lateinit var swatchRow: LinearLayout
     private var selectedFilament = 2 // 1-based; 1 = base color
+    private var isFinishing = false
     private lateinit var brushSize: SeekBar
     private lateinit var brushRadiusLabel: TextView
     private lateinit var fab: ImageView
@@ -110,6 +111,11 @@ class PaintModeView @JvmOverloads constructor(
                 val filament = index + 1
                 val color = slot.color or 0xFF000000.toInt()
                 val swatch = View(ctx).apply {
+                    contentDescription = ctx.getString(
+                        R.string.FilamentPaletteSlotDescription,
+                        filament,
+                        slot.type?.takeIf(String::isNotBlank) ?: ctx.getString(R.string.FilamentType),
+                    )
                     background = GradientDrawable().apply {
                         setColor(color)
                         cornerRadius = ViewUtils.dp(10).toFloat()
@@ -128,7 +134,7 @@ class PaintModeView @JvmOverloads constructor(
                 }
                 baseRow.addView(
                     swatch,
-                    LinearLayout.LayoutParams(ViewUtils.dp(36), ViewUtils.dp(36)).apply {
+                    LinearLayout.LayoutParams(ViewUtils.dp(48), ViewUtils.dp(48)).apply {
                         rightMargin = ViewUtils.dp(8)
                     },
                 )
@@ -247,7 +253,7 @@ class PaintModeView @JvmOverloads constructor(
             brushTypeBtn,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewUtils.dp(40),
+                ViewUtils.dp(48),
             ).apply { bottomMargin = ViewUtils.dp(8) },
         )
 
@@ -318,11 +324,7 @@ class PaintModeView @JvmOverloads constructor(
             setOnClickListener { runOnGl { glView!!.renderer.clearPaint() } }
         }
         val done = textButton(ctx, ctx.getString(R.string.ActionDone), accent = true).apply {
-            setOnClickListener {
-                runOnGl { glView!!.renderer.endPaint(true) }
-                glView!!.isPaintBrushActive = false
-                onExit?.run()
-            }
+            setOnClickListener { finish() }
         }
         actions.addView(
             clear,
@@ -349,6 +351,18 @@ class PaintModeView @JvmOverloads constructor(
         )
     }
 
+    /** Commits the active GL paint session once, then notifies the owner on the UI thread. */
+    fun finish() {
+        if (isFinishing) return
+        isFinishing = true
+        glView.isPaintBrushActive = false
+        glView.queueEvent {
+            glView.renderer.endPaint(true)
+            glView.requestRender()
+            post { onExit?.run() }
+        }
+    }
+
     private fun label(ctx: Context, text: String): TextView = TextView(ctx).apply {
         this.text = text
         setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f)
@@ -360,10 +374,14 @@ class PaintModeView @JvmOverloads constructor(
     private fun updateFab() {
         fab.setImageResource(if (brushActive) R.drawable.edit_outline_28 else R.drawable.rectangle_hand_point_up_28)
         fab.setColorFilter(ThemesRepo.getColor(R.attr.textColorOnAccent))
+        fab.contentDescription = context.getString(
+            if (brushActive) R.string.PaintDisableBrush else R.string.PaintEnableBrush,
+        )
+        fab.isSelected = brushActive
     }
 
     private fun toolLp(): LinearLayout.LayoutParams =
-        LinearLayout.LayoutParams(0, ViewUtils.dp(44), 1f).apply {
+        LinearLayout.LayoutParams(0, ViewUtils.dp(48), 1f).apply {
             leftMargin = ViewUtils.dp(4)
             rightMargin = ViewUtils.dp(4)
         }
@@ -376,6 +394,7 @@ class PaintModeView @JvmOverloads constructor(
             selectTool(tool)
             runOnGl { glView!!.renderer.paintTool = tool }
         }
+        contentDescription = label
     }
 
     private fun updateBrushTypeBtnStyle() {
@@ -386,12 +405,16 @@ class PaintModeView @JvmOverloads constructor(
             setColor(ThemesRepo.getColor(android.R.attr.colorControlHighlight))
         }
         brushTypeBtn.setTextColor(ThemesRepo.getColor(android.R.attr.textColorPrimary))
+        brushTypeBtn.isSelected = sphere
     }
 
     private fun selectTool(tool: Int) {
         styleTool(brushBtn, tool == GLRenderer.PAINT_TOOL_BRUSH)
         styleTool(bucketBtn, tool == GLRenderer.PAINT_TOOL_BUCKET)
         styleTool(heightBtn, tool == GLRenderer.PAINT_TOOL_HEIGHT)
+        brushBtn.isSelected = tool == GLRenderer.PAINT_TOOL_BRUSH
+        bucketBtn.isSelected = tool == GLRenderer.PAINT_TOOL_BUCKET
+        heightBtn.isSelected = tool == GLRenderer.PAINT_TOOL_HEIGHT
         brushSize.visibility = if (tool == GLRenderer.PAINT_TOOL_BRUSH) View.VISIBLE else View.GONE
         brushTypeBtn.visibility = if (tool == GLRenderer.PAINT_TOOL_BRUSH) View.VISIBLE else View.GONE
         heightBandLabel.visibility = if (tool == GLRenderer.PAINT_TOOL_HEIGHT) View.VISIBLE else View.GONE
@@ -443,11 +466,17 @@ class PaintModeView @JvmOverloads constructor(
             val color = slot.color or 0xFF000000.toInt()
             val swatch = TextView(ctx).apply {
                 text = filament.toString()
+                contentDescription = ctx.getString(
+                    R.string.FilamentPaletteSlotDescription,
+                    filament,
+                    slot.type?.takeIf(String::isNotBlank) ?: ctx.getString(R.string.FilamentType),
+                )
                 gravity = Gravity.CENTER
                 setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f)
                 typeface = ViewUtils.getTypeface(ViewUtils.ROBOTO_MEDIUM)
                 setTextColor(if (ColorUtils.calculateLuminance(color) > 0.5) 0xFF000000.toInt() else 0xFFFFFFFF.toInt())
                 applySwatchBg(this, color, filament == selectedFilament)
+                isSelected = filament == selectedFilament
                 setOnClickListener {
                     selectedFilament = filament
                     runOnGl { glView!!.renderer.paintFilament = filament }
@@ -456,7 +485,7 @@ class PaintModeView @JvmOverloads constructor(
             }
             swatchRow.addView(
                 swatch,
-                LinearLayout.LayoutParams(ViewUtils.dp(44), ViewUtils.dp(44)).apply {
+                LinearLayout.LayoutParams(ViewUtils.dp(48), ViewUtils.dp(48)).apply {
                     rightMargin = ViewUtils.dp(8)
                 },
             )
@@ -476,7 +505,7 @@ class PaintModeView @JvmOverloads constructor(
     }
 
     private fun stateLp(): LinearLayout.LayoutParams =
-        LinearLayout.LayoutParams(0, ViewUtils.dp(44), 1f).apply {
+        LinearLayout.LayoutParams(0, ViewUtils.dp(48), 1f).apply {
             leftMargin = ViewUtils.dp(4)
             rightMargin = ViewUtils.dp(4)
         }
@@ -503,6 +532,7 @@ class PaintModeView @JvmOverloads constructor(
             val selected = stateButtonValues[index] == selectedFilament
             val activeColor = stateButtonColors[index]
             val button = stateButtons[index]
+            button.isSelected = selected
             button.background = GradientDrawable().apply {
                 cornerRadius = ViewUtils.dp(12).toFloat()
                 setColor(

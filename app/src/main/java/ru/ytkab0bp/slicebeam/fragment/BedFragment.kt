@@ -688,7 +688,10 @@ if (ctx == null || glView == null || objectIndex == -1 || paintModeView != null)
 if (!requirePreciseSurfaceModel(objectIndex)) return
 glView!!.queueEvent({ glView!!.renderer.beginPaint(objectIndex, mode)
 glView!!.requestRender() })
-paintModeView = ru.ytkab0bp.slicebeam.view.PaintModeView(ctx, glView!!, Runnable { exitPaintMode() }, mode)
+paintModeView = ru.ytkab0bp.slicebeam.view.PaintModeView(ctx, glView!!, Runnable {
+    exitPaintMode()
+    updateModel()
+}, mode)
 overlayLayout!!.addView(paintModeView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 }
 private fun exitPaintMode() {
@@ -811,9 +814,7 @@ return true
 }
 if (paintModeView != null)
 {
-glView!!.queueEvent({ glView!!.renderer.endPaint(true)
-glView!!.requestRender() })
-exitPaintMode()
+paintModeView!!.finish()
 return true
 }
 if (currentUnfoldMenu != null)

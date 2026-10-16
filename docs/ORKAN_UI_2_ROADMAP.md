@@ -97,6 +97,20 @@ Regeln werden beim Ersetzen der globalen Routen Druck, Filament, Drucker und App
   Werkzeugfläche ist höher, damit die Beschriftungen vollständig lesbar bleiben.
 - Die Druckplatte, der native Renderer und die Slicer-Engine wurden nicht verändert.
 
+## Etappe 6: Touch-Malen und Modellhistorie
+
+- Farb-, Stütz-, Naht- und Fuzzy-Malen schließen ihre Sitzung auf dem GL-Thread ab. Erst danach
+  wird die Modellhistorie auf dem UI-Thread aktualisiert, damit Undo/Redo den fertigen Malstand
+  wiederherstellen können.
+- Malwerkzeuge, Statuswahl und Filamentfelder haben mindestens 48 dp Touchhöhe. TalkBack erhält
+  Beschriftungen für Filament/Material, ausgewählte Werkzeugzustände und die Mal-Pauseaktion.
+- Gezielter Gerätetest deckt die Steuerelementhöhen und Beschriftungen ab; bemalte 3MF-Rundläufe
+  und Undo einzelner Pinselstriche bleiben separat offen.
+- Am 16.10.2026 bestanden `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` mit je 516
+  Tests. `:app:connectedSliceTestAndroidTest` führte `PaintModeViewDeviceTest` auf dem Honor
+  PTP-N49 aus; der Test bestand. `:app:assembleDebug` einschließlich ARM64-Nativkern war
+  erfolgreich.
+
 ## Grenzen
 
 Etappe 1 ist noch keine vollständige UI-2.0-Umstellung. Insbesondere die globalen Bereiche und viele vorhandene Dialoge behalten ihre bisherigen Routen, bis ihre Funktionen schrittweise migriert und geprüft wurden. Es wurden keine Änderungen an der Slicer-Engine oder Druckerfirmware vorgenommen.

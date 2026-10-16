@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.240 (alpha)
+
+- Commit color, support, seam, and fuzzy painting before refreshing the workspace model history, so undo and redo operate on the completed painted model.
+- Make paint tools and filament swatches at least 48 dp tall, expose their active state and accessible action labels, and announce whether painting is paused or active.
+
 ## 0.8.239 (alpha)
 
 - Open the complete filament palette from the compact workspace color button. Phones use an expanded bottom sheet; wide windows use a side panel.

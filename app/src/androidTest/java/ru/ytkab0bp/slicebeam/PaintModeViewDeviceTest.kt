@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -22,6 +23,8 @@ class PaintModeViewDeviceTest {
         val context = instrumentation.targetContext
         lateinit var paintView: PaintModeView
         lateinit var radiusControl: SeekBar
+        lateinit var brushTool: TextView
+        lateinit var brushToggle: View
 
         instrumentation.runOnMainSync {
             val glView = GLView(context)
@@ -37,6 +40,10 @@ class PaintModeViewDeviceTest {
             radiusControl = findViews(paintView)
                 .filterIsInstance<SeekBar>()
                 .single { it.contentDescription == initialLabel }
+            val views = findViews(paintView)
+            brushTool = views.filterIsInstance<TextView>()
+                .single { it.text == context.getString(R.string.PaintBrush) }
+            brushToggle = views.single { it.contentDescription == context.getString(R.string.PaintDisableBrush) }
             radiusControl.progress = 8
         }
 
@@ -47,6 +54,15 @@ class PaintModeViewDeviceTest {
             radiusControl.height / context.resources.displayMetrics.density >= 48f,
         )
         assertEquals(updatedLabel, radiusControl.contentDescription)
+        assertTrue(
+            "paint tool buttons should provide a usable touch target",
+            brushTool.height / context.resources.displayMetrics.density >= 48f,
+        )
+        assertTrue("the active paint tool should be announced as selected", brushTool.isSelected)
+        assertEquals(context.getString(R.string.PaintDisableBrush), brushToggle.contentDescription)
+        instrumentation.runOnMainSync { brushToggle.performClick() }
+        assertEquals(context.getString(R.string.PaintEnableBrush), brushToggle.contentDescription)
+        assertTrue("the paint toggle should expose its paused state", !brushToggle.isSelected)
     }
 
     private fun findViews(root: View): List<View> = buildList {

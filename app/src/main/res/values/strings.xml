@@ -1063,6 +1063,8 @@
     <string name="PaintBlock">Block</string>
     <string name="PaintErase">Erase</string>
     <string name="PaintBrush">Brush</string>
+    <string name="PaintEnableBrush">Enable painting</string>
+    <string name="PaintDisableBrush">Pause painting</string>
     <string name="PaintBrushRadius">Brush radius: %1$.1f mm</string>
     <string name="PaintBucket">Fill</string>
     <string name="PaintHeight">Height</string>
