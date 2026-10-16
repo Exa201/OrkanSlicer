@@ -29,9 +29,6 @@ internal class TransformMenuItems(
         val renderer = fragment.glView!!.renderer
         val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
         return listOf(
-            BedComposeMenuAction(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28, {
-                FileMenuObjectActions(fragment).showObjectsDialog(it)
-            }, enabled = (renderer.model?.objectsCount ?: 0) > 0),
             selectionAction(R.string.ModelContextResetRotation, R.drawable.menu_orientation_rotation_28, availability) {
                 fragment.glView!!.queueEvent {
                     renderer.setSelectionRotation(0.0, 0.0, 0.0)

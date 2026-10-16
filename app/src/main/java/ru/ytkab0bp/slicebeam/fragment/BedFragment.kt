@@ -1355,8 +1355,10 @@ updateAdaptiveOverlayMargins(usesCompactPortraitLayout(ctx))
 glView?.requestRender()
 }
 private fun menuPortraitHeightDp(): Int =
-if (currentMenuSlot == MenuCategory.TRANSFORM.ordinal || currentMenuSlot == MenuCategory.CAMERA.ordinal) 124
-else MENU_PORTRAIT_SIZE_DP
+    if (currentMenuSlot == MenuCategory.FILE.ordinal ||
+        currentMenuSlot == MenuCategory.TRANSFORM.ordinal ||
+        currentMenuSlot == MenuCategory.CAMERA.ordinal
+    ) 124 else MENU_PORTRAIT_SIZE_DP
 
 private fun selectMenu(ctx:Context, portrait:Boolean, slot:Int) {
 if (glView!!.renderer.resetFlattenMode())

@@ -90,7 +90,7 @@ class FileMenu : ListBedMenu() {
         composeActions.value = createComposeActions(portrait)
         themedView.setContent {
             BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(composeActions.value, portrait)
+                BedMenuActionsContent(composeActions.value, portrait, multiRow = true)
             }
         }
         return themedView

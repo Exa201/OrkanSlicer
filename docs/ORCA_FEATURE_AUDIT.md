@@ -20,6 +20,14 @@ tooltip warns of a possible brim-to-model fusion (`brim_use_efc_outline`). Bed-t
 temperatures intentionally remain a single general filament control: the app synchronizes
 that value to the per-plate Orca keys and preserves explicit project values.
 
+The calibration menu now has an explicit “save measured result” action for Orca modes whose
+G-code changes correspond to a profile value: pressure advance, nozzle temperature, maximum
+volumetric speed, outer-wall speed (VFA), and filament retraction length. The result is range-
+checked and staged through the existing profile-edit repository; the user must evaluate the
+printed test and review/save the profile change. No calibration command is sent to a printer.
+`Calib_Flow_Rate` is declared in the bundled native enum but has no implementation use in its
+G-code path, so the app does not offer a flow-rate test or pretend to save a result for it.
+
 Audit of what the OrcaSlicer engine (now bundled via `app/src/main/jni/libslic3r`)
 exposes vs. what the mobile UI actually surfaces. Goal: find features lost when the
 project was ported from SliceBeam (Prusa engine) to the Orca engine.

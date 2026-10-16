@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
@@ -50,10 +53,13 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.NeedDismissCalibrationsMenu
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.fragment.ProfileConfigValueController
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -75,8 +81,10 @@ class CalibrationsMenu : UnfoldMenu() {
                         Spacer(Modifier.fillMaxSize())
                     } else {
                         var selectedCalibration by remember { mutableStateOf<CalibrationPreset?>(null) }
+                        var recordResult by remember { mutableStateOf(false) }
                         CalibrationsMenuContent(
                             onCalibration = { selectedCalibration = it },
+                            onRecordResult = { recordResult = true },
                             onModels = {
                                 dismiss(true)
                                 ViewUtils.postOnMainThread({
@@ -92,6 +100,39 @@ class CalibrationsMenu : UnfoldMenu() {
                                 onStart = { start, endOrStep, step ->
                                     selectedCalibration = null
                                     startCalibration(ctx, bed, preset, start, endOrStep, step)
+                                },
+                            )
+                        }
+                        if (recordResult) {
+                            CalibrationResultDialog(
+                                onDismiss = { recordResult = false },
+                                onSave = { mode, rawValue ->
+                                    val target = CalibrationResultPolicy.targetFor(mode)
+                                    val value = target?.let { CalibrationResultPolicy.parseValue(rawValue, it) }
+                                    if (target == null || value == null) {
+                                        false
+                                    } else {
+                                        val config = SliceBeam.requireConfig()
+                                        val profileKey = if (target.profileType == ConfigObject.PROFILE_LIST_FILAMENT)
+                                            "filament" else "print"
+                                        val profileName = config.presets?.get(profileKey)
+                                        val profile = when (target.profileType) {
+                                            ConfigObject.PROFILE_LIST_FILAMENT -> config.findFilament(profileName)
+                                            ConfigObject.PROFILE_LIST_PRINT -> config.findPrint(profileName)
+                                            else -> null
+                                        } ?: return@CalibrationResultDialog false
+                                        ProfileConfigValueController.stageValue(
+                                            target.profileType,
+                                            profile,
+                                            target.key,
+                                            guiType = null,
+                                            index = target.vectorIndex,
+                                            editedValue = value,
+                                            defaultValue = profile.get(target.key),
+                                        )
+                                        Toast.makeText(context, R.string.CalibrationResultStaged, Toast.LENGTH_LONG).show()
+                                        true
+                                    }
                                 },
                             )
                         }
@@ -299,6 +340,7 @@ private data class CalibrationModel(val title: String, val icon: Int, val assets
 @Composable
 private fun CalibrationsMenuContent(
     onCalibration: (CalibrationPreset) -> Unit,
+    onRecordResult: () -> Unit,
     onModels: (View) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -315,6 +357,14 @@ private fun CalibrationsMenuContent(
                     title = stringResource(preset.titleRes),
                     subtitle = stringResource(preset.descriptionRes),
                     onClick = { onCalibration(preset) },
+                )
+            }
+            item {
+                CalibrationActionRow(
+                    icon = R.drawable.deployed_code_24,
+                    title = stringResource(R.string.CalibrationRecordResult),
+                    subtitle = stringResource(R.string.CalibrationRecordResultDescription),
+                    onClick = onRecordResult,
                 )
             }
             item {
@@ -380,6 +430,62 @@ private fun CalibrationConfigurationDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
     )
+}
+
+@Composable
+private fun CalibrationResultDialog(
+    onDismiss: () -> Unit,
+    onSave: (Int, String) -> Boolean,
+) {
+    val modes = CalibrationPresets.supported().map { it.mode }
+        .distinctBy { CalibrationResultPolicy.targetFor(it) }
+    var mode by remember { mutableStateOf(CalibrationPresets.PA_LINE) }
+    var expanded by remember { mutableStateOf(false) }
+    var value by remember { mutableStateOf("") }
+    var invalid by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.CalibrationRecordResult)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.CalibrationRecordResultDescription),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                Box {
+                    TextButton(onClick = { expanded = true }) {
+                        Text(stringResource(calibrationTitle(mode)))
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        modes.forEach { candidate ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(calibrationTitle(candidate))) },
+                                onClick = { mode = candidate; expanded = false; invalid = false },
+                            )
+                        }
+                    }
+                }
+                CalibrationNumberField(stringResource(R.string.CalibrationMeasuredValue), value, {
+                    value = it
+                    invalid = false
+                })
+                if (invalid) Text(stringResource(R.string.CalibrationResultInvalid), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { if (onSave(mode, value)) onDismiss() else invalid = true }) {
+                Text(stringResource(R.string.CalibrationSaveResult))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
+    )
+}
+
+private fun calibrationTitle(mode: Int): Int = when (mode) {
+    CalibrationPresets.PA_LINE, CalibrationPresets.PA_TOWER -> R.string.CalibrationPressureAdvanceShort
+    CalibrationPresets.TEMP_TOWER -> R.string.CalibrationTemperatureTower
+    CalibrationPresets.VOLUMETRIC_SPEED_TOWER -> R.string.CalibrationVolumetricSpeedTower
+    CalibrationPresets.VFA_TOWER -> R.string.CalibrationVfaTower
+    CalibrationPresets.RETRACTION_TOWER -> R.string.CalibrationRetractionTower
+    else -> R.string.CalibrationPressureAdvanceShort
 }
 
 @Composable

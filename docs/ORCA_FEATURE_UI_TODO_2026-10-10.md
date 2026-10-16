@@ -1,5 +1,24 @@
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 
+Ergänzung 0.8.236 (16.10.2026): Nach Bewertung eines gedruckten Orca-Kalibriertests kann
+der Messwert über **Kalibrierungen → Messwert speichern** als vorgemerkte Änderung in das
+aktive Filament- oder Druckprofil übernommen werden. Unterstützt sind Pressure Advance,
+Düsentemperatur, maximaler Volumenstrom, VFA-Außenwandgeschwindigkeit und Retraktionslänge.
+Der Wert wird validiert und durchläuft den normalen Profil-Speicherweg. Die App bestimmt
+keinen optimalen Wert automatisch und startet keinen Druck. Orcas `Calib_Flow_Rate` hat im
+gebündelten nativen G-Code-Pfad keine Implementierung und wird daher nicht angeboten.
+Das Modell-Menü nutzt auf Smartphones jetzt dasselbe zweireihige Raster wie Bearbeiten;
+die identische Objekte-Schaltfläche wurde aus Bearbeiten entfernt. Beschriftungen trennen
+Duplizieren von Kopien zum Füllen der Platte sowie das Verteilen von Modellen vom
+automatischen Ausrichten aller oder nur des ausgewählten Modells. Verifikation und
+APK-Geräteprüfung: `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` sind erfolgreich.
+`:app:assembleDebug` einschließlich `buildCMakeRelease[arm64-v8a]` ist erfolgreich.
+Version 0.8.236 (Code 271) wurde auf `emulator-5554` installiert. Die visuelle Prüfung
+zeigt zwei vollständige, beschriftete Reihen im Modell-Menü; das Bearbeiten-Menü enthält
+keinen doppelten Einstieg in dieselbe Objektliste. Der Kalibrierungsdialog wurde geöffnet,
+aber kein Messwert gespeichert und kein Druck gestartet. Echte Hardware-Kalibrierung und
+Low-RAM-Geräteprüfung bleiben offen.
+
 Ergänzung 0.8.235 (16.10.2026): Die Profile zeigen jetzt zusätzlich Orcas Expert-Werte für
 Elephant-Foot-Schichtdichte und Infill-Verankerung an ihren vorhandenen Qualitätsgruppen.
 Die Navigationsleiste verkleinert Systemschrift nicht mehr; bei großer Schrift wird die

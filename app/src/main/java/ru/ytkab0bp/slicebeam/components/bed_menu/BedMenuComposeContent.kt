@@ -143,6 +143,17 @@ private fun BedMenuActionTile(
         R.string.MenuFileMoveToPlate -> R.string.EditMovePlateShort
         R.string.ModelContextFillBed -> R.string.EditFillBedShort
         R.string.ModelContextCenterOnBed -> R.string.EditCenterBedShort
+        R.string.ModelMenuDuplicate -> R.string.ModelMenuDuplicateShort
+        R.string.ModelMenuMoveToPlate -> R.string.ModelMenuMoveToPlateShort
+        R.string.ModelMenuCenterOnBed -> R.string.ModelMenuCenterOnBedShort
+        R.string.ModelMenuFillBed -> R.string.ModelMenuFillBedShort
+        R.string.ModelMenuArrange -> R.string.ModelMenuArrangeShort
+        R.string.ModelMenuOrientAll -> R.string.ModelMenuOrientAllShort
+        R.string.ModelMenuAutoOrientSelected -> R.string.ModelMenuAutoOrientSelectedShort
+        R.string.ModelMenuFlatten -> R.string.ModelMenuFlattenShort
+        R.string.ModelMenuDeleteSelected -> R.string.ModelMenuDeleteSelectedShort
+        R.string.ModelMenuSelectAll -> R.string.ModelMenuSelectAllShort
+        R.string.ModelMenuDeleteAll -> R.string.ModelMenuDeleteAllShort
         R.string.ModelContextResetRotation -> R.string.EditResetRotationShort
         R.string.ModelContextResetScale -> R.string.EditResetScaleShort
         R.string.ModelContextSetOnFace -> R.string.EditLayFaceShort

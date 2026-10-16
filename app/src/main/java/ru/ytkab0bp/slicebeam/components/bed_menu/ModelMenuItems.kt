@@ -26,19 +26,19 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelColorSlotsAction, R.drawable.print_filament_sync_24, {
                 fragment.showModelColorSlots()
             }, enabled = availability.canArrange),
-            BedComposeMenuAction(R.string.ObjectActionDuplicate, R.drawable.folder_simple_plus_outline_28, {
+            BedComposeMenuAction(R.string.ModelMenuDuplicate, R.drawable.folder_simple_plus_outline_28, {
                 objectActions.showDuplicateDialog(it)
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.MenuFileMoveToPlate, R.drawable.square_stack_up_outline_28, {
+            BedComposeMenuAction(R.string.ModelMenuMoveToPlate, R.drawable.square_stack_up_outline_28, {
                 objectActions.showMoveToPlateDialog(it)
             }, enabled = availability.hasSelectedObject && fragment.plateCount > 1),
-            BedComposeMenuAction(R.string.ModelContextCenterOnBed, R.drawable.view_in_ar_24, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.view_in_ar_24, { anchor ->
                 fragment.glView!!.centerSelectedOnBed {
                     fragment.updateModel()
                     Toast.makeText(anchor.context, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show()
                 }
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelContextFillBed, R.drawable.grid_layout_outline_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.grid_layout_outline_28, { anchor ->
                 fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
                     fragment.updateModel()
                     Toast.makeText(
@@ -50,14 +50,14 @@ internal class ModelMenuItems(
                     ).show()
                 }
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.MenuOrientationArrange, R.drawable.grid_layout_outline_28, {
+            BedComposeMenuAction(R.string.ModelMenuArrange, R.drawable.grid_layout_outline_28, {
                 fragment.glView!!.arrange()
                 fragment.glView!!.queueEvent {
                     if (renderer.invalidateFlattenMode()) fragment.glView!!.requestRender()
                 }
                 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
             }, enabled = availability.canArrange),
-            BedComposeMenuAction(R.string.MenuOrientAllObjects, R.drawable.menu_orientation_auto_28, {
+            BedComposeMenuAction(R.string.ModelMenuOrientAll, R.drawable.menu_orientation_auto_28, {
                 fragment.glView!!.queueEvent {
                     val model = renderer.model ?: return@queueEvent
                     if (renderer.invalidateFlattenMode()) fragment.glView!!.requestRender()
@@ -72,7 +72,7 @@ internal class ModelMenuItems(
                     }
                 }
             }, enabled = availability.canArrange),
-            BedComposeMenuAction(R.string.MenuOrientationAutoOrient, R.drawable.menu_orientation_auto_28, {
+            BedComposeMenuAction(R.string.ModelMenuAutoOrientSelected, R.drawable.menu_orientation_auto_28, {
                 val index = renderer.selectedObject
                 if (index >= 0) {
                     renderer.model!!.autoOrient(index)
@@ -81,30 +81,30 @@ internal class ModelMenuItems(
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationAutoOrientDone))
                 }
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.MenuOrientationFlatten, R.drawable.menu_orientation_flatten_28, {
+            BedComposeMenuAction(R.string.ModelMenuFlatten, R.drawable.menu_orientation_flatten_28, {
                 flattenEnabled = !flattenEnabled
                 renderer.setInFlattenMode(flattenEnabled)
                 fragment.glView!!.requestRender()
                 onItemsChanged()
             }, selected = flattenEnabled, toggleable = true, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelContextDelete, R.drawable.delete_outline_android_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuDeleteSelected, R.drawable.delete_outline_android_28, { anchor ->
                 BeamAlertDialogBuilder(anchor.context)
-                    .setTitle(R.string.ModelContextDelete)
+                    .setTitle(R.string.ModelMenuDeleteSelected)
                     .setMessage(R.string.ModelDeleteConfirm)
-                    .setPositiveButton(R.string.ModelContextDelete) { _, _ ->
+                    .setPositiveButton(R.string.ModelMenuDeleteSelected) { _, _ ->
                         fragment.glView!!.deleteSelectedModel(fragment::updateModel)
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelContextSelectAll, R.drawable.square_stack_up_outline_28, {
+            BedComposeMenuAction(R.string.ModelMenuSelectAll, R.drawable.square_stack_up_outline_28, {
                 fragment.glView!!.selectAllModels { fragment.updateModel() }
             }, enabled = availability.canArrange),
-            BedComposeMenuAction(R.string.ModelContextDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
                 BeamAlertDialogBuilder(anchor.context)
-                    .setTitle(R.string.ModelContextDeleteAll)
+                    .setTitle(R.string.ModelMenuDeleteAll)
                     .setMessage(R.string.ModelDeleteAllConfirm)
-                    .setPositiveButton(R.string.ModelContextDeleteAll) { _, _ ->
+                    .setPositiveButton(R.string.ModelMenuDeleteAll) { _, _ ->
                         fragment.glView!!.deleteAllModels { fragment.updateModel() }
                     }
                     .setNegativeButton(android.R.string.cancel, null)
