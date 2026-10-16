@@ -41,5 +41,5 @@ Phase 4 — the `BedFragment.showUnfoldMenu` workspace route now hands existing 
 - Latest code commit: `d7bc3e59da28565d52f7bd89b37a1d654f441209` (`Host legacy workspace routes in Compose panels`).
 - The APK above was rebuilt from that code commit. This file is a later documentation-only update.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; never stage it.
-- PR #2 remains open and unmerged. Push the latest code and this status update, then verify the PR head actually matches the branch; do not merge or publish a release.
+- PR #2 remains open, unmerged, and targets `master`. GitHub reports `MERGEABLE` / `CLEAN`, with the PR head matching the branch at documentation commit `daa6bd85677e1ca74b4f01604f61dc38c5335953`. No merge or release was performed.
 - Next implementation task: migrate remaining BedFragment workspace menu/action ownership and convert remaining reachable route contents in coherent groups, starting with the simplest ComposeView-backed route. Then continue the functional menu audit and responsive/accessibility coverage.
