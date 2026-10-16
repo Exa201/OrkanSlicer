@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.250 (alpha)
+
+- Added a labeled, accessible 48 dp control to reveal the remaining ACE physical slots when the printer slot row overflows; it does not alter hardware slot mappings.
+
 ## 0.8.249 (alpha)
 
 - Render project settings, profile status, filament access, plate selection, and printer-web access directly in `WorkspaceShell` Compose content instead of separate AndroidView-wrapped ComposeViews.

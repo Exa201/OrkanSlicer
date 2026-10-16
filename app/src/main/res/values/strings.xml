@@ -979,6 +979,7 @@
     <string name="MmuAssignmentTitle">Assign colors to ACE slots</string>
     <string name="MmuAssignmentHelp">Choose a loaded ACE slot for each model color. Empty slots remain visible in the overview but cannot be selected.</string>
     <string name="AcePhysicalSlotsTitle">ACE slots on printer</string>
+    <string name="AcePhysicalSlotsScrollForward">Show remaining ACE slots</string>
     <string name="AceModelColorsTitle">Model colors in slicer</string>
     <string name="AcePhysicalSlotTool">ACE %1$d · printer T%2$d</string>
     <string name="AcePhysicalSlotOnly">ACE %1$d</string>

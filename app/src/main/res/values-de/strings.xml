@@ -965,6 +965,7 @@
     <string name="MmuAssignmentTitle">Farben → Slots</string>
     <string name="MmuAssignmentHelp">Wähle für jede Modellfarbe ein belegtes ACE-Fach. Leere Fächer bleiben in der Übersicht sichtbar, sind aber nicht wählbar.</string>
     <string name="AcePhysicalSlotsTitle">ACE-Fächer am Drucker</string>
+    <string name="AcePhysicalSlotsScrollForward">Weitere ACE-Fächer anzeigen</string>
     <string name="AceModelColorsTitle">Modellfarben im Slicer</string>
     <string name="AcePhysicalSlotTool">ACE %1$d · Drucker-T%2$d</string>
     <string name="AcePhysicalSlotOnly">ACE %1$d</string>

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.platform.LocalDensity
@@ -25,6 +26,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.view.FilamentPaletteContent
 import ru.ytkab0bp.slicebeam.view.PaletteSlotSnapshot
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedComposeMenuAction
@@ -35,6 +39,35 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenuActionsContent
 class FilamentPaletteComposeDeviceTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun longAceGateRowHasAccessibleScrollControlAndReachesLastGate() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1.3f)) {
+                BeamComposeTheme {
+                    Box(Modifier.width(320.dp)) {
+                        AcePhysicalSlotsBar(
+                            gates = List(24) { index ->
+                                MmuFilamentSync.Companion.PhysicalGate(
+                                    index = index,
+                                    printerTool = index,
+                                    occupied = true,
+                                    filament = FilamentSlot(0xFF000000.toInt() or (index * 0x010101), "Synthetic PLA $index"),
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
+        val scrollForward = compose.onNodeWithContentDescription(
+            context.getString(R.string.AcePhysicalSlotsScrollForward),
+        ).assertIsDisplayed()
+        scrollForward.assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
+        compose.onNodeWithText("Synthetic PLA 23").assertIsDisplayed()
+    }
 
     @Test
     fun paletteRowsFromOneThroughTwentyFourEntriesScrollAndSelectTheLastItem() {
