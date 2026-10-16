@@ -2,6 +2,9 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.content.Context
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
@@ -31,6 +34,17 @@ class ModelMenu : ListBedMenu() {
     }
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        val bed = fragment ?: return
+        val items = remember(this, bed) { ModelMenuItems(bed, ::refreshActionItems) }
+        LaunchedEffect(items) {
+            menuItems = items
+            refreshActionItems()
+        }
+        BedMenuActionsContent(composeActions.value, portrait, multiRow = true)
+    }
 
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {

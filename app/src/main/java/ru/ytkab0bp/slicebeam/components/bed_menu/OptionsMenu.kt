@@ -2,6 +2,8 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.content.Context
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
@@ -29,6 +31,12 @@ class OptionsMenu : ListBedMenu() {
     }
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        LaunchedEffect(this, fragment) { refreshActions() }
+        BedMenuActionsContent(composeActions.value, portrait)
+    }
 
     private fun refreshActions() {
         actionSource.onSetBed(fragment)

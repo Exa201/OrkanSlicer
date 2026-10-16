@@ -3,7 +3,6 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import android.content.Context
 import android.view.View
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,7 +15,7 @@ import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import java.util.function.Consumer
 
 /** Compose edit-menu host; selection-dependent action state follows model events. */
-class TransformMenu : ListBedMenu(), WorkspaceComposeBedMenu {
+class TransformMenu : ListBedMenu() {
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
     private var menuItems: TransformMenuItems? = null
 
@@ -43,12 +42,6 @@ class TransformMenu : ListBedMenu(), WorkspaceComposeBedMenu {
     override fun WorkspaceContent(portrait: Boolean) {
         val bed = fragment ?: return
         val items = remember(this, bed) { createMenuItems(bed) }
-        DisposableEffect(this) {
-            ru.ytkab0bp.slicebeam.SliceBeam.EVENT_BUS.registerListener(this@TransformMenu)
-            onDispose {
-                ru.ytkab0bp.slicebeam.SliceBeam.EVENT_BUS.unregisterListener(this@TransformMenu)
-            }
-        }
         LaunchedEffect(items, portrait) {
             menuItems = items
             composeActions.value = items.createItems()

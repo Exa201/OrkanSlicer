@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.247\n\n• Kamera- und Bearbeiten-Menü werden jetzt direkt im Compose-Workspace gerendert, ohne ihre alten Menü-Views anzulegen.\n• Der Bearbeiten-Bereich behält seine Aktualisierung bei Modell- und Auswahländerungen; beide direkten Routen wurden auf Honor geprüft.",
-  "en": "OrkanSlicer 0.8.247\n\n• Camera and edit menus now render directly in the Compose workspace without creating their legacy menu views.\n• The edit menu still refreshes on model and selection changes; both direct routes were verified on Honor.",
-  "ru": "OrkanSlicer 0.8.247\n\n• Меню камеры и редактирования теперь отображаются непосредственно в Compose workspace без создания старых представлений меню.\n• Меню редактирования сохраняет обновление при изменении модели и выбора; оба маршрута проверены на Honor."
+  "de": "OrkanSlicer 0.8.248\n\n• Alle sechs Workspace-Hauptmenüs werden direkt in der gemeinsamen Compose WorkspaceShell gerendert.\n• EventBus-Listener folgen dem aktiven Menü-Lifecycle; Honor-Navigation prüft die Routen ohne alte Menü-Views.",
+  "en": "OrkanSlicer 0.8.248\n\n• All six workspace main menus now render directly in the shared Compose WorkspaceShell.\n• EventBus listeners follow the active menu lifecycle; Honor navigation verifies the routes without legacy menu views.",
+  "ru": "OrkanSlicer 0.8.248\n\n• Все шесть основных меню workspace отображаются непосредственно в общей Compose WorkspaceShell.\n• Слушатели EventBus привязаны к жизненному циклу активного меню; навигация на Honor проверяет маршруты без старых представлений меню."
 }

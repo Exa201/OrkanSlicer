@@ -3,6 +3,9 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import android.content.Context
 import android.view.View
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
@@ -40,6 +43,24 @@ class OrientationMenu : ListBedMenu() {
     }
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        val bed = fragment ?: return
+        val items = remember(this, bed) {
+            OrientationMenuItems(
+                bed,
+                Consumer<View> { view -> bed.showUnfoldMenu(PositionMenu(), view) },
+                Consumer<View> { view -> bed.showUnfoldMenu(RotationMenu(), view) },
+                ::refreshActionItems,
+            )
+        }
+        LaunchedEffect(items) {
+            menuItems = items
+            composeActions.value = items.createItems()
+        }
+        BedMenuActionsContent(composeActions.value, portrait)
+    }
 
     @EventHandler(runOnMainThread = true)
     fun onFlattenModeReset(event: FlattenModeResetEvent) {

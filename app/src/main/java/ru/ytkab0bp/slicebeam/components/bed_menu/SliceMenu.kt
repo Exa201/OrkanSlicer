@@ -3,6 +3,8 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import android.content.Context
 import android.view.View
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
@@ -37,6 +39,12 @@ class SliceMenu : ListBedMenu() {
     }
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        LaunchedEffect(this, portrait) { refreshItems(portrait) }
+        BedMenuActionsContent(composeActions.value, portrait)
+    }
 
     private fun createActions(): List<BedComposeMenuAction> {
         lastUid = SliceBeam.CONFIG_UID

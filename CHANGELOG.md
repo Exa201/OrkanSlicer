@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.248 (alpha)
+
+- Render all six workspace main-menu destinations directly in the shared Compose `WorkspaceShell`; retain legacy view rendering only as a compatibility fallback.
+- Tie list-menu EventBus listeners to the active Compose destination lifecycle and verify Project, Model, Camera, Edit, Tools and Slice navigation on Honor without allocating legacy menu views.
+
 ## 0.8.247 (alpha)
 
 - Render the camera and model-edit menus directly in the Compose `WorkspaceShell` instead of allocating their legacy menu views.

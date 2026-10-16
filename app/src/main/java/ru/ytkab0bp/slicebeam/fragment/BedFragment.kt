@@ -56,6 +56,7 @@ import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenuHost
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
@@ -1485,7 +1486,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     menuComposeContentForSlot = { slot ->
                         val menu = menuMap.get(slot)
                         if (menu is WorkspaceComposeBedMenu) {
-                            menu.WorkspaceContent(portrait)
+                            WorkspaceComposeBedMenuHost(menu, portrait)
                             true
                         } else false
                     },

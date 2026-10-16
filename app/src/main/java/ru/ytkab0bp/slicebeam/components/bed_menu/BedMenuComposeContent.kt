@@ -52,6 +52,19 @@ import androidx.compose.ui.unit.sp
 internal interface WorkspaceComposeBedMenu {
     @Composable
     fun WorkspaceContent(portrait: Boolean)
+
+    fun onWorkspaceMenuVisible() = Unit
+
+    fun onWorkspaceMenuHidden() = Unit
+}
+
+@Composable
+internal fun WorkspaceComposeBedMenuHost(menu: WorkspaceComposeBedMenu, portrait: Boolean) {
+    androidx.compose.runtime.DisposableEffect(menu) {
+        menu.onWorkspaceMenuVisible()
+        onDispose { menu.onWorkspaceMenuHidden() }
+    }
+    menu.WorkspaceContent(portrait)
 }
 
 /** A menu action that can be shared by responsive Compose menus. */

@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -93,6 +94,13 @@ class FileMenu : ListBedMenu() {
             }
         }
         return themedView
+    }
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        wasPortrait = portrait
+        LaunchedEffect(this, portrait) { refreshComposeActions() }
+        BedMenuActionsContent(composeActions.value, portrait)
     }
 
     private fun createComposeActions(portrait: Boolean): List<BedComposeMenuAction> =

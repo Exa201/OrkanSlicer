@@ -14,6 +14,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.OptionsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationModelsMenu
@@ -104,6 +105,23 @@ class WorkspaceNavigationDeviceTest {
                     transformMenu is WorkspaceComposeBedMenu)
                 assertEquals("direct Compose edit route must not allocate its legacy ThemeAwareComposeView",
                     null, (transformMenu as TransformMenu).getView())
+                selectWorkspaceRoute(bed, WorkspaceDestination.PROJECT.ordinal)
+            }
+            awaitMenuTransition(scenario)
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                selectWorkspaceRoute(bed, WorkspaceDestination.TOOLS.ordinal)
+            }
+            awaitMenuTransition(scenario)
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                assertMenuAttached(bed, OptionsMenu::class.java)
+                selectWorkspaceRoute(bed, WorkspaceDestination.SLICE.ordinal)
+            }
+            awaitMenuTransition(scenario)
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                assertMenuAttached(bed, SliceMenu::class.java)
                 selectWorkspaceRoute(bed, WorkspaceDestination.PROJECT.ordinal)
             }
             awaitMenuTransition(scenario)
@@ -343,13 +361,18 @@ class WorkspaceNavigationDeviceTest {
         assertTrue("slot $currentSlot should resolve to ${expectedType.simpleName}", expectedType.isInstance(expectedMenu))
         val getView = expectedType.getMethod("getView")
         val activeView = getView.invoke(expectedMenu) as? android.view.View
-        assertTrue("the active menu view should be attached to the workspace", activeView?.isAttachedToWindow == true)
         val attachedRouteViews = (0 until menuMap.size()).mapNotNull { index ->
             val menu = menuMap.valueAt(index) ?: return@mapNotNull null
             val routeView = menu.javaClass.getMethod("getView").invoke(menu) as? android.view.View
             routeView?.takeIf { it.isAttachedToWindow }
         }
-        assertEquals("only the selected route should remain attached after transition", 1, attachedRouteViews.size)
-        assertEquals(activeView, attachedRouteViews.single())
+        if (expectedMenu is WorkspaceComposeBedMenu) {
+            assertEquals("direct Compose menu route must not create an Android menu view", null, activeView)
+            assertTrue("no legacy menu view should remain attached", attachedRouteViews.isEmpty())
+        } else {
+            assertTrue("the active menu view should be attached to the workspace", activeView?.isAttachedToWindow == true)
+            assertEquals("only the selected route should remain attached after transition", 1, attachedRouteViews.size)
+            assertEquals(activeView, attachedRouteViews.single())
+        }
     }
 }
