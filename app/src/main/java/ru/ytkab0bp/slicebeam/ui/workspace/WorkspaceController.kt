@@ -35,6 +35,20 @@ internal class WorkspaceController(
         WorkspaceDestination.values().size,
     )
 
+    /**
+     * Applies a user initiated workspace route change as one state transition.
+     * Transient surfaces are dismissed before the destination changes so their
+     * callbacks cannot leave a stale tool or panel selected on the next route.
+     */
+    fun navigateToDestination(slot: Int): Boolean {
+        if (slot !in WorkspaceDestination.values().indices) return false
+        if (slot == selectedDestinationSlot) return true
+
+        dismissActivePanel()
+        activeToolId = null
+        return selectDestination(slot)
+    }
+
     fun setActivePlate(index: Int): Boolean {
         if (index < 0) return false
         activePlateIndex = index

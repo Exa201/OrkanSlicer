@@ -65,6 +65,33 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    fun navigationChangeClosesTransientToolAndPanelAsOneTransition() {
+        val controller = WorkspaceController()
+        var dismissed = 0
+        controller.selectTool("transform.scale") { dismissed++ }
+
+        assertTrue(controller.navigateToDestination(WorkspaceDestination.EDIT.ordinal))
+
+        assertEquals(WorkspaceDestination.EDIT.ordinal, controller.selectedDestinationSlot)
+        assertNull(controller.activeToolId)
+        assertNull(controller.activePanel)
+        assertEquals(1, dismissed)
+    }
+
+    @Test
+    fun invalidNavigationDoesNotDismissCurrentPanel() {
+        val controller = WorkspaceController()
+        var dismissed = 0
+        controller.activatePanel(WorkspaceOverlayPanel.FILAMENT_PALETTE) { dismissed++ }
+
+        assertFalse(controller.navigateToDestination(WorkspaceDestination.values().size))
+
+        assertEquals(WorkspaceDestination.PROJECT.ordinal, controller.selectedDestinationSlot)
+        assertEquals(WorkspaceOverlayPanel.FILAMENT_PALETTE, controller.activePanel)
+        assertEquals(0, dismissed)
+    }
+
+    @Test
     fun messageDialogReplacesOtherOverlayAndBackDismissesIt() {
         val controller = WorkspaceController()
         var oldPanelDismissed = false

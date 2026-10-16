@@ -11,7 +11,9 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -23,6 +25,90 @@ import java.util.zip.ZipOutputStream
 /** Exercises the native per-plate 3MF reader with different colors on two build plates. */
 @RunWith(AndroidJUnit4::class)
 class MultiPlateProjectDeviceTest {
+    @Test fun eachPlateModelSurvivesNativeThreeMfExportAndReload() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val application = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = application
+        Prefs.init(application)
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val previousPalette = prefs.getString("filament_palette", null)
+        val previousSyncedPrinter = prefs.getString("mmu_synced_printer", null)
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigBytes = configFile.takeIf { it.isFile }?.readBytes()
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        SliceBeam.CONFIG!!.presets = ConfigObject("presets").apply {
+            put("printer", "Anycubic Kobra 3 0.4 nozzle")
+            put("print", "0.16mm Standard")
+            put("filament", "Anycubic Generic PLA")
+        }
+        Prefs.setMmuSyncedPrinter(null)
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "PLA"),
+            FilamentSlot(0xFF3366CC.toInt(), "PETG"),
+        ))
+
+        try {
+            listOf(1, 3, 6, 10, 20).forEach { plateCount ->
+                val source = File(context.cacheDir, "plate-roundtrip-source-$plateCount.3mf")
+                val project = File(context.cacheDir, "plate-roundtrip-$plateCount.3mf")
+                createTwoPlateProject(source, project, plateCount)
+                try {
+                    for (plateId in 1..plateCount) {
+                        val exported = File(context.cacheDir, "plate-roundtrip-$plateCount-$plateId.3mf")
+                        var original: Model? = null
+                        var restored: Model? = null
+                        try {
+                            original = Model(project, plateId)
+                            assertEquals("plate $plateId/$plateCount model count", 1, original.objectsCount)
+                            val expectedTool = if (plateId % 2 == 1) 1 else 2
+                            assertTrue(original.getUsedFilaments(0).contentEquals(intArrayOf(expectedTool)))
+
+                            // Make object placement identifiable in the exported project and compare
+                            // native model state after a real export, release, and native reload.
+                            original.translate(0, plateId * 3.0, plateId * -2.0, 0.0)
+                            val expectedPosition = Vec3d().also { original.getTranslation(0, it) }
+                            SliceBeam.genCurrentConfig(original)
+                            original.export3mf(configFile.absolutePath, exported.absolutePath)
+                            original.release()
+                            original = null
+
+                            assertTrue("plate $plateId/$plateCount export missing", exported.isFile && exported.length() > 0)
+                            restored = Model(exported, 1)
+                            assertEquals("reloaded plate $plateId/$plateCount model count", 1, restored.objectsCount)
+                            val restoredTools = restored.getUsedFilaments(0)
+                            // Native single-plate export compacts unused tool indices. The
+                            // separate two-color project roundtrip covers exact multi-tool ids.
+                            assertTrue("reloaded plate $plateId/$plateCount has no filament assignment",
+                                restoredTools.isNotEmpty())
+                            val actualPosition = Vec3d().also { restored.getTranslation(0, it) }
+                            assertEquals("plate $plateId/$plateCount x placement", expectedPosition.x, actualPosition.x, 0.01)
+                            assertEquals("plate $plateId/$plateCount y placement", expectedPosition.y, actualPosition.y, 0.01)
+                            assertEquals("plate $plateId/$plateCount z placement", expectedPosition.z, actualPosition.z, 0.01)
+                        } finally {
+                            restored?.release()
+                            original?.release()
+                            exported.delete()
+                        }
+                    }
+                } finally {
+                    source.delete()
+                    project.delete()
+                }
+            }
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigBytes == null) configFile.delete() else configFile.writeBytes(previousConfigBytes)
+            prefs.edit().also { editor ->
+                if (previousPalette == null) editor.remove("filament_palette")
+                else editor.putString("filament_palette", previousPalette)
+                if (previousSyncedPrinter == null) editor.remove("mmu_synced_printer")
+                else editor.putString("mmu_synced_printer", previousSyncedPrinter)
+            }.commit()
+        }
+    }
+
     @Test fun nativeProjectLoadsEveryPlateForSmallAndLargeProjects() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext

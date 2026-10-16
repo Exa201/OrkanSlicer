@@ -1442,6 +1442,10 @@ private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, sl
         if (bottomNavigation) setPortraitToolPanelExpanded(!menuToolsExpanded)
         return
     }
+    val previousSlot = currentMenuSlot
+    // Keep route, selected tool and transient workspace surfaces in one state
+    // transition before the legacy menu view animation starts.
+    if (!workspaceController.navigateToDestination(slot)) return
     if (bottomNavigation && !menuToolsExpanded) setPortraitToolPanelExpanded(true)
     if (slot != WorkspaceDestination.SLICE.ordinal) {
         glView?.queueEvent {
@@ -1453,7 +1457,7 @@ private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, sl
     } else {
         (menuMap.get(WorkspaceDestination.SLICE.ordinal) as SliceMenu).refreshItems(bottomNavigation)
     }
-    selectMenu(ctx, bottomNavigation, slot)
+    selectMenu(ctx, bottomNavigation, slot, previousSlot)
 }
 
 private fun setPortraitToolPanelExpanded(expanded: Boolean) {
@@ -1565,15 +1569,15 @@ private fun menuPortraitHeightDp(): Int = WorkspaceToolPanelPolicy.menuHeightDp(
     fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f,
 )
 
-private fun selectMenu(ctx:Context, portrait:Boolean, slot:Int) {
+private fun selectMenu(ctx:Context, portrait:Boolean, slot:Int, previousSlot:Int = currentMenuSlot) {
 if (glView!!.renderer.resetFlattenMode())
 {
 glView!!.requestRender()
 SliceBeam.EVENT_BUS.fireEvent(FlattenModeResetEvent())
 }
 isAnimatingMenu = true
-val prevMenu = menuMap.get(currentMenuSlot)
-val forward = slot > currentMenuSlot
+val prevMenu = menuMap.get(previousSlot)
+val forward = slot > previousSlot
 currentMenuSlot = slot
 if (portrait) {
 updateAdaptiveOverlayMargins(true)
