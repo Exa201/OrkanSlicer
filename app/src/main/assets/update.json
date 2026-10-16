@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.245\n\n• Das Messwerkzeug gibt beim Schließen, Zurückgehen oder Werkzeugwechsel seinen GL-Zustand zuverlässig frei.\n• Messpunkte werden beim Beenden des Werkzeugs entfernt; der GL-Renderer bleibt auf seinem vorgesehenen Thread.",
-  "en": "OrkanSlicer 0.8.245\n\n• The Measure tool now releases its GL state when closed, dismissed with Back, or replaced by another tool.\n• Measurement points are cleared on exit while renderer work stays on its designated thread.",
-  "ru": "OrkanSlicer 0.8.245\n\n• Инструмент измерения теперь освобождает состояние GL при закрытии, возврате назад или переключении на другой инструмент.\n• Точки измерения очищаются при выходе, а операции рендерера остаются в предназначенном для них потоке."
+  "de": "OrkanSlicer 0.8.246\n\n• Der Wechsel zu einer bereits geladenen Druckplatte meldet den Abschluss jetzt zuverlässig nach der Renderer-Aktualisierung.\n• Filament- und Werkzeugleisten wurden auf schmalen Layouts mit großer Schrift auf Erreichbarkeit und 48-dp-Touchflächen geprüft.",
+  "en": "OrkanSlicer 0.8.246\n\n• Switching to an already-loaded build plate now reports completion after the renderer has activated it.\n• Filament and tool bars were checked for reachability and 48 dp touch targets in narrow, large-text layouts.",
+  "ru": "OrkanSlicer 0.8.246\n\n• Переключение на уже загруженную платформу теперь сообщает о завершении после ее активации в рендерере.\n• Доступность панели филаментов и инструментов и области нажатия 48 dp проверены на узком экране с крупным шрифтом."
 }

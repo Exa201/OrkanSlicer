@@ -236,6 +236,34 @@ class MultiPlateProjectDeviceTest {
                 assertEquals(2, bed.plateCount)
                 assertEquals(1, bed.currentModel?.objectsCount)
                 assertTrue(bed.currentModel!!.getUsedFilaments(0).contentEquals(intArrayOf(2)))
+            }
+
+            // A switch back to a resident plate must complete through the same
+            // callback contract as a lazy-loaded plate, without re-reading 3MF.
+            val firstPlateRestored = CountDownLatch(1)
+            val residentSwitchFailure = AtomicReference<Exception?>()
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                val switch = BedFragment::class.java.getDeclaredMethod("switchPlate",
+                    Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, BedFragment.ModelLoadCallback::class.java)
+                    .apply { isAccessible = true }
+                switch.invoke(bed, 0, true, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        firstPlateRestored.countDown()
+                    }
+                    override fun onFailed(error: Exception) {
+                        residentSwitchFailure.set(error)
+                        firstPlateRestored.countDown()
+                    }
+                })
+            }
+            assertTrue("Already-loaded first plate did not complete its callback",
+                firstPlateRestored.await(10, TimeUnit.SECONDS))
+            residentSwitchFailure.get()?.let { throw AssertionError("First plate switch failed", it) }
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                assertEquals(1, bed.currentModel?.objectsCount)
+                assertTrue(bed.currentModel!!.getUsedFilaments(0).contentEquals(intArrayOf(1)))
 
                 val fileMenu = FileMenu().apply { onSetBed(bed) }
                 val createItems = FileMenu::class.java.getDeclaredMethod(

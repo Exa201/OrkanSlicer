@@ -1871,6 +1871,12 @@ glView!!.renderer.model = finalNext
 resetModelHistory()
 glView!!.requestRender() })
 pushPlatesToRenderer()
+if (loadCallback != null)
+{
+    // Match the lazy-load path: completion is reported only after the renderer has
+    // switched to the requested plate, and always from the GL thread.
+    glView!!.queueEvent({ loadCallback.onLoaded(finalNext, 0, finalNext.objectsCount) })
+}
 }
 private fun updatePlateIndicator() {
 if (plateTabsScroll == null) return

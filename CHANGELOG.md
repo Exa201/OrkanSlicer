@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.246 (alpha)
+
+- Complete the plate-switch callback after activating an already-loaded plate, on the GL thread, matching lazy-loaded plate completion.
+- Test switching between both loaded plates in the real two-plate 3MF workspace flow.
+- Exercise filament rows and two-row tool actions at 320/360/400 dp with 100/130/150% Compose font scales; verify reachability and 48 dp touch bounds on Honor.
+
 ## 0.8.245 (alpha)
 
 - Ensure every measurement-panel exit path releases the renderer's measurement state and points.
