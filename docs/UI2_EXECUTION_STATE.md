@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — 0.8.252 (2026-10-17)
+
+- Code commit: `319fdc041ca86a992cf9e6f529e5f8b4a611255d` (`Require Compose for all workspace menus`). The six `WorkspaceDestination` menu routes now render through a Compose-only `WorkspaceMenuHost`; its Android View fallback and BedFragment's menu-view factory were removed. Destination creation is exhaustive, and the old silent default-to-Project route was removed. The GL renderer adapter and tool-route compatibility boundary remain unchanged.
+- Existing Honor `WorkspaceNavigationDeviceTest` passed on PTP-N49 / Android 16: six main destinations switch with the same GLView instance and direct Compose ownership; the test also exercises ten Compose tool routes and Android Back cleanup.
+- Debug and Slice unit suites: 549/549 passed each (0 failures/errors/skips). Full Honor Slice instrumentation: 61 XML test cases, 0 failures/errors, 3 private multi-color fixture tests skipped (58 executed passed); emulator `emulator-5554` remains offline.
+- `:app:assembleDebug` passed. APK: `app/build/outputs/apk/debug/OrkanSlicer_319fdc041c.apk`, 157,039,746 bytes; SHA-256 `249681A25965D46666E0A0BA3BE3559145D0C613A3F93C514E2097108CCE1E77`.
+- Installed and launched on Honor PTP-N49 under the explicitly verified package `com.codemastercody3d.orcaslicermobile`, version `0.8.252` / code `287`; `MainActivity` top-resumed, with no crash/ANR/OOM matches in the fresh logcat sample. No print job was started.
+- The primary workspace now has no Android-view menu fallback. Remaining UI 2.0 work includes action-by-action audit of Maker/global/profile settings and tool actions, BedFragment's generic dialog/overlay host (retain until Android Back/IME tests can protect its behavior), system-level 320/360/400 dp + font-scale + TalkBack matrix, and the known separate multi-plate project serializer. Preserve the active-plate export warning. Do not claim the migration complete.
+- Next concrete task: continue auditing the actual Maker and global menu actions and strengthen the next independent accessibility/device interaction path without changing the dialog host before IME-aware Back coverage.
+
 ## Latest continuation — 0.8.251 (2026-10-17)
 
 - Code commits: `bac880a905b7bd72dc9b6068af7fe4bf02827168` (`Improve build plate picker touch target`) and `dbafa3981cfc836b994312f26131572b29c7fa63` (`Add accessible plate selection stress coverage`).
