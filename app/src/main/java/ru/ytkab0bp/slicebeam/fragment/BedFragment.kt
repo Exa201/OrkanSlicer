@@ -95,6 +95,8 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayCoordinator
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
@@ -116,6 +118,7 @@ private var rendererAdapter: RendererAdapter? = null
 private var navigationView: ComposeView? = null
 private var menuNavigationThemeRevision by mutableIntStateOf(0)
 private val workspaceNavigationState = WorkspaceNavigationState()
+private val workspaceOverlayCoordinator = WorkspaceOverlayCoordinator()
 private var menuToolsExpanded:Boolean
 get() = workspaceNavigationState.toolPanelExpanded
 set(value) { workspaceNavigationState.toolPanelExpanded = value }
@@ -309,13 +312,26 @@ fun showModelColorSlots(synchronize: Boolean = false) {
 }
 private fun showWorkspaceFilamentPalette() {
     val context = getContext() ?: return
+    workspaceOverlayCoordinator.dismissActive()
     val controller = FilamentPaletteController { filamentPaletteRevision++ }
-    WorkspaceFilamentPaletteSheet(
+    val dialog = WorkspaceFilamentPaletteSheet(
         context = context,
         controller = controller,
         hasModel = currentModel?.objectsCount?.let { it > 0 } == true,
         onAssignModel = ::showModelColorSlots,
-    ).show()
+    ).show {
+        workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.FILAMENT_PALETTE)
+    }
+    workspaceOverlayCoordinator.register(WorkspaceOverlayPanel.FILAMENT_PALETTE) { dialog.dismiss() }
+}
+private fun showWorkspaceProfileSheet(context: Context) {
+    workspaceOverlayCoordinator.dismissActive()
+    val sheet = WorkspaceProfileSheet(context, Runnable { refreshProfileStatus() })
+    sheet.setOnDismissListener {
+        workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.PROFILE_PICKER)
+    }
+    sheet.show()
+    workspaceOverlayCoordinator.register(WorkspaceOverlayPanel.PROFILE_PICKER) { sheet.dismiss() }
 }
 /** Selects model filament slots first, then slices and runs the continuation on success. */
  @JvmOverloads fun startSlicing(onSuccess:Runnable? = null) {
@@ -796,6 +812,7 @@ val portrait = isPortraitWindow(ctx)
 selectMenu(ctx, portrait, WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
+if (workspaceOverlayCoordinator.dismissActive()) return true
 if (embossModeView != null)
 {
 exitEmbossMode()
@@ -909,6 +926,8 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.PrinterWebHostMissing))
 }
 return
 }
+workspaceOverlayCoordinator.dismissActive()
+workspaceOverlayCoordinator.register(WorkspaceOverlayPanel.PRINTER_WEB) { destroyPrinterWebView() }
 panelWebViewContainer!!.setVisibility(View.VISIBLE)
 panelWebViewContainer!!.bringToFront()
 if (printerWebCloseButton != null) printerWebCloseButton!!.setVisibility(View.VISIBLE)
@@ -1013,6 +1032,7 @@ private fun isAllowedPrinterWebUrl(targetUrl:String):Boolean {
 return PrinterWebOriginPolicy.allows(configuredWebHost, targetUrl)
 }
 private fun destroyPrinterWebView() {
+workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.PRINTER_WEB)
 val webView = panelWebView
 panelWebView = null
 hasWebError = false
@@ -1105,10 +1125,14 @@ selectedIndex = selectedPlateTabIndex,
 objectCounts = plateObjectCounts,
 thumbnails = plateThumbnails,
 onOpen = {
+    workspaceOverlayCoordinator.activate(WorkspaceOverlayPanel.PLATE_PICKER) {
+        platePickerOpen.value = false
+    }
     // A model can move or scale without changing the plate list. Refresh its tiny footprint on demand.
     platePreviewRevision++
     refreshPlateThumbnails()
 },
+onDismiss = { workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.PLATE_PICKER) },
             onSelect = { index -> if (index != currentPlateIndex) switchPlate(index) },
 onClose = { index -> removePlate(index) },
 onAdd = { addNewPlate() },
@@ -1126,7 +1150,7 @@ WorkspaceProfileStatus(
 title = profileStatusTitle,
 summary = profileStatusSummary,
 accessibilityDescription = profileStatusDescription.ifBlank { ctx.getString(R.string.WorkspaceProfilesOpenDescription) },
-onOpen = { WorkspaceProfileSheet(ctx, Runnable { refreshProfileStatus() }).show() },
+ onOpen = { showWorkspaceProfileSheet(ctx) },
 )
 }
 }

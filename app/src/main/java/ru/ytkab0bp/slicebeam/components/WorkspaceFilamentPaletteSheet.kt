@@ -26,10 +26,10 @@ class WorkspaceFilamentPaletteSheet(
     private val hasModel: Boolean,
     private val onAssignModel: () -> Unit,
 ) {
-    fun show() {
-        when (FilamentPalettePolicy.workspacePresentation(context.resources.configuration.screenWidthDp)) {
-            FilamentPalettePolicy.WorkspacePresentation.BOTTOM_SHEET -> showBottomSheet()
-            FilamentPalettePolicy.WorkspacePresentation.SIDE_PANEL -> showSidePanel()
+    fun show(onDismissed: () -> Unit = {}): Dialog {
+        return when (FilamentPalettePolicy.workspacePresentation(context.resources.configuration.screenWidthDp)) {
+            FilamentPalettePolicy.WorkspacePresentation.BOTTOM_SHEET -> showBottomSheet(onDismissed)
+            FilamentPalettePolicy.WorkspacePresentation.SIDE_PANEL -> showSidePanel(onDismissed)
         }
     }
 
@@ -50,9 +50,10 @@ class WorkspaceFilamentPaletteSheet(
         }
     }
 
-    private fun showBottomSheet() {
+    private fun showBottomSheet(onDismissed: () -> Unit): BottomSheetDialog {
         lateinit var dialog: BottomSheetDialog
         dialog = BottomSheetDialog(context)
+        dialog.setOnDismissListener { onDismissed() }
         dialog.setContentView(
             composeView(sidePanel = false) { dialog.dismiss() },
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
@@ -62,11 +63,13 @@ class WorkspaceFilamentPaletteSheet(
             state = BottomSheetBehavior.STATE_EXPANDED
             skipCollapsed = true
         }
+        return dialog
     }
 
-    private fun showSidePanel() {
+    private fun showSidePanel(onDismissed: () -> Unit): Dialog {
         lateinit var dialog: Dialog
         dialog = Dialog(context)
+        dialog.setOnDismissListener { onDismissed() }
         dialog.setContentView(
             composeView(sidePanel = true) { dialog.dismiss() },
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
@@ -82,5 +85,6 @@ class WorkspaceFilamentPaletteSheet(
                 WindowManager.LayoutParams.MATCH_PARENT)
             setGravity(Gravity.END)
         }
+        return dialog
     }
 }

@@ -974,6 +974,8 @@
     <string name="QuickSliceTitle">Schnell slicen</string>
     <string name="QuickSliceHelp">Wähle Drucker, Material und eine Qualitätsstufe. Die Werte werden vor dem Slicen geprüft.</string>
     <string name="QuickSlicePrinter">Drucker</string>
+    <string name="SliceChoiceSearchHint">Optionen suchen</string>
+    <string name="SliceChoiceNoMatches">Keine passenden Optionen</string>
     <string name="QuickSliceFilament">Filament</string>
     <string name="QuickSliceQuality">Qualität</string>
     <string name="QuickSliceLayerHeight">Schichthöhe (mm)</string>

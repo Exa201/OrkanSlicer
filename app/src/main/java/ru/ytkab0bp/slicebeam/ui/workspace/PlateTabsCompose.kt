@@ -85,11 +85,16 @@ internal fun PlateTabs(
     objectCounts: List<Int>,
     thumbnails: List<PlateThumbnail>,
     onOpen: () -> Unit,
+    onDismiss: () -> Unit,
     onSelect: (Int) -> Unit,
     onClose: (Int) -> Unit,
     onAdd: () -> Unit,
 ) {
     var open by openState
+    val closePicker = {
+        open = false
+        onDismiss()
+    }
     val configuration = LocalConfiguration.current
     val screenHeightDp = configuration.screenHeightDp
     val estimatedGridColumns = ((configuration.screenWidthDp - 88) / 104).coerceIn(1, 4)
@@ -108,7 +113,7 @@ internal fun PlateTabs(
         }
     }
     if (open) {
-        Dialog(onDismissRequest = { open = false }, properties = DialogProperties(usePlatformDefaultWidth = true)) {
+        Dialog(onDismissRequest = closePicker, properties = DialogProperties(usePlatformDefaultWidth = true)) {
             Surface(shape = RoundedCornerShape(OrkanUiTokens.dialogCornerRadius), color = MaterialTheme.colorScheme.surface) {
                 Column(Modifier.padding(OrkanUiTokens.panelPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.PlatePickerTitle), style = MaterialTheme.typography.titleMedium)
@@ -117,10 +122,10 @@ internal fun PlateTabs(
                             verticalAlignment = Alignment.CenterVertically) {
                             (0 until plateCount).forEach { index ->
                                 PlatePickerCard(index, index == selectedIndex, objectCounts.getOrNull(index) ?: -1,
-                                    { onSelect(index); open = false }, { onClose(index) },
+                                    { onSelect(index); closePicker() }, { onClose(index) },
                                     Modifier.padding(end = OrkanUiTokens.regularGap), thumbnails.getOrNull(index))
                             }
-                            AddPlateButton { onAdd(); open = false }
+                            AddPlateButton { onAdd(); closePicker() }
                         }
                     } else if (pickerLayout == PlatePickerLayout.CIRCLE) {
                         Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
@@ -128,12 +133,12 @@ internal fun PlateTabs(
                                 val angle = -PI / 2 + (2 * PI * index / plateCount)
                                 PlatePickerCard(
                                     index, index == selectedIndex, objectCounts.getOrNull(index) ?: -1,
-                                    { onSelect(index); open = false }, { onClose(index) },
+                                    { onSelect(index); closePicker() }, { onClose(index) },
                                     Modifier.offset((95 * cos(angle)).dp, (95 * sin(angle)).dp),
                                     thumbnails.getOrNull(index),
                                 )
                             }
-                            AddPlateButton { onAdd(); open = false }
+                            AddPlateButton { onAdd(); closePicker() }
                         }
                     } else LazyVerticalGrid(
                         columns = GridCells.Adaptive(96.dp),
@@ -146,14 +151,14 @@ internal fun PlateTabs(
                     ) {
                         items(plateCount, key = { it }) { index ->
                             PlatePickerCard(index, index == selectedIndex, objectCounts.getOrNull(index) ?: -1,
-                                { onSelect(index); open = false }, { onClose(index) }, thumbnail = thumbnails.getOrNull(index))
+                                { onSelect(index); closePicker() }, { onClose(index) }, thumbnail = thumbnails.getOrNull(index))
                         }
                         item(key = "add") {
-                            AddPlateButton { onAdd(); open = false }
+                            AddPlateButton { onAdd(); closePicker() }
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Text(stringResource(android.R.string.cancel), Modifier.clickable { open = false }.padding(8.dp))
+                        Text(stringResource(android.R.string.cancel), Modifier.clickable(onClick = closePicker).padding(8.dp))
                     }
                 }
             }

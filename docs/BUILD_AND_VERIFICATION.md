@@ -562,3 +562,22 @@ Finaler APK-Artefakt nach Commit `6b9b3c0423b9eb1d075521a2bd97eaeec330e10d`:
 - Diese Debug-APK wurde nach dem Build erneut auf dem Honor installiert und gestartet. Das Paket
   blieb als `MainActivity` aktiv; der geprüfte Logcat-Auszug zeigte keinen FATAL-, ANR- oder
   OOM-Eintrag.
+
+## Build-Verifikation: Workspace Panels und Profilfilter (2026-10-16)
+
+- `:app:testDebugUnitTest`: 531/531 bestanden.
+- `:app:testSliceTestUnitTest`: 531/531 bestanden.
+- `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 39 bestanden, 0 Fehler,
+  3 übersprungen (private Mehrfarb-3MF-Fixtures nicht vorhanden).
+- `:app:assembleDebug`: erfolgreich, ARM64-Kern eingeschlossen.
+- Manuelle Honor-Prüfung: Profilblatt geöffnet, lange Druckprofilliste mit Suchfeld und Tastatur
+  geprüft, Suchtext `0.16mm` filterte die Treffer, System-Back schloss die Ebenen nacheinander,
+  danach öffnete die Plattenauswahl. Kein Druckstart.
+- Beim ersten Öffnen der langen Auswahl trat ein Compose-Intrinsic-Measurement-Absturz auf; die
+  Liste wurde aus dem Dropdown in einen begrenzten Dialog verschoben. Der reparierte Stand wurde
+  erneut installiert und der lange Suchpfad lief ohne neuen Crash. Der alte Crash-Bericht blieb
+  zunächst als SafeStart-Wiederherstellungsseite sichtbar und wurde mit „App neu starten“ beendet.
+- Gradle meldete weiterhin einen Property-Fetch-Timeout für `emulator-5554`; der Emulator ist nicht
+  als geprüft gewertet.
+- Kein CPU-/RAM-Benchmark wurde durchgeführt. Der Lazy-Render-Pfad vermeidet das gleichzeitige
+  Komponieren aller Optionen; quantitative Performance-Messungen bleiben offen.

@@ -988,6 +988,8 @@
     <string name="QuickSliceTitle">Quick Slice</string>
     <string name="QuickSliceHelp">Choose a printer, material and a simple quality preset. Values are checked before slicing.</string>
     <string name="QuickSlicePrinter">Printer</string>
+    <string name="SliceChoiceSearchHint">Search options</string>
+    <string name="SliceChoiceNoMatches">No matching options</string>
     <string name="QuickSliceFilament">Filament</string>
     <string name="QuickSliceQuality">Quality</string>
     <string name="QuickSliceLayerHeight">Layer height (mm)</string>

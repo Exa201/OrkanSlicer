@@ -76,3 +76,33 @@ passed; three private-fixture multicolor 3MF tests were skipped. Local unit suit
 This milestone does not complete the whole UI 2.0 migration. Legacy dialogs, special renderer
 overlays, native global-navigation host plumbing, and the remaining `BedFragment` controller/state
 responsibilities still need staged migration and regression verification.
+
+## Etappe 8: Exklusive Workspace-Panels und lange Profilwahl (2026-10-16)
+
+- `WorkspaceOverlayCoordinator` stellt einen einzigen aktiven transienten Workspace-Bereich bereit.
+  Plattenauswahl, Filamentpalette, Profilwahl und Drucker-Webansicht schließen beim Öffnen den
+  vorherigen Bereich; Zurück schließt zuerst den aktiven Bereich. Verspätete Dismiss-Callbacks
+  dürfen den neu geöffneten Bereich nicht löschen.
+- Die Compose-Plattenauswahl meldet Auswahl, Hinzufügen, Abbrechen und System-Back an denselben
+  Koordinator. Native Bottom-Sheet-Dialoge der Filament- und Profilwahl melden ihre Schließung
+  zurück.
+- `SliceChoiceField` rendert kurze Auswahlmenüs weiterhin als Dropdown. Ab 12 Einträgen wird ein
+  begrenzter Compose-Dialog mit Suchfeld und `LazyColumn` geöffnet. Das verhindert unnötiges
+  Erzeugen sämtlicher Zeilen und erhält Quellindizes für die vorhandene Profilübernahme.
+- Ein Honor-Gerätedurchgang fand beim ersten Versuch einen Compose-Intrinsic-Measurement-Absturz
+  im langen Dropdown. Die lange Auswahl wurde daraufhin aus dem Dropdown in einen eigenen Dialog
+  verschoben. Der reparierte Build zeigte auf dem Honor die filterbare Druckprofilliste inklusive
+  Tastatur und scrollbarer Treffer; danach schlossen Zurück und Druckplattenauswahl wie erwartet.
+  Im aktuellen Lauf blieb die Activity aktiv und der geprüfte Logcat enthielt keinen neuen Crash.
+- Drei Koordinator-Tests prüfen Exklusivität, Zurück und verspätete Dismiss-Callbacks; zwei Tests
+  prüfen Filterung und Erhalt der ursprünglichen Profilindizes. Beide lokalen Suiten bestanden mit
+  531/531 Tests. Die Honor-Instrumentierung bestand mit 39 Tests; drei private 3MF-Tests waren
+  mangels Fixture übersprungen.
+
+### Weiter offen
+
+Die Panelsteuerung deckt die zentralen Workspace-Flächen ab; sie ersetzt noch nicht alle Plattform-
+Dialoge in `MainActivity`, Setup und Spezialwerkzeugen. Der `UnfoldMenu`-Rendererübergang und
+renderergebundene Mal-/Mess-/Layer-Ansichten benötigen weiterhin ihre GL- und View-Lifecycle-Hosts.
+`BedFragment` behält Modell-/Platten-Domainzustand. Eine vollständige Menü-zu-Menü-Abnahme über
+alle Spezialwerkzeuge, kleine Fenster und 10–20 Platten ist noch nicht erfolgt.
