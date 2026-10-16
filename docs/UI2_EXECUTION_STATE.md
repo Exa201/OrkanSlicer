@@ -38,7 +38,7 @@ The three GL mode control surfaces are still implemented by native custom Views 
 ## Git state and continuation
 
 - Base HEAD at the start of this execution: `aafb08a311b5d712422e2ec7f924f9e89bd63b19`.
-- Latest code commit: `2f4678a8e6d2f21c61a1f9363f8950d2266e5f40` (`Migrate tool overlays to shared Compose workspace host`).
+- Latest code commit: `2f4678ad7e131b4ef382b367fd27f7c87f6fd748` (`Migrate tool overlays to shared Compose workspace host`).
 - Documentation/status commit is pending.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; do not stage it.
 - Next concrete task: build and install the final debug APK for this code commit, inspect launch/logcat, then continue mode-specific functional migration and the remaining workspace/menu audit. Do not claim the whole UI 2.0 migration is complete.
