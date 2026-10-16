@@ -6,9 +6,11 @@ Updated: 2026-10-16
 
 - Migrated the top-level Camera and Edit destinations to direct `WorkspaceShell` composition through `WorkspaceComposeBedMenu`; the AndroidView fallback remains for compatibility callers.
 - `TransformMenu` subscribes to model/selection events only while its Compose route is composed, and keeps the existing `TransformMenuItems` callbacks, dialogs, and GL-thread operations.
-- Honor PTP-N49: `WorkspaceNavigationDeviceTest` passed (1/1) after checking Camera and Edit route transition, destination identity, and that neither legacy `ThemeAwareComposeView` was allocated. Emulator remains offline.
-- Source/test compilation passed. Version is now 0.8.247 alpha / versionCode 282; final full suites and APK build are pending after this grouped change.
-- Next: run full unit suites and Honor instrumentation, build/install the 0.8.247 APK, then continue migrating/auditing remaining top-level View-hosted menu routes (Project, Model, Tools, Slice) and their listener lifecycle.
+- Honor PTP-N49: targeted `WorkspaceNavigationDeviceTest` passed (1/1); full instrumentation reported 55 tests, 0 failures, 3 skipped private-fixture tests (52 ran and passed). The Camera and Edit routes were checked for direct Compose host use and absence of allocated legacy menu Views. Emulator remains offline.
+- Debug and Slice unit suites each passed 549/549 (0 failures, errors, or skips). Source and instrumentation compilation passed.
+- Version 0.8.247 alpha / versionCode 282. `:app:assembleDebug` passed at code commit `78427d728402d23e994e57f0b0340e230a638d75`. APK `app/build/outputs/apk/debug/OrkanSlicer_78427d7284.apk`, 157,022,291 bytes; SHA-256 `D94B67D3AE2BDF8B8D024B0A1514DCDAC7F32A1FF7EACAB393F1417BD74D8E5F`.
+- Installed and cold-started APK on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.247 / code 282; `MainActivity` top-resumed. Fresh startup logcat had no crash, ANR, or OOM markers. Device package inventory contained OrkanSlicer only; no screenshot was taken.
+- Next: continue migrating/auditing remaining top-level View-hosted menu routes (Project, Model, Tools, Slice) and their event-listener lifecycle. This does not complete the global menu, responsive/accessibility, or full legacy UI audit.
 
 ## Latest follow-up
 
