@@ -50,4 +50,26 @@ class PaintModeComposeDeviceTest {
         compose.onNodeWithText(cancelLabel).assertIsDisplayed().performClick()
         compose.runOnIdle { assertTrue(cancelled && !committed) }
     }
+
+    @Test
+    fun paintPanelDoneUsesCommitAction() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lateinit var glView: GLView
+        var committed = false
+        var cancelled = false
+        compose.runOnUiThread { glView = GLView(context) }
+        compose.setContent {
+            BeamComposeTheme {
+                PaintModePanel(
+                    glView = glView,
+                    mode = GLRenderer.PAINT_MODE_COLOR,
+                    onCommit = { committed = true },
+                    onCancel = { cancelled = true },
+                )
+            }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.ActionDone)).assertIsDisplayed().performClick()
+        compose.runOnIdle { assertTrue(committed && !cancelled) }
+    }
 }
