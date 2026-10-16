@@ -2,12 +2,13 @@
 
 ## Latest continuation — 0.8.251 (2026-10-17)
 
-- Code commit: `bac880a905b7bd72dc9b6068af7fe4bf02827168` (`Improve build plate picker touch target`).
+- Code commits: `bac880a905b7bd72dc9b6068af7fe4bf02827168` (`Improve build plate picker touch target`) and `dbafa3981cfc836b994312f26131572b29c7fa63` (`Add accessible plate selection stress coverage`).
 - The build-plate picker Cancel action now has an explicit minimum 48 dp height; Material 3's default 40 dp height was measured in the device test and corrected. The Compose test opens the picker, checks width and height, dismisses it, and verifies one dismissal callback.
 - The ACE row scroll affordance from `98fb4f9` remains included: accessible labeled 48 dp control scrolls to the final synthetic gate in a 24-slot row.
-- Debug and Slice unit suites: 549/549 passed each (0 failures/errors/skips). Full Honor instrumentation: 57 XML cases, 0 failures/errors, 3 private multi-color fixtures skipped (54 executed passed). Targeted build-plate Cancel and ACE scroll tests each passed 1/1.
-- Final `:app:assembleDebug` passed from code commit `bac880a`. APK: `app/build/outputs/apk/debug/OrkanSlicer_bac880a905.apk`, 157,039,207 bytes; SHA-256 `4016AAA718B9BB840DC03D3594F34DF9EA491E5F465FCE90B712474126546C04`.
-- Installed on Honor PTP-N49 / Android 16. Confirmed package `com.codemastercody3d.orcaslicermobile`, version `0.8.251` / code `286`, resumed `MainActivity`, and 0 crash/ANR/OOM markers in a fresh 2,000-line logcat sample. Physical config is 1280×2800 px / 560 dpi, about 366×800 dp, font scale 1.0; the automated Compose test sets 1.5 font scale for picker bounds. Emulator remains offline.
+- Added distinct localized TalkBack descriptions for plate selection cards. Device stress test selects the last plate in synthetic projects of 1/3/6/10/20 plates; it scrolls the multi-plate grid, verifies selection, and verifies picker dismissal.
+- Debug and Slice unit suites: 549/549 passed each (0 failures/errors/skips). Full Honor instrumentation: 58 XML cases, 0 failures/errors, 3 private multi-color fixtures skipped (55 executed passed). Targeted plate Cancel, plate stress selection, and ACE scroll tests each passed 1/1.
+- Final `:app:assembleDebug` passed from code commit `dbafa39`. APK: `app/build/outputs/apk/debug/OrkanSlicer_dbafa3981c.apk`, 157,039,789 bytes; SHA-256 `2C7C923028A3837F5E8D1C048A0EC4C86681274C96450F98A6F1B02B99867E8E`.
+- Installed on Honor PTP-N49 / Android 16. Confirmed package `com.codemastercody3d.orcaslicermobile`, version `0.8.251` / code `286`, resumed `MainActivity`, and 0 crash/ANR/OOM markers in a fresh 2,000-line logcat sample. Physical config is 1280×2800 px / 560 dpi, about 366×800 dp, font scale 1.0; the automated Compose tests set 1.5 font scale for picker bounds. Emulator remains offline.
 - UI 2.0 remains incomplete. Open: global menu/action-by-action verification, remaining BedFragment overlay/dialog responsibility (prior shell-only dialog migration regressed Back/IME behavior), system-level small-width/font-scale/TalkBack coverage, and complete multi-plate project persistence. Preserve the active-plate export warning.
 - Branch: `codex/rinkhals-safe-start-audit`; PR #2 is open and unmerged. Preserve `.codex-remote-attachments/`.
 
