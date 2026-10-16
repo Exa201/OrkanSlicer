@@ -6,6 +6,8 @@ Der Honor-Gerätetest `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurvi
 
 Der gezielte Round-trip-Test und die gesamte `TwoColorProjectDeviceTest`-Klasse (2/2) bestanden auf dem HONOR PTP-N49. `:app:testDebugUnitTest`, `:app:testSliceTestUnitTest` und `:app:assembleDebug` einschließlich ARM64-Nativkern bestanden ebenfalls. Die APK wurde auf dem Honor installiert und gestartet. Einzelnes Undo für Pinselstriche, Zoom beim Malen und komplexe Mehrvolumenmodelle bleiben offen.
 
+Alpha 0.8.241 wurde unter `https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.241` veröffentlicht. Das APK-Asset `OrkanSlicer_0.8.241_alpha_debug.apk` (156.849.377 Byte) hat den bestätigten GitHub-Digest `sha256:4b04e1a7392c2e2b87c0bd4ec859c4b7f02674204d93b6d2bfeb08cbbdaacc8e`, identisch mit der lokalen APK. PR #2 bleibt offen gegen `master`, Kopfcommit `bf1c3707fb8d181de8861e79ef4b1aa0461d682a`; kein Merge ausgeführt. Die bestehende Raycast-API gibt keine Volume-/Facet-ID zurück. Deshalb ist Malen direkt auf einzelnen Volumes komplexer Orca/Bambu-Baugruppen nicht verifiziert und darf nicht aus dem Round-trip-Test für die einfache Zweiteil-Fixture abgeleitet werden.
+
 ## Build 0.8.174 – SliceBeam-Menüaufbau auf dem Honor geprüft
 
 Der Vergleich mit SliceBeam 1.1.0 auf dem HONOR PTP-N49 bestätigt die fünf Hauptbereiche oben und die Arbeitsbereichs-Werkzeuge unten. Die aktive Tab-Beschriftung verwendet jetzt die Akzentfarbe. Der deutsche Menüpunkt für Verschieben, Drehen, Skalieren und Schneiden heißt „Objekt“ und passt ohne Kürzung in die Leiste.
