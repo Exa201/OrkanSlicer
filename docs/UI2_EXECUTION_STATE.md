@@ -4,45 +4,42 @@ Updated: 2026-10-16
 
 ## Current phase
 
-Phase 4 — continue migrating remaining workspace UI responsibilities out of `BedFragment`. Paint, Measure, Variable Layer Height, and Emboss now share the exclusive Compose workspace mode-panel host. The full UI 2.0 migration is not complete.
+Phase 4 — the `BedFragment.showUnfoldMenu` workspace route now hands existing route content to `WorkspaceController` and the Compose `WorkspaceModePanelHost`. The old `UnfoldMenu` overlay host is bypassed for these workspace routes. The inner route content remains a compatibility `View`/`ComposeView`; the entire UI 2.0 migration is not complete.
 
 ## Completed in this execution
 
-- Replaced the Paint, Variable Layer Height, and Emboss custom View mode surfaces with Compose panels hosted by the shared workspace mode-panel host.
-- Kept renderer mutations and model operations on the GL thread. Emboss event registration is owned by the Compose lifecycle through a small `EmbossModeController`.
-- Paint now has explicit commit and cancel paths. Cancellation rolls back the active paint session; atomic finish protection prevents duplicate completion and stale tool cleanup cannot dismiss a replacement tool.
-- Removed the three old View mode classes, their legacy mode host, and obsolete View-hosted device tests.
-- Added Compose UI instrumentation for paint controls, Variable Layer Height, and Emboss; added a controller regression test for delayed cleanup from a replaced special tool.
-- Moved the already-Compose Measure panel from its own manually attached bottom overlay into the same exclusive workspace mode-panel host; its nested surface was removed so the shared host supplies the panel surface consistently.
-- Added a Measure panel render/readout instrumentation test. Back and tool switching for all four modes continue to use the same `WorkspaceController` exclusive tool lifecycle.
-- The shared `UnfoldMenu` routes remain compatibility content under their existing Compose host. Their route-specific inner contents and action verification are still incomplete.
+- Paint, Measure, Variable Layer Height, and Emboss use the exclusive Compose workspace mode-panel host; renderer mutations remain on the GL thread.
+- `BedFragment.showUnfoldMenu` now registers route content and a dismiss callback with `WorkspaceController`; panel dismissal removes the content and runs route cleanup through AndroidView attach/detach lifecycle callbacks.
+- `WorkspaceController` carries the requested route panel fraction so the old `getRequestedSize` sizing behavior is retained within the shared Compose panel host.
+- The legacy `UnfoldMenu` Android overlay is still available to callers outside the BedFragment workspace, including MainActivity routes.
+- Added a device Compose test for the workspace-hosted UnfoldMenu lifecycle and an assertion for panel-fraction state ownership.
+- SliceBeam was explicitly uninstalled from the Honor device (`ru.ytkab0bp.slicebeam`). The OrkanSlicer package (`com.codemastercody3d.orcaslicermobile`) was separately reinstalled and launched; only that package was used for the final screenshot and launch verification.
 
 ## Remaining active routes and technical boundaries
 
-- The ten `UnfoldMenu` compatibility routes still use their existing Android/Compose/WebView inner content; migrating the visible host did not replace all route-specific controls.
-- `BedFragment` still coordinates renderer lifecycle, menu/action integration, dialogs, and domain-controller entry points. Its remaining responsibilities must be separated selectively without disturbing GL or native Slicer lifecycle.
-- The GL renderer and `GLView` remain necessary technical Android integrations.
-- Multi-plate project persistence remains incomplete. The existing active-plate-only export warning must remain.
-- Full menu-by-menu functional audit, responsive/accessibility matrix, and real multi-plate/filament interaction stress coverage remain open.
+- Workspace UnfoldMenu route contents still include legacy Android Views and ComposeViews inside AndroidView; route-specific controls have not all been extracted into native Compose components.
+- MainActivity and other non-workspace callers still use the standalone UnfoldMenu overlay path.
+- BedFragment retains technical GLView/renderer lifecycle, current menu-view integration, domain-controller entry points, and Android configuration handling; these require selective migration and testing.
+- The GL renderer and native Slicer engine remain necessary technical integrations and were not rewritten.
+- Multi-plate project persistence is incomplete. Keep the active-plate-only export warning.
+- Full menu-by-menu functional audit, small-display/font-scale/accessibility matrix, and real multi-plate/filament interaction stress coverage remain open.
 
 ## Verification in this execution
 
-- `:app:testDebugUnitTest`: 547 tests, 0 failures, 0 errors, 0 skipped.
-- `:app:testSliceTestUnitTest`: 547 tests, 0 failures, 0 errors, 0 skipped.
-- `:app:compileSliceTestAndroidTestKotlin`: passed.
-- `:app:connectedAndroidTest`: Honor PTP-N49 / Android 16 — 49 tests, 0 failures, 0 errors, 3 skipped due to unavailable private fixtures. The offline `emulator-5554` was skipped.
-- Compose instrumentation exercises paint controls and cancel, Variable Layer Height status/exit, Emboss settings/exit, and Measure readout rendering. It does not claim to validate GL model edits on a loaded project.
-- `:app:assembleDebug`: passed from code commit `b0387c84877bb227b42ded78f8dee2b8a36ef6e8`.
-- APK: `app/build/outputs/apk/debug/OrkanSlicer_b0387c8487.apk`, 157,006,040 bytes; SHA-256 `B572BC850552165BD5238E0A550C5D72BBB398BA3C7D79D435CDC84E4FC787AA`.
-- Final APK installed and launched on Honor PTP-N49 / Android 16; process remained active and `MainActivity` was resumed. The inspected recent logcat contained no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` lines.
-- The emulator (`emulator-5554`) is offline. No true printer job was started and no firmware was changed.
+- `:app:testDebugUnitTest`: 548 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:testSliceTestUnitTest`: 548 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:connectedSliceTestAndroidTest`: Honor PTP-N49 / Android 16 — 51 tests, 0 failures, 0 errors, 3 skipped due to unavailable private fixtures. `emulator-5554` was offline and skipped.
+- `:app:compileDebugKotlin`, `:app:compileSliceTestAndroidTestKotlin`, and `:app:assembleDebug`: passed.
+- The added device test exercises Compose-hosted legacy route attach, dismiss, and cleanup. It does not claim to validate every route's GL model-edit behavior.
+- Final debug APK: `app/build/outputs/apk/debug/OrkanSlicer_d7bc3e59da.apk`, 157,006,048 bytes; SHA-256 `51DDE60BAFB0C1D51A459C9AC6364130B7751D1F757D612C0D04B92B8346FCE8`.
+- APK was installed on Honor PTP-N49 / Android 16 under `com.codemastercody3d.orcaslicermobile`; `MainActivity` was top-resumed. The final workspace screenshot is `app/build/orkan_workspace_final.png` (ignored build output). The recent checked logcat contained no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` lines.
+- No printer job was started and no firmware was changed.
 
 ## Git and continuation
 
 - Branch: `codex/rinkhals-safe-start-audit`.
-- Base HEAD for this execution: `4aafd3dddcf0e9fc2340102a6c8cdbacf5a6a3b7`.
-- Code commits: `6ca56ca82fc9a0998cd89addbda9213fd19f4824` (`Migrate GL mode panels to Compose`) and `b0387c84877bb227b42ded78f8dee2b8a36ef6e8` (`Unify measure mode workspace overlay`); both pushed to the existing branch.
-- The APK above was built from code commit `b0387c84877bb227b42ded78f8dee2b8a36ef6e8`; this execution-state update is a later documentation-only commit.
-- Preserve the unrelated untracked `.codex-remote-attachments/` directory; do not stage it.
-- PR #2 remains open and GitHub reports it mergeable. The branch ref is at `7ecfba6d6c3d1b988411a5a703d70e20f34f2596`, but the PR API and `refs/pull/2/head` still report `d336de882c4cd6265df16348136db766942c874c` after the branch push. Verification comments were posted to PR #2, but the GitHub PR head has not reflected the newest branch commits yet; verify/sync this discrepancy before treating the PR as containing this work. No merge or release was performed.
-- Next concrete task: continue Phase 4 by migrating remaining menu/action orchestration from `BedFragment` into the existing workspace Compose/controller structure, then proceed to the menu audit and responsive/accessibility coverage.
+- Latest code commit: `d7bc3e59da28565d52f7bd89b37a1d654f441209` (`Host legacy workspace routes in Compose panels`).
+- The APK above was rebuilt from that code commit. This file is a later documentation-only update.
+- Preserve the unrelated untracked `.codex-remote-attachments/` directory; never stage it.
+- PR #2 remains open and unmerged. Push the latest code and this status update, then verify the PR head actually matches the branch; do not merge or publish a release.
+- Next implementation task: migrate remaining BedFragment workspace menu/action ownership and convert remaining reachable route contents in coherent groups, starting with the simplest ComposeView-backed route. Then continue the functional menu audit and responsive/accessibility coverage.
