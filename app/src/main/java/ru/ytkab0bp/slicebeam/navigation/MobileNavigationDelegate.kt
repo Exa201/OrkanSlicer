@@ -11,6 +11,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -117,23 +118,26 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
     }
 
     private fun createNavigationHost(ctx: Context): ComposeView {
-        val items = MobileNavigationPolicy.destinations().map { slot ->
-            val fullTitle = getSlotNavigationTitle(slot)
-            WorkspaceNavigationItem(
-                slot = slot,
-                label = ctx.getString(
-                    if (compactNavigationLabels) compactNavigationTitle(slot) else fullTitle,
-                ),
-                icon = getSlotIcon(slot),
-                // Keep complete destination names available when visible labels are compacted.
-                accessibilityLabel = ctx.getString(fullTitle),
-            )
-        }
         return ComposeView(ctx).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
                 key(navigationThemeRevision) {
                     BeamComposeTheme {
+                        val compactLabels = AdaptiveNavigationPolicy.usesCompactLabels(
+                            LocalDensity.current.fontScale,
+                        )
+                        val items = MobileNavigationPolicy.destinations().map { slot ->
+                            val fullTitle = getSlotNavigationTitle(slot)
+                            WorkspaceNavigationItem(
+                                slot = slot,
+                                label = ctx.getString(
+                                    if (compactLabels) compactNavigationTitle(slot) else fullTitle,
+                                ),
+                                icon = getSlotIcon(slot),
+                                // Keep complete destination names available when labels are compacted.
+                                accessibilityLabel = ctx.getString(fullTitle),
+                            )
+                        }
                         AdaptiveWorkspaceNavigation(
                             items = items,
                             selectedSlot = selectedNavigationSlot,

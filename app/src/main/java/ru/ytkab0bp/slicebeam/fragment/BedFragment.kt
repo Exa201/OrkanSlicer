@@ -1253,29 +1253,30 @@ syncCurrentModel()
 rebuildAdaptiveLayout(ctx, portrait)
 }
 private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): ComposeView {
-    val compactLabels = !bottomNavigation || ctx.resources.configuration.fontScale >= 1.15f
-    val items = WorkspaceDestination.values().map { destination ->
-        val label = ctx.getString(destination.titleRes)
-        val compactTitleRes = when (destination) {
-            WorkspaceDestination.PROJECT -> R.string.MenuFileCompact
-            WorkspaceDestination.MODEL -> R.string.MenuModelCompact
-            WorkspaceDestination.EDIT -> R.string.MenuToolbarNavigationCompact
-            WorkspaceDestination.TOOLS -> R.string.MenuOptionsCompact
-            else -> destination.navigationTitleRes
-        }
-        WorkspaceNavigationItem(
-            slot = destination.ordinal,
-            label = ctx.getString(if (compactLabels) compactTitleRes else destination.navigationTitleRes),
-            icon = destination.iconRes,
-            accessibilityLabel = label,
-            compactLabel = ctx.getString(compactTitleRes),
-        )
-    }
     return ComposeView(ctx).apply {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
         setContent {
             key(menuNavigationThemeRevision) {
                 BeamComposeTheme(themeRevision = menuNavigationThemeRevision) {
+                    val compactLabels = !bottomNavigation ||
+                        AdaptiveNavigationPolicy.usesCompactLabels(androidx.compose.ui.platform.LocalDensity.current.fontScale)
+                    val items = WorkspaceDestination.values().map { destination ->
+                        val fullLabel = ctx.getString(destination.navigationTitleRes)
+                        val compactTitleRes = when (destination) {
+                            WorkspaceDestination.PROJECT -> R.string.MenuFileCompact
+                            WorkspaceDestination.MODEL -> R.string.MenuModelCompact
+                            WorkspaceDestination.EDIT -> R.string.MenuToolbarNavigationCompact
+                            WorkspaceDestination.TOOLS -> R.string.MenuOptionsCompact
+                            else -> destination.navigationTitleRes
+                        }
+                        WorkspaceNavigationItem(
+                            slot = destination.ordinal,
+                            label = ctx.getString(if (compactLabels) compactTitleRes else destination.navigationTitleRes),
+                            icon = destination.iconRes,
+                            accessibilityLabel = fullLabel,
+                            compactLabel = ctx.getString(compactTitleRes),
+                        )
+                    }
                     AdaptiveWorkspaceNavigation(
                         items = items,
                         selectedSlot = workspaceController.selectedDestinationSlot,
