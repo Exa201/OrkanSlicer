@@ -1,3 +1,31 @@
+## UI 2.0 – erster Arbeitsstand (2026-10-16)
+
+Die Arbeitsbereichsnavigation trennt jetzt **Projekt** (Modell importieren, Projekt exportieren)
+von **Modell** (Objektliste, Kopien, Druckplattenwechsel, Zentrieren, Plattenfüllung, Anordnen,
+Ausrichten und Löschen). Das Modellmenü verwendet wie Bearbeiten ein kompaktes Zwei-Reihen-Raster.
+Die unteren Navigationsziele haben kurze sichtbare Beschriftungen und vollständige
+Accessibility-Namen. „Kopien erstellen“ beschreibt den Mengen-Dialog; „Alle anordnen“ bezeichnet
+die Aktion, die alle Modelle auf der aktuellen Druckplatte verteilt. Der Renderer und die
+Slicer-Engine wurden nicht geändert. IDs, Titel und Symbole der Ziele liegen nun im
+Navigationspaket (`WorkspaceDestination`), getrennt vom Fragment-Lifecycle.
+
+Die vorhandene Oberfläche erfüllt bereits die drei vorgegebenen Gestaltungsrichtungen: freie,
+große Druckplatte mit einklappbarer Werkzeugfläche, kleiner Filament-Farbbutton mit Bottom Sheet
+auf dem Smartphone beziehungsweise Seitenpanel ab 600 dp und gemeinsame Compose-/Material-3-
+Komponenten. Das Filamentpanel wurde auf dem Honor geöffnet; ACE-Fächer und T0–T3-Zuordnung waren
+sichtbar. Diese Änderung ist ein UI-Migrationsschritt und noch nicht die vollständige Ablösung der
+imperativen `BedFragment`-Workspace-Hülle. Die weitere Entkopplung von Navigation, Zustand,
+Workspace-Layout und Renderer-Adapter ist in `ORKANSLICER_UI_2_ROADMAP.md` festgehalten.
+
+Verifiziert: `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` je 523/523 bestanden,
+`:app:assembleDebug` einschließlich ARM64-CMake erfolgreich; APK
+`app/build/outputs/apk/debug/OrkanSlicer_f85550d8fb.apk` (157.129.650 Byte, SHA-256
+`2E8553021218AE9AC782B9F8B5BF23CECF9BB9E23C66E38A3D195A5425FDEB03`). Auf dem Honor PTP-N49
+installiert und gestartet. Projekt-/Modellnavigation, zweireihiges Modellmenü und Filamentpanel
+visuell geprüft; keine Abstürze, ANRs oder OOMs im abgefragten Logcat. Der Android-CLI-
+Accessibility-Dump scheiterte an der Instrumentierungsverbindung. Der Emulator-Installationsversuch
+endete nach APK-Transfer mit I/O-Timeout; Emulatorprüfung daher nicht bestätigt. Kein Druck gestartet.
+
 ## Entwicklungsstand 0.8.242 – Temperaturen für die aktive Druckoberfläche
 
 Filamentprofile zeigen jetzt separate Werte für erste und weitere Schichten auf glatter kühler,

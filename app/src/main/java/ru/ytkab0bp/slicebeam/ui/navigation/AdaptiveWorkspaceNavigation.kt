@@ -54,6 +54,7 @@ fun AdaptiveWorkspaceNavigation(
             Row(Modifier.fillMaxWidth().selectableGroup()) {
                 items.forEach { item ->
                     Destination(item, item.slot == selectedSlot, Modifier.weight(1f), onSelected,
+                        bottomLabel = item.compactLabel ?: item.label,
                         panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
                         panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
                         showPanelToggleIndicator = showPanelToggleIndicator)
@@ -83,6 +84,7 @@ private fun Destination(
     modifier: Modifier,
     onSelected: (Int) -> Unit,
     compactRail: Boolean = false,
+    bottomLabel: String = item.label,
     panelOpen: Boolean = true,
     panelOpenDescription: String,
     panelClosedDescription: String,
@@ -126,7 +128,7 @@ private fun Destination(
             }
         }
         Text(
-            if (compactRail) item.compactLabel ?: item.label else item.label,
+            if (compactRail) item.compactLabel ?: item.label else bottomLabel,
             maxLines = 2,
             softWrap = true, overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center, fontSize = OrkanUiTokens.navigationLabelSize,

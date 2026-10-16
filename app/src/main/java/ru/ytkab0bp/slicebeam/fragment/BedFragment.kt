@@ -62,6 +62,7 @@ import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.OptionsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
@@ -83,6 +84,8 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
+import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
+import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationState
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
@@ -114,24 +117,29 @@ var overlayLayout: FrameLayout? = null
 var snackbarsLayout: SnackbarsLayout? = null
 var glView: GLView? = null
 private var navigationView: ComposeView? = null
-private var selectedMenuNavigationSlot by mutableIntStateOf(0)
 private var menuNavigationThemeRevision by mutableIntStateOf(0)
-private var menuToolsExpanded by mutableStateOf(false)
+private val workspaceNavigationState = WorkspaceNavigationState()
+private var menuToolsExpanded:Boolean
+get() = workspaceNavigationState.toolPanelExpanded
+set(value) { workspaceNavigationState.toolPanelExpanded = value }
 private var filamentPaletteRevision by mutableIntStateOf(0)
 private var isAnimatingMenu:Boolean = false
-private var currentMenuSlot:Int = 0
+private var currentMenuSlot:Int
+get() = workspaceNavigationState.selectedDestinationSlot
+set(value) { workspaceNavigationState.selectDestination(value, WorkspaceDestination.values().size) }
 private lateinit var menuView: FrameLayout
 private var menuMap = object:SparseArray<BedMenu>() {
 override fun get(key:Int):BedMenu {
 var menu = super.get(key)
 if (menu == null)
 {
-when (MenuCategory.values()[key]) {
-BedFragment.MenuCategory.FILE -> menu = FileMenu()
-BedFragment.MenuCategory.CAMERA -> menu = CameraMenu()
-BedFragment.MenuCategory.TRANSFORM -> menu = TransformMenu()
-BedFragment.MenuCategory.OPTIONS -> menu = OptionsMenu()
-BedFragment.MenuCategory.SLICE_AND_EXPORT -> menu = SliceMenu()
+when (WorkspaceDestination.values()[key]) {
+WorkspaceDestination.PROJECT -> menu = FileMenu()
+WorkspaceDestination.MODEL -> menu = ModelMenu()
+WorkspaceDestination.CAMERA -> menu = CameraMenu()
+WorkspaceDestination.EDIT -> menu = TransformMenu()
+WorkspaceDestination.TOOLS -> menu = OptionsMenu()
+WorkspaceDestination.SLICE -> menu = SliceMenu()
 else -> menu = FileMenu()
 }
 put(key, menu)
@@ -393,7 +401,7 @@ viewport.requestRender() })
 tempFileName = produced.getRecommendedName()
 tempExportingFile = null
 val portrait = usesCompactPortraitLayout(ctx)
-(menuMap.get(MenuCategory.SLICE_AND_EXPORT.ordinal) as SliceMenu)
+(menuMap.get(WorkspaceDestination.SLICE.ordinal) as SliceMenu)
 .refreshItems(portrait)
 if (onSuccess != null) onSuccess.run() })
 }
@@ -523,7 +531,7 @@ if (event.settingsChanged && gCodeResult != null) {
         viewport.requestRender()
     }
     tempExportingFile = null
-    (menuMap.get(MenuCategory.SLICE_AND_EXPORT.ordinal) as? SliceMenu)?.refreshItems(usesCompactPortraitLayout(getContext()!!))
+    (menuMap.get(WorkspaceDestination.SLICE.ordinal) as? SliceMenu)?.refreshItems(usesCompactPortraitLayout(getContext()!!))
 }
 glView?.requestRender()
 }
@@ -791,7 +799,7 @@ tempFileName = gCodeResult!!.getRecommendedName()
 tempExportingFile = f
 val ctx = getContext() ?: return@postOnMainThread
 val portrait = isPortraitWindow(ctx)
-selectMenu(ctx, portrait, MenuCategory.SLICE_AND_EXPORT.ordinal) })
+selectMenu(ctx, portrait, WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
 if (embossModeView != null)
@@ -1210,7 +1218,6 @@ PrinterWebOpenButton(hostConfigured = printerWebAvailable, onOpen = ::openPrinte
 contentView = createWorkspaceContent(ctx, portrait)
 overlayLayout!!.addView(contentView, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-configureMenuNavigation()
 snackbarsLayout = SnackbarsLayout(ctx)
 overlayLayout!!.addView(snackbarsLayout, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -1244,17 +1251,21 @@ rebuildAdaptiveLayout(ctx, portrait)
 }
 private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): ComposeView {
     val compactLabels = !bottomNavigation || ctx.resources.configuration.fontScale >= 1.15f
-    val items = MenuCategory.values().map { category ->
-        val label = ctx.getString(category.titleRes)
+    val items = WorkspaceDestination.values().map { destination ->
+        val label = ctx.getString(destination.titleRes)
+        val compactTitleRes = when (destination) {
+            WorkspaceDestination.PROJECT -> R.string.MenuFileCompact
+            WorkspaceDestination.MODEL -> R.string.MenuModelCompact
+            WorkspaceDestination.EDIT -> R.string.MenuToolbarNavigationCompact
+            WorkspaceDestination.TOOLS -> R.string.MenuOptionsCompact
+            else -> destination.navigationTitleRes
+        }
         WorkspaceNavigationItem(
-            slot = category.ordinal,
-            label = ctx.getString(if (compactLabels) when (category) {
-                MenuCategory.TRANSFORM -> R.string.MenuToolbarNavigationCompact
-                MenuCategory.OPTIONS -> R.string.MenuOptionsCompact
-                else -> category.navigationTitleRes
-            } else category.navigationTitleRes),
-            icon = category.iconRes,
+            slot = destination.ordinal,
+            label = ctx.getString(if (compactLabels) compactTitleRes else destination.navigationTitleRes),
+            icon = destination.iconRes,
             accessibilityLabel = label,
+            compactLabel = ctx.getString(compactTitleRes),
         )
     }
     return ComposeView(ctx).apply {
@@ -1264,7 +1275,7 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
                 BeamComposeTheme(themeRevision = menuNavigationThemeRevision) {
                     AdaptiveWorkspaceNavigation(
                         items = items,
-                        selectedSlot = selectedMenuNavigationSlot,
+                        selectedSlot = workspaceNavigationState.selectedDestinationSlot,
                         isBottomNavigation = bottomNavigation,
                         toolsExpanded = !bottomNavigation || menuToolsExpanded,
                         panelOpenDescription = ctx.getString(R.string.WorkspaceToolsOpen),
@@ -1279,18 +1290,14 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
     }
 }
 
-private fun configureMenuNavigation() {
-    selectedMenuNavigationSlot = currentMenuSlot
-}
-
 private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, slot: Int) {
-    if (slot !in MenuCategory.values().indices || isAnimatingMenu) return
+    if (slot !in WorkspaceDestination.values().indices || isAnimatingMenu) return
     if (slot == currentMenuSlot) {
         if (bottomNavigation) setPortraitToolPanelExpanded(!menuToolsExpanded)
         return
     }
     if (bottomNavigation && !menuToolsExpanded) setPortraitToolPanelExpanded(true)
-    if (slot != MenuCategory.SLICE_AND_EXPORT.ordinal) {
+    if (slot != WorkspaceDestination.SLICE.ordinal) {
         glView?.queueEvent {
             gCodeResult?.release()
             gCodeResult = null
@@ -1298,7 +1305,7 @@ private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, sl
             glView?.requestRender()
         }
     } else {
-        (menuMap.get(MenuCategory.SLICE_AND_EXPORT.ordinal) as SliceMenu).refreshItems(bottomNavigation)
+        (menuMap.get(WorkspaceDestination.SLICE.ordinal) as SliceMenu).refreshItems(bottomNavigation)
     }
     selectMenu(ctx, bottomNavigation, slot)
 }
@@ -1398,7 +1405,6 @@ menuView.addView(activeMenu.getView(), FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 contentView = createWorkspaceContent(ctx, portrait)
 compactPortraitLayout = portrait
-configureMenuNavigation()
 overlayLayout!!.addView(contentView, 0, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 updateAdaptiveOverlayMargins(portrait)
@@ -1426,9 +1432,9 @@ updateAdaptiveOverlayMargins(usesCompactPortraitLayout(ctx))
 glView?.requestRender()
 }
 private fun menuPortraitHeightDp(): Int = WorkspaceToolPanelPolicy.menuHeightDp(
-    needsTwoRows = currentMenuSlot == MenuCategory.FILE.ordinal ||
-        currentMenuSlot == MenuCategory.TRANSFORM.ordinal ||
-        currentMenuSlot == MenuCategory.CAMERA.ordinal,
+    needsTwoRows = currentMenuSlot == WorkspaceDestination.MODEL.ordinal ||
+        currentMenuSlot == WorkspaceDestination.EDIT.ordinal ||
+        currentMenuSlot == WorkspaceDestination.CAMERA.ordinal,
     fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f,
 )
 
@@ -1442,7 +1448,6 @@ isAnimatingMenu = true
 val prevMenu = menuMap.get(currentMenuSlot)
 val forward = slot > currentMenuSlot
 currentMenuSlot = slot
-selectedMenuNavigationSlot = slot
 if (portrait) {
 menuView.layoutParams = (menuView.layoutParams as LinearLayout.LayoutParams).apply {
 height = ViewUtils.dp(if (menuToolsExpanded) menuPortraitHeightDp() else 0)
@@ -2154,7 +2159,7 @@ webViewErrDescription.setTextColor(ThemesRepo.getColor(android.R.attr.textColorS
 webViewProgressBar!!.setIndeterminateTintList(ColorStateList.valueOf(ThemesRepo.getColor(android.R.attr.textColorSecondary)))
 }
 menuView.setBackgroundColor(ThemesRepo.getColor(android.R.attr.windowBackground))
-for (i in 0 until MenuCategory.values().size)
+for (i in 0 until WorkspaceDestination.values().size)
 {
 if (i != currentMenuSlot)
 {
@@ -2278,17 +2283,6 @@ SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ObjectsListChangedEve
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
 SliceBeam.INSTANCE!!.getResources().getQuantityString(
 R.plurals.MenuToolbarSplitDone, count, count))) }) })
-}
-enum class MenuCategory private constructor(
-internal val titleRes:Int,
-internal val iconRes:Int,
-internal val navigationTitleRes:Int = titleRes,
-) {
-FILE(R.string.MenuFile, R.drawable.folder_simple_outline_28),
-CAMERA(R.string.MenuCamera, R.drawable.camera_outline_28),
-TRANSFORM(R.string.MenuToolbar, R.drawable.menu_scale_28, R.string.MenuToolbarNavigation),
-OPTIONS(R.string.MenuOptions, R.drawable.settings_outline_28),
-SLICE_AND_EXPORT(R.string.MenuSlice, R.drawable.magic_wand_outline_28);
 }
 companion object {
 private val DEBUG_VIEWER = false

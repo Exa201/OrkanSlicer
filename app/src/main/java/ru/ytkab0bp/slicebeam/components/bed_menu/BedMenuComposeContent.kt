@@ -160,6 +160,7 @@ private fun BedMenuActionTile(
         R.string.ModelMenuDeleteSelected -> R.string.ModelMenuDeleteSelectedShort
         R.string.ModelMenuSelectAll -> R.string.ModelMenuSelectAllShort
         R.string.ModelMenuDeleteAll -> R.string.ModelMenuDeleteAllShort
+        R.string.WorkspaceObjects -> R.string.ModelMenuObjectsShort
         R.string.ModelContextResetRotation -> R.string.EditResetRotationShort
         R.string.ModelContextResetScale -> R.string.EditResetScaleShort
         R.string.ModelContextSetOnFace -> R.string.EditLayFaceShort

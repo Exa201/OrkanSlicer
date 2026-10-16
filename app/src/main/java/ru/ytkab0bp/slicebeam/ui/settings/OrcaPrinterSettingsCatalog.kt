@@ -10,7 +10,7 @@ object OrcaPrinterSettingsCatalog {
             "General", R.drawable.printer_outline_28, listOf(
                 section("Size and coordinates", "printable_area", "printable_height", "z_offset"),
                 section("Bed surface", "curr_bed_type"),
-                section("Capabilities", "single_extruder_multi_material", "high_current_on_filament_swap"),
+                section("Capabilities", "single_extruder_multi_material", "high_current_on_filament_swap", "support_chamber_temp_control", "support_air_filtration"),
                 section("Firmware", "gcode_flavor", "silent_mode", "fan_kickstart", "fan_speedup_time", "fan_speedup_overhangs", "machine_load_filament_time", "machine_unload_filament_time"),
                 section("Advanced", "use_relative_e_distances", "use_firmware_retraction"),
             ),

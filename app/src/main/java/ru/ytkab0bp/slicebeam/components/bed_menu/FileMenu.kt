@@ -80,17 +80,15 @@ internal fun aiGenerationQuotaProgress(total: Int, generated: Int): Float =
 class FileMenu : ListBedMenu() {
     private var wasPortrait = false
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
-    private var modelMenuItems: ModelMenuItems? = null
 
     override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
         wasPortrait = portrait
         val themedView = ThemeAwareComposeView(ctx)
         themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        modelMenuItems = fragment?.let { ModelMenuItems(it, ::refreshComposeActions) }
         composeActions.value = createComposeActions(portrait)
         themedView.setContent {
             BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(composeActions.value, portrait, multiRow = true)
+                BedMenuActionsContent(composeActions.value, portrait)
             }
         }
         return themedView
@@ -115,7 +113,7 @@ class FileMenu : ListBedMenu() {
                 sectionBreakBefore = menuItem.sectionBreakBefore,
                 enabled = menuItem.isEnabled,
             )
-        } + modelMenuItems?.createItems().orEmpty()
+        }
 
     private fun refreshComposeActions() {
         composeActions.value = createComposeActions(wasPortrait)
@@ -334,19 +332,16 @@ class FileMenu : ListBedMenu() {
 
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {
-        modelMenuItems?.resetFlattenMode()
         refreshComposeActions()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectionChanged(event: SelectedObjectChangedEvent) {
-        modelMenuItems?.resetFlattenMode()
         refreshComposeActions()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onFlattenModeReset(event: FlattenModeResetEvent) {
-        modelMenuItems?.resetFlattenMode()
         refreshComposeActions()
     }
 

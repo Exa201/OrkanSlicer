@@ -8,7 +8,7 @@ import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
-/** Model placement and object operations; geometry editing stays in TransformMenuItems. */
+/** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
 internal class ModelMenuItems(
     private val fragment: BedFragment,
     private val onItemsChanged: () -> Unit,
