@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.ui.settings
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -67,17 +68,20 @@ class OrcaFilamentSettingsCatalogTest {
     }
 
     @Test
-    fun duplicatePlateTemperaturesAndDeveloperOnlyControlsStayHidden() {
+    fun plateTemperaturesAreExposedAndDeveloperOnlyControlsStayHidden() {
         val filamentKeys = OrcaFilamentSettingsCatalog.filamentKeys().toSet()
-        val duplicatePlateTemperatures = setOf(
-            "cool_plate_temp", "textured_cool_plate_temp", "eng_plate_temp", "textured_plate_temp",
-            "supertack_plate_temp", "cool_plate_temp_initial_layer", "textured_cool_plate_temp_initial_layer",
-            "eng_plate_temp_initial_layer", "textured_plate_temp_initial_layer", "supertack_plate_temp_initial_layer",
-        )
+        val plateTemperatures = setOf("cool_plate", "eng_plate", "hot_plate", "textured_plate", "textured_cool_plate", "supertack_plate")
+            .flatMap { surface -> listOf("${surface}_temp", "${surface}_temp_initial_layer") }
 
-        duplicatePlateTemperatures.forEach { key ->
-            assertFalse("$key should not duplicate the single general bed-temperature control", key in filamentKeys)
+        plateTemperatures.forEach { key ->
+            assertTrue("$key must be independently editable for Orca's selected bed type", key in filamentKeys)
         }
+        val filamentCategory = OrcaFilamentSettingsCatalog.categories().first { it.title == "Filament" }
+        val plateSections = filamentCategory.sections.filter { section ->
+            section.keys.any { it in plateTemperatures }
+        }
+        assertEquals(6, plateSections.size)
+        assertTrue("Every bed temperature must be grouped under a surface name", plateSections.all { it.title.isNotBlank() })
         assertFalse(
             "The native adaptive volumetric-speed option is marked experimental and incomplete",
             "filament_adaptive_volumetric_speed" in filamentKeys,

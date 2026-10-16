@@ -453,7 +453,7 @@ open class SliceBeam : Application() {
                     if (activeFilamentCount > 0) activeFilamentCount else Prefs.getFilamentSlots().size,
                 )
             }
-            ru.ytkab0bp.slicebeam.config.SliceTemperatureNormalizer.applyGeneralBedTemperature(singleObject)
+            ru.ytkab0bp.slicebeam.config.SliceTemperatureNormalizer.fillMissingBedSurfaceTemperatures(singleObject)
             return singleObject
         }
 

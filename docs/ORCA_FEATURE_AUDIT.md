@@ -3,8 +3,8 @@
 ## Verified status (2026-10-16)
 
 The original counts below are historical and must not be read as the current UI coverage.
-The current source audit reports 887 parsed native keys and 477 process/filament/printer
-settings routed to native definitions (319 process, 90 filament, 68 printer). The profile
+The current source audit reports 887 parsed native keys and 488 process/filament/printer
+settings routed to native definitions (319 process, 100 filament, 69 printer). The profile
 route checker also verifies that those rows reach matching profile parsers. Run
 `scripts/check_profile_setting_routes.py` and `scripts/audit_orca_feature_gap_doc.py` to
 recalculate the current figures; the latter only reconciles settings literally named in
@@ -16,9 +16,11 @@ the other candidates out of the UI where the core does not implement them (`adap
 where Orca sets them internally (`has_scarf_joint_seam`), where dependent sequence editing
 would be absent (`first_layer_sequence_choice`, `other_layers_sequence_choice`), where the
 native definition has no useful label/help (`elefant_foot_min_width`), or where the native
-tooltip warns of a possible brim-to-model fusion (`brim_use_efc_outline`). Bed-type
-temperatures intentionally remain a single general filament control: the app synchronizes
-that value to the per-plate Orca keys and preserves explicit project values.
+tooltip warns of a possible brim-to-model fusion (`brim_use_efc_outline`). Bed-type temperatures are exposed as six clearly named plate groups with separate first-layer
+and other-layer values. The selected printer plate determines the values shown before slicing;
+explicit Orca values are preserved, while missing legacy plate values are filled from the
+high-temperature plate setting. The printer profile defaults to Orca’s configured bed type, with
+the existing PEI/high-temperature fallback when no default is configured.
 
 The calibration menu now has an explicit “save measured result” action for Orca modes whose
 G-code changes correspond to a profile value: pressure advance, nozzle temperature, maximum
@@ -107,8 +109,8 @@ are defined in the engine but not shown in the app**, plus several whole model-e
 ---
 
 ## 2. Missing Filament settings
-- **Bed-type temps** (Orca per-plate temps): `cool_plate_temp`(+initial), `eng_plate_temp`(+initial),
-  `textured_plate_temp`(+initial), `supertack_plate_temp`(+initial) — only `hot_plate_temp` is exposed today
+- **Bed-type temps**: implemented in the filament profile catalog for all six Orca plate types;
+  `curr_bed_type` is available in printer settings and drives the pre-slice temperature preview.
 - Pressure advance per filament: `enable_pressure_advance`, `pressure_advance`
 - Cooling advanced: `additional_cooling_fan_speed`, `fan_kickstart`, `fan_speedup_time`, `fan_speedup_overhangs`,
   `close_additional_fan_first_x_layers`, `first_x_layer_fan_speed`, `internal_bridge_fan_speed`
@@ -160,11 +162,11 @@ Missing vs OrcaSlicer desktop:
 1. **Speed/Motion + Jerk/Junction + Pressure Advance** — biggest single settings gap; pure UI work
    (engine already supports them). High user impact, low risk.
 2. **Per-feature flow ratios + internal bridge settings** — UI work only.
-3. **Bed-type temperatures (filament)** — Orca printers expect these; currently only `hot_plate_temp`.
-4. **Scarf-joint seam + seam painting** — marquee Orca quality feature.
-5. **Brim ears, ironing-advanced, fuzzy-skin-advanced** — UI work only.
-6. **Cut tool** (Task #6) and **Color painting** (Task #7) — large, need native + gizmo work.
-7. **Machine motion limits** in Printer tab — needs the array/matrix editor widget.
+3. **Scarf-joint seam + seam painting** — headline Orca quality feature; seam painting needs native gizmo work.
+4. **Brim ears, ironing-advanced, fuzzy-skin-advanced** — UI work only.
+5. **Cut tool** (Task #6) and **Color painting** (Task #7) — large, need native + gizmo work.
+6. **Machine motion limits** in Printer tab — needs the array/matrix editor widget.
+
 
 ### Quick wins (engine-ready, UI-only)
 Adding these keys to `OrcaPrintSettingsBuilder` / `FilamentConfigFragment` / `PrinterConfigFragment`
@@ -172,5 +174,5 @@ immediately surfaces them — they already slice correctly:
 `default_jerk`, `outer_wall_jerk`, `inner_wall_jerk`, `infill_jerk`, `travel_jerk`,
 `enable_pressure_advance`, `pressure_advance`, `accel_to_decel_enable`, `accel_to_decel_factor`,
 `initial_layer_travel_speed`, all `*_flow_ratio`, `internal_bridge_*`, `seam_gap`, `brim_ears*`,
-`cool_plate_temp`/`textured_plate_temp`/`eng_plate_temp` (+initial), `enable_timelapse`,
+ `enable_timelapse`,
 `exclude_object`, `adaptive_layer_height`.

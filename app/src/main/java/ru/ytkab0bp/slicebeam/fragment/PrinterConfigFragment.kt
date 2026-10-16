@@ -10,6 +10,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.PrinterConnectionCard
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.BedSurfaceTemperaturePolicy
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
 
@@ -137,6 +138,12 @@ class PrinterConfigFragment : ProfileListFragment() {
             ?: SliceBeam.requireConfig().printerConfigs.firstOrNull()
             ?: ConfigObject.createCustomPrinterProfile()
         currentConfig = ConfigObject(printer)
+        if (currentConfig?.get("curr_bed_type").isNullOrBlank()) {
+            currentConfig?.put(
+                "curr_bed_type",
+                BedSurfaceTemperaturePolicy.printerDefaultValue(printer.get("default_bed_type")) ?: "High Temp Plate",
+            )
+        }
     }
 
     override fun getCurrentConfig(): ConfigObject? = currentConfig

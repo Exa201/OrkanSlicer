@@ -491,13 +491,17 @@ def main() -> None:
         errors.append("Failed multi-plate imports must reset shared UI state on the main thread and reject stale failures")
     if "modelLoadInProgress || newPlateIndex" not in bed_fragment:
         errors.append("Plate selection must be disabled while a model import is in progress")
-    visible_bed_temperature_keys = filament_option_keys & {"hot_plate_temp", "hot_plate_temp_initial_layer", "cool_plate_temp", "eng_plate_temp", "textured_plate_temp", "supertack_plate_temp"}
-    if visible_bed_temperature_keys != {"hot_plate_temp", "hot_plate_temp_initial_layer"}:
-        errors.append("Filament editor must expose exactly one general bed-temperature pair")
+    expected_bed_temperature_keys = {
+        f"{surface}_temp{suffix}"
+        for surface in ("cool_plate", "eng_plate", "hot_plate", "textured_plate", "textured_cool_plate", "supertack_plate")
+        for suffix in ("", "_initial_layer")
+    }
+    visible_bed_temperature_keys = filament_option_keys & expected_bed_temperature_keys
+    if visible_bed_temperature_keys != expected_bed_temperature_keys:
+        errors.append("Filament editor must expose separate first-layer and normal temperatures for every Orca bed surface")
     if "OrcaFilamentSettingsBuilder.build(this)" not in filament_fragment:
         errors.append("Filament settings do not use the Kotlin settings builder")
     for retained_behavior in (
-        "options[\"$surface$stage\"]",
         "Slic3rUtils.isPrinterCompatible(",
         "Slic3rUtils.isCompatible(",
         "seenTitles.add(profile.title.orEmpty())",
@@ -506,6 +510,11 @@ def main() -> None:
     ):
         if retained_behavior not in filament_fragment:
             errors.append(f"Kotlin filament profile screen lost required behavior: {retained_behavior}")
+    if "override fun updateConfigField" in filament_fragment:
+        errors.append("Editing one filament bed-surface temperature must not rewrite the other surfaces")
+    preslice_dialog = uncommented(read(JAVA / "components/PreSliceFilamentDialog.kt"))
+    if "BedSurfaceTemperaturePolicy.keysFor(snapshot[\"curr_bed_type\"])" not in preslice_dialog:
+        errors.append("Pre-slice temperature summary must show the active plate's native temperature fields")
     if "OrcaFilamentSettingsCatalog.categories()" not in filament_builder:
         errors.append("Kotlin filament builder does not render from the central settings catalog")
     if ".requireContext()" in filament_builder or ".requireContext()" in process_builder:
@@ -535,13 +544,16 @@ def main() -> None:
     if "OrcaPrinterSettingsBuilder.build(this)" not in printer_fragment:
         errors.append("Printer settings are not rendered from the Kotlin catalog adapter")
     for retained_behavior in (
-        "MmuFilamentSync.synchronizeAll(selected)",
         "PrinterWebOriginPolicy.dashboardUrl(selected.get(\"print_host\"))",
         "ProfileSettingsRepository.applyPendingFor(getProfileListType(), selected)",
         "SliceBeam.applyProfileSelection(printer = item.title)",
     ):
         if retained_behavior not in printer_fragment:
             errors.append(f"Kotlin printer profile screen lost required behavior: {retained_behavior}")
+    if "MmuFilamentSync.synchronizeAll(" in printer_fragment:
+        errors.append("ACE synchronization must have one entry point in the process screen, not a duplicate printer-screen action")
+    if "MmuFilamentSync.synchronizeAll(printer)" not in process_fragment:
+        errors.append("Process screen must retain the single ACE synchronization entry point")
     if "OrcaPrinterSettingsCatalog.leadingCategories()" not in printer_builder or "OrcaPrinterSettingsCatalog.trailingCategories()" not in printer_builder:
         errors.append("Kotlin printer builder does not render both fixed setting groups")
     if "repeat(extruderCount)" not in printer_builder or "extruderCount == 1) -1 else index" not in printer_builder:

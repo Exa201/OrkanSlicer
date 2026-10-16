@@ -1287,9 +1287,8 @@ extern "C" {
             env->ReleaseStringUTFChars(configPath, chars);
             config.normalize_fdm();
 
-            // The app's bed temperatures live in the hot-plate slots (legacy bed_temperature keys
-            // migrate to hot_plate_temp); the engine reads the slot picked by curr_bed_type, whose
-            // compiled default is Cool Plate — which would silently ignore those values.
+            // Legacy bed_temperature keys migrate to hot_plate_temp. When an older profile omits
+            // curr_bed_type, keep Orkan's established PEI/high-temperature plate fallback.
             if (config.option("curr_bed_type", false) == nullptr)
                 config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(btPEI));
 

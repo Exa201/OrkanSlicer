@@ -1,3 +1,16 @@
+Ergänzung 0.8.242 (16.10.2026, Entwicklungsstand): Filamentprofile bieten jetzt sechs klar
+benannte Orca-Druckoberflächen mit jeweils getrennten Temperaturen für erste und weitere
+Schichten. Der aktive Plattentyp ist im Druckerprofil einstellbar; der Druckdialog zeigt die
+dazu passenden Temperaturen. Vorhandene Plattenwerte bleiben erhalten. Nur fehlende Werte
+älterer Profile werden aus der Hochtemperaturplatte ergänzt. Keine Änderung am Slicer-Kern oder
+Drucker-Firmware. Die Routenprüfung findet 488 Einstellungen (319 Prozess, 100 Filament, 69
+Drucker). Beide Unit-Suiten bestanden (520/520 je Suite), ARM64-Nativkern und Debug-APK bauen
+fehlerfrei. Der neue native Gerätetest erzeugt G-Code auf dem Honor und bestätigt für
+„Textured PEI“ 62 °C statt 81 °C Hochtemperatur. Die App wurde auf Honor und Emulator installiert;
+der Startbildschirm auf dem Honor zeigt die freie Druckplatte und die kompakte Filament-Schaltfläche.
+Der Emulator antwortete während des Gradle-Instrumentierungslaufs nicht auf ADB; der gezielte
+Native-Slice-Test lief deshalb auf dem Honor. Es wurde kein Druck gestartet.
+
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 
 Ergänzung 0.8.241 (16.10.2026, Entwicklungsstand): Die vollständige ACE-Synchronisierung

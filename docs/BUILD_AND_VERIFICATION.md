@@ -1,3 +1,17 @@
+## Entwicklungsstand 0.8.242 – Temperaturen für die aktive Druckoberfläche
+
+Filamentprofile zeigen jetzt separate Werte für erste und weitere Schichten auf glatter kühler,
+Engineering-, Hochtemperatur-, strukturierter PEI-, strukturierter kühler und SuperTack-Platte.
+Die Auswahl `curr_bed_type` im Druckerprofil bestimmt die Vorschau im Druckdialog. Fehlende Werte
+werden nur aus älteren Profilen ergänzt; bereits gespeicherte Oberflächenwerte bleiben unverändert.
+
+Verifiziert: Profilroutenprüfung 488 Einstellungen (319/100/69), beide Unit-Suiten 520/520,
+`:app:assembleDebug` einschließlich ARM64-CMake erfolgreich, nativer Slice-/G-Code-Gerätetest
+auf Honor bestanden (Textured PEI: M140 S62; kein S81). Debug-App auf Honor und Emulator
+installiert; Honor-Startbildschirm visuell kontrolliert. Die Gradle-Instrumentierung über beide
+Geräte lief wegen Emulator-ADB-Timeout nicht durch; der gezielte Test wurde direkt auf dem Honor
+ausgeführt. Keine native Abhängigkeit fehlte, kein Druck wurde gestartet.
+
 # Gebündelter Build- und Prüfablauf
 
 ## Entwicklungsstand 0.8.241 – ACE-Slots behalten ihre festen T-Indizes
