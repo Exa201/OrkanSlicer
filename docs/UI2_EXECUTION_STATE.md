@@ -45,7 +45,7 @@ Phase 4 — `WorkspaceShell` owns adaptive navigation and menu-route transitions
 ## Git and continuation
 
 - Branch: `codex/rinkhals-safe-start-audit`.
-- Latest code commit: `0be0bfd972fcfdf6ebaf8f52e7c52708d539d655` (`Move workspace menu transitions into Compose`), pushed to the existing branch. A docs-only status update remains to be committed.
+- Latest code commit: `0be0bfd972fcfdf6ebaf8f52e7c52708d539d655` (`Move workspace menu transitions into Compose`), pushed to the existing branch. This execution state is recorded in docs commit `fa9ad1f51287dc1070ac8f66096e46c6093cbcca`.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; never stage it.
 - PR #2 remains open, unmerged, and targets `master`. Branch synchronization was verified after push; GitHub reports `MERGEABLE` / `CLEAN`. No merge or release was performed.
 - Next implementation task: migrate the first remaining UnfoldMenu functional group (transform position/rotation/scale) to direct Compose routes, or document why each AndroidView compatibility boundary remains; then continue with global-menu interaction and accessibility audit.
