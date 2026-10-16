@@ -65,7 +65,7 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 ## Git and continuation
 
 - Branch: `codex/rinkhals-safe-start-audit`.
-- Latest code HEAD before the current test/docs-only changes: `805ce67a72cabe531b0e466b687e95e9b9cf6f55`. Current uncommitted files are the Honor workspace integration test, this continuation record, and the changelog; commit and push these focused results on the existing branch.
+- Latest code commit: `97f20402af059785bc719cb58039aa49b461564f` (`Verify paint cancellation against loaded project`); it adds the loaded-model paint cancellation test and records the Honor results. The APK was built from product code at `805ce67a72cabe531b0e466b687e95e9b9cf6f55`; the intervening change only touched Android instrumentation, the changelog, and this execution record.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; never stage it.
-- PR #2 remains open, unmerged, and targets `master`. Branch synchronization was verified after push; GitHub reports `MERGEABLE` / `CLEAN`. No merge or release was performed.
+- PR #2 is open, unmerged, and targets `master`. GitHub currently reports `OPEN` and `CLEAN` for head `codex/rinkhals-safe-start-audit`. No merge or release was performed. Push the new commit and refresh the PR record.
 - Next implementation task: continue the remaining active GL-tool and global menu route audit, then run responsive/accessibility configurations. Expand actual filament and plate UI interaction coverage where the existing Honor harness allows. Keep generic dialog hosts unchanged until an IME-aware device test is in place. Multi-plate project persistence remains separate and incomplete. Do not claim the overall migration complete.
