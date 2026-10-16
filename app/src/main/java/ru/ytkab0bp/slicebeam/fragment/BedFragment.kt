@@ -14,7 +14,6 @@ import android.os.Process
 import android.text.TextUtils
 import android.util.Log
 import android.util.SparseArray
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -23,11 +22,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebSettings
 import android.widget.FrameLayout
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -97,6 +92,9 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceProfileStatus
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebCloseButton
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
+import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
+import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
@@ -107,8 +105,6 @@ import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.StlImportPreflight
 import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
-import ru.ytkab0bp.slicebeam.view.BedSwipeDownLayout
-import ru.ytkab0bp.slicebeam.view.DividerView
 import ru.ytkab0bp.slicebeam.view.GLView
 import ru.ytkab0bp.slicebeam.view.FilamentPaletteController
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
@@ -116,6 +112,7 @@ class BedFragment:Fragment() {
 var overlayLayout: FrameLayout? = null
 var snackbarsLayout: SnackbarsLayout? = null
 var glView: GLView? = null
+private var rendererAdapter: RendererAdapter? = null
 private var navigationView: ComposeView? = null
 private var menuNavigationThemeRevision by mutableIntStateOf(0)
 private val workspaceNavigationState = WorkspaceNavigationState()
@@ -168,7 +165,6 @@ private var plateTabsThemeRevision by mutableIntStateOf(0)
 private val platePickerOpen = mutableStateOf(false)
 private var printerWebButton: ComposeView? = null
 private var filamentPaletteButton: ComposeView? = null
-private var menuDivider: View? = null
 private var printerWebCloseButton: ComposeView? = null
 private var printerWebAvailable by mutableStateOf(false)
 private var printerWebThemeRevision by mutableIntStateOf(0)
@@ -212,14 +208,12 @@ private var paintModeView: ru.ytkab0bp.slicebeam.view.PaintModeView? = null
 private var measureModeView: ThemeAwareComposeView? = null
 private var variableLayerHeightModeView: ru.ytkab0bp.slicebeam.view.VariableLayerHeightModeView? = null
 private var embossModeView: ru.ytkab0bp.slicebeam.view.EmbossModeView? = null
-private lateinit var swipeDownLayout: BedSwipeDownLayout
 private var hasWebError:Boolean = false
 private var panelWebView: WebView? = null
 private var panelWebViewContainer: FrameLayout? = null
 private var configuredWebHost: String? = null
-private var panelWebViewError: LinearLayout? = null
-private var webViewErrIcon: ImageView? = null
-private lateinit var webViewErrDescription: TextView
+private var panelWebViewError: ComposeView? = null
+private var webViewErrorDescription by mutableStateOf<String?>(null)
 private var webViewProgressBar: ProgressBar? = null
 val isPaintMode:Boolean
 get() {
@@ -835,10 +829,6 @@ if (panelWebViewContainer != null && panelWebViewContainer!!.getVisibility() == 
 destroyPrinterWebView()
 return true
 }
-if (swipeDownLayout.onBackPressed())
-{
-return true
-}
 if (currentMenuSlot != 0)
 {
 val ctx = getContext() ?: return true
@@ -933,6 +923,7 @@ if (panelWebView != null)
  panelWebViewContainer!!.removeView(failedWebView)
  failedWebView.destroy()
  hasWebError = false
+ webViewErrorDescription = null
  panelWebViewError!!.setVisibility(View.GONE)
 }
 try
@@ -953,6 +944,7 @@ if (view !== panelWebView) return
 hasWebError = false
 view.setVisibility(View.VISIBLE)
 view.setAlpha(0f)
+webViewErrorDescription = null
 panelWebViewError!!.setVisibility(View.GONE)
 webViewProgressBar!!.setAlpha(1f)
 }
@@ -980,7 +972,7 @@ return true
 private fun showPrinterWebLoadError(view:WebView, description:String) {
 if (view !== panelWebView || hasWebError) return
 hasWebError = true
-webViewErrDescription.setText(description)
+webViewErrorDescription = description
 panelWebViewError!!.setVisibility(View.VISIBLE)
 panelWebViewError!!.setAlpha(0f)
 panelWebViewError!!.animate().alpha((1).toFloat()).setDuration(150).setListener(object:AnimatorListenerAdapter() {
@@ -1001,7 +993,7 @@ configuredWebHost?.let { webView.loadUrl(it) }
 catch (error:Exception) {
 Log.w("BedFragment", "Could not open printer web interface", error)
 hasWebError = true
-webViewErrDescription.setText(R.string.PrinterWebOpenFailed)
+webViewErrorDescription = getContext()?.getString(R.string.PrinterWebOpenFailed)
 panelWebViewError!!.setVisibility(View.VISIBLE)
 webViewProgressBar!!.setAlpha(0f)
 }
@@ -1024,6 +1016,7 @@ private fun destroyPrinterWebView() {
 val webView = panelWebView
 panelWebView = null
 hasWebError = false
+webViewErrorDescription = null
 if (webView != null)
 {
 webView.stopLoading()
@@ -1086,6 +1079,7 @@ override fun onCreateView(ctx:Context):View {
 if (platesModels.isEmpty()) platesModels.add(Model())
 restoreSession()
 glView = GLView(ctx)
+rendererAdapter = RendererAdapter(ctx, glView!!)
 glView!!.onPrimeTowerTap = { showPrimeTowerPositionDialogForCurrentPlate() }
 glView!!.renderer.model = currentModel
 resetModelHistory()
@@ -1141,54 +1135,35 @@ updateProfileStatus()
 val portrait = usesCompactPortraitLayout(ctx)
 compactPortraitLayout = portrait
 constructMenuView(ctx, portrait)
-swipeDownLayout = BedSwipeDownLayout(ctx)
 panelWebViewContainer = FrameLayout(ctx)
 val wfl = panelWebViewContainer
-panelWebViewError = LinearLayout(ctx)
-panelWebViewError!!.setVisibility(View.GONE)
-panelWebViewError!!.setOrientation(LinearLayout.VERTICAL)
-panelWebViewError!!.setGravity(Gravity.CENTER)
-panelWebViewError!!.setPadding(ViewUtils.dp(12), ViewUtils.dp(12), ViewUtils.dp(12), ViewUtils.dp(12))
-webViewErrIcon = ImageView(ctx)
-webViewErrIcon!!.setImageResource(R.drawable.globe_cross_outline_28)
-panelWebViewError!!.addView(webViewErrIcon, object:LinearLayout.LayoutParams(ViewUtils.dp(28), ViewUtils.dp(28)) {
-init{
-bottomMargin = ViewUtils.dp(8)
+panelWebViewError = ComposeView(ctx).apply {
+    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+    setContent {
+        val description = webViewErrorDescription
+        BeamComposeTheme(themeRevision = printerWebThemeRevision) {
+            if (description != null) {
+                PrinterWebErrorPanel(
+                    description = description,
+                    onRetry = ::openPrinterWebView,
+                    onOpenInBrowser = {
+                        val host = configuredWebHost ?: return@PrinterWebErrorPanel
+                        try {
+                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(host)))
+                        } catch (error: Exception) {
+                            Log.w("BedFragment", "Could not open printer page in external browser", error)
+                            Toast.makeText(ctx, R.string.PrinterWebOpenFailed, Toast.LENGTH_LONG).show()
+                        }
+                    },
+                )
+            }
+        }
+    }
 }
-})
-webViewErrDescription = TextView(ctx)
-webViewErrDescription.setTextSize(TypedValue.COMPLEX_UNIT_DIP, (16).toFloat())
-webViewErrDescription.setGravity(Gravity.CENTER)
-panelWebViewError!!.addView(webViewErrDescription)
-val retryWebButton = Button(ctx).apply {
-text = ctx.getString(R.string.PrinterWebRetry)
-setOnClickListener { openPrinterWebView() }
-}
-panelWebViewError!!.addView(retryWebButton, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-topMargin = ViewUtils.dp(8)
-})
-val browserWebButton = Button(ctx).apply {
-text = ctx.getString(R.string.PrinterWebOpenInBrowser)
-setOnClickListener {
-val host = configuredWebHost ?: return@setOnClickListener
-try {
-ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(host)))
-} catch (error: Exception) {
-Log.w("BedFragment", "Could not open printer page in external browser", error)
-Toast.makeText(ctx, R.string.PrinterWebOpenFailed, Toast.LENGTH_LONG).show()
-}
-}
-}
-panelWebViewError!!.addView(browserWebButton, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 wfl!!.addView(panelWebViewError, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 webViewProgressBar = ProgressBar(ctx)
 webViewProgressBar!!.setAlpha(0f)
 wfl!!.addView(webViewProgressBar, FrameLayout.LayoutParams(ViewUtils.dp(36), ViewUtils.dp(36), Gravity.CENTER))
-// The printer page is opened explicitly from the workspace. Remove the drag handle and
- // its reserved top inset so the build-plate view uses the full available height.
- swipeDownLayout.setEnableTop(false)
 wfl!!.setVisibility(View.GONE)
 printerWebCloseButton = ComposeView(ctx).apply {
 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
@@ -1232,11 +1207,6 @@ val ctx = getContext()
 if (ctx == null || overlayLayout == null || glView == null) return
 val portrait = usesCompactPortraitLayout(ctx)
 if (portrait == compactPortraitLayout) {
-    if (portrait && menuToolsExpanded && menuView.layoutParams is LinearLayout.LayoutParams) {
-        menuView.layoutParams = (menuView.layoutParams as LinearLayout.LayoutParams).apply {
-            height = ViewUtils.dp(menuPortraitHeightDp())
-        }
-    }
     filamentPaletteRevision++
     updateAdaptiveOverlayMargins(portrait)
     return
@@ -1312,83 +1282,61 @@ private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, sl
 
 private fun setPortraitToolPanelExpanded(expanded: Boolean) {
     menuToolsExpanded = expanded
-    val params = menuView.layoutParams as? LinearLayout.LayoutParams ?: return
-    menuView.visibility = if (expanded) View.VISIBLE else View.GONE
-    menuDivider?.visibility = if (expanded) View.VISIBLE else View.GONE
-    params.height = ViewUtils.dp(if (expanded) menuPortraitHeightDp() else 0)
-    menuView.layoutParams = params
     updateAdaptiveOverlayMargins(true)
 }
 /** Keep the model viewport clear; object actions are available from the Edit menu. */
 private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
-listOfNotNull(glView, menuView, navigationView, profileStatusText, printerWebButton, filamentPaletteButton, projectSettingsBar,
-    plateTabsScroll).forEach(::detachFromParent)
-detachFromParent(swipeDownLayout)
-swipeDownLayout.removeAllViews()
-val workspace = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-if (projectSettingsBar == null) projectSettingsBar = ComposeView(ctx).apply {
-    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-    setContent { BeamComposeTheme { TemporaryProjectSettingsBar() } }
-}
-workspace.addView(projectSettingsBar, LinearLayout.LayoutParams(
-    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-val header = LinearLayout(ctx).apply {
-orientation = LinearLayout.HORIZONTAL
-gravity = Gravity.CENTER_VERTICAL
-setPadding(ViewUtils.dp(6), ViewUtils.dp(4), ViewUtils.dp(6), ViewUtils.dp(4))
-}
-header.addView(profileStatusText, LinearLayout.LayoutParams(
-0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-if (filamentPaletteButton == null) filamentPaletteButton = ComposeView(ctx).apply {
-setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-setContent {
-val revision = filamentPaletteRevision
-key(revision) { BeamComposeTheme {
-WorkspaceFilamentButton(
-slots = Prefs.getFilamentSlots(),
-enabled = true,
-onClick = ::showWorkspaceFilamentPalette,
-)
-} }
-}
-}
-header.addView(filamentPaletteButton, LinearLayout.LayoutParams(
-ViewUtils.dp(48), ViewUtils.dp(48)).apply { leftMargin = ViewUtils.dp(4) })
-header.addView(plateTabsScroll, LinearLayout.LayoutParams(
-ViewUtils.dp(48), ViewUtils.dp(48)).apply { leftMargin = ViewUtils.dp(4) })
-header.addView(printerWebButton, LinearLayout.LayoutParams(
-ViewUtils.dp(48), ViewUtils.dp(48)).apply { leftMargin = ViewUtils.dp(4) })
-workspace.addView(header, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-val bedRow = FrameLayout(ctx)
-bedRow.addView(glView, FrameLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-workspace.addView(bedRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-navigationView = createMenuNavigationView(ctx, bottomNavigation = portrait)
-if (portrait) {
-val toolsHeight = if (menuToolsExpanded) menuPortraitHeightDp() else 0
-menuView.visibility = if (menuToolsExpanded) View.VISIBLE else View.GONE
-workspace.addView(menuView, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(toolsHeight)))
-menuDivider = DividerView(ctx).apply { visibility = if (menuToolsExpanded) View.VISIBLE else View.GONE }
-workspace.addView(menuDivider, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(1)))
-workspace.addView(navigationView, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-} else {
-menuView.visibility = View.VISIBLE
-}
-swipeDownLayout.addView(workspace, FrameLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-if (portrait) return swipeDownLayout
-return LinearLayout(ctx).apply {
-orientation = LinearLayout.HORIZONTAL
-addView(navigationView, LinearLayout.LayoutParams(
-ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(ctx.resources.configuration.fontScale)), ViewGroup.LayoutParams.MATCH_PARENT))
-addView(DividerView(ctx), LinearLayout.LayoutParams(ViewUtils.dp(1), ViewGroup.LayoutParams.MATCH_PARENT))
-addView(menuView, LinearLayout.LayoutParams(ViewUtils.dp(MENU_SIZE_DP), ViewGroup.LayoutParams.MATCH_PARENT))
-addView(swipeDownLayout, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
-}
+    listOfNotNull(
+        rendererAdapter, menuView, navigationView, profileStatusText, printerWebButton,
+        filamentPaletteButton, projectSettingsBar, plateTabsScroll,
+    ).forEach(::detachFromParent)
+
+    if (projectSettingsBar == null) projectSettingsBar = ComposeView(ctx).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+        setContent { BeamComposeTheme { TemporaryProjectSettingsBar() } }
+    }
+    if (filamentPaletteButton == null) filamentPaletteButton = ComposeView(ctx).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+        setContent {
+            val revision = filamentPaletteRevision
+            key(revision) {
+                BeamComposeTheme {
+                    WorkspaceFilamentButton(
+                        slots = Prefs.getFilamentSlots(),
+                        enabled = true,
+                        onClick = ::showWorkspaceFilamentPalette,
+                    )
+                }
+            }
+        }
+    }
+    navigationView = createMenuNavigationView(ctx, bottomNavigation = portrait)
+    return ComposeView(ctx).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+        setContent {
+            BeamComposeTheme {
+                WorkspaceShell(
+                    portrait = portrait,
+                    toolPanelExpanded = menuToolsExpanded,
+                    toolPanelNeedsTwoRows = currentMenuSlot == WorkspaceDestination.MODEL.ordinal ||
+                        currentMenuSlot == WorkspaceDestination.EDIT.ordinal ||
+                        currentMenuSlot == WorkspaceDestination.CAMERA.ordinal,
+                    navigationWidthDp = AdaptiveNavigationPolicy.navigationRailWidthDp(
+                        ctx.resources.configuration.fontScale,
+                    ),
+                    menuWidthDp = MENU_SIZE_DP,
+                    rendererView = rendererAdapter!!,
+                    navigationView = navigationView!!,
+                    menuView = menuView,
+                    projectSettingsView = projectSettingsBar!!,
+                    profileStatusView = profileStatusText!!,
+                    filamentButtonView = filamentPaletteButton!!,
+                    platePickerView = plateTabsScroll!!,
+                    printerWebButtonView = printerWebButton!!,
+                )
+            }
+        }
+    }
 }
 private fun rebuildAdaptiveLayout(ctx:Context, portrait:Boolean) {
 contentView?.let(::detachFromParent)
@@ -1449,10 +1397,6 @@ val prevMenu = menuMap.get(currentMenuSlot)
 val forward = slot > currentMenuSlot
 currentMenuSlot = slot
 if (portrait) {
-menuView.layoutParams = (menuView.layoutParams as LinearLayout.LayoutParams).apply {
-height = ViewUtils.dp(if (menuToolsExpanded) menuPortraitHeightDp() else 0)
-}
-menuView.visibility = if (menuToolsExpanded) View.VISIBLE else View.GONE
 updateAdaptiveOverlayMargins(true)
 }
 
@@ -2152,12 +2096,7 @@ plateTabsThemeRevision++
 profileStatusThemeRevision++
 printerWebThemeRevision++
 menuNavigationThemeRevision++
-if (webViewErrIcon != null)
-{
-webViewErrIcon!!.setImageTintList(ColorStateList.valueOf(ThemesRepo.getColor(android.R.attr.textColorSecondary)))
-webViewErrDescription.setTextColor(ThemesRepo.getColor(android.R.attr.textColorSecondary))
-webViewProgressBar!!.setIndeterminateTintList(ColorStateList.valueOf(ThemesRepo.getColor(android.R.attr.textColorSecondary)))
-}
+webViewProgressBar?.setIndeterminateTintList(ColorStateList.valueOf(ThemesRepo.getColor(android.R.attr.textColorSecondary)))
 menuView.setBackgroundColor(ThemesRepo.getColor(android.R.attr.windowBackground))
 for (i in 0 until WorkspaceDestination.values().size)
 {

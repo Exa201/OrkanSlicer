@@ -525,3 +525,32 @@ Build 0.8.86 (`versionCode 121`, `compileSdk 36`, `targetSdk 36`, `minSdk 23`) b
 
 Debug-APK: `outputs/OrkanSlicer_0.8.86_debug.apk` (153.524.689 Byte; SHA-256 `F4EDE461E6513FBEB1BA3078315AD8055C94FA3744FB1F754A2E93DFE758833F`). Release-APK: `outputs/OrkanSlicer_0.8.86_release_unsigned.apk` (146.224.407 Byte; SHA-256 `66A74795BE88E4B423B14F647914A9893270ED4C9C80E913869F4DBBFAFC0527`); ohne Release-Keystore unsigniert. Bericht und Verifikationsprotokoll: `outputs/OrkanSlicer_0.8.86_Buildbericht.md` und `outputs/OrkanSlicer_0.8.86/verification-transcript.txt`.
 
+
+## Workspace-UI 2.0 – integrierter Debug-Build (2026-10-16)
+
+Die Compose-basierte `WorkspaceShell` ersetzt den manuellen Aufbau der Haupt-Workspace-Menüs in
+`BedFragment`. Der bestehende `GLView` wird über `RendererAdapter` innerhalb seines gemessenen
+Viewport weiterverwendet. Das Printer-Web-Fehlerpanel ist Compose/Material 3; WebView und
+Fortschrittsanzeige bleiben in ihrem Lifecycle-Host. ACE-Gerätetests wurden auf die fest
+positionsgebundene Zuordnung (T0→Slot 1 bis T3→Slot 4, Lücken bleiben erhalten) korrigiert und
+prüfen explizit, dass ein abweichendes Tool-Mapping nicht die Slotbefehle umschreibt.
+
+Verifikation des Quellstands vor dem finalen Commit:
+
+- `:app:testDebugUnitTest`: 526 Tests, 0 Fehler.
+- `:app:testSliceTestUnitTest`: 526 Tests, 0 Fehler.
+- `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49/Android 16: 39 bestanden, 0 Fehler,
+  3 übersprungen (private multicolor 3MF-Projekt-Fixture fehlt).
+- `:app:assembleDebug`: erfolgreich, ARM64-Nativkern eingeschlossen.
+- Debug-APK (`versionName 0.8.242`, `versionCode 277`) wurde auf dem Honor installiert und
+  gestartet. Screenshot-Prüfung bestätigt sichtbare globale Navigation, Profil-/Filament-/
+  Plattensteuerung, Druckplatte und Workspace-Navigation ohne Überdeckung durch die GL-Oberfläche.
+  Logcat-Auszug nach Start enthielt keinen FATAL EXCEPTION-, ANR- oder OOM-Treffer.
+- Emulator: Gradle konnte `emulator-5554` nicht abfragen (ddmlib property-fetch timeout); kein
+  Emulator-Gerätetest wird als bestanden gewertet.
+- Kein Druckstart wurde ausgelöst. Der UI-2.0-Migrationsstand ist noch nicht vollständig:
+  Dialoge/Sonderwerkzeuge, zentrale Overlaysteuerung und weitere `BedFragment`-Zuständigkeiten
+  verbleiben. Die Roadmap führt diese Punkte weiter.
+
+Der abschließende APK-Pfad und SHA-256 werden nach dem Commit in PR #2 ergänzt. Der Build ist eine
+lokale Debug-APK und kein öffentliches Release.

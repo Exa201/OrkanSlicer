@@ -119,3 +119,37 @@ Regeln werden beim Ersetzen der globalen Routen Druck, Filament, Drucker und App
 ## Grenzen
 
 Etappe 1 ist noch keine vollständige UI-2.0-Umstellung. Insbesondere die globalen Bereiche und viele vorhandene Dialoge behalten ihre bisherigen Routen, bis ihre Funktionen schrittweise migriert und geprüft wurden. Es wurden keine Änderungen an der Slicer-Engine oder Druckerfirmware vorgenommen.
+
+## Etappe 7: Compose-Workspace und Renderer-Adapter (2026-10-16)
+
+- Die Hauptfläche des Arbeitsbereichs wird nun von `WorkspaceShell` in Compose/Material 3
+  aufgebaut. Hoch- und Querformat teilen dieselben Profil-, Filament-, Platten-, Projekt- und
+  Arbeitsbereichsnavigationen.
+- `RendererAdapter` begrenzt die vorhandene `GLView` auf den gemessenen Plattenbereich. Die View
+  bleibt dieselbe Instanz; Compose-Neudarstellungen erzeugen den GL-Renderer nicht neu.
+- `BedFragment` erstellt die Hauptmenü- und Workspace-Layouts nicht mehr manuell. Snackbar,
+  WebView/Progress sowie renderer-gebundene Overlays und Fachaktionen werden weiterhin dort
+  verwaltet, bis eigene Lifecycle- und Controller-Grenzen dafür geprüft sind.
+- Der WebView-Fehlerzustand nutzt jetzt ein Material-3-Compose-Panel mit erneuter Ladeaktion und
+  Browser-Öffnung. Die WebView bleibt als Android-View eingebettet.
+- Drei Layout-Policy-Tests prüfen die gemessene Plattenhöhe bei geschlossenem/geöffnetem Panel und
+  bei kleinen oder ungültigen Messwerten.
+- Auf dem Honor PTP-N49 wurde die Debug-APK installiert und gestartet. Screenshot-Prüfung zeigte
+  die globalen Bereiche, Workspace-Navigation und vollständige Druckplatte gleichzeitig sichtbar.
+  Die Instrumentierung führte 39 Tests erfolgreich aus; drei Tests mit privater 3MF-Fixture waren
+  übersprungen. `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden jeweils 526
+  Tests. `:app:assembleDebug` war erfolgreich.
+
+### Noch offene UI-2.0-Arbeit
+
+Die Haupt-Workspace-Hülle ist migriert, die vollständige UI-Migration bleibt jedoch offen:
+
+- Gemeinsamer Workspace-State/Controller und zentraler OverlayCoordinator.
+- Weitere Zuständigkeiten aus `BedFragment` (Platten-/Modellzustand, Übergänge und native
+  renderergebundene Ansichten) in geprüfte Controller/Adapter verschieben.
+- Noch bestehende Plattformdialoge, Spezialwerkzeuge und globale Navigation-View-Host-Integration
+  schrittweise vereinheitlichen, jeweils nach Funktions- und Gerätetest.
+- Kleine Displaybreiten, sehr große Systemschrift, Plattenlisten mit 1/3–6/10–20 Einträgen sowie
+  Platten hinzufügen/löschen/duplizieren und Projektwiederherstellung sind noch nicht vollständig
+  manuell auf Gerät abgenommen.
+- Keine tatsächlichen Druckstarts wurden im UI-Gerätetest ausgelöst.
