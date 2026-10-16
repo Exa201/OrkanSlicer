@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — 0.8.251 (2026-10-17)
+
+- Code commit: `bac880a905b7bd72dc9b6068af7fe4bf02827168` (`Improve build plate picker touch target`).
+- The build-plate picker Cancel action now has an explicit minimum 48 dp height; Material 3's default 40 dp height was measured in the device test and corrected. The Compose test opens the picker, checks width and height, dismisses it, and verifies one dismissal callback.
+- The ACE row scroll affordance from `98fb4f9` remains included: accessible labeled 48 dp control scrolls to the final synthetic gate in a 24-slot row.
+- Debug and Slice unit suites: 549/549 passed each (0 failures/errors/skips). Full Honor instrumentation: 57 XML cases, 0 failures/errors, 3 private multi-color fixtures skipped (54 executed passed). Targeted build-plate Cancel and ACE scroll tests each passed 1/1.
+- Final `:app:assembleDebug` passed from code commit `bac880a`. APK: `app/build/outputs/apk/debug/OrkanSlicer_bac880a905.apk`, 157,039,207 bytes; SHA-256 `4016AAA718B9BB840DC03D3594F34DF9EA491E5F465FCE90B712474126546C04`.
+- Installed on Honor PTP-N49 / Android 16. Confirmed package `com.codemastercody3d.orcaslicermobile`, version `0.8.251` / code `286`, resumed `MainActivity`, and 0 crash/ANR/OOM markers in a fresh 2,000-line logcat sample. Physical config is 1280×2800 px / 560 dpi, about 366×800 dp, font scale 1.0; the automated Compose test sets 1.5 font scale for picker bounds. Emulator remains offline.
+- UI 2.0 remains incomplete. Open: global menu/action-by-action verification, remaining BedFragment overlay/dialog responsibility (prior shell-only dialog migration regressed Back/IME behavior), system-level small-width/font-scale/TalkBack coverage, and complete multi-plate project persistence. Preserve the active-plate export warning.
+- Branch: `codex/rinkhals-safe-start-audit`; PR #2 is open and unmerged. Preserve `.codex-remote-attachments/`.
+
 ## Latest continuation — 0.8.250 (2026-10-17)
 
 - Code commit: `98fb4f9d94f61230019ebd7ce12763a6b13de2ee` (`Add accessible ACE slot scroll control`).
