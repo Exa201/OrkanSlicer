@@ -127,11 +127,6 @@ internal fun MeasureModePanel(
                 }
                 Button(
                     onClick = {
-                        glView.queueEvent {
-                            glView.renderer.isInMeasureMode = false
-                            glView.renderer.clearMeasurePoints()
-                            glView.requestRender()
-                        }
                         currentOnExit()
                     },
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),

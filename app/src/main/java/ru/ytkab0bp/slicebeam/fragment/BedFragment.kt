@@ -884,6 +884,12 @@ showWorkspaceModePanel("measure-mode", ::exitMeasureMode) {
 private fun exitMeasureMode() {
 if (isMeasureMode)
 {
+val currentGlView = glView
+currentGlView?.queueEvent {
+currentGlView.renderer.isInMeasureMode = false
+currentGlView.renderer.clearMeasurePoints()
+currentGlView.requestRender()
+}
 removeModePanelHost("measure-mode")
 }
 }
@@ -978,9 +984,6 @@ return true
 }
 if (isMeasureMode)
 {
-glView!!.queueEvent({ glView!!.renderer.isInMeasureMode = false
-glView!!.renderer.clearMeasurePoints()
-glView!!.requestRender() })
 exitMeasureMode()
 return true
 }

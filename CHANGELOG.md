@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.8.245 (alpha)
+
+- Ensure every measurement-panel exit path releases the renderer's measurement state and points.
+- Verify loaded-model paint cancellation and measurement-mode cleanup on Honor PTP-N49 / Android 16.
 
 - Render the model context menu through Compose workspace overlay state instead of attaching a separate `ComposeView` host from `BedFragment`; preserve exclusive-panel and Back dismissal behavior.
 - Verify Compose overlay content replacement and cleanup in `WorkspaceController` tests and the Honor context-menu dismissal test. Keep the existing dialog hosts until focused-input Back behavior is proven on device.

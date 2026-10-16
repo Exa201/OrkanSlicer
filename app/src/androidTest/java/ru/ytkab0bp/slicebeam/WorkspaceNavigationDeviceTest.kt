@@ -238,6 +238,7 @@ class WorkspaceNavigationDeviceTest {
             }
             awaitRendererPaintMode(scenario, expected = false)
             assertFalse("cancelling paint with Android Back must discard the native preview", model.hasPaint(0))
+            exerciseWorkspaceModeSwitch(scenario)
         } finally {
             modelFile.delete()
         }
@@ -254,6 +255,44 @@ class WorkspaceNavigationDeviceTest {
             }
         }
         assertTrue("GL renderer did not reach paint mode=$expected", reached.await(10, TimeUnit.SECONDS))
+        assertEquals(expected, actual[0])
+    }
+
+    private fun exerciseWorkspaceModeSwitch(scenario: ActivityScenario<MainActivity>) {
+        scenario.onActivity { activity ->
+            (activity.navigationDelegate.getCurrentFragment() as BedFragment).enterMeasureMode()
+        }
+        awaitRendererFlag(scenario, expected = true) { isInMeasureMode }
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            assertTrue("measure mode should own the exclusive tool panel", bed.isMeasureMode)
+            bed.enterVariableLayerHeightMode()
+            assertFalse("switching tools should clear measure mode first", bed.isMeasureMode)
+            assertTrue("variable layer height should replace the measure panel", bed.isVariableLayerHeightMode)
+        }
+        awaitRendererFlag(scenario, expected = false) { isInMeasureMode }
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            assertTrue("Android Back should close variable layer height", bed.onBackPressed())
+            assertFalse("variable layer panel should release its active tool state", bed.isVariableLayerHeightMode)
+        }
+    }
+
+    private fun awaitRendererFlag(
+        scenario: ActivityScenario<MainActivity>,
+        expected: Boolean,
+        read: ru.ytkab0bp.slicebeam.render.GLRenderer.() -> Boolean,
+    ) {
+        val reached = CountDownLatch(1)
+        val actual = booleanArrayOf(!expected)
+        scenario.onActivity { activity ->
+            val glView = requireNotNull((activity.navigationDelegate.getCurrentFragment() as BedFragment).glView)
+            glView.queueEvent {
+                actual[0] = glView.renderer.read()
+                reached.countDown()
+            }
+        }
+        assertTrue("GL renderer did not reach expected mode flag=$expected", reached.await(10, TimeUnit.SECONDS))
         assertEquals(expected, actual[0])
     }
 
