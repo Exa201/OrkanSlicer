@@ -3,7 +3,6 @@ package ru.ytkab0bp.slicebeam.view
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
@@ -70,7 +69,7 @@ internal object FilamentPalettePolicy {
         canDeleteSlot(slotCount) && index in 0 until slotCount
 }
 
-private data class PaletteSlotSnapshot(val color: Int, val type: String?)
+internal data class PaletteSlotSnapshot(val color: Int, val type: String?)
 
 /** Compose palette controller for printer tools T0–T15 and persistent filament slots. */
 class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
@@ -287,26 +286,26 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
 }
 
 @Composable
-private fun FilamentPaletteContent(
+internal fun FilamentPaletteContent(
     slots: List<PaletteSlotSnapshot>,
     selectedGates: IntArray?,
     modifier: Modifier = Modifier,
     onSlotClick: (Int) -> Unit,
     onAddClick: () -> Unit,
 ) {
-    Row(
+    LazyRow(
         modifier = modifier
             // During adaptive navigation rotation the legacy profile host can briefly measure
             // weighted children with an unbounded width. Bound the viewport before applying
             // horizontal scrolling so Compose never measures this scroller at infinity.
             .widthIn(max = 1200.dp)
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        slots.forEachIndexed { index, slot ->
+        itemsIndexed(slots, key = { index, _ -> "filament-$index" }) { index, slot ->
             FilamentPaletteSlot(
                 index = index,
                 slot = slot,
@@ -315,7 +314,9 @@ private fun FilamentPaletteContent(
             )
         }
         if (FilamentPalettePolicy.canAddSlot(slots.size)) {
+            item(key = "add-filament") {
             FilamentPaletteAddButton(onClick = onAddClick)
+            }
         }
     }
 }
