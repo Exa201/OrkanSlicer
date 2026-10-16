@@ -1413,6 +1413,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     toolPanelNeedsTwoRows = currentMenuSlot == WorkspaceDestination.MODEL.ordinal ||
                         currentMenuSlot == WorkspaceDestination.EDIT.ordinal ||
                         currentMenuSlot == WorkspaceDestination.CAMERA.ordinal,
+                    navigationItemCount = WorkspaceDestination.values().size,
                     navigationWidthDp = AdaptiveNavigationPolicy.navigationRailWidthDp(
                         ctx.resources.configuration.fontScale,
                     ),

@@ -32,6 +32,7 @@ internal fun WorkspaceShell(
     portrait: Boolean,
     toolPanelExpanded: Boolean,
     toolPanelNeedsTwoRows: Boolean,
+    navigationItemCount: Int,
     navigationWidthDp: Int,
     menuWidthDp: Int,
     rendererView: View,
@@ -46,6 +47,10 @@ internal fun WorkspaceShell(
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
         toolPanelNeedsTwoRows,
         LocalDensity.current.fontScale,
+    )
+    val navigationHeightDp = AdaptiveNavigationPolicy.navigationBarHeightDp(
+        LocalDensity.current.fontScale,
+        navigationItemCount,
     )
     val background = MaterialTheme.colorScheme.background
     val header: @Composable (Modifier) -> Unit = { modifier ->
@@ -91,7 +96,7 @@ internal fun WorkspaceShell(
             }
             AndroidView(
                 factory = { navigationView },
-                modifier = Modifier.fillMaxWidth().heightIn(min = AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP.dp),
+                modifier = Modifier.fillMaxWidth().height(navigationHeightDp.dp),
             )
         }
     } else {
