@@ -30,13 +30,17 @@ Phase 4 — continue migrating remaining workspace UI responsibilities out of `B
 - `:app:compileSliceTestAndroidTestKotlin`: passed.
 - `:app:connectedAndroidTest`: Honor PTP-N49 / Android 16 — 48 tests executed, 0 failures, 0 errors, 3 skipped due to unavailable private fixtures. The offline `emulator-5554` was skipped.
 - Compose instrumentation exercises paint tool/brush toggles and cancel, Variable Layer Height panel state/exit, and Emboss controls/exit. It does not claim to validate GL model edits on a loaded project.
-- A previous debug build and Honor launch were verified before the final controller race guard; rebuild and re-install after the commit to capture this exact source state.
+- `:app:assembleDebug`: passed from code commit `6ca56ca82fc9a0998cd89addbda9213fd19f4824`.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_6ca56ca82f.apk`, 157,006,045 bytes; SHA-256 `4FF5735B09CDB36A07A197678BE9AA06D6B3FBF132BD0BC9F618A11B1D8334A5`.
+- Final APK installed and launched on Honor PTP-N49 / Android 16; process remained active. The inspected recent logcat contained no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` lines.
 - The emulator (`emulator-5554`) is offline. No true printer job was started and no firmware was changed.
 
 ## Git and continuation
 
 - Branch: `codex/rinkhals-safe-start-audit`.
 - Base HEAD for this execution: `4aafd3dddcf0e9fc2340102a6c8cdbacf5a6a3b7`.
-- Current source changes are not yet committed; build the final APK after committing to embed the code commit in the APK name.
+- Code commit: `6ca56ca82fc9a0998cd89addbda9213fd19f4824` (`Migrate GL mode panels to Compose`); pushed to the existing branch.
+- The APK was built from the code commit above. This document update is a later documentation-only commit.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; do not stage it.
+- PR #2 remains open; latest GitHub report marked it mergeable. No merge or release was performed.
 - Next concrete task: continue Phase 4 by moving an independently separable UI responsibility from `BedFragment` into the existing workspace Compose/controller structure, while preserving `GLView` identity and lifecycle.
