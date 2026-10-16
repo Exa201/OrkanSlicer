@@ -15,15 +15,17 @@ class WorkspaceControllerTest {
         val controller = WorkspaceController()
         val panelContent: @Composable () -> Unit = {}
 
-        controller.selectToolWithPanel("measure-mode", {}, panelContent)
+        controller.selectToolWithPanel("measure-mode", {}, panelContent, panelFraction = 0.72f)
 
         assertEquals("measure-mode", controller.activeToolId)
         assertSame(panelContent, controller.activeToolPanelContent)
+        assertEquals(0.72f, controller.activeToolPanelFraction!!, 0f)
 
         controller.clearTool("measure-mode")
 
         assertNull(controller.activeToolId)
         assertNull(controller.activeToolPanelContent)
+        assertNull(controller.activeToolPanelFraction)
     }
 
     @Test

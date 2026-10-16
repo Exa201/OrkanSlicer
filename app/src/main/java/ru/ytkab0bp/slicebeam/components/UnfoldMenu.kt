@@ -4,6 +4,10 @@ import android.content.Context
 import android.view.View
 import android.widget.FrameLayout
 import androidx.annotation.CallSuper
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 
 /**
@@ -21,6 +25,9 @@ abstract class UnfoldMenu {
     private var rootView: WorkspaceToolOverlay? = null
     private var contentCreated = false
     private var onDismiss: Runnable? = null
+    private var workspaceDismiss: (() -> Unit)? = null
+    private var workspaceContent: View? = null
+    private var workspaceAttachListener: View.OnAttachStateChangeListener? = null
 
     open fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
         ((if (portrait) into.height else into.width) * 0.6f).toInt()
@@ -39,6 +46,80 @@ abstract class UnfoldMenu {
     }
 
     protected abstract fun onCreateView(ctx: Context, portrait: Boolean): View
+
+    /**
+     * Creates route content for the Compose-owned workspace panel. The route's existing View or
+     * ComposeView remains a compatibility boundary; only its old overlay host is bypassed.
+     */
+    internal fun createWorkspaceContent(context: Context, portrait: Boolean, fragment: BedFragment): View? {
+        if (isVisible) return null
+        this.fragment = fragment
+        isVisible = true
+        isDismissing = false
+        workspaceDismiss = null
+        val content = try {
+            onCreateView(context, portrait)
+        } catch (error: Throwable) {
+            isVisible = false
+            throw error
+        }
+        workspaceContent = content
+        return content
+    }
+
+    internal fun setWorkspaceDismiss(dismiss: (() -> Unit)?) {
+        workspaceDismiss = dismiss
+    }
+
+    @Composable
+    internal fun WorkspaceContent(content: View) {
+        AndroidView(
+            factory = {
+                val listener = workspaceAttachListener ?: object : View.OnAttachStateChangeListener {
+                    override fun onViewAttachedToWindow(view: View) {
+                        if (!contentCreated) {
+                            contentCreated = true
+                            onCreate()
+                        }
+                    }
+
+                    override fun onViewDetachedFromWindow(view: View) {
+                        finishWorkspaceContent()
+                    }
+                }.also { workspaceAttachListener = it }
+                content.addOnAttachStateChangeListener(listener)
+                content
+            },
+            modifier = Modifier.fillMaxSize(),
+            update = {},
+            onRelease = { view ->
+                finishWorkspaceContent()
+                view.clearAnimation()
+            },
+        )
+    }
+
+    private fun finishWorkspaceContent() {
+        val content = workspaceContent
+        val attachListener = workspaceAttachListener
+        if (content != null && attachListener != null) {
+            content.removeOnAttachStateChangeListener(attachListener)
+        }
+        workspaceAttachListener = null
+        val wasCreated = contentCreated
+        contentCreated = false
+        isVisible = false
+        isDismissing = true
+        workspaceContent = null
+        if (wasCreated) {
+            onDestroy()
+        } else {
+            onDismiss?.run()
+            onDismiss = null
+        }
+        isDismissing = false
+        workspaceDismiss = null
+    }
 
     open fun show(from: View, fragment: BedFragment) {
         show(from, fragment, fragment.overlayLayout ?: return)
@@ -104,6 +185,9 @@ abstract class UnfoldMenu {
         return (bounded.toFloat() / available).coerceIn(0f, 1f)
     }
 
+    internal fun workspacePanelFraction(into: FrameLayout, portrait: Boolean): Float =
+        requestedPanelFraction(into, portrait)
+
     private fun removeHost() {
         val host = rootView ?: return
         (host.view.parent as? FrameLayout)?.removeView(host.view)
@@ -116,10 +200,12 @@ abstract class UnfoldMenu {
 
     protected open fun onShown() = Unit
 
-    open fun isAttached(): Boolean = rootView?.view?.parent != null && !isDismissing
+    open fun isAttached(): Boolean =
+        (rootView?.view?.parent != null || workspaceContent?.isAttachedToWindow == true) && !isDismissing
 
     open fun relayout() {
         rootView?.view?.requestLayout()
+        workspaceContent?.requestLayout()
     }
 
     open fun dismiss() = dismiss(false)
@@ -128,7 +214,12 @@ abstract class UnfoldMenu {
         if (!isVisible) return
         isVisible = false
         isDismissing = true
-        rootView?.dismiss(animated = alphaOnly)
+        val dismissWorkspace = workspaceDismiss
+        if (dismissWorkspace != null) {
+            dismissWorkspace.invoke()
+        } else {
+            rootView?.dismiss(animated = alphaOnly)
+        }
     }
 }
 

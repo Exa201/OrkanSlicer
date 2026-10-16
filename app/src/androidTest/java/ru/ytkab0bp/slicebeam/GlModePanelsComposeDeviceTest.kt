@@ -1,5 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
+import android.content.Context
+import android.view.View
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -12,6 +14,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.workspace.EmbossModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
@@ -51,6 +55,36 @@ class GlModePanelsComposeDeviceTest {
             .performClick()
         compose.runOnIdle { assertTrue(dismissed) }
         compose.onNodeWithText("Workspace tool panel").assertDoesNotExist()
+    }
+
+    @Test
+    fun unfoldMenuRouteIsHostedAndDisposedByTheComposeWorkspacePanel() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val menu = LifecycleProbeMenu()
+        val content = menu.createWorkspaceContent(context, portrait = true, fragment = BedFragment())!!
+        val visible = mutableStateOf(true)
+        var dismissed = 0
+        menu.setOnDismiss { dismissed++ }
+        menu.setWorkspaceDismiss { visible.value = false }
+
+        compose.setContent {
+            BeamComposeTheme {
+                if (visible.value) {
+                    WorkspaceModePanelHost(onDismiss = { menu.dismiss() }) {
+                        menu.WorkspaceContent(content)
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+        compose.runOnIdle { assertTrue(menu.created == 1) }
+
+        compose.runOnIdle { menu.dismiss() }
+        compose.waitForIdle()
+        compose.runOnIdle {
+            assertTrue(menu.destroyed == 1)
+            assertTrue(dismissed == 1)
+        }
     }
 
     @Test
@@ -100,5 +134,21 @@ class GlModePanelsComposeDeviceTest {
         compose.onNodeWithText(context.getString(R.string.MeasureDeltaX)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.MeasureDeltaY)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.MeasureDeltaZ)).assertIsDisplayed()
+    }
+}
+
+private class LifecycleProbeMenu : UnfoldMenu() {
+    var created = 0
+    var destroyed = 0
+
+    override fun onCreateView(ctx: Context, portrait: Boolean): View = View(ctx)
+
+    override fun onCreate() {
+        created++
+    }
+
+    override fun onDestroy() {
+        destroyed++
+        super.onDestroy()
     }
 }

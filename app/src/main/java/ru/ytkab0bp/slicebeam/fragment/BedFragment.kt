@@ -637,17 +637,28 @@ dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
     dialog.dismiss()
 }
 }
-fun showUnfoldMenu(menu:UnfoldMenu, from:View) {
-if (currentUnfoldMenu != null) return
-val toolId = menu.javaClass.name
-workspaceController.selectTool(toolId, dismiss = { menu.dismiss() })
-menu.setOnDismiss({
-    if (menu.isAttached()) return@setOnDismiss
-    currentUnfoldMenu = null
-    workspaceController.clearTool(toolId)
-})
-currentUnfoldMenu = menu
-menu.show(from, this)
+fun showUnfoldMenu(menu: UnfoldMenu, @Suppress("UNUSED_PARAMETER") from: View) {
+    if (currentUnfoldMenu != null) return
+    val context = getContext() ?: return
+    val portrait = context.resources.configuration.orientation ==
+        android.content.res.Configuration.ORIENTATION_PORTRAIT
+    val panelContainer = overlayLayout ?: return
+    val routeContent = menu.createWorkspaceContent(context, portrait, this) ?: return
+    val toolId = menu.javaClass.name
+    val panelFraction = menu.workspacePanelFraction(panelContainer, portrait)
+    menu.setWorkspaceDismiss { workspaceController.clearTool(toolId) }
+    menu.setOnDismiss {
+        if (menu.isAttached()) return@setOnDismiss
+        if (currentUnfoldMenu === menu) currentUnfoldMenu = null
+        workspaceController.clearTool(toolId)
+    }
+    currentUnfoldMenu = menu
+    workspaceController.selectToolWithPanel(
+        toolId = toolId,
+        dismiss = { menu.dismiss() },
+        panelContent = { menu.WorkspaceContent(routeContent) },
+        panelFraction = panelFraction,
+    )
 }
 private fun showModelContextMenu(objectIndex:Int) {
 val ctx = getContext()
@@ -1544,6 +1555,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     platePickerView = plateTabsScroll!!,
                     printerWebButtonView = printerWebButton!!,
                     modePanelContent = workspaceController.activeToolPanelContent,
+                    modePanelFraction = workspaceController.activeToolPanelFraction,
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },
                 )
             }

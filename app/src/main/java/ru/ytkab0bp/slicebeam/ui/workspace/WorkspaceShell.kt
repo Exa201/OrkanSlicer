@@ -45,6 +45,7 @@ internal fun WorkspaceShell(
     platePickerView: View,
     printerWebButtonView: View,
     modePanelContent: (@Composable () -> Unit)?,
+    modePanelFraction: Float?,
     onModePanelDismiss: () -> Unit,
 ) {
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
@@ -128,7 +129,11 @@ internal fun WorkspaceShell(
         }
       }
       if (modePanelContent != null) {
-          WorkspaceModePanelHost(onDismiss = onModePanelDismiss, content = modePanelContent)
+          WorkspaceModePanelHost(
+              onDismiss = onModePanelDismiss,
+              panelFraction = modePanelFraction,
+              content = modePanelContent,
+          )
       }
     }
 }
