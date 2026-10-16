@@ -236,6 +236,9 @@
     <string name="ObjectActionRotate">Drehen</string>
     <string name="ObjectActionScale">Skalieren</string>
     <string name="ObjectActionDuplicate">Duplizieren</string>
+    <string name="ObjectActionAssignFilamentShort">Zuordnen</string>
+    <string name="ObjectActionAssignFilament">Filament für %1$s zuweisen</string>
+    <string name="MenuFileObjectWithFilament">%1$s, Werkzeug T%2$d, %3$s, %4$s</string>
     <string name="ObjectActionCenter">Zentrieren</string>
     <string name="ModelDeleteConfirm">Dieses Modell von der Druckplatte löschen?</string>
     <string name="ModelDeleteAllConfirm">Alle Modelle von dieser Druckplatte entfernen?</string>

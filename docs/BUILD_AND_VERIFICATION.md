@@ -1,5 +1,14 @@
 # Gebündelter Build- und Prüfablauf
 
+## Arbeitsstand: Objektliste
+
+`:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden mit je 516 Tests;
+`:app:assembleDebug` war ebenfalls erfolgreich. Die Debug-APK wurde auf dem Honor PTP-N49 installiert und OrkanSlicer startete
+bis zur Modellansicht. Der Screenshot bestätigt den App-Start; die neue Objektliste selbst
+ließ sich nicht prüfen, weil in der Sitzung kein Modell geladen war. Honor und Emulator waren
+per ADB sichtbar. Der ARM64-Nativkern wurde als unverändert/up-to-date übernommen. Kein Druck
+wurde gestartet.
+
 ## Build 0.8.241 – 3MF-Farbmalerei-Rundlauf repariert
 
 Der Honor-Gerätetest `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurviveThreeMfExportAndImport` reproduzierte den Verlust gemalter Filamente beim 3MF-Rundlauf. Ursache: Der Orca/Bambu-Importer las nur `paint_color`, obwohl der verwendete Prusa-3MF-Exporter `slic3rpe:mmu_segmentation` schreibt. Beide 3MF-Parserpfade des Orca/Bambu-Importers akzeptieren nun beide Attribute. Zusätzlich baut eine Paint-Session ihren Selektor auf Volume 0 auf, dessen Facettenannotation sie speichert, sodass Dreiecksindizes bei Mehrvolumenobjekten übereinstimmen.
@@ -7,6 +16,8 @@ Der Honor-Gerätetest `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurvi
 Der gezielte Round-trip-Test und die gesamte `TwoColorProjectDeviceTest`-Klasse (2/2) bestanden auf dem HONOR PTP-N49. `:app:testDebugUnitTest`, `:app:testSliceTestUnitTest` und `:app:assembleDebug` einschließlich ARM64-Nativkern bestanden ebenfalls. Die APK wurde auf dem Honor installiert und gestartet. Einzelnes Undo für Pinselstriche, Zoom beim Malen und komplexe Mehrvolumenmodelle bleiben offen.
 
 Alpha 0.8.241 wurde unter `https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.241` veröffentlicht. Das APK-Asset `OrkanSlicer_0.8.241_alpha_debug.apk` (156.849.377 Byte) hat den bestätigten GitHub-Digest `sha256:4b04e1a7392c2e2b87c0bd4ec859c4b7f02674204d93b6d2bfeb08cbbdaacc8e`, identisch mit der lokalen APK. PR #2 bleibt offen gegen `master`, Kopfcommit `bf1c3707fb8d181de8861e79ef4b1aa0461d682a`; kein Merge ausgeführt. Die bestehende Raycast-API gibt keine Volume-/Facet-ID zurück. Deshalb ist Malen direkt auf einzelnen Volumes komplexer Orca/Bambu-Baugruppen nicht verifiziert und darf nicht aus dem Round-trip-Test für die einfache Zweiteil-Fixture abgeleitet werden.
+
+Zusatzprüfung der Brückenoptionen: `NativeSliceDeviceTest.bridgeSettingsReachNativeConfigAndGenerateBridgeGcode` bestand auf dem Honor. Er prüft vier Brückeneinstellungen in der generierten Native-Konfiguration, Bridge-Markierung im G-Code sowie den Klipper-Pressure-Advance-Befehl. Eine getrennte äußere/innere Rollenassertion ist aus dem G-Code-Parser hier nicht ableitbar: Orca gibt für beide `BridgeInfill` aus. Der Test startet keinen Druck; physische Qualitätsabnahme bleibt offen.
 
 ## Build 0.8.174 – SliceBeam-Menüaufbau auf dem Honor geprüft
 

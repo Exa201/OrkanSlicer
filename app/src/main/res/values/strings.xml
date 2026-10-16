@@ -237,6 +237,9 @@
     <string name="ObjectActionRotate">Rotate</string>
     <string name="ObjectActionScale">Scale</string>
     <string name="ObjectActionDuplicate">Duplicate</string>
+    <string name="ObjectActionAssignFilamentShort">Assign</string>
+    <string name="ObjectActionAssignFilament">Assign filament for %1$s</string>
+    <string name="MenuFileObjectWithFilament">%1$s, tool T%2$d, %3$s, %4$s</string>
     <string name="ObjectActionCenter">Center</string>
     <string name="ModelDeleteConfirm">Delete this model from the build plate?</string>
     <string name="ModelDeleteAllConfirm">Remove every model from this build plate?</string>
