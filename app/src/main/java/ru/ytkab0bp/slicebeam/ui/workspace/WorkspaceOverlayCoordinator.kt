@@ -10,6 +10,7 @@ internal enum class WorkspaceOverlayPanel {
     FILAMENT_PALETTE,
     PROFILE_PICKER,
     PRINTER_WEB,
+    SPECIAL_TOOL,
 }
 
 /** Keeps one dismissible workspace panel active and routes Back to that panel first. */

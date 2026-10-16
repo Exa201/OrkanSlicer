@@ -80,7 +80,6 @@ import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
-import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationState
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
@@ -95,7 +94,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayCoordinator
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.Prefs
@@ -117,16 +116,15 @@ var glView: GLView? = null
 private var rendererAdapter: RendererAdapter? = null
 private var navigationView: ComposeView? = null
 private var menuNavigationThemeRevision by mutableIntStateOf(0)
-private val workspaceNavigationState = WorkspaceNavigationState()
-private val workspaceOverlayCoordinator = WorkspaceOverlayCoordinator()
+private val workspaceController = WorkspaceController()
 private var menuToolsExpanded:Boolean
-get() = workspaceNavigationState.toolPanelExpanded
-set(value) { workspaceNavigationState.toolPanelExpanded = value }
+get() = workspaceController.toolPanelExpanded
+set(value) { workspaceController.toolPanelExpanded = value }
 private var filamentPaletteRevision by mutableIntStateOf(0)
 private var isAnimatingMenu:Boolean = false
 private var currentMenuSlot:Int
-get() = workspaceNavigationState.selectedDestinationSlot
-set(value) { workspaceNavigationState.selectDestination(value, WorkspaceDestination.values().size) }
+get() = workspaceController.selectedDestinationSlot
+set(value) { workspaceController.selectDestination(value) }
 private lateinit var menuView: FrameLayout
 private var menuMap = object:SparseArray<BedMenu>() {
 override fun get(key:Int):BedMenu {
@@ -151,7 +149,9 @@ private var contentView: View? = null
 // Refactored plate management
  private var platesModels = ArrayList<Model?>()
 private val projectPlateIds = java.util.ArrayList<Int>()
-var currentPlateIndex = 0
+var currentPlateIndex: Int
+get() = workspaceController.activePlateIndex
+set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
 private var currentUnfoldMenu: UnfoldMenu? = null
 private var totalPlates = 1 // used for importing
@@ -159,7 +159,6 @@ private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
 private var plateTabsScroll: ComposeView? = null
 private var plateTabCount by mutableIntStateOf(1)
-private var selectedPlateTabIndex by mutableIntStateOf(0)
 private var plateObjectCounts by mutableStateOf<List<Int>>(emptyList())
 private var plateThumbnails by mutableStateOf<List<PlateThumbnail>>(emptyList())
 @Volatile private var platePreviewRevision = 0
@@ -312,7 +311,7 @@ fun showModelColorSlots(synchronize: Boolean = false) {
 }
 private fun showWorkspaceFilamentPalette() {
     val context = getContext() ?: return
-    workspaceOverlayCoordinator.dismissActive()
+    workspaceController.dismissActivePanel()
     val controller = FilamentPaletteController { filamentPaletteRevision++ }
     val dialog = WorkspaceFilamentPaletteSheet(
         context = context,
@@ -320,18 +319,18 @@ private fun showWorkspaceFilamentPalette() {
         hasModel = currentModel?.objectsCount?.let { it > 0 } == true,
         onAssignModel = ::showModelColorSlots,
     ).show {
-        workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.FILAMENT_PALETTE)
+        workspaceController.clearPanel(WorkspaceOverlayPanel.FILAMENT_PALETTE)
     }
-    workspaceOverlayCoordinator.register(WorkspaceOverlayPanel.FILAMENT_PALETTE) { dialog.dismiss() }
+    workspaceController.registerPanel(WorkspaceOverlayPanel.FILAMENT_PALETTE) { dialog.dismiss() }
 }
 private fun showWorkspaceProfileSheet(context: Context) {
-    workspaceOverlayCoordinator.dismissActive()
+    workspaceController.dismissActivePanel()
     val sheet = WorkspaceProfileSheet(context, Runnable { refreshProfileStatus() })
     sheet.setOnDismissListener {
-        workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.PROFILE_PICKER)
+        workspaceController.clearPanel(WorkspaceOverlayPanel.PROFILE_PICKER)
     }
     sheet.show()
-    workspaceOverlayCoordinator.register(WorkspaceOverlayPanel.PROFILE_PICKER) { sheet.dismiss() }
+    workspaceController.registerPanel(WorkspaceOverlayPanel.PROFILE_PICKER) { sheet.dismiss() }
 }
 /** Selects model filament slots first, then slices and runs the continuation on success. */
  @JvmOverloads fun startSlicing(onSuccess:Runnable? = null) {
@@ -624,8 +623,13 @@ dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
 }
 fun showUnfoldMenu(menu:UnfoldMenu, from:View) {
 if (currentUnfoldMenu != null) return
-menu.setOnDismiss({ if (menu.isAttached()) return@setOnDismiss
-currentUnfoldMenu = null })
+val toolId = menu.javaClass.name
+workspaceController.selectTool(toolId) { menu.dismiss() }
+menu.setOnDismiss({
+    if (menu.isAttached()) return@setOnDismiss
+    currentUnfoldMenu = null
+    workspaceController.clearTool(toolId)
+})
 currentUnfoldMenu = menu
 menu.show(from, this)
 }
@@ -812,7 +816,7 @@ val portrait = isPortraitWindow(ctx)
 selectMenu(ctx, portrait, WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
-if (workspaceOverlayCoordinator.dismissActive()) return true
+if (workspaceController.dismissActivePanel()) return true
 if (embossModeView != null)
 {
 exitEmbossMode()
@@ -926,8 +930,8 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.PrinterWebHostMissing))
 }
 return
 }
-workspaceOverlayCoordinator.dismissActive()
-workspaceOverlayCoordinator.register(WorkspaceOverlayPanel.PRINTER_WEB) { destroyPrinterWebView() }
+workspaceController.dismissActivePanel()
+workspaceController.registerPanel(WorkspaceOverlayPanel.PRINTER_WEB) { destroyPrinterWebView() }
 panelWebViewContainer!!.setVisibility(View.VISIBLE)
 panelWebViewContainer!!.bringToFront()
 if (printerWebCloseButton != null) printerWebCloseButton!!.setVisibility(View.VISIBLE)
@@ -1032,7 +1036,7 @@ private fun isAllowedPrinterWebUrl(targetUrl:String):Boolean {
 return PrinterWebOriginPolicy.allows(configuredWebHost, targetUrl)
 }
 private fun destroyPrinterWebView() {
-workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.PRINTER_WEB)
+workspaceController.clearPanel(WorkspaceOverlayPanel.PRINTER_WEB)
 val webView = panelWebView
 panelWebView = null
 hasWebError = false
@@ -1121,18 +1125,18 @@ if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
 PlateTabs(
 openState = platePickerOpen,
 plateCount = plateTabCount,
-selectedIndex = selectedPlateTabIndex,
+selectedIndex = workspaceController.activePlateIndex,
 objectCounts = plateObjectCounts,
 thumbnails = plateThumbnails,
 onOpen = {
-    workspaceOverlayCoordinator.activate(WorkspaceOverlayPanel.PLATE_PICKER) {
+    workspaceController.activatePanel(WorkspaceOverlayPanel.PLATE_PICKER) {
         platePickerOpen.value = false
     }
     // A model can move or scale without changing the plate list. Refresh its tiny footprint on demand.
     platePreviewRevision++
     refreshPlateThumbnails()
 },
-onDismiss = { workspaceOverlayCoordinator.clear(WorkspaceOverlayPanel.PLATE_PICKER) },
+onDismiss = { workspaceController.clearPanel(WorkspaceOverlayPanel.PLATE_PICKER) },
             onSelect = { index -> if (index != currentPlateIndex) switchPlate(index) },
 onClose = { index -> removePlate(index) },
 onAdd = { addNewPlate() },
@@ -1269,7 +1273,7 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
                 BeamComposeTheme(themeRevision = menuNavigationThemeRevision) {
                     AdaptiveWorkspaceNavigation(
                         items = items,
-                        selectedSlot = workspaceNavigationState.selectedDestinationSlot,
+                        selectedSlot = workspaceController.selectedDestinationSlot,
                         isBottomNavigation = bottomNavigation,
                         toolsExpanded = !bottomNavigation || menuToolsExpanded,
                         panelOpenDescription = ctx.getString(R.string.WorkspaceToolsOpen),
@@ -1796,7 +1800,7 @@ if (plateTabsScroll == null) return
 ViewUtils.postOnMainThread({ if (destroyed || plateTabsScroll == null || getContext() == null) return@postOnMainThread
 filamentPaletteRevision++
 plateTabCount = platesModels.size
-selectedPlateTabIndex = if (platesModels.isEmpty()) 0 else currentPlateIndex.coerceIn(0, platesModels.size - 1)
+if (platesModels.isNotEmpty()) currentPlateIndex = currentPlateIndex.coerceIn(0, platesModels.size - 1)
 plateObjectCounts = platesModels.map { it?.objectsCount ?: -1 }
 })
 }
