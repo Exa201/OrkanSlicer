@@ -65,6 +65,7 @@ internal fun WorkspaceShell(
     modePanelContent: (@Composable () -> Unit)?,
     modePanelFraction: Float?,
     onModePanelDismiss: () -> Unit,
+    transientPanelContent: (@Composable () -> Unit)?,
 ) {
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
         toolPanelNeedsTwoRows,
@@ -198,6 +199,7 @@ internal fun WorkspaceShell(
               content = modePanelContent,
           )
       }
+      transientPanelContent?.invoke()
     }
 }
 

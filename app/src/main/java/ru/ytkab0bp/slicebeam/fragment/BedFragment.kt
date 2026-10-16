@@ -155,7 +155,6 @@ get() = workspaceController.activePlateIndex
 set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
 private var currentUnfoldMenu: UnfoldMenu? = null
-private var modelContextMenuView: ComposeView? = null
 private var workspaceDialogView: ComposeView? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
@@ -660,8 +659,7 @@ if (currentUnfoldMenu != null)
 {
 currentUnfoldMenu!!.dismiss()
 }
-if (modelContextMenuView != null) return
-val root = overlayLayout ?: return
+if (workspaceController.activePanel == WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) return
 val actions = listOf(
     ctx.getString(R.string.ModelContextDuplicate),
     ctx.getString(R.string.MenuToolbarSplit),
@@ -738,33 +736,24 @@ Toast.makeText(ctx, R.string.ModelContextSelectedAll, Toast.LENGTH_SHORT).show()
 Toast.makeText(ctx, R.string.ModelContextDeletedAll, Toast.LENGTH_SHORT).show() })
     },
 )
-val host = ComposeView(ctx).apply {
-    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-    setContent {
+workspaceController.activatePanel(
+    panel = WorkspaceOverlayPanel.MODEL_CONTEXT_MENU,
+    dismiss = { workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) },
+    content = {
         BeamComposeTheme {
             ModelContextMenuDialog(
                 title = ctx.getString(R.string.ModelContextMenuTitle),
                 cancelLabel = ctx.getString(android.R.string.cancel),
                 actions = actions,
-                onDismiss = { dismissModelContextMenu(this) },
+                onDismiss = { workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) },
                 onSelect = { index ->
-                    dismissModelContextMenu(this)
+                    workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
                     handlers.getOrNull(index)?.invoke()
                 },
             )
         }
-    }
-}
-modelContextMenuView = host
-root.addView(host, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-workspaceController.activatePanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) {
-    dismissModelContextMenu(host)
-}
-}
-private fun dismissModelContextMenu(view: ComposeView) {
-if (modelContextMenuView === view) modelContextMenuView = null
-(view.parent as? ViewGroup)?.removeView(view)
-workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
+    },
+)
 }
 internal fun showWorkspaceMessageDialog(
     title: String?,
@@ -837,7 +826,8 @@ internal fun showWorkspaceComposeDialog(content: @Composable (dismiss: () -> Uni
 fun showSelectedModelContextMenu() {
     showModelContextMenu(glView?.renderer?.selectedObject ?: -1)
 }
-internal fun isModelContextMenuAttached(): Boolean = modelContextMenuView?.isAttachedToWindow == true
+internal fun isModelContextMenuAttached(): Boolean =
+    workspaceController.activePanel == WorkspaceOverlayPanel.MODEL_CONTEXT_MENU
 internal fun isWorkspaceMessageDialogAttached(): Boolean = workspaceDialogView?.isAttachedToWindow == true
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
@@ -1018,7 +1008,7 @@ return super.onBackPressed()
 }
 override fun onDestroy() {
 super.onDestroy()
-modelContextMenuView?.let(::dismissModelContextMenu)
+workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
 workspaceDialogView?.let { dialog ->
     (dialog.parent as? ViewGroup)?.removeView(dialog)
     workspaceDialogView = null
@@ -1496,6 +1486,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     modePanelContent = workspaceController.activeToolPanelContent,
                     modePanelFraction = workspaceController.activeToolPanelFraction,
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },
+                    transientPanelContent = workspaceController.activePanelContent,
                 )
             }
         }

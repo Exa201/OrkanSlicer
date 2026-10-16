@@ -128,6 +128,24 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    fun composePanelContentIsOwnedReplacedAndClearedWithItsOverlay() {
+        val controller = WorkspaceController()
+        val firstContent: @Composable () -> Unit = {}
+        val secondContent: @Composable () -> Unit = {}
+
+        controller.activatePanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU, firstContent) {}
+        assertSame(firstContent, controller.activePanelContent)
+
+        controller.activatePanel(WorkspaceOverlayPanel.MESSAGE_DIALOG, secondContent) {}
+        assertSame(secondContent, controller.activePanelContent)
+        assertEquals(WorkspaceOverlayPanel.MESSAGE_DIALOG, controller.activePanel)
+
+        assertTrue(controller.dismissActivePanel())
+        assertNull(controller.activePanelContent)
+        assertNull(controller.activePanel)
+    }
+
+    @Test
     fun navigationChangeClosesTransientToolAndPanelAsOneTransition() {
         val controller = WorkspaceController()
         var dismissed = 0

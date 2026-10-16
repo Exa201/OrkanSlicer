@@ -34,6 +34,9 @@ internal class WorkspaceController(
     var activeToolPanelFraction by mutableStateOf<Float?>(null)
         private set
 
+    var activePanelContent by mutableStateOf<(@Composable () -> Unit)?>(null)
+        private set
+
     val activePanel: WorkspaceOverlayPanel?
         get() = overlays.activePanel
 
@@ -102,10 +105,24 @@ internal class WorkspaceController(
     fun registerPanel(panel: WorkspaceOverlayPanel, dismiss: () -> Unit) =
         overlays.register(panel, dismiss)
 
-    fun activatePanel(panel: WorkspaceOverlayPanel, dismiss: () -> Unit) =
+    fun activatePanel(
+        panel: WorkspaceOverlayPanel,
+        content: (@Composable () -> Unit)? = null,
+        dismiss: () -> Unit,
+    ) {
         overlays.activate(panel, dismiss)
+        activePanelContent = content
+    }
 
-    fun clearPanel(panel: WorkspaceOverlayPanel): Boolean = overlays.clear(panel)
+    fun clearPanel(panel: WorkspaceOverlayPanel): Boolean {
+        val cleared = overlays.clear(panel)
+        if (cleared) activePanelContent = null
+        return cleared
+    }
 
-    fun dismissActivePanel(): Boolean = overlays.dismissActive()
+    fun dismissActivePanel(): Boolean {
+        val dismissed = overlays.dismissActive()
+        if (dismissed) activePanelContent = null
+        return dismissed
+    }
 }
