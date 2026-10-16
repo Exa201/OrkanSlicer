@@ -1,4 +1,4 @@
-Ergänzung 0.8.242 (16.10.2026, Entwicklungsstand): Filamentprofile bieten jetzt sechs klar
+Ergänzung 0.8.242 (16.10.2026, Alpha veröffentlicht): Filamentprofile bieten jetzt sechs klar
 benannte Orca-Druckoberflächen mit jeweils getrennten Temperaturen für erste und weitere
 Schichten. Der aktive Plattentyp ist im Druckerprofil einstellbar; der Druckdialog zeigt die
 dazu passenden Temperaturen. Vorhandene Plattenwerte bleiben erhalten. Nur fehlende Werte
@@ -10,6 +10,8 @@ fehlerfrei. Der neue native Gerätetest erzeugt G-Code auf dem Honor und bestät
 der Startbildschirm auf dem Honor zeigt die freie Druckplatte und die kompakte Filament-Schaltfläche.
 Der Emulator antwortete während des Gradle-Instrumentierungslaufs nicht auf ADB; der gezielte
 Native-Slice-Test lief deshalb auf dem Honor. Es wurde kein Druck gestartet.
+
+Alpha-APK veröffentlicht unter https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.242. PR #2 bleibt offen gegen master; es wurde kein Merge ausgeführt.
 
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 

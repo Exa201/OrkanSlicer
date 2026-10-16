@@ -12,6 +12,8 @@ installiert; Honor-Startbildschirm visuell kontrolliert. Die Gradle-Instrumentie
 Geräte lief wegen Emulator-ADB-Timeout nicht durch; der gezielte Test wurde direkt auf dem Honor
 ausgeführt. Keine native Abhängigkeit fehlte, kein Druck wurde gestartet.
 
+Alpha 0.8.242: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.242. Das APK-Asset `OrkanSlicer_0bde473343.apk` (156.867.235 Byte) hat den bestätigten GitHub-Digest `sha256:4c1a0c27b5f463fe9068d99fa74fff50d532824c9a4cc7c62c1312ca62183cee`, identisch mit der lokalen APK. PR #2 bleibt offen gegen `master`, Kopfcommit `0bde473343`; kein Merge ausgeführt.
+
 # Gebündelter Build- und Prüfablauf
 
 ## Entwicklungsstand 0.8.241 – ACE-Slots behalten ihre festen T-Indizes
