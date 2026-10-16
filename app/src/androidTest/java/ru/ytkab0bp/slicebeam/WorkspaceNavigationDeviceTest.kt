@@ -27,7 +27,8 @@ class WorkspaceNavigationDeviceTest {
         SliceBeam.INSTANCE = app
         Prefs.init(app)
         val prefs = requireNotNull(Prefs.getPrefs())
-        val previousCrash = prefs.getBoolean("crash", false)
+        // SafeStartActivity reads this key as a String; restoring a Boolean poisons later launches.
+        val previousCrash = runCatching { prefs.getString("crash", null) }.getOrNull()
         val previousPrompt = prefs.getBoolean("converter_storage_first_prompt", false)
         val previousLastCommit = prefs.getString("last_commit", null)
         val previousConfig = SliceBeam.CONFIG
@@ -66,7 +67,10 @@ class WorkspaceNavigationDeviceTest {
             scenario.close()
             SliceBeam.CONFIG = previousConfig
             prefs.edit()
-                .putBoolean("crash", previousCrash)
+                .also { editor ->
+                    if (previousCrash == null) editor.remove("crash")
+                    else editor.putString("crash", previousCrash)
+                }
                 .putBoolean("converter_storage_first_prompt", previousPrompt)
                 .also { editor ->
                     if (previousLastCommit == null) editor.remove("last_commit")

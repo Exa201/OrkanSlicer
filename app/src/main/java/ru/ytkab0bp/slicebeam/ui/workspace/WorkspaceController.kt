@@ -56,6 +56,9 @@ internal class WorkspaceController(
     }
 
     fun selectTool(toolId: String, dismiss: () -> Unit) {
+        // SPECIAL_TOOL is one panel kind, but selecting a different tool must still
+        // dismiss the previous tool host instead of silently replacing its callback.
+        if (activeToolId != null && activeToolId != toolId) dismissActivePanel()
         activeToolId = toolId
         overlays.activate(WorkspaceOverlayPanel.SPECIAL_TOOL, dismiss)
     }

@@ -49,6 +49,36 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    fun glModeAndUnfoldToolShareExclusiveBackDismissal() {
+        val controller = WorkspaceController()
+        var glModeClosed = 0
+        var routeClosed = 0
+
+        controller.selectTool("paint-mode") {
+            glModeClosed++
+            controller.clearTool("paint-mode")
+        }
+        assertEquals(WorkspaceOverlayPanel.SPECIAL_TOOL, controller.activePanel)
+        assertTrue(controller.dismissActivePanel())
+        assertEquals(1, glModeClosed)
+        assertNull(controller.activeToolId)
+
+        controller.selectTool("transform.scale") {
+            routeClosed++
+            controller.clearTool("transform.scale")
+        }
+        controller.selectTool("emboss-mode") {
+            glModeClosed++
+            controller.clearTool("emboss-mode")
+        }
+        assertEquals(1, routeClosed)
+        assertEquals("emboss-mode", controller.activeToolId)
+        assertTrue(controller.dismissActivePanel())
+        assertEquals(2, glModeClosed)
+        assertNull(controller.activeToolId)
+    }
+
+    @Test
     fun modelContextDialogReplacesPlatePickerAndBackDismissesIt() {
         val controller = WorkspaceController()
         var plateDismissed = false
