@@ -11,6 +11,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -170,6 +171,25 @@ class MainActivityTouchDeviceTest {
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
                 assertModelSelectedWithoutModal(activity)
+            }
+
+            // Explicitly opening the model action list should use the modal Compose surface;
+            // system Back must dismiss that surface before leaving the workspace.
+            scenario.onActivity { activity ->
+                requireNotNull(bed).showSelectedModelContextMenu()
+                assertTrue("The workspace activity should still be active", activity.isFinishing.not())
+            }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("The model action dialog should attach to the workspace", requireNotNull(bed).isModelContextMenuAttached())
+                assertEquals("The selected model should remain active behind its actions", 0,
+                    requireNotNull(bed).glView!!.renderer.selectedObject)
+            }
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Back should leave the workspace activity active", activity.isFinishing.not())
+                assertFalse("Back should dismiss the model action dialog", requireNotNull(bed).isModelContextMenuAttached())
             }
         } finally {
             scenario.close()

@@ -14,6 +14,13 @@ class AdaptiveNavigationPolicyTest {
     }
 
     @Test
+    fun phoneWidthUsesCompactWorkspaceLabelsButLargeWindowsKeepFullLabels() {
+        assertTrue(AdaptiveNavigationPolicy.usesCompactBottomLabels(393, 1f))
+        assertFalse(AdaptiveNavigationPolicy.usesCompactBottomLabels(480, 1f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactBottomLabels(720, 1.3f))
+    }
+
+    @Test
     fun largeTextUsesTwoNavigationRowsWhenLabelsNeedRoom() {
         assertFalse(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 3))
         assertTrue(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 5))

@@ -10,6 +10,7 @@ internal enum class WorkspaceOverlayPanel {
     FILAMENT_PALETTE,
     PROFILE_PICKER,
     PRINTER_WEB,
+    MODEL_CONTEXT_MENU,
     SPECIAL_TOOL,
 }
 

@@ -47,4 +47,20 @@ class WorkspaceControllerTest {
         assertNull(controller.activeToolId)
         assertEquals(WorkspaceOverlayPanel.FILAMENT_PALETTE, controller.activePanel)
     }
+
+    @Test
+    fun modelContextDialogReplacesPlatePickerAndBackDismissesIt() {
+        val controller = WorkspaceController()
+        var plateDismissed = false
+        var dialogDismissed = false
+        controller.activatePanel(WorkspaceOverlayPanel.PLATE_PICKER) { plateDismissed = true }
+
+        controller.activatePanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) { dialogDismissed = true }
+
+        assertTrue(plateDismissed)
+        assertEquals(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU, controller.activePanel)
+        assertTrue(controller.dismissActivePanel())
+        assertTrue(dialogDismissed)
+        assertNull(controller.activePanel)
+    }
 }

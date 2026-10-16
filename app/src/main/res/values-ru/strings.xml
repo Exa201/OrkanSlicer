@@ -128,6 +128,7 @@
     <string name="MenuFileExport3mfSuccess">Успешно экспортировали проект.</string>
     <string name="MenuCamera">Камера</string>
     <string name="MenuCameraIsometric">Изомет.\nвид</string>
+    <string name="MenuCameraIsometricCompact">Изом.</string>
     <string name="MenuCameraTop">Вид\nсверху</string>
     <string name="MenuCameraBottom">Вид\nснизу</string>
     <string name="MenuCameraFront">Вид\nспереди</string>

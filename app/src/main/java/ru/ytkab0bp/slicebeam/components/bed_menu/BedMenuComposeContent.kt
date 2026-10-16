@@ -140,7 +140,9 @@ private fun BedMenuActionTile(
     modifier: Modifier,
 ) {
     val fullTitle = stringResource(action.titleRes)
+    val fontScale = LocalDensity.current.fontScale
     val compactLabel = when (action.titleRes) {
+        R.string.MenuCameraIsometric -> if (fontScale >= 1.3f) R.string.MenuCameraIsometricCompact else action.titleRes
         R.string.ModelUndo -> R.string.EditUndoShort
         R.string.ModelRedo -> R.string.EditRedoShort
         R.string.MenuArrangeAllObjects -> R.string.EditArrangeAllShort

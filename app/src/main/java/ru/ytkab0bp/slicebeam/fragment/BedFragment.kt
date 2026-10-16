@@ -49,6 +49,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
+import ru.ytkab0bp.slicebeam.components.ModelContextMenuDialog
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.components.SliceProgressBottomSheet
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
@@ -154,6 +155,7 @@ get() = workspaceController.activePlateIndex
 set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
 private var currentUnfoldMenu: UnfoldMenu? = null
+private var modelContextMenuView: ComposeView? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
@@ -641,21 +643,32 @@ if (currentUnfoldMenu != null)
 {
 currentUnfoldMenu!!.dismiss()
 }
-BeamAlertDialogBuilder(ctx)
-.setTitle(R.string.ModelContextMenuTitle)
-.setItems(arrayOf<CharSequence>(ctx.getString(R.string.ModelContextDuplicate), ctx.getString(R.string.MenuToolbarSplit), ctx.getString(R.string.MenuFileMoveToPlate), ctx.getString(R.string.ModelContextDelete), ctx.getString(R.string.ModelContextFillBed), ctx.getString(R.string.ModelContextCenterOnBed), ctx.getString(R.string.ModelContextAutoOrient), ctx.getString(R.string.ModelContextResetRotation), ctx.getString(R.string.ModelContextResetScale), ctx.getString(R.string.ModelContextSetOnFace), ctx.getString(R.string.ModelContextSelectAll), ctx.getString(R.string.ModelContextDeleteAll)), { dialog, which-> when (which) {
-0 // Duplicate
--> glView!!.duplicateSelectedModel({ updateModel()
+if (modelContextMenuView != null) return
+val root = overlayLayout ?: return
+val actions = listOf(
+    ctx.getString(R.string.ModelContextDuplicate),
+    ctx.getString(R.string.MenuToolbarSplit),
+    ctx.getString(R.string.MenuFileMoveToPlate),
+    ctx.getString(R.string.ModelContextDelete),
+    ctx.getString(R.string.ModelContextFillBed),
+    ctx.getString(R.string.ModelContextCenterOnBed),
+    ctx.getString(R.string.ModelContextAutoOrient),
+    ctx.getString(R.string.ModelContextResetRotation),
+    ctx.getString(R.string.ModelContextResetScale),
+    ctx.getString(R.string.ModelContextSetOnFace),
+    ctx.getString(R.string.ModelContextSelectAll),
+    ctx.getString(R.string.ModelContextDeleteAll),
+)
+val handlers = listOf<() -> Unit>(
+    { glView?.duplicateSelectedModel({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextDuplicated, Toast.LENGTH_SHORT).show() })
-1 // Separate parts
--> splitSelectedObject()
-2 // Move to another plate
--> ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions(this).showMoveToPlateDialog(glView!!)
-3 // Delete
--> glView!!.deleteSelectedModel({ updateModel()
+    },
+    { splitSelectedObject() },
+    { glView?.let { ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions(this).showMoveToPlateDialog(it) } },
+    { glView?.deleteSelectedModel({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextDeleted, Toast.LENGTH_SHORT).show() })
-4 // Fill Bed
--> glView!!.fillBedWithSelectedModel({ addedCopies->
+    },
+    { glView?.fillBedWithSelectedModel({ addedCopies->
 updateModel()
 Toast.makeText(ctx,
 if (addedCopies > 0)
@@ -664,47 +677,82 @@ R.plurals.ModelContextFillBedFinished,
 addedCopies, addedCopies)
 else
 ctx.getString(R.string.ModelContextFillBedNoRoom),
-Toast.LENGTH_SHORT).show() })
-5 // Center on Bed
--> glView!!.centerSelectedOnBed({ updateModel()
+Toast.LENGTH_SHORT).show() }) },
+    { glView?.centerSelectedOnBed({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show() })
-6 // Auto-orient
--> glView!!.queueEvent({ glView!!.renderer.model!!.autoOrient(objectIndex)
-glView!!.renderer.model!!.ensureOnBed(objectIndex)
-glView!!.renderer.invalidateGlModel(objectIndex)
-glView!!.requestRender()
+    },
+    {
+        val viewport = glView
+        if (viewport != null) viewport.queueEvent({
+val model = viewport.renderer.model ?: return@queueEvent
+model.autoOrient(objectIndex)
+model.ensureOnBed(objectIndex)
+viewport.renderer.invalidateGlModel(objectIndex)
+viewport.requestRender()
 ViewUtils.postOnMainThread({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextAutoOriented, Toast.LENGTH_SHORT).show() }) })
-7 // Reset Rotation
--> glView!!.queueEvent({ glView!!.renderer.setSelectionRotation((0).toDouble(), (0).toDouble(), (0).toDouble())
-glView!!.renderer.model!!.ensureOnBed(objectIndex)
-glView!!.renderer.invalidateSelectionObject()
-glView!!.requestRender()
+    },
+    {
+        val viewport = glView
+        if (viewport != null) viewport.queueEvent({ viewport.renderer.setSelectionRotation(0.0, 0.0, 0.0)
+viewport.renderer.model?.ensureOnBed(objectIndex)
+viewport.renderer.invalidateSelectionObject()
+viewport.requestRender()
 ViewUtils.postOnMainThread({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextResetRotationDone, Toast.LENGTH_SHORT).show() }) })
-8 // Reset Scale
--> glView!!.queueEvent({ glView!!.renderer.setSelectionScale((1).toDouble(), (1).toDouble(), (1).toDouble())
-glView!!.renderer.model!!.ensureOnBed(objectIndex)
-glView!!.renderer.invalidateSelectionObject()
-glView!!.requestRender()
+    },
+    {
+        val viewport = glView
+        if (viewport != null) viewport.queueEvent({ viewport.renderer.setSelectionScale(1.0, 1.0, 1.0)
+viewport.renderer.model?.ensureOnBed(objectIndex)
+viewport.renderer.invalidateSelectionObject()
+viewport.requestRender()
 ViewUtils.postOnMainThread({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextResetScaleDone, Toast.LENGTH_SHORT).show() }) })
-9 // Lay on face (enter flatten mode)
--> glView!!.queueEvent({ glView!!.renderer.setInFlattenMode(true)
-glView!!.requestRender() })
-10 // Select All
--> glView!!.selectAllModels({ updateModel()
+    },
+    {
+        glView?.let { viewport -> viewport.queueEvent({ viewport.renderer.setInFlattenMode(true)
+viewport.requestRender() }) }
+    },
+    { glView?.selectAllModels({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextSelectedAll, Toast.LENGTH_SHORT).show() })
-11 // Delete All
--> glView!!.deleteAllModels({ updateModel()
+    },
+    { glView?.deleteAllModels({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextDeletedAll, Toast.LENGTH_SHORT).show() })
-} })
-.setNegativeButton(android.R.string.cancel, null)
-.show()
+    },
+)
+val host = ComposeView(ctx).apply {
+    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+    setContent {
+        BeamComposeTheme {
+            ModelContextMenuDialog(
+                title = ctx.getString(R.string.ModelContextMenuTitle),
+                cancelLabel = ctx.getString(android.R.string.cancel),
+                actions = actions,
+                onDismiss = { dismissModelContextMenu(this) },
+                onSelect = { index ->
+                    dismissModelContextMenu(this)
+                    handlers.getOrNull(index)?.invoke()
+                },
+            )
+        }
+    }
+}
+modelContextMenuView = host
+root.addView(host, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+workspaceController.activatePanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) {
+    dismissModelContextMenu(host)
+}
+}
+private fun dismissModelContextMenu(view: ComposeView) {
+if (modelContextMenuView === view) modelContextMenuView = null
+(view.parent as? ViewGroup)?.removeView(view)
+workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
 }
 fun showSelectedModelContextMenu() {
     showModelContextMenu(glView?.renderer?.selectedObject ?: -1)
 }
+internal fun isModelContextMenuAttached(): Boolean = modelContextMenuView?.isAttachedToWindow == true
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
 if (ctx == null || glView == null || objectIndex == -1 || paintModeView != null) return
@@ -861,6 +909,7 @@ return super.onBackPressed()
 }
 override fun onDestroy() {
 super.onDestroy()
+modelContextMenuView?.let(::dismissModelContextMenu)
 destroyed = true
 modelImportGeneration++
 plateLoadGeneration++
@@ -1258,12 +1307,17 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
         setContent {
             key(menuNavigationThemeRevision) {
                 BeamComposeTheme(themeRevision = menuNavigationThemeRevision) {
+                    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+                    val twoRowNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
+                        fontScale,
+                        WorkspaceDestination.values().size,
+                    )
                     val compactLabels = !bottomNavigation ||
-                        AdaptiveNavigationPolicy.usesCompactLabels(androidx.compose.ui.platform.LocalDensity.current.fontScale) &&
-                        !AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
-                            androidx.compose.ui.platform.LocalDensity.current.fontScale,
-                            WorkspaceDestination.values().size,
+                        AdaptiveNavigationPolicy.usesCompactBottomLabels(
+                            ctx.resources.configuration.screenWidthDp,
+                            fontScale,
                         )
+                            && !twoRowNavigation
                     val items = WorkspaceDestination.values().map { destination ->
                         val fullLabel = ctx.getString(destination.navigationTitleRes)
                         val compactTitleRes = when (destination) {

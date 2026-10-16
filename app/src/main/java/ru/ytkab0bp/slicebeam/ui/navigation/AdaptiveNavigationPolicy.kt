@@ -7,11 +7,17 @@ object AdaptiveNavigationPolicy {
     const val EXPANDED_WIDTH_DP = 600
     const val NAVIGATION_RAIL_WIDTH_DP = 80
     const val LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP = 96
+    const val COMPACT_BOTTOM_LABEL_WIDTH_DP = 440
     const val NAVIGATION_BAR_HEIGHT_DP = 56
     const val COMPACT_LABEL_FONT_SCALE = 1.15f
 
     @JvmStatic
     fun usesCompactLabels(fontScale: Float): Boolean = fontScale >= COMPACT_LABEL_FONT_SCALE
+
+    /** Shortens visible labels when six bottom destinations would wrap in a phone-width window. */
+    @JvmStatic
+    fun usesCompactBottomLabels(windowWidthDp: Int, fontScale: Float): Boolean =
+        usesCompactLabels(fontScale) || (windowWidthDp in 1 until COMPACT_BOTTOM_LABEL_WIDTH_DP)
 
     @JvmStatic
     fun usesTwoRowBottomNavigation(fontScale: Float, itemCount: Int): Boolean =

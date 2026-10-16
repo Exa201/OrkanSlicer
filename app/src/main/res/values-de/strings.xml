@@ -693,6 +693,7 @@
     <string name="MenuFileExport3mfSuccess">Projekt erfolgreich exportiert.</string>
     <string name="MenuCamera">Ansicht</string>
     <string name="MenuCameraIsometric">Isometrisch</string>
+    <string name="MenuCameraIsometricCompact">Iso</string>
     <string name="MenuCameraTop">Oben</string>
     <string name="MenuCameraBottom">Unten</string>
     <string name="MenuCameraFront">Vorne</string>
