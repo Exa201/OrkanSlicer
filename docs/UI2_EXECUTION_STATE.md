@@ -2,15 +2,15 @@
 
 Updated: 2026-10-16
 
-## Current continuation (0.8.247)
+## Current continuation (0.8.248)
 
-- Migrated the top-level Camera and Edit destinations to direct `WorkspaceShell` composition through `WorkspaceComposeBedMenu`; the AndroidView fallback remains for compatibility callers.
-- `TransformMenu` subscribes to model/selection events only while its Compose route is composed, and keeps the existing `TransformMenuItems` callbacks, dialogs, and GL-thread operations.
-- Honor PTP-N49: targeted `WorkspaceNavigationDeviceTest` passed (1/1); full instrumentation reported 55 tests, 0 failures, 3 skipped private-fixture tests (52 ran and passed). The Camera and Edit routes were checked for direct Compose host use and absence of allocated legacy menu Views. Emulator remains offline.
+- All six `WorkspaceDestination` menus (Project, Model, Camera, Edit, Tools, Slice) now render direct Compose content in `WorkspaceShell`. The active workspace no longer creates their `ThemeAwareComposeView` menu hosts. Compatibility `onCreateView` routes remain for non-workspace callers.
+- `ListBedMenu` event-bus registration is idempotent and follows the selected Compose route's enter/exit lifecycle; existing menu action builders and renderer callbacks are retained.
+- Honor PTP-N49 / Android 16: `WorkspaceNavigationDeviceTest` passed (1/1) with all six route transitions and checks that their legacy menu Views are absent. Full instrumentation reported 55 tests, 0 failures, 3 skipped private-fixture tests (52 ran and passed). Emulator remains offline.
 - Debug and Slice unit suites each passed 549/549 (0 failures, errors, or skips). Source and instrumentation compilation passed.
-- Version 0.8.247 alpha / versionCode 282. `:app:assembleDebug` passed at code commit `78427d728402d23e994e57f0b0340e230a638d75`. APK `app/build/outputs/apk/debug/OrkanSlicer_78427d7284.apk`, 157,022,291 bytes; SHA-256 `D94B67D3AE2BDF8B8D024B0A1514DCDAC7F32A1FF7EACAB393F1417BD74D8E5F`.
-- Installed and cold-started APK on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.247 / code 282; `MainActivity` top-resumed. Fresh startup logcat had no crash, ANR, or OOM markers. Device package inventory contained OrkanSlicer only; no screenshot was taken.
-- Next: continue migrating/auditing remaining top-level View-hosted menu routes (Project, Model, Tools, Slice) and their event-listener lifecycle. This does not complete the global menu, responsive/accessibility, or full legacy UI audit.
+- Version 0.8.248 alpha / versionCode 283. `:app:assembleDebug` passed at code commit `becee99` (`becee9948c`). APK `app/build/outputs/apk/debug/OrkanSlicer_becee9948c.apk`, 157,022,247 bytes; SHA-256 `06EE2703F330AAC9D50B8FA13DBC9CF2D41BC7A179B8557361FB2258489BB9E6`.
+- Installed and cold-started on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.248 / code 283; `MainActivity` top-resumed. Fresh startup logcat had no crash, ANR, or OOM markers. No screenshot was taken.
+- Next: continue the global menu action audit and remaining BedFragment UI/overlay responsibilities. The 3MF multi-plate persistence, complete global menu action verification, and full system display/font/accessibility matrix remain open; this migration is not complete.
 
 ## Latest follow-up
 
