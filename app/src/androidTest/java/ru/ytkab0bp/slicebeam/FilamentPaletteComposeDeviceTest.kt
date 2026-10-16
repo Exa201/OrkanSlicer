@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.platform.LocalDensity
@@ -22,10 +24,13 @@ import androidx.compose.foundation.layout.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
+import ru.ytkab0bp.slicebeam.ui.workspace.PlateThumbnail
 import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
@@ -67,6 +72,45 @@ class FilamentPaletteComposeDeviceTest {
         ).assertIsDisplayed()
         scrollForward.assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
         compose.onNodeWithText("Synthetic PLA 23").assertIsDisplayed()
+    }
+
+    @Test
+    fun platePickerCancelHasAccessibleTouchTargetAndDismisses() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val open = mutableStateOf(false)
+        var openCalls = 0
+        var dismissCalls = 0
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
+                BeamComposeTheme {
+                    PlateTabs(
+                        openState = open,
+                        plateCount = 3,
+                        selectedIndex = 0,
+                        objectCounts = listOf(0, 1, 2),
+                        thumbnails = List(3) { PlateThumbnail(emptyList()) },
+                        onOpen = { openCalls++ },
+                        onDismiss = { dismissCalls++ },
+                        onSelect = {},
+                        onClose = {},
+                        onAdd = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription(context.getString(R.string.PlateNumber, "1")).performClick()
+        val cancelLabel = context.getString(android.R.string.cancel)
+        compose.onNodeWithText(cancelLabel).assertIsDisplayed()
+            .assertWidthIsAtLeast(48.dp)
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        assertEquals(0, compose.onAllNodesWithText(cancelLabel).fetchSemanticsNodes().size)
+        compose.runOnIdle {
+            assertFalse(open.value)
+            assertEquals(1, openCalls)
+            assertEquals(1, dismissCalls)
+        }
     }
 
     @Test

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.251 (alpha)
+
+- The build-plate picker Cancel action now has a Material 3 touch target that meets the 48 dp accessibility minimum.
+
 ## 0.8.250 (alpha)
 
 - Added a labeled, accessible 48 dp control to reveal the remaining ACE physical slots when the printer slot row overflows; it does not alter hardware slot mappings.
