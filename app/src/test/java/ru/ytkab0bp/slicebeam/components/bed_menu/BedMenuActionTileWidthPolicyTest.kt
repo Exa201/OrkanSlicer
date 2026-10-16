@@ -1,9 +1,17 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class BedMenuActionTileWidthPolicyTest {
+    @Test
+    fun narrowPhonesAndLargeTextGetFewerWiderColumns() {
+        assertEquals(3, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 366))
+        assertEquals(4, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 411))
+        assertEquals(3, BedMenuActionTileWidthPolicy.columnsForLayout(1.15f, 411))
+    }
+
     @Test fun fourReadableActionsFitOnAnOrdinaryPhone() {
         for (width in listOf(360, 365, 411)) {
             val tile = BedMenuActionTileWidthPolicy.widthDp(width, 10)

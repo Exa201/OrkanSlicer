@@ -28,3 +28,20 @@ object AdaptiveNavigationPolicy {
         return portraitWindow && usesBottomNavigation(windowWidthDp, portraitWindow)
     }
 }
+
+/** Reserves the plate viewport by keeping portrait action menus collapsed until requested. */
+object WorkspaceToolPanelPolicy {
+    const val COMPACT_MENU_HEIGHT_DP = 68
+    const val TWO_ROW_MENU_HEIGHT_DP = 124
+    const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 144
+
+    @JvmStatic
+    fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float): Int {
+        if (!needsTwoRows) return COMPACT_MENU_HEIGHT_DP
+        return if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
+    }
+
+    @JvmStatic
+    fun reservedHeightDp(isPortrait: Boolean, expanded: Boolean, menuHeightDp: Int): Int =
+        if (isPortrait && expanded) menuHeightDp.coerceAtLeast(0) else 0
+}

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -60,6 +61,9 @@ internal data class BedComposeMenuAction(
 
 /** Keeps phone portrait actions wide enough to read; longer menus remain swipeable. */
 internal object BedMenuActionTileWidthPolicy {
+    fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
+        if (fontScale >= 1.15f || screenWidthDp < 400) 3 else 4
+
     fun widthDp(screenWidthDp: Int, actionCount: Int): Int = when {
         actionCount <= 0 -> 72
         else -> ((screenWidthDp.coerceAtLeast(320) - 8) / actionCount.coerceIn(1, 4)).coerceIn(72, 128)
@@ -70,7 +74,9 @@ internal object BedMenuActionTileWidthPolicy {
 internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait: Boolean, multiRow: Boolean = false) {
     val menuView = LocalView.current
     if (portrait && multiRow) {
-        val tileWidth = BedMenuActionTileWidthPolicy.widthDp(LocalConfiguration.current.screenWidthDp, 4).dp
+        val widthDp = LocalConfiguration.current.screenWidthDp
+        val columns = BedMenuActionTileWidthPolicy.columnsForLayout(LocalDensity.current.fontScale, widthDp)
+        val tileWidth = BedMenuActionTileWidthPolicy.widthDp(widthDp, columns).dp
         LazyHorizontalGrid(
             rows = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),

@@ -82,6 +82,7 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
+import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
@@ -91,6 +92,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.PlateThumbnail
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceProfileStatus
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebCloseButton
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
@@ -112,6 +114,8 @@ var glView: GLView? = null
 private var navigationView: ComposeView? = null
 private var selectedMenuNavigationSlot by mutableIntStateOf(0)
 private var menuNavigationThemeRevision by mutableIntStateOf(0)
+private var menuToolsExpanded by mutableStateOf(false)
+private var filamentPaletteRevision by mutableIntStateOf(0)
 private var isAnimatingMenu:Boolean = false
 private var currentMenuSlot:Int = 0
 private lateinit var menuView: FrameLayout
@@ -153,6 +157,8 @@ private var platePreviewBuiltRevision = -1
 private var plateTabsThemeRevision by mutableIntStateOf(0)
 private val platePickerOpen = mutableStateOf(false)
 private var printerWebButton: ComposeView? = null
+private var filamentPaletteButton: ComposeView? = null
+private var menuDivider: View? = null
 private var printerWebCloseButton: ComposeView? = null
 private var printerWebAvailable by mutableStateOf(false)
 private var printerWebThemeRevision by mutableIntStateOf(0)
@@ -494,6 +500,7 @@ snackbarsLayout!!.show(s)
 fun onTemporaryProjectSettingsChanged(event: TemporaryProjectSettingsChangedEvent) {
 if (getView() == null || glView == null) return
 refreshProfileStatus()
+filamentPaletteRevision++
 if (event.settingsChanged && gCodeResult != null) {
     val previous = gCodeResult
     gCodeResult = null
@@ -857,6 +864,7 @@ override fun onResume() {
 super.onResume()
 glView!!.onResume()
 updateProfileStatus()
+filamentPaletteRevision++
 updatePrinterWebViewAvailability()
 }
 private fun updatePrinterWebViewAvailability() {
@@ -1203,7 +1211,16 @@ super.onConfigurationChanged(newConfig)
 val ctx = getContext()
 if (ctx == null || overlayLayout == null || glView == null) return
 val portrait = usesCompactPortraitLayout(ctx)
-if (portrait == compactPortraitLayout) return
+if (portrait == compactPortraitLayout) {
+    if (portrait && menuToolsExpanded && menuView.layoutParams is LinearLayout.LayoutParams) {
+        menuView.layoutParams = (menuView.layoutParams as LinearLayout.LayoutParams).apply {
+            height = ViewUtils.dp(menuPortraitHeightDp())
+        }
+    }
+    filamentPaletteRevision++
+    updateAdaptiveOverlayMargins(portrait)
+    return
+}
 if (isAnimatingMenu)
 {
 overlayLayout!!.postDelayed({ onConfigurationChanged(newConfig) }, 300)
@@ -1236,6 +1253,11 @@ private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): C
                         items = items,
                         selectedSlot = selectedMenuNavigationSlot,
                         isBottomNavigation = bottomNavigation,
+                        toolsExpanded = !bottomNavigation || menuToolsExpanded,
+                        panelOpenDescription = ctx.getString(R.string.WorkspaceToolsOpen),
+                        panelClosedDescription = ctx.getString(R.string.WorkspaceToolsClosed),
+                        announcePanelState = true,
+                        showPanelToggleIndicator = true,
                         onSelected = { slot -> onMenuNavigationSelected(ctx, bottomNavigation, slot) },
                     )
                 }
@@ -1249,7 +1271,12 @@ private fun configureMenuNavigation() {
 }
 
 private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, slot: Int) {
-    if (slot !in MenuCategory.values().indices || slot == currentMenuSlot || isAnimatingMenu) return
+    if (slot !in MenuCategory.values().indices || isAnimatingMenu) return
+    if (slot == currentMenuSlot) {
+        if (bottomNavigation) setPortraitToolPanelExpanded(!menuToolsExpanded)
+        return
+    }
+    if (bottomNavigation && !menuToolsExpanded) setPortraitToolPanelExpanded(true)
     if (slot != MenuCategory.SLICE_AND_EXPORT.ordinal) {
         glView?.queueEvent {
             gCodeResult?.release()
@@ -1262,9 +1289,19 @@ private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, sl
     }
     selectMenu(ctx, bottomNavigation, slot)
 }
+
+private fun setPortraitToolPanelExpanded(expanded: Boolean) {
+    menuToolsExpanded = expanded
+    val params = menuView.layoutParams as? LinearLayout.LayoutParams ?: return
+    menuView.visibility = if (expanded) View.VISIBLE else View.GONE
+    menuDivider?.visibility = if (expanded) View.VISIBLE else View.GONE
+    params.height = ViewUtils.dp(if (expanded) menuPortraitHeightDp() else 0)
+    menuView.layoutParams = params
+    updateAdaptiveOverlayMargins(true)
+}
 /** Keep the model viewport clear; object actions are available from the Edit menu. */
 private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
-listOfNotNull(glView, menuView, navigationView, profileStatusText, printerWebButton, projectSettingsBar,
+listOfNotNull(glView, menuView, navigationView, profileStatusText, printerWebButton, filamentPaletteButton, projectSettingsBar,
     plateTabsScroll).forEach(::detachFromParent)
 detachFromParent(swipeDownLayout)
 swipeDownLayout.removeAllViews()
@@ -1282,6 +1319,21 @@ setPadding(ViewUtils.dp(6), ViewUtils.dp(4), ViewUtils.dp(6), ViewUtils.dp(4))
 }
 header.addView(profileStatusText, LinearLayout.LayoutParams(
 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+if (filamentPaletteButton == null) filamentPaletteButton = ComposeView(ctx).apply {
+setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+setContent {
+val revision = filamentPaletteRevision
+key(revision) { BeamComposeTheme {
+WorkspaceFilamentButton(
+slots = Prefs.getFilamentSlots(),
+enabled = currentModel?.objectsCount?.let { it > 0 } == true,
+onClick = ::showModelColorSlots,
+)
+} }
+}
+}
+header.addView(filamentPaletteButton, LinearLayout.LayoutParams(
+ViewUtils.dp(48), ViewUtils.dp(48)).apply { leftMargin = ViewUtils.dp(4) })
 header.addView(plateTabsScroll, LinearLayout.LayoutParams(
 ViewUtils.dp(48), ViewUtils.dp(48)).apply { leftMargin = ViewUtils.dp(4) })
 header.addView(printerWebButton, LinearLayout.LayoutParams(
@@ -1294,12 +1346,17 @@ ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 workspace.addView(bedRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 navigationView = createMenuNavigationView(ctx, bottomNavigation = portrait)
 if (portrait) {
+val toolsHeight = if (menuToolsExpanded) menuPortraitHeightDp() else 0
+menuView.visibility = if (menuToolsExpanded) View.VISIBLE else View.GONE
 workspace.addView(menuView, LinearLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(menuPortraitHeightDp())))
-workspace.addView(DividerView(ctx), LinearLayout.LayoutParams(
+ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(toolsHeight)))
+menuDivider = DividerView(ctx).apply { visibility = if (menuToolsExpanded) View.VISIBLE else View.GONE }
+workspace.addView(menuDivider, LinearLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(1)))
 workspace.addView(navigationView, LinearLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+} else {
+menuView.visibility = View.VISIBLE
 }
 swipeDownLayout.addView(workspace, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -1340,7 +1397,8 @@ val fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f
 params.leftMargin = if (portrait) ViewUtils.dp(8)
     else ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(fontScale) + MENU_SIZE_DP + 8)
 params.bottomMargin = if (portrait)
-    ViewUtils.dp(menuPortraitHeightDp() + AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP) else 0
+    ViewUtils.dp(WorkspaceToolPanelPolicy.reservedHeightDp(true, menuToolsExpanded, menuPortraitHeightDp()) +
+        AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP) else 0
 snackbarsLayout!!.layoutParams = params
 }
 internal fun restoreWorkspaceAfterMenuDismiss() {
@@ -1354,11 +1412,12 @@ val ctx = getContext() ?: return
 updateAdaptiveOverlayMargins(usesCompactPortraitLayout(ctx))
 glView?.requestRender()
 }
-private fun menuPortraitHeightDp(): Int =
-    if (currentMenuSlot == MenuCategory.FILE.ordinal ||
+private fun menuPortraitHeightDp(): Int = WorkspaceToolPanelPolicy.menuHeightDp(
+    needsTwoRows = currentMenuSlot == MenuCategory.FILE.ordinal ||
         currentMenuSlot == MenuCategory.TRANSFORM.ordinal ||
-        currentMenuSlot == MenuCategory.CAMERA.ordinal
-    ) 124 else MENU_PORTRAIT_SIZE_DP
+        currentMenuSlot == MenuCategory.CAMERA.ordinal,
+    fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f,
+)
 
 private fun selectMenu(ctx:Context, portrait:Boolean, slot:Int) {
 if (glView!!.renderer.resetFlattenMode())
@@ -1373,8 +1432,9 @@ currentMenuSlot = slot
 selectedMenuNavigationSlot = slot
 if (portrait) {
 menuView.layoutParams = (menuView.layoutParams as LinearLayout.LayoutParams).apply {
-height = ViewUtils.dp(menuPortraitHeightDp())
+height = ViewUtils.dp(if (menuToolsExpanded) menuPortraitHeightDp() else 0)
 }
+menuView.visibility = if (menuToolsExpanded) View.VISIBLE else View.GONE
 updateAdaptiveOverlayMargins(true)
 }
 
@@ -1748,6 +1808,7 @@ pushPlatesToRenderer()
 private fun updatePlateIndicator() {
 if (plateTabsScroll == null) return
 ViewUtils.postOnMainThread({ if (destroyed || plateTabsScroll == null || getContext() == null) return@postOnMainThread
+filamentPaletteRevision++
 plateTabCount = platesModels.size
 selectedPlateTabIndex = if (platesModels.isEmpty()) 0 else currentPlateIndex.coerceIn(0, platesModels.size - 1)
 plateObjectCounts = platesModels.map { it?.objectsCount ?: -1 }
@@ -2219,7 +2280,6 @@ SLICE_AND_EXPORT(R.string.MenuSlice, R.drawable.magic_wand_outline_28);
 companion object {
 private val DEBUG_VIEWER = false
 private val MENU_SIZE_DP = 96
-private val MENU_PORTRAIT_SIZE_DP = 68
 private fun isPortraitWindow(context:Context):Boolean {
 val configuration = context.getResources().getConfiguration()
 return AdaptiveNavigationPolicy.isPortraitWindow(

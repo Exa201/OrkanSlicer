@@ -1247,4 +1247,7 @@
     <string name="GCodePreviewBadge">Preview: layers %1$d–%2$d of %3$d</string>
     <string name="GCodePerformanceShort">Fast mode</string>
     <string name="GCodeExportShort">G-code</string>
+    <string name="WorkspaceFilamentButtonDescription">Model filament colors, %1$d slots</string>
+    <string name="WorkspaceToolsOpen">Tool menu open</string>
+    <string name="WorkspaceToolsClosed">Tool menu closed</string>
 </resources>

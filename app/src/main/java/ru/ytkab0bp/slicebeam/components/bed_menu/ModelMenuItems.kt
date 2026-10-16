@@ -23,9 +23,6 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28, {
                 objectActions.showObjectsDialog(it)
             }, enabled = availability.canArrange),
-            BedComposeMenuAction(R.string.ModelColorSlotsAction, R.drawable.print_filament_sync_24, {
-                fragment.showModelColorSlots()
-            }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuDuplicate, R.drawable.folder_simple_plus_outline_28, {
                 objectActions.showDuplicateDialog(it)
             }, enabled = availability.hasSelectedObject),

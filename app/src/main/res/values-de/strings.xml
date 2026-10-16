@@ -719,7 +719,7 @@
     <string name="MenuToolbarNavigation">Bearbeiten</string>
     <string name="MenuOptions">Werkzeuge</string>
     <string name="MenuToolbarNavigationCompact">Ändern</string>
-    <string name="MenuOptionsCompact">Tools</string>
+    <string name="MenuOptionsCompact">Werkz.</string>
     <string name="MenuToolbarNotImplemented">%1$s ist noch nicht verfügbar.</string>
     <string name="MenuToolbarSplit">Teile trennen</string>
     <string name="MenuToolbarSplitNothing">Dieses Objekt enthält keine trennbaren Teile.</string>
@@ -1347,4 +1347,7 @@
     <string name="GCodePreviewBadge">Vorschau: Schichten %1$d–%2$d von %3$d</string>
     <string name="GCodePerformanceShort">Sparmodus</string>
     <string name="GCodeExportShort">G-Code</string>
+    <string name="WorkspaceFilamentButtonDescription">Modellfilamentfarben, %1$d Slots</string>
+    <string name="WorkspaceToolsOpen">Werkzeugmenü geöffnet</string>
+    <string name="WorkspaceToolsClosed">Werkzeugmenü geschlossen</string>
 </resources>
