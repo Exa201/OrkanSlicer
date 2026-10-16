@@ -11,13 +11,13 @@ class WorkspaceToolPanelPolicyTest {
 
     @Test
     fun expandedPortraitPanelReservesItsActualHeight() {
-        assertEquals(124, WorkspaceToolPanelPolicy.reservedHeightDp(true, true, 124))
+        assertEquals(140, WorkspaceToolPanelPolicy.reservedHeightDp(true, true, 140))
     }
 
     @Test
     fun twoRowActionsGrowForLargeSystemText() {
-        assertEquals(124, WorkspaceToolPanelPolicy.menuHeightDp(true, 1f))
-        assertEquals(144, WorkspaceToolPanelPolicy.menuHeightDp(true, 1.15f))
+        assertEquals(140, WorkspaceToolPanelPolicy.menuHeightDp(true, 1f))
+        assertEquals(160, WorkspaceToolPanelPolicy.menuHeightDp(true, 1.15f))
         assertEquals(68, WorkspaceToolPanelPolicy.menuHeightDp(false, 1.5f))
     }
 

@@ -35,7 +35,7 @@ internal class ModelMenuItems(
                     Toast.makeText(anchor.context, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show()
                 }
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.grid_layout_outline_28, { anchor ->
+            BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.picture_stack_outline_28, { anchor ->
                 fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
                     fragment.updateModel()
                     Toast.makeText(

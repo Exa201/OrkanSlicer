@@ -201,10 +201,10 @@
     <string name="ModelMenuSelectAll">Select all models</string>
     <string name="ModelMenuDeleteAll">Delete all models</string>
     <string name="ModelMenuDuplicateShort">Duplicate</string>
-    <string name="ModelMenuMoveToPlateShort">Move</string>
+    <string name="ModelMenuMoveToPlateShort">Other plate</string>
     <string name="ModelMenuCenterOnBedShort">Center</string>
-    <string name="ModelMenuFillBedShort">Fill plate</string>
-    <string name="ModelMenuArrangeShort">Arrange</string>
+    <string name="ModelMenuFillBedShort">Fill with copies</string>
+    <string name="ModelMenuArrangeShort">Arrange models</string>
     <string name="ModelMenuOrientAllShort">Orient all</string>
     <string name="ModelMenuAutoOrientSelectedShort">Orient selected</string>
     <string name="ModelMenuFlattenShort">Lay flat</string>
@@ -944,6 +944,10 @@
     <string name="FilamentType">Filament type</string>
     <string name="FilamentSlotColor">Color</string>
     <string name="FilamentPaletteAdd">Add filament slot</string>
+    <string name="WorkspaceFilamentPaletteTitle">Filaments</string>
+    <string name="WorkspaceFilamentPaletteCount">%1$d materials</string>
+    <string name="WorkspaceFilamentPaletteEdit">Edit</string>
+    <string name="WorkspaceFilamentAssignModel">Assign filaments to model</string>
     <string name="FilamentPaletteSlotDescription">Filament tool T%1$d, %2$s</string>
     <string name="RemoveFilament">Remove filament</string>
     <string name="MmuSyncButton">Sync printer filaments</string>

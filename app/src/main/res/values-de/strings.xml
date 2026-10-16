@@ -200,10 +200,10 @@
     <string name="ModelMenuSelectAll">Alle Modelle auswählen</string>
     <string name="ModelMenuDeleteAll">Alle Modelle löschen</string>
     <string name="ModelMenuDuplicateShort">Duplizieren</string>
-    <string name="ModelMenuMoveToPlateShort">Verschieben</string>
+    <string name="ModelMenuMoveToPlateShort">Andere Platte</string>
     <string name="ModelMenuCenterOnBedShort">Zentrieren</string>
-    <string name="ModelMenuFillBedShort">Platte füllen</string>
-    <string name="ModelMenuArrangeShort">Anordnen</string>
+    <string name="ModelMenuFillBedShort">Mit Kopien füllen</string>
+    <string name="ModelMenuArrangeShort">Modelle anordnen</string>
     <string name="ModelMenuOrientAllShort">Alle ausrichten</string>
     <string name="ModelMenuAutoOrientSelectedShort">Auswahl ausrichten</string>
     <string name="ModelMenuFlattenShort">Flach auflegen</string>
@@ -930,6 +930,10 @@
     <string name="FilamentType">Filamenttyp</string>
     <string name="FilamentSlotColor">Farbe</string>
     <string name="FilamentPaletteAdd">Filamentplatz hinzufügen</string>
+    <string name="WorkspaceFilamentPaletteTitle">Filamente</string>
+    <string name="WorkspaceFilamentPaletteCount">%1$d Materialien</string>
+    <string name="WorkspaceFilamentPaletteEdit">Bearbeiten</string>
+    <string name="WorkspaceFilamentAssignModel">Filamente dem Modell zuordnen</string>
     <string name="FilamentPaletteSlotDescription">Filamentwerkzeug T%1$d, %2$s</string>
     <string name="RemoveFilament">Filament entfernen</string>
     <string name="MmuSyncButton">Druckerfilamente synchronisieren</string>

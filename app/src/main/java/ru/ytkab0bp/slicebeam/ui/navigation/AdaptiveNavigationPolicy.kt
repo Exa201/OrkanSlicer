@@ -32,8 +32,8 @@ object AdaptiveNavigationPolicy {
 /** Reserves the plate viewport by keeping portrait action menus collapsed until requested. */
 object WorkspaceToolPanelPolicy {
     const val COMPACT_MENU_HEIGHT_DP = 68
-    const val TWO_ROW_MENU_HEIGHT_DP = 124
-    const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 144
+    const val TWO_ROW_MENU_HEIGHT_DP = 140
+    const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 160
 
     @JvmStatic
     fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float): Int {

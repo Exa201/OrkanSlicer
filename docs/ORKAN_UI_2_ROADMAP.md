@@ -8,7 +8,7 @@ Stand: 16.10.2026. Die UI wird in überprüfbaren Etappen erneuert. Der native S
 - Werkzeugkategorien bleiben an festen Positionen. Im Hochformat klappt ein zweiter Druck auf die aktive Kategorie das Aktionspanel ein oder aus.
 - Zweireihige Modell- und Bearbeitungsaktionen bleiben zweireihig, wenn das Panel geöffnet ist.
 - Auf schmalen Telefonen und bei großer Systemschrift werden weniger, breitere Aktionskacheln angezeigt. Beschreibungen und TalkBack-Zustände bleiben verfügbar.
-- Filamentfarben stehen als kompakter Knopf mit Farbindikatoren bereit. Er öffnet die bereits verwendete Filamentzuordnung für das Modell.
+- Filamentfarben stehen als kompakter Knopf mit Farbindikatoren bereit. Er öffnet die vollständige Filamentpalette; die Modellzuweisung ist dort eine eigene Aktion.
 - Der Knopf zeigt zusätzlich die Gesamtzahl der Filamente; bei großen Paletten bleiben vier Farbindikatoren sichtbar und TalkBack nennt die Gesamtzahl.
 - Gemeinsame Compose-/Material-3-Komponenten und `OrkanUiTokens` bilden die Grundlage für neue Oberflächen. Neue Funktionen erhalten keine parallelen View- und Compose-Implementierungen.
 - Vor dem Entfernen einer alten Ansicht müssen ihre Aktionen und Zustände migriert und getestet sein.
@@ -24,7 +24,7 @@ Umgesetzt:
 - Ein kleiner Pfeil am aktiven Navigationssymbol zeigt, ob das Werkzeugpanel offen ist und erneut angetippt werden kann.
 - Snackbars reservieren die Höhe der sichtbaren Bedienelemente.
 - Zweireihige Menüs wählen auf schmalen Telefonen oder bei großer Systemschrift drei statt vier sichtbarer Spalten und bekommen bei großer Schrift zusätzliche Höhe.
-- Filamentfarbknopf mit bis zu vier Farbindikatoren nutzt `showModelColorSlots()` und damit denselben vorhandenen Zuweisungsdialog wie bisher.
+- Filamentfarbknopf mit bis zu vier Farbindikatoren öffnet die Filamentpalette. Die vorhandene Modellzuweisung bleibt als eigene Aktion erhalten.
 - Der separate Eintrag „Farbslots“ im Modellmenü entfällt, damit die Zuweisung an einer Stelle bleibt.
 - Menüstatus wird für TalkBack angesagt.
 
@@ -81,6 +81,21 @@ Filamentliste öffnet sich erst nach Antippen des kompakten Farbindikator-Knopfs
 Werkzeugleisten verwenden dieselben Komponenten, Größen und festen Ankerpositionen, damit
 kontextabhängige Aktionen beim Wechsel nicht springen oder andere Aktionen verdecken. Diese
 Regeln werden beim Ersetzen der globalen Routen Druck, Filament, Drucker und App angewendet.
+
+## Etappe 5: Filamentzugang und Modellaktionen
+
+- Der kompakte Farbindikator öffnet jetzt die vollständige Filamentpalette. Auf Telefonfenstern
+  erscheint sie als Bottom Sheet, ab 600 dp Fensterbreite als seitliches Panel.
+- Das Panel verwendet den vorhandenen Filament-Palettencontroller und damit dieselbe Ablage,
+  Filamenttypen, Farbbearbeitung, Slotgrenzen und ACE-Zuordnung wie die Profileinstellungen.
+  Hinzufügen, Bearbeiten und Entfernen aktualisieren den Farbindikator.
+- Die Modellzuweisung bleibt die bestehende Aktion aus `PreSliceFilamentDialog`; sie ist vom
+  Paletteneditor aus erreichbar und schreibt weiter dieselben ACE-Gate-Zuordnungen.
+- Die Modellaktionen bleiben zweireihig. Die kompakten Bezeichnungen unterscheiden jetzt
+  „Mit Kopien füllen“ von „Modelle anordnen“; die Aktion für den Plattenwechsel heißt kurz
+  „Andere Platte“. Das Kopieren-Symbol zeigt nun einen Stapel. Die geöffnete zweireihige
+  Werkzeugfläche ist höher, damit die Beschriftungen vollständig lesbar bleiben.
+- Die Druckplatte, der native Renderer und die Slicer-Engine wurden nicht verändert.
 
 ## Grenzen
 

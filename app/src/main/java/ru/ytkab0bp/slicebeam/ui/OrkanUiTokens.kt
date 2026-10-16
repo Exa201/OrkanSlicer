@@ -17,6 +17,8 @@ object OrkanUiTokens {
     val panelPadding = 16.dp
     val sheetTopCornerRadius = 26.dp
     val sheetMaxHeightFraction = 0.82f
+    val workspaceSidePanelWidth = 420.dp
+    val filamentRowHeight = 56.dp
     val menuIconSize = 20.dp
     val menuLabelSize = 13.sp
     val menuTileHeight = 62.dp

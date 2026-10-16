@@ -17,6 +17,10 @@
     <string name="SlotPrintConfigTooltip">Профиль печати</string>
     <string name="SlotFilamentConfig">Филамент</string>
     <string name="FilamentSlotColor">Цвет</string>
+    <string name="WorkspaceFilamentPaletteTitle">Филаменты</string>
+    <string name="WorkspaceFilamentPaletteCount">Материалов: %1$d</string>
+    <string name="WorkspaceFilamentPaletteEdit">Изменить</string>
+    <string name="WorkspaceFilamentAssignModel">Назначить филаменты модели</string>
     <string name="ColorChooserCustom">Свой цвет</string>
     <string name="ColorChooserCommon">Часто используемые цвета</string>
     <string name="ColorChooserCss">Цвета CSS</string>
@@ -40,10 +44,10 @@
     <string name="ModelMenuSelectAll">Выбрать все модели</string>
     <string name="ModelMenuDeleteAll">Удалить все модели</string>
     <string name="ModelMenuDuplicateShort">Дублировать</string>
-    <string name="ModelMenuMoveToPlateShort">Переместить</string>
+    <string name="ModelMenuMoveToPlateShort">Другая пластина</string>
     <string name="ModelMenuCenterOnBedShort">Центр</string>
-    <string name="ModelMenuFillBedShort">Копии</string>
-    <string name="ModelMenuArrangeShort">Расположить</string>
+    <string name="ModelMenuFillBedShort">Заполнить копиями</string>
+    <string name="ModelMenuArrangeShort">Расположить модели</string>
     <string name="ModelMenuOrientAllShort">Ориент. все</string>
     <string name="ModelMenuAutoOrientSelectedShort">Ориент. модель</string>
     <string name="ModelMenuFlattenShort">На грань</string>

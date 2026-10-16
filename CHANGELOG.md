@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.239 (alpha)
+
+- Open the complete filament palette from the compact workspace color button. Phones use an expanded bottom sheet; wide windows use a side panel.
+- Reuse the existing filament and ACE slot controller for palette editing, then open the existing model assignment flow from the panel.
+- Clarify compact model actions: filling the plate makes copies, while arranging repositions the models already on the plate. Keep the model action grid in two rows.
+
 ## 0.8.232 (alpha)
 
 - Keep the saved filament temperatures and pressure-advance values aligned with their physical ACE gates when an empty gate makes the model palette compact (for example, ACE 1, 3 and 4). Changing a model tool's gate now selects the corresponding saved palette profile instead of treating the gate number as a palette index.

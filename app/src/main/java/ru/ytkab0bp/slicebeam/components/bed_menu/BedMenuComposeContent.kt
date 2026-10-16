@@ -165,7 +165,6 @@ private fun BedMenuActionTile(
         R.string.ModelContextSetOnFace -> R.string.EditLayFaceShort
         R.string.ModelContextSelectAll -> R.string.EditSelectAllShort
         R.string.ModelContextDeleteAll -> R.string.EditDeleteAllShort
-        R.string.MenuOrientationArrange -> R.string.EditPackPlateShort
         R.string.ModelColorSlotsAction -> R.string.ModelColorSlotsShort
         R.string.MenuSlicePerformance -> R.string.GCodePerformanceShort
         R.string.MenuSliceExportToFile -> R.string.GCodeExportShort

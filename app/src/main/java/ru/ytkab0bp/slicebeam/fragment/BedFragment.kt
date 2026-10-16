@@ -57,6 +57,7 @@ import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.components.SliceProgressBottomSheet
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
@@ -106,6 +107,7 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.BedSwipeDownLayout
 import ru.ytkab0bp.slicebeam.view.DividerView
 import ru.ytkab0bp.slicebeam.view.GLView
+import ru.ytkab0bp.slicebeam.view.FilamentPaletteController
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 class BedFragment:Fragment() {
 var overlayLayout: FrameLayout? = null
@@ -302,6 +304,16 @@ fun showModelColorSlots(synchronize: Boolean = false) {
             Toast.makeText(context, R.string.ModelColorSlotsSaved, Toast.LENGTH_SHORT).show()
         }
     }, R.string.ModelColorSlotsApply, R.string.ModelColorSlotsAction)
+}
+private fun showWorkspaceFilamentPalette() {
+    val context = getContext() ?: return
+    val controller = FilamentPaletteController { filamentPaletteRevision++ }
+    WorkspaceFilamentPaletteSheet(
+        context = context,
+        controller = controller,
+        hasModel = currentModel?.objectsCount?.let { it > 0 } == true,
+        onAssignModel = ::showModelColorSlots,
+    ).show()
 }
 /** Selects model filament slots first, then slices and runs the continuation on success. */
  @JvmOverloads fun startSlicing(onSuccess:Runnable? = null) {
@@ -1326,8 +1338,8 @@ val revision = filamentPaletteRevision
 key(revision) { BeamComposeTheme {
 WorkspaceFilamentButton(
 slots = Prefs.getFilamentSlots(),
-enabled = currentModel?.objectsCount?.let { it > 0 } == true,
-onClick = ::showModelColorSlots,
+enabled = true,
+onClick = ::showWorkspaceFilamentPalette,
 )
 } }
 }
