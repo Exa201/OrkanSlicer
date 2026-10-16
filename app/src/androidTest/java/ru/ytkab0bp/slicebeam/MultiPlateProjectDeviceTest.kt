@@ -23,6 +23,41 @@ import java.util.zip.ZipOutputStream
 /** Exercises the native per-plate 3MF reader with different colors on two build plates. */
 @RunWith(AndroidJUnit4::class)
 class MultiPlateProjectDeviceTest {
+    @Test fun nativeProjectLoadsEveryPlateForSmallAndLargeProjects() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        val counts = listOf(1, 3, 6, 10, 20)
+        counts.forEach { plateCount ->
+            val source = File(context.cacheDir, "plate-stress-source-$plateCount.3mf")
+            val project = File(context.cacheDir, "plate-stress-$plateCount.3mf")
+            createTwoPlateProject(source, project, plateCount)
+            try {
+                ZipFile(project).use { zip ->
+                    val settings = zip.getInputStream(zip.getEntry("Metadata/model_settings.config"))
+                        .bufferedReader().use { it.readText() }
+                    assertEquals("detected plate count for $plateCount", plateCount,
+                        ThreeMfPlateCountDetector.detect(settings,
+                            zip.entries().asSequence().map { it.name }.toList()))
+                }
+                for (plateId in 1..plateCount) {
+                    val model = Model(project, plateId)
+                    try {
+                        assertEquals("plate $plateId/$plateCount should retain one object", 1, model.objectsCount)
+                        val expectedTool = if (plateId % 2 == 1) 1 else 2
+                        assertTrue("plate $plateId/$plateCount should retain tool $expectedTool",
+                            model.getUsedFilaments(0).contentEquals(intArrayOf(expectedTool)))
+                    } finally {
+                        model.release()
+                    }
+                }
+            } finally {
+                source.delete()
+                project.delete()
+            }
+        }
+    }
+
     @Test fun loadsEachPlateAndItsOwnColorFromTheSameProject() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
@@ -120,7 +155,7 @@ class MultiPlateProjectDeviceTest {
         }
     }
 
-    private fun createTwoPlateProject(source: File, project: File) {
+    private fun createTwoPlateProject(source: File, project: File, plateCount: Int = 2) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         instrumentation.context.assets.open("models/two-color-project.3mf").use { input ->
             source.outputStream().use { input.copyTo(it) }
@@ -130,7 +165,10 @@ class MultiPlateProjectDeviceTest {
                 original.entries().asSequence().forEach { entry ->
                     val bytes = original.getInputStream(entry).use { it.readBytes() }
                     val content = if (entry.name == "Metadata/model_settings.config") {
-                        val plates = """<plate><metadata key="plater_id" value="1"/><model_instance><metadata key="object_id" value="1"/><metadata key="instance_id" value="0"/></model_instance></plate><plate><metadata key="plater_id" value="2"/><model_instance><metadata key="object_id" value="2"/><metadata key="instance_id" value="0"/></model_instance></plate>"""
+                        val plates = (1..plateCount).joinToString("") { plateId ->
+                            val objectId = if (plateId % 2 == 1) 1 else 2
+                            """<plate><metadata key="plater_id" value="$plateId"/><model_instance><metadata key="object_id" value="$objectId"/><metadata key="instance_id" value="0"/></model_instance></plate>"""
+                        }
                         bytes.toString(Charsets.UTF_8).replace("</config>", "$plates</config>")
                             .toByteArray(Charsets.UTF_8)
                     } else bytes

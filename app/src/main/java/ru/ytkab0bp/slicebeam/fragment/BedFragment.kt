@@ -763,6 +763,7 @@ internal fun showWorkspaceMessageDialog(
     message: String,
     confirmLabel: String,
     dismissLabel: String? = null,
+    onDismiss: () -> Unit = {},
     onConfirm: () -> Unit = {},
 ) {
     val context = getContext() ?: return
@@ -777,7 +778,7 @@ internal fun showWorkspaceMessageDialog(
         if (workspaceDialogView === host) workspaceDialogView = null
         (host.parent as? ViewGroup)?.removeView(host)
         workspaceController.clearPanel(WorkspaceOverlayPanel.MESSAGE_DIALOG)
-        if (confirmed) onConfirm()
+        if (confirmed) onConfirm() else onDismiss()
     }
     host.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
     host.setContent {
@@ -1621,23 +1622,26 @@ private fun confirmLargeStlImport(triangles: Long): Boolean {
     val approved = java.util.concurrent.atomic.AtomicBoolean(false)
     val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
     val completed = CountDownLatch(1)
-    val dialogRef = java.util.concurrent.atomic.AtomicReference<AlertDialog?>()
     ViewUtils.postOnMainThread {
         val ctx = getContext()
         if (destroyed || ctx == null || timedOut.get()) { completed.countDown(); return@postOnMainThread }
-        val dialog = BeamAlertDialogBuilder(ctx)
-            .setTitle(R.string.ImportLargeStlTitle)
-            .setMessage(ctx.getString(R.string.ImportLargeStlMessage, java.text.NumberFormat.getIntegerInstance().format(triangles)))
-            .setPositiveButton(R.string.ImportLargeStlContinue) { _, _ -> approved.set(true) }
-            .setNegativeButton(android.R.string.cancel, null)
-            .setOnDismissListener { completed.countDown() }
-            .create()
-        dialogRef.set(dialog)
-        dialog.show()
+        showWorkspaceMessageDialog(
+            title = ctx.getString(R.string.ImportLargeStlTitle),
+            message = ctx.getString(R.string.ImportLargeStlMessage,
+                java.text.NumberFormat.getIntegerInstance().format(triangles)),
+            confirmLabel = ctx.getString(R.string.ImportLargeStlContinue),
+            dismissLabel = ctx.getString(android.R.string.cancel),
+            onDismiss = { completed.countDown() },
+            onConfirm = { approved.set(true); completed.countDown() },
+        )
     }
     if (!completed.await(2, TimeUnit.MINUTES)) {
         timedOut.set(true)
-        ViewUtils.postOnMainThread { dialogRef.getAndSet(null)?.dismiss() }
+        ViewUtils.postOnMainThread {
+            if (workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG) {
+                workspaceController.dismissActivePanel()
+            }
+        }
         return false
     }
     return approved.get() && !destroyed
@@ -1673,7 +1677,6 @@ private fun confirmImportSimplification(): Boolean {
     importSimplifyDecision?.let { return it }
     val decision = java.util.concurrent.atomic.AtomicBoolean(false)
     val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
-    val dialogRef = java.util.concurrent.atomic.AtomicReference<AlertDialog?>()
     val completed = CountDownLatch(1)
     ViewUtils.postOnMainThread {
         val ctx = getContext()
@@ -1681,20 +1684,23 @@ private fun confirmImportSimplification(): Boolean {
             completed.countDown()
             return@postOnMainThread
         }
-        val dialog = BeamAlertDialogBuilder(ctx)
-            .setTitle(R.string.ImportSimplifyTitle)
-            .setMessage(R.string.ImportSimplifyMessage)
-            .setPositiveButton(R.string.ImportSimplifyAccept) { _, _ -> decision.set(true) }
-            .setNegativeButton(R.string.ImportSimplifyKeep) { _, _ -> decision.set(false) }
-            .setOnDismissListener { completed.countDown() }
-            .create()
-        dialogRef.set(dialog)
-        dialog.show()
+        showWorkspaceMessageDialog(
+            title = ctx.getString(R.string.ImportSimplifyTitle),
+            message = ctx.getString(R.string.ImportSimplifyMessage),
+            confirmLabel = ctx.getString(R.string.ImportSimplifyAccept),
+            dismissLabel = ctx.getString(R.string.ImportSimplifyKeep),
+            onDismiss = { decision.set(false); completed.countDown() },
+            onConfirm = { decision.set(true); completed.countDown() },
+        )
     }
     // Import runs off the main thread. A lost activity must not strand its worker.
     if (!completed.await(2, TimeUnit.MINUTES)) {
         timedOut.set(true)
-        ViewUtils.postOnMainThread { dialogRef.getAndSet(null)?.dismiss() }
+        ViewUtils.postOnMainThread {
+            if (workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG) {
+                workspaceController.dismissActivePanel()
+            }
+        }
     }
     val approved = !timedOut.get() && decision.get()
     importSimplifyDecision = approved

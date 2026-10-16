@@ -192,6 +192,7 @@ class MainActivityTouchDeviceTest {
                 assertFalse("Back should dismiss the model action dialog", requireNotNull(bed).isModelContextMenuAttached())
             }
 
+            val workspaceDialogDismissed = java.util.concurrent.atomic.AtomicBoolean(false)
             scenario.onActivity { activity ->
                 val workspace = requireNotNull(bed)
                 workspace.showWorkspaceMessageDialog(
@@ -199,6 +200,7 @@ class MainActivityTouchDeviceTest {
                     message = "Confirm route",
                     confirmLabel = "OK",
                     dismissLabel = "Cancel",
+                    onDismiss = { workspaceDialogDismissed.set(true) },
                 )
                 assertTrue("Compose confirmation should attach to the workspace", workspace.isWorkspaceMessageDialogAttached())
             }
@@ -208,6 +210,7 @@ class MainActivityTouchDeviceTest {
             scenario.onActivity { activity ->
                 assertTrue("Back should leave the workspace activity active", activity.isFinishing.not())
                 assertFalse("Back should close the Compose confirmation", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+                assertTrue("Back should resolve the Compose confirmation as dismissed", workspaceDialogDismissed.get())
             }
         } finally {
             scenario.close()

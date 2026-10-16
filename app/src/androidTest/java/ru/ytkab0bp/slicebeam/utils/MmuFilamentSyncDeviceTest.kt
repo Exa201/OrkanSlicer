@@ -55,6 +55,23 @@ class MmuFilamentSyncDeviceTest {
         }
     }
 
+    @Test fun realPreferencesRoundTripLargeFilamentListsAndEnforceSixteenSlotLimit() {
+        for (requestedCount in listOf(1, 4, 8, 16, 24)) {
+            val requested = List(requestedCount) { index ->
+                FilamentSlot(0xFF000000.toInt() or ((index + 1) * 0x010101), "Long synthetic material name $index")
+            }
+            Prefs.setStoredFilamentSlots(requested)
+            requireNotNull(Prefs.getPrefs()).edit().commit()
+            val restored = Prefs.getStoredFilamentSlots()
+            val expectedCount = minOf(requestedCount, Prefs.MAX_FILAMENT_COLORS)
+            assertEquals("stored count for request $requestedCount", expectedCount, restored.size)
+            restored.forEachIndexed { index, slot ->
+                assertEquals("Long synthetic material name $index", slot.type)
+                assertEquals(requested[index].color, slot.color)
+            }
+        }
+    }
+
     @Test fun parserDoesNotInventFilamentsForEmptyUnknownOrMalformedSlots() {
         val payload = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 1))
         val mmu = payload.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
