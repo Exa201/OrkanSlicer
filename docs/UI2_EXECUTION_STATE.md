@@ -29,6 +29,7 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Added a loaded-model Honor integration check for paint cancellation: the bundled `models/two-color-project.3mf` is loaded into the test workspace, GL paint mode is entered and cancelled through Android Back, and the test verifies both renderer mode exit and unchanged paint facets. The standalone Compose panel test separately verifies its Cancel and Done callbacks.
 - Hardened the workspace route device test to wait for the actual settled Compose transition (animation idle and one attached route) before asserting route cleanup; this avoids sampling transient outgoing content.
 - Fixed the GL measurement lifecycle: switching away from the Measure panel now clears renderer measurement mode and points on the GL thread; the panel Done and Android Back paths share the same BedFragment exit cleanup.
+- Updated the localized in-app release notes in `app/src/main/assets/update.json` for 0.8.245 (German, English, and Russian).
 - Extended the loaded-model Honor integration path to enter Measure, switch to Variable Layer Height, and assert both Compose exclusive tool state and the renderer cleared measurement flag.
 
 ## Remaining active routes and technical boundaries
