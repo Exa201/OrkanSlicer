@@ -105,7 +105,12 @@ Regeln werden beim Ersetzen der globalen Routen Druck, Filament, Drucker und App
 - Malwerkzeuge, Statuswahl und Filamentfelder haben mindestens 48 dp Touchhöhe. TalkBack erhält
   Beschriftungen für Filament/Material, ausgewählte Werkzeugzustände und die Mal-Pauseaktion.
 - Gezielter Gerätetest deckt die Steuerelementhöhen und Beschriftungen ab; bemalte 3MF-Rundläufe
-  und Undo einzelner Pinselstriche bleiben separat offen.
+  waren zunächst separat offen. Der Round-trip-Test auf dem Honor fand und belegte einen echten
+  Kompatibilitätsfehler: Der Orca/Bambu-Importer las nur `paint_color`, während der Prusa-3MF-
+  Exporter `slic3rpe:mmu_segmentation` schreibt. Der Importer akzeptiert jetzt beide Attribute;
+  zusätzlich verwendet die Paint-Session die Geometrie von Volume 0, deren Facetten sie speichert.
+  Der gezielte Test für Bemalen, 3MF-Export und Import ist auf dem Honor bestanden. Undo einzelner
+  Pinselstriche bleibt separat offen.
 - Am 16.10.2026 bestanden `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` mit je 516
   Tests. `:app:connectedSliceTestAndroidTest` führte `PaintModeViewDeviceTest` auf dem Honor
   PTP-N49 aus; der Test bestand. `:app:assembleDebug` einschließlich ARM64-Nativkern war

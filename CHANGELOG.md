@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Preserve painted facet assignments when a 3MF exported by OrkanSlicer is reopened. The Orca/Bambu 3MF importer now accepts both its `paint_color` key and Prusa/OrkanSlicer's `slic3rpe:mmu_segmentation` key.
+- Build paint selectors against the same volume mesh that stores the facet annotation, keeping triangle indices aligned for multi-volume objects.
+- Add a device regression test covering paint, export, import, and restored filament assignments.
+
+## 0.8.241 (alpha)
+
+- Preserve painted facet assignments when reopening an OrkanSlicer 3MF; the Orca/Bambu importer now accepts both supported paint attribute names.
+- Keep paint selection indices aligned with the annotated mesh for multi-volume objects.
+- Verify painting and 3MF export/import on the Honor device.
+
 ## 0.8.240 (alpha)
 
 - Commit color, support, seam, and fuzzy painting before refreshing the workspace model history, so undo and redo operate on the completed painted model.

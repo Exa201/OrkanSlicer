@@ -1,5 +1,11 @@
 # Gebündelter Build- und Prüfablauf
 
+## Build 0.8.241 – 3MF-Farbmalerei-Rundlauf repariert
+
+Der Honor-Gerätetest `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurviveThreeMfExportAndImport` reproduzierte den Verlust gemalter Filamente beim 3MF-Rundlauf. Ursache: Der Orca/Bambu-Importer las nur `paint_color`, obwohl der verwendete Prusa-3MF-Exporter `slic3rpe:mmu_segmentation` schreibt. Beide 3MF-Parserpfade des Orca/Bambu-Importers akzeptieren nun beide Attribute. Zusätzlich baut eine Paint-Session ihren Selektor auf Volume 0 auf, dessen Facettenannotation sie speichert, sodass Dreiecksindizes bei Mehrvolumenobjekten übereinstimmen.
+
+Der gezielte Round-trip-Test und die gesamte `TwoColorProjectDeviceTest`-Klasse (2/2) bestanden auf dem HONOR PTP-N49. `:app:testDebugUnitTest`, `:app:testSliceTestUnitTest` und `:app:assembleDebug` einschließlich ARM64-Nativkern bestanden ebenfalls. Die APK wurde auf dem Honor installiert und gestartet. Einzelnes Undo für Pinselstriche, Zoom beim Malen und komplexe Mehrvolumenmodelle bleiben offen.
+
 ## Build 0.8.174 – SliceBeam-Menüaufbau auf dem Honor geprüft
 
 Der Vergleich mit SliceBeam 1.1.0 auf dem HONOR PTP-N49 bestätigt die fünf Hauptbereiche oben und die Arbeitsbereichs-Werkzeuge unten. Die aktive Tab-Beschriftung verwendet jetzt die Akzentfarbe. Der deutsche Menüpunkt für Verschieben, Drehen, Skalieren und Schneiden heißt „Objekt“ und passt ohne Kürzung in die Leiste.
