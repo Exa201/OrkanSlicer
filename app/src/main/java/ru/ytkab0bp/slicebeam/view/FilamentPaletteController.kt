@@ -123,6 +123,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
         val context = LocalContext.current
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
         val snapshots = remember(paletteRevision) { slots.map { PaletteSlotSnapshot(it.color, it.type) } }
+        val materialCount = snapshots.count { !it.type.isNullOrBlank() }
         val printerTitle = SliceBeam.CONFIG?.presets?.get("printer").orEmpty()
         val selectedGates = remember(paletteRevision, printerTitle) {
             if (Prefs.isMmuSyncedPrinter(printerTitle))
@@ -152,7 +153,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                     Text(stringResource(R.string.WorkspaceFilamentPaletteTitle),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleLarge)
-                    Text(stringResource(R.string.WorkspaceFilamentPaletteCount, snapshots.size),
+                    Text(stringResource(R.string.WorkspaceFilamentPaletteCount, materialCount),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall)
                 }
@@ -168,7 +169,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
             ) {
                 itemsIndexed(snapshots) { index, slot ->
                     val material = slot.type?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.FilamentType)
+                        ?: context.getString(R.string.AcePhysicalSlotEmpty)
                     val description = context.getString(R.string.FilamentPaletteSlotDescription, index, material)
                     Row(
                         modifier = Modifier

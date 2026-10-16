@@ -34,7 +34,8 @@ internal fun WorkspaceFilamentButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val label = stringResource(R.string.WorkspaceFilamentButtonDescription, slots.size)
+    val occupiedSlots = slots.filter { !it.type.isNullOrBlank() }
+    val label = stringResource(R.string.WorkspaceFilamentButtonDescription, occupiedSlots.size)
     Surface(
         modifier = Modifier
             .size(OrkanUiTokens.touchTarget)
@@ -55,7 +56,7 @@ internal fun WorkspaceFilamentButton(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                slots.take(4).forEach { slot ->
+                occupiedSlots.take(4).forEach { slot ->
                     Surface(
                         modifier = Modifier.size(6.dp),
                         shape = CircleShape,
@@ -64,7 +65,7 @@ internal fun WorkspaceFilamentButton(
                     )
                 }
                 Text(
-                    text = slots.size.toString(),
+                    text = occupiedSlots.size.toString(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 9.sp,
                     lineHeight = 10.sp,

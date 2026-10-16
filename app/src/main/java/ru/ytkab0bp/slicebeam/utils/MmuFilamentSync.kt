@@ -90,7 +90,7 @@ class MmuFilamentSync private constructor() {
                                 }
                                 val synced = FilamentPaletteSyncPolicy.replaceFromPrinter(printerGates, toolToGate)
                                 updatedSlots = synced.slots
-                                count = updatedSlots.size
+                                count = updatedSlots.count { !it.type.isNullOrBlank() }
                                 setSelectedGates(printer.title.orEmpty(), synced.gates)
                                 if (!TemporaryProjectSettings.active) setPaletteGates(printer.title.orEmpty(), synced.gates)
                             } else {

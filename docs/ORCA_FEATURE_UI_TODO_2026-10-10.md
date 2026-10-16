@@ -1,5 +1,18 @@
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 
+Ergänzung 0.8.241 (16.10.2026, Entwicklungsstand): Die vollständige ACE-Synchronisierung
+behält jetzt leere Zwischenfächer als leere T-Slots. Dadurch bleibt T0 an ACE 1, T1 an ACE 2
+usw.; ein leeres Fach verschiebt keine späteren Werkzeuge. Abweichende Drucker-Toolmaps werden
+beim vollständigen Sync klar abgewiesen. Leere Plätze bleiben in den Einstellungen und werden
+beim Speichern korrekt erhalten; Filamentknopf und Sync-Ergebnis zählen nur belegte Materialien.
+Die Regression prüft eine Belegung mit Lücken, eine einzelne Belegung in einem späteren Fach,
+abweichende/duplizierte Toolmaps und den Speicherrundlauf leerer Slots. Beide Unit-Test-Suiten
+bestanden mit je 517 Tests; `:app:assembleDebug` einschließlich ARM64-CMake-Build war erfolgreich.
+Die APK wurde auf dem Honor PTP-N49 installiert und gestartet. Nach **Sync** zeigte das Gerät
+T0→ACE 1, T1→ACE 2, T2→ACE 3 und T3→ACE 4; kein Druck wurde gestartet. Ein Nutzer mit einer
+gespeicherten älteren kompakten Palette muss einmal **Sync** ausführen, damit leere Fächer in die
+gespeicherte Reihenfolge übernommen werden. Die globale UI-2.0-Migration bleibt offen.
+
 Ergänzung 0.8.238 (16.10.2026): Der Druckerbereich zeigt die bereinigte Drucker-Webadresse
 in einer festen Compose-Kopfzeile mit zugänglicher 48-dp-Webtaste. Die ACE-Synchronisierung
 wird nur noch im Druck-/Filamentbereich angeboten; damit gibt es keinen zweiten Einstieg in

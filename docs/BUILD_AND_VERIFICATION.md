@@ -1,5 +1,19 @@
 # Gebündelter Build- und Prüfablauf
 
+## Entwicklungsstand 0.8.241 – ACE-Slots behalten ihre festen T-Indizes
+
+Die vollständige ACE-Synchronisierung komprimiert belegte Fächer nicht mehr. T0 bleibt ACE 1,
+T1 bleibt ACE 2 usw.; ein leeres Fach wird als leerer T-Slot gespeichert, statt spätere
+Filamente umzuschreiben. Nicht identische Moonraker-Toolmaps werden beim vollständigen Sync
+abgewiesen. Die Filamentpalette erhält leere Slots beim Speichern und zeigt nur belegte
+Materialien als verfügbaren Bestand.
+
+Verifiziert: `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` je 517/517 bestanden;
+`:app:assembleDebug` einschließlich ARM64-CMake-Build erfolgreich; Honor PTP-N49: APK
+installiert und gestartet, **Sync** zeigte T0→ACE 1, T1→ACE 2, T2→ACE 3, T3→ACE 4. Kein Druck
+wurde gestartet. Vorhandene Nutzer mit einer früher komprimierten gespeicherten Palette müssen
+einmal **Sync** ausführen. Der Emulator wurde für diese Änderung nicht erneut geprüft.
+
 ## Arbeitsstand: Objektliste
 
 `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden mit je 516 Tests;
