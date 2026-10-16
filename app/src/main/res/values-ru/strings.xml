@@ -126,6 +126,9 @@
     <string name="MenuFileExportProfilesSuccess">Профили успешно экспортированы.</string>
     <string name="MenuFileExport3mf">Экспорт. 3mf</string>
     <string name="MenuFileExport3mfSuccess">Успешно экспортировали проект.</string>
+    <string name="Project3mfExportActivePlateTitle">Экспортировать только активную пластину?</string>
+    <string name="Project3mfExportActivePlateMessage">Текущий экспорт включает только пластину %1$d из %2$d. Остальные пластины не будут сохранены. Полный экспорт многопластинного проекта пока недоступен.</string>
+    <string name="Project3mfExportActivePlateConfirm">Экспортировать активную пластину</string>
     <string name="MenuCamera">Камера</string>
     <string name="MenuCameraIsometric">Изомет.\nвид</string>
     <string name="MenuCameraIsometricCompact">Изом.</string>

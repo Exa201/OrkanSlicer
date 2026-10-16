@@ -250,13 +250,38 @@ class FileMenu : ListBedMenu() {
                 .onClick(::openModel),
             BedMenuItem(R.string.MenuFileExport3mf, R.drawable.arrow_down_to_square_outline_28)
                 .setEnabled(hasObjects())
-                .onClick {
-                    val activity = bed.getContext() as? Activity ?: return@onClick
-                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                        type = "application/3mf"
-                        putExtra(Intent.EXTRA_TITLE, "OrkanSlicer_project.3mf")
+                .onClick { view ->
+                    val launchExport = {
+                        val activity = bed.getContext() as? Activity
+                        if (activity != null) {
+                            val isMultiPlate = bed.plateCount > 1
+                            val fileName = if (isMultiPlate) {
+                                "OrkanSlicer_plate_${bed.currentPlateIndex + 1}.3mf"
+                            } else {
+                                "OrkanSlicer_project.3mf"
+                            }
+                            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                                type = "application/3mf"
+                                putExtra(Intent.EXTRA_TITLE, fileName)
+                            }
+                            activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_3MF)
+                        }
                     }
-                    activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_3MF)
+                    if (bed.plateCount > 1) {
+                        bed.showWorkspaceMessageDialog(
+                            title = view.context.getString(R.string.Project3mfExportActivePlateTitle),
+                            message = view.context.getString(
+                                R.string.Project3mfExportActivePlateMessage,
+                                bed.currentPlateIndex + 1,
+                                bed.plateCount,
+                            ),
+                            confirmLabel = view.context.getString(R.string.Project3mfExportActivePlateConfirm),
+                            dismissLabel = view.context.getString(android.R.string.cancel),
+                            onConfirm = launchExport,
+                        )
+                    } else {
+                        launchExport()
+                    }
                 },
         )
     }

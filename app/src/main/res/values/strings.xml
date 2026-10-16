@@ -699,6 +699,9 @@
     <string name="MenuFileExportProfilesSuccess">Exported profiles successfully.</string>
     <string name="MenuFileExport3mf">Export 3mf</string>
     <string name="MenuFileExport3mfSuccess">Successfully exported project.</string>
+    <string name="Project3mfExportActivePlateTitle">Export only the active plate?</string>
+    <string name="Project3mfExportActivePlateMessage">The current export includes plate %1$d of %2$d only. Other plates will not be included. Full multi-plate project export is not available yet.</string>
+    <string name="Project3mfExportActivePlateConfirm">Export active plate</string>
     <string name="MenuCamera">Camera</string>
     <string name="MenuCameraIsometric">Isom. view</string>
     <string name="MenuCameraIsometricCompact">Iso</string>

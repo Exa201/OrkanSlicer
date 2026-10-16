@@ -691,6 +691,9 @@
     <string name="MenuFileExportProfilesSuccess">Profile erfolgreich exportiert.</string>
     <string name="MenuFileExport3mf">3MF sichern</string>
     <string name="MenuFileExport3mfSuccess">Projekt erfolgreich exportiert.</string>
+    <string name="Project3mfExportActivePlateTitle">Nur aktive Druckplatte exportieren?</string>
+    <string name="Project3mfExportActivePlateMessage">Der aktuelle Export enthält nur Druckplatte %1$d von %2$d. Andere Druckplatten werden nicht gespeichert. Ein vollständiger Mehrplatten-Projektexport ist noch nicht verfügbar.</string>
+    <string name="Project3mfExportActivePlateConfirm">Aktive Platte exportieren</string>
     <string name="MenuCamera">Ansicht</string>
     <string name="MenuCameraIsometric">Isometrisch</string>
     <string name="MenuCameraIsometricCompact">Iso</string>

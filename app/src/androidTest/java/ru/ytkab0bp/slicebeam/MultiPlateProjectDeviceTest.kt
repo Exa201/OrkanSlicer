@@ -4,11 +4,14 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenuItem
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -233,6 +236,20 @@ class MultiPlateProjectDeviceTest {
                 assertEquals(2, bed.plateCount)
                 assertEquals(1, bed.currentModel?.objectsCount)
                 assertTrue(bed.currentModel!!.getUsedFilaments(0).contentEquals(intArrayOf(2)))
+
+                val fileMenu = FileMenu().apply { onSetBed(bed) }
+                val createItems = FileMenu::class.java.getDeclaredMethod(
+                    "onCreateItems", Boolean::class.javaPrimitiveType,
+                ).apply { isAccessible = true }
+                @Suppress("UNCHECKED_CAST")
+                val items = createItems.invoke(fileMenu, true) as List<BedMenuItem>
+                val export3mf = items.single { it.titleRes == R.string.MenuFileExport3mf }
+                export3mf.clickListener?.invoke(android.view.View(activity))
+                assertTrue("multi-plate export must disclose active-plate-only behavior",
+                    bed.isWorkspaceMessageDialogAttached())
+                activity.onBackPressedDispatcher.onBackPressed()
+                assertFalse("cancelling the export notice must leave the workspace active",
+                    bed.isWorkspaceMessageDialogAttached())
             }
         } finally {
             scenario.close()
