@@ -9,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.Camera
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -48,20 +47,26 @@ open class CameraMenu : BedMenu() {
     }
 
     private fun showControlModeDialog(context: Context) {
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MenuCameraControlModeFull)
-            .setSingleChoiceItems(
-                arrayOf(
-                    context.getString(R.string.MenuCameraControlModeOne),
-                    context.getString(R.string.MenuCameraControlModeTwo),
-                    context.getString(R.string.MenuCameraControlModeThree),
-                ),
-                Prefs.getCameraControlMode(),
-            ) { dialog, which ->
-                Prefs.setCameraControlMode(which)
-                dialog.dismiss()
-            }
-            .show()
+        val bed = fragment ?: return
+        val labels = listOf(
+            context.getString(R.string.MenuCameraControlModeOne),
+            context.getString(R.string.MenuCameraControlModeTwo),
+            context.getString(R.string.MenuCameraControlModeThree),
+        ).mapIndexed { index, label ->
+            if (index == Prefs.getCameraControlMode()) "✓ $label" else label
+        }
+        bed.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.MenuCameraControlModeFull),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = labels,
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    Prefs.setCameraControlMode(which)
+                },
+            )
+        }
     }
 
     private fun setOrthoProjection(enabled: Boolean) {

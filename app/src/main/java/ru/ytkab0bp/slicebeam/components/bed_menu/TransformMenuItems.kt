@@ -1,18 +1,12 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.text.InputType
 import android.view.View
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.FrameLayout
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -113,56 +107,49 @@ internal class TransformMenuItems(
         val context = view.context
         val ratios = floatArrayOf(0.75f, 0.50f, 0.25f)
         val targetCounts = ratios.map { max(4, (triangles * it).roundToInt()) }
-        val choices = arrayOf<CharSequence>(
+        val choices = listOf(
             context.resources.getQuantityString(R.plurals.ModelSimplifyLight, targetCounts[0], targetCounts[0]),
             context.resources.getQuantityString(R.plurals.ModelSimplifyMedium, targetCounts[1], targetCounts[1]),
             context.resources.getQuantityString(R.plurals.ModelSimplifyStrong, targetCounts[2], targetCounts[2]),
             context.getString(R.string.ModelSimplifyCustom),
         )
-        val selected = AtomicInteger(1)
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.ModelSimplify)
-            .setMessage(context.resources.getQuantityString(R.plurals.ModelSimplifyCurrent, triangles, triangles))
-            .setSingleChoiceItems(choices, selected.get()) { _, which -> selected.set(which) }
-            .setPositiveButton(R.string.ModelSimplifyStart) { _, _ ->
-                val choice = selected.get()
-                if (choice < ratios.size) {
-                    fragment.simplifySelectedObject(ratios[choice])
-                } else {
-                    showCustomSimplifyDialog(view, triangles)
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelSimplifyChoiceDialog(
+                title = context.getString(R.string.ModelSimplify),
+                currentTriangles = context.resources.getQuantityString(R.plurals.ModelSimplifyCurrent, triangles, triangles),
+                choices = choices,
+                startLabel = context.getString(R.string.ModelSimplifyStart),
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onStart = { choice ->
+                    dismiss()
+                    if (choice < ratios.size) {
+                        fragment.simplifySelectedObject(ratios[choice])
+                    } else {
+                        showCustomSimplifyDialog(view, triangles)
+                    }
+                },
+            )
+        }
     }
 
     private fun showCustomSimplifyDialog(view: View, triangles: Int) {
-        val input = EditText(view.context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText(max(4, triangles / 2).toString())
-            setSelectAllOnFocus(true)
-        }
-        val padding = ViewUtils.dp(24)
-        val container = FrameLayout(view.context).apply {
-            setPadding(padding, 0, padding, 0)
-            addView(
-                input,
-                FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ),
+        val context = view.context
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelSimplifyCustomDialog(
+                title = context.getString(R.string.ModelSimplifyCustom),
+                hint = context.getString(R.string.ModelSimplifyCustomHint),
+                initialTriangleCount = triangles,
+                minimumTriangleCount = 4,
+                maximumTriangleCount = triangles - 1,
+                startLabel = context.getString(R.string.ModelSimplifyStart),
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onStart = { target ->
+                    dismiss()
+                    fragment.simplifySelectedObject(target.toFloat() / triangles.toFloat())
+                },
             )
         }
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.ModelSimplifyCustom)
-            .setMessage(R.string.ModelSimplifyCustomHint)
-            .setView(container)
-            .setPositiveButton(R.string.ModelSimplifyStart) { _, _ ->
-                val target = (input.text.toString().toIntOrNull() ?: triangles / 2)
-                    .coerceIn(4, triangles - 1)
-                fragment.simplifySelectedObject(target.toFloat() / triangles.toFloat())
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 }

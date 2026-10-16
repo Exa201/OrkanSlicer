@@ -18,6 +18,8 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenuItems
+import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
@@ -240,6 +242,47 @@ class MainActivityTouchDeviceTest {
             scenario.onActivity { activity ->
                 assertTrue("Closing profile selection must keep the workspace active", !activity.isFinishing)
                 assertFalse("Back should close profile selection", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
+
+            scenario.onActivity {
+                val workspace = requireNotNull(bed)
+                val noOp = java.util.function.Consumer<android.view.View> { }
+                val items = TransformMenuItems(workspace, noOp, noOp, noOp, noOp)
+                val simplify = TransformMenuItems::class.java
+                    .getDeclaredMethod("showSimplifyDialog", android.view.View::class.java)
+                    .apply { isAccessible = true }
+                simplify.invoke(items, requireNotNull(viewport))
+                assertTrue("Simplification choices should attach as a Compose workspace dialog",
+                    workspace.isWorkspaceMessageDialogAttached())
+            }
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Closing simplification choices must keep the workspace active", !activity.isFinishing)
+                assertFalse("Back should close simplification choices", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+                assertEquals("Cancel must leave the model geometry unchanged", model.getTriangleCount(0),
+                    requireNotNull(bed).currentModel?.getTriangleCount(0))
+            }
+
+            val cameraControlModeBefore = Prefs.getCameraControlMode()
+            scenario.onActivity { activity ->
+                val cameraMenu = CameraMenu().apply { onSetBed(requireNotNull(bed)) }
+                val controlMode = CameraMenu::class.java
+                    .getDeclaredMethod("showControlModeDialog", android.content.Context::class.java)
+                    .apply { isAccessible = true }
+                controlMode.invoke(cameraMenu, activity)
+                assertTrue("Camera control mode should attach as a Compose workspace dialog",
+                    requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Closing camera control mode must keep the workspace active", !activity.isFinishing)
+                assertFalse("Back should close camera control mode", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+                assertEquals("Cancel must not change the stored camera control mode", cameraControlModeBefore,
+                    Prefs.getCameraControlMode())
             }
 
             val workspaceDialogDismissed = java.util.concurrent.atomic.AtomicBoolean(false)
