@@ -53,6 +53,20 @@ Die nächste Migration betrifft die vier globalen Bereiche **Druck**, **Filament
 
 Prüfung am 16.10.2026: Debug- und Slice-Unit-Suites bestanden mit jeweils 515 Tests; `assembleDebug` einschließlich des nativen ARM64-Kerns war erfolgreich. Pinselregler-, temporäre Projektprofil- und Touch-/Raycast-Gerätetests bestanden auf dem Honor; Pinselregler und temporäre Projektprofile bestanden zusätzlich auf dem Emulator. Die vollständige Android-Instrumentierung auf dem Honor meldete 35 bestandene Tests; die drei privaten 3MF-Fixture-Tests wurden mangels bereitgestellter Datei übersprungen. Der vollständige Emulator-Lauf blieb bei 2 von 35 Tests hängen und ADB-Shell-Befehle antworteten nicht mehr. APK 0.8.237 / Code 272 wurde auf Honor und Emulator installiert; die abschließende Installation nach der deutschen Beschriftungskorrektur und der vollständige Emulator-Lauf bleiben wegen des nicht antwortenden Emulators offen. Auf dem Honor zeigt die Oberflächenprüfung die große freie Platte, den Farbknopf samt Anzahl und das zweireihige Modell-Menü. Die Modellaktionen sind als **Duplizieren**, **Platte füllen** und **Anordnen** klar unterscheidbar. Weitere globale Routen bleiben Teil der nächsten Etappen.
 
+## Etappe 4: Druckerbereich
+
+Der Druckerbereich nutzt jetzt den gemeinsamen Compose-Hook für einen fest positionierten
+Verbindungsblock. Er zeigt nur die vom vorhandenen Origin-Parser bereinigte Webadresse an
+und bietet die Browseraktion mit zugänglicher Beschriftung und mindestens 48 dp Touchhöhe.
+Der bisherige Web-Eintrag am Ende der Einstellungs-Liste ist dorthin verschoben. Der doppelte
+ACE-Synchronisierungs-Eintrag im Druckerprofil entfällt; die vorhandene Synchronisierung im
+Druck-/Filamentbereich bleibt zuständig. Profilwechsel, native Orca-Einstellungsdefinitionen,
+Profilbearbeitung und das Öffnen der Drucker-Weboberfläche verwenden weiter ihre bestehenden
+Controller. Visuell geprüft auf dem Honor mit Anycubic Kobra 3 V2: Host sichtbar, Schaltfläche
+vollständig im Block, keine Überdeckung. Version 0.8.238 / Code 273; beide Unit-Suiten mit je
+515 Tests und der vollständige Debug-/ARM64-Build erfolgreich. Die Browseraktion wurde bei
+dieser Prüfung nicht ausgelöst. Drucker-, Filament- und App-Routen bleiben noch zu migrieren.
+
 ## Nächste Etappen
 
 1. Die globalen Bereiche Druck, Filament, Drucker und App entlang derselben Komponenten, Abstände und Zustandsmuster vereinheitlichen.

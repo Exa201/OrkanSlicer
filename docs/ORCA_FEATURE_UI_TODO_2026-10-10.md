@@ -1,5 +1,15 @@
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 
+Ergänzung 0.8.238 (16.10.2026): Der Druckerbereich zeigt die bereinigte Drucker-Webadresse
+in einer festen Compose-Kopfzeile mit zugänglicher 48-dp-Webtaste. Die ACE-Synchronisierung
+wird nur noch im Druck-/Filamentbereich angeboten; damit gibt es keinen zweiten Einstieg in
+denselben Synchronisierungsvorgang. Der Druckername, Profilwechsel und Orca-Kategorien bleiben
+im selben Screen. Beide Unit-Test-Suiten bestanden mit je 515 Tests. Der vollständige Android-
+Debugbuild einschließlich des ARM64-Native-Kerns war erfolgreich. Version 0.8.238 / Code 273
+wurde auf dem Honor installiert; die Druckerroute, Hostanzeige und nicht überlagerte Webtaste
+wurden visuell geprüft. Es wurde keine Weboberfläche geöffnet und kein Druck gestartet. Die
+vollständige Ablösung der alten globalen Routen bleibt offen.
+
 Ergänzung 0.8.237 (16.10.2026): Der Pinselradius-Regler im Farb-/Stütz-/Nahtmalen
 war vorhanden, wurde aber nicht in das Werkzeugpanel eingesetzt. Er ist jetzt sichtbar,
 mindestens 48 dp hoch und zeigt den Radius in Millimetern mit zugänglicher Beschriftung.

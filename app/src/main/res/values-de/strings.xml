@@ -541,6 +541,8 @@
     <string name="AppCloseConfirmMessage">Das aktuelle Modell wird beim nächsten Start nicht automatisch geladen.</string>
     <string name="AppCloseConfirmYes">App schließen</string>
     <string name="ModelContextSelectFilamentSlot">Filamentplatz auswählen</string>
+    <string name="PrinterConnectionTitle">Druckerverbindung</string>
+    <string name="PrinterOpenWebShort">Web</string>
     <string name="PrinterOpenWebButton">Weboberfläche öffnen</string>
     <string name="ClosePanel">Ansicht schließen</string>
     <string name="PrinterOpenWebDescription">Öffnet den eingestellten Druckerhost im Browser</string>

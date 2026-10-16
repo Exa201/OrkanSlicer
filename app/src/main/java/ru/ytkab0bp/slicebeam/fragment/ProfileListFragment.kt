@@ -91,6 +91,10 @@ abstract class ProfileListFragment : Fragment() {
     @Composable
     protected open fun BelowFilamentPaletteContent(modifier: Modifier = Modifier) = Unit
 
+    /** Optional route summary/actions shown at a stable position above profile settings. */
+    @Composable
+    protected open fun ProfileHeaderContent(modifier: Modifier = Modifier) = Unit
+
     /** Profile config screens override this to render categories as horizontal tabbed pages. */
     protected open fun useTabs(): Boolean = false
 
@@ -288,6 +292,9 @@ abstract class ProfileListFragment : Fragment() {
                         if (profileSettingsViewModel != null) {
                             ComposeProfileSettingsStatus(profileSettingsViewModel!!)
                         }
+                        ProfileHeaderContent(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
                         if (showFilamentPalette() && !isPortrait) {
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 filamentPaletteController?.Content(

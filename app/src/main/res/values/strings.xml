@@ -548,6 +548,8 @@
     <string name="AppCloseConfirmMessage">The current model will not be restored automatically the next time you open the app.</string>
     <string name="AppCloseConfirmYes">Close app</string>
     <string name="ModelContextSelectFilamentSlot">Select filament slot</string>
+    <string name="PrinterConnectionTitle">Printer connection</string>
+    <string name="PrinterOpenWebShort">Web</string>
     <string name="PrinterOpenWebButton">Open printer web interface</string>
     <string name="ClosePanel">Close panel</string>
     <string name="PrinterOpenWebDescription">Open the configured printer host in your browser</string>
