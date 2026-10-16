@@ -79,6 +79,19 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    fun delayedDismissalOfPreviousToolCannotClearTheReplacementTool() {
+        val controller = WorkspaceController()
+        var delayedCleanup: (() -> Unit)? = null
+        controller.selectTool("paint-mode") { delayedCleanup = { controller.clearTool("paint-mode") } }
+
+        controller.selectTool("emboss-mode") { controller.clearTool("emboss-mode") }
+        delayedCleanup?.invoke()
+
+        assertEquals("emboss-mode", controller.activeToolId)
+        assertEquals(WorkspaceOverlayPanel.SPECIAL_TOOL, controller.activePanel)
+    }
+
+    @Test
     fun modelContextDialogReplacesPlatePickerAndBackDismissesIt() {
         val controller = WorkspaceController()
         var plateDismissed = false

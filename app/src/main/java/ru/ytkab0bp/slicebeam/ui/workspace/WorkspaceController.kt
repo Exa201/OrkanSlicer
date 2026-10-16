@@ -64,7 +64,10 @@ internal class WorkspaceController(
     }
 
     fun clearTool(toolId: String) {
-        if (activeToolId == toolId) activeToolId = null
+        // A dismissed GL tool may finish cleanup asynchronously. Never let that stale
+        // callback clear the exclusive panel that a newer tool has already claimed.
+        if (activeToolId != toolId) return
+        activeToolId = null
         overlays.clear(WorkspaceOverlayPanel.SPECIAL_TOOL)
     }
 

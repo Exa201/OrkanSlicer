@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
@@ -99,7 +100,10 @@ import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceLegacyModeHost
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceModePanelHost
+import ru.ytkab0bp.slicebeam.ui.workspace.PaintModePanel
+import ru.ytkab0bp.slicebeam.ui.workspace.VariableLayerHeightPanel
+import ru.ytkab0bp.slicebeam.ui.workspace.EmbossModePanel
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
@@ -112,6 +116,7 @@ import ru.ytkab0bp.slicebeam.utils.PrinterWebOriginPolicy
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
 import ru.ytkab0bp.slicebeam.view.FilamentPaletteController
+import ru.ytkab0bp.slicebeam.view.EmbossModeController
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 class BedFragment:Fragment() {
 var overlayLayout: FrameLayout? = null
@@ -213,11 +218,13 @@ val model = currentModel
 val selected = if (glView != null) glView!!.renderer.selectedObject else -1
 return if (model == null || selected < 0) 0 else model.getTriangleCount(selected)
 }
-private var paintModeView: ru.ytkab0bp.slicebeam.view.PaintModeView? = null
+private var paintModeView: ComposeView? = null
+private val paintFinishPending = AtomicBoolean(false)
 private var measureModeView: ThemeAwareComposeView? = null
-private var variableLayerHeightModeView: ru.ytkab0bp.slicebeam.view.VariableLayerHeightModeView? = null
-private var embossModeView: ru.ytkab0bp.slicebeam.view.EmbossModeView? = null
-private var modeComposeHost: ComposeView? = null
+private var variableLayerHeightModeView: ComposeView? = null
+private var embossModeView: ComposeView? = null
+private var embossModeController: EmbossModeController? = null
+private val modeComposeHosts = mutableMapOf<String, ComposeView>()
 private var hasWebError:Boolean = false
 private var panelWebView: WebView? = null
 private var panelWebViewContainer: FrameLayout? = null
@@ -836,17 +843,38 @@ internal fun isModelContextMenuAttached(): Boolean = modelContextMenuView?.isAtt
 internal fun isWorkspaceMessageDialogAttached(): Boolean = workspaceDialogView?.isAttachedToWindow == true
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
-if (ctx == null || glView == null || overlayLayout == null || objectIndex == -1 || paintModeView != null) return
+val currentGlView = glView
+if (ctx == null || currentGlView == null || overlayLayout == null || objectIndex == -1 || paintModeView != null) return
 workspaceController.dismissActivePanel()
 if (!requirePreciseSurfaceModel(objectIndex)) return
-glView!!.queueEvent({ glView!!.renderer.beginPaint(objectIndex, mode)
-glView!!.requestRender() })
-paintModeView = ru.ytkab0bp.slicebeam.view.PaintModeView(ctx, glView!!, Runnable {
-    exitPaintMode()
-    updateModel()
-}, mode)
-attachLegacyModeHost("paint-mode", paintModeView!!, ::exitPaintMode)
+paintFinishPending.set(false)
+currentGlView.isPaintBrushActive = true
+currentGlView.queueEvent({ currentGlView.renderer.beginPaint(objectIndex, mode)
+currentGlView.requestRender() })
+paintModeView = attachComposeModeHost("paint-mode", ::cancelPaintMode) {
+    PaintModePanel(
+        glView = currentGlView,
+        mode = mode,
+        onCommit = { finishPaintMode(commit = true) },
+        onCancel = { cancelPaintMode() },
+    )
 }
+}
+private fun finishPaintMode(commit: Boolean) {
+    if (!paintFinishPending.compareAndSet(false, true)) return
+    val currentGlView = glView
+    exitPaintMode()
+    if (currentGlView == null) return
+    currentGlView.isPaintBrushActive = false
+    currentGlView.queueEvent {
+        currentGlView.renderer.endPaint(commit)
+        currentGlView.requestRender()
+        ViewUtils.postOnMainThread {
+            if (commit) updateModel()
+        }
+    }
+}
+private fun cancelPaintMode() = finishPaintMode(commit = false)
 private fun exitPaintMode() {
 if (paintModeView != null)
 {
@@ -890,10 +918,12 @@ workspaceController.clearTool("measure-mode")
 }
 fun enterVariableLayerHeightMode() {
 val ctx = getContext()
-if (ctx == null || glView == null || overlayLayout == null || variableLayerHeightModeView != null) return
+val currentGlView = glView
+if (ctx == null || currentGlView == null || overlayLayout == null || variableLayerHeightModeView != null) return
 workspaceController.dismissActivePanel()
-variableLayerHeightModeView = ru.ytkab0bp.slicebeam.view.VariableLayerHeightModeView(ctx, glView!!, Runnable { exitVariableLayerHeightMode() })
-attachLegacyModeHost("variable-layer-height", variableLayerHeightModeView!!, ::exitVariableLayerHeightMode)
+variableLayerHeightModeView = attachComposeModeHost("variable-layer-height", ::exitVariableLayerHeightMode) {
+    VariableLayerHeightPanel(currentGlView, ::exitVariableLayerHeightMode)
+}
 }
 private fun exitVariableLayerHeightMode() {
 if (variableLayerHeightModeView != null)
@@ -904,32 +934,43 @@ variableLayerHeightModeView = null
 }
 fun enterEmbossMode() {
 val ctx = getContext()
-if (ctx == null || glView == null || overlayLayout == null || embossModeView != null) return
+val currentGlView = glView
+if (ctx == null || currentGlView == null || overlayLayout == null || embossModeView != null) return
 workspaceController.dismissActivePanel()
-val selected = glView!!.renderer.selectedObject
+val selected = currentGlView.renderer.selectedObject
 if (selected >= 0 && !requirePreciseSurfaceModel(selected)) return
-glView!!.queueEvent({ glView!!.renderer.isInEmbossMode = true
-glView!!.requestRender() })
-embossModeView = ru.ytkab0bp.slicebeam.view.EmbossModeView(ctx, glView!!, Runnable { exitEmbossMode() })
-attachLegacyModeHost("emboss-mode", embossModeView!!, ::exitEmbossMode)
+currentGlView.queueEvent({ currentGlView.renderer.isInEmbossMode = true
+currentGlView.requestRender() })
+embossModeController = EmbossModeController(ctx, currentGlView)
+embossModeView = attachComposeModeHost("emboss-mode", ::exitEmbossMode) {
+    EmbossModePanel(requireNotNull(embossModeController), ::exitEmbossMode)
 }
-private fun attachLegacyModeHost(toolId: String, content: View, onDismiss: () -> Unit) {
-    val context = getContext() ?: return
-    val root = overlayLayout ?: return
+}
+private fun attachComposeModeHost(
+    toolId: String,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+): ComposeView {
+    val context = getContext() ?: error("Workspace context is unavailable")
+    val root = overlayLayout ?: error("Workspace overlay host is unavailable")
     val host = ComposeView(context).apply {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-        setContent { BeamComposeTheme { WorkspaceLegacyModeHost(content) } }
+        setContent {
+            BeamComposeTheme {
+                WorkspaceModePanelHost(onDismiss = onDismiss, content = content)
+            }
+        }
     }
-    modeComposeHost = host
+    modeComposeHosts[toolId] = host
     root.addView(host, FrameLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT,
         ViewGroup.LayoutParams.MATCH_PARENT,
     ))
     workspaceController.selectTool(toolId, onDismiss)
+    return host
 }
 private fun removeLegacyModeHost(toolId: String) {
-    modeComposeHost?.let { host -> (host.parent as? ViewGroup)?.removeView(host) }
-    modeComposeHost = null
+    modeComposeHosts.remove(toolId)?.let { host -> (host.parent as? ViewGroup)?.removeView(host) }
     workspaceController.clearTool(toolId)
 }
 private fun requirePreciseSurfaceModel(objectIndex:Int):Boolean {
@@ -954,6 +995,7 @@ return false
 private fun exitEmbossMode() {
 if (embossModeView != null)
 {
+embossModeController = null
 glView?.queueEvent({ glView?.renderer?.isInEmbossMode = false
 glView?.requestRender() })
 removeLegacyModeHost("emboss-mode")
@@ -992,7 +1034,7 @@ return true
 }
 if (paintModeView != null)
 {
-paintModeView!!.finish()
+cancelPaintMode()
 return true
 }
 if (currentUnfoldMenu != null)
