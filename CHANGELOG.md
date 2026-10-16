@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-- Move workspace menu route transitions into `WorkspaceShell` with Compose `AnimatedContent`; keep legacy route views mounted through the existing Android interop boundary and leave the GL renderer host stable.
+## 0.8.244 (alpha)
+
+- Move workspace menu route transitions into `WorkspaceShell` with Compose `AnimatedContent`; keep the GL renderer host stable.
+- Render transform, cut, calibration, slice-information, layer-preview, and AI-generator tool routes directly in the Compose workspace panel while preserving callbacks, GL-thread operations, and Android activity-result flows.
+- Verify nine Compose tool routes on Honor for attach, active composition, and Back cleanup; keep Kromacut's required WebView/editor integration on its existing route.
 
 ## 0.8.243 (alpha)
 
