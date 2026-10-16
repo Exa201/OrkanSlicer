@@ -7,8 +7,10 @@ import org.junit.Test
 
 class AdaptiveNavigationPolicyTest {
     @Test
-    fun expandedNavigationRailKeepsAStableFiniteWidth() {
-        assertEquals(64, AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP)
+    fun expandedNavigationRailAdaptsWidthForLargeSystemText() {
+        assertEquals(80, AdaptiveNavigationPolicy.navigationRailWidthDp(1f))
+        assertEquals(96, AdaptiveNavigationPolicy.navigationRailWidthDp(1.2f))
+        assertEquals(96, AdaptiveNavigationPolicy.navigationRailWidthDp(1.5f))
     }
 
     @Test

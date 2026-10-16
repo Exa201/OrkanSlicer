@@ -12,7 +12,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
@@ -91,7 +90,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             val rail = createNavigationHost(ctx)
             navigationView = rail
             navigationLayout.addView(rail, LinearLayout.LayoutParams(
-                ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP),
+                ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(ctx.resources.configuration.fontScale)),
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ))
         }
@@ -120,8 +119,8 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                 slot = slot,
                 label = ctx.getString(getSlotNavigationTitle(slot)),
                 icon = getSlotIcon(slot),
-                accessibilityLabel = ctx.getString(getSlotTooltip(slot)),
-                compactLabel = if (slot == MobileNavigationPolicy.PREVIEW_SLOT) ctx.getString(R.string.NavigationPreviewCompact) else null,
+                // Keep TalkBack's destination name aligned with the label shown on screen.
+                accessibilityLabel = ctx.getString(getSlotNavigationTitle(slot)),
             )
         }
         return ComposeView(ctx).apply {
@@ -190,7 +189,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                 1f,
             )
             layout.addView(replacement, LinearLayout.LayoutParams(
-                ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP),
+                ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(configuration.fontScale)),
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ))
         }

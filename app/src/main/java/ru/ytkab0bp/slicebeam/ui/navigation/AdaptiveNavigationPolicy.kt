@@ -3,8 +3,14 @@ package ru.ytkab0bp.slicebeam.ui.navigation
 /** Chooses compact bottom navigation or an expanded rail from the current app-window width. */
 object AdaptiveNavigationPolicy {
     const val EXPANDED_WIDTH_DP = 600
-    const val NAVIGATION_RAIL_WIDTH_DP = 64
+    const val NAVIGATION_RAIL_WIDTH_DP = 80
+    const val LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP = 96
     const val NAVIGATION_BAR_HEIGHT_DP = 56
+
+    /** Wider rail space preserves system text scaling and readable destination names. */
+    @JvmStatic
+    fun navigationRailWidthDp(fontScale: Float): Int =
+        if (fontScale >= 1.2f) LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP else NAVIGATION_RAIL_WIDTH_DP
 
     @JvmStatic
     fun usesBottomNavigation(windowWidthDp: Int, isPortrait: Boolean): Boolean =

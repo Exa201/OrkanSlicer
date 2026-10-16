@@ -440,12 +440,13 @@ def main() -> None:
     native_config_bridge = uncommented(read(JAVA / "slic3r/OrcaConfigBridge.kt"))
     native_kotlin = uncommented(read(JAVA / "slic3r/Native.kt"))
     native_bridge_cpp = uncommented(read(ROOT / "app/src/main/jni/slicebeam/beam_native.cpp"))
+    native_declarations = re.findall(r"(?m)^\s*external fun ([A-Za-z0-9_]+)\(", native_kotlin)
     native_jvm_methods = re.findall(
-        r"(?m)^\s*@JvmStatic\s*\n\s*(?:@Throws\([^\n]+\)\s*\n\s*)?external fun ([A-Za-z0-9_]+)\([^\n]*\): [A-Za-z0-9_?]+",
+        r"(?m)^\s*@JvmStatic\s*\n\s*(?:@Throws\([^\n]+\)\s*\n\s*)?external fun ([A-Za-z0-9_]+)\(",
         native_kotlin,
     )
-    if len(native_jvm_methods) != 122 or len(set(native_jvm_methods)) != 122:
-        errors.append("The Kotlin JNI facade must expose all 122 distinct methods as Java statics")
+    if len(set(native_declarations)) != len(native_declarations) or set(native_jvm_methods) != set(native_declarations):
+        errors.append("Every distinct Kotlin JNI declaration must be exposed as a Java static")
     jni_symbols = set(re.findall(
         r"Java_ru_ytkab0bp_slicebeam_slic3r_Native_([A-Za-z0-9_]+)\s*\(", native_bridge_cpp
     ))
@@ -469,11 +470,11 @@ def main() -> None:
     model_kotlin = uncommented(read(JAVA / "slic3r/Model.kt"))
     model_bridge = uncommented(read(JAVA / "slic3r/OrcaModelBridge.kt"))
     bed_fragment = uncommented(read(JAVA / "fragment/BedFragment.kt"))
-    if "OrcaModelBridge.load(path, plateId)" not in model_kotlin:
+    if "OrcaModelBridge.load(path, plateId, progress)" not in model_kotlin:
         errors.append("Model constructors do not load files through the Kotlin JNI facade")
-    if "Native.model_read_from_file(path, baseName(source.name), plateId)" not in model_bridge:
+    if "Native.model_read_from_file(path, baseName(source.name), plateId, progress)" not in model_bridge:
         errors.append("Kotlin model facade does not call the existing native file importer")
-    if "external fun model_read_from_file(path: String, baseName: String, plateId: Int): Long" not in native_kotlin:
+    if "external fun model_read_from_file(path: String, baseName: String, plateId: Int, progress: ImportProgressCallback?): Long" not in native_kotlin:
         errors.append("The existing model_read_from_file JNI declaration was changed or removed")
     if "Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file" not in native_bridge_cpp:
         errors.append("The existing native model importer implementation is missing")
@@ -711,7 +712,8 @@ def main() -> None:
         "createNavigationHost(ctx)", "ComposeView(ctx)", "AdaptiveWorkspaceNavigation(",
         "ViewCompositionStrategy.DisposeOnDetachedFromWindow", "updateSelectedNavigationSlot(",
         "navigationThemeRevision++", "MobileNavigationPolicy.destinations().map { slot ->",
-        "accessibilityLabel = ctx.getString(getSlotTooltip(slot))", "const val SETTINGS_SLOT = 5",
+        "accessibilityLabel = ctx.getString(getSlotNavigationTitle(slot))", "const val SETTINGS_SLOT = 5",
+        "AdaptiveNavigationPolicy.navigationRailWidthDp(configuration.fontScale)",
         "lastPrimarySlot", "override fun onBackPressed()", "super.onBackPressed()",
         "fun onConfigurationChanged(configuration: Configuration)",
         "layout.removeView(navigation)", "content?.layoutParams",
@@ -724,8 +726,8 @@ def main() -> None:
     adaptive_navigation = uncommented(read(JAVA / "ui/navigation/AdaptiveWorkspaceNavigation.kt"))
     for retained_component in (
         "Row(Modifier.fillMaxWidth().selectableGroup())", "Column(",
-        "Role.Tab", "maxLines = 1", "softWrap = false",
-        "fontSize = if (compactRail) 10.sp else 11.sp", "accessibilityLabel",
+        "Role.Tab", "maxLines = 2", "softWrap = true",
+        "OrkanUiTokens.navigationLabelSize", "accessibilityLabel",
     ):
         if retained_component not in adaptive_navigation:
             errors.append(f"Compose adaptive navigation is missing {retained_component}")

@@ -1,5 +1,22 @@
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 
+Ergänzung 0.8.235 (16.10.2026): Die Profile zeigen jetzt zusätzlich Orcas Expert-Werte für
+Elephant-Foot-Schichtdichte und Infill-Verankerung an ihren vorhandenen Qualitätsgruppen.
+Die Navigationsleiste verkleinert Systemschrift nicht mehr; bei großer Schrift wird die
+Seitenleiste breiter und Beschriftungen umbrechen. TalkBack erhält denselben Namen wie die
+sichtbare Navigation. Die Änderungsansicht wurde von veralteten 0.8.227- auf aktuelle
+Release-Notizen umgestellt. Verifikation am 16.10.2026: `:app:testDebugUnitTest` und
+`:app:testSliceTestUnitTest` bestanden; der Routencheck bestätigt 477 Einstellungen mit
+Native-Definition und Profilparser sowie 100 eindeutige deutsche Gruppenlabels. Die
+vorhandene Emulator-Version war zunächst 0.8.234. Der vollständige APK-Build mit erneutem
+CMake-Build wurde während `buildCMakeRelease[arm64-v8a]` beendet. Danach wurde das neue
+0.8.235-APK erfolgreich mit den Kotlin-Änderungen und dem unveränderten vorhandenen Orca-
+Nativkern paketiert (CMake-Tasks explizit ausgeschlossen), auf dem Emulator installiert,
+gestartet und per `dumpsys` als VersionCode 270 / VersionName 0.8.235 verifiziert. Der
+Screenshot der gestarteten App wurde geprüft. Die Android-CLI lieferte keine Instrumentation-
+Layout-Antwort. Das Honor blieb gesperrt. Der Kobra-Dreifarbdruck bleibt ohne beaufsichtigte
+Hardware-Abnahme offen.
+
 Ergänzung 0.8.232 (15.10.2026): Der echte dreifarbige Mewtwo-3MF-Import wurde auf dem Honor in der getrennten Test-App geprüft: drei bemalte Werkzeuge, korrekte Farbreihe, vollständige letzte Schicht und Abschluss im Test-Slice, ohne gespeicherte Profile zu verändern. Die Auswahl eigener Filamentwerte statt 3MF-Temperaturen wurde separat am Gerät geprüft. Eine weitere Lücke im Druckpfad wurde behoben: Bei leerem ACE 2 wird die komprimierte Filamentpalette `1,3,4` nicht mehr mit den physischen Fachnummern verwechselt. Die beim vollständigen Sync gespeicherte Fachreihenfolge bleibt auch nach einer neuen Werkzeugzuordnung erhalten; Material und Temperatur werden pro tatsächlich gewähltem Fach aufgelöst. Ein beaufsichtigter physischer Dreifarbdruck und die visuelle Geräteprüfung bleiben offen.
 
 Ergänzung 0.8.231 (15.10.2026): Der Kobra-Upload liest die ACE-Belegung unmittelbar vor der Dateivorbereitung erneut. Scheitert die letzte Abfrage oder unterscheiden sich ein verwendetes Fach, dessen Werkzeugzuordnung, Material oder Farbe vom im Sendedialog geprüften Zustand, wird nichts hochgeladen und die Zuordnung muss erneut geprüft werden. Zwei neue Android-Gerätetests mit simulierten Moonraker-Antworten prüfen ein nach dem Dialog geleertes Fach sowie eine geänderte Farbe. 493 Unit-Tests und 13 ACE-Synchronisierungstests am Honor bestanden. Ein echter Druck mit dem weiterhin leeren ACE 2 bleibt bis zur Firmware-Prüfung und Beaufsichtigung offen.

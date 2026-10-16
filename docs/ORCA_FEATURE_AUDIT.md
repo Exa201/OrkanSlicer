@@ -1,5 +1,25 @@
 # OrcaSlicer Mobile — Feature Parity Audit
 
+## Verified status (2026-10-16)
+
+The original counts below are historical and must not be read as the current UI coverage.
+The current source audit reports 887 parsed native keys and 477 process/filament/printer
+settings routed to native definitions (319 process, 90 filament, 68 printer). The profile
+route checker also verifies that those rows reach matching profile parsers. Run
+`scripts/check_profile_setting_routes.py` and `scripts/audit_orca_feature_gap_doc.py` to
+recalculate the current figures; the latter only reconciles settings literally named in
+this older curated list and is not a complete desktop-parity scanner.
+
+As of this audit, the two safe, native-backed omissions `elefant_foot_layers_density` and
+`infill_lock_depth` are now exposed in the existing Precision and Infill groups. We kept
+the other candidates out of the UI where the core does not implement them (`adaptive_layer_height`),
+where Orca sets them internally (`has_scarf_joint_seam`), where dependent sequence editing
+would be absent (`first_layer_sequence_choice`, `other_layers_sequence_choice`), where the
+native definition has no useful label/help (`elefant_foot_min_width`), or where the native
+tooltip warns of a possible brim-to-model fusion (`brim_use_efc_outline`). Bed-type
+temperatures intentionally remain a single general filament control: the app synchronizes
+that value to the per-plate Orca keys and preserves explicit project values.
+
 Audit of what the OrcaSlicer engine (now bundled via `app/src/main/jni/libslic3r`)
 exposes vs. what the mobile UI actually surfaces. Goal: find features lost when the
 project was ported from SliceBeam (Prusa engine) to the Orca engine.

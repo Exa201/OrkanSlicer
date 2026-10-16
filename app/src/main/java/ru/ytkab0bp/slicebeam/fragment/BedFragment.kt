@@ -1307,7 +1307,7 @@ if (portrait) return swipeDownLayout
 return LinearLayout(ctx).apply {
 orientation = LinearLayout.HORIZONTAL
 addView(navigationView, LinearLayout.LayoutParams(
-ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP), ViewGroup.LayoutParams.MATCH_PARENT))
+ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(ctx.resources.configuration.fontScale)), ViewGroup.LayoutParams.MATCH_PARENT))
 addView(DividerView(ctx), LinearLayout.LayoutParams(ViewUtils.dp(1), ViewGroup.LayoutParams.MATCH_PARENT))
 addView(menuView, LinearLayout.LayoutParams(ViewUtils.dp(MENU_SIZE_DP), ViewGroup.LayoutParams.MATCH_PARENT))
 addView(swipeDownLayout, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
@@ -1336,8 +1336,9 @@ glView!!.requestRender()
 }
 private fun updateAdaptiveOverlayMargins(portrait:Boolean) {
 val params = snackbarsLayout?.layoutParams as? FrameLayout.LayoutParams ?: return
+val fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f
 params.leftMargin = if (portrait) ViewUtils.dp(8)
-    else ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP + MENU_SIZE_DP + 8)
+    else ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(fontScale) + MENU_SIZE_DP + 8)
 params.bottomMargin = if (portrait)
     ViewUtils.dp(menuPortraitHeightDp() + AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP) else 0
 snackbarsLayout!!.layoutParams = params

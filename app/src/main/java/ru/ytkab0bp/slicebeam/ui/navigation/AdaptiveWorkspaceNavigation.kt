@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 data class WorkspaceNavigationItem(
@@ -51,7 +50,7 @@ fun AdaptiveWorkspaceNavigation(
             }
         } else {
             Column(
-                Modifier.width(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP.dp)
+                Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale).dp)
                     .heightIn(max = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp)
                     .fillMaxHeight().verticalScroll(rememberScrollState()).selectableGroup(),
             ) {
@@ -71,13 +70,6 @@ private fun Destination(
     onSelected: (Int) -> Unit,
     compactRail: Boolean = false,
 ) {
-    // Large system text still grows, but a small adjustment keeps short German labels whole.
-    val largeText = LocalDensity.current.fontScale >= 1.2f
-    val labelSize = when {
-        compactRail && largeText -> 10.sp
-        largeText -> 11.sp
-        else -> OrkanUiTokens.navigationLabelSize
-    }
     Column(
         modifier.heightIn(min = AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP.dp)
             .selectable(selected = selected, role = Role.Tab,
@@ -100,9 +92,9 @@ private fun Destination(
         }
         Text(
             if (compactRail) item.compactLabel ?: item.label else item.label,
-            maxLines = if (compactRail) 1 else 2,
-            softWrap = !compactRail, overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center, fontSize = labelSize, lineHeight = 14.sp,
+            maxLines = 2,
+            softWrap = true, overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center, fontSize = OrkanUiTokens.navigationLabelSize,
             modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
