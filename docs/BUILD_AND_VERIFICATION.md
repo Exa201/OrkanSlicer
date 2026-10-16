@@ -581,3 +581,12 @@ Finaler APK-Artefakt nach Commit `6b9b3c0423b9eb1d075521a2bd97eaeec330e10d`:
   als geprüft gewertet.
 - Kein CPU-/RAM-Benchmark wurde durchgeführt. Der Lazy-Render-Pfad vermeidet das gleichzeitige
   Komponieren aller Optionen; quantitative Performance-Messungen bleiben offen.
+
+Finaler UI-Panel-Build nach Code-Commit `49cb9fcb30cf5c76f0371ed34420c4708643cd1f`:
+
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_49cb9fcb30.apk`
+- 156.903.080 Byte; SHA-256 `17FF2BCBE4EB5236A48CF2E6A37B487CB743750ACDE3B4D98AD819352ACC2ADB`.
+- `:app:assembleDebug` nach dem Code-Commit erfolgreich. Die beiden Unit-Suiten mit je 531 Tests und die Honor-Instrumentierung (39 bestanden, 3 Fixture-bedingt übersprungen) waren mit demselben Quellstand bereits erfolgreich.
+- Genau diese APK wurde auf dem Honor PTP-N49 installiert und gestartet; `MainActivity` blieb im Vordergrund. Ein frischer Logcat-Ausschnitt hatte keine FATAL EXCEPTION-, ANR-, OOM- oder Intrinsic-Measurement-Fehler. Ein Screenshot zeigt die große Druckplatte und Workspace-Navigation. Das Profilfilter-/Panelverhalten wurde im unmittelbar vorhergehenden Gerätedurchgang mit demselben Quellstand geprüft.
+- Ein zusätzlicher Emulator-Installationsversuch hing im ADB-Transfer und wurde abgebrochen; Emulatorprüfung nicht bestanden/nicht bestätigt.
+- Diese APK entspricht Code-Commit `49cb9fc`. Spätere reine Dokumentationsänderungen ändern den APK-Inhalt nicht. Debug-Build, kein Release.
