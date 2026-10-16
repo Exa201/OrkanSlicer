@@ -53,7 +53,6 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.cloud.CloudController
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
 import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent
@@ -263,71 +262,56 @@ class FileMenu : ListBedMenu() {
     }
 
     private fun showProfileExportDialog(view: View) {
-        val prints = Array<CharSequence>(SliceBeam.requireConfig().printConfigs.size) { index ->
-            SliceBeam.requireConfig().printConfigs[index].title ?: ""
-        }
-        val filaments = Array<CharSequence>(SliceBeam.requireConfig().filamentConfigs.size) { index ->
-            SliceBeam.requireConfig().filamentConfigs[index].title ?: ""
-        }
-        val printers = Array<CharSequence>(SliceBeam.requireConfig().printerConfigs.size) { index ->
-            SliceBeam.requireConfig().printerConfigs[index].title ?: ""
-        }
-        val enabledPrints = BooleanArray(prints.size) { true }
-        val enabledFilaments = BooleanArray(filaments.size) { true }
-        val enabledPrinters = BooleanArray(printers.size) { true }
-
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileExportProfilesPrints)
-            .setMultiChoiceItems(prints, enabledPrints) { _, which, checked -> enabledPrints[which] = checked }
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                BeamAlertDialogBuilder(view.context)
-                    .setTitle(R.string.MenuFileExportProfilesFilaments)
-                    .setMultiChoiceItems(filaments, enabledFilaments) { _, which, checked ->
-                        enabledFilaments[which] = checked
+        val bed = fragment ?: return
+        val context = view.context
+        val config = SliceBeam.requireConfig()
+        val printProfiles = config.printConfigs.toList()
+        val filamentProfiles = config.filamentConfigs.toList()
+        val printerProfiles = config.printerConfigs.toList()
+        val categories = listOf(
+            printProfiles.map { it.title ?: "" },
+            filamentProfiles.map { it.title ?: "" },
+            printerProfiles.map { it.title ?: "" },
+        )
+        bed.showWorkspaceComposeDialog { dismiss ->
+            ProfileExportSelectionDialog(
+                titles = listOf(
+                    context.getString(R.string.MenuFileExportProfilesPrints),
+                    context.getString(R.string.MenuFileExportProfilesFilaments),
+                    context.getString(R.string.MenuFileExportProfilesPrinters),
+                ),
+                categories = categories,
+                cancelLabel = context.getString(android.R.string.cancel),
+                backLabel = context.getString(R.string.MenuOrientationPositionBack),
+                nextLabel = context.getString(R.string.IntroNext),
+                exportLabel = context.getString(R.string.MenuFileExportProfiles),
+                onDismiss = dismiss,
+                onComplete = { selectedIndices ->
+                    dismiss()
+                    val selectedPrints = selectedIndices[0].mapNotNull(printProfiles::getOrNull)
+                    val selectedFilaments = selectedIndices[1].mapNotNull(filamentProfiles::getOrNull)
+                    val selectedPrinters = selectedIndices[2].mapNotNull(printerProfiles::getOrNull)
+                    if (selectedPrints.isEmpty() && selectedFilaments.isEmpty() && selectedPrinters.isEmpty()) {
+                        bed.showWorkspaceMessageDialog(
+                            context.getString(R.string.MenuFileExportProfiles),
+                            context.getString(R.string.MenuFileExportProfilesNoProfiles),
+                            context.getString(android.R.string.ok),
+                        )
+                        return@ProfileExportSelectionDialog
                     }
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        BeamAlertDialogBuilder(view.context)
-                            .setTitle(R.string.MenuFileExportProfilesPrinters)
-                            .setMultiChoiceItems(printers, enabledPrinters) { _, which, checked ->
-                                enabledPrinters[which] = checked
-                            }
-                            .setPositiveButton(android.R.string.ok) { _, _ ->
-                                val selectedPrints = SliceBeam.requireConfig().printConfigs.filterIndexed { index, _ ->
-                                    enabledPrints[index]
-                                }
-                                val selectedFilaments = SliceBeam.requireConfig().filamentConfigs.filterIndexed { index, _ ->
-                                    enabledFilaments[index]
-                                }
-                                val selectedPrinters = SliceBeam.requireConfig().printerConfigs.filterIndexed { index, _ ->
-                                    enabledPrinters[index]
-                                }
-                                if (selectedPrints.isEmpty() && selectedFilaments.isEmpty() && selectedPrinters.isEmpty()) {
-                                    BeamAlertDialogBuilder(view.context)
-                                        .setTitle(R.string.MenuFileExportProfiles)
-                                        .setMessage(R.string.MenuFileExportProfilesNoProfiles)
-                                        .setPositiveButton(android.R.string.ok, null)
-                                        .show()
-                                    return@setPositiveButton
-                                }
 
-                                MainActivity.EXPORTING_PRINTS = selectedPrints
-                                MainActivity.EXPORTING_FILAMENTS = selectedFilaments
-                                MainActivity.EXPORTING_PRINTERS = selectedPrinters
-                                val activity = fragment?.getContext() as? Activity ?: return@setPositiveButton
-                                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                                    type = "application/ini"
-                                    putExtra(Intent.EXTRA_TITLE, "OrcaSlicerMobile_config_bundle.ini")
-                                }
-                                activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_PROFILES)
-                            }
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show()
+                    MainActivity.EXPORTING_PRINTS = selectedPrints
+                    MainActivity.EXPORTING_FILAMENTS = selectedFilaments
+                    MainActivity.EXPORTING_PRINTERS = selectedPrinters
+                    val activity = bed.getContext() as? Activity ?: return@ProfileExportSelectionDialog
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        type = "application/ini"
+                        putExtra(Intent.EXTRA_TITLE, "OrcaSlicerMobile_config_bundle.ini")
                     }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+                    activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_PROFILES)
+                },
+            )
+        }
     }
 
     @EventHandler(runOnMainThread = true)

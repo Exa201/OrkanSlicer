@@ -25,6 +25,7 @@ import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -799,6 +800,32 @@ internal fun showWorkspaceMessageDialog(
         ViewGroup.LayoutParams.MATCH_PARENT,
     ))
     workspaceController.activatePanel(WorkspaceOverlayPanel.MESSAGE_DIALOG) { close(false) }
+}
+/** Hosts a workspace-owned Compose dialog under the same exclusive overlay/back handling. */
+internal fun showWorkspaceComposeDialog(content: @Composable (dismiss: () -> Unit) -> Unit) {
+    val context = getContext() ?: return
+    val root = overlayLayout ?: return
+    workspaceController.dismissActivePanel()
+    currentUnfoldMenu?.dismiss()
+    val host = ComposeView(context)
+    var resolved = false
+    fun close() {
+        if (resolved) return
+        resolved = true
+        if (workspaceDialogView === host) workspaceDialogView = null
+        (host.parent as? ViewGroup)?.removeView(host)
+        workspaceController.clearPanel(WorkspaceOverlayPanel.MESSAGE_DIALOG)
+    }
+    host.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+    host.setContent {
+        BeamComposeTheme { content(::close) }
+    }
+    workspaceDialogView = host
+    root.addView(host, FrameLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.MATCH_PARENT,
+    ))
+    workspaceController.activatePanel(WorkspaceOverlayPanel.MESSAGE_DIALOG) { close() }
 }
 fun showSelectedModelContextMenu() {
     showModelContextMenu(glView?.renderer?.selectedObject ?: -1)

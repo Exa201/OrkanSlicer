@@ -16,6 +16,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
+import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
@@ -190,6 +192,54 @@ class MainActivityTouchDeviceTest {
             scenario.onActivity { activity ->
                 assertTrue("Back should leave the workspace activity active", activity.isFinishing.not())
                 assertFalse("Back should dismiss the model action dialog", requireNotNull(bed).isModelContextMenuAttached())
+            }
+
+            // Model object workflows now use the exclusive Compose workspace-dialog host.
+            scenario.onActivity {
+                val workspace = requireNotNull(bed)
+                val actions = FileMenuObjectActions(workspace)
+                actions.showObjectsDialog(requireNotNull(viewport))
+                assertTrue("The object list should attach as a Compose workspace dialog",
+                    workspace.isWorkspaceMessageDialogAttached())
+            }
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Closing the object list must keep the workspace active", !activity.isFinishing)
+                assertFalse("Back should close the object list", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
+
+            scenario.onActivity {
+                FileMenuObjectActions(requireNotNull(bed)).showDuplicateDialog(requireNotNull(viewport))
+                assertTrue("Duplicate count input should attach as a Compose workspace dialog",
+                    requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
+            instrumentation.waitForIdleSync()
+            // Back hides the numeric keyboard before dismissing the focused duplicate-count dialog.
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Closing duplicate input must keep the workspace active", !activity.isFinishing)
+                assertFalse("Back should close duplicate input", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
+
+            scenario.onActivity {
+                val fileMenu = FileMenu().apply { onSetBed(requireNotNull(bed)) }
+                val export = FileMenu::class.java.getDeclaredMethod("showProfileExportDialog", android.view.View::class.java)
+                    .apply { isAccessible = true }
+                export.invoke(fileMenu, requireNotNull(viewport))
+                assertTrue("Profile export selection should attach as a Compose workspace dialog",
+                    requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Closing profile selection must keep the workspace active", !activity.isFinishing)
+                assertFalse("Back should close profile selection", requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
 
             val workspaceDialogDismissed = java.util.concurrent.atomic.AtomicBoolean(false)
