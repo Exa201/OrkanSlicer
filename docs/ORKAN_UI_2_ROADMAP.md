@@ -27,6 +27,17 @@ Umgesetzt:
 
 Prüfung dieser Etappe am 16.10.2026: `:app:testDebugUnitTest` bestand mit 515 Tests und ohne Fehler; `:app:assembleDebug` baute einschließlich `buildCMakeRelease[arm64-v8a]`. Die APK wurde auf `emulator-5554` und HONOR PTP-N49 installiert. Die eingeklappte Platte, der Wechsel zwischen Modell und Bearbeiten, die zweireihigen Aktionen sowie die schmalere Drei-Spalten-Anordnung wurden visuell geprüft. Auf dem Emulator wurde zusätzlich Systemschrift 130 % geprüft und anschließend auf 100 % zurückgesetzt. In den erfassten Gerätelogs gab es keinen App-Crash und keinen ANR. Das Modell war leer; echtes Modell- und Mehrfarbverhalten wird daher weiterhin mit einem Projekt geprüft.
 
+## Etappe 2: Gemeinsame UI-Bausteine
+
+Begonnen am 16.10.2026:
+
+- `OrkanUiTokens` ist die zentrale Quelle für Touchflächen, Ecken, Abstände und Sheet-Maße.
+- Profilzugriff und Filamentknopf verwenden dieselbe 48-dp-Touchfläche, gemeinsame Ecken und Abstände.
+- Das Profil-Sheet nutzt zentrale Höhen- und Formwerte; seine bestehende Orca-Profil-Logik bleibt unverändert.
+- Die adaptive Navigation und Material-3-Farbpalette bleiben die gemeinsame Navigation und Theme-Grundlage.
+
+Diese Etappe migriert gemeinsame Gestaltungswerte, ersetzt noch nicht sämtliche alten Ansichten oder deren Navigation.
+
 ## Nächste Etappen
 
 1. Die globalen Bereiche Druck, Filament, Drucker und App entlang derselben Komponenten, Abstände und Zustandsmuster vereinheitlichen.

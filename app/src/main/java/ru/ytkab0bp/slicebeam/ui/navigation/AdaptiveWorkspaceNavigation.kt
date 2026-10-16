@@ -104,7 +104,7 @@ private fun Destination(
         verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
     ) {
         Surface(
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(OrkanUiTokens.compactCornerRadius),
             color = if (selected) MaterialTheme.colorScheme.primary
                 else androidx.compose.ui.graphics.Color.Transparent,
         ) {

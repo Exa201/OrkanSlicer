@@ -39,6 +39,7 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceChoiceField
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 /** Quick profile selection using the same Orca configuration used by slicing and profile editors. */
 class WorkspaceProfileSheet(context: Context, private val onProfilesChanged: Runnable?) : BottomSheetDialog(context) {
@@ -170,8 +171,11 @@ private fun WorkspaceProfileSheetContent(
     onProcessSelected: (Int) -> Unit,
     onApply: () -> Unit,
 ) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.82f
-    val shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * OrkanUiTokens.sheetMaxHeightFraction
+    val shape = RoundedCornerShape(
+        topStart = OrkanUiTokens.sheetTopCornerRadius,
+        topEnd = OrkanUiTokens.sheetTopCornerRadius,
+    )
     Column(
         modifier = Modifier.fillMaxWidth()
             .heightIn(max = maxHeight)
@@ -182,7 +186,7 @@ private fun WorkspaceProfileSheetContent(
             modifier = Modifier.fillMaxWidth().weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(OrkanUiTokens.regularGap + OrkanUiTokens.compactGap),
         ) {
             Text(
                 text = stringResource(R.string.WorkspaceProfilesTitle),
@@ -199,7 +203,7 @@ private fun WorkspaceProfileSheetContent(
             )
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -239,8 +243,9 @@ private fun WorkspaceProfileSheetContent(
         Surface(color = MaterialTheme.colorScheme.surface) {
             Button(
                 onClick = onApply,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp).heightIn(min = 48.dp),
-                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
+                    .heightIn(min = OrkanUiTokens.touchTarget),
+                shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
             ) {
                 Text(stringResource(R.string.WorkspaceProfilesApply), fontSize = 14.sp)
             }

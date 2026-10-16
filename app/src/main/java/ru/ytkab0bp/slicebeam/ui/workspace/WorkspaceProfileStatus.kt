@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 @Composable
 internal fun WorkspaceProfileStatus(
@@ -39,24 +40,27 @@ internal fun WorkspaceProfileStatus(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
+            .heightIn(min = OrkanUiTokens.touchTarget)
             .semantics { contentDescription = accessibilityDescription }
             .clickable(role = Role.Button, onClick = onOpen),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+            modifier = Modifier.fillMaxWidth().padding(
+                horizontal = OrkanUiTokens.controlHorizontalPadding,
+                vertical = OrkanUiTokens.controlVerticalPadding,
+            ),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
             Icon(
                 painter = painterResource(R.drawable.printer_outline_28),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(OrkanUiTokens.menuIconSize),
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(OrkanUiTokens.controlGap))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = visibleTitle,
