@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — 0.8.250 (2026-10-17)
+
+- Code commit: `98fb4f9d94f61230019ebd7ce12763a6b13de2ee` (`Add accessible ACE slot scroll control`).
+- The ACE physical-slot row now keeps its horizontal scrolling and adds a localized, accessible 48 dp forward control when the row overflows. This makes the remaining hardware gates discoverable without changing slot order, hardware capacity, or T0/T1/T2/T3 mappings.
+- Added Honor Compose UI coverage with a 24-entry synthetic ACE row at 320 dp / 130% font scale; the accessible control is shown, meets 48 dp bounds, and reaches the final synthetic gate. Targeted test passed 1/1.
+- Unit suites: Debug 549/549 passed; Slice 549/549 passed. Full Honor `:app:connectedSliceTestAndroidTest`: 56 XML test cases, 0 failures, 0 errors, 3 private multi-color fixture tests skipped (53 executed passed). One earlier full run had an intermittent existing import-dialog worker timeout; its targeted rerun passed 1/1, and the subsequent full suite passed. Emulator `emulator-5554` remains offline.
+- `:app:assembleDebug` passed from code commit `98fb4f9`. APK: `app/build/outputs/apk/debug/OrkanSlicer_98fb4f9d94.apk`, 157,039,120 bytes; SHA-256 `BACBFFFB5A5336BD726BE279030C059BFAC3E0C423FE43F90DCD26A39C542F1B`.
+- Installed on Honor PTP-N49 / Android 16, explicitly verified package `com.codemastercody3d.orcaslicermobile`, version `0.8.250` / code `285`, and resumed `ru.ytkab0bp.slicebeam.MainActivity`. Fresh logcat sample after launch: 0 crash/ANR/OOM markers. Device configuration was 1280×2800 px / 560 dpi (about 366×800 dp), portrait, system font scale 1.0. The new test separately exercised a constrained 320 dp / 130% Compose density; this is not a complete system font-scale or screenshot matrix.
+- Active migration remains incomplete. Next: continue migrating remaining BedFragment-owned dialog/overlay responsibilities only with IME/back regressions; audit global menu actions and remaining legacy hosts. Full TalkBack/system font-scale/accessibility coverage and multi-plate project persistence remain open; preserve the active-plate-only export warning.
+- Branch: `codex/rinkhals-safe-start-audit`; PR #2 remains unmerged. Preserve unrelated untracked `.codex-remote-attachments/`.
+
 ## Latest continuation — 0.8.249 (2026-10-17)
 
 - Code commit: `8f2315154399afdc18bc0775e1901a89503c50ef` (`Compose workspace controls directly in shell`).
