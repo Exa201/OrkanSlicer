@@ -31,14 +31,16 @@ The three GL mode control surfaces are still implemented by native custom Views 
 - `:app:testSliceTestUnitTest`: 546 tests, 0 failures/errors/skips.
 - `:app:compileDebugKotlin`: passed.
 - New common `UnfoldMenu` host device test and Compose sheet outside-dismiss test passed in the full Honor run.
-- First full Honor run had 1 test-harness failure in the new legacy mode adapter test because the test reused an Activity that already owns Compose content; the test was rewritten to use the app's normal startup fixture. The filtered rerun of `WorkspaceLegacyModeHostDeviceTest` then passed on Honor PTP-N49 / Android 16.
 - Complete post-fix Honor instrumentation rerun: 47 tests, 0 failures, 3 skipped for unavailable private fixtures. The filtered GL adapter host test also passed. The emulator (`emulator-5554`) is offline.
+- `:app:assembleDebug`: passed. APK `app/build/outputs/apk/debug/OrkanSlicer_849234b244.apk`, 156,973,286 bytes, SHA-256 `EF39ABD92A1B4FC563DD49C677858CA4B55C510C26DA8928DCF4F83ED9D2F6BC`.
+- Honor PTP-N49 / Android 16: APK installed and launched; app process remained active. The inspected recent logcat contained no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` lines.
 - Multi-plate project persistence remains separate and incomplete. The active-plate-only 3MF export warning must remain.
 
 ## Git state and continuation
 
 - Base HEAD at the start of this execution: `aafb08a311b5d712422e2ec7f924f9e89bd63b19`.
 - Latest code commit: `2f4678ad7e131b4ef382b367fd27f7c87f6fd748` (`Migrate tool overlays to shared Compose workspace host`).
-- Documentation/status commit is pending.
+- Build was produced after documentation commit `849234bc...`; no public release was created.
+- PR #2 is OPEN and reported MERGEABLE. No merge was performed.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; do not stage it.
-- Next concrete task: build and install the final debug APK for this code commit, inspect launch/logcat, then continue mode-specific functional migration and the remaining workspace/menu audit. Do not claim the whole UI 2.0 migration is complete.
+- Next concrete task: continue mode-specific functional migration and the remaining workspace/menu audit. Do not claim the whole UI 2.0 migration is complete.
