@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -22,7 +23,7 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 
 /** Camera controls rendered with Compose while retaining the existing renderer and camera actions. */
-open class CameraMenu : BedMenu() {
+open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
     private var fragment: BedFragment? = null
 
     override fun onSetBed(fragment: BedFragment?) {
@@ -34,16 +35,22 @@ open class CameraMenu : BedMenu() {
         themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
         themedView.setContent {
             BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                CameraMenuContent(
-                    portrait = portrait,
-                    initialOrthoEnabled = Prefs.isOrthoProjectionEnabled(),
-                    onPresetSelected = ::selectCamera,
-                    onControlModeSelected = { showControlModeDialog(ctx) },
-                    onOrthoChanged = ::setOrthoProjection,
-                )
+                WorkspaceContent(portrait)
             }
         }
         return themedView
+    }
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        val context = LocalContext.current
+        CameraMenuContent(
+            portrait = portrait,
+            initialOrthoEnabled = Prefs.isOrthoProjectionEnabled(),
+            onPresetSelected = ::selectCamera,
+            onControlModeSelected = { showControlModeDialog(context) },
+            onOrthoChanged = ::setOrthoProjection,
+        )
     }
 
     private fun showControlModeDialog(context: Context) {

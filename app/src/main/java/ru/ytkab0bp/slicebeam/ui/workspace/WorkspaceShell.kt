@@ -56,6 +56,7 @@ internal fun WorkspaceShell(
     onNavigationSelected: (Int) -> Unit,
     activeMenuSlot: Int,
     menuViewForSlot: (Int) -> View,
+    menuComposeContentForSlot: @Composable (Int) -> Boolean,
     onMenuTransitionSettled: () -> Unit,
     projectSettingsView: View,
     profileStatusView: View,
@@ -140,6 +141,7 @@ internal fun WorkspaceShell(
                 WorkspaceMenuHost(
                     slot = activeMenuSlot,
                     viewForSlot = menuViewForSlot,
+                    composeContentForSlot = menuComposeContentForSlot,
                     onTransitionSettled = onMenuTransitionSettled,
                     modifier = Modifier.fillMaxWidth().height(toolPanelHeightDp.coerceAtLeast(0).dp),
                 )
@@ -176,6 +178,7 @@ internal fun WorkspaceShell(
             WorkspaceMenuHost(
                 slot = activeMenuSlot,
                 viewForSlot = menuViewForSlot,
+                composeContentForSlot = menuComposeContentForSlot,
                 onTransitionSettled = onMenuTransitionSettled,
                 modifier = Modifier.width(menuWidthDp.dp).fillMaxHeight(),
             )
@@ -207,6 +210,7 @@ internal fun WorkspaceShell(
 private fun WorkspaceMenuHost(
     slot: Int,
     viewForSlot: (Int) -> View,
+    composeContentForSlot: @Composable (Int) -> Boolean,
     onTransitionSettled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -221,10 +225,12 @@ private fun WorkspaceMenuHost(
         label = "workspace-menu-route",
     ) { targetSlot ->
         key(targetSlot) {
-            AndroidView(
-                factory = { viewForSlot(targetSlot) },
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (!composeContentForSlot(targetSlot)) {
+                AndroidView(
+                    factory = { viewForSlot(targetSlot) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
     LaunchedEffect(slot) {

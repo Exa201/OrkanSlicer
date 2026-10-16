@@ -55,6 +55,7 @@ import ru.ytkab0bp.slicebeam.components.UnfoldMenu
 import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
@@ -1414,6 +1415,7 @@ private fun onMenuNavigationSelected(bottomNavigation: Boolean, slot: Int) {
         if (bottomNavigation) setPortraitToolPanelExpanded(!menuToolsExpanded)
         return
     }
+    menuMap.get(slot).onSetBed(this)
     // Keep route, selected tool and transient workspace surfaces in one state
     // transition before the Compose route transition starts.
     if (!workspaceController.navigateToDestination(slot)) return
@@ -1480,6 +1482,13 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     onNavigationSelected = { slot -> onMenuNavigationSelected(portrait, slot) },
                     activeMenuSlot = workspaceController.selectedDestinationSlot,
                     menuViewForSlot = { slot -> createWorkspaceMenuView(ctx, portrait, slot) },
+                    menuComposeContentForSlot = { slot ->
+                        val menu = menuMap.get(slot)
+                        if (menu is WorkspaceComposeBedMenu) {
+                            menu.WorkspaceContent(portrait)
+                            true
+                        } else false
+                    },
                     onMenuTransitionSettled = { isAnimatingMenu = false },
                     projectSettingsView = projectSettingsBar!!,
                     profileStatusView = profileStatusText!!,

@@ -2,6 +2,14 @@
 
 Updated: 2026-10-16
 
+## Current continuation (0.8.247)
+
+- Migrated the top-level Camera and Edit destinations to direct `WorkspaceShell` composition through `WorkspaceComposeBedMenu`; the AndroidView fallback remains for compatibility callers.
+- `TransformMenu` subscribes to model/selection events only while its Compose route is composed, and keeps the existing `TransformMenuItems` callbacks, dialogs, and GL-thread operations.
+- Honor PTP-N49: `WorkspaceNavigationDeviceTest` passed (1/1) after checking Camera and Edit route transition, destination identity, and that neither legacy `ThemeAwareComposeView` was allocated. Emulator remains offline.
+- Source/test compilation passed. Version is now 0.8.247 alpha / versionCode 282; final full suites and APK build are pending after this grouped change.
+- Next: run full unit suites and Honor instrumentation, build/install the 0.8.247 APK, then continue migrating/auditing remaining top-level View-hosted menu routes (Project, Model, Tools, Slice) and their listener lifecycle.
+
 ## Latest follow-up
 
 - Fixed the loaded-plate fast path in `BedFragment.switchPlate`: its optional completion callback now fires on the GL thread after selecting the resident model and queuing plate renderer state, consistent with lazy-load completion. Extended `MultiPlateProjectDeviceTest.workspaceLoadsTheSecondPlateWithoutLosingTheFirst` to switch back to the already-loaded first plate and verify callback completion and tool assignment.

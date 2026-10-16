@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.246\n\n• Der Wechsel zu einer bereits geladenen Druckplatte meldet den Abschluss jetzt zuverlässig nach der Renderer-Aktualisierung.\n• Filament- und Werkzeugleisten wurden auf schmalen Layouts mit großer Schrift auf Erreichbarkeit und 48-dp-Touchflächen geprüft.",
-  "en": "OrkanSlicer 0.8.246\n\n• Switching to an already-loaded build plate now reports completion after the renderer has activated it.\n• Filament and tool bars were checked for reachability and 48 dp touch targets in narrow, large-text layouts.",
-  "ru": "OrkanSlicer 0.8.246\n\n• Переключение на уже загруженную платформу теперь сообщает о завершении после ее активации в рендерере.\n• Доступность панели филаментов и инструментов и области нажатия 48 dp проверены на узком экране с крупным шрифтом."
+  "de": "OrkanSlicer 0.8.247\n\n• Kamera- und Bearbeiten-Menü werden jetzt direkt im Compose-Workspace gerendert, ohne ihre alten Menü-Views anzulegen.\n• Der Bearbeiten-Bereich behält seine Aktualisierung bei Modell- und Auswahländerungen; beide direkten Routen wurden auf Honor geprüft.",
+  "en": "OrkanSlicer 0.8.247\n\n• Camera and edit menus now render directly in the Compose workspace without creating their legacy menu views.\n• The edit menu still refreshes on model and selection changes; both direct routes were verified on Honor.",
+  "ru": "OrkanSlicer 0.8.247\n\n• Меню камеры и редактирования теперь отображаются непосредственно в Compose workspace без создания старых представлений меню.\n• Меню редактирования сохраняет обновление при изменении модели и выбора; оба маршрута проверены на Honor."
 }

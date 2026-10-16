@@ -12,6 +12,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationModelsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceInfoMenu
@@ -24,6 +27,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.TransformScaleMenu
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
 import ru.ytkab0bp.slicebeam.components.KromacutEditorMenu
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
@@ -76,7 +80,33 @@ class WorkspaceNavigationDeviceTest {
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
                 assertMenuAttached(bed, FileMenu::class.java)
+                selectWorkspaceRoute(bed, WorkspaceDestination.CAMERA.ordinal)
             }
+            awaitMenuTransition(scenario)
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                val menuMap = BedFragment::class.java.getDeclaredField("menuMap")
+                    .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
+                val cameraMenu = menuMap.get(WorkspaceDestination.CAMERA.ordinal)
+                assertTrue("camera destination should be a direct Compose menu route",
+                    cameraMenu is WorkspaceComposeBedMenu)
+                assertEquals("direct Compose camera route must not allocate its legacy ThemeAwareComposeView",
+                    null, (cameraMenu as CameraMenu).getView())
+                selectWorkspaceRoute(bed, WorkspaceDestination.EDIT.ordinal)
+            }
+            awaitMenuTransition(scenario)
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                val menuMap = BedFragment::class.java.getDeclaredField("menuMap")
+                    .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
+                val transformMenu = menuMap.get(WorkspaceDestination.EDIT.ordinal)
+                assertTrue("edit destination should be a direct Compose menu route",
+                    transformMenu is WorkspaceComposeBedMenu)
+                assertEquals("direct Compose edit route must not allocate its legacy ThemeAwareComposeView",
+                    null, (transformMenu as TransformMenu).getView())
+                selectWorkspaceRoute(bed, WorkspaceDestination.PROJECT.ordinal)
+            }
+            awaitMenuTransition(scenario)
             exerciseComposeToolRoute(scenario, OrientationPositionMenu::class.java) { OrientationPositionMenu(it) }
             exerciseComposeToolRoute(scenario, OrientationRotationMenu::class.java) { OrientationRotationMenu(it) }
             exerciseComposeToolRoute(scenario, TransformScaleMenu::class.java) { TransformScaleMenu(it) }
@@ -178,7 +208,13 @@ class WorkspaceNavigationDeviceTest {
                     val routeView = menu.javaClass.getMethod("getView").invoke(menu) as? android.view.View
                     routeView?.isAttachedToWindow == true
                 }
-                settled = !field.getBoolean(bed) && attachedRoutes == 1
+                val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
+                    .apply { isAccessible = true }.get(bed)
+                val currentSlot = workspaceController.javaClass.getMethod("getSelectedDestinationSlot")
+                    .invoke(workspaceController) as Int
+                val currentMenu = menuMap.get(currentSlot)
+                val directComposeRoute = currentMenu is WorkspaceComposeBedMenu
+                settled = !field.getBoolean(bed) && attachedRoutes == if (directComposeRoute) 0 else 1
             }
             if (settled) return
             SystemClock.sleep(40L)

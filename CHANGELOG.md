@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.247 (alpha)
+
+- Render the camera and model-edit menus directly in the Compose `WorkspaceShell` instead of allocating their legacy menu views.
+- Preserve transform-menu model-selection updates with a Compose-scoped event-bus subscription; verify both routes and legacy-view absence on Honor.
+
 ## 0.8.246 (alpha)
 
 - Complete the plate-switch callback after activating an already-loaded plate, on the GL thread, matching lazy-loaded plate completion.

@@ -2,7 +2,11 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.content.Context
 import android.view.View
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
@@ -12,7 +16,7 @@ import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import java.util.function.Consumer
 
 /** Compose edit-menu host; selection-dependent action state follows model events. */
-class TransformMenu : ListBedMenu() {
+class TransformMenu : ListBedMenu(), WorkspaceComposeBedMenu {
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
     private var menuItems: TransformMenuItems? = null
 
@@ -21,13 +25,7 @@ class TransformMenu : ListBedMenu() {
         themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
         val bed = fragment
         if (bed != null) {
-            val items = TransformMenuItems(
-                bed,
-                Consumer<View> { view -> bed.showUnfoldMenu(OrientationPositionMenu(bed), view) },
-                Consumer<View> { view -> bed.showUnfoldMenu(OrientationRotationMenu(bed), view) },
-                Consumer<View> { view -> bed.showUnfoldMenu(TransformScaleMenu(bed), view) },
-                Consumer<View> { view -> bed.showUnfoldMenu(TransformCutMenu(bed), view) },
-            )
+            val items = createMenuItems(bed)
             menuItems = items
             composeActions.value = items.createItems()
         }
@@ -40,6 +38,31 @@ class TransformMenu : ListBedMenu() {
     }
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        val bed = fragment ?: return
+        val items = remember(this, bed) { createMenuItems(bed) }
+        DisposableEffect(this) {
+            ru.ytkab0bp.slicebeam.SliceBeam.EVENT_BUS.registerListener(this@TransformMenu)
+            onDispose {
+                ru.ytkab0bp.slicebeam.SliceBeam.EVENT_BUS.unregisterListener(this@TransformMenu)
+            }
+        }
+        LaunchedEffect(items, portrait) {
+            menuItems = items
+            composeActions.value = items.createItems()
+        }
+        BedMenuActionsContent(composeActions.value, portrait, multiRow = true)
+    }
+
+    private fun createMenuItems(bed: ru.ytkab0bp.slicebeam.fragment.BedFragment) = TransformMenuItems(
+        bed,
+        Consumer<View> { view -> bed.showUnfoldMenu(OrientationPositionMenu(bed), view) },
+        Consumer<View> { view -> bed.showUnfoldMenu(OrientationRotationMenu(bed), view) },
+        Consumer<View> { view -> bed.showUnfoldMenu(TransformScaleMenu(bed), view) },
+        Consumer<View> { view -> bed.showUnfoldMenu(TransformCutMenu(bed), view) },
+    )
 
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {

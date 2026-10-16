@@ -48,6 +48,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/** A menu route whose visible workspace content is hosted directly by WorkspaceShell. */
+internal interface WorkspaceComposeBedMenu {
+    @Composable
+    fun WorkspaceContent(portrait: Boolean)
+}
+
 /** A menu action that can be shared by responsive Compose menus. */
 internal data class BedComposeMenuAction(
     val titleRes: Int,
