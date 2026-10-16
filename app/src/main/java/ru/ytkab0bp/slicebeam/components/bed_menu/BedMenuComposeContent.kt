@@ -64,6 +64,10 @@ internal object BedMenuActionTileWidthPolicy {
     fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
         if (fontScale >= 1.15f || screenWidthDp < 400) 3 else 4
 
+    /** Avoid showing a clipped last action in a single-row phone menu. */
+    fun usesTwoRows(actionCount: Int, portrait: Boolean, screenWidthDp: Int, fontScale: Float): Boolean =
+        portrait && actionCount > columnsForLayout(fontScale, screenWidthDp)
+
     fun widthDp(screenWidthDp: Int, actionCount: Int): Int = when {
         actionCount <= 0 -> 72
         else -> ((screenWidthDp.coerceAtLeast(320) - 8) / actionCount.coerceIn(1, 4)).coerceIn(72, 128)
@@ -73,9 +77,12 @@ internal object BedMenuActionTileWidthPolicy {
 @Composable
 internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait: Boolean, multiRow: Boolean = false) {
     val menuView = LocalView.current
-    if (portrait && multiRow) {
-        val widthDp = LocalConfiguration.current.screenWidthDp
-        val columns = BedMenuActionTileWidthPolicy.columnsForLayout(LocalDensity.current.fontScale, widthDp)
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    val fontScale = LocalDensity.current.fontScale
+    if (portrait && (multiRow || BedMenuActionTileWidthPolicy.usesTwoRows(
+            actions.size, portrait, widthDp, fontScale,
+        ))) {
+        val columns = BedMenuActionTileWidthPolicy.columnsForLayout(fontScale, widthDp)
         val tileWidth = BedMenuActionTileWidthPolicy.widthDp(widthDp, columns).dp
         LazyHorizontalGrid(
             rows = GridCells.Fixed(2),

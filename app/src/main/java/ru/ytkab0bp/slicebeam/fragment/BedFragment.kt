@@ -1468,7 +1468,8 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     toolPanelExpanded = menuToolsExpanded,
                     toolPanelNeedsTwoRows = currentMenuSlot == WorkspaceDestination.MODEL.ordinal ||
                         currentMenuSlot == WorkspaceDestination.EDIT.ordinal ||
-                        currentMenuSlot == WorkspaceDestination.CAMERA.ordinal,
+                        currentMenuSlot == WorkspaceDestination.CAMERA.ordinal ||
+                        currentMenuSlot == WorkspaceDestination.TOOLS.ordinal,
                     navigationItemCount = WorkspaceDestination.values().size,
                     navigationWidthDp = AdaptiveNavigationPolicy.navigationRailWidthDp(
                         ctx.resources.configuration.fontScale,
@@ -1531,7 +1532,8 @@ glView?.requestRender()
 private fun menuPortraitHeightDp(): Int = WorkspaceToolPanelPolicy.menuHeightDp(
     needsTwoRows = currentMenuSlot == WorkspaceDestination.MODEL.ordinal ||
         currentMenuSlot == WorkspaceDestination.EDIT.ordinal ||
-        currentMenuSlot == WorkspaceDestination.CAMERA.ordinal,
+        currentMenuSlot == WorkspaceDestination.CAMERA.ordinal ||
+        currentMenuSlot == WorkspaceDestination.TOOLS.ordinal,
     fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f,
 )
 
