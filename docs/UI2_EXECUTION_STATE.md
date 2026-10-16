@@ -2,6 +2,13 @@
 
 Updated: 2026-10-16
 
+## Latest follow-up
+
+- Extended `FilamentPaletteComposeDeviceTest` to exercise 1/4/8/16/24 UI entries at 320 dp / 100%, 360 dp / 130%, and 400 dp / 150%. It scrolls to and selects the final item and asserts its accessible hit bounds are at least 48 dp in each dimension.
+- Added a device Compose test for the two-row tool menu at 320 dp / 150%; it scrolls to the final action, checks visibility and 48 dp touch bounds, and invokes that action.
+- Honor PTP-N49 / Android 16: both `FilamentPaletteComposeDeviceTest` cases passed (2/2) using `:app:connectedSliceTestAndroidTest`. Emulator remains offline. These are Compose UI tests with constrained dp/font-scale locals, not a full system font-scale or visual screenshot audit.
+- Current phase remains the open workspace/menu migration and audit. Next: migrate a top-level menu fully off its `ThemeAwareComposeView` host through the WorkspaceShell Compose route, with an interaction/lifecycle regression test; continue the remaining route and accessibility audit.
+
 ## Current phase
 
 Phase 4 — workspace overlay migration is continuing. The model context menu and all ten identified tool routes render through the existing `WorkspaceShell`; Kromacut keeps an embedded Android WebView. `BedFragment` still retains renderer/domain integration, generic message/custom dialog hosts, Kromacut lifecycle, and Android back/inset coordination. The full UI 2.0 migration is not complete.
