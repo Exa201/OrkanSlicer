@@ -174,6 +174,8 @@ internal fun PlateTabs(
 private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
                             onSelect: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier,
                             thumbnail: PlateThumbnail? = null) {
+    val selectDescription = stringResource(R.string.PlatePickerSelectDescription,
+        (index + 1).toString())
     val deleteDescription = stringResource(R.string.PlateCloseDescription,
         stringResource(R.string.PlateNumber, (index + 1).toString()))
     Surface(modifier = modifier.size(width = 88.dp, height = 110.dp),
@@ -181,7 +183,9 @@ private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
         border = if (selected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Column(Modifier.fillMaxWidth().height(62.dp).clickable(role = Role.Button, onClick = onSelect),
+            Column(Modifier.fillMaxWidth().height(62.dp)
+                .semantics { contentDescription = selectDescription }
+                .clickable(role = Role.Button, onClick = onSelect),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text((index + 1).toString(), style = MaterialTheme.typography.titleMedium)

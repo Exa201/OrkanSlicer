@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.251\n\n• Die Abbrechen-Schaltfläche im Druckplattenauswahlfenster erfüllt jetzt die Mindestgröße von 48 dp.\n• Lange ACE-Fächerlisten haben einen beschrifteten Weiter-Button; die Hardwarezuordnung bleibt unverändert.",
-  "en": "OrkanSlicer 0.8.251\n\n• The build-plate picker Cancel button now meets the 48 dp minimum touch target.\n• Long ACE gate lists have a labeled next control; hardware mappings remain unchanged.",
-  "ru": "OrkanSlicer 0.8.251\n\n• Кнопка отмены в окне выбора платформ теперь соответствует минимальной области нажатия 48 dp.\n• В длинном списке слотов ACE есть подписанная кнопка прокрутки; назначения оборудования не изменены."
+  "de": "OrkanSlicer 0.8.251\n\n• Die Abbrechen-Schaltfläche im Druckplattenauswahlfenster erfüllt jetzt die Mindestgröße von 48 dp; Platten sind für TalkBack eindeutig beschriftet.\n• Lange ACE-Fächerlisten haben einen beschrifteten Weiter-Button; die Hardwarezuordnung bleibt unverändert.",
+  "en": "OrkanSlicer 0.8.251\n\n• The build-plate picker Cancel button now meets the 48 dp minimum target, and plates have distinct TalkBack labels.\n• Long ACE gate lists have a labeled next control; hardware mappings remain unchanged.",
+  "ru": "OrkanSlicer 0.8.251\n\n• Кнопка отмены выбора платформы соответствует минимальной области 48 dp, а платформы имеют понятные подписи для TalkBack.\n• В длинном списке слотов ACE есть подписанная кнопка прокрутки; назначения оборудования не изменены."
 }

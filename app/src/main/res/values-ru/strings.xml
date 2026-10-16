@@ -1,6 +1,7 @@
 <resources>
     <string name="ObjectActionAssignFilamentShort">Назначить</string>
     <string name="AcePhysicalSlotsScrollForward">Показать остальные слоты ACE</string>
+    <string name="PlatePickerSelectDescription">Выбрать платформу %1$s</string>
     <string name="PrinterConnectionTitle">Подключение принтера</string>
     <string name="PrinterOpenWebShort">Веб</string>
     <string name="LargeModelPreciseSurfaceUnavailable">Для этого инструмента нужна точная точка на поверхности. Сначала упростите модель; её по-прежнему можно выбрать.</string>

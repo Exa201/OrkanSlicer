@@ -3,6 +3,7 @@
 ## 0.8.251 (alpha)
 
 - The build-plate picker Cancel action now has a Material 3 touch target that meets the 48 dp accessibility minimum.
+- Build-plate selection cards expose distinct TalkBack labels and are verified through 1/3/6/10/20-plate UI fixtures.
 
 ## 0.8.250 (alpha)
 

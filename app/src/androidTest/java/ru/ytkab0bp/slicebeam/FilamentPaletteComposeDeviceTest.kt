@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
@@ -110,6 +112,57 @@ class FilamentPaletteComposeDeviceTest {
             assertFalse(open.value)
             assertEquals(1, openCalls)
             assertEquals(1, dismissCalls)
+        }
+    }
+
+    @Test
+    fun platePickerSelectsLastPlateAcrossStressProjectSizes() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val count = mutableIntStateOf(1)
+        val selectedIndex = mutableIntStateOf(0)
+        val open = mutableStateOf(false)
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f, 1.5f),
+                LocalConfiguration provides Configuration().apply {
+                    screenWidthDp = 320
+                    screenHeightDp = 640
+                },
+            ) {
+                BeamComposeTheme {
+                    PlateTabs(
+                        openState = open,
+                        plateCount = count.intValue,
+                        selectedIndex = selectedIndex.intValue,
+                        objectCounts = List(count.intValue) { it },
+                        thumbnails = List(count.intValue) { PlateThumbnail(emptyList()) },
+                        onOpen = {},
+                        onDismiss = {},
+                        onSelect = { selectedIndex.intValue = it },
+                        onClose = {},
+                        onAdd = {},
+                    )
+                }
+            }
+        }
+
+        listOf(1, 3, 6, 10, 20).forEach { plateCount ->
+            compose.runOnUiThread {
+                count.intValue = plateCount
+                selectedIndex.intValue = 0
+            }
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription(context.getString(R.string.PlateNumber, "1")).performClick()
+            if (plateCount > 2) {
+                compose.onNode(hasScrollToIndexAction()).performScrollToIndex(plateCount - 1)
+            }
+            compose.onNodeWithContentDescription(
+                context.getString(R.string.PlatePickerSelectDescription, plateCount.toString()),
+            ).assertIsDisplayed().performClick()
+            compose.runOnIdle {
+                assertEquals(plateCount - 1, selectedIndex.intValue)
+                assertFalse(open.value)
+            }
         }
     }
 

@@ -161,6 +161,7 @@
     <string name="MenuPlates">Druckplatten</string>
     <string name="PlateNumber">Druckplatte %1$s</string>
     <string name="PlatePickerTitle">Druckplatten</string>
+    <string name="PlatePickerSelectDescription">Druckplatte %1$s auswählen</string>
     <plurals name="PlateObjectCount"><item quantity="one">%d Objekt</item><item quantity="other">%d Objekte</item></plurals>
     <string name="EditUndoShort">Zurück</string>
     <string name="EditRedoShort">Erneut</string>
