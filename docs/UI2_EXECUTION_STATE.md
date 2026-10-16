@@ -40,7 +40,7 @@ The three GL mode control surfaces are still implemented by native custom Views 
 
 - Base HEAD at the start of this execution: `aafb08a311b5d712422e2ec7f924f9e89bd63b19`.
 - Latest code commit: `2f4678ad7e131b4ef382b367fd27f7c87f6fd748` (`Migrate tool overlays to shared Compose workspace host`).
-- Build was produced after documentation commit `849234bc...`; no public release was created.
+- Build was produced after documentation commit `849234b2442da106210f0d7736e0b8d481b13de5`; no public release was created.
 - PR #2 is OPEN and reported MERGEABLE. No merge was performed.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; do not stage it.
 - Next concrete task: continue mode-specific functional migration and the remaining workspace/menu audit. Do not claim the whole UI 2.0 migration is complete.
