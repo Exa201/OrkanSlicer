@@ -26,10 +26,12 @@ retain their existing function controllers.
 
 1. **Navigation clarity and model actions — implemented.** Split Project from Model, give each a
    distinct destination, move model operations to their own two-row menu, and use unambiguous labels.
-2. **Workspace boundaries — in progress.** Destination IDs, labels, icons, selected destination,
-   and portrait tool-panel expansion live in `ui/navigation`. `BedFragment` continues to own
-   domain actions, plate/model lifecycle, renderer modes, and some native overlays. A central
-   workspace controller/state holder and a complete overlay coordinator remain future work.
+2. **Workspace boundaries — in progress.** `WorkspaceController` now joins the selected
+   destination, tool-panel expansion, active plate index, active special tool, and exclusive
+   transient-panel coordinator. `BedFragment` delegates its menu and plate-picker selection state
+   to it. The controller deliberately does not duplicate GL-owned model selection or the existing
+   profile, dialog, and slicing domain state. `BedFragment` continues to own domain actions,
+   plate/model lifecycle, renderer modes, and native lifecycle-bound overlays.
 3. **Compose workspace shell — implemented for the main workspace layout.** `WorkspaceShell`
    places the current `GLView` through `RendererAdapter`, shares the workspace controls, and
    replaces the imperative portrait/landscape menu and workspace layout construction. The GL
@@ -50,8 +52,9 @@ retain their existing function controllers.
   WebView, and renderer-specific overlays; it is no longer the builder for the main workspace
   layout.
 - Existing dialogs and special-tool routes have not all been migrated to shared Compose patterns.
-- The workspace has a Compose shell, but a full `WorkspaceState`/controller and centralized
-  mutually exclusive overlay coordinator are not complete.
+- The workspace has a Compose shell and an incremental controller/overlay coordinator, but the
+  controller does not yet own every requested state domain and modal dialogs are not all routed
+  through it.
 - The model action grid scrolls horizontally after its first six actions; discoverability and
   accessibility should be reviewed when testing with loaded models and larger text.
 - The Android CLI accessibility dump did not connect on the Honor. Screenshot inspection and
@@ -105,4 +108,6 @@ Die Panelsteuerung deckt die zentralen Workspace-Flächen ab; sie ersetzt noch n
 Dialoge in `MainActivity`, Setup und Spezialwerkzeugen. Der `UnfoldMenu`-Rendererübergang und
 renderergebundene Mal-/Mess-/Layer-Ansichten benötigen weiterhin ihre GL- und View-Lifecycle-Hosts.
 `BedFragment` behält Modell-/Platten-Domainzustand. Eine vollständige Menü-zu-Menü-Abnahme über
-alle Spezialwerkzeuge, kleine Fenster und 10–20 Platten ist noch nicht erfolgt.
+alle Spezialwerkzeuge, kleine Fenster und 10–20 Platten ist noch nicht erfolgt. Der inkrementelle
+Controller, die 130%-Navigation und die vier globalen Bereiche sind auf dem Honor weiter geprüft;
+Details und die aktuelle APK-Prüfsumme stehen in `BUILD_AND_VERIFICATION.md`.
