@@ -1,6 +1,12 @@
 package ru.ytkab0bp.slicebeam.ui.workspace
 
 import android.view.View
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +24,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
@@ -31,6 +39,8 @@ import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
+import kotlinx.coroutines.delay
+import androidx.compose.animation.core.tween
 
 /** Compose owns the workspace geometry; legacy views are mounted only at explicit boundaries. */
 @Composable
@@ -44,7 +54,9 @@ internal fun WorkspaceShell(
     selectedNavigationSlot: Int,
     toolsExpanded: Boolean,
     onNavigationSelected: (Int) -> Unit,
-    menuView: View,
+    activeMenuSlot: Int,
+    menuViewForSlot: (Int) -> View,
+    onMenuTransitionSettled: () -> Unit,
     projectSettingsView: View,
     profileStatusView: View,
     filamentButtonView: View,
@@ -124,10 +136,11 @@ internal fun WorkspaceShell(
                 modifier = Modifier.fillMaxWidth().weight(1f).heightIn(min = 0.dp),
             )
             if (toolPanelExpanded) {
-                AndroidView(
-                    factory = { menuView },
+                WorkspaceMenuHost(
+                    slot = activeMenuSlot,
+                    viewForSlot = menuViewForSlot,
+                    onTransitionSettled = onMenuTransitionSettled,
                     modifier = Modifier.fillMaxWidth().height(toolPanelHeightDp.coerceAtLeast(0).dp),
-                    update = { it.visibility = View.VISIBLE },
                 )
                 Spacer(Modifier.fillMaxWidth().height(1.dp).background(background.copy(alpha = 0.35f)))
             }
@@ -159,8 +172,10 @@ internal fun WorkspaceShell(
                 onSelected = onNavigationSelected,
             )
             Spacer(Modifier.width(1.dp).fillMaxHeight().background(background.copy(alpha = 0.35f)))
-            AndroidView(
-                factory = { menuView },
+            WorkspaceMenuHost(
+                slot = activeMenuSlot,
+                viewForSlot = menuViewForSlot,
+                onTransitionSettled = onMenuTransitionSettled,
                 modifier = Modifier.width(menuWidthDp.dp).fillMaxHeight(),
             )
             Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -183,6 +198,37 @@ internal fun WorkspaceShell(
               content = modePanelContent,
           )
       }
+    }
+}
+
+@Composable
+private fun WorkspaceMenuHost(
+    slot: Int,
+    viewForSlot: (Int) -> View,
+    onTransitionSettled: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedContent(
+        targetState = slot,
+        modifier = modifier,
+        transitionSpec = {
+            val direction = if (targetState > initialState) 1 else -1
+            (slideInHorizontally(tween(220)) { direction * it / 3 } + fadeIn(tween(180))) togetherWith
+                (slideOutHorizontally(tween(220)) { -direction * it / 3 } + fadeOut(tween(160)))
+        },
+        label = "workspace-menu-route",
+    ) { targetSlot ->
+        key(targetSlot) {
+            AndroidView(
+                factory = { viewForSlot(targetSlot) },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+    LaunchedEffect(slot) {
+        // Keep BedFragment's action guard aligned with the Compose route transition.
+        delay(260)
+        onTransitionSettled()
     }
 }
 

@@ -34,9 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.appcompat.app.AlertDialog
-import androidx.dynamicanimation.animation.FloatValueHolder
-import androidx.dynamicanimation.animation.SpringAnimation
-import androidx.dynamicanimation.animation.SpringForce
 import java.io.File
 import java.io.IOException
 import java.util.ArrayDeque
@@ -130,7 +127,6 @@ private var isAnimatingMenu:Boolean = false
 private var currentMenuSlot:Int
 get() = workspaceController.selectedDestinationSlot
 set(value) { workspaceController.selectDestination(value) }
-private lateinit var menuView: FrameLayout
 private var menuMap = object:SparseArray<BedMenu>() {
 override fun get(key:Int):BedMenu {
 var menu = super.get(key)
@@ -976,7 +972,7 @@ tempFileName = gCodeResult!!.getRecommendedName()
 tempExportingFile = f
 val ctx = getContext() ?: return@postOnMainThread
 val portrait = isPortraitWindow(ctx)
-selectMenu(ctx, portrait, WorkspaceDestination.SLICE.ordinal) })
+selectMenu(portrait, WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
 if (workspaceController.dismissActivePanel()) return true
@@ -1015,8 +1011,7 @@ return true
 }
 if (currentMenuSlot != 0)
 {
-val ctx = getContext() ?: return true
-onMenuNavigationSelected(ctx, compactPortraitLayout, 0)
+onMenuNavigationSelected(compactPortraitLayout, 0)
 return true
 }
 return super.onBackPressed()
@@ -1333,7 +1328,6 @@ accessibilityDescription = profileStatusDescription.ifBlank { ctx.getString(R.st
 updateProfileStatus()
 val portrait = usesCompactPortraitLayout(ctx)
 compactPortraitLayout = portrait
-constructMenuView(ctx, portrait)
 panelWebViewContainer = FrameLayout(ctx)
 val wfl = panelWebViewContainer
 panelWebViewError = ComposeView(ctx).apply {
@@ -1421,15 +1415,14 @@ return
 syncCurrentModel()
 rebuildAdaptiveLayout(ctx, portrait)
 }
-private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, slot: Int) {
+private fun onMenuNavigationSelected(bottomNavigation: Boolean, slot: Int) {
     if (slot !in WorkspaceDestination.values().indices || isAnimatingMenu) return
     if (slot == currentMenuSlot) {
         if (bottomNavigation) setPortraitToolPanelExpanded(!menuToolsExpanded)
         return
     }
-    val previousSlot = currentMenuSlot
     // Keep route, selected tool and transient workspace surfaces in one state
-    // transition before the legacy menu view animation starts.
+    // transition before the Compose route transition starts.
     if (!workspaceController.navigateToDestination(slot)) return
     if (bottomNavigation && !menuToolsExpanded) setPortraitToolPanelExpanded(true)
     if (slot != WorkspaceDestination.SLICE.ordinal) {
@@ -1442,7 +1435,7 @@ private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, sl
     } else {
         (menuMap.get(WorkspaceDestination.SLICE.ordinal) as SliceMenu).refreshItems(bottomNavigation)
     }
-    selectMenu(ctx, bottomNavigation, slot, previousSlot)
+    selectMenu(bottomNavigation, slot)
 }
 
 private fun setPortraitToolPanelExpanded(expanded: Boolean) {
@@ -1452,7 +1445,7 @@ private fun setPortraitToolPanelExpanded(expanded: Boolean) {
 /** Keep the model viewport clear; object actions are available from the Edit menu. */
 private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
     listOfNotNull(
-        rendererAdapter, menuView, profileStatusText, printerWebButton,
+        rendererAdapter, profileStatusText, printerWebButton,
         filamentPaletteButton, projectSettingsBar, plateTabsScroll,
     ).forEach(::detachFromParent)
 
@@ -1491,8 +1484,10 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     rendererView = rendererAdapter!!,
                     selectedNavigationSlot = workspaceController.selectedDestinationSlot,
                     toolsExpanded = menuToolsExpanded,
-                    onNavigationSelected = { slot -> onMenuNavigationSelected(ctx, portrait, slot) },
-                    menuView = menuView,
+                    onNavigationSelected = { slot -> onMenuNavigationSelected(portrait, slot) },
+                    activeMenuSlot = workspaceController.selectedDestinationSlot,
+                    menuViewForSlot = { slot -> createWorkspaceMenuView(ctx, portrait, slot) },
+                    onMenuTransitionSettled = { isAnimatingMenu = false },
                     projectSettingsView = projectSettingsBar!!,
                     profileStatusView = profileStatusText!!,
                     filamentButtonView = filamentPaletteButton!!,
@@ -1508,23 +1503,23 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
 }
 private fun rebuildAdaptiveLayout(ctx:Context, portrait:Boolean) {
 contentView?.let(::detachFromParent)
-detachFromParent(menuView)
 for (index in 0 until menuMap.size()) {
 val menu = menuMap.valueAt(index)
 if (menu.getView() != null) menu.onViewDestroyed()
 }
-menuView.removeAllViews()
-val activeMenu = menuMap.get(currentMenuSlot)
-activeMenu.onSetBed(this)
-activeMenu.onViewCreated(activeMenu.onCreateView(ctx, portrait))
-menuView.addView(activeMenu.getView(), FrameLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 contentView = createWorkspaceContent(ctx, portrait)
 compactPortraitLayout = portrait
 overlayLayout!!.addView(contentView, 0, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 updateAdaptiveOverlayMargins(portrait)
 glView!!.requestRender()
+}
+
+private fun createWorkspaceMenuView(ctx: Context, portrait: Boolean, slot: Int): View {
+    val menu = menuMap.get(slot)
+    menu.onSetBed(this)
+    menu.getView()?.let { return it }
+    return menu.onCreateView(ctx, portrait).also(menu::onViewCreated)
 }
 private fun updateAdaptiveOverlayMargins(portrait:Boolean) {
 val params = snackbarsLayout?.layoutParams as? FrameLayout.LayoutParams ?: return
@@ -1555,76 +1550,17 @@ private fun menuPortraitHeightDp(): Int = WorkspaceToolPanelPolicy.menuHeightDp(
     fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f,
 )
 
-private fun selectMenu(ctx:Context, portrait:Boolean, slot:Int, previousSlot:Int = currentMenuSlot) {
+private fun selectMenu(portrait: Boolean, slot: Int) {
+val routeChanged = slot != currentMenuSlot
 if (glView!!.renderer.resetFlattenMode())
 {
 glView!!.requestRender()
 SliceBeam.EVENT_BUS.fireEvent(FlattenModeResetEvent())
 }
-isAnimatingMenu = true
-val prevMenu = menuMap.get(previousSlot)
-val forward = slot > previousSlot
+isAnimatingMenu = routeChanged
 currentMenuSlot = slot
 if (portrait) {
 updateAdaptiveOverlayMargins(true)
-}
-
-val currentMenu = menuMap.get(currentMenuSlot)
-if (currentMenu.getView() == null)
-{
-currentMenu.onSetBed(this)
-currentMenu.onViewCreated(currentMenu.onCreateView(ctx, portrait))
-}
-val v = currentMenu.getView()
-if (v!!.getParent() != null)
-{
-menuView.removeView(v)
-}
-menuView.addView(v, 0, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-val next = { if (portrait)
-{
-v!!.setTranslationX((v!!.getWidth() * (if (forward) 1 else -1)).toFloat())
-}
-else
-{
-v!!.setTranslationY((v!!.getHeight() * (if (forward) 1 else -1)).toFloat())
-}
-v!!.setAlpha(0f)
-val prevView = prevMenu.getView()
-SpringAnimation(FloatValueHolder((0).toFloat()))
-.setMinimumVisibleChange(1 / 256f)
-.setSpring(SpringForce(1f)
-.setStiffness(1000f)
-.setDampingRatio(1f))
-.addUpdateListener({ animation, value, velocity->
-prevView!!.setAlpha(1f - value)
-v!!.setAlpha(value)
-if (portrait)
-{
-prevView!!.setTranslationX(-v!!.getWidth() * value * 0.5f * (if (forward) 1 else -1))
-v!!.setTranslationX(v!!.getWidth() * (1f - value) * 0.5f * (if (forward) 1 else -1))
-}
-else
-{
-prevView!!.setTranslationY(-prevView!!.getHeight() * value * 0.5f * (if (forward) 1 else -1))
-v!!.setTranslationY(v!!.getHeight() * (1f - value) * 0.5f * (if (forward) 1 else -1))
-} })
-.addEndListener({ animation, canceled, value, velocity->
-menuView.removeView(prevMenu.getView())
-isAnimatingMenu = false })
-.start() }
-if (!v!!.isLaidOut())
-{
-v!!.addOnLayoutChangeListener(object:View.OnLayoutChangeListener {
-override fun onLayoutChange(v:View, left:Int, top:Int, right:Int, bottom:Int, oldLeft:Int, oldTop:Int, oldRight:Int, oldBottom:Int) {
-v.removeOnLayoutChangeListener(this)
-next()
-}
-})
-}
-else
-{
-next()
 }
 }
 fun interface ModelLoadCallback {
@@ -2272,7 +2208,6 @@ profileStatusThemeRevision++
 printerWebThemeRevision++
 workspaceThemeRevision++
 webViewProgressBar?.setIndeterminateTintList(ColorStateList.valueOf(ThemesRepo.getColor(android.R.attr.textColorSecondary)))
-menuView.setBackgroundColor(ThemesRepo.getColor(android.R.attr.windowBackground))
 for (i in 0 until WorkspaceDestination.values().size)
 {
 if (i != currentMenuSlot)
@@ -2280,16 +2215,6 @@ if (i != currentMenuSlot)
 ThemesRepo.invalidateView(menuMap.get(i).getView())
 }
 }
-}
-private fun constructMenuView(ctx:Context, portrait:Boolean) {
-menuView = FrameLayout(ctx)
-val currentMenu = menuMap.get(currentMenuSlot)
-if (currentMenu.getView() == null)
-{
-currentMenu.onSetBed(this)
-currentMenu.onViewCreated(currentMenu.onCreateView(ctx, portrait))
-}
-menuView.addView(currentMenu.getView(), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 }
 fun updateModel() {
 if (platesModels.isEmpty()) return

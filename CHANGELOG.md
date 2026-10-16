@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Move workspace menu route transitions into `WorkspaceShell` with Compose `AnimatedContent`; keep legacy route views mounted through the existing Android interop boundary and leave the GL renderer host stable.
+
 ## 0.8.243 (alpha)
 
 - Add per-object names, T0-based tool, material and color to the model list, with direct filament assignment.

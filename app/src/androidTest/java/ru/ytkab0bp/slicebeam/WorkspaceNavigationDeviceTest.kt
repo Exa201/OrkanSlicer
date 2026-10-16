@@ -1,12 +1,10 @@
 package ru.ytkab0bp.slicebeam
 
 import android.os.SystemClock
-import android.widget.FrameLayout
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,13 +48,13 @@ class WorkspaceNavigationDeviceTest {
         try {
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-                selectWorkspaceRoute(bed, context, 1)
+                selectWorkspaceRoute(bed, 1)
             }
             awaitMenuTransition(scenario)
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
                 assertMenuAttached(bed, ModelMenu::class.java)
-                selectWorkspaceRoute(bed, context, 0)
+                selectWorkspaceRoute(bed, 0)
             }
             awaitMenuTransition(scenario)
             scenario.onActivity { activity ->
@@ -80,12 +78,11 @@ class WorkspaceNavigationDeviceTest {
         }
     }
 
-    private fun selectWorkspaceRoute(bed: BedFragment, context: android.content.Context, slot: Int) {
+    private fun selectWorkspaceRoute(bed: BedFragment, slot: Int) {
         val method = BedFragment::class.java.getDeclaredMethod(
-            "onMenuNavigationSelected", android.content.Context::class.java,
-            Boolean::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+            "onMenuNavigationSelected", Boolean::class.javaPrimitiveType, Int::class.javaPrimitiveType,
         ).apply { isAccessible = true }
-        method.invoke(bed, context, true, slot)
+        method.invoke(bed, true, slot)
     }
 
     private fun awaitMenuTransition(scenario: ActivityScenario<MainActivity>) {
@@ -114,10 +111,15 @@ class WorkspaceNavigationDeviceTest {
             .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
         val expectedMenu = menuMap.get(currentSlot)
         assertTrue("slot $currentSlot should resolve to ${expectedType.simpleName}", expectedType.isInstance(expectedMenu))
-        val menuView = BedFragment::class.java.getDeclaredField("menuView")
-            .apply { isAccessible = true }.get(bed) as FrameLayout
-        assertEquals("only one route view should remain attached", 1, menuView.childCount)
         val getView = expectedType.getMethod("getView")
-        assertSame("the active menu view should be the only attached child", getView.invoke(expectedMenu), menuView.getChildAt(0))
+        val activeView = getView.invoke(expectedMenu) as? android.view.View
+        assertTrue("the active menu view should be attached to the workspace", activeView?.isAttachedToWindow == true)
+        val attachedRouteViews = (0 until menuMap.size()).mapNotNull { index ->
+            val menu = menuMap.valueAt(index) ?: return@mapNotNull null
+            val routeView = menu.javaClass.getMethod("getView").invoke(menu) as? android.view.View
+            routeView?.takeIf { it.isAttachedToWindow }
+        }
+        assertEquals("only the selected route should remain attached after transition", 1, attachedRouteViews.size)
+        assertEquals(activeView, attachedRouteViews.single())
     }
 }
