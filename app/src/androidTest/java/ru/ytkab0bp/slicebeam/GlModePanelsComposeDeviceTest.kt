@@ -12,6 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.workspace.EmbossModePanel
+import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.VariableLayerHeightPanel
 import ru.ytkab0bp.slicebeam.view.EmbossModeController
 import ru.ytkab0bp.slicebeam.view.GLView
@@ -52,5 +53,21 @@ class GlModePanelsComposeDeviceTest {
         compose.onNodeWithText(context.getString(R.string.EmbossEngrave)).assertIsDisplayed().performClick()
         compose.onNodeWithText(context.getString(R.string.ActionDone)).performClick()
         compose.runOnIdle { assertTrue(exited) }
+    }
+
+    @Test
+    fun measurePanelShowsReadoutsInsideTheComposeWorkspacePanel() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lateinit var glView: GLView
+        compose.runOnUiThread { glView = GLView(context) }
+        compose.setContent {
+            BeamComposeTheme { MeasureModePanel(glView) {} }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.MeasureTitle)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.MeasureDistance)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.MeasureDeltaX)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.MeasureDeltaY)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.MeasureDeltaZ)).assertIsDisplayed()
     }
 }

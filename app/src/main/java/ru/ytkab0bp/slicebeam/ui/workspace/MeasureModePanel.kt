@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -77,17 +76,10 @@ internal fun MeasureModePanel(
     }
 
     val readout = MeasureReadoutLogic.fromPoints(points.pointA, points.pointB)
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shadowElevation = 4.dp,
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
             Text(
                 text = stringResource(R.string.MeasureTitle),
                 style = MaterialTheme.typography.titleMedium,
@@ -148,7 +140,6 @@ internal fun MeasureModePanel(
                     Text(stringResource(R.string.ActionDone), fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 }
             }
-        }
     }
 }
 

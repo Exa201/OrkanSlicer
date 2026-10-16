@@ -220,7 +220,7 @@ return if (model == null || selected < 0) 0 else model.getTriangleCount(selected
 }
 private var paintModeView: ComposeView? = null
 private val paintFinishPending = AtomicBoolean(false)
-private var measureModeView: ThemeAwareComposeView? = null
+private var measureModeView: ComposeView? = null
 private var variableLayerHeightModeView: ComposeView? = null
 private var embossModeView: ComposeView? = null
 private var embossModeController: EmbossModeController? = null
@@ -878,42 +878,27 @@ private fun cancelPaintMode() = finishPaintMode(commit = false)
 private fun exitPaintMode() {
 if (paintModeView != null)
 {
-removeLegacyModeHost("paint-mode")
+removeModePanelHost("paint-mode")
 paintModeView = null
 }
 }
 fun enterMeasureMode() {
-val ctx = getContext()
 val currentGlView = glView
-val root = overlayLayout
-if (ctx == null || currentGlView == null || root == null || measureModeView != null) return
+if (currentGlView == null || overlayLayout == null || measureModeView != null) return
 workspaceController.dismissActivePanel()
 currentGlView.queueEvent {
 currentGlView.renderer.isInMeasureMode = true
 currentGlView.requestRender()
 }
-val composeView = ThemeAwareComposeView(ctx).apply {
-setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+measureModeView = attachComposeModeHost("measure-mode", ::exitMeasureMode) {
+    MeasureModePanel(glView = currentGlView, onExit = ::exitMeasureMode)
 }
-composeView.setContent {
-val revision = composeView.themeRevision
-BeamComposeTheme(themeRevision = revision) {
-MeasureModePanel(glView = currentGlView, onExit = ::exitMeasureMode)
-}
-}
-measureModeView = composeView
-root.addView(composeView, FrameLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT,
-ViewGroup.LayoutParams.WRAP_CONTENT,
-Gravity.BOTTOM))
-workspaceController.selectTool("measure-mode") { exitMeasureMode() }
 }
 private fun exitMeasureMode() {
 if (measureModeView != null)
 {
-overlayLayout!!.removeView(measureModeView)
+removeModePanelHost("measure-mode")
 measureModeView = null
-workspaceController.clearTool("measure-mode")
 }
 }
 fun enterVariableLayerHeightMode() {
@@ -928,7 +913,7 @@ variableLayerHeightModeView = attachComposeModeHost("variable-layer-height", ::e
 private fun exitVariableLayerHeightMode() {
 if (variableLayerHeightModeView != null)
 {
-removeLegacyModeHost("variable-layer-height")
+removeModePanelHost("variable-layer-height")
 variableLayerHeightModeView = null
 }
 }
@@ -969,7 +954,7 @@ private fun attachComposeModeHost(
     workspaceController.selectTool(toolId, onDismiss)
     return host
 }
-private fun removeLegacyModeHost(toolId: String) {
+private fun removeModePanelHost(toolId: String) {
     modeComposeHosts.remove(toolId)?.let { host -> (host.parent as? ViewGroup)?.removeView(host) }
     workspaceController.clearTool(toolId)
 }
@@ -998,7 +983,7 @@ if (embossModeView != null)
 embossModeController = null
 glView?.queueEvent({ glView?.renderer?.isInEmbossMode = false
 glView?.requestRender() })
-removeLegacyModeHost("emboss-mode")
+removeModePanelHost("emboss-mode")
 embossModeView = null
 }
 }
