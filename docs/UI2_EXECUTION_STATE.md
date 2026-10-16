@@ -32,16 +32,17 @@ Phase 4 — continue migrating remaining workspace UI responsibilities out of `B
 - `:app:compileSliceTestAndroidTestKotlin`: passed.
 - `:app:connectedAndroidTest`: Honor PTP-N49 / Android 16 — 49 tests, 0 failures, 0 errors, 3 skipped due to unavailable private fixtures. The offline `emulator-5554` was skipped.
 - Compose instrumentation exercises paint controls and cancel, Variable Layer Height status/exit, Emboss settings/exit, and Measure readout rendering. It does not claim to validate GL model edits on a loaded project.
-- `:app:assembleDebug` and install/launch must be rerun after committing the additional Measure-host consolidation below.
-- Earlier APK from code commit `6ca56ca82fc9a0998cd89addbda9213fd19f4824`: `app/build/outputs/apk/debug/OrkanSlicer_6ca56ca82f.apk`, 157,006,045 bytes; SHA-256 `4FF5735B09CDB36A07A197678BE9AA06D6B3FBF132BD0BC9F618A11B1D8334A5`. This artifact does not include the Measure-host consolidation.
+- `:app:assembleDebug`: passed from code commit `b0387c84877bb227b42ded78f8dee2b8a36ef6e8`.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_b0387c8487.apk`, 157,006,040 bytes; SHA-256 `B572BC850552165BD5238E0A550C5D72BBB398BA3C7D79D435CDC84E4FC787AA`.
+- Final APK installed and launched on Honor PTP-N49 / Android 16; process remained active and `MainActivity` was resumed. The inspected recent logcat contained no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` lines.
 - The emulator (`emulator-5554`) is offline. No true printer job was started and no firmware was changed.
 
 ## Git and continuation
 
 - Branch: `codex/rinkhals-safe-start-audit`.
 - Base HEAD for this execution: `4aafd3dddcf0e9fc2340102a6c8cdbacf5a6a3b7`.
-- Code commit: `6ca56ca82fc9a0998cd89addbda9213fd19f4824` (`Migrate GL mode panels to Compose`); pushed to the existing branch. The Measure-host consolidation is currently under verification and not yet committed.
-- Build the updated APK from the next code commit; do not present the earlier APK as containing the Measure change.
+- Code commits: `6ca56ca82fc9a0998cd89addbda9213fd19f4824` (`Migrate GL mode panels to Compose`) and `b0387c84877bb227b42ded78f8dee2b8a36ef6e8` (`Unify measure mode workspace overlay`); both pushed to the existing branch.
+- The APK above was built from code commit `b0387c84877bb227b42ded78f8dee2b8a36ef6e8`; this execution-state update is a later documentation-only commit.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; do not stage it.
 - PR #2 remains open; latest GitHub report marked it mergeable. No merge or release was performed.
-- Next concrete task: finish the Measure-host verification/build, then continue Phase 4 by moving an independently separable UI responsibility from `BedFragment` into the existing workspace Compose/controller structure, while preserving `GLView` identity and lifecycle.
+- Next concrete task: continue Phase 4 by migrating remaining menu/action orchestration from `BedFragment` into the existing workspace Compose/controller structure, then proceed to the menu audit and responsive/accessibility coverage.
