@@ -177,6 +177,7 @@ private var profileStatusSummary by mutableStateOf("")
 private var profileStatusDescription by mutableStateOf("")
 private var profileStatusThemeRevision by mutableIntStateOf(0)
 private var compactPortraitLayout:Boolean = false
+private var workspaceFontScale: Float = 1f
 private var sessionRestored:Boolean = false
 private val undoHistory = ArrayDeque<Model>()
 private val redoHistory = ArrayDeque<Model>()
@@ -1100,6 +1101,7 @@ sessionRestored = true
 }
 @SuppressLint("SetJavaScriptEnabled")
 override fun onCreateView(ctx:Context):View {
+workspaceFontScale = ctx.resources.configuration.fontScale
 if (platesModels.isEmpty()) platesModels.add(Model())
 restoreSession()
 glView = GLView(ctx)
@@ -1234,7 +1236,10 @@ super.onConfigurationChanged(newConfig)
 val ctx = getContext()
 if (ctx == null || overlayLayout == null || glView == null) return
 val portrait = usesCompactPortraitLayout(ctx)
-if (portrait == compactPortraitLayout) {
+val fontScale = ctx.resources.configuration.fontScale
+val fontScaleChanged = fontScale != workspaceFontScale
+workspaceFontScale = fontScale
+if (portrait == compactPortraitLayout && !fontScaleChanged) {
     filamentPaletteRevision++
     updateAdaptiveOverlayMargins(portrait)
     return

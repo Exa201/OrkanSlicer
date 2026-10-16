@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
@@ -23,6 +24,7 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 class MobileNavigationDelegate : DelegateSlotImpl() {
     private var portrait = false
     private var bottomNavigation = false
+    private var compactNavigationLabels = false
     private var root: FrameLayout? = null
     private var rootLayout: LinearLayout? = null
     private var navigationView: ComposeView? = null
@@ -59,6 +61,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             configuration.screenWidthDp,
             portrait,
         )
+        compactNavigationLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
         selectedNavigationSlot = MobileNavigationPolicy.selectedDestination(currentSlot)
         rootLayout = navigationLayout
         navigationLayout.orientation = if (bottomNavigation) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
@@ -115,12 +118,15 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
 
     private fun createNavigationHost(ctx: Context): ComposeView {
         val items = MobileNavigationPolicy.destinations().map { slot ->
+            val fullTitle = getSlotNavigationTitle(slot)
             WorkspaceNavigationItem(
                 slot = slot,
-                label = ctx.getString(getSlotNavigationTitle(slot)),
+                label = ctx.getString(
+                    if (compactNavigationLabels) compactNavigationTitle(slot) else fullTitle,
+                ),
                 icon = getSlotIcon(slot),
-                // Keep TalkBack's destination name aligned with the label shown on screen.
-                accessibilityLabel = ctx.getString(getSlotNavigationTitle(slot)),
+                // Keep complete destination names available when visible labels are compacted.
+                accessibilityLabel = ctx.getString(fullTitle),
             )
         }
         return ComposeView(ctx).apply {
@@ -159,7 +165,8 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             configuration.screenWidthDp,
             portrait,
         )
-        if (useBottomNavigation == bottomNavigation) return
+        val useCompactLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
+        if (useBottomNavigation == bottomNavigation && useCompactLabels == compactNavigationLabels) return
         val layout = rootLayout ?: return
         val navigation = navigationView ?: return
         val ctx = context ?: return
@@ -168,6 +175,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
         // overlays and WebViews inside the current screen during rotation and window resizing.
         layout.removeView(navigation)
         bottomNavigation = useBottomNavigation
+        compactNavigationLabels = useCompactLabels
         layout.orientation = if (bottomNavigation) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
         val replacement = createNavigationHost(ctx)
         navigationView = replacement
@@ -193,6 +201,14 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ))
         }
+    }
+
+    private fun compactNavigationTitle(slot: Int): Int = when (slot) {
+        MobileNavigationPolicy.PREVIEW_SLOT -> R.string.NavigationPreviewCompact
+        MobileNavigationPolicy.PRINT_SLOT -> R.string.NavigationPrintCompact
+        MobileNavigationPolicy.FILAMENT_SLOT -> R.string.NavigationFilamentCompact
+        MobileNavigationPolicy.PRINTER_SLOT -> R.string.NavigationPrinterCompact
+        else -> R.string.NavigationAppCompact
     }
 
     override fun onBackPressed(): Boolean {

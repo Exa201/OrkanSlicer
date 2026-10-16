@@ -6,6 +6,10 @@ object AdaptiveNavigationPolicy {
     const val NAVIGATION_RAIL_WIDTH_DP = 80
     const val LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP = 96
     const val NAVIGATION_BAR_HEIGHT_DP = 56
+    const val COMPACT_LABEL_FONT_SCALE = 1.15f
+
+    @JvmStatic
+    fun usesCompactLabels(fontScale: Float): Boolean = fontScale >= COMPACT_LABEL_FONT_SCALE
 
     /** Wider rail space preserves system text scaling and readable destination names. */
     @JvmStatic

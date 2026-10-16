@@ -7,6 +7,13 @@ import org.junit.Test
 
 class AdaptiveNavigationPolicyTest {
     @Test
+    fun largeTextUsesCompactVisibleNavigationLabels() {
+        assertFalse(AdaptiveNavigationPolicy.usesCompactLabels(1.14f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactLabels(1.15f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactLabels(1.5f))
+    }
+
+    @Test
     fun expandedNavigationRailAdaptsWidthForLargeSystemText() {
         assertEquals(80, AdaptiveNavigationPolicy.navigationRailWidthDp(1f))
         assertEquals(96, AdaptiveNavigationPolicy.navigationRailWidthDp(1.2f))

@@ -6,6 +6,10 @@
     <string name="LargeModelSurfaceStillDense">Das Modell ist für präzise Oberflächenwerkzeuge noch zu detailliert. Vereinfache es stärker.</string>
     <string name="SlotBed">Modell</string>
     <string name="NavigationPreview">Vorschau</string>
+    <string name="NavigationPrintCompact">Druck</string>
+    <string name="NavigationFilamentCompact">Fil.</string>
+    <string name="NavigationPrinterCompact">Drucker</string>
+    <string name="NavigationAppCompact">App</string>
     <string name="SlotPrintConfig">Druck</string>
     <string name="SlotPrintConfigTooltip">Druckprofil</string>
     <string name="SlotFilamentConfig">Filament</string>
