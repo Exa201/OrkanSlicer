@@ -44,5 +44,5 @@ Phase 4 — continue migrating remaining workspace UI responsibilities out of `B
 - Code commits: `6ca56ca82fc9a0998cd89addbda9213fd19f4824` (`Migrate GL mode panels to Compose`) and `b0387c84877bb227b42ded78f8dee2b8a36ef6e8` (`Unify measure mode workspace overlay`); both pushed to the existing branch.
 - The APK above was built from code commit `b0387c84877bb227b42ded78f8dee2b8a36ef6e8`; this execution-state update is a later documentation-only commit.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; do not stage it.
-- PR #2 remains open; latest GitHub report marked it mergeable. No merge or release was performed.
+- PR #2 remains open and GitHub reports it mergeable. The branch ref is at `7ecfba6d6c3d1b988411a5a703d70e20f34f2596`, but the PR API and `refs/pull/2/head` still report `d336de882c4cd6265df16348136db766942c874c` after the branch push. Verification comments were posted to PR #2, but the GitHub PR head has not reflected the newest branch commits yet; verify/sync this discrepancy before treating the PR as containing this work. No merge or release was performed.
 - Next concrete task: continue Phase 4 by migrating remaining menu/action orchestration from `BedFragment` into the existing workspace Compose/controller structure, then proceed to the menu audit and responsive/accessibility coverage.
