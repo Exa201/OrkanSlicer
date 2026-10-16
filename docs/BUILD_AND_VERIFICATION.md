@@ -25,6 +25,7 @@ installiert und gestartet. Projekt-/Modellnavigation, zweireihiges Modellmenü u
 visuell geprüft; keine Abstürze, ANRs oder OOMs im abgefragten Logcat. Der Android-CLI-
 Accessibility-Dump scheiterte an der Instrumentierungsverbindung. Der Emulator-Installationsversuch
 endete nach APK-Transfer mit I/O-Timeout; Emulatorprüfung daher nicht bestätigt. Kein Druck gestartet.
+Der aktualisierte PR #2 ist offen gegen `master`; aktueller UI-Arbeitsstand `162c070` wurde gepusht.
 
 ## Entwicklungsstand 0.8.242 – Temperaturen für die aktive Druckoberfläche
 
@@ -40,7 +41,7 @@ installiert; Honor-Startbildschirm visuell kontrolliert. Die Gradle-Instrumentie
 Geräte lief wegen Emulator-ADB-Timeout nicht durch; der gezielte Test wurde direkt auf dem Honor
 ausgeführt. Keine native Abhängigkeit fehlte, kein Druck wurde gestartet.
 
-Alpha 0.8.242: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.242. Das APK-Asset `OrkanSlicer_0bde473343.apk` (156.867.235 Byte) hat den bestätigten GitHub-Digest `sha256:4c1a0c27b5f463fe9068d99fa74fff50d532824c9a4cc7c62c1312ca62183cee`, identisch mit der lokalen APK. PR #2 bleibt offen gegen `master`, Kopfcommit `0bde473343`; kein Merge ausgeführt.
+Alpha 0.8.242: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.242. Das APK-Asset `OrkanSlicer_0bde473343.apk` (156.867.235 Byte) hat den bestätigten GitHub-Digest `sha256:4c1a0c27b5f463fe9068d99fa74fff50d532824c9a4cc7c62c1312ca62183cee`, identisch mit der lokalen APK. Zum damaligen Release-Zeitpunkt lag PR #2 bei `0bde473343`; der PR ist weiterhin offen gegen `master`, kein Merge ausgeführt.
 
 # Gebündelter Build- und Prüfablauf
 
