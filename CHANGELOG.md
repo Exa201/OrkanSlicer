@@ -2,10 +2,21 @@
 
 ## Unreleased
 
-- Show each object's name, current T0-based tool, material and a color indicator in the model list, with a direct per-object filament assignment action. Remove the repeated filament assignment entry from the selected-object actions.
-- Preserve painted facet assignments when a 3MF exported by OrkanSlicer is reopened. The Orca/Bambu 3MF importer now accepts both its `paint_color` key and Prusa/OrkanSlicer's `slic3rpe:mmu_segmentation` key.
-- Build paint selectors against the same volume mesh that stores the facet annotation, keeping triangle indices aligned for multi-volume objects.
-- Add a device regression test covering paint, export, import, and restored filament assignments.
+## 0.8.243 (alpha)
+
+- Add per-object names, T0-based tool, material and color to the model list, with direct filament assignment.
+- Preserve painted facet assignments across OrkanSlicer 3MF export and import. Accept both `paint_color` and `slic3rpe:mmu_segmentation`, and keep paint selectors aligned with the annotated volume mesh.
+- Add a device regression test for paint, export, import and restored filament assignments.
+- Continue the Compose workspace migration with shared panels and dialogs, clearer model actions, and responsive navigation. This is an incremental migration; legacy tool hosts remain.
+- Warn before exporting a project with multiple plates because the current 3MF export includes only the active plate.
+- Virtualize the compact filament palette and verify scrolling and selection with 1, 4, 8, 16 and 24 UI entries. The 24-entry case is synthetic; supported ACE capacity is unchanged.
+- Keep fixed T0/T1/T2/T3-to-ACE slot mapping, including empty slots, and retain Moonraker upload/print-start safeguards.
+
+## 0.8.242 (alpha)
+
+- Separate first-layer and other-layer temperatures for six Orca bed surfaces.
+- Select the active bed surface in printer settings and preview its temperatures before slicing.
+- Preserve existing surface values and backfill only missing legacy values.
 
 ## 0.8.241 (alpha)
 
