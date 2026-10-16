@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam.ui.workspace
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,9 @@ internal class WorkspaceController(
     var activeToolId by mutableStateOf<String?>(null)
         private set
 
+    var activeToolPanelContent by mutableStateOf<(@Composable () -> Unit)?>(null)
+        private set
+
     val activePanel: WorkspaceOverlayPanel?
         get() = overlays.activePanel
 
@@ -46,6 +50,7 @@ internal class WorkspaceController(
 
         dismissActivePanel()
         activeToolId = null
+        activeToolPanelContent = null
         return selectDestination(slot)
     }
 
@@ -55,11 +60,25 @@ internal class WorkspaceController(
         return true
     }
 
-    fun selectTool(toolId: String, dismiss: () -> Unit) {
+    fun selectTool(toolId: String, dismiss: () -> Unit) =
+        activateTool(toolId, dismiss, null)
+
+    fun selectToolWithPanel(
+        toolId: String,
+        dismiss: () -> Unit,
+        panelContent: @Composable () -> Unit,
+    ) = activateTool(toolId, dismiss, panelContent)
+
+    private fun activateTool(
+        toolId: String,
+        dismiss: () -> Unit,
+        panelContent: (@Composable () -> Unit)?,
+    ) {
         // SPECIAL_TOOL is one panel kind, but selecting a different tool must still
         // dismiss the previous tool host instead of silently replacing its callback.
         if (activeToolId != null && activeToolId != toolId) dismissActivePanel()
         activeToolId = toolId
+        activeToolPanelContent = panelContent
         overlays.activate(WorkspaceOverlayPanel.SPECIAL_TOOL, dismiss)
     }
 
@@ -68,6 +87,7 @@ internal class WorkspaceController(
         // callback clear the exclusive panel that a newer tool has already claimed.
         if (activeToolId != toolId) return
         activeToolId = null
+        activeToolPanelContent = null
         overlays.clear(WorkspaceOverlayPanel.SPECIAL_TOOL)
     }
 

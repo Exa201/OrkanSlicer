@@ -1,7 +1,9 @@
 package ru.ytkab0bp.slicebeam
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -14,6 +16,7 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.workspace.EmbossModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.VariableLayerHeightPanel
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceModePanelHost
 import ru.ytkab0bp.slicebeam.view.EmbossModeController
 import ru.ytkab0bp.slicebeam.view.GLView
 
@@ -21,6 +24,34 @@ import ru.ytkab0bp.slicebeam.view.GLView
 class GlModePanelsComposeDeviceTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun workspaceModePanelCanBeDismissedThroughAccessibleBackdrop() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val visible = mutableStateOf(true)
+        var dismissed = false
+        compose.setContent {
+            BeamComposeTheme {
+                if (visible.value) {
+                    WorkspaceModePanelHost(
+                        onDismiss = {
+                            dismissed = true
+                            visible.value = false
+                        },
+                    ) {
+                        androidx.compose.material3.Text("Workspace tool panel")
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Workspace tool panel").assertIsDisplayed()
+        compose.onNodeWithContentDescription(context.getString(android.R.string.cancel))
+            .assertIsDisplayed()
+            .performClick()
+        compose.runOnIdle { assertTrue(dismissed) }
+        compose.onNodeWithText("Workspace tool panel").assertDoesNotExist()
+    }
 
     @Test
     fun variableLayerHeightPanelShowsStatusAndReturnsFromMode() {

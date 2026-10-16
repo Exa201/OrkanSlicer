@@ -1,13 +1,31 @@
 package ru.ytkab0bp.slicebeam.ui.workspace
 
+import androidx.compose.runtime.Composable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 
 class WorkspaceControllerTest {
+    @Test
+    fun activeToolPanelContentIsOwnedAndClearedByWorkspaceController() {
+        val controller = WorkspaceController()
+        val panelContent: @Composable () -> Unit = {}
+
+        controller.selectToolWithPanel("measure-mode", {}, panelContent)
+
+        assertEquals("measure-mode", controller.activeToolId)
+        assertSame(panelContent, controller.activeToolPanelContent)
+
+        controller.clearTool("measure-mode")
+
+        assertNull(controller.activeToolId)
+        assertNull(controller.activeToolPanelContent)
+    }
+
     @Test
     fun ownsNavigationAndPanelStateTogether() {
         val controller = WorkspaceController()

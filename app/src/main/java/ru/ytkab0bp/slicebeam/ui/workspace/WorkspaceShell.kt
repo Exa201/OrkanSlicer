@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam.ui.workspace
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +44,8 @@ internal fun WorkspaceShell(
     filamentButtonView: View,
     platePickerView: View,
     printerWebButtonView: View,
+    modePanelContent: (@Composable () -> Unit)?,
+    onModePanelDismiss: () -> Unit,
 ) {
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
         toolPanelNeedsTwoRows,
@@ -75,8 +78,9 @@ internal fun WorkspaceShell(
         }
     }
 
-    if (portrait) {
-        Column(Modifier.fillMaxSize().background(background)) {
+    Box(Modifier.fillMaxSize().background(background)) {
+      if (portrait) {
+        Column(Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { projectSettingsView },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 0.dp),
@@ -99,8 +103,8 @@ internal fun WorkspaceShell(
                 modifier = Modifier.fillMaxWidth().height(navigationHeightDp.dp),
             )
         }
-    } else {
-        Row(Modifier.fillMaxSize().background(background)) {
+      } else {
+        Row(Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { navigationView },
                 modifier = Modifier.width(navigationWidthDp.dp).fillMaxHeight(),
@@ -122,6 +126,10 @@ internal fun WorkspaceShell(
                 )
             }
         }
+      }
+      if (modePanelContent != null) {
+          WorkspaceModePanelHost(onDismiss = onModePanelDismiss, content = modePanelContent)
+      }
     }
 }
 

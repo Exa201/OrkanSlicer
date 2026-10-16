@@ -100,7 +100,6 @@ import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceModePanelHost
 import ru.ytkab0bp.slicebeam.ui.workspace.PaintModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.VariableLayerHeightPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.EmbossModePanel
@@ -218,13 +217,8 @@ val model = currentModel
 val selected = if (glView != null) glView!!.renderer.selectedObject else -1
 return if (model == null || selected < 0) 0 else model.getTriangleCount(selected)
 }
-private var paintModeView: ComposeView? = null
 private val paintFinishPending = AtomicBoolean(false)
-private var measureModeView: ComposeView? = null
-private var variableLayerHeightModeView: ComposeView? = null
-private var embossModeView: ComposeView? = null
 private var embossModeController: EmbossModeController? = null
-private val modeComposeHosts = mutableMapOf<String, ComposeView>()
 private var hasWebError:Boolean = false
 private var panelWebView: WebView? = null
 private var panelWebViewContainer: FrameLayout? = null
@@ -234,19 +228,19 @@ private var webViewErrorDescription by mutableStateOf<String?>(null)
 private var webViewProgressBar: ProgressBar? = null
 val isPaintMode:Boolean
 get() {
-return paintModeView != null
+return workspaceController.activeToolId == "paint-mode"
 }
 val isMeasureMode:Boolean
 get() {
-return measureModeView != null
+return workspaceController.activeToolId == "measure-mode"
 }
 val isVariableLayerHeightMode:Boolean
 get() {
-return variableLayerHeightModeView != null
+return workspaceController.activeToolId == "variable-layer-height"
 }
 val isEmbossMode:Boolean
 get() {
-return embossModeView != null
+return workspaceController.activeToolId == "emboss-mode"
 }
 private val isLargeModelInMemory:Boolean
 get() {
@@ -646,7 +640,7 @@ dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
 fun showUnfoldMenu(menu:UnfoldMenu, from:View) {
 if (currentUnfoldMenu != null) return
 val toolId = menu.javaClass.name
-workspaceController.selectTool(toolId) { menu.dismiss() }
+workspaceController.selectTool(toolId, dismiss = { menu.dismiss() })
 menu.setOnDismiss({
     if (menu.isAttached()) return@setOnDismiss
     currentUnfoldMenu = null
@@ -844,14 +838,14 @@ internal fun isWorkspaceMessageDialogAttached(): Boolean = workspaceDialogView?.
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
 val currentGlView = glView
-if (ctx == null || currentGlView == null || overlayLayout == null || objectIndex == -1 || paintModeView != null) return
+if (ctx == null || currentGlView == null || overlayLayout == null || objectIndex == -1 || isPaintMode) return
 workspaceController.dismissActivePanel()
 if (!requirePreciseSurfaceModel(objectIndex)) return
 paintFinishPending.set(false)
 currentGlView.isPaintBrushActive = true
 currentGlView.queueEvent({ currentGlView.renderer.beginPaint(objectIndex, mode)
 currentGlView.requestRender() })
-paintModeView = attachComposeModeHost("paint-mode", ::cancelPaintMode) {
+showWorkspaceModePanel("paint-mode", ::cancelPaintMode) {
     PaintModePanel(
         glView = currentGlView,
         mode = mode,
@@ -876,86 +870,66 @@ private fun finishPaintMode(commit: Boolean) {
 }
 private fun cancelPaintMode() = finishPaintMode(commit = false)
 private fun exitPaintMode() {
-if (paintModeView != null)
+if (isPaintMode)
 {
 removeModePanelHost("paint-mode")
-paintModeView = null
 }
 }
 fun enterMeasureMode() {
 val currentGlView = glView
-if (currentGlView == null || overlayLayout == null || measureModeView != null) return
+if (currentGlView == null || overlayLayout == null || isMeasureMode) return
 workspaceController.dismissActivePanel()
 currentGlView.queueEvent {
 currentGlView.renderer.isInMeasureMode = true
 currentGlView.requestRender()
 }
-measureModeView = attachComposeModeHost("measure-mode", ::exitMeasureMode) {
+showWorkspaceModePanel("measure-mode", ::exitMeasureMode) {
     MeasureModePanel(glView = currentGlView, onExit = ::exitMeasureMode)
 }
 }
 private fun exitMeasureMode() {
-if (measureModeView != null)
+if (isMeasureMode)
 {
 removeModePanelHost("measure-mode")
-measureModeView = null
 }
 }
 fun enterVariableLayerHeightMode() {
 val ctx = getContext()
 val currentGlView = glView
-if (ctx == null || currentGlView == null || overlayLayout == null || variableLayerHeightModeView != null) return
+if (ctx == null || currentGlView == null || overlayLayout == null || isVariableLayerHeightMode) return
 workspaceController.dismissActivePanel()
-variableLayerHeightModeView = attachComposeModeHost("variable-layer-height", ::exitVariableLayerHeightMode) {
+showWorkspaceModePanel("variable-layer-height", ::exitVariableLayerHeightMode) {
     VariableLayerHeightPanel(currentGlView, ::exitVariableLayerHeightMode)
 }
 }
 private fun exitVariableLayerHeightMode() {
-if (variableLayerHeightModeView != null)
+if (isVariableLayerHeightMode)
 {
 removeModePanelHost("variable-layer-height")
-variableLayerHeightModeView = null
 }
 }
 fun enterEmbossMode() {
 val ctx = getContext()
 val currentGlView = glView
-if (ctx == null || currentGlView == null || overlayLayout == null || embossModeView != null) return
+if (ctx == null || currentGlView == null || overlayLayout == null || isEmbossMode) return
 workspaceController.dismissActivePanel()
 val selected = currentGlView.renderer.selectedObject
 if (selected >= 0 && !requirePreciseSurfaceModel(selected)) return
 currentGlView.queueEvent({ currentGlView.renderer.isInEmbossMode = true
 currentGlView.requestRender() })
 embossModeController = EmbossModeController(ctx, currentGlView)
-embossModeView = attachComposeModeHost("emboss-mode", ::exitEmbossMode) {
+showWorkspaceModePanel("emboss-mode", ::exitEmbossMode) {
     EmbossModePanel(requireNotNull(embossModeController), ::exitEmbossMode)
 }
 }
-private fun attachComposeModeHost(
+private fun showWorkspaceModePanel(
     toolId: String,
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
-): ComposeView {
-    val context = getContext() ?: error("Workspace context is unavailable")
-    val root = overlayLayout ?: error("Workspace overlay host is unavailable")
-    val host = ComposeView(context).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-        setContent {
-            BeamComposeTheme {
-                WorkspaceModePanelHost(onDismiss = onDismiss, content = content)
-            }
-        }
-    }
-    modeComposeHosts[toolId] = host
-    root.addView(host, FrameLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.MATCH_PARENT,
-    ))
-    workspaceController.selectTool(toolId, onDismiss)
-    return host
+): Unit {
+    workspaceController.selectToolWithPanel(toolId, onDismiss, content)
 }
 private fun removeModePanelHost(toolId: String) {
-    modeComposeHosts.remove(toolId)?.let { host -> (host.parent as? ViewGroup)?.removeView(host) }
     workspaceController.clearTool(toolId)
 }
 private fun requirePreciseSurfaceModel(objectIndex:Int):Boolean {
@@ -978,13 +952,12 @@ showWorkspaceMessageDialog(
 return false
 }
 private fun exitEmbossMode() {
-if (embossModeView != null)
+if (isEmbossMode)
 {
 embossModeController = null
 glView?.queueEvent({ glView?.renderer?.isInEmbossMode = false
 glView?.requestRender() })
 removeModePanelHost("emboss-mode")
-embossModeView = null
 }
 }
 fun loadGCode(f:File) {
@@ -999,17 +972,17 @@ selectMenu(ctx, portrait, WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
 if (workspaceController.dismissActivePanel()) return true
-if (embossModeView != null)
+if (isEmbossMode)
 {
 exitEmbossMode()
 return true
 }
-if (variableLayerHeightModeView != null)
+if (isVariableLayerHeightMode)
 {
 exitVariableLayerHeightMode()
 return true
 }
-if (measureModeView != null)
+if (isMeasureMode)
 {
 glView!!.queueEvent({ glView!!.renderer.isInMeasureMode = false
 glView!!.renderer.clearMeasurePoints()
@@ -1017,7 +990,7 @@ glView!!.requestRender() })
 exitMeasureMode()
 return true
 }
-if (paintModeView != null)
+if (isPaintMode)
 {
 cancelPaintMode()
 return true
@@ -1570,6 +1543,8 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     filamentButtonView = filamentPaletteButton!!,
                     platePickerView = plateTabsScroll!!,
                     printerWebButtonView = printerWebButton!!,
+                    modePanelContent = workspaceController.activeToolPanelContent,
+                    onModePanelDismiss = { workspaceController.dismissActivePanel() },
                 )
             }
         }
