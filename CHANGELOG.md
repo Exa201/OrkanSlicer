@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.252 (alpha)
+
+- The workspace menu host now requires all six primary destinations to provide Compose content directly; it no longer silently falls back to mounting an Android menu view.
+- Unknown workspace destinations fail explicitly instead of being routed to the Project menu.
+
 ## 0.8.251 (alpha)
 
 - The build-plate picker Cancel action now has a Material 3 touch target that meets the 48 dp accessibility minimum.

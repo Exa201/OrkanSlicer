@@ -56,8 +56,7 @@ internal fun WorkspaceShell(
     toolsExpanded: Boolean,
     onNavigationSelected: (Int) -> Unit,
     activeMenuSlot: Int,
-    menuViewForSlot: (Int) -> View,
-    menuComposeContentForSlot: @Composable (Int) -> Boolean,
+    menuComposeContentForSlot: @Composable (Int) -> Unit,
     onMenuTransitionSettled: () -> Unit,
     projectSettingsContent: @Composable () -> Unit,
     profileStatusContent: @Composable () -> Unit,
@@ -137,7 +136,6 @@ internal fun WorkspaceShell(
             if (toolPanelExpanded) {
                 WorkspaceMenuHost(
                     slot = activeMenuSlot,
-                    viewForSlot = menuViewForSlot,
                     composeContentForSlot = menuComposeContentForSlot,
                     onTransitionSettled = onMenuTransitionSettled,
                     modifier = Modifier.fillMaxWidth().height(toolPanelHeightDp.coerceAtLeast(0).dp),
@@ -174,7 +172,6 @@ internal fun WorkspaceShell(
             Spacer(Modifier.width(1.dp).fillMaxHeight().background(background.copy(alpha = 0.35f)))
             WorkspaceMenuHost(
                 slot = activeMenuSlot,
-                viewForSlot = menuViewForSlot,
                 composeContentForSlot = menuComposeContentForSlot,
                 onTransitionSettled = onMenuTransitionSettled,
                 modifier = Modifier.width(menuWidthDp.dp).fillMaxHeight(),
@@ -203,8 +200,7 @@ internal fun WorkspaceShell(
 @Composable
 private fun WorkspaceMenuHost(
     slot: Int,
-    viewForSlot: (Int) -> View,
-    composeContentForSlot: @Composable (Int) -> Boolean,
+    composeContentForSlot: @Composable (Int) -> Unit,
     onTransitionSettled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -219,12 +215,7 @@ private fun WorkspaceMenuHost(
         label = "workspace-menu-route",
     ) { targetSlot ->
         key(targetSlot) {
-            if (!composeContentForSlot(targetSlot)) {
-                AndroidView(
-                    factory = { viewForSlot(targetSlot) },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            composeContentForSlot(targetSlot)
         }
     }
     LaunchedEffect(slot) {

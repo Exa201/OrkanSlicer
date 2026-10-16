@@ -140,7 +140,6 @@ WorkspaceDestination.CAMERA -> menu = CameraMenu()
 WorkspaceDestination.EDIT -> menu = TransformMenu()
 WorkspaceDestination.TOOLS -> menu = OptionsMenu()
 WorkspaceDestination.SLICE -> menu = SliceMenu()
-else -> menu = FileMenu()
 }
 put(key, menu)
 }
@@ -1405,13 +1404,12 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     toolsExpanded = menuToolsExpanded,
                     onNavigationSelected = { slot -> onMenuNavigationSelected(portrait, slot) },
                     activeMenuSlot = workspaceController.selectedDestinationSlot,
-                    menuViewForSlot = { slot -> createWorkspaceMenuView(ctx, portrait, slot) },
                     menuComposeContentForSlot = { slot ->
                         val menu = menuMap.get(slot)
-                        if (menu is WorkspaceComposeBedMenu) {
-                            WorkspaceComposeBedMenuHost(menu, portrait)
-                            true
-                        } else false
+                        check(menu is WorkspaceComposeBedMenu) {
+                            "Workspace destination ${WorkspaceDestination.values()[slot]} must use Compose"
+                        }
+                        WorkspaceComposeBedMenuHost(menu, portrait)
                     },
                     onMenuTransitionSettled = { isAnimatingMenu = false },
                     projectSettingsContent = { BeamComposeTheme { TemporaryProjectSettingsBar() } },
@@ -1489,12 +1487,6 @@ updateAdaptiveOverlayMargins(portrait)
 glView!!.requestRender()
 }
 
-private fun createWorkspaceMenuView(ctx: Context, portrait: Boolean, slot: Int): View {
-    val menu = menuMap.get(slot)
-    menu.onSetBed(this)
-    menu.getView()?.let { return it }
-    return menu.onCreateView(ctx, portrait).also(menu::onViewCreated)
-}
 private fun updateAdaptiveOverlayMargins(portrait:Boolean) {
 val params = snackbarsLayout?.layoutParams as? FrameLayout.LayoutParams ?: return
 val fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f
