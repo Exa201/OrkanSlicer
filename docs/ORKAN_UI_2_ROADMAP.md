@@ -9,8 +9,11 @@ Stand: 16.10.2026. Die UI wird in überprüfbaren Etappen erneuert. Der native S
 - Zweireihige Modell- und Bearbeitungsaktionen bleiben zweireihig, wenn das Panel geöffnet ist.
 - Auf schmalen Telefonen und bei großer Systemschrift werden weniger, breitere Aktionskacheln angezeigt. Beschreibungen und TalkBack-Zustände bleiben verfügbar.
 - Filamentfarben stehen als kompakter Knopf mit Farbindikatoren bereit. Er öffnet die bereits verwendete Filamentzuordnung für das Modell.
+- Der Knopf zeigt zusätzlich die Gesamtzahl der Filamente; bei großen Paletten bleiben vier Farbindikatoren sichtbar und TalkBack nennt die Gesamtzahl.
 - Gemeinsame Compose-/Material-3-Komponenten und `OrkanUiTokens` bilden die Grundlage für neue Oberflächen. Neue Funktionen erhalten keine parallelen View- und Compose-Implementierungen.
 - Vor dem Entfernen einer alten Ansicht müssen ihre Aktionen und Zustände migriert und getestet sein.
+
+Der Master-Prompt setzt als Ziel einen vollständigen Austausch der App-Oberfläche und des UI-Frameworks. Die Umsetzung erfolgt deshalb als geplanter Ersatz der alten Routen, nicht als zweites dauerhaftes UI-System. Der bestehende OpenGL-Renderer und die Slicer-/Drucklogik werden über klare Zustands- und Aktionsschnittstellen weiterverwendet. Die globalen Bereiche und noch nicht migrierten Dialoge sind weiterhin offene Arbeit.
 
 ## Etappe 1: Arbeitsbereich
 
@@ -37,6 +40,18 @@ Begonnen am 16.10.2026:
 - Die adaptive Navigation und Material-3-Farbpalette bleiben die gemeinsame Navigation und Theme-Grundlage.
 
 Diese Etappe migriert gemeinsame Gestaltungswerte, ersetzt noch nicht sämtliche alten Ansichten oder deren Navigation.
+
+## Etappe 3: Gemeinsame Komponenten im Arbeitsbereich
+
+In Arbeit:
+
+- Der kompakte Filamentzugang zeigt Farbindikatoren und die Anzahl der verfügbaren Filamente, ohne dauerhaft eine Filamentliste einzublenden.
+- Werkzeugfelder bleiben an ihrem festen unteren beziehungsweise seitlichen Bereich verankert. Die Druckplatte bleibt im normalen Arbeitsmodus sichtbar und wird nur bei geöffneter Werkzeuggruppe verkleinert.
+- Die Modellaktionen bleiben in zwei Reihen; ähnliche Aktionen behalten eindeutige Bezeichnungen wie **Kopieren**, **Platte füllen**, **Modelle anordnen** und **Auf Platte legen**.
+
+Die nächste Migration betrifft die vier globalen Bereiche **Druck**, **Filament**, **Drucker** und **App**. Dabei werden Funktionszustände zuerst an zuständige Controller/Modelle gebunden und danach die jeweiligen Ansichten ausgetauscht. Eine Funktion wird erst aus der alten Route entfernt, wenn ihre neue Route erreichbar ist und denselben Zustand bearbeitet.
+
+Prüfung am 16.10.2026: Debug- und Slice-Unit-Suites bestanden mit jeweils 515 Tests; `assembleDebug` einschließlich des nativen ARM64-Kerns war erfolgreich. Pinselregler-, temporäre Projektprofil- und Touch-/Raycast-Gerätetests bestanden auf dem Honor; Pinselregler und temporäre Projektprofile bestanden zusätzlich auf dem Emulator. Die vollständige Android-Instrumentierung auf dem Honor meldete 35 bestandene Tests; die drei privaten 3MF-Fixture-Tests wurden mangels bereitgestellter Datei übersprungen. Der vollständige Emulator-Lauf blieb bei 2 von 35 Tests hängen und ADB-Shell-Befehle antworteten nicht mehr. APK 0.8.237 / Code 272 wurde auf Honor und Emulator installiert; die abschließende Installation nach der deutschen Beschriftungskorrektur und der vollständige Emulator-Lauf bleiben wegen des nicht antwortenden Emulators offen. Auf dem Honor zeigt die Oberflächenprüfung die große freie Platte, den Farbknopf samt Anzahl und das zweireihige Modell-Menü. Die Modellaktionen sind als **Duplizieren**, **Platte füllen** und **Anordnen** klar unterscheidbar. Weitere globale Routen bleiben Teil der nächsten Etappen.
 
 ## Nächste Etappen
 

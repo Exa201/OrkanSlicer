@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.gson.Gson
 import org.junit.Assert.*
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
@@ -28,7 +29,7 @@ class ThreeMfMulticolorDeviceTest {
     @Test fun realThreeColorProjectKeepsOwnTemperaturesWhenOnlyItsColorsAreImported() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val source = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")
-        assertTrue(source.isFile)
+        assumeTrue("Provide user-multicolor-repro.3mf to run this hardware fixture", source.isFile)
         val definitions = PrintConfigDef.getInstance().options
         val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() +
             OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
@@ -59,7 +60,7 @@ class ThreeMfMulticolorDeviceTest {
     @Test fun inspectUserProjectAgainstActualNativeSchema() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")
-        assertTrue("Reproduction file must be supplied explicitly", file.isFile)
+        assumeTrue("Provide user-multicolor-repro.3mf to run this hardware fixture", file.isFile)
         val definitions = PrintConfigDef.getInstance().options
         val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() +
             OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
@@ -98,6 +99,7 @@ class ThreeMfMulticolorDeviceTest {
             put("printer", "Anycubic Kobra 3 0.4 nozzle"); put("print", "0.16mm Standard"); put("filament", "Anycubic Generic PLA")
         }
         val source = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")
+        assumeTrue("Provide user-multicolor-repro.3mf to run this hardware fixture", source.isFile)
         val defs = PrintConfigDef.getInstance().options
         val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() + OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
         val filamentKeys = Slic3rConfigWrapper.FILAMENT_CONFIG_KEYS.toSet() + OrcaFilamentSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }

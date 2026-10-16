@@ -3,7 +3,6 @@ package ru.ytkab0bp.slicebeam
 import android.app.Application
 import android.os.SystemClock
 import android.view.MotionEvent
-import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -104,12 +103,12 @@ class MainActivityTouchDeviceTest {
                         }
                         viewportDescription = "view=${glView.width}x${glView.height}, renderer=${glView.renderer.viewportWidth}x${glView.renderer.viewportHeight}, renderScale=$renderScale, models=$modelCount, meshes=$meshCount"
                         if (glView.renderer.viewportWidth <= 0 || glView.renderer.viewportHeight <= 0) return@onActivity
-                        // Search almost the entire viewport at a denser interval. The model can be
-                        // framed away from the geometric center on different emulator sizes.
-                        for (row in 1..23 step 2) {
-                            for (column in 1..23 step 2) {
-                                val x = glView.width * column / 24f
-                                val y = glView.height * row / 24f
+                        // A 20 mm test cube can cover less than one eighth of a tall phone
+                        // viewport, so coarse samples can miss it on different aspect ratios.
+                        for (row in 1..63 step 2) {
+                            for (column in 1..63 step 2) {
+                                val x = glView.width * column / 64f
+                                val y = glView.height * row / 64f
                                 if (glView.renderer.raycastObjectIndex(x * renderScale, y * renderScale) == 0) {
                                     hitPoint = x to y
                                     break
@@ -134,7 +133,7 @@ class MainActivityTouchDeviceTest {
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
-                assertCollapsedActionsVisibleAndNoDialog(activity, bed)
+                assertModelSelectedWithoutModal(activity)
             }
 
             val emptyPlatePointRef = AtomicReference<Pair<Float, Float>?>()
@@ -148,18 +147,15 @@ class MainActivityTouchDeviceTest {
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertEquals("Tapping an empty plate area should clear the model selection", -1, glView.renderer.selectedObject)
-                val field = BedFragment::class.java.getDeclaredField("selectedObjectBar").apply { isAccessible = true }
-                val bar = field.get(requireNotNull(bed)) as? View
-                assertEquals("The object action bar should stay closed after tapping the empty plate", View.GONE, bar?.visibility)
                 assertTrue("Tapping the empty plate must not open a modal action dialog", activity.hasWindowFocus())
             }
 
-            // A deliberate tap on the model restores its collapsed action affordance.
+            // A deliberate tap on the model restores its selection without opening a dialog.
             scenario.onActivity { tap(glView, hit.first, hit.second) }
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
-                assertCollapsedActionsVisibleAndNoDialog(activity, bed)
+                assertModelSelectedWithoutModal(activity)
             }
 
             val downTime = SystemClock.uptimeMillis()
@@ -173,7 +169,7 @@ class MainActivityTouchDeviceTest {
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
-                assertCollapsedActionsVisibleAndNoDialog(activity, bed)
+                assertModelSelectedWithoutModal(activity)
             }
         } finally {
             scenario.close()
@@ -187,13 +183,9 @@ class MainActivityTouchDeviceTest {
         assertEquals("The touched model should remain the selected object", 0, current.glView!!.renderer.selectedObject)
     }
 
-    private fun assertCollapsedActionsVisibleAndNoDialog(activity: MainActivity, bed: BedFragment?) {
-        val field = BedFragment::class.java.getDeclaredField("selectedObjectBar").apply { isAccessible = true }
-        val bar = field.get(requireNotNull(bed)) as? View
-        assertEquals("A normal model tap should show the collapsed actions affordance", View.VISIBLE, bar?.visibility)
-        // The full object menu is a modal dialog; if a tap or long press opened it, the activity
-        // would lose window focus. This avoids a second UiAutomation connection on Android 16.
-        assertTrue("Tapping the model must not open the full action dialog", activity.hasWindowFocus())
+    private fun assertModelSelectedWithoutModal(activity: MainActivity) {
+        // Object actions live in the fixed workspace menu; a tap must not open a modal dialog.
+        assertTrue("Tapping the model must not open a modal action dialog", activity.hasWindowFocus())
     }
 
     private fun tap(view: GLView, x: Float, y: Float) {

@@ -199,11 +199,11 @@
     <string name="ModelMenuDeleteSelected">Ausgewähltes Modell löschen</string>
     <string name="ModelMenuSelectAll">Alle Modelle auswählen</string>
     <string name="ModelMenuDeleteAll">Alle Modelle löschen</string>
-    <string name="ModelMenuDuplicateShort">Kopieren</string>
+    <string name="ModelMenuDuplicateShort">Duplizieren</string>
     <string name="ModelMenuMoveToPlateShort">Verschieben</string>
     <string name="ModelMenuCenterOnBedShort">Zentrieren</string>
-    <string name="ModelMenuFillBedShort">Kopien</string>
-    <string name="ModelMenuArrangeShort">Verteilen</string>
+    <string name="ModelMenuFillBedShort">Platte füllen</string>
+    <string name="ModelMenuArrangeShort">Anordnen</string>
     <string name="ModelMenuOrientAllShort">Alle ausrichten</string>
     <string name="ModelMenuAutoOrientSelectedShort">Auswahl ausrichten</string>
     <string name="ModelMenuFlattenShort">Flach auflegen</string>
@@ -1041,6 +1041,7 @@
     <string name="PaintBlock">Blockieren</string>
     <string name="PaintErase">Löschen</string>
     <string name="PaintBrush">Pinsel</string>
+    <string name="PaintBrushRadius">Pinselradius: %1$.1f mm</string>
     <string name="PaintBucket">Fläche füllen</string>
     <string name="PaintHeight">Höhenbereich</string>
     <string name="PaintBrushSphere">Pinselform: Kugel (3D)</string>

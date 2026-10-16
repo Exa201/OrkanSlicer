@@ -33,6 +33,7 @@ class PaintModeView @JvmOverloads constructor(
     private lateinit var swatchRow: LinearLayout
     private var selectedFilament = 2 // 1-based; 1 = base color
     private lateinit var brushSize: SeekBar
+    private lateinit var brushRadiusLabel: TextView
     private lateinit var fab: ImageView
     private var brushActive = true
     private lateinit var brushBtn: TextView
@@ -199,9 +200,12 @@ class PaintModeView @JvmOverloads constructor(
         brushSize = SeekBar(ctx).apply {
             max = 20
             progress = 4
+            contentDescription = ctx.getString(R.string.PaintBrushRadius, progress.toFloat())
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                     val radius = maxOf(1, progress).toDouble()
+                    brushRadiusLabel.text = ctx.getString(R.string.PaintBrushRadius, radius.toFloat())
+                    seekBar.contentDescription = brushRadiusLabel.text
                     runOnGl { glView!!.renderer.paintBrushRadius = radius }
                 }
 
@@ -209,6 +213,21 @@ class PaintModeView @JvmOverloads constructor(
                 override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
             })
         }
+        brushRadiusLabel = label(ctx, ctx.getString(R.string.PaintBrushRadius, brushSize.progress.toFloat()))
+        panel.addView(
+            brushRadiusLabel,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        panel.addView(
+            brushSize,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewUtils.dp(48),
+            ).apply { bottomMargin = ViewUtils.dp(8) },
+        )
 
         brushTypeBtn = TextView(ctx).apply {
             gravity = Gravity.CENTER

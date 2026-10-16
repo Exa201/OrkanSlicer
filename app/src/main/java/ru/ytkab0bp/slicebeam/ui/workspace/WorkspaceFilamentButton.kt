@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
@@ -49,7 +51,10 @@ internal fun WorkspaceFilamentButton(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(OrkanUiTokens.menuIconSize),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 slots.take(4).forEach { slot ->
                     Surface(
                         modifier = Modifier.size(6.dp),
@@ -58,6 +63,13 @@ internal fun WorkspaceFilamentButton(
                         content = {},
                     )
                 }
+                Text(
+                    text = slots.size.toString(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 9.sp,
+                    lineHeight = 10.sp,
+                    maxLines = 1,
+                )
             }
         }
     }

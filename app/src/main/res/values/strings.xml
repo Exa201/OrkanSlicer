@@ -200,7 +200,7 @@
     <string name="ModelMenuDeleteSelected">Delete selected model</string>
     <string name="ModelMenuSelectAll">Select all models</string>
     <string name="ModelMenuDeleteAll">Delete all models</string>
-    <string name="ModelMenuDuplicateShort">Copy</string>
+    <string name="ModelMenuDuplicateShort">Duplicate</string>
     <string name="ModelMenuMoveToPlateShort">Move</string>
     <string name="ModelMenuCenterOnBedShort">Center</string>
     <string name="ModelMenuFillBedShort">Fill plate</string>
@@ -1057,6 +1057,7 @@
     <string name="PaintBlock">Block</string>
     <string name="PaintErase">Erase</string>
     <string name="PaintBrush">Brush</string>
+    <string name="PaintBrushRadius">Brush radius: %1$.1f mm</string>
     <string name="PaintBucket">Fill</string>
     <string name="PaintHeight">Height</string>
     <string name="PaintBrushSphere">Brush shape: sphere (3D)</string>

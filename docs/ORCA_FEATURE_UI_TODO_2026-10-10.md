@@ -1,5 +1,20 @@
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
 
+Ergänzung 0.8.237 (16.10.2026): Der Pinselradius-Regler im Farb-/Stütz-/Nahtmalen
+war vorhanden, wurde aber nicht in das Werkzeugpanel eingesetzt. Er ist jetzt sichtbar,
+mindestens 48 dp hoch und zeigt den Radius in Millimetern mit zugänglicher Beschriftung.
+Die Mal- und Slicer-Engine bleiben unverändert. Der kompakte Filamentknopf zeigt Farbindikatoren
+und zusätzlich die Anzahl der Filamente. Die Aktualisierungsnotizen wurden auf 0.8.237 angehoben.
+`:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden mit je 515 Tests; der
+vollständige Debug-/Native-Build (`buildCMakeRelease[arm64-v8a]`) ist erfolgreich. Der
+Pinselregler, temporäre 3MF-Projektprofile und der Modell-Touch-Test bestehen gezielte
+Geräteprüfungen. Die vollständige Android-Instrumentierung auf dem Honor meldet 35 bestandene
+Tests; drei Tests zur privaten Nutzer-3MF wurden mangels bereitgestellter Datei übersprungen.
+Der vollständige Lauf auf dem Emulator blieb nach zwei Tests hängen und ADB-Shell-Abfragen
+antworteten nicht mehr. 0.8.237 wurde auf dem Honor installiert und als VersionCode 272
+verifiziert. Ein vollständiger Emulator-Lauf bleibt offen; deshalb wird noch kein Release daraus
+erstellt.
+
 Ergänzung 0.8.236 (16.10.2026): Nach Bewertung eines gedruckten Orca-Kalibriertests kann
 der Messwert über **Kalibrierungen → Messwert speichern** als vorgemerkte Änderung in das
 aktive Filament- oder Druckprofil übernommen werden. Unterstützt sind Pressure Advance,
