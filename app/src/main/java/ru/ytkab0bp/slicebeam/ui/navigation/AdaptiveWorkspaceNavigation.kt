@@ -39,6 +39,7 @@ data class WorkspaceNavigationItem(
 /** Compact destinations keep their labels and full touch areas in both window shapes. */
 @Composable
 fun AdaptiveWorkspaceNavigation(
+    modifier: Modifier = Modifier,
     items: List<WorkspaceNavigationItem>,
     selectedSlot: Int,
     isBottomNavigation: Boolean,
@@ -51,7 +52,7 @@ fun AdaptiveWorkspaceNavigation(
 ) {
     val fontScale = LocalDensity.current.fontScale
     val twoRowBottomNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(fontScale, items.size)
-    Surface(color = MaterialTheme.colorScheme.surface) {
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surface) {
         if (isBottomNavigation) {
             if (twoRowBottomNavigation) {
                 Column(Modifier.fillMaxWidth().selectableGroup()) {

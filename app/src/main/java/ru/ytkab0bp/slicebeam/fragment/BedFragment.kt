@@ -80,11 +80,9 @@ import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
-import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
-import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabsPolicy
@@ -122,8 +120,7 @@ var overlayLayout: FrameLayout? = null
 var snackbarsLayout: SnackbarsLayout? = null
 var glView: GLView? = null
 private var rendererAdapter: RendererAdapter? = null
-private var navigationView: ComposeView? = null
-private var menuNavigationThemeRevision by mutableIntStateOf(0)
+private var workspaceThemeRevision by mutableIntStateOf(0)
 private val workspaceController = WorkspaceController()
 private var menuToolsExpanded:Boolean
 get() = workspaceController.toolPanelExpanded
@@ -1424,57 +1421,6 @@ return
 syncCurrentModel()
 rebuildAdaptiveLayout(ctx, portrait)
 }
-private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): ComposeView {
-    return ComposeView(ctx).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-        setContent {
-            key(menuNavigationThemeRevision) {
-                BeamComposeTheme(themeRevision = menuNavigationThemeRevision) {
-                    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
-                    val twoRowNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
-                        fontScale,
-                        WorkspaceDestination.values().size,
-                    )
-                    val compactLabels = !bottomNavigation ||
-                        AdaptiveNavigationPolicy.usesCompactBottomLabels(
-                            ctx.resources.configuration.screenWidthDp,
-                            fontScale,
-                        )
-                            && !twoRowNavigation
-                    val items = WorkspaceDestination.values().map { destination ->
-                        val fullLabel = ctx.getString(destination.navigationTitleRes)
-                        val compactTitleRes = when (destination) {
-                            WorkspaceDestination.PROJECT -> R.string.MenuFileCompact
-                            WorkspaceDestination.MODEL -> R.string.MenuModelCompact
-                            WorkspaceDestination.EDIT -> R.string.MenuToolbarNavigationCompact
-                            WorkspaceDestination.TOOLS -> R.string.MenuOptionsCompact
-                            else -> destination.navigationTitleRes
-                        }
-                        WorkspaceNavigationItem(
-                            slot = destination.ordinal,
-                            label = ctx.getString(if (compactLabels) compactTitleRes else destination.navigationTitleRes),
-                            icon = destination.iconRes,
-                            accessibilityLabel = fullLabel,
-                            compactLabel = if (compactLabels) ctx.getString(compactTitleRes) else null,
-                        )
-                    }
-                    AdaptiveWorkspaceNavigation(
-                        items = items,
-                        selectedSlot = workspaceController.selectedDestinationSlot,
-                        isBottomNavigation = bottomNavigation,
-                        toolsExpanded = !bottomNavigation || menuToolsExpanded,
-                        panelOpenDescription = ctx.getString(R.string.WorkspaceToolsOpen),
-                        panelClosedDescription = ctx.getString(R.string.WorkspaceToolsClosed),
-                        announcePanelState = true,
-                        showPanelToggleIndicator = true,
-                        onSelected = { slot -> onMenuNavigationSelected(ctx, bottomNavigation, slot) },
-                    )
-                }
-            }
-        }
-    }
-}
-
 private fun onMenuNavigationSelected(ctx: Context, bottomNavigation: Boolean, slot: Int) {
     if (slot !in WorkspaceDestination.values().indices || isAnimatingMenu) return
     if (slot == currentMenuSlot) {
@@ -1506,7 +1452,7 @@ private fun setPortraitToolPanelExpanded(expanded: Boolean) {
 /** Keep the model viewport clear; object actions are available from the Edit menu. */
 private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
     listOfNotNull(
-        rendererAdapter, menuView, navigationView, profileStatusText, printerWebButton,
+        rendererAdapter, menuView, profileStatusText, printerWebButton,
         filamentPaletteButton, projectSettingsBar, plateTabsScroll,
     ).forEach(::detachFromParent)
 
@@ -1529,11 +1475,10 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
             }
         }
     }
-    navigationView = createMenuNavigationView(ctx, bottomNavigation = portrait)
     return ComposeView(ctx).apply {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
         setContent {
-            BeamComposeTheme {
+            BeamComposeTheme(themeRevision = workspaceThemeRevision) {
                 WorkspaceShell(
                     portrait = portrait,
                     toolPanelExpanded = menuToolsExpanded,
@@ -1542,12 +1487,11 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         currentMenuSlot == WorkspaceDestination.CAMERA.ordinal ||
                         currentMenuSlot == WorkspaceDestination.TOOLS.ordinal,
                     navigationItemCount = WorkspaceDestination.values().size,
-                    navigationWidthDp = AdaptiveNavigationPolicy.navigationRailWidthDp(
-                        ctx.resources.configuration.fontScale,
-                    ),
                     menuWidthDp = MENU_SIZE_DP,
                     rendererView = rendererAdapter!!,
-                    navigationView = navigationView!!,
+                    selectedNavigationSlot = workspaceController.selectedDestinationSlot,
+                    toolsExpanded = menuToolsExpanded,
+                    onNavigationSelected = { slot -> onMenuNavigationSelected(ctx, portrait, slot) },
                     menuView = menuView,
                     projectSettingsView = projectSettingsBar!!,
                     profileStatusView = profileStatusText!!,
@@ -2326,7 +2270,7 @@ super.onApplyTheme()
 plateTabsThemeRevision++
 profileStatusThemeRevision++
 printerWebThemeRevision++
-menuNavigationThemeRevision++
+workspaceThemeRevision++
 webViewProgressBar?.setIndeterminateTintList(ColorStateList.valueOf(ThemesRepo.getColor(android.R.attr.textColorSecondary)))
 menuView.setBackgroundColor(ThemesRepo.getColor(android.R.attr.windowBackground))
 for (i in 0 until WorkspaceDestination.values().size)

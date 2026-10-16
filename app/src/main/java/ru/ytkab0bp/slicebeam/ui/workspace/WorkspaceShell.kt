@@ -20,11 +20,16 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import androidx.compose.material3.MaterialTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
+import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
+import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
+import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceNavigationItem
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
 
 /** Compose owns the workspace geometry; legacy views are mounted only at explicit boundaries. */
@@ -34,10 +39,11 @@ internal fun WorkspaceShell(
     toolPanelExpanded: Boolean,
     toolPanelNeedsTwoRows: Boolean,
     navigationItemCount: Int,
-    navigationWidthDp: Int,
     menuWidthDp: Int,
     rendererView: View,
-    navigationView: View,
+    selectedNavigationSlot: Int,
+    toolsExpanded: Boolean,
+    onNavigationSelected: (Int) -> Unit,
     menuView: View,
     projectSettingsView: View,
     profileStatusView: View,
@@ -57,6 +63,32 @@ internal fun WorkspaceShell(
         navigationItemCount,
     )
     val background = MaterialTheme.colorScheme.background
+    val twoRowNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
+        LocalDensity.current.fontScale,
+        WorkspaceDestination.values().size,
+    )
+    val compactLabels = !portrait || (
+        AdaptiveNavigationPolicy.usesCompactBottomLabels(
+            LocalConfiguration.current.screenWidthDp,
+            LocalDensity.current.fontScale,
+        ) && !twoRowNavigation
+    )
+    val navigationItems = WorkspaceDestination.values().map { destination ->
+        val compactTitle = when (destination) {
+            WorkspaceDestination.PROJECT -> ru.ytkab0bp.slicebeam.R.string.MenuFileCompact
+            WorkspaceDestination.MODEL -> ru.ytkab0bp.slicebeam.R.string.MenuModelCompact
+            WorkspaceDestination.EDIT -> ru.ytkab0bp.slicebeam.R.string.MenuToolbarNavigationCompact
+            WorkspaceDestination.TOOLS -> ru.ytkab0bp.slicebeam.R.string.MenuOptionsCompact
+            else -> destination.navigationTitleRes
+        }
+        WorkspaceNavigationItem(
+            slot = destination.ordinal,
+            label = stringResource(if (compactLabels) compactTitle else destination.navigationTitleRes),
+            icon = destination.iconRes,
+            accessibilityLabel = stringResource(destination.navigationTitleRes),
+            compactLabel = if (compactLabels) stringResource(compactTitle) else null,
+        )
+    }
     val header: @Composable (Modifier) -> Unit = { modifier ->
         Row(
             modifier = modifier
@@ -99,16 +131,32 @@ internal fun WorkspaceShell(
                 )
                 Spacer(Modifier.fillMaxWidth().height(1.dp).background(background.copy(alpha = 0.35f)))
             }
-            AndroidView(
-                factory = { navigationView },
+            AdaptiveWorkspaceNavigation(
                 modifier = Modifier.fillMaxWidth().height(navigationHeightDp.dp),
+                items = navigationItems,
+                selectedSlot = selectedNavigationSlot,
+                isBottomNavigation = true,
+                toolsExpanded = toolsExpanded,
+                panelOpenDescription = stringResource(ru.ytkab0bp.slicebeam.R.string.WorkspaceToolsOpen),
+                panelClosedDescription = stringResource(ru.ytkab0bp.slicebeam.R.string.WorkspaceToolsClosed),
+                announcePanelState = true,
+                showPanelToggleIndicator = true,
+                onSelected = onNavigationSelected,
             )
         }
       } else {
         Row(Modifier.fillMaxSize()) {
-            AndroidView(
-                factory = { navigationView },
-                modifier = Modifier.width(navigationWidthDp.dp).fillMaxHeight(),
+            AdaptiveWorkspaceNavigation(
+                modifier = Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale).dp).fillMaxHeight(),
+                items = navigationItems,
+                selectedSlot = selectedNavigationSlot,
+                isBottomNavigation = false,
+                toolsExpanded = true,
+                panelOpenDescription = stringResource(ru.ytkab0bp.slicebeam.R.string.WorkspaceToolsOpen),
+                panelClosedDescription = stringResource(ru.ytkab0bp.slicebeam.R.string.WorkspaceToolsClosed),
+                announcePanelState = true,
+                showPanelToggleIndicator = false,
+                onSelected = onNavigationSelected,
             )
             Spacer(Modifier.width(1.dp).fillMaxHeight().background(background.copy(alpha = 0.35f)))
             AndroidView(
