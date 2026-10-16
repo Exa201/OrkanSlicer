@@ -71,5 +71,5 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Branch: `codex/rinkhals-safe-start-audit`.
 - Latest code commit: `df0e6bd83f16f3a483e3abbb8cb99455351855df` (`Fix measurement panel GL cleanup`); APK built from this exact code commit. Documentation is being finalized separately.
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; never stage it.
-- PR #2 is open, unmerged, and targets `master`. GitHub currently reports `OPEN` and `CLEAN` for head `codex/rinkhals-safe-start-audit`. No merge or release was performed. Push the new commit and refresh the PR record.
+- PR #2 is open, unmerged, and targets `master`. Code and verification documentation have been pushed to `codex/rinkhals-safe-start-audit`; the latest GitHub check reported `OPEN` and `CLEAN`. No merge or release was performed.
 - Next implementation task: continue the remaining active GL-tool and global menu route audit, then run responsive/accessibility configurations. Expand actual filament and plate UI interaction coverage where the existing Honor harness allows. Keep generic dialog hosts unchanged until an IME-aware device test is in place. Multi-plate project persistence remains separate and incomplete. Do not claim the overall migration complete.
