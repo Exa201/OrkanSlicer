@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.258\n\n• Statusmeldungen und Ladeanzeigen werden jetzt direkt von der Compose-Workspace verwaltet; der zusätzliche Android-Overlay-Container entfällt.\n• Getaggte Fortschrittsmeldungen, Ablaufzeiten, Wischverhalten und Aktionsbuttons bleiben erhalten.",
-  "en": "OrkanSlicer 0.8.258\n\n• Status messages and progress indicators are now managed by the Compose workspace; the extra Android overlay container is removed.\n• Tagged progress replacement, expiry, swipe behavior, and action buttons are preserved.",
-  "ru": "OrkanSlicer 0.8.258\n\n• Уведомления и индикаторы выполнения теперь управляются Compose workspace; дополнительный Android overlay удалён.\n• Сохранены замена сообщений по тегу, таймеры, свайп и кнопки действий."
+  "de": "OrkanSlicer 0.8.259\n\n• Schnell-Slice und Kalibrierungsfehler nutzen jetzt die Compose-Workspace-Dialogsteuerung.\n• Ungültige Profilwerte werden vor dem Speichern abgewiesen; Abbrechen und Zurück starten keinen Slice.",
+  "en": "OrkanSlicer 0.8.259\n\n• Quick Slice and calibration load errors now use the Compose workspace dialog host.\n• Invalid profile values are rejected before saving; Cancel and Back do not start slicing.",
+  "ru": "OrkanSlicer 0.8.259\n\n• Быстрая нарезка и ошибки загрузки калибровочных моделей теперь используют диалоги Compose workspace.\n• Неверные значения профиля отклоняются до сохранения; отмена и кнопка «Назад» не запускают нарезку."
 }

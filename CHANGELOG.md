@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.259 (alpha)
+
+- Move Quick Slice into the exclusive Compose workspace dialog host; keep all profile validation and persistence behind the explicit Slice action.
+- Use the workspace message dialog for calibration-model load errors.
+- Test invalid quick-slice values, corrected values, Cancel, and Android Back without starting a slice.
+
 ## 0.8.258 (alpha)
 
 - Move snackbar state and rendering into the Compose workspace instead of attaching a separate Android overlay view.
