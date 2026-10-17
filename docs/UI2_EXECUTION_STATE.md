@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — Converter results moved into workspace Compose (0.8.283 / 2026-10-17)
+
+- Migrated generated-model decisions, paired lithophane/LED-base actions, and raster-output preview to Compose dialogs in the exclusive workspace host. Preserved load-one/load-both, save one/both, delayed sequential save picker, discard/cache deletion, load callback cleanup, and raster bitmap disposal. Native generation and file pickers are unchanged. The Android dialog remains only as a no-workspace compatibility fallback.
+- Added four Compose component tests for load, pair save/load, and bitmap lifecycle, plus an activity-level integration test that opens the actual workspace route and verifies discard deletes the generated cache output. Full Honor connected instrumentation: 115 test entries, 3 private multi-color fixture cases skipped, 0 failures/errors. Debug unit 552/552 and Slice unit 552/552; both zero failures/errors/skips. Full `:app:assembleDebug` succeeded.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_1b74bb07bb.apk`, 157,179,676 bytes, SHA-256 `2E09BC715F8A59EA2C9BD3DE332D01178D1E7CCD5B6C103FBBD4F5A7FEA5E2E6`. BuildConfig commit `1b74bb07bb`.
+- Installed on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile` reports 0.8.283 / code 318. Cold launch resumed `ru.ytkab0bp.slicebeam.MainActivity`; fresh 10,000-line logcat scan contained no fatal exception, ANR, OOM, or fatal signal. Emulator remains offline. No screenshots or printer actions were used.
+- Code commit `1b74bb07bbb7bced0d306c543a1ecb75e25c0972`; documentation commit pending. Branch push and PR #2 update pending.
+- Remaining converter UI: the long parameter/mode form, image-tone editor, Android progress alert, and Android save/create-document fallback. Continue migrating those as cohesive routes while preserving native processing. Multi-plate persistence remains incomplete; retain the active-plate-only export warning. Overall UI 2.0 remains in progress.
+
 ## Current continuation — Image-converter format choice moved to workspace Compose (0.8.282 / 2026-10-17)
 
 - Replaced the active image-to-STL source/output format picker in `MakerFragment` and the workspace `ConverterMenu` with `ImageFormatPairDialog`, hosted by the existing exclusive workspace Compose dialog host. Format indices still feed the same MIME-specific Android document picker, detected-format validation, and conversion pipeline. The platform picker and native conversion/preview/save operations are unchanged; the Android-view picker remains only as a compatibility fallback when no workspace host is available.
