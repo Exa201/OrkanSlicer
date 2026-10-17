@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — 0.8.253 (2026-10-17)
+
+- Code commit: `cecb2461283a07519cb56befdb282974d46cbd20` (`Improve Maker accessibility and touch targets`). Maker section headers now expose distinct localized TalkBack descriptions for expandable groups versus single-action launchers; action rows and headings have a 48 dp minimum target.
+- Added `MakerComposeDeviceTest` exercising expand/collapse, actual action callbacks, semantics, and 48 dp bounds at 320 dp width and 150% Compose font scale. Targeted Honor run: 2/2 passed.
+- Debug and Slice unit suites: 549/549 each, 0 failures/errors/skips. Full Honor `:app:connectedSliceTestAndroidTest`: 60 XML cases, 0 failures/errors, 3 private multi-color fixtures skipped (57 executed passed); emulator `emulator-5554` remains offline.
+- `:app:assembleDebug` passed from code commit `cecb246`. APK `app/build/outputs/apk/debug/OrkanSlicer_cecb246128.apk`, 157,040,681 bytes; SHA-256 `28CB1051B6630442F41963A027D5AB2B1B0639DEB61CFD4E338E7CAB766EF8CE`.
+- Installed and launched on Honor PTP-N49 / Android 16 using verified package `com.codemastercody3d.orcaslicermobile`; version `0.8.253` / code `288`; `ru.ytkab0bp.slicebeam.MainActivity` top-resumed. Fresh logcat sample had no crash/ANR/OOM/fatal-signal markers. SliceBeam was not used. No print job was started.
+- UI 2.0 remains incomplete. Next: audit and test global settings/profile menu actions and remaining legacy entry points; extend responsive/accessibility coverage beyond the Maker test. Keep the BedFragment generic dialog host unchanged until IME-aware Back coverage exists. Full multi-plate persistence remains separate and incomplete; retain the active-plate export warning.
+- Branch `codex/rinkhals-safe-start-audit`; PR #2 remains open and unmerged. Preserve `.codex-remote-attachments/`.
+
 ## Latest continuation — 0.8.252 (2026-10-17)
 
 - Code commit: `319fdc041ca86a992cf9e6f529e5f8b4a611255d` (`Require Compose for all workspace menus`). The six `WorkspaceDestination` menu routes now render through a Compose-only `WorkspaceMenuHost`; its Android View fallback and BedFragment's menu-view factory were removed. Destination creation is exhaustive, and the old silent default-to-Project route was removed. The GL renderer adapter and tool-route compatibility boundary remain unchanged.
