@@ -4,10 +4,13 @@ import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,6 +48,33 @@ class SliceResultWorkspaceDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
 
         assertFalse("Closing result tools must not finish the app", activity.isFinishing)
+    }
+
+    @Test
+    fun printerUploadProgressUsesBlockingWorkspaceDialogAndTracksStatus() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        lateinit var progress: ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
+
+        activity.runOnUiThread {
+            progress = requireNotNull(bed.showPrinterUploadProgress("Preparing a validated upload"))
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isPrinterUploadProgressAttached() }
+        compose.onNodeWithTag("printer-upload-progress-title").assertIsDisplayed()
+        compose.onNodeWithTag("printer-upload-progress-indicator").assertIsDisplayed()
+        compose.onNodeWithText("Preparing a validated upload").assertIsDisplayed()
+
+        progress.setProgress(37, "Uploading 37%")
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Uploading 37%").fetchSemanticsNodes().isNotEmpty()
+        }
+        activity.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        assertTrue("Upload progress must stay visible until the network operation resolves", bed.isPrinterUploadProgressAttached())
+        assertFalse("Back during upload must not exit the workspace", activity.isFinishing)
+
+        activity.runOnUiThread { bed.dismissPrinterUploadProgress(progress) }
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isPrinterUploadProgressAttached() }
     }
 
     private fun createInitializedActivityRule() = run {

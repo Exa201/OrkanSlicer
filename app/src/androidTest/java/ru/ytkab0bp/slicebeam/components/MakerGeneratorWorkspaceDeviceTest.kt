@@ -84,6 +84,21 @@ class MakerGeneratorWorkspaceDeviceTest {
     }
 
     @Test
+    fun activityFileOperationErrorsUseWorkspaceComposeAndDismissWithOk() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+
+        activity.runOnUiThread {
+            activity.showFileOperationError("Workspace operation error", "The operation could not be completed")
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText("Workspace operation error").assertIsDisplayed()
+        compose.onNodeWithText("The operation could not be completed").assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+    }
+
+    @Test
     fun converterProgressUsesWorkspaceAndCompletesWithoutCancelingTheJob() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

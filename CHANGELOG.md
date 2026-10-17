@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.288 (alpha)
+
+- Replace the printer-upload `ProgressDialog` with a non-cancelable workspace Compose panel showing preparation, upload percentage, and printer-status checks.
+- Keep upload reservation, G-code validation, ACE verification, server callbacks, and the existing single-attempt print-start safety flow unchanged.
+- Route AI-generator failures through the shared workspace error dialog and add Honor coverage for error dismissal and upload progress/back behavior.
+
 ## 0.8.287 (alpha)
 
 - Move the image-to-STL/lithophane parameter form into the workspace Compose dialog, including target/mode selection, mode-specific dimensions, resolution, wrap/wave controls, source preview, and image-editor handoff.

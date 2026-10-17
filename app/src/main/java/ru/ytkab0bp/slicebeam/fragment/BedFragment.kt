@@ -46,6 +46,7 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.ModelContextMenuDialog
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.components.SliceProgressDialog
+import ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
@@ -116,6 +117,7 @@ private var rendererAdapter: RendererAdapter? = null
 private var workspaceThemeRevision by mutableIntStateOf(0)
 private val workspaceController = WorkspaceController()
 private var activeSliceProgressDialog by mutableStateOf<SliceProgressDialog?>(null)
+private var activePrinterUploadProgress: PrinterUploadProgressDialog? = null
 private var menuToolsExpanded:Boolean
 get() = workspaceController.toolPanelExpanded
 set(value) { workspaceController.toolPanelExpanded = value }
@@ -805,6 +807,31 @@ private fun showSliceProgress(context: Context) {
         },
     )
 }
+internal fun showPrinterUploadProgress(initialMessage: String): PrinterUploadProgressDialog? {
+    val context = getContext() ?: return null
+    workspaceController.dismissActivePanel()
+    activeWorkspaceComposeTool?.dismiss()
+    val progress = PrinterUploadProgressDialog(context, initialMessage)
+    activePrinterUploadProgress = progress
+    workspaceController.activatePanel(
+        panel = WorkspaceOverlayPanel.PRINTER_UPLOAD_PROGRESS,
+        content = { progress.Content() },
+        dismiss = {
+            progress.detachFromWorkspace()
+            if (activePrinterUploadProgress === progress) activePrinterUploadProgress = null
+        },
+    )
+    return progress
+}
+internal fun dismissPrinterUploadProgress(progress: PrinterUploadProgressDialog) {
+    progress.detachFromWorkspace()
+    if (activePrinterUploadProgress === progress) {
+        activePrinterUploadProgress = null
+        workspaceController.clearPanel(WorkspaceOverlayPanel.PRINTER_UPLOAD_PROGRESS)
+    }
+}
+internal fun isPrinterUploadProgressAttached(): Boolean =
+    workspaceController.activePanel == WorkspaceOverlayPanel.PRINTER_UPLOAD_PROGRESS
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
 val currentGlView = glView
@@ -946,6 +973,7 @@ val ctx = getContext() ?: return@postOnMainThread
 selectMenu(WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
+if (workspaceController.activePanel == WorkspaceOverlayPanel.PRINTER_UPLOAD_PROGRESS) return true
 if (workspaceController.dismissActivePanel()) return true
 if (isEmbossMode)
 {
@@ -988,6 +1016,9 @@ override fun onDestroy() {
 super.onDestroy()
 snackbarController.clear()
 workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
+if (workspaceController.activePanel == WorkspaceOverlayPanel.PRINTER_UPLOAD_PROGRESS) {
+    workspaceController.dismissActivePanel()
+}
 if (workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG) {
     workspaceController.dismissActivePanel()
 }

@@ -1187,11 +1187,9 @@ IS_GENERATING_AI_MODEL = false
 }
 override fun onException(e:Exception) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(processTag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this@MainActivity)
-.setTitle(R.string.MenuFileAIGeneratorError)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({
+    showFileOperationError(getString(R.string.MenuFileAIGeneratorError), e.toString())
+})
 IS_GENERATING_AI_MODEL = false
 }
 })
