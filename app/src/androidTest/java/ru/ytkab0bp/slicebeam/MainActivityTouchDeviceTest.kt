@@ -21,6 +21,7 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenuItems
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenuItems
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceUploadController
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -165,6 +166,29 @@ class MainActivityTouchDeviceTest {
                 assertSameModelSelection(bed, model)
                 assertModelSelectedWithoutModal(activity)
             }
+
+            val objectCountBeforeDeleteCancel = model.objectsCount
+            scenario.onActivity {
+                val menuItems = ModelMenuItems(requireNotNull(bed)) {}.createItems()
+                val deleteSelected = requireNotNull(menuItems.firstOrNull {
+                    it.titleRes == R.string.ModelMenuDeleteSelected
+                })
+                assertTrue("Delete selected should be available for the selected object", deleteSelected.enabled)
+                deleteSelected.onClick(requireNotNull(viewport))
+                assertTrue("Model menu delete confirmation should use the Compose workspace dialog",
+                    requireNotNull(bed).isWorkspaceMessageDialogAttached())
+            }
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue("Back cancellation must keep the workspace active", !activity.isFinishing)
+                assertFalse("Back should cancel model deletion", requireNotNull(bed).isWorkspaceMessageDialogAttached())
+                assertSameModelSelection(bed, model)
+                assertEquals("Cancel must preserve all model objects", objectCountBeforeDeleteCancel,
+                    requireNotNull(bed).currentModel?.objectsCount)
+            }
+            SystemClock.sleep(350L)
 
             val downTime = SystemClock.uptimeMillis()
             scenario.onActivity { dispatch(glView, MotionEvent.ACTION_DOWN, hit.first, hit.second, downTime, downTime) }
