@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.273 (alpha)
+
+- Move print preparation and its ACE/material warnings into the exclusive Compose workspace dialog host.
+- Preserve printer-change re-slicing, validation, upload-only, and the separate firmware-checked print confirmation; add Honor coverage proving Cancel does not dispatch and upload-only cannot request printing.
+
 ## 0.8.272 (alpha)
 
 - Show the root-workspace app-exit confirmation in the exclusive Compose dialog host, retaining the native fallback outside an active Bed workspace.

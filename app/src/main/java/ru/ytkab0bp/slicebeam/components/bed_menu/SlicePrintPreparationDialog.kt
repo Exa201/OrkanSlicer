@@ -1,9 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.content.Context
-import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,23 +24,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
+
+internal sealed interface PrintPreparationWarning {
+    data class UnavailableTool(val tool: Int) : PrintPreparationWarning
+    data class MaterialMismatch(val tool: Int, val source: String, val slot: Int, val loaded: String) : PrintPreparationWarning
+    data class EmptyAceSlots(val slots: List<Int>) : PrintPreparationWarning
+}
 
 /** Shows printer, auto-leveling and ACE slot checks before sending a sliced job. */
 object SlicePrintPreparationDialog {
@@ -75,71 +77,7 @@ object SlicePrintPreparationDialog {
                 SlicePreparationTools.isSendTarget(candidate.get("host_type"), candidate.get("print_host"))
             }
         }.getOrDefault(listOf(printer))
-        val selectedPrinter = mutableStateOf(printer)
-        val printerChanged = mutableStateOf(false)
-        lateinit var dialog: AlertDialog
-
-        val composeView = ComposeView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme {
-                    val currentPrinter = selectedPrinter.value
-                    val mappingSummary = remember(currentPrinter.title) {
-                        formatToolMapping(context, currentPrinter.title.orEmpty(), firstToolUse)
-                    }
-                    val emptyAceSlots = remember(currentPrinter.title) {
-                        val title = currentPrinter.title.orEmpty()
-                        SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
-                            activeTools,
-                            gcodeToolCount,
-                            MmuFilamentSync.loadedGates(title),
-                        )
-                    }
-                    PrintPreparationContent(
-                        jobName = jobName,
-                        printer = currentPrinter,
-                        availablePrinters = availablePrinters,
-                        resliceRequired = printerChanged.value,
-                        mappingSummary = mappingSummary.takeIf {
-                            !printerChanged.value &&
-                            isAnycubicKobra(currentPrinter) && activeTools.isNotEmpty()
-                        },
-                        emptyAceSlots = emptyAceSlots.takeIf {
-                            !printerChanged.value && isAnycubicKobra(currentPrinter) && it.isNotEmpty()
-                        },
-                        pressureAdvance = pressureAdvance,
-                        onSelectPrinter = { chosen ->
-                            selectedPrinter.value = chosen
-                            printerChanged.value = SlicePreparationTools.didPrinterChange(
-                                printer.title,
-                                chosen.title,
-                            )
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setText(
-                                if (printerChanged.value) R.string.PrintPrepareResliceButton
-                                else if (print) R.string.MenuSliceSendToPrinterAndPrint
-                                else R.string.MenuSliceSendToPrinter,
-                            )
-                        },
-                    )
-                }
-            }
-        }
-        dialog = BeamAlertDialogBuilder(context)
-            .setTitle(R.string.PrintPrepareTitle)
-            .setView(composeView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(
-                if (print) R.string.MenuSliceSendToPrinterAndPrint else R.string.MenuSliceSendToPrinter,
-                null,
-            )
-            .show()
-
-        fun sendChecked(targetPrinter: ConfigObject, targetType: String, targetHost: String,
-                        targetApiKey: String?) {
+        fun warningFor(targetPrinter: ConfigObject): PrintPreparationWarning? {
             if (isAnycubicKobra(targetPrinter) && activeTools.isNotEmpty()) {
                 val title = targetPrinter.title.orEmpty()
                 val routing = AnycubicAceRoutingPolicy.resolve(
@@ -150,28 +88,16 @@ object SlicePrintPreparationDialog {
                 )
                 val invalidTool = routing.unavailableTool
                 if (invalidTool != null) {
-                    BeamAlertDialogBuilder(context)
-                        .setTitle(R.string.MmuAssignmentTitle)
-                        .setMessage(context.getString(R.string.MmuDirectSlotUnavailable,
-                            invalidTool, invalidTool + 1))
-                        .setPositiveButton(android.R.string.ok, null).show()
-                    return
+                    return PrintPreparationWarning.UnavailableTool(invalidTool)
                 }
             }
             if (print && isAnycubicKobra(targetPrinter)) {
                 val title = targetPrinter.title.orEmpty()
                 val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(), activeTools, sourceFilamentTypes)
                 if (mismatch != null) {
-                    BeamAlertDialogBuilder(context)
-                        .setTitle(R.string.PrintPrepareMaterialMismatchTitle)
-                        .setMessage(context.getString(R.string.PrintPrepareMaterialMismatch,
-                            mismatch.first, mismatch.second, mismatch.third, mismatch.fourth))
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .setPositiveButton(R.string.PrintPrepareUploadOnly) { _, _ ->
-                            dialog.dismiss()
-                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, false)
-                        }.show()
-                    return
+                    return PrintPreparationWarning.MaterialMismatch(
+                        mismatch.first, mismatch.second, mismatch.third, mismatch.fourth,
+                    )
                 }
                 val emptyAceSlots = SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
                     activeTools,
@@ -179,46 +105,63 @@ object SlicePrintPreparationDialog {
                     MmuFilamentSync.loadedGates(title),
                 )
                 if (emptyAceSlots.isNotEmpty()) {
-                    BeamAlertDialogBuilder(context)
-                        .setTitle(R.string.PrintPrepareAceGapTitle)
-                        .setMessage(context.getString(R.string.PrintPrepareAceGapWarning,
-                            emptyAceSlots.joinToString(", ")))
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .setNeutralButton(R.string.PrintPrepareUploadOnly) { _, _ ->
-                            dialog.dismiss()
-                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, false)
-                        }
-                        .setPositiveButton(R.string.PrintPrepareAceGapFirmwareChecked) { _, _ ->
-                            dialog.dismiss()
-                            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, true)
-                        }.show()
-                    return
+                    return PrintPreparationWarning.EmptyAceSlots(emptyAceSlots.toList())
                 }
             }
-            dialog.dismiss()
-            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, print)
+            return null
         }
 
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val targetPrinter = selectedPrinter.value
+        fun send(targetPrinter: ConfigObject, shouldPrint: Boolean) {
             val targetType = targetPrinter.get("host_type") ?: "octoprint"
-            val targetHost = targetPrinter.get("print_host") ?: return@setOnClickListener
+            val targetHost = targetPrinter.get("print_host") ?: return
             val targetApiKey = targetPrinter.get("printhost_apikey")
-            when (SlicePreparationTools.activateChangedPrinter(printer.title, targetPrinter.title) {
-                activateProfile.activate(targetPrinter)
-            }) {
-                SlicePreparationTools.PrinterActivationResult.FAILED -> return@setOnClickListener
-                SlicePreparationTools.PrinterActivationResult.ACTIVATED -> {
-                    dialog.dismiss()
-                    Toast.makeText(context, R.string.PrintPrepareReslicing, Toast.LENGTH_LONG).show()
-                    fragment.startSlicing {
-                        reopenAfterReslice(targetPrinter)
+            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, shouldPrint)
+        }
+
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            PrintPreparationDialog(
+                jobName = jobName,
+                initialPrinter = printer,
+                availablePrinters = availablePrinters,
+                print = print,
+                gcodeToolCount = gcodeToolCount,
+                activeTools = activeTools,
+                firstToolUse = firstToolUse,
+                sourceFilamentTypes = sourceFilamentTypes,
+                pressureAdvance = pressureAdvance,
+                onDismiss = dismiss,
+                onSubmit = { targetPrinter, printerChanged, showWarning ->
+                    val targetHost = targetPrinter.get("print_host") ?: return@PrintPreparationDialog
+                    if (printerChanged) {
+                        when (SlicePreparationTools.activateChangedPrinter(printer.title, targetPrinter.title) {
+                            activateProfile.activate(targetPrinter)
+                        }) {
+                            SlicePreparationTools.PrinterActivationResult.FAILED -> return@PrintPreparationDialog
+                            SlicePreparationTools.PrinterActivationResult.ACTIVATED -> {
+                                dismiss()
+                                Toast.makeText(context, R.string.PrintPrepareReslicing, Toast.LENGTH_LONG).show()
+                                fragment.startSlicing { reopenAfterReslice(targetPrinter) }
+                                return@PrintPreparationDialog
+                            }
+                            SlicePreparationTools.PrinterActivationResult.UNCHANGED -> Unit
+                        }
                     }
-                    return@setOnClickListener
-                }
-                SlicePreparationTools.PrinterActivationResult.UNCHANGED -> Unit
-            }
-            sendChecked(targetPrinter, targetType, targetHost, targetApiKey)
+                    val warning = warningFor(targetPrinter)
+                    if (warning != null) showWarning(warning)
+                    else {
+                        dismiss()
+                        send(targetPrinter, print)
+                    }
+                },
+                onWarningUploadOnly = { targetPrinter ->
+                    dismiss()
+                    send(targetPrinter, shouldPrint = false)
+                },
+                onWarningFirmwareChecked = { targetPrinter ->
+                    dismiss()
+                    send(targetPrinter, shouldPrint = true)
+                },
+            )
         }
     }
 
@@ -238,8 +181,8 @@ object SlicePrintPreparationDialog {
         return null
     }
 
-    private fun formatToolMapping(context: Context, printerTitle: String,
-                                  firstToolUse: IntArray): String {
+    internal fun formatToolMapping(context: Context, printerTitle: String,
+                                   firstToolUse: IntArray): String {
         return buildString {
             append(context.getString(R.string.PrintPrepareToolOrder,
                 firstToolUse.joinToString(" → ") { tool -> "T$tool" }))
@@ -249,6 +192,168 @@ object SlicePrintPreparationDialog {
             }
         }
     }
+}
+
+@Composable
+private fun PrintPreparationDialog(
+    jobName: String,
+    initialPrinter: ConfigObject,
+    availablePrinters: List<ConfigObject>,
+    print: Boolean,
+    gcodeToolCount: Int,
+    activeTools: IntArray,
+    firstToolUse: IntArray,
+    sourceFilamentTypes: List<String>,
+    pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
+    onDismiss: () -> Unit,
+    onSubmit: (ConfigObject, Boolean, (PrintPreparationWarning) -> Unit) -> Unit,
+    onWarningUploadOnly: (ConfigObject) -> Unit,
+    onWarningFirmwareChecked: (ConfigObject) -> Unit,
+) {
+    var printer by remember(initialPrinter) { mutableStateOf(initialPrinter) }
+    var resliceRequired by remember(initialPrinter.title) { mutableStateOf(false) }
+    var warning by remember { mutableStateOf<PrintPreparationWarning?>(null) }
+    val context = LocalContext.current
+    val mappingSummary = remember(context, printer.title) {
+        SlicePrintPreparationDialog.formatToolMapping(
+            context,
+            printer.title.orEmpty(),
+            firstToolUse,
+        )
+    }
+    val emptyAceSlots = remember(printer.title) {
+        SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
+            activeTools,
+            gcodeToolCount,
+            MmuFilamentSync.loadedGates(printer.title.orEmpty()),
+        )
+    }
+    ComposeAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.PrintPrepareTitle), modifier = Modifier.testTag("slice-preparation-title")) },
+        text = {
+            PrintPreparationContent(
+                jobName = jobName,
+                printer = printer,
+                availablePrinters = availablePrinters,
+                resliceRequired = resliceRequired,
+                mappingSummary = mappingSummary.takeIf {
+                    !resliceRequired && SlicePrintPreparationDialog.isAnycubicKobra(printer) && activeTools.isNotEmpty()
+                },
+                emptyAceSlots = emptyAceSlots.takeIf {
+                    !resliceRequired && SlicePrintPreparationDialog.isAnycubicKobra(printer) && it.isNotEmpty()
+                },
+                pressureAdvance = pressureAdvance,
+                onSelectPrinter = { chosen ->
+                    printer = chosen
+                    resliceRequired = SlicePreparationTools.didPrinterChange(
+                        initialPrinter.title,
+                        chosen.title,
+                    )
+                },
+            )
+        },
+        confirmButton = {
+            val label = when {
+                resliceRequired -> R.string.PrintPrepareResliceButton
+                print -> R.string.MenuSliceSendToPrinterAndPrint
+                else -> R.string.MenuSliceSendToPrinter
+            }
+            TextButton(
+                onClick = { onSubmit(printer, resliceRequired) { warning = it } },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("slice-preparation-confirm"),
+            ) { Text(stringResource(label)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp).testTag("slice-preparation-cancel")) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
+    warning?.let { activeWarning ->
+        PrintPreparationWarningDialog(
+            warning = activeWarning,
+            onDismiss = { warning = null },
+            onAcknowledge = { warning = null },
+            onUploadOnly = {
+                warning = null
+                onWarningUploadOnly(printer)
+            },
+            onFirmwareChecked = {
+                warning = null
+                onWarningFirmwareChecked(printer)
+            },
+        )
+    }
+}
+
+@Composable
+internal fun PrintPreparationWarningDialog(
+    warning: PrintPreparationWarning,
+    onDismiss: () -> Unit,
+    onAcknowledge: () -> Unit,
+    onUploadOnly: () -> Unit,
+    onFirmwareChecked: () -> Unit,
+) {
+    val title = when (warning) {
+        is PrintPreparationWarning.UnavailableTool -> R.string.MmuAssignmentTitle
+        is PrintPreparationWarning.MaterialMismatch -> R.string.PrintPrepareMaterialMismatchTitle
+        is PrintPreparationWarning.EmptyAceSlots -> R.string.PrintPrepareAceGapTitle
+    }
+    val message = when (warning) {
+        is PrintPreparationWarning.UnavailableTool -> stringResource(
+            R.string.MmuDirectSlotUnavailable, warning.tool, warning.tool + 1,
+        )
+        is PrintPreparationWarning.MaterialMismatch -> stringResource(
+            R.string.PrintPrepareMaterialMismatch, warning.tool, warning.source, warning.slot, warning.loaded,
+        )
+        is PrintPreparationWarning.EmptyAceSlots -> stringResource(
+            R.string.PrintPrepareAceGapWarning, warning.slots.joinToString(", "),
+        )
+    }
+    ComposeAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(title)) },
+        text = { Text(message) },
+        confirmButton = {
+            val label = when (warning) {
+                is PrintPreparationWarning.UnavailableTool -> android.R.string.ok
+                is PrintPreparationWarning.MaterialMismatch -> R.string.PrintPrepareUploadOnly
+                is PrintPreparationWarning.EmptyAceSlots -> R.string.PrintPrepareAceGapFirmwareChecked
+            }
+            TextButton(
+                onClick = when (warning) {
+                    is PrintPreparationWarning.UnavailableTool -> onAcknowledge
+                    is PrintPreparationWarning.MaterialMismatch -> onUploadOnly
+                    is PrintPreparationWarning.EmptyAceSlots -> onFirmwareChecked
+                },
+                modifier = Modifier.heightIn(min = 48.dp).then(
+                    if (warning is PrintPreparationWarning.EmptyAceSlots) Modifier.testTag("ace-gap-confirm-print")
+                    else Modifier,
+                ),
+            ) { Text(stringResource(label)) }
+        },
+        dismissButton = when (warning) {
+            is PrintPreparationWarning.UnavailableTool -> null
+            is PrintPreparationWarning.MaterialMismatch -> {
+                { TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(android.R.string.cancel))
+                } }
+            }
+            is PrintPreparationWarning.EmptyAceSlots -> {
+                {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp).testTag("ace-gap-cancel")) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
+                        TextButton(onClick = onUploadOnly, modifier = Modifier.heightIn(min = 48.dp).testTag("ace-gap-upload-only")) {
+                            Text(stringResource(R.string.PrintPrepareUploadOnly))
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable
