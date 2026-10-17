@@ -67,6 +67,7 @@ internal fun WorkspaceShell(
     modePanelFraction: Float?,
     onModePanelDismiss: () -> Unit,
     transientPanelContent: (@Composable () -> Unit)?,
+    snackbarController: WorkspaceSnackbarController,
 ) {
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
         toolPanelNeedsTwoRows,
@@ -198,6 +199,15 @@ internal fun WorkspaceShell(
           // Dialog window instead of reusing its back callback for the new content.
           key(panelContent) { panelContent() }
       }
+      WorkspaceSnackbarHost(
+          controller = snackbarController,
+          portrait = portrait,
+          toolPanelExpanded = toolPanelExpanded,
+          toolPanelHeightDp = toolPanelHeightDp,
+          navigationHeightDp = navigationHeightDp,
+          startInsetDp = if (portrait) 8 else
+              AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale) + menuWidthDp + 8,
+      )
     }
 }
 

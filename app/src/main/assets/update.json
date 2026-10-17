@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.257\n\n• Allgemeine Workspace-Dialoge laufen jetzt im exklusiven Compose-Panel der WorkspaceShell statt in einem zusätzlichen Android-View-Overlay.\n• Das Duplizieren-Zahlenfeld fokussiert sich beim Öffnen; Zurück blendet zuerst die Tastatur aus und schließt danach den Dialog.",
-  "en": "OrkanSlicer 0.8.257\n\n• General workspace dialogs now run in WorkspaceShell's exclusive Compose panel instead of an extra Android View overlay.\n• The duplicate-count field receives focus when opened; Back hides the keyboard before closing the dialog.",
-  "ru": "OrkanSlicer 0.8.257\n\n• Общие диалоги рабочего пространства теперь отображаются в эксклюзивной панели Compose WorkspaceShell вместо дополнительного Android View overlay.\n• При открытии поле количества копий получает фокус; кнопка «Назад» сначала скрывает клавиатуру, затем закрывает диалог."
+  "de": "OrkanSlicer 0.8.258\n\n• Statusmeldungen und Ladeanzeigen werden jetzt direkt von der Compose-Workspace verwaltet; der zusätzliche Android-Overlay-Container entfällt.\n• Getaggte Fortschrittsmeldungen, Ablaufzeiten, Wischverhalten und Aktionsbuttons bleiben erhalten.",
+  "en": "OrkanSlicer 0.8.258\n\n• Status messages and progress indicators are now managed by the Compose workspace; the extra Android overlay container is removed.\n• Tagged progress replacement, expiry, swipe behavior, and action buttons are preserved.",
+  "ru": "OrkanSlicer 0.8.258\n\n• Уведомления и индикаторы выполнения теперь управляются Compose workspace; дополнительный Android overlay удалён.\n• Сохранены замена сообщений по тегу, таймеры, свайп и кнопки действий."
 }

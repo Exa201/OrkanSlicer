@@ -80,7 +80,6 @@ import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
-import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceToolPanelPolicy
 import ru.ytkab0bp.slicebeam.ui.workspace.MeasureModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabsPolicy
@@ -91,6 +90,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebCloseButton
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
@@ -115,7 +115,7 @@ import ru.ytkab0bp.slicebeam.view.EmbossModeController
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 class BedFragment:Fragment() {
 var overlayLayout: FrameLayout? = null
-var snackbarsLayout: SnackbarsLayout? = null
+private val snackbarController = WorkspaceSnackbarController()
 var glView: GLView? = null
 private var rendererAdapter: RendererAdapter? = null
 private var workspaceThemeRevision by mutableIntStateOf(0)
@@ -525,7 +525,7 @@ s.lifetime = 0
 s.buttonTitle = e.buttonTitle
 s.buttonClick = e.buttonClick
 }
-snackbarsLayout!!.show(s)
+snackbarController.show(s)
 }
 @EventHandler(runOnMainThread = true)
 fun onTemporaryProjectSettingsChanged(event: TemporaryProjectSettingsChangedEvent) {
@@ -548,7 +548,7 @@ glView?.requestRender()
 }
 @EventHandler(runOnMainThread = true)
 fun onDismissSnackbar(e:NeedDismissSnackbarEvent) {
-snackbarsLayout!!.dismiss(e.tag)
+snackbarController.dismiss(e.tag)
 }
 private fun showPrimeTowerPositionDialogForCurrentPlate() {
 val context = getContext() ?: return
@@ -947,8 +947,7 @@ glView!!.requestRender() })
 tempFileName = gCodeResult!!.getRecommendedName()
 tempExportingFile = f
 val ctx = getContext() ?: return@postOnMainThread
-val portrait = isPortraitWindow(ctx)
-selectMenu(portrait, WorkspaceDestination.SLICE.ordinal) })
+selectMenu(WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
 if (workspaceController.dismissActivePanel()) return true
@@ -991,6 +990,7 @@ return super.onBackPressed()
 }
 override fun onDestroy() {
 super.onDestroy()
+snackbarController.clear()
 workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
 if (workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG) {
     workspaceController.dismissActivePanel()
@@ -1305,10 +1305,6 @@ topMargin = rightMargin
 contentView = createWorkspaceContent(ctx, portrait)
 overlayLayout!!.addView(contentView, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-snackbarsLayout = SnackbarsLayout(ctx)
-overlayLayout!!.addView(snackbarsLayout, FrameLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-updateAdaptiveOverlayMargins(portrait)
 overlayLayout!!.addView(wfl, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 return overlayLayout!!
@@ -1323,7 +1319,6 @@ val fontScaleChanged = fontScale != workspaceFontScale
 workspaceFontScale = fontScale
 if (portrait == compactPortraitLayout && !fontScaleChanged) {
     filamentPaletteRevision++
-    updateAdaptiveOverlayMargins(portrait)
     return
 }
 if (isAnimatingMenu)
@@ -1355,12 +1350,11 @@ private fun onMenuNavigationSelected(bottomNavigation: Boolean, slot: Int) {
     } else {
         (menuMap.get(WorkspaceDestination.SLICE.ordinal) as SliceMenu).refreshItems(bottomNavigation)
     }
-    selectMenu(bottomNavigation, slot)
+    selectMenu(slot)
 }
 
 private fun setPortraitToolPanelExpanded(expanded: Boolean) {
     menuToolsExpanded = expanded
-    updateAdaptiveOverlayMargins(true)
 }
 /** Keep the model viewport clear; object actions are available from the Edit menu. */
 private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
@@ -1447,6 +1441,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     modePanelFraction = workspaceController.activeToolPanelFraction,
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },
                     transientPanelContent = workspaceController.activePanelContent,
+                    snackbarController = snackbarController,
                 )
             }
         }
@@ -1462,19 +1457,7 @@ contentView = createWorkspaceContent(ctx, portrait)
 compactPortraitLayout = portrait
 overlayLayout!!.addView(contentView, 0, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-updateAdaptiveOverlayMargins(portrait)
 glView!!.requestRender()
-}
-
-private fun updateAdaptiveOverlayMargins(portrait:Boolean) {
-val params = snackbarsLayout?.layoutParams as? FrameLayout.LayoutParams ?: return
-val fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f
-params.leftMargin = if (portrait) ViewUtils.dp(8)
-    else ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(fontScale) + MENU_SIZE_DP + 8)
-params.bottomMargin = if (portrait)
-    ViewUtils.dp(WorkspaceToolPanelPolicy.reservedHeightDp(true, menuToolsExpanded, menuPortraitHeightDp()) +
-        AdaptiveNavigationPolicy.navigationBarHeightDp(fontScale, WorkspaceDestination.values().size)) else 0
-snackbarsLayout!!.layoutParams = params
 }
 internal fun restoreWorkspaceAfterMenuDismiss() {
 glView?.apply {
@@ -1482,20 +1465,10 @@ translationX = 0f
 translationY = 0f
 invalidate()
 }
-snackbarsLayout?.translationY = 0f
-val ctx = getContext() ?: return
-updateAdaptiveOverlayMargins(usesCompactPortraitLayout(ctx))
 glView?.requestRender()
 }
-private fun menuPortraitHeightDp(): Int = WorkspaceToolPanelPolicy.menuHeightDp(
-    needsTwoRows = currentMenuSlot == WorkspaceDestination.MODEL.ordinal ||
-        currentMenuSlot == WorkspaceDestination.EDIT.ordinal ||
-        currentMenuSlot == WorkspaceDestination.CAMERA.ordinal ||
-        currentMenuSlot == WorkspaceDestination.TOOLS.ordinal,
-    fontScale = getContext()?.resources?.configuration?.fontScale ?: 1f,
-)
 
-private fun selectMenu(portrait: Boolean, slot: Int) {
+private fun selectMenu(slot: Int) {
 val routeChanged = slot != currentMenuSlot
 if (glView!!.renderer.resetFlattenMode())
 {
@@ -1504,9 +1477,6 @@ SliceBeam.EVENT_BUS.fireEvent(FlattenModeResetEvent())
 }
 isAnimatingMenu = routeChanged
 currentMenuSlot = slot
-if (portrait) {
-updateAdaptiveOverlayMargins(true)
-}
 }
 fun interface ModelLoadCallback {
 fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int)
@@ -2282,13 +2252,6 @@ R.plurals.MenuToolbarSplitDone, count, count))) }) })
 companion object {
 private val DEBUG_VIEWER = false
 private val MENU_SIZE_DP = 96
-private fun isPortraitWindow(context:Context):Boolean {
-val configuration = context.getResources().getConfiguration()
-return AdaptiveNavigationPolicy.isPortraitWindow(
-configuration.screenWidthDp,
-configuration.screenHeightDp,
-configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
-}
 private fun usesCompactPortraitLayout(context:Context):Boolean {
 val configuration = context.getResources().getConfiguration()
 return AdaptiveNavigationPolicy.usesCompactPortraitLayout(

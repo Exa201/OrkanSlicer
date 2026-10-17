@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.258 (alpha)
+
+- Move snackbar state and rendering into the Compose workspace instead of attaching a separate Android overlay view.
+- Preserve tagged progress replacement, timed dismissal, swipe-to-dismiss policy, and actionable snackbar callbacks.
+- Position workspace notifications around the navigation and tool panels without shrinking the build-plate viewport.
+- Add controller-state unit coverage and Honor Compose UI tests for tagged progress, button context, and expiry.
+
+## 0.8.257 (alpha)
+
+- Render generic workspace confirmation and message dialogs from the exclusive Compose workspace panel.
+- Focus the duplicate-count field on open and handle Android Back by hiding the IME before dismissing the dialog.
+
 ## 0.8.256 (alpha)
 
 - Remove the unused AndroidView fallback and legacy View-based overlay from the workspace tool host; tool routes now require Compose content.

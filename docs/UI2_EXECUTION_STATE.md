@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — workspace snackbar migration (0.8.258 / 2026-10-17)
+
+- Replaced the BedFragment-attached Android snackbar `FrameLayout`/`ComposeView` stack with `WorkspaceSnackbarController` and `WorkspaceSnackbarHost` hosted by the persistent Compose `WorkspaceShell`. `SnackbarsLayout` remains only as the event/message compatibility model used by existing producers.
+- Preserved tagged replacement/dismissal, multiple untagged messages, persistent progress entries, finite lifetimes, action callbacks with the host Android `View`, swipe-to-dismiss/restore policy, exit cleanup, and safe clear-on-fragment-destroy. Snackbar layout accounts for the existing navigation/tool panels and does not reserve renderer space.
+- Added controller unit tests and Honor Compose UI tests for tag replacement, action context, timeout, persistent progress, 320dp host width, 1.5 font scale, and landscape rendering.
+- Verification: Debug unit suite 552/552, Slice unit suite 552/552 (zero failures/errors/skips each). Honor connected suite: XML reports 65 cases, 0 failed, 3 private multi-color fixture cases skipped; Gradle reported 68 executions including skipped parameter cases. `emulator-5554` remained offline. Full `:app:assembleDebug` succeeded.
+- Installed and launched the exact OrkanSlicer APK on Honor PTP-N49 / Android 16, verified package `com.codemastercody3d.orcaslicermobile`, version `0.8.258` / code `293`, with `ru.ytkab0bp.slicebeam.MainActivity` top-resumed. The launch logcat sample had no fatal exception, ANR, or OOM matches. No screenshot, printer operation, or print start was used.
+- APK from this pre-commit build: `app/build/outputs/apk/debug/OrkanSlicer_5a4e1eda75.apk`, 157,025,244 bytes, SHA-256 `4539397607A40061283D8974630B11BABEF65414BA3ACAB40DA1F786D66B5D87`. Rebuild after committing so BuildConfig/APK metadata references the final code commit.
+- UI 2.0 remains incomplete. Outstanding areas include the action-by-action global menu audit, platform dialog routes in slicing/calibration and upload flows, broader responsive/accessibility verification, real plate/filament interaction coverage, and BedFragment's technical WebView/GL/lifecycle integrations. Multi-plate export remains active-plate-only; retain its warning.
+- Current work is not yet committed/pushed. Next: commit this verified migration, rebuild the final `0.8.258` artifact against that commit, then continue with the next safe Compose dialog/route group. Preserve `.codex-remote-attachments/`.
+
 ## Latest continuation — workspace dialog host migration (0.8.257 / 2026-10-17)
 
 - Generic workspace-owned message and custom Compose dialogs now render from `WorkspaceController.activePanelContent` in the existing `WorkspaceShell` transient-panel slot. `BedFragment` no longer attaches a second `ComposeView` to its Android `FrameLayout` for these dialogs; the same exclusive panel/back owner now reports their active state and dismisses them during fragment teardown. Dialog content is keyed by its content identity so a replacement dialog cannot inherit a stale Compose dialog/back callback.
