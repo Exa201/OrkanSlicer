@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 /** Lets a project opt into its embedded settings without mutating saved profiles. */
@@ -95,6 +96,7 @@ internal fun ThreeMfImportChoiceDialog(
                 }
                 ThreeMfChoiceRow(
                     label = if (filePrinterIndex >= 0) filePrinterLabel else unavailableFilePrinterLabel,
+                    testTag = "3mf-import-file-printer",
                     checked = useFilePrinter,
                     enabled = filePrinterIndex >= 0,
                     onCheckedChange = { checked ->
@@ -104,12 +106,14 @@ internal fun ThreeMfImportChoiceDialog(
                 )
                 ThreeMfChoiceRow(
                     label = printSettingsLabel,
+                    testTag = "3mf-import-print-settings",
                     checked = usePrintSettings,
                     enabled = canUsePrintSettings,
                     onCheckedChange = { usePrintSettings = it },
                 )
                 ThreeMfChoiceRow(
                     label = filamentSettingsLabel,
+                    testTag = "3mf-import-filament-settings",
                     checked = useFilamentSettings,
                     enabled = canUseFilamentSettings,
                     onCheckedChange = { useFilamentSettings = it },
@@ -127,7 +131,7 @@ internal fun ThreeMfImportChoiceDialog(
                         useFilamentSettings,
                     )
                 },
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 48.dp).testTag("3mf-import-apply"),
             ) { Text(applyLabel) }
         },
         dismissButton = {
@@ -141,6 +145,7 @@ internal fun ThreeMfImportChoiceDialog(
 @Composable
 private fun ThreeMfChoiceRow(
     label: String,
+    testTag: String,
     checked: Boolean,
     enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
@@ -150,6 +155,7 @@ private fun ThreeMfChoiceRow(
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .testTag(testTag)
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -23,6 +23,31 @@ import java.io.File
 /** A generated 3MF fixture keeps this import regression runnable without a user's model. */
 @RunWith(AndroidJUnit4::class)
 class TwoColorProjectDeviceTest {
+    @Test fun explicitUniformObjectFilamentChoiceReplacesThreeMfPartAssignment() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = File(context.cacheDir, "two-color-assignment.3mf")
+        InstrumentationRegistry.getInstrumentation().context.assets.open("models/two-color-project.3mf").use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        var model: Model? = null
+        try {
+            model = Model(file, 1)
+            assertArrayEquals(intArrayOf(1), model.getUsedFilaments(0))
+            assertArrayEquals(intArrayOf(2), model.getUsedFilaments(1))
+
+            // This is the native operation used by the explicit object-slot UI action.
+            model.setUniformFilament(0, 2)
+
+            assertEquals(2, model.getExtruder(0))
+            assertArrayEquals("The 3MF's old part material must no longer win", intArrayOf(2), model.getUsedFilaments(0))
+            assertFalse("Uniform assignment removes the object's imported paint overrides", model.hasPaint(0))
+            assertArrayEquals("The other object remains unchanged", intArrayOf(2), model.getUsedFilaments(1))
+        } finally {
+            model?.release()
+            file.delete()
+        }
+    }
+
     @Test fun paintedFilamentAssignmentsSurviveThreeMfExportAndImport() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         SliceBeam.INSTANCE = context.applicationContext as SliceBeam

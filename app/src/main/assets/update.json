@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.292\n\n• Die Aktionen im Drucker-Webfehler werden bei schmalen Panels und ab 130 % Schrift untereinander angeordnet. Wiederholen und externes Öffnen bleiben vollständig erreichbar.\n• Honor prüft die Grenzen und mindestens 48 dp große Touchflächen bei 320 dp/100 %, 360 dp/130 % und 320 dp/150 %.",
-  "en": "OrkanSlicer 0.8.292\n\n• Printer web error actions stack on narrow panels and at 130% or larger font scale, keeping retry and external-open fully reachable.\n• Honor checks panel bounds and 48 dp touch targets at 320 dp/100%, 360 dp/130%, and 320 dp/150%.",
-  "ru": "OrkanSlicer 0.8.292\n\n• Действия при ошибке веб-интерфейса принтера располагаются вертикально на узких панелях и при масштабе шрифта от 130%, сохраняя доступность повтора и внешнего открытия.\n• Honor проверяет границы панели и области нажатия не менее 48 dp при 320 dp/100%, 360 dp/130% и 320 dp/150%."
+  "de": "OrkanSlicer 0.8.293\n\n• Eine explizite Filamentwahl für ein Objekt ersetzt jetzt auch importierte 3MF-Teil- und Farbmal-Zuweisungen.\n• Drucker-, Druck- und Filamenteinstellungen aus 3MF bleiben unabhängig auswählbar; Honor-UI- und native 3MF-Regressionstests decken die Auswahl ab.",
+  "en": "OrkanSlicer 0.8.293\n\n• An explicit object-filament choice now replaces imported 3MF part and painted-facet assignments too.\n• 3MF printer, print, and filament settings remain independently selectable; Honor UI and native 3MF regression tests cover the choices.",
+  "ru": "OrkanSlicer 0.8.293\n\n• Явный выбор филамента для объекта теперь заменяет также импортированные назначения деталей и окрашенных граней 3MF.\n• Настройки принтера, печати и филамента из 3MF выбираются независимо; выбор проверяют UI- и нативные регрессионные тесты на Honor."
 }

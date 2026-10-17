@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.293 (alpha)
+
+- Make an explicit object-filament choice replace imported 3MF part and painted-facet overrides, both from the object action menu and the color-paint base-filament controls.
+- Keep 3MF printer, print, and filament setting choices independent; add Honor UI checks for selecting only print settings or only filament settings and a native 3MF assignment regression test.
+
 ## 0.8.292 (alpha)
 
 - Stack printer web error actions on narrow panels and at 130% or larger system font scale, keeping retry and external-open controls fully reachable.

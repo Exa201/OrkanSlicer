@@ -97,7 +97,7 @@ internal fun PaintModePanel(
                     FilamentSwatch(slot, index + 1) {
                         onGl {
                             val objectIndex = glView.renderer.paintObject
-                            if (objectIndex != -1) glView.renderer.setObjectBaseFilament(objectIndex, index + 1)
+                            if (objectIndex != -1) glView.renderer.setObjectUniformFilament(objectIndex, index + 1)
                         }
                     }
                 }

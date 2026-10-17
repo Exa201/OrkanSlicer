@@ -145,7 +145,10 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     // Slicer extruders are one-based: T0 always maps to physical/UI slot 1.
                     val filament = which + 1
                     viewport.queueEvent {
-                        viewport.renderer.setObjectBaseFilament(objectIndex, filament)
+                        // An explicit object assignment must replace 3MF per-volume and paint
+                        // assignments too; changing only the object's base extruder leaves those
+                        // imported material overrides active during preview and slicing.
+                        viewport.renderer.setObjectUniformFilament(objectIndex, filament)
                         viewport.requestRender()
                         ViewUtils.postOnMainThread {
                             Toast.makeText(
