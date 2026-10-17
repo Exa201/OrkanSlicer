@@ -30,11 +30,13 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
@@ -171,6 +173,59 @@ class ProfileSettingsImeDeviceTest {
         compose.onAllNodesWithText(context.getString(R.string.PrimeTowerPosition)).assertCountEquals(0)
         assertEquals("Cancel leaves the saved X coordinate unchanged", xBefore, profile?.get("wipe_tower_x"))
         assertEquals("Cancel leaves the saved Y coordinate unchanged", yBefore, profile?.get("wipe_tower_y"))
+    }
+
+    @Test
+    fun bedPrimeTowerDialogUsesWorkspaceHostAndCancelOrApplyUpdatesOnlyTheDraft() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as? BedFragment
+        assertTrue("The main workspace should initially host BedFragment", bed != null)
+        val config = SliceBeam.requireConfig()
+        val profile = config.findPrint(config.presets?.get("print"))
+        val xBefore = profile?.get("wipe_tower_x")
+        val yBefore = profile?.get("wipe_tower_y")
+        ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+
+        activity.runOnUiThread {
+            BedFragment::class.java.getDeclaredMethod("showPrimeTowerPositionDialogForCurrentPlate")
+                .apply { isAccessible = true }
+                .invoke(requireNotNull(bed))
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { requireNotNull(bed).isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("prime-tower-x-0").performTextClearance()
+        compose.onNodeWithTag("prime-tower-x-0").performTextInput("123.456")
+        compose.onNodeWithTag("prime-tower-y-0").performTextClearance()
+        compose.onNodeWithTag("prime-tower-y-0").performTextInput("67.89")
+
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.onNodeWithText(activity.getString(android.R.string.cancel)).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !requireNotNull(bed).isWorkspaceMessageDialogAttached() }
+
+        assertEquals("Cancel must not stage an X coordinate", emptyMap<String, String>(),
+            ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINT))
+        assertEquals("Cancel must keep the saved X coordinate", xBefore, profile?.get("wipe_tower_x"))
+        assertEquals("Cancel must keep the saved Y coordinate", yBefore, profile?.get("wipe_tower_y"))
+
+        activity.runOnUiThread {
+            BedFragment::class.java.getDeclaredMethod("showPrimeTowerPositionDialogForCurrentPlate")
+                .apply { isAccessible = true }
+                .invoke(requireNotNull(bed))
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { requireNotNull(bed).isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("prime-tower-x-0").performTextClearance()
+        compose.onNodeWithTag("prime-tower-x-0").performTextInput("123.456")
+        compose.onNodeWithTag("prime-tower-y-0").performTextClearance()
+        compose.onNodeWithTag("prime-tower-y-0").performTextInput("67.89")
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !requireNotNull(bed).isWorkspaceMessageDialogAttached() }
+
+        val pending = ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINT)
+        assertEquals("Apply stages X without committing the preset", "123.456", pending["wipe_tower_x"])
+        assertEquals("Apply stages Y without committing the preset", "67.89", pending["wipe_tower_y"])
+        ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+        assertEquals("The device test leaves the saved X coordinate intact", xBefore, profile?.get("wipe_tower_x"))
+        assertEquals("The device test leaves the saved Y coordinate intact", yBefore, profile?.get("wipe_tower_y"))
     }
 
     private fun createInitializedActivityRule() = run {

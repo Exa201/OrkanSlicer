@@ -17,7 +17,6 @@ import android.util.SparseArray
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebSettings
@@ -28,12 +27,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.appcompat.app.AlertDialog
 import java.io.File
 import java.io.IOException
 import java.util.ArrayDeque
@@ -46,7 +43,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
 import ru.ytkab0bp.slicebeam.components.ModelContextMenuDialog
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
@@ -558,69 +554,38 @@ val positions = PrintConfigToolsLogic.towerPositions(
     config.get("wipe_tower_y"),
 )
 val plateIndex = currentPlateIndex.coerceIn(0, positions.plateCount - 1)
-val xValues = mutableStateListOf(positions.x[plateIndex])
-val yValues = mutableStateListOf(positions.y[plateIndex])
-val error = mutableStateOf(false)
-val composeView = ComposeView(context).apply {
-    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-}
-val editorPositions = PrintConfigTowerPositions(1, xValues.toList(), yValues.toList())
-val dialog = BeamAlertDialogBuilder(context)
-    .setTitle(R.string.PrimeTowerPosition)
-    .setView(composeView)
-    .setPositiveButton(android.R.string.ok, null)
-    .setNegativeButton(android.R.string.cancel, null)
-    .create()
-composeView.setContent {
-    BeamComposeTheme {
-        PrimeTowerPositionEditor(
-            positions = editorPositions,
-            xValues = xValues.toList(),
-            yValues = yValues.toList(),
-            error = error.value,
-            plateNumberOffset = plateIndex,
-            helpTextResource = R.string.PrimeTowerPositionTapHelp,
-            onXChanged = { _, value ->
-                xValues[0] = value
-                error.value = false
-            },
-            onYChanged = { _, value ->
-                yValues[0] = value
-                error.value = false
-            },
-        )
-    }
-}
-dialog.setOnShowListener {
-    dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-}
-dialog.show()
-dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-    val current = SliceBeam.buildCurrentConfigObject()
-    val x = PrintConfigToolsLogic.updateTowerPosition(current.get("wipe_tower_x"), plateIndex, xValues[0])
-    val y = PrintConfigToolsLogic.updateTowerPosition(current.get("wipe_tower_y"), plateIndex, yValues[0])
-    if (x == null || y == null) {
-        error.value = true
-        return@setOnClickListener
-    }
-    val source = SliceBeam.CONFIG
-    val base = source?.let { current ->
-        current.presets?.get("print")?.let(current::findPrint)
-    }
-    ProfileSettingsRepository.setPendingValue(
-        ConfigObject.PROFILE_LIST_PRINT,
-        "wipe_tower_x",
-        base?.get("wipe_tower_x"),
-        x,
+val editorPositions = PrintConfigTowerPositions(1, listOf(positions.x[plateIndex]), listOf(positions.y[plateIndex]))
+showWorkspaceComposeDialog { dismiss ->
+    PrimeTowerPositionDialog(
+        positions = editorPositions,
+        onDismiss = dismiss,
+        plateNumberOffset = plateIndex,
+        helpTextResource = R.string.PrimeTowerPositionTapHelp,
+        onApply = apply@{ values ->
+            val current = SliceBeam.buildCurrentConfigObject()
+            val x = PrintConfigToolsLogic.updateTowerPosition(current.get("wipe_tower_x"), plateIndex, values.first)
+            val y = PrintConfigToolsLogic.updateTowerPosition(current.get("wipe_tower_y"), plateIndex, values.second)
+            if (x == null || y == null) return@apply
+            val source = SliceBeam.CONFIG
+            val base = source?.let { currentConfig ->
+                currentConfig.presets?.get("print")?.let(currentConfig::findPrint)
+            }
+            ProfileSettingsRepository.setPendingValue(
+                ConfigObject.PROFILE_LIST_PRINT,
+                "wipe_tower_x",
+                base?.get("wipe_tower_x"),
+                x,
+            )
+            ProfileSettingsRepository.setPendingValue(
+                ConfigObject.PROFILE_LIST_PRINT,
+                "wipe_tower_y",
+                base?.get("wipe_tower_y"),
+                y,
+            )
+            glView?.requestRender()
+            dismiss()
+        },
     )
-    ProfileSettingsRepository.setPendingValue(
-        ConfigObject.PROFILE_LIST_PRINT,
-        "wipe_tower_y",
-        base?.get("wipe_tower_y"),
-        y,
-    )
-    glView?.requestRender()
-    dialog.dismiss()
 }
 }
 fun showUnfoldMenu(menu: UnfoldMenu, @Suppress("UNUSED_PARAMETER") from: View) {

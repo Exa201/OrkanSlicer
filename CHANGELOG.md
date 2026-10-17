@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.267 (alpha)
+
+- Host the GL-triggered prime-tower position editor in the exclusive Compose workspace dialog.
+- Keep the active plate offset, pending profile edits, render refresh, Cancel behavior, and keyboard-safe scrolling.
+- Add Honor coverage for Cancel, Android Back, and explicit Apply through the BedFragment workspace route.
+
 ## 0.8.266 (alpha)
 
 - Show slice preparation, printer upload/start, G-code integrity, and Anycubic mapping failures in the shared Compose workspace dialog.

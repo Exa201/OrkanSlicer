@@ -342,6 +342,8 @@ internal fun PrimeTowerPositionDialog(
     positions: PrintConfigTowerPositions,
     onDismiss: () -> Unit,
     onApply: (Pair<String, String>) -> Unit,
+    plateNumberOffset: Int = 0,
+    helpTextResource: Int = R.string.PrintConfigPrimeTowerPositionHelp,
 ) {
     val xValues = remember(positions) { mutableStateListOf<String>().apply { addAll(positions.x) } }
     val yValues = remember(positions) { mutableStateListOf<String>().apply { addAll(positions.y) } }
@@ -355,6 +357,8 @@ internal fun PrimeTowerPositionDialog(
                 xValues = xValues.toList(),
                 yValues = yValues.toList(),
                 error = error.value,
+                plateNumberOffset = plateNumberOffset,
+                helpTextResource = helpTextResource,
                 onXChanged = { index, value ->
                     if (index in xValues.indices) xValues[index] = value
                     error.value = false
