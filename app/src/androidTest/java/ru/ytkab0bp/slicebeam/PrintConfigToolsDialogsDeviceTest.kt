@@ -17,6 +17,7 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.fragment.FlushVolumesDialog
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFlushMatrix
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 
 /** Verifies the profile editor dialog validates and submits only explicit valid values. */
 @RunWith(AndroidJUnit4::class)
@@ -63,5 +64,28 @@ class PrintConfigToolsDialogsDeviceTest {
         compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
 
         compose.runOnIdle { assertEquals("0,1.25,280,0", applied) }
+    }
+
+    @Test
+    fun mmuSyncErrorMessageCanBeDismissedFromCompose() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var dismissed = false
+        compose.setContent {
+            BeamComposeTheme {
+                WorkspaceMessageDialog(
+                    title = context.getString(R.string.MmuSyncFailed),
+                    message = "The printer did not return an MMU status.",
+                    confirmLabel = context.getString(android.R.string.ok),
+                    dismissLabel = null,
+                    onDismiss = { dismissed = true },
+                    onConfirm = { dismissed = true },
+                )
+            }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.MmuSyncFailed)).assertIsDisplayed()
+        compose.onNodeWithText("The printer did not return an MMU status.").assertIsDisplayed()
+        compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
+        compose.runOnIdle { assertTrue(dismissed) }
     }
 }

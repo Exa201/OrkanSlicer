@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.263 (alpha)
+
+- Render MMU filament-sync errors in the print-profile screen with the existing Compose message dialog.
+- Keep sync callbacks on the UI thread and ignore results from a profile screen that has already been destroyed.
+
 ## 0.8.262 (alpha)
 
 - Move process, printer, and filament profile option-help dialogs and their favorite actions into Compose.

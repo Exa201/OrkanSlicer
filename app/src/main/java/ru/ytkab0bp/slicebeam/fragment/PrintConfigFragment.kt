@@ -11,7 +11,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
@@ -19,6 +18,8 @@ import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 
 /** Process-profile screen with printer filtering, purge controls and the filament palette. */
 class PrintConfigFragment : ProfileListFragment() {
@@ -28,7 +29,9 @@ class PrintConfigFragment : ProfileListFragment() {
     private var currentConfig: ConfigObject? = null
     private var toolsThemeRevision by mutableIntStateOf(0)
     private var filamentSyncing by mutableStateOf(false)
+    private var activeMmuSyncError by mutableStateOf<String?>(null)
     private var activeToolDialog by mutableStateOf<PrintConfigToolDialogState?>(null)
+    private var syncRequestGeneration = 0
 
     override fun getProfileListType(): Int = ConfigObject.PROFILE_LIST_PRINT
 
@@ -54,6 +57,14 @@ class PrintConfigFragment : ProfileListFragment() {
         super.onResume()
         // Refresh printer-dependent controls when returning from another profile screen.
         toolsThemeRevision++
+    }
+
+    override fun onDestroy() {
+        syncRequestGeneration++
+        filamentSyncing = false
+        activeMmuSyncError = null
+        activeToolDialog = null
+        super.onDestroy()
     }
 
     override fun getItems(filter: Boolean): List<ProfileListItem> {
@@ -145,36 +156,41 @@ class PrintConfigFragment : ProfileListFragment() {
                 )
                 null -> Unit
             }
+            activeMmuSyncError?.let { detail ->
+                WorkspaceMessageDialog(
+                    title = getContext()?.getString(R.string.MmuSyncFailed),
+                    message = detail,
+                    confirmLabel = getContext()?.getString(android.R.string.ok).orEmpty(),
+                    dismissLabel = null,
+                    onDismiss = { activeMmuSyncError = null },
+                    onConfirm = { activeMmuSyncError = null },
+                )
+            }
         }
     }
 
     private fun syncMmuFilaments(printer: ConfigObject) {
         if (filamentSyncing) return
         filamentSyncing = true
+        val requestGeneration = ++syncRequestGeneration
         MmuFilamentSync.synchronizeAll(printer) { updated, error ->
-            filamentSyncing = false
-            if (error != null) {
-                showMmuSyncError(error)
-            } else {
-                filamentPaletteController?.reload()
-                getContext()?.let { context ->
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.MmuSyncSuccess, updated),
-                        Toast.LENGTH_LONG,
-                    ).show()
+            ViewUtils.postOnMainThread(Runnable {
+                if (requestGeneration != syncRequestGeneration || getView() == null) return@Runnable
+                filamentSyncing = false
+                if (error != null) {
+                    activeMmuSyncError = error
+                } else {
+                    filamentPaletteController?.reload()
+                    getContext()?.let { context ->
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.MmuSyncSuccess, updated),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
                 }
-            }
+            })
         }
-    }
-
-    private fun showMmuSyncError(detail: String) {
-        val context = getContext() ?: return
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MmuSyncFailed)
-            .setMessage(detail)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
     }
 
     private fun optionValue(key: String): String {
