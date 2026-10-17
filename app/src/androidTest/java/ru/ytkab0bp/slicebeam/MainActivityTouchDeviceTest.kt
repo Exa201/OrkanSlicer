@@ -403,6 +403,10 @@ class MainActivityTouchDeviceTest {
         worker.join(5_000L)
         assertTrue("$methodName should release its waiting import worker", !worker.isAlive)
         assertEquals("Back must refuse $methodName unless the user explicitly confirms", false, decision.get())
+        // The worker is released from the dialog callback before Compose has finished
+        // disposing the Dialog window. Let that dismissal settle before the next prompt.
+        SystemClock.sleep(350L)
+        instrumentation.waitForIdleSync()
     }
 
     private fun assertSameModelSelection(bed: BedFragment?, model: Model) {
