@@ -1,5 +1,13 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — cloud image-generator choice hosted by workspace Compose (0.8.276 / 2026-10-17)
+
+- Replaced the optional cloud model generator's active `AIGeneratorMenu : UnfoldMenu` route with the exclusive workspace Compose dialog. Its camera/gallery choices and live quota progress are now hosted by the workspace. Quota and already-generating guards, cloud quota refresh events, camera temporary-file/FileProvider handling, and Android result codes are preserved; the workspace closes before the platform camera/gallery opens.
+- Removed the obsolete `NeedDismissAIGeneratorMenu` event and result callbacks because the workspace dialog is already dismissed before leaving for the system picker. Replaced the old route-instantiation regression case with a real workspace device test for camera/gallery action visibility, Cancel, and Android Back; test invokes neither external picker nor cloud generation.
+- Debug and Slice unit suites: 552/552 each, zero failures/errors/skips. `:app:compileSliceTestAndroidTestKotlin` passed. Targeted `:app:connectedSliceTestAndroidTest` for `MakerGeneratorWorkspaceDeviceTest`: 3/3 Honor tests passed, 0 skipped/failed; emulator offline. `:app:assembleDebug` succeeded.
+- Debug APK `app/build/outputs/apk/debug/OrkanSlicer_80838b1528.apk`, 157,127,463 bytes, SHA-256 `00057E145CE8ADE6BD5DE26636C35751BBEE9A96633ECC9C52DEE1AF0B709AD3`. Built from code commit `80838b1528ba2e48b03d7fb00e9d28a0fb4a175c`. Installed on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; version 0.8.276 / code 311 confirmed; `MainActivity` top-resumed after cold start. Fresh 10,000-line logcat buffer had no fatal exception, app ANR, OOM or fatal-signal markers.
+- No camera/gallery picker launch, cloud generation, STL generation, printer operation, screenshot, merge or release. Next: commit/push this verification record to the existing branch, update PR #2, then continue the active calibration and remaining legacy workspace routes. Full UI migration is still in progress.
+
 ## Current continuation — Maker generator forms hosted by workspace Compose (0.8.275 / 2026-10-17)
 
 - Migrated all ten reachable local Maker generator form routes (fasteners, cable clip, cable grommet, utility box, text tag, phone stand, planter, plant labels, power-strip tray, and wall-tool holder), plus the LitoGEN editor, into the exclusive Bed workspace Compose dialog host.
@@ -8,7 +16,7 @@
 - Honor `MakerGeneratorWorkspaceDeviceTest`: 2/2 tests passed (Cancel/Back across ten Maker generators and LitoGEN, plus retained inline LitoGEN validation); emulator remains offline.
 - Debug and Slice unit suites: 552/552 each; SliceTest AndroidTest Kotlin compilation passed; `:app:connectedSliceTestAndroidTest` completed 2/2 on Honor, 0 skipped/failed; `:app:assembleDebug` succeeded; `git diff --check` passed.
 - Debug APK `app/build/outputs/apk/debug/OrkanSlicer_43198e7fde.apk`, 157,143,825 bytes, SHA-256 `9226FA7A400D3388F1E516780258FBD6D3EC8B3454257997EDCD568C1383713D`. Built from code commit `43198e7fde11807fd5f97377fd5ddff3fd5c4067`. Installed on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; version 0.8.275 / code 310 confirmed; `MainActivity` top-resumed after cold start. Fresh 10,000-line logcat buffer had no fatal exception, app ANR, OOM or fatal-signal markers. Emulator remains offline.
-- Code commit `43198e7fde11807fd5f97377fd5ddff3fd5c4067` and documentation commit `afca0b93ab61514970ae294842a22439b268269b` are pushed to the existing branch. PR #2 remains open; latest observed state was mergeable, and the 0.8.275 verification comment was added. No real STL generation, printer operation, screenshot, merge or release.
+- Code commit `43198e7fde11807fd5f97377fd5ddff3fd5c4067` and documentation commit `afca0b93ab61514970ae294842a22439b268269b` were pushed to the existing branch. PR #2 remained open; its 0.8.275 verification comment was added. No real STL generation, printer operation, screenshot, merge or release.
 - Next concrete route: replace the nested native Compose dialogs and adjacent `UnfoldMenu` navigation in the Calibration workspace with one workspace-hosted Compose flow, keeping model import sequencing and calibration profile changes intact. The overall UI migration remains in progress.
 
 ## Current continuation — pre-slice filament assignment on workspace Compose (0.8.274 / 2026-10-17)
