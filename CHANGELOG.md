@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.284 (alpha)
+
+- Move lithophane image-tone editing into the exclusive workspace Compose host, including the rendered relief preview, grayscale mode, brightness, contrast, inversion, and explicit apply/cancel behavior.
+- Preserve tone values only on Apply, return to the existing converter options after closing the editor, cancel stale preview work, and dispose preview bitmaps safely.
+- Add Honor coverage for the workspace editor, preview rendering, Apply, and Back cancellation.
+
 ## 0.8.283 (alpha)
 
 - Move generated STL/model decisions, paired lithophane/LED-base actions, and raster result previews into workspace Compose dialogs.

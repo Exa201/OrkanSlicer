@@ -12,7 +12,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.ArrayAdapter
-import android.graphics.drawable.BitmapDrawable
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
@@ -33,7 +32,7 @@ import java.nio.charset.StandardCharsets
 import java.util.ArrayDeque
 import java.util.ArrayList
 import java.util.HashMap
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicBoolean
 import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.launchAppActivityResult
 import ru.ytkab0bp.slicebeam.R
@@ -48,7 +47,6 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 object ImageToStlConverter {
 private val MAX_SIDE = 192
 private val MAX_VECTOR_SIDE = 128
-private val PREVIEW_REQUESTS = AtomicInteger()
 private var pendingOutput: File? = null
 private var pendingExtension: String? = null
 private var requestedMode:Int = 0
@@ -283,6 +281,7 @@ sourcePreview.setImageBitmap(result) }) }, "ConverterPreview").start()
 }
 val imageToneSettings = intArrayOf(0, 100, 100)
 val invertImage = booleanArrayOf(false)
+lateinit var optionsDialog: androidx.appcompat.app.AlertDialog
 val editImage = android.widget.Button(activity)
 editImage.setText(R.string.LithophaneImageEditorOpen)
 form.addView(editImage, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -293,7 +292,11 @@ if (images.isEmpty())
 Toast.makeText(activity, R.string.ConverterPickImage, Toast.LENGTH_LONG).show()
 return@setOnClickListener
 }
-showImageEditor(activity, images.get(0), imageToneSettings, invertImage) })
+optionsDialog.dismiss()
+showLithophaneImageEditor(activity, images.get(0), bed, imageToneSettings, invertImage) {
+    if (!activity.isFinishing && !activity.isDestroyed) optionsDialog.show()
+}
+})
 val width = addNumberField(activity, form, R.string.ImageToStlWidth, if (initialMode >= 2) "45" else "80")
 val height = addNumberField(activity, form, R.string.ImageToStlHeight, "60")
 val baseLabel = TextView(activity)
@@ -621,7 +624,7 @@ ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(48))
 actionParams.setMargins(ViewUtils.dp(16), ViewUtils.dp(2), ViewUtils.dp(16), ViewUtils.dp(2))
 dialogContent.addView(generateButton, actionParams)
 dialogContent.addView(generateAndSaveButton, actionParams)
-val optionsDialog = BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterTitle)
+optionsDialog = BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterTitle)
 .setMessage(R.string.LithophaneGeneratorDescription).setView(dialogContent)
 .setNegativeButton(android.R.string.cancel, null)
 .create()
@@ -667,8 +670,43 @@ for (index in indices)
     if (index < controls.size && controls[index] != null)
 controls[index].setVisibility(if (visible) View.VISIBLE else View.GONE)
 }
-private fun showImageEditor(activity:Activity, image:Uri, savedSettings:IntArray,
-savedInvert:BooleanArray) {
+internal fun showLithophaneImageEditor(
+    activity: Activity,
+    image: Uri,
+    bed: BedFragment,
+    savedSettings: IntArray,
+    savedInvert: BooleanArray,
+    onClosed: () -> Unit = {},
+) {
+if (bed.canShowWorkspaceComposeDialog()) {
+    val resumed = AtomicBoolean(false)
+    val reopenParent = { if (resumed.compareAndSet(false, true)) onClosed() }
+    bed.showWorkspaceComposeDialog(onExternalDismiss = reopenParent) { dismiss ->
+        LithophaneToneEditorDialog(
+            activity = activity,
+            image = image,
+            initialToneMode = savedSettings[0],
+            initialBrightness = savedSettings[1],
+            initialContrast = savedSettings[2],
+            initialInvert = savedInvert[0],
+            onDismiss = { dismiss(); reopenParent() },
+            onApply = { toneMode, brightness, contrast, invert ->
+                savedSettings[0] = toneMode
+                savedSettings[1] = brightness
+                savedSettings[2] = contrast
+                savedInvert[0] = invert
+                dismiss()
+                reopenParent()
+            },
+        )
+    }
+    return
+}
+showLithophaneImageEditorLegacy(activity, image, savedSettings, savedInvert, onClosed)
+}
+
+private fun showLithophaneImageEditorLegacy(activity:Activity, image:Uri, savedSettings:IntArray,
+savedInvert:BooleanArray, onClosed: () -> Unit) {
 val editor = LinearLayout(activity)
 editor.setOrientation(LinearLayout.VERTICAL)
 editor.setPadding(ViewUtils.dp(20), ViewUtils.dp(8), ViewUtils.dp(20), ViewUtils.dp(8))
@@ -723,9 +761,20 @@ val dialog = BeamAlertDialogBuilder(activity)
 .create()
 val updateLabels = { brightnessLabel.setText(activity.getString(R.string.LithophaneBrightnessValue, brightness.getProgress() - 100))
 contrastLabel.setText(activity.getString(R.string.LithophaneContrastValue, contrast.getProgress())) }
-val updatePreview = { loadLithophanePreview(activity, image, preview, invert.isChecked(),
-2, toneMode.getSelectedItemPosition(), (brightness.getProgress() - 100) / 100f,
-contrast.getProgress() / 100f) }
+var cancelPreview: (() -> Unit)? = null
+val updatePreview = {
+cancelPreview?.invoke()
+cancelPreview = requestLithophanePreview(
+    activity, image, invert.isChecked(), toneMode.getSelectedItemPosition(),
+    (brightness.getProgress() - 100) / 100f, contrast.getProgress() / 100f,
+) { result ->
+    if (result != null && preview.isAttachedToWindow) {
+        val old = (preview.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+        if (old != null && old !== result && !old.isRecycled) old.recycle()
+        preview.setImageBitmap(result)
+    } else result?.recycle()
+}
+}
 val sliderListener = object:android.widget.SeekBar.OnSeekBarChangeListener {
 override fun onProgressChanged(seekBar:android.widget.SeekBar, progress:Int, fromUser:Boolean) {
 updateLabels()
@@ -745,6 +794,12 @@ override fun onNothingSelected(parent:android.widget.AdapterView<*>) {}
 invert.setOnCheckedChangeListener({ button, checked-> updatePreview() })
 dialog.show()
 dialog.getWindow()!!.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, maxDialogHeight)
+dialog.setOnDismissListener {
+cancelPreview?.invoke()
+val old = (preview.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+if (old != null && !old.isRecycled) old.recycle()
+onClosed()
+}
 dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener({ v->
 savedSettings[0] = toneMode.getSelectedItemPosition()
 savedSettings[1] = brightness.getProgress()
@@ -754,18 +809,23 @@ dialog.dismiss() })
 updateLabels()
 updatePreview()
 }
-private fun loadLithophanePreview(activity:Activity, uri:Uri, preview:ImageView,
-invert:Boolean, mode:Int, toneMode:Int,
-brightness:Float, contrast:Float) {
-val request = PREVIEW_REQUESTS.incrementAndGet()
-preview.setTag(request)
+internal fun requestLithophanePreview(
+    activity: Activity,
+    uri: Uri,
+    invert: Boolean,
+    toneMode: Int,
+    brightness: Float,
+    contrast: Float,
+    onResult: (Bitmap?) -> Unit,
+): () -> Unit {
+val active = AtomicBoolean(true)
 IOUtils.IO_POOL.execute({ var rendered:Bitmap? = null
 try
 {
 val source = decodeBitmap(activity.getContentResolver(), uri, 1024)
 try
 {
-rendered = renderLithophanePreview(source, invert, mode, toneMode, brightness, contrast)
+rendered = renderLithophanePreview(source, invert, 2, toneMode, brightness, contrast)
 }
 finally
 {
@@ -774,20 +834,17 @@ source.recycle()
 }
 catch (ignored:Exception) {}
 val result = rendered
-ViewUtils.postOnMainThread({ if (result == null) return@postOnMainThread
-if (activity.isFinishing() || preview.getTag() != request)
+ViewUtils.postOnMainThread({
+if (!active.get() || activity.isFinishing || activity.isDestroyed)
 {
-result.recycle()
+result?.recycle()
 return@postOnMainThread
 }
-if (preview.getDrawable() is BitmapDrawable)
-{
-val old = (preview.getDrawable() as BitmapDrawable).getBitmap()
-if (old != null && old !== result && !old.isRecycled()) old.recycle()
+onResult(result)
+}) })
+return { active.set(false) }
 }
-preview.setImageBitmap(result) }) })
-}
-private fun renderLithophanePreview(source:Bitmap, invert:Boolean, mode:Int,
+internal fun renderLithophanePreview(source:Bitmap, invert:Boolean, mode:Int,
 toneMode:Int, brightness:Float, contrast:Float):Bitmap {
 val width = source.getWidth()
 val height = source.getHeight()

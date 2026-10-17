@@ -366,6 +366,7 @@
     <string name="LithophaneFrameRequiresStl">The framed lithophane is a 3D model. Select STL as the output format.</string>
     <string name="LithophaneFrameDimensionsInvalid">Check the frame thickness, stand depth and cable opening dimensions.</string>
     <string name="LithophanePreviewCaption">Relief preview · bright areas print thinner; dark areas print thicker</string>
+    <string name="LithophanePreviewUnavailable">Preview is unavailable for this image.</string>
     <string name="TextTagMenu">Create a nameplate / key tag</string>
     <string name="TextTagTitle">Text nameplate and key tag</string>
     <string name="TextTagDescription">Create a printable plate with raised text. Choose dimensions, lettering height and an optional keyring hole. The text is converted locally into real 3D geometry.</string>

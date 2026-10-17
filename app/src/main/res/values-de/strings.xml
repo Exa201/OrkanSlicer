@@ -360,6 +360,7 @@
     <string name="LithophaneFrameRequiresStl">Der gerahmte Lithophan ist ein 3D-Modell. Wähle STL als Zielformat.</string>
     <string name="LithophaneFrameDimensionsInvalid">Prüfe die Maße für Rahmendicke, Standfuß und Kabelöffnung.</string>
     <string name="LithophanePreviewCaption">Reliefvorschau · helle Bereiche werden dünner, dunkle dicker gedruckt</string>
+    <string name="LithophanePreviewUnavailable">Für dieses Bild ist keine Vorschau verfügbar.</string>
     <string name="TextTagMenu">Namensschild / Schlüsselanhänger erstellen</string>
     <string name="TextTagTitle">Text-Namensschild und Schlüsselanhänger</string>
     <string name="TextTagDescription">Erstellt ein druckbares Schild mit erhabenem Text. Lege Größe, Texthöhe und optional ein Loch für den Schlüsselring fest. Der Text wird lokal in echte 3D-Geometrie umgewandelt.</string>

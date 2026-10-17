@@ -1,11 +1,13 @@
 package ru.ytkab0bp.slicebeam.components
 
 import android.app.Application
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -45,6 +47,84 @@ class MakerGeneratorWorkspaceDeviceTest {
         assertFalse("Discard should remove the generated cache output", output.exists())
         assertFalse("The output dialog must leave the workspace active", activity.isFinishing)
     }
+
+    @Test
+    fun lithophaneToneEditorAppliesChangesThroughWorkspaceCompose() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val imageFile = java.io.File(activity.cacheDir, "tone-editor-compose-test.png")
+        Bitmap.createBitmap(12, 10, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(android.graphics.Color.LTGRAY)
+            imageFile.outputStream().use { compress(Bitmap.CompressFormat.PNG, 100, it) }
+            recycle()
+        }
+        val settings = intArrayOf(0, 100, 100)
+        val invert = booleanArrayOf(false)
+        var closeCount = 0
+
+        activity.runOnUiThread {
+            ImageToStlConverter.showLithophaneImageEditor(
+                activity,
+                Uri.fromFile(imageFile),
+                bed,
+                settings,
+                invert,
+            ) { closeCount++ }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.LithophaneImageEditor)).assertIsDisplayed()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("tone-editor-preview-image").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("tone-editor-invert").performClick()
+        compose.onNodeWithTag("tone-editor-mode").performClick()
+        val redMode = activity.resources.getStringArray(ru.ytkab0bp.slicebeam.R.array.LithophaneGrayscaleModes)[3]
+        compose.onNodeWithText(redMode).performClick()
+        compose.onNodeWithTag("tone-editor-apply").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+        assertEquals("Apply should persist the selected grayscale channel", 3, settings[0])
+        assertTrue("Apply should persist the invert setting", invert[0])
+        assertEquals("The editor should return to its parent converter form", 1, closeCount)
+        imageFile.delete()
+    }
+
+    @Test
+    fun lithophaneToneEditorBackDiscardsUnappliedChanges() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val imageFile = java.io.File(activity.cacheDir, "tone-editor-back-test.png")
+        Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(android.graphics.Color.WHITE)
+            imageFile.outputStream().use { compress(Bitmap.CompressFormat.PNG, 100, it) }
+            recycle()
+        }
+        val settings = intArrayOf(1, 80, 130)
+        val invert = booleanArrayOf(true)
+        var closeCount = 0
+
+        activity.runOnUiThread {
+            ImageToStlConverter.showLithophaneImageEditor(
+                activity,
+                Uri.fromFile(imageFile),
+                bed,
+                settings,
+                invert,
+            ) { closeCount++ }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("tone-editor-invert").performClick()
+        activity.onBackPressedDispatcher.onBackPressed()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+        assertEquals("Back must not commit tone mode", 1, settings[0])
+        assertEquals("Back must not commit brightness", 80, settings[1])
+        assertEquals("Back must not commit contrast", 130, settings[2])
+        assertTrue("Back must not commit invert changes", invert[0])
+        assertEquals("Back should return to the parent converter form", 1, closeCount)
+        imageFile.delete()
+    }
+
 
     @Test
     fun aiGeneratorSelectionUsesWorkspaceCancelAndBackWithoutLaunchingExternalActivities() {
