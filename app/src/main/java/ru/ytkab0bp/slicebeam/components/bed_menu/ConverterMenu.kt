@@ -1,9 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.app.Activity
-import android.content.Context
-import android.view.View
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.Composable
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.components.CableClipGenerator
 import ru.ytkab0bp.slicebeam.components.CableGrommetGenerator
@@ -17,26 +15,18 @@ import ru.ytkab0bp.slicebeam.components.TextTagGenerator
 import ru.ytkab0bp.slicebeam.components.UtilityBoxGenerator
 import ru.ytkab0bp.slicebeam.components.WallToolHolderGenerator
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 
 /** Home for local format conversion tools and maker shortcuts. */
-class ConverterMenu : BedMenu() {
+class ConverterMenu : BedMenu(), WorkspaceComposeBedMenu {
     private var fragment: BedFragment? = null
 
     override fun onSetBed(fragment: BedFragment?) {
         this.fragment = fragment
     }
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(createActions(), portrait)
-            }
-        }
-        return themedView
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        BedMenuActionsContent(createActions(), portrait)
     }
 
     private fun withActivity(action: (Activity, BedFragment) -> Unit) {

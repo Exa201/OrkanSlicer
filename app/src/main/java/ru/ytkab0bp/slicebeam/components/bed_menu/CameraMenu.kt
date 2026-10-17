@@ -8,12 +8,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.Camera
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -28,17 +25,6 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
 
     override fun onSetBed(fragment: BedFragment?) {
         this.fragment = fragment
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                WorkspaceContent(portrait)
-            }
-        }
-        return themedView
     }
 
     @Composable

@@ -41,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.testTag
 import androidx.core.content.FileProvider
 import ru.ytkab0bp.eventbus.EventHandler
@@ -63,8 +62,6 @@ import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
@@ -78,19 +75,6 @@ internal fun aiGenerationQuotaProgress(total: Int, generated: Int): Float =
 class FileMenu : ListBedMenu() {
     private var wasPortrait = false
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
-        wasPortrait = portrait
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        composeActions.value = createComposeActions(portrait)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(composeActions.value, portrait)
-            }
-        }
-        return themedView
-    }
 
     @Composable
     override fun WorkspaceContent(portrait: Boolean) {

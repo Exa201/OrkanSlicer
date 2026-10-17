@@ -67,7 +67,6 @@ import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.ImportProgressCallback
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
-import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
@@ -1027,10 +1026,6 @@ pendingPlateModels.clear()
 }
 destroyPrinterWebView()
 SliceBeam.EVENT_BUS.unregisterListener(this)
-for (i in 0 until menuMap.size())
-{
-menuMap.valueAt(i).onViewDestroyed()
-}
 if (!(getContext() is Activity && (getContext() as Activity).isChangingConfigurations()))
 {
 clearModelHistory()
@@ -1433,10 +1428,6 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
 }
 private fun rebuildAdaptiveLayout(ctx:Context, portrait:Boolean) {
 contentView?.let(::detachFromParent)
-for (index in 0 until menuMap.size()) {
-val menu = menuMap.valueAt(index)
-if (menu.getView() != null) menu.onViewDestroyed()
-}
 contentView = createWorkspaceContent(ctx, portrait)
 compactPortraitLayout = portrait
 overlayLayout!!.addView(contentView, 0, FrameLayout.LayoutParams(
@@ -2117,13 +2108,6 @@ plateTabsThemeRevision++
 profileStatusThemeRevision++
 printerWebThemeRevision++
 workspaceThemeRevision++
-for (i in 0 until WorkspaceDestination.values().size)
-{
-if (i != currentMenuSlot)
-{
-ThemesRepo.invalidateView(menuMap.get(i).getView())
-}
-}
 }
 fun updateModel() {
 if (platesModels.isEmpty()) return

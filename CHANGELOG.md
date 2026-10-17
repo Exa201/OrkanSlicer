@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.294 (alpha)
+
+- Remove the obsolete Android View menu-host lifecycle from the active workspace destinations; `WorkspaceShell` remains their only visible host.
+- Convert the dormant converter menu to the shared Compose menu contract and verify the six active workspace routes do not retain duplicate View hosts.
+
 ## 0.8.293 (alpha)
 
 - Make an explicit object-filament choice replace imported 3MF part and painted-facet overrides, both from the object action menu and the color-paint base-filament controls.

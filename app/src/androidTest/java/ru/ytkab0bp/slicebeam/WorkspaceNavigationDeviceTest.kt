@@ -236,18 +236,16 @@ class WorkspaceNavigationDeviceTest {
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
                 val menuMap = BedFragment::class.java.getDeclaredField("menuMap")
                     .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
-                val attachedRoutes = (0 until menuMap.size()).count { index ->
-                    val menu = menuMap.valueAt(index) ?: return@count false
-                    val routeView = menu.javaClass.getMethod("getView").invoke(menu) as? android.view.View
-                    routeView?.isAttachedToWindow == true
-                }
                 val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
                     .apply { isAccessible = true }.get(bed)
                 val currentSlot = workspaceController.javaClass.getMethod("getSelectedDestinationSlot")
                     .invoke(workspaceController) as Int
                 val currentMenu = menuMap.get(currentSlot)
-                val directComposeRoute = currentMenu is WorkspaceComposeBedMenu
-                settled = !field.getBoolean(bed) && attachedRoutes == if (directComposeRoute) 0 else 1
+                val workspaceRoot = BedFragment::class.java.getDeclaredField("contentView")
+                    .apply { isAccessible = true }.get(bed) as android.view.View
+                val workspaceHostCount = findViews(workspaceRoot).filterIsInstance<ComposeView>().count()
+                settled = !field.getBoolean(bed) && currentMenu is WorkspaceComposeBedMenu &&
+                    workspaceHostCount == 1
             }
             if (settled) return
             SystemClock.sleep(40L)
@@ -382,20 +380,13 @@ class WorkspaceNavigationDeviceTest {
             .apply { isAccessible = true }.get(bed) as android.util.SparseArray<*>
         val expectedMenu = menuMap.get(currentSlot)
         assertTrue("slot $currentSlot should resolve to ${expectedType.simpleName}", expectedType.isInstance(expectedMenu))
-        val getView = expectedType.getMethod("getView")
-        val activeView = getView.invoke(expectedMenu) as? android.view.View
-        val attachedRouteViews = (0 until menuMap.size()).mapNotNull { index ->
-            val menu = menuMap.valueAt(index) ?: return@mapNotNull null
-            val routeView = menu.javaClass.getMethod("getView").invoke(menu) as? android.view.View
-            routeView?.takeIf { it.isAttachedToWindow }
-        }
-        if (expectedMenu is WorkspaceComposeBedMenu) {
-            assertEquals("direct Compose menu route must not create an Android menu view", null, activeView)
-            assertTrue("no legacy menu view should remain attached", attachedRouteViews.isEmpty())
-        } else {
-            assertTrue("the active menu view should be attached to the workspace", activeView?.isAttachedToWindow == true)
-            assertEquals("only the selected route should remain attached after transition", 1, attachedRouteViews.size)
-            assertEquals(activeView, attachedRouteViews.single())
-        }
+        assertTrue("active destination must render through WorkspaceShell", expectedMenu is WorkspaceComposeBedMenu)
+        assertFalse(
+            "active destination must not keep a duplicate View menu host",
+            expectedType.declaredMethods.any { it.name == "onCreateView" },
+        )
+        assertTrue("legacy View getter must be removed from active menu routes", runCatching {
+            expectedType.getMethod("getView")
+        }.isFailure)
     }
 }

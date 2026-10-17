@@ -1,17 +1,12 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.content.Context
-import android.view.View
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -20,22 +15,8 @@ import java.io.IOException
 
 /** Coordinates the Slice menu, printer preparation and Kotlin upload controller. */
 class SliceMenu : ListBedMenu() {
-    private var lastUid = 0
     private var portrait = true
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
-        this.portrait = portrait
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        composeActions.value = createActions()
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(composeActions.value, portrait)
-            }
-        }
-        return themedView
-    }
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
 
@@ -46,7 +27,6 @@ class SliceMenu : ListBedMenu() {
     }
 
     private fun createActions(): List<BedComposeMenuAction> {
-        lastUid = SliceBeam.CONFIG_UID
         val bed = fragment ?: return emptyList()
         if (!bed.hasSliceResult()) {
             val hasModel = bed.currentModel?.objectsCount?.let { it > 0 } == true
@@ -172,16 +152,4 @@ class SliceMenu : ListBedMenu() {
         return true
     }
 
-    override fun onViewCreated(v: View) {
-        super.onViewCreated(v)
-        v.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(view: View) {
-                if (lastUid != SliceBeam.CONFIG_UID) {
-                    refreshItems(view.width < view.height)
-                }
-            }
-
-            override fun onViewDetachedFromWindow(view: View) = Unit
-        })
-    }
 }

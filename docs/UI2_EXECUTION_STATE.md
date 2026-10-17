@@ -1,3 +1,12 @@
+# Current continuation — legacy workspace menu hosts removed (0.8.294 / 2026-10-17)
+
+- Removed the obsolete `BedMenu` View creation/storage lifecycle and duplicate `onCreateView` hosts from the six active destinations (Project, Model, Camera, Edit, Tools, Slice). Their visible content is rendered through the existing `WorkspaceShell`/`WorkspaceComposeBedMenuHost`; `BedFragment` retains the technical FrameLayout, stable renderer adapter, and required Android/WebView integrations.
+- Converted the unregistered converter menu to `WorkspaceComposeBedMenu` too, leaving no `onCreateView` implementation in `components/bed_menu`. Existing event-listener registration now follows Compose menu visibility via `DisposableEffect`.
+- Updated Honor navigation regression checks to verify a single Compose host and that active destinations cannot expose a duplicate View menu.
+- Verification: Debug 552/552 and Slice 552/552, zero failures/errors/skips. Full Honor instrumentation log: `OK (130 tests)`, zero failures (three private fixtures skipped); includes the updated workspace navigation tests. `git diff --check` passed. Emulator is offline; Honor PTP-N49 online.
+- Code release version is prepared as 0.8.294 / versionCode 329. Build, final APK digest, device reinstall/launch, GitHub release asset, and PR update remain pending.
+- Overall UI 2.0 remains in progress. Remaining work: source-audit and migrate reachable global Android dialog routes and legacy tool hosts, then continue practical menu/accessibility coverage. Multi-plate project persistence remains an explicitly separate open architecture task.
+
 # Current continuation — 3MF object-filament override fixed (0.8.293 / 2026-10-17)
 
 - Fixed both explicit object-filament entry points (`FileMenuObjectActions` and the color-paint base-filament control) to call the native uniform-filament operation. That operation clears imported per-volume and painted-facet overrides, so the selected slot is the one used for display and slicing.
