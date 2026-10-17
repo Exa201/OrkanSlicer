@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — slice/upload failure feedback in Compose (0.8.266 / 2026-10-17)
+
+- Migrated the four message-only error routes in `SliceUploadController` to the existing exclusive Compose workspace dialog: slice preparation, upload/print-start failure, G-code integrity failure, and Anycubic mapping failure. Main-thread dispatch, progress dismissal, failure text, validation, upload reservations, and print-start safeguards remain unchanged.
+- Added a real Honor workspace interaction for `showPreparationFailure`: it opens the Compose workspace dialog and Android Back dismisses it. No printer connection or print start was used.
+- Debug and Slice unit suites: 552/552 each, zero failures/errors/skips. Full Honor instrumentation XML: 85 cases, 82 passed, 3 private multi-color fixture cases skipped, zero failures/errors. Gradle reported 88 executions including parameterized/skip variants; offline `emulator-5554` was skipped.
+- Debug APK built from code commit `1f75c4844b41dcaadb8633ff2126aee5854880b6`: `app/build/outputs/apk/debug/OrkanSlicer_1f75c4844b.apk`, 157,058,230 bytes, SHA-256 `4753495EBE0702D97A29DD8BD5651DC6B3C6DD2B47DFD257BD7FECB7D91E7664`.
+- Installed and cold-started on Honor PTP-N49 / Android 16, exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.266 / code 301. MainActivity reached top-resumed; fresh logcat sample had no fatal exception, ANR, OOM, or fatal-signal marker.
+- Code commit `1f75c4844b41dcaadb8633ff2126aee5854880b6` is ready to push and document in PR #2. No real printer action, merge, or release.
+- Continue the remaining active legacy-dialog groups; do not claim the UI migration complete. Keep the active-plate-only 3MF export warning.
+
 ## Current continuation — Kromacut failures shown in the Compose tool panel (0.8.265 / 2026-10-17)
 
 - Removed the two remaining Kromacut `BeamAlertDialogBuilder` error routes: file-picker launch failure and export/write failure. Both now share a scrollable Compose Material3 error dialog inside the existing Kromacut tool panel. The embedded WebView, chooser callback clearing, temporary-file cleanup, and generated-file handoff are unchanged; WebView disposal clears transient error UI.
