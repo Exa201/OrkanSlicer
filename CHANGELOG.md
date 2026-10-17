@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.292 (alpha)
+
+- Stack printer web error actions on narrow panels and at 130% or larger system font scale, keeping retry and external-open controls fully reachable.
+- Add Honor bounds and 48 dp target checks for 320 dp / 100%, 360 dp / 130%, and 320 dp / 150% layouts.
+
 ## 0.8.291 (alpha)
 
 - Move printer WebView loading, error, retry, external-open, and close controls into the Compose workspace panel; keep only the WebView surface in its technical Android container.
