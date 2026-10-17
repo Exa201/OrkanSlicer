@@ -2,6 +2,8 @@ package ru.ytkab0bp.slicebeam
 
 import android.content.res.Configuration
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -34,14 +36,17 @@ class SettingsAccessibilityDeviceTest {
     fun interfaceSectionAnnouncesExpansionAndKeepsSettingsActionsReachable() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val expanded = mutableStateOf(emptySet<Int>())
+        val screenWidthDp = mutableIntStateOf(320)
+        val screenHeightDp = mutableIntStateOf(640)
+        val fontScale = mutableFloatStateOf(1.5f)
         var themeActionCount = 0
 
         compose.setContent {
             CompositionLocalProvider(
-                LocalDensity provides Density(1f, 1.5f),
+                LocalDensity provides Density(1f, fontScale.floatValue),
                 LocalConfiguration provides Configuration().apply {
-                    screenWidthDp = 320
-                    screenHeightDp = 640
+                    this.screenWidthDp = screenWidthDp.intValue
+                    this.screenHeightDp = screenHeightDp.intValue
                 },
             ) {
                 BeamComposeTheme {
@@ -93,5 +98,32 @@ class SettingsAccessibilityDeviceTest {
 
         compose.onNodeWithText(sectionTitle).performClick()
         compose.runOnIdle { assertEquals(emptySet<Int>(), expanded.value) }
+
+        val configurations = listOf(
+            Triple(320, 640, 1.0f),
+            Triple(320, 640, 1.3f),
+            Triple(320, 640, 1.5f),
+            Triple(360, 800, 1.0f),
+            Triple(360, 800, 1.3f),
+            Triple(360, 800, 1.5f),
+            Triple(400, 850, 1.0f),
+            Triple(400, 850, 1.3f),
+            Triple(400, 850, 1.5f),
+            Triple(640, 320, 1.0f),
+            Triple(640, 320, 1.3f),
+            Triple(640, 320, 1.5f),
+        )
+        configurations.forEach { (width, height, scale) ->
+            compose.runOnIdle {
+                screenWidthDp.intValue = width
+                screenHeightDp.intValue = height
+                fontScale.floatValue = scale
+            }
+            compose.waitForIdle()
+            compose.onNodeWithText(sectionTitle)
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(48.dp)
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, expand))
+        }
     }
 }

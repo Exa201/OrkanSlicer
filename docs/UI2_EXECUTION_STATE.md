@@ -3,6 +3,7 @@
 ## Latest continuation — 0.8.254 (2026-10-17)
 
 - Code commit: `4554f6e26ae782db8816a98244952a7902b47d08` (`Expose settings section state to accessibility`). App-setting accordion headers now expose their expanded/collapsed state to screen readers. `SettingsAccessibilityDeviceTest` performs the real theme-setting callback and validates semantics and 48 dp target height at 320 dp and 150% Compose font scale.
+- Test-only follow-up: the same Honor Compose test now repeats visibility, minimum target, and collapsed-state checks across 320/360/400 dp portrait and 640×320 dp landscape, each at 100/130/150% Compose font scale (12 configurations). The 320 dp / 150% case also exercises expanding the section, launching the theme action, and collapsing it.
 - The preceding 0.8.253 Maker change remains included: single-action section headers announce the actual action, expandable sections announce their toggle action, and generator rows use at least 48 dp.
 - Targeted Honor settings accessibility test: 1/1 passed. Full Honor Slice instrumentation: 61 XML cases, 0 failures/errors, 3 unavailable private multi-color fixtures skipped (58 executed passed); emulator `emulator-5554` remained offline.
 - Debug and Slice unit suites: 549/549 each, 0 failures/errors/skips. `:app:assembleDebug` passed from code commit `4554f6e`.

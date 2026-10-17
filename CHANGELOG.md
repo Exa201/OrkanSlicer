@@ -3,7 +3,7 @@
 ## 0.8.254 (alpha)
 
 - App-setting sections now announce their expanded or collapsed state to screen readers.
-- Added Honor coverage for settings section state, touch size, and an actual theme-setting action at 320 dp and 150% text scale.
+- Added Honor coverage for settings section state, touch size, and an actual theme-setting action across 320/360/400 dp portrait and 640×320 dp landscape at 100/130/150% Compose font scales.
 
 ## 0.8.253 (alpha)
 
