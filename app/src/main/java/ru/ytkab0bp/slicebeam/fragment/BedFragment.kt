@@ -587,7 +587,6 @@ showWorkspaceComposeDialog { dismiss ->
 }
 /** Opens a Compose-owned workspace tool in the exclusive tool panel. */
 fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
-    if (activeWorkspaceComposeTool != null) return
     val context = getContext() ?: return
     val portrait = context.resources.configuration.orientation ==
         android.content.res.Configuration.ORIENTATION_PORTRAIT

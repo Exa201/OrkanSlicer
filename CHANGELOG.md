@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.296 (alpha)
+
+- Allow a new Compose workspace tool to replace the currently active tool through the exclusive WorkspaceController panel flow instead of silently ignoring the selection.
+- Add Honor coverage for tool replacement, old-route disposal, active tool state, and Android Back cleanup.
+
 ## 0.8.295 (alpha)
 
 - Bind the initially selected Project menu to BedFragment before WorkspaceShell creates its first Compose route, so the first tap displays file actions rather than an empty panel.

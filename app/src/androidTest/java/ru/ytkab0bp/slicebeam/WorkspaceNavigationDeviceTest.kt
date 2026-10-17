@@ -122,6 +122,7 @@ class WorkspaceNavigationDeviceTest {
             exerciseComposeToolRoute(scenario, TransformScaleMenu::class.java) { TransformScaleMenu(it) }
             exerciseComposeToolRoute(scenario, TransformCutMenu::class.java) { TransformCutMenu(it) }
             exerciseComposeToolRoute(scenario, KromacutEditorMenu::class.java) { KromacutEditorMenu() }
+            exerciseComposeToolReplacement(scenario)
             exercisePaintCancellationAgainstLoadedModel(scenario, context)
         } finally {
             scenario.close()
@@ -223,6 +224,53 @@ class WorkspaceNavigationDeviceTest {
                 BedFragment::class.java.getDeclaredField("activeWorkspaceComposeTool")
                     .apply { isAccessible = true }.get(bed))
         }
+    }
+
+    private fun exerciseComposeToolReplacement(scenario: ActivityScenario<MainActivity>) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        lateinit var position: OrientationPositionMenu
+        lateinit var rotation: OrientationRotationMenu
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            position = OrientationPositionMenu(bed)
+            bed.showWorkspaceComposeTool(position)
+        }
+        waitForToolState(scenario, instrumentation) { position.isAttached() }
+
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            rotation = OrientationRotationMenu(bed)
+            bed.showWorkspaceComposeTool(rotation)
+        }
+        waitForToolState(scenario, instrumentation) { !position.isAttached() && rotation.isAttached() }
+
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            assertEquals(OrientationRotationMenu::class.java.name,
+                controller.javaClass.getMethod("getActiveToolId").invoke(controller))
+            assertTrue("Android Back should close the replacement tool", bed.onBackPressed())
+        }
+        waitForToolState(scenario, instrumentation) { !rotation.isAttached() }
+    }
+
+    private fun waitForToolState(
+        scenario: ActivityScenario<MainActivity>,
+        instrumentation: android.app.Instrumentation,
+        condition: () -> Boolean,
+    ) {
+        val deadline = SystemClock.uptimeMillis() + 3_000L
+        while (SystemClock.uptimeMillis() < deadline) {
+            instrumentation.waitForIdleSync()
+            var reached = false
+            scenario.onActivity {
+                reached = condition()
+            }
+            if (reached) return
+            SystemClock.sleep(40L)
+        }
+        throw AssertionError("Workspace Compose tool did not reach the expected state")
     }
 
     private fun awaitMenuTransition(scenario: ActivityScenario<MainActivity>) {
