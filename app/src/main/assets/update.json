@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.253\n\n• Maker-Bereiche kündigen jetzt korrekt an, ob der Abschnitt geöffnet oder eine Einzelaktion direkt gestartet wird.\n• Maker-Aktionsflächen erfüllen auch bei schmaler Anzeige die 48-dp-Mindestgröße.",
-  "en": "OrkanSlicer 0.8.253\n\n• Maker sections now clearly announce whether they expand or directly launch a single action.\n• Maker action rows meet the 48 dp touch target minimum, including narrow layouts.",
-  "ru": "OrkanSlicer 0.8.253\n\n• Разделы Maker теперь правильно сообщают, раскрываются ли они или сразу запускают единственное действие.\n• Области нажатия действий Maker соответствуют минимуму 48 dp даже на узких экранах."
+  "de": "OrkanSlicer 0.8.254\n\n• Einstellungsbereiche kündigen ihren Auf- oder Zu-Zustand jetzt für Screenreader an.\n• Ein Honor-Test prüft Ansage, Touchfläche und eine echte Einstellungsaktion bei 320 dp und 150 % Textgröße.",
+  "en": "OrkanSlicer 0.8.254\n\n• App settings sections now announce their expanded or collapsed state to screen readers.\n• Honor coverage checks state, touch target, and a real setting action at 320 dp and 150% text scale.",
+  "ru": "OrkanSlicer 0.8.254\n\n• Разделы настроек приложения теперь сообщают средствам чтения экрана о раскрытом или свернутом состоянии.\n• Тест на Honor проверяет состояние, область нажатия и реальное действие настройки при ширине 320 dp и масштабе текста 150 %."
 }

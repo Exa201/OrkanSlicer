@@ -38,6 +38,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -261,7 +263,7 @@ class SettingsFragment : Fragment() {
 }
 
 @Composable
-private fun SettingsContent(
+internal fun SettingsContent(
     expandedSections: Set<Int>,
     cloudAvailable: Boolean,
     boostyAvailable: Boolean,
@@ -502,7 +504,7 @@ private fun SettingsContent(
 }
 
 @Composable
-private fun SettingsSection(
+internal fun SettingsSection(
     index: Int,
     expandedSections: Set<Int>,
     onToggle: (Int) -> Unit,
@@ -513,6 +515,7 @@ private fun SettingsSection(
     content: @Composable () -> Unit,
 ) {
     val expanded = index in expandedSections
+    val expansionStateDescription = stringResource(if (expanded) R.string.MakerCollapse else R.string.MakerExpand)
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = if (denseLandscape) 6.dp else if (compactLayout) 8.dp else 12.dp),
         shape = RoundedCornerShape(if (compactLayout) 26.dp else 30.dp),
@@ -523,6 +526,7 @@ private fun SettingsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(role = Role.Button) { onToggle(index) }
+                    .semantics { stateDescription = expansionStateDescription }
                     .heightIn(min = if (compactLayout) 48.dp else 56.dp)
                     .padding(
                         horizontal = if (compactLayout) 12.dp else 14.dp,

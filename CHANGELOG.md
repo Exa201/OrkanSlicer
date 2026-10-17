@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.254 (alpha)
+
+- App-setting sections now announce their expanded or collapsed state to screen readers.
+- Added Honor coverage for settings section state, touch size, and an actual theme-setting action at 320 dp and 150% text scale.
+
 ## 0.8.253 (alpha)
 
 - Maker section controls now announce whether they expand or directly open a specific action.
