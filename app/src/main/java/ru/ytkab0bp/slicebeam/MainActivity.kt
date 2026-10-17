@@ -63,6 +63,10 @@ import ru.ytkab0bp.slicebeam.cloud.CloudAPI
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.ChangeLogBottomSheet
+import ru.ytkab0bp.slicebeam.components.ProfileConfigImportDialog
+import ru.ytkab0bp.slicebeam.components.ProfileImportCategory
+import ru.ytkab0bp.slicebeam.components.ProfileImportKey
+import ru.ytkab0bp.slicebeam.components.ProfileImportOption
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
@@ -1131,11 +1135,10 @@ IOUtils.IO_POOL.submit {
         ViewUtils.postOnMainThread {
             val current = SliceBeam.CONFIG
             if (current == null) {
-                BeamAlertDialogBuilder(this)
-                    .setTitle(R.string.MenuFileImportProfilesFailed)
-                    .setMessage(R.string.MenuFileImportProfilesFailedEmpty)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
+                showFileOperationError(
+                    getString(R.string.MenuFileImportProfilesFailed),
+                    getString(R.string.MenuFileImportProfilesFailedEmpty),
+                )
                 return@postOnMainThread
             }
 
@@ -1158,20 +1161,31 @@ IOUtils.IO_POOL.submit {
             val selectedPrinters = BooleanArray(printerLabels.size) { true }
 
             if (printLabels.isEmpty() && filamentLabels.isEmpty() && printerLabels.isEmpty()) {
-                BeamAlertDialogBuilder(this)
-                    .setTitle(R.string.MenuFileImportProfilesFailed)
-                    .setMessage(R.string.MenuFileImportProfilesFailedEmpty)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
+                showFileOperationError(
+                    getString(R.string.MenuFileImportProfilesFailed),
+                    getString(R.string.MenuFileImportProfilesFailedEmpty),
+                )
                 return@postOnMainThread
             }
 
-            val applyImport: (Boolean) -> Unit = applyImport@{ replaceExisting ->
+            fun selectedProfileKeys(): Set<ProfileImportKey> = buildSet {
+                selectedPrints.forEachIndexed { index, checked ->
+                    if (checked) add(ProfileImportKey(ConfigObject.PROFILE_LIST_PRINT, index))
+                }
+                selectedFilaments.forEachIndexed { index, checked ->
+                    if (checked) add(ProfileImportKey(ConfigObject.PROFILE_LIST_FILAMENT, index))
+                }
+                selectedPrinters.forEachIndexed { index, checked ->
+                    if (checked) add(ProfileImportKey(ConfigObject.PROFILE_LIST_PRINTER, index))
+                }
+            }
+
+            val applyImport: (Boolean, Set<ProfileImportKey>) -> Unit = applyImport@{ replaceExisting, selectedProfiles ->
                 val snapshot = ProfileConfigSnapshot(current)
                 var importedCount = 0
                 var skippedCount = 0
                 for (index in selectedPrints.indices) {
-                    if (!selectedPrints[index]) continue
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINT, index) !in selectedProfiles) continue
                     val profile = imported.printConfigs[index]
                     if (replaceExisting || current.findPrint(profile.title) == null) {
                         current.importPrint(profile)
@@ -1179,7 +1193,7 @@ IOUtils.IO_POOL.submit {
                     } else skippedCount++
                 }
                 for (index in selectedFilaments.indices) {
-                    if (!selectedFilaments[index]) continue
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_FILAMENT, index) !in selectedProfiles) continue
                     val profile = imported.filamentConfigs[index]
                     if (replaceExisting || current.findFilament(profile.title) == null) {
                         current.importFilament(profile)
@@ -1187,7 +1201,7 @@ IOUtils.IO_POOL.submit {
                     } else skippedCount++
                 }
                 for (index in selectedPrinters.indices) {
-                    if (!selectedPrinters[index]) continue
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINTER, index) !in selectedProfiles) continue
                     val profile = imported.printerConfigs[index]
                     if (replaceExisting || current.findPrinter(profile.title) == null) {
                         current.importPrinter(profile)
@@ -1228,33 +1242,34 @@ IOUtils.IO_POOL.submit {
             }
 
             val finish: () -> Unit = {
+                val selectedProfiles = selectedProfileKeys()
                 val conflicts = ArrayList<String>()
                 for (index in selectedPrints.indices) {
                     val profile = imported.printConfigs[index]
-                    if (selectedPrints[index] && current.findPrint(profile.title) != null) {
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINT, index) in selectedProfiles && current.findPrint(profile.title) != null) {
                         conflicts.add("${getString(R.string.MenuFileExportProfilesPrints)}: ${profile.title.orEmpty()}")
                     }
                 }
                 for (index in selectedFilaments.indices) {
                     val profile = imported.filamentConfigs[index]
-                    if (selectedFilaments[index] && current.findFilament(profile.title) != null) {
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_FILAMENT, index) in selectedProfiles && current.findFilament(profile.title) != null) {
                         conflicts.add("${getString(R.string.MenuFileExportProfilesFilaments)}: ${profile.title.orEmpty()}")
                     }
                 }
                 for (index in selectedPrinters.indices) {
                     val profile = imported.printerConfigs[index]
-                    if (selectedPrinters[index] && current.findPrinter(profile.title) != null) {
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINTER, index) in selectedProfiles && current.findPrinter(profile.title) != null) {
                         conflicts.add("${getString(R.string.MenuFileExportProfilesPrinters)}: ${profile.title.orEmpty()}")
                     }
                 }
                 if (conflicts.isEmpty()) {
-                    applyImport(false)
+                    applyImport(false, selectedProfiles)
                 } else {
                     BeamAlertDialogBuilder(this)
                         .setTitle(R.string.MenuFileImportProfilesConflictTitle)
                         .setMessage(getString(R.string.MenuFileImportProfilesConflictMessage, conflicts.joinToString("\n")))
-                        .setPositiveButton(R.string.MenuFileImportProfilesOverwrite) { _, _ -> applyImport(true) }
-                        .setNegativeButton(R.string.MenuFileImportProfilesSkipExisting) { _, _ -> applyImport(false) }
+                        .setPositiveButton(R.string.MenuFileImportProfilesOverwrite) { _, _ -> applyImport(true, selectedProfiles) }
+                        .setNegativeButton(R.string.MenuFileImportProfilesSkipExisting) { _, _ -> applyImport(false, selectedProfiles) }
                         .setNeutralButton(android.R.string.cancel, null)
                         .show()
                 }
@@ -1303,10 +1318,8 @@ IOUtils.IO_POOL.submit {
                 }
             }
 
-            if (imported.loadWarnings.isEmpty()) {
-                showSelection()
-            } else {
-                val warningLines = imported.loadWarnings.take(20).map { warning ->
+            val warningLines: List<String> = if (imported.loadWarnings.isEmpty()) emptyList() else {
+                val lines = imported.loadWarnings.take(20).map { warning ->
                     when (warning) {
                         is ProfileConfigLoadWarning.MissingParent -> getString(
                             R.string.MenuFileImportProfilesWarningMissingParent,
@@ -1344,7 +1357,7 @@ IOUtils.IO_POOL.submit {
                 }.toMutableList()
                 if (imported.loadWarnings.size > 20) {
                     val omittedWarningCount = imported.loadWarnings.size - 20
-                    warningLines.add(
+                    lines.add(
                         resources.getQuantityString(
                             R.plurals.MenuFileImportProfilesWarningsMore,
                             omittedWarningCount,
@@ -1352,6 +1365,69 @@ IOUtils.IO_POOL.submit {
                         ),
                     )
                 }
+                lines
+            }
+            val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+            if (bed?.canShowWorkspaceComposeDialog() == true) {
+                fun importOptions(profiles: List<ConfigObject>, kind: Int, labels: Array<CharSequence>) =
+                    profiles.mapIndexed { index, profile ->
+                        ProfileImportOption(
+                            key = ProfileImportKey(kind, index),
+                            name = profile.title.orEmpty(),
+                            label = labels[index].toString(),
+                            alreadyExists = when (kind) {
+                                ConfigObject.PROFILE_LIST_PRINT -> current.findPrint(profile.title) != null
+                                ConfigObject.PROFILE_LIST_FILAMENT -> current.findFilament(profile.title) != null
+                                else -> current.findPrinter(profile.title) != null
+                            },
+                        )
+                    }
+                val categories = listOf(
+                    ProfileImportCategory(
+                        getString(R.string.MenuFileExportProfilesPrints),
+                        importOptions(imported.printConfigs, ConfigObject.PROFILE_LIST_PRINT, printLabels),
+                    ),
+                    ProfileImportCategory(
+                        getString(R.string.MenuFileExportProfilesFilaments),
+                        importOptions(imported.filamentConfigs, ConfigObject.PROFILE_LIST_FILAMENT, filamentLabels),
+                    ),
+                    ProfileImportCategory(
+                        getString(R.string.MenuFileExportProfilesPrinters),
+                        importOptions(imported.printerConfigs, ConfigObject.PROFILE_LIST_PRINTER, printerLabels),
+                    ),
+                )
+                val warningMessage = if (warningLines.isEmpty()) "" else getString(
+                    R.string.MenuFileImportProfilesWarningsMessage,
+                    warningLines.joinToString("\n\n"),
+                )
+                bed.showWorkspaceComposeDialog { dismiss ->
+                    ProfileConfigImportDialog(
+                        title = getString(R.string.MenuFileImportProfiles),
+                        warningTitle = getString(R.string.MenuFileImportProfilesWarningsTitle),
+                        warningMessage = warningMessage,
+                        selectionTitle = getString(R.string.MenuFileImportProfiles),
+                        conflictTitle = getString(R.string.MenuFileImportProfilesConflictTitle),
+                        categories = categories,
+                        formatConflictMessage = { names -> getString(
+                            R.string.MenuFileImportProfilesConflictMessage,
+                            names.joinToString("\n"),
+                        ) },
+                        continueLabel = getString(android.R.string.ok),
+                        importLabel = getString(android.R.string.ok),
+                        overwriteLabel = getString(R.string.MenuFileImportProfilesOverwrite),
+                        skipExistingLabel = getString(R.string.MenuFileImportProfilesSkipExisting),
+                        cancelLabel = getString(android.R.string.cancel),
+                        warnings = warningLines,
+                        onDismiss = dismiss,
+                        onImport = { selectedProfiles, replaceExisting ->
+                            dismiss()
+                            applyImport(replaceExisting, selectedProfiles)
+                        },
+                    )
+                }
+            } else if (warningLines.isEmpty()) {
+                showSelection()
+            } else {
                 BeamAlertDialogBuilder(this)
                     .setTitle(R.string.MenuFileImportProfilesWarningsTitle)
                     .setMessage(getString(R.string.MenuFileImportProfilesWarningsMessage, warningLines.joinToString("\n\n")))
@@ -1363,11 +1439,7 @@ IOUtils.IO_POOL.submit {
     } catch (e: Exception) {
         Log.e("MainActivity", "Failed to read file", e)
         ViewUtils.postOnMainThread {
-            BeamAlertDialogBuilder(this)
-                .setTitle(R.string.MenuFileImportProfilesFailed)
-                .setMessage(e.toString())
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            showFileOperationError(getString(R.string.MenuFileImportProfilesFailed), e.toString())
         }
     }
 }

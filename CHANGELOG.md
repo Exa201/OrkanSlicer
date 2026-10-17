@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.269 (alpha)
+
+- Move profile import warnings, print/filament/printer selection, and overwrite/skip conflict handling into one Compose workspace flow.
+- Keep all profiles selected by default and preserve validation warnings, cancellation, import transaction snapshot, and save-failure rollback.
+- Add Honor coverage for warning acknowledgement, selection toggles, conflict skip/overwrite, and cancellation.
+
 ## 0.8.268 (alpha)
 
 - Show file and profile import failures in the Compose workspace dialog while the Bed workspace is active.

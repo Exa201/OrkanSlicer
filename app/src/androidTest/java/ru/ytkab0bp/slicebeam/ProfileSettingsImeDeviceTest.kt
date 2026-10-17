@@ -38,11 +38,16 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
+import ru.ytkab0bp.slicebeam.components.ProfileConfigImportDialog
+import ru.ytkab0bp.slicebeam.components.ProfileImportCategory
+import ru.ytkab0bp.slicebeam.components.ProfileImportKey
+import ru.ytkab0bp.slicebeam.components.ProfileImportOption
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import java.util.concurrent.atomic.AtomicReference
 
 /** Exercises the real process-profile filter inside its profile screen while the IME is open. */
 @RunWith(AndroidJUnit4::class)
@@ -144,6 +149,136 @@ class ProfileSettingsImeDeviceTest {
         ).assertIsDisplayed()
         compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+    }
+
+    @Test
+    fun profileImportComposeFlowShowsWarningsSelectionAndSkipConflicts() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val printKind = ConfigObject.PROFILE_LIST_PRINT
+        val existing = ProfileImportKey(printKind, 0)
+        val newProfile = ProfileImportKey(printKind, 1)
+        val imported = AtomicReference<Set<ProfileImportKey>?>()
+        val replaced = AtomicReference<Boolean?>()
+        activity.runOnUiThread {
+            bed.showWorkspaceComposeDialog { dismiss ->
+                ProfileConfigImportDialog(
+                    title = "Import profiles",
+                    warningTitle = "Import warnings",
+                    warningMessage = "Unsupported option warning",
+                    selectionTitle = "Select profiles",
+                    conflictTitle = "Profiles already exist",
+                    categories = listOf(
+                        ProfileImportCategory("Print", listOf(
+                            ProfileImportOption(existing, "Standard", "Standard (already exists)", true),
+                            ProfileImportOption(newProfile, "Fast", "Fast", false),
+                        )),
+                    ),
+                    formatConflictMessage = { names -> "Resolve conflicts: ${names.joinToString()}" },
+                    continueLabel = "Continue",
+                    importLabel = "Import selected",
+                    overwriteLabel = "Overwrite",
+                    skipExistingLabel = "Skip existing",
+                    cancelLabel = "Cancel",
+                    warnings = listOf("Unsupported option warning"),
+                    onDismiss = dismiss,
+                    onImport = { selected, overwrite ->
+                        imported.set(selected)
+                        replaced.set(overwrite)
+                        dismiss()
+                    },
+                )
+            }
+        }
+
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText("Unsupported option warning").assertIsDisplayed()
+        compose.onNodeWithText("Continue").performClick()
+        compose.onNodeWithText("Standard (already exists)").assertIsDisplayed()
+        compose.onNodeWithText("Fast").assertIsDisplayed()
+        compose.onNodeWithText("Fast").performClick()
+        compose.onNodeWithText("Fast").performClick()
+        compose.onNodeWithText("Import selected").performClick()
+        compose.onNodeWithText("Resolve conflicts: Print: Standard").assertIsDisplayed()
+        compose.onNodeWithText("Skip existing").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+        assertEquals(setOf(existing, newProfile), imported.get())
+        assertEquals(false, replaced.get())
+    }
+
+    @Test
+    fun profileImportComposeFlowCanOverwriteOrCancelConflicts() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val existing = ProfileImportKey(ConfigObject.PROFILE_LIST_FILAMENT, 2)
+        val imported = AtomicReference<Boolean?>()
+        activity.runOnUiThread {
+            bed.showWorkspaceComposeDialog { dismiss ->
+                ProfileConfigImportDialog(
+                    title = "Import profiles",
+                    warningTitle = "Import warnings",
+                    warningMessage = "",
+                    selectionTitle = "Select profiles",
+                    conflictTitle = "Profiles already exist",
+                    categories = listOf(
+                        ProfileImportCategory("Filaments", listOf(
+                            ProfileImportOption(existing, "PLA", "PLA (already exists)", true),
+                        )),
+                    ),
+                    formatConflictMessage = { names -> "Resolve conflicts: ${names.joinToString()}" },
+                    continueLabel = "Continue",
+                    importLabel = "Import selected",
+                    overwriteLabel = "Overwrite",
+                    skipExistingLabel = "Skip existing",
+                    cancelLabel = "Cancel",
+                    warnings = emptyList(),
+                    onDismiss = dismiss,
+                    onImport = { _, overwrite ->
+                        imported.set(overwrite)
+                        dismiss()
+                    },
+                )
+            }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText("Import selected").performClick()
+        compose.onNodeWithText("Resolve conflicts: Filaments: PLA").assertIsDisplayed()
+        compose.onNodeWithText("Overwrite").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertEquals(true, imported.get())
+
+        imported.set(null)
+        activity.runOnUiThread {
+            bed.showWorkspaceComposeDialog { dismiss ->
+                ProfileConfigImportDialog(
+                    title = "Import profiles",
+                    warningTitle = "Import warnings",
+                    warningMessage = "",
+                    selectionTitle = "Select profiles",
+                    conflictTitle = "Profiles already exist",
+                    categories = listOf(ProfileImportCategory("Filaments", listOf(
+                        ProfileImportOption(existing, "PLA", "PLA (already exists)", true),
+                    ))),
+                    formatConflictMessage = { names -> "Resolve conflicts: ${names.joinToString()}" },
+                    continueLabel = "Continue",
+                    importLabel = "Import selected",
+                    overwriteLabel = "Overwrite",
+                    skipExistingLabel = "Skip existing",
+                    cancelLabel = "Cancel",
+                    warnings = emptyList(),
+                    onDismiss = dismiss,
+                    onImport = { _, overwrite ->
+                        imported.set(overwrite)
+                        dismiss()
+                    },
+                )
+            }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertEquals("Cancel never triggers the import callback", null, imported.get())
     }
 
     @Test
