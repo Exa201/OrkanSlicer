@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — print preparation safety dialogs on workspace Compose (0.8.273 / 2026-10-17)
+
+- Migrated the active print-preparation route from a native `AlertDialog` hosting a `ComposeView` to the exclusive Compose workspace dialog host. The printer selector, profile activation/re-slicing path, ACE routing availability guard, material mismatch warning, empty-slot warning, upload-only action, and separate firmware-checked print confirmation remain distinct.
+- Added Honor device tests for the real preparation route using an injected send spy (Cancel dispatches nothing; upload-only sends with `shouldPrint=false`) and for the ACE-gap warning choices (Cancel dispatches nothing; upload-only and explicitly firmware-checked print remain distinct callbacks). Targeted `SlicePrintPreparationComposeDeviceTest`: 2/2 passed on Honor PTP-N49 / Android 16; emulator remains offline.
+- Debug and Slice unit suites: 552/552 each, zero failures/errors/skips. `git diff --check` passed. Android debug compilation passed. Tests issue no printer/network commands.
+- Code commit: `9a47c597b877e54e71e932ede14a044473d97437`. `:app:assembleDebug` succeeded. APK: `app/build/outputs/apk/debug/OrkanSlicer_9a47c597b8.apk`, 157,127,485 bytes, SHA-256 `BE3909E40C40199596376CEF091F68A8B01D8357433A48A11F0910E27DDAE7EA`.
+- Installed on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; verified version 0.8.273 / code 308 and `MainActivity` top-resumed. Fresh 6,000-line logcat sample had no fatal exception, app ANR, OOM, or fatal-signal matches. `emulator-5554` remains offline. No printer command, network send, screenshot, or print start.
+- Next: continue the next actionable legacy UI route after pushing this code and verification update to the existing branch and PR #2. The overall UI migration remains in progress; full multi-plate project persistence remains a separate open item.
+
 ## Current continuation — root-workspace app-exit confirmation on Compose (0.8.272 / 2026-10-17)
 
 - The root Bed workspace now hosts the app-exit confirmation in the existing exclusive Compose message dialog. Non-Bed activity states keep the Android alert fallback. Cancel/back dismiss without finishing; the explicit confirm action retains the existing session-plate reset, temporary project-settings clear, and `finishAfterTransition()` behavior.
