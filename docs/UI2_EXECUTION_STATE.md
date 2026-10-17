@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — 0.8.255 (2026-10-17)
+
+- Code commit: `8b09ccae815b243eb1747f4a73a418466826712b` (`Announce profile favorites filter state`). The profile settings favorites filter now announces its localized enabled/disabled state. Added Honor Compose coverage for opening filters, toggling favorites, entering and trimming a query, and selecting a profile settings level at 320 dp / 150% font scale.
+- Earlier settings test coverage remains included: 12 constrained layouts (320/360/400 dp portrait and 640×320 dp landscape, 100/130/150% font scale) with section visibility, state semantics and minimum touch checks. Maker section single-action/expand semantics and 48 dp targets remain tested.
+- Targeted `ProfileFilterAccessibilityDeviceTest`: 1/1 passed after ordering the level selection before opening the keyboard. The IME can cover controls in an isolated 640 dp test viewport; accessibility with keyboard visible remains unverified for the full parent profile screen.
+- Debug/Slice unit suites: 549/549 each, 0 failures/errors/skips. Full Honor instrumentation: 62 XML cases, 0 failures/errors, 3 unavailable private multi-color fixtures skipped (59 executed passed); emulator `emulator-5554` remained offline. `:app:assembleDebug` passed.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_8b09ccae81.apk`, 157,041,648 bytes; SHA-256 `E760C092D90C2EC2050E09E0D82544CA17119E9A0D97A505C12203281D51B4C2`.
+- Installed/launched on Honor PTP-N49 / Android 16 using verified package `com.codemastercody3d.orcaslicermobile`, version `0.8.255` / code `290`; `MainActivity` top-resumed and fresh logcat contained no crash/ANR/OOM/fatal-signal markers. No printer job was started.
+- UI 2.0 remains incomplete. Next: continue action-by-action global/profile audit and safely test IME-visible profile controls in their parent screen; retain the BedFragment generic dialog/overlay host until IME-aware Back coverage exists. Full multi-plate project persistence remains separate and incomplete; keep the active-plate export warning.
+- Branch `codex/rinkhals-safe-start-audit`; PR #2 remains open and unmerged. Preserve `.codex-remote-attachments/`.
+
 ## Latest continuation — 0.8.254 (2026-10-17)
 
 - Code commit: `4554f6e26ae782db8816a98244952a7902b47d08` (`Expose settings section state to accessibility`). App-setting accordion headers now expose their expanded/collapsed state to screen readers. `SettingsAccessibilityDeviceTest` performs the real theme-setting callback and validates semantics and 48 dp target height at 320 dp and 150% Compose font scale.
