@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — profile help and app-settings choices (0.8.262 / 2026-10-17)
+
+- Replaced the active Android profile-option help/favorite alert with a Compose Material dialog hosted by `ProfileListFragment`; the favorite callback still persists the existing key and reapplies the favorites-only filter when active. Long help text scrolls inside the dialog.
+- Replaced the app-settings theme, render-scale, and text-scale choice alerts with a shared Compose radio-list dialog. Preference writes, theme invalidation, selected values, and Cancel behavior remain in the existing `SettingsFragment` callbacks. Native color-picker, folder-picker failure, and destructive reset confirmation routes remain unchanged.
+- Targeted Honor tests passed: `ProfileOptionHelpDialogDeviceTest` 1/1 (both add/remove favorite actions persist and dismiss); `SettingsChoiceDialogDeviceTest` 1/1 (long list scroll, select, and cancel). Debug and Slice unit suites: 552/552 each, zero failures/errors/skips. Full Honor suite XML: 79 cases, 76 passed, 3 private multi-color fixtures skipped, 0 failures/errors (Gradle reported 82 instrumented executions including skipped fixture variants). The emulator remains offline.
+- The actual profile-row long-press was not reliably addressable by the profile screen test semantics; component actions and the source callback path are covered separately. Keep this as a verification limitation rather than claim that entry gesture passed on-device.
+- Version set to alpha `0.8.262` / `versionCode 297`. Code changes are uncommitted; most recent committed code remains `b766d04305fa5401e1c3a8881440bc744d5176dc` (0.8.261).
+- Next: create the code commit, build the full Debug APK from that exact commit, install and cold-start only package `com.codemastercody3d.orcaslicermobile` on Honor PTP-N49, inspect fresh logcat, calculate APK SHA-256, then push and update PR #2. Preserve `.codex-remote-attachments/`; no screenshots, printer commands, print starts, merge, or release.
+
 ## Latest continuation — Smart Expert Slice Compose dialogs (0.8.260 / 2026-10-17)
 
 - Migrated the Smart Expert Slice setup form, cancellable analysis progress, and result actions to the exclusive Workspace Compose dialog host. GL geometry analysis, background profile analysis, model-key/revision checks, the profile snapshot, and explicit apply/slice callbacks remain intact.

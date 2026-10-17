@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.262 (alpha)
+
+- Move process, printer, and filament profile option-help dialogs and their favorite actions into Compose.
+- Replace the app-settings theme, render-scale, and text-scale choice dialogs with one scrollable Compose selection component.
+- Keep preference persistence, theme invalidation, and selection/cancel behavior; add Honor interaction coverage for help favorites and long settings lists.
+
 ## 0.8.261 (alpha)
 
 - Move the print-profile flush-volume matrix and prime-tower position editors into Compose dialogs hosted by the profile screen.

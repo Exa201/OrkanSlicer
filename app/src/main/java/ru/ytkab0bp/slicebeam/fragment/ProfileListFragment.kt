@@ -80,6 +80,7 @@ abstract class ProfileListFragment : Fragment() {
     private var dropdownMenu by mutableStateOf(ProfileDropdownMenuPolicy.create(emptyList(), -1))
     private var dropdownMenuTitle by mutableIntStateOf(R.string.SlotPrinterConfigTooltip)
     private var dropdownExpanded by mutableStateOf(false)
+    private var activeOptionHelpDialog by mutableStateOf<ProfileOptionHelpDialogState?>(null)
     private var dropdownItemsSnapshot: List<ProfileListItem> = emptyList()
     private var renderedProfileTitle: String? = null
     private var renderedConfigUid: Int = -1
@@ -329,6 +330,9 @@ abstract class ProfileListFragment : Fragment() {
                             }
                         }
                         profileFooter?.Content(isPortrait)
+                        activeOptionHelpDialog?.let { dialog ->
+                            ProfileOptionHelpDialog(dialog) { activeOptionHelpDialog = null }
+                        }
                     }
                 }
             }
@@ -342,6 +346,7 @@ abstract class ProfileListFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        activeOptionHelpDialog = null
         SliceBeam.EVENT_BUS.unregisterListener(this)
         unfolded.clear()
     }
@@ -613,9 +618,12 @@ abstract class ProfileListFragment : Fragment() {
                 if (position >= 0) recyclerView?.refreshItem(position)
             },
             Runnable {
-                val context = getContext()
                 val controller = profileFilterController
-                if (context != null && controller != null) controller.showOptionHelp(context, definition)
+                if (controller != null) {
+                    controller.showOptionHelp(definition) { dialog ->
+                        activeOptionHelpDialog = dialog
+                    }
+                }
             },
         )
     }

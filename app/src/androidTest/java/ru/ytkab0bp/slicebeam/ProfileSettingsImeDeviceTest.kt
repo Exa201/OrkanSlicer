@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -143,7 +144,7 @@ class ProfileSettingsImeDeviceTest {
         compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
         compose.onNodeWithText(context.getString(R.string.PrintConfigFlushVolumesInvalid)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(android.R.string.cancel)).performClick()
-        compose.onNodeWithText(context.getString(R.string.PrintConfigFlushVolumesHelp)).assertDoesNotExist()
+        compose.onAllNodesWithText(context.getString(R.string.PrintConfigFlushVolumesHelp)).assertCountEquals(0)
         assertEquals("Invalid edit and Cancel leave the saved profile unchanged", savedBefore,
             profile?.get("flush_volumes_matrix"))
     }
@@ -167,7 +168,7 @@ class ProfileSettingsImeDeviceTest {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         compose.onNodeWithText(context.getString(android.R.string.cancel)).assertIsDisplayed()
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
-        compose.onNodeWithText(context.getString(R.string.PrimeTowerPosition)).assertDoesNotExist()
+        compose.onAllNodesWithText(context.getString(R.string.PrimeTowerPosition)).assertCountEquals(0)
         assertEquals("Cancel leaves the saved X coordinate unchanged", xBefore, profile?.get("wipe_tower_x"))
         assertEquals("Cancel leaves the saved Y coordinate unchanged", yBefore, profile?.get("wipe_tower_y"))
     }

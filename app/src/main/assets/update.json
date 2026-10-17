@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.261\n\n• Die Dialoge für Spülvolumen-Matrix und Prime-Tower-Positionen in Druckprofilen verwenden jetzt Compose.\n• Validierung, Dezimalwerte, Plattenkoordinaten und das Anwenden/Verwerfen von Profiländerungen bleiben erhalten.",
-  "en": "OrkanSlicer 0.8.261\n\n• The print-profile flush-volume matrix and prime-tower position dialogs now use Compose.\n• Validation, decimal values, per-plate coordinates, and applying or discarding profile edits are preserved.",
-  "ru": "OrkanSlicer 0.8.261\n\n• Диалоги матрицы объёмов продувки и положения башни очистки в профиле печати переведены на Compose.\n• Сохранены проверка значений, десятичные числа, координаты по пластинам и применение либо отмена изменений профиля."
+  "de": "OrkanSlicer 0.8.262\n\n• Hilfe- und Favoritendialoge für Druckprofiloptionen verwenden jetzt Compose.\n• Theme-, Render-Skalierung- und Schriftgrößen-Auswahl in den App-Einstellungen verwenden einen gemeinsamen scrollbaren Compose-Dialog.\n• Preference-Speicherung, Theme-Aktualisierung und Abbrechen bleiben erhalten.",
+  "en": "OrkanSlicer 0.8.262\n\n• Profile-option help and favorite dialogs now use Compose.\n• Theme, render-scale, and text-size choices in app settings now use one shared scrollable Compose dialog.\n• Preference persistence, theme refresh, and cancellation behavior are preserved.",
+  "ru": "OrkanSlicer 0.8.262\n\n• Справка и избранное для параметров профилей теперь используют Compose.\n• Выбор темы, масштаба рендеринга и размера текста в настройках приложения переведён на общий прокручиваемый диалог Compose.\n• Сохранены настройки, обновление темы и отмена выбора."
 }
