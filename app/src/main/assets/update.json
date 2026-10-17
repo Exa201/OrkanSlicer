@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.254\n\n• Einstellungsbereiche kündigen ihren Auf- oder Zu-Zustand jetzt für Screenreader an.\n• Ein Honor-Test prüft Ansage, Touchfläche und eine echte Einstellungsaktion bei 320 dp und 150 % Textgröße.",
-  "en": "OrkanSlicer 0.8.254\n\n• App settings sections now announce their expanded or collapsed state to screen readers.\n• Honor coverage checks state, touch target, and a real setting action at 320 dp and 150% text scale.",
-  "ru": "OrkanSlicer 0.8.254\n\n• Разделы настроек приложения теперь сообщают средствам чтения экрана о раскрытом или свернутом состоянии.\n• Тест на Honor проверяет состояние, область нажатия и реальное действие настройки при ширине 320 dp и масштабе текста 150 %."
+  "de": "OrkanSlicer 0.8.255\n\n• Der Favoritenfilter in den Druckprofileinstellungen sagt seinen Aktiviert-/Deaktiviert-Zustand jetzt für Screenreader an.\n• Ein Honor-Test prüft Favoritenfilter, Suche und Qualitätsstufe bei 320 dp und 150 % Textgröße.",
+  "en": "OrkanSlicer 0.8.255\n\n• The profile-settings favorites filter now announces its enabled/disabled state to screen readers.\n• Honor coverage checks the favorites filter, search, and settings level at 320 dp and 150% text scale.",
+  "ru": "OrkanSlicer 0.8.255\n\n• Фильтр избранного в настройках профиля теперь сообщает средствам чтения экрана о включенном или выключенном состоянии.\n• Тест на Honor проверяет избранное, поиск и уровень настроек при ширине 320 dp и масштабе текста 150 %."
 }

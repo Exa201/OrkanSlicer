@@ -1234,6 +1234,8 @@
     <string name="ProfileSettingsEmptySearch">No settings found. Check the search term or selected category.</string>
     <string name="ProfileSettingsEmptyFavorites">There are no favorite settings in this category.</string>
     <string name="ProfileSettingsFavoritesToggle">Show only favorite settings</string>
+    <string name="ProfileSettingsFavoritesOnlyEnabled">Enabled</string>
+    <string name="ProfileSettingsFavoritesOnlyDisabled">Disabled</string>
     <string name="ProfileSettingsEmptySimple">This profile has no settings available in Simple mode. Choose Advanced or Expert to see more.</string>
     <string name="ProfileSettingsEmptyGeneral">No settings are available in this category.</string>
     <string name="SettingsScreenDescription">Adjust the app appearance, storage and printer setup.</string>

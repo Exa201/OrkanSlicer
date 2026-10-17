@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.255 (alpha)
+
+- Profile-settings favorites filter now announces its enabled/disabled state to screen readers in English, German, and Russian.
+- Added Honor coverage for the favorites toggle, search input, and profile-level picker at 320 dp and 150% text scale.
+
 ## 0.8.254 (alpha)
 
 - App-setting sections now announce their expanded or collapsed state to screen readers.

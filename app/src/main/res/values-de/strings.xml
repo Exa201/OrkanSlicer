@@ -1205,6 +1205,8 @@
     <string name="ProfileSettingsEmptySearch">Keine Einstellungen gefunden. Prüfe den Suchbegriff oder den ausgewählten Bereich.</string>
     <string name="ProfileSettingsEmptyFavorites">In diesem Bereich sind keine Einstellungen als Favorit markiert.</string>
     <string name="ProfileSettingsFavoritesToggle">Nur Favoriten anzeigen</string>
+    <string name="ProfileSettingsFavoritesOnlyEnabled">Aktiviert</string>
+    <string name="ProfileSettingsFavoritesOnlyDisabled">Deaktiviert</string>
     <string name="ProfileSettingsEmptySimple">In diesem Profil gibt es im Modus „Einfach“ keine verfügbaren Einstellungen. Wähle „Erweitert“ oder „Experte“, um weitere Optionen anzuzeigen.</string>
     <string name="ProfileSettingsEmptyGeneral">In diesem Einstellungsbereich sind keine Optionen verfügbar.</string>
     <string name="SettingsScreenDescription">Darstellung, Speicherort und Drucker verwalten.</string>
