@@ -53,7 +53,6 @@ import ru.ytkab0bp.slicebeam.launchAppActivityResult
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.BeamColorPickerPopUp
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
@@ -63,6 +62,7 @@ import ru.ytkab0bp.slicebeam.theme.BeamTheme
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.settings.SettingsMenuLayoutPolicy
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 import ru.ytkab0bp.slicebeam.utils.ConverterStorage
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
@@ -71,6 +71,8 @@ class SettingsFragment : Fragment() {
     private var themeRevision by mutableIntStateOf(0)
     private var expandedSections by mutableStateOf(emptySet<Int>())
     private var activeChoiceDialog by mutableStateOf<SettingsChoiceDialogState?>(null)
+    private var showFolderPickerError by mutableStateOf(false)
+    private var showResetConfirmation by mutableStateOf(false)
 
     override fun onCreate() {
         super.onCreate()
@@ -79,6 +81,8 @@ class SettingsFragment : Fragment() {
 
     override fun onDestroy() {
         activeChoiceDialog = null
+        showFolderPickerError = false
+        showResetConfirmation = false
         SliceBeam.EVENT_BUS.unregisterListener(this)
         super.onDestroy()
     }
@@ -118,6 +122,20 @@ class SettingsFragment : Fragment() {
                         )
                         activeChoiceDialog?.let { dialog ->
                             SettingsChoiceDialog(dialog) { activeChoiceDialog = null }
+                        }
+                        if (showFolderPickerError) {
+                            SettingsFolderPickerErrorDialog(
+                                onDismiss = { showFolderPickerError = false },
+                            )
+                        }
+                        if (showResetConfirmation) {
+                            SettingsResetConfirmationDialog(
+                                onDismiss = { showResetConfirmation = false },
+                                onConfirm = {
+                                    showResetConfirmation = false
+                                    performReset()
+                                },
+                            )
                         }
                     }
                 }
@@ -235,29 +253,22 @@ class SettingsFragment : Fragment() {
                 MainActivity.REQUEST_CODE_CONVERTER_ROOT_SETTINGS,
             )
         } catch (_: Exception) {
-            BeamAlertDialogBuilder(activity)
-                .setTitle(R.string.ConverterFailed)
-                .setMessage(R.string.ConverterFolderPickerUnavailable)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            showFolderPickerError = true
         }
     }
 
     private fun confirmReset() {
+        showResetConfirmation = true
+    }
+
+    private fun performReset() {
         val activity = getContext() as? Activity ?: return
-        BeamAlertDialogBuilder(activity)
-            .setTitle(R.string.SettingsResetToDefaultTitle)
-            .setMessage(R.string.SettingsResetToDefaultDescription)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                SliceBeam.getConfigFile().delete()
-                SliceBeam.CONFIG = null
-                Prefs.getPrefs()?.edit()?.clear()?.apply()
-                Prefs.setLastCommit()
-                activity.startActivity(Intent(activity, SetupActivity::class.java))
-                activity.finish()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        SliceBeam.getConfigFile().delete()
+        SliceBeam.CONFIG = null
+        Prefs.getPrefs()?.edit()?.clear()?.apply()
+        Prefs.setLastCommit()
+        activity.startActivity(Intent(activity, SetupActivity::class.java))
+        activity.finish()
     }
 
     fun refreshConverterFolderSetting() {
@@ -273,6 +284,30 @@ class SettingsFragment : Fragment() {
     fun onUserInfoUpdated(event: CloudUserInfoUpdatedEvent) {
         if (BeamServerData.isCloudAvailable()) themeRevision++
     }
+}
+
+@Composable
+internal fun SettingsFolderPickerErrorDialog(onDismiss: () -> Unit) {
+    WorkspaceMessageDialog(
+        title = stringResource(R.string.ConverterFailed),
+        message = stringResource(R.string.ConverterFolderPickerUnavailable),
+        confirmLabel = stringResource(android.R.string.ok),
+        dismissLabel = null,
+        onDismiss = onDismiss,
+        onConfirm = onDismiss,
+    )
+}
+
+@Composable
+internal fun SettingsResetConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    WorkspaceMessageDialog(
+        title = stringResource(R.string.SettingsResetToDefaultTitle),
+        message = stringResource(R.string.SettingsResetToDefaultDescription),
+        confirmLabel = stringResource(android.R.string.ok),
+        dismissLabel = stringResource(android.R.string.cancel),
+        onDismiss = onDismiss,
+        onConfirm = onConfirm,
+    )
 }
 
 @Composable

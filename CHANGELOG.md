@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.264 (alpha)
+
+- Move the app-settings reset confirmation and converter-folder-picker error to Compose.
+- Preserve the explicit reset confirmation boundary; Cancel and Back cannot reset settings.
+- Add Honor UI coverage for reset confirmation and folder-picker error dismissal.
+
 ## 0.8.263 (alpha)
 
 - Render MMU filament-sync errors in the print-profile screen with the existing Compose message dialog.
