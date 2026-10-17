@@ -9,6 +9,7 @@ internal enum class WorkspaceOverlayPanel {
     PLATE_PICKER,
     FILAMENT_PALETTE,
     PROFILE_PICKER,
+    SLICE_PROGRESS,
     PRINTER_WEB,
     MODEL_CONTEXT_MENU,
     MESSAGE_DIALOG,

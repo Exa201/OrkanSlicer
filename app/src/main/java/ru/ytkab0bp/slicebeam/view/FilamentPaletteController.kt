@@ -1,6 +1,5 @@
 package ru.ytkab0bp.slicebeam.view
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -35,12 +34,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.graphics.ColorUtils
 import ru.ytkab0bp.slicebeam.R
@@ -75,10 +74,10 @@ internal data class PaletteSlotSnapshot(val color: Int, val type: String?)
 class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
     private var slots: MutableList<FilamentSlot> = Prefs.getFilamentSlots()
     private var paletteRevision by mutableIntStateOf(0)
+    private var activeSlotEditor by mutableStateOf<FilamentSlotSheet?>(null)
 
     @Composable
     fun Content(modifier: Modifier = Modifier) {
-        val context = LocalContext.current
         val snapshots = remember(paletteRevision) {
             slots.map { PaletteSlotSnapshot(it.color, it.type) }
         }
@@ -100,9 +99,12 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
             FilamentPaletteContent(
                 slots = snapshots,
                 selectedGates = syncedGates,
-                onSlotClick = { index -> showSlotEditor(context, index) },
-                onAddClick = { showNewSlotEditor(context) },
+                onSlotClick = { index -> showSlotEditor(index) },
+                onAddClick = { showNewSlotEditor() },
             )
+        }
+        activeSlotEditor?.let { editor ->
+            editor.Content { activeSlotEditor = null }
         }
     }
 
@@ -156,7 +158,10 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall)
                 }
-                TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.heightIn(min = OrkanUiTokens.touchTarget),
+                ) { Text(stringResource(android.R.string.cancel)) }
             }
             if (physicalGates.isNotEmpty()) {
                 AcePhysicalSlotsBar(physicalGates)
@@ -180,7 +185,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                                 role = Role.Button
                                 contentDescription = description
                             }
-                            .clickable(role = Role.Button) { showSlotEditor(context, index) }
+                            .clickable(role = Role.Button) { showSlotEditor(index) }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -214,7 +219,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                 if (FilamentPalettePolicy.canAddSlot(snapshots.size)) {
                     item(key = "add-filament") {
                         TextButton(
-                            onClick = { showNewSlotEditor(context) },
+                            onClick = { showNewSlotEditor() },
                 modifier = Modifier.fillMaxWidth().heightIn(min = OrkanUiTokens.touchTarget),
                         ) { Text(stringResource(R.string.FilamentPaletteAdd)) }
                     }
@@ -227,12 +232,14 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                 ) { Text(stringResource(R.string.WorkspaceFilamentAssignModel)) }
             }
         }
+        activeSlotEditor?.let { editor ->
+            editor.Content { activeSlotEditor = null }
+        }
     }
 
-    private fun showSlotEditor(context: Context, index: Int) {
+    private fun showSlotEditor(index: Int) {
         val slot = slots.getOrNull(index) ?: return
         val editor = FilamentSlotSheet(
-            context,
             slot,
             FilamentPalettePolicy.canDeleteSlot(slots.size),
             object : FilamentSlotSheet.Listener {
@@ -250,14 +257,13 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                 }
             },
         )
-        editor.show()
+        activeSlotEditor = editor
     }
 
-    private fun showNewSlotEditor(context: Context) {
+    private fun showNewSlotEditor() {
         if (!FilamentPalettePolicy.canAddSlot(slots.size)) return
         val slot = FilamentSlot(0xFF1AC5A2.toInt(), "PLA")
         val editor = FilamentSlotSheet(
-            context,
             slot,
             false,
             object : FilamentSlotSheet.Listener {
@@ -274,7 +280,7 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                 override fun onDelete() = Unit
             },
         )
-        editor.show()
+        activeSlotEditor = editor
     }
 
     private fun persistAndReload() {

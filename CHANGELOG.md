@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.280 (alpha)
+
+- Move workspace filament, slot editing, color selection, and profile panels into the exclusive Compose overlay host; retain the existing material assignment and profile callbacks.
+- Replace the cloud-management, release-notes, and slicing-progress Android bottom-sheet hosts with Compose dialogs. Slicing progress remains non-cancelable and reports completion once.
+- Remove the unused legacy ACE assignment AlertDialog wrapper; keep gate mapping and validation shared with the active Compose print-preparation flow.
+- Add Honor coverage for the migrated dialog routes, Android Back behavior, long filament lists, physical slot editing, plate selection, and slicing progress.
+
 ## 0.8.279 (alpha)
 
 - Replace the historical `UnfoldMenu` lifecycle adapter with `WorkspaceComposeToolRoute` and remove the anchor-based `showUnfoldMenu` entry point.

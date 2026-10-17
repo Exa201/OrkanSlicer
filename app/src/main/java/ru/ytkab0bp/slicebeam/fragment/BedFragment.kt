@@ -43,10 +43,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
 import ru.ytkab0bp.slicebeam.components.ModelContextMenuDialog
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
-import ru.ytkab0bp.slicebeam.components.SliceProgressBottomSheet
+import ru.ytkab0bp.slicebeam.components.SliceProgressDialog
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
@@ -116,6 +115,7 @@ var glView: GLView? = null
 private var rendererAdapter: RendererAdapter? = null
 private var workspaceThemeRevision by mutableIntStateOf(0)
 private val workspaceController = WorkspaceController()
+private var activeSliceProgressDialog by mutableStateOf<SliceProgressDialog?>(null)
 private var menuToolsExpanded:Boolean
 get() = workspaceController.toolPanelExpanded
 set(value) { workspaceController.toolPanelExpanded = value }
@@ -307,24 +307,28 @@ private fun showWorkspaceFilamentPalette() {
     val context = getContext() ?: return
     workspaceController.dismissActivePanel()
     val controller = FilamentPaletteController { filamentPaletteRevision++ }
-    val dialog = WorkspaceFilamentPaletteSheet(
+    val panel = WorkspaceFilamentPaletteSheet(
         context = context,
         controller = controller,
         hasModel = currentModel?.objectsCount?.let { it > 0 } == true,
         onAssignModel = ::showModelColorSlots,
-    ).show {
-        workspaceController.clearPanel(WorkspaceOverlayPanel.FILAMENT_PALETTE)
-    }
-    workspaceController.registerPanel(WorkspaceOverlayPanel.FILAMENT_PALETTE) { dialog.dismiss() }
+    )
+    fun dismiss() = workspaceController.clearPanel(WorkspaceOverlayPanel.FILAMENT_PALETTE)
+    workspaceController.activatePanel(
+        panel = WorkspaceOverlayPanel.FILAMENT_PALETTE,
+        content = { BeamComposeTheme { panel.Content(::dismiss) } },
+        dismiss = {},
+    )
 }
 private fun showWorkspaceProfileSheet(context: Context) {
     workspaceController.dismissActivePanel()
-    val sheet = WorkspaceProfileSheet(context, Runnable { refreshProfileStatus() })
-    sheet.setOnDismissListener {
-        workspaceController.clearPanel(WorkspaceOverlayPanel.PROFILE_PICKER)
-    }
-    sheet.show()
-    workspaceController.registerPanel(WorkspaceOverlayPanel.PROFILE_PICKER) { sheet.dismiss() }
+    val panel = WorkspaceProfileSheet(context, Runnable { refreshProfileStatus() })
+    fun dismiss() = workspaceController.clearPanel(WorkspaceOverlayPanel.PROFILE_PICKER)
+    workspaceController.activatePanel(
+        panel = WorkspaceOverlayPanel.PROFILE_PICKER,
+        content = { BeamComposeTheme { panel.Content(::dismiss) } },
+        dismiss = {},
+    )
 }
 /** Selects model filament slots first, then slices and runs the continuation on success. */
  @JvmOverloads fun startSlicing(onSuccess:Runnable? = null) {
@@ -370,7 +374,7 @@ tempExportingFile = null
 val cfg = SliceBeam.getCurrentConfigFile()
 val gcode = tempGCodePath
 val settingsRevision = TemporaryProjectSettings.sliceRevision
-if (!DEBUG_VIEWER) SliceProgressBottomSheet(ctx).show()
+if (!DEBUG_VIEWER) showSliceProgress(ctx)
 Thread({ try
 {
 Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT)
@@ -784,6 +788,23 @@ internal fun isWorkspaceMessageDialogAttached(): Boolean =
     workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG
 internal fun canShowWorkspaceComposeDialog(): Boolean =
     getContext() != null && overlayLayout != null
+private fun showSliceProgress(context: Context) {
+    lateinit var dialog: SliceProgressDialog
+    dialog = SliceProgressDialog(context) {
+        if (activeSliceProgressDialog === dialog) {
+            activeSliceProgressDialog = null
+            workspaceController.clearPanel(WorkspaceOverlayPanel.SLICE_PROGRESS)
+        }
+    }
+    activeSliceProgressDialog = dialog
+    workspaceController.activatePanel(
+        panel = WorkspaceOverlayPanel.SLICE_PROGRESS,
+        content = { dialog.Content() },
+        dismiss = {
+            if (activeSliceProgressDialog === dialog) activeSliceProgressDialog = null
+        },
+    )
+}
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
 val currentGlView = glView

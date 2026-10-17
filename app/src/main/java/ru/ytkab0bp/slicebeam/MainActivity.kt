@@ -17,6 +17,7 @@ import android.util.Base64
 import android.util.Log
 import android.util.SparseArray
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
 import android.widget.ArrayAdapter
@@ -25,11 +26,17 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.FrameLayout
 import androidx.annotation.NonNull
 import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,7 +69,7 @@ import ru.ytkab0bp.sapil.APICallback
 import ru.ytkab0bp.slicebeam.cloud.CloudAPI
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
-import ru.ytkab0bp.slicebeam.components.ChangeLogBottomSheet
+import ru.ytkab0bp.slicebeam.components.ChangeLogDialog
 import ru.ytkab0bp.slicebeam.components.ProfileConfigImportDialog
 import ru.ytkab0bp.slicebeam.components.ProfileImportCategory
 import ru.ytkab0bp.slicebeam.components.ProfileImportKey
@@ -98,6 +105,7 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 class MainActivity:AppCompatActivity() {
+private var changeLogDialog by mutableStateOf<ChangeLogDialog?>(null)
 private var id:Int = 0
 @get:NonNull
 val navigationDelegate:NavigationDelegate
@@ -188,6 +196,23 @@ ViewCompat.setOnApplyWindowInsetsListener(v, { v2, insets->
 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
 v2.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
 insets })
+val composeDialogHost = ComposeView(this).apply {
+    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+    isClickable = false
+    isFocusable = false
+    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+    setContent {
+        changeLogDialog?.let { dialog ->
+            dialog.Content {
+                if (changeLogDialog === dialog) changeLogDialog = null
+            }
+        }
+    }
+}
+(v as ViewGroup).addView(
+    composeDialogHost,
+    ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
+)
 setContentView(v)
 onBackPressedDispatcher.addCallback(this, object:OnBackPressedCallback(true) {
 override fun handleOnBackPressed() {
@@ -220,7 +245,7 @@ if (!Objects.equals(Prefs.getLastCommit(), BuildConfig.COMMIT) && SliceBeam.hasU
 {
 Prefs.setLastCommit()
 BeamServerData.load()
-ChangeLogBottomSheet(this).show()
+changeLogDialog = ChangeLogDialog(this)
 }
 }
 protected override fun onNewIntent(@NonNull intent:Intent) {

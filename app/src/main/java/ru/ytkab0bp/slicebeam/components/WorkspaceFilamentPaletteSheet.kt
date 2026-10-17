@@ -1,21 +1,23 @@
 package ru.ytkab0bp.slicebeam.components
 
-import android.app.Dialog
 import android.content.Context
-import android.graphics.Color as AndroidColor
-import android.graphics.drawable.ColorDrawable
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
-import android.view.ViewGroup
-import android.view.WindowManager
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.FilamentPaletteController
 import ru.ytkab0bp.slicebeam.view.FilamentPalettePolicy
 
@@ -26,65 +28,37 @@ class WorkspaceFilamentPaletteSheet(
     private val hasModel: Boolean,
     private val onAssignModel: () -> Unit,
 ) {
-    fun show(onDismissed: () -> Unit = {}): Dialog {
-        return when (FilamentPalettePolicy.workspacePresentation(context.resources.configuration.screenWidthDp)) {
-            FilamentPalettePolicy.WorkspacePresentation.BOTTOM_SHEET -> showBottomSheet(onDismissed)
-            FilamentPalettePolicy.WorkspacePresentation.SIDE_PANEL -> showSidePanel(onDismissed)
-        }
-    }
-
-    private fun composeView(sidePanel: Boolean, dismiss: () -> Unit): ComposeView = ComposeView(context).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        setContent {
-            BeamComposeTheme {
-                controller.WorkspaceSheetContent(
-                    hasModel = hasModel,
-                    sidePanel = sidePanel,
-                    onAssignModel = {
-                        dismiss()
-                        Handler(Looper.getMainLooper()).post { onAssignModel() }
-                    },
-                    onDismiss = dismiss,
-                )
+    @Composable
+    fun Content(onDismissed: () -> Unit) {
+        val sidePanel = FilamentPalettePolicy.workspacePresentation(context.resources.configuration.screenWidthDp) ==
+            FilamentPalettePolicy.WorkspacePresentation.SIDE_PANEL
+        Dialog(
+            onDismissRequest = onDismissed,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val panelModifier = if (sidePanel) {
+                    Modifier.align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .padding(12.dp)
+                        .widthIn(max = minOf(OrkanUiTokens.workspaceSidePanelWidth, maxWidth - 24.dp))
+                } else {
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                }
+                Box(panelModifier) {
+                    BeamComposeTheme {
+                        controller.WorkspaceSheetContent(
+                            hasModel = hasModel,
+                            sidePanel = sidePanel,
+                            onAssignModel = {
+                                onDismissed()
+                                Handler(Looper.getMainLooper()).post { onAssignModel() }
+                            },
+                            onDismiss = onDismissed,
+                        )
+                    }
+                }
             }
         }
-    }
-
-    private fun showBottomSheet(onDismissed: () -> Unit): BottomSheetDialog {
-        lateinit var dialog: BottomSheetDialog
-        dialog = BottomSheetDialog(context)
-        dialog.setOnDismissListener { onDismissed() }
-        dialog.setContentView(
-            composeView(sidePanel = false) { dialog.dismiss() },
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
-        )
-        dialog.show()
-        dialog.behavior.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
-            skipCollapsed = true
-        }
-        return dialog
-    }
-
-    private fun showSidePanel(onDismissed: () -> Unit): Dialog {
-        lateinit var dialog: Dialog
-        dialog = Dialog(context)
-        dialog.setOnDismissListener { onDismissed() }
-        dialog.setContentView(
-            composeView(sidePanel = true) { dialog.dismiss() },
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
-        )
-        dialog.show()
-        dialog.window?.apply {
-            setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
-            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-            setDimAmount(0.28f)
-            val maxWidth = ViewUtils.dp(OrkanUiTokens.workspaceSidePanelWidth.value.toInt())
-            val availableWidth = ViewUtils.dp(context.resources.configuration.screenWidthDp - 24)
-            setLayout(minOf(maxWidth, availableWidth).coerceAtLeast(ViewUtils.dp(320)),
-                WindowManager.LayoutParams.MATCH_PARENT)
-            setGravity(Gravity.END)
-        }
-        return dialog
     }
 }

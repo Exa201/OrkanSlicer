@@ -1,6 +1,5 @@
 package ru.ytkab0bp.slicebeam.components
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,13 +21,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -35,68 +36,46 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.mrudultora.colorpicker.ColorPickerPopUp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.CssColors
 import java.util.Locale
 
-/** Bottom sheet for choosing a custom color or a named CSS color. */
-open class ColorChooserSheet(
-    context: Context,
-    private val initialColor: Int,
-    private val callback: OnColorChosen?,
-) : BottomSheetDialog(context) {
-
-    fun interface OnColorChosen {
-        fun onColorChosen(color: Int)
-    }
-
-    init {
-        val composeView = ComposeView(context).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme {
-                    ColorChooserContent(
-                        onPickColor = ::choose,
-                        onOpenWheel = { openWheel(context) },
-                    )
-                }
+/** Compose color palette used by filament editors and profile-setting rows. */
+@Composable
+internal fun ColorChooserDialog(
+    initialColor: Int,
+    onDismiss: () -> Unit,
+    onColorChosen: (Int) -> Unit,
+) {
+    val context = LocalContext.current
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            BeamComposeTheme {
+                ColorChooserContent(
+                    onPickColor = { color ->
+                        onColorChosen(color or OPAQUE_ALPHA)
+                        onDismiss()
+                    },
+                    onOpenWheel = {
+                        onDismiss()
+                        BeamColorPickerPopUp(context)
+                            .setDialogTitle(context.getString(R.string.ColorChooserCustom))
+                            .setDefaultColor(initialColor)
+                            .setShowAlpha(false)
+                            .setOnPickColorListener(object : ColorPickerPopUp.OnPickColorListener {
+                                override fun onColorPicked(color: Int) = onColorChosen(color or OPAQUE_ALPHA)
+                                override fun onCancel() = Unit
+                            })
+                            .show()
+                    },
+                )
             }
         }
-        setContentView(
-            composeView,
-            android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-    }
-
-    private fun choose(color: Int) {
-        callback?.onColorChosen(color or OPAQUE_ALPHA)
-        dismiss()
-    }
-
-    private fun openWheel(context: Context) {
-        dismiss()
-        BeamColorPickerPopUp(context)
-            .setDialogTitle(context.getString(R.string.ColorChooserCustom))
-            .setDefaultColor(initialColor)
-            .setShowAlpha(false)
-            .setOnPickColorListener(object : ColorPickerPopUp.OnPickColorListener {
-                override fun onColorPicked(color: Int) {
-                    callback?.onColorChosen(color or OPAQUE_ALPHA)
-                }
-
-                override fun onCancel() = Unit
-            })
-            .show()
-    }
-
-    private companion object {
-        const val OPAQUE_ALPHA = -0x1000000
     }
 }
 

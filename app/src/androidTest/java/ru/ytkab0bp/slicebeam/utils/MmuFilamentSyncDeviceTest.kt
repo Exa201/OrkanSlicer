@@ -15,7 +15,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
-import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
+import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignments
 import ru.ytkab0bp.slicebeam.components.bed_menu.SlicePreparationTools
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType
 import java.net.InetAddress
@@ -148,7 +148,7 @@ class MmuFilamentSyncDeviceTest {
     @Test fun loadedGateWithoutFirmwareToolIsVisibleButNotSelectable() {
         assertEquals(3 to null, sync(response(intArrayOf(0, 1, 2), intArrayOf(1, 1, 1, 1))))
         assertEquals(4, MmuFilamentSync.physicalGates(title).size)
-        assertArrayEquals(intArrayOf(0, 1, 2), MmuFilamentAssignmentDialog.availableGates(title, false))
+        assertArrayEquals(intArrayOf(0, 1, 2), MmuFilamentAssignments.availableGates(title, false))
     }
 
     @Test fun freshUploadCheckRejectsASlotEmptiedAfterTheSendDialogOpened() {
@@ -159,14 +159,14 @@ class MmuFilamentSyncDeviceTest {
         assertNotNull(checkedAssignment)
         assertNull(SlicePreparationTools.firstUnavailableAceTool(
             tools, MmuFilamentSync.getSelectedGates(title, 3),
-            MmuFilamentAssignmentDialog.availableGates(title, false)))
+            MmuFilamentAssignments.availableGates(title, false)))
 
         assertNull(sync(response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 1)), full = false).second)
         assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.loadedGates(title))
         assertNotEquals(checkedAssignment, MmuFilamentSync.assignedGates(title, tools))
         assertEquals(1, SlicePreparationTools.firstUnavailableAceTool(
             tools, MmuFilamentSync.getSelectedGates(title, 3),
-            MmuFilamentAssignmentDialog.availableGates(title, false)))
+            MmuFilamentAssignments.availableGates(title, false)))
     }
 
     @Test fun freshUploadCheckDetectsAChangedColorOrMaterialOnALoadedGate() {

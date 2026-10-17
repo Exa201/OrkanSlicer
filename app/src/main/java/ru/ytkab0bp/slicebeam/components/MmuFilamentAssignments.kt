@@ -1,9 +1,6 @@
 package ru.ytkab0bp.slicebeam.components
 
-import android.content.Context
 import android.graphics.Color as AndroidColor
-import android.view.ViewGroup
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,47 +24,25 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.util.Locale
 
-/** Lets each slicer tool route to a loaded physical ACE gate. */
-object MmuFilamentAssignmentDialog {
-    fun interface Callback {
-        fun onSelected(gates: IntArray)
-    }
-
-    @JvmStatic
-    fun show(context: Context, printerTitle: String, toolCount: Int, callback: Callback): Boolean {
-        return showInternal(context, printerTitle, toolCount, null, false, R.string.MmuAssignmentContinue, null, callback)
-    }
-
-    fun showForModel(context: Context, printerTitle: String, toolCount: Int, usedTools: IntArray,
-                     onSync: () -> Unit, callback: Callback): Boolean =
-        showInternal(context, printerTitle, toolCount, usedTools, true, R.string.ModelColorSlotsApply, onSync, callback)
-
-    fun showForActiveTools(context: Context, printerTitle: String, toolCount: Int,
-                           usedTools: IntArray, callback: Callback): Boolean =
-        showInternal(context, printerTitle, toolCount, usedTools, false,
-            R.string.ModelColorSlotsApply, null, callback)
-
+/** Shared ACE gate mapping and material validation used by the Compose assignment flow. */
+object MmuFilamentAssignments {
     internal fun availableGates(printerTitle: String, allowUnverified: Boolean): IntArray =
         if (MmuFilamentSync.getSnapshot(printerTitle) == null && allowUnverified) intArrayOf(0, 1, 2, 3)
         else MmuFilamentSync.loadedGates(printerTitle).filter {
@@ -96,52 +71,6 @@ object MmuFilamentAssignmentDialog {
             val target = mapping.getOrNull(tool)?.let { MmuFilamentSync.gateSlot(printerTitle, it)?.type }
             MmuColorAssignmentPolicy.materialMismatch(source, target)
         }
-    }
-
-    private fun showInternal(context: Context, printerTitle: String, toolCount: Int, usedTools: IntArray?,
-                             allowUnverified: Boolean, positiveLabel: Int, onSync: (() -> Unit)?, callback: Callback): Boolean {
-        val loadedGates = availableGates(printerTitle, allowUnverified)
-        if (loadedGates.isEmpty()) return false
-        val selectedGates = initialMapping(printerTitle, toolCount, loadedGates)
-        val mapping = mutableStateOf(selectedGates.toList())
-        val composeView = ComposeView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme {
-                    MmuAssignmentContent(
-                        printerTitle = printerTitle,
-                        toolCount = toolCount,
-                        loadedGates = loadedGates,
-                        palette = Prefs.getFilamentSlots(),
-                        mapping = mapping.value,
-                        usedTools = usedTools,
-                        onMappingChange = { mapping.value = it },
-                    )
-                }
-            }
-        }
-        val dialog = BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MmuAssignmentTitle)
-            .setView(composeView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(positiveLabel, null)
-            .apply { if (onSync != null) setNeutralButton(R.string.MmuSyncShort) { _, _ -> onSync() } }
-            .show()
-
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val result = mapping.value.toIntArray()
-            if (hasMaterialMismatch(printerTitle, mapping.value, usedTools?.toList() ?: (0 until toolCount).toList())) {
-                Toast.makeText(context, R.string.ModelColorSlotsMaterialMismatch, Toast.LENGTH_LONG).show()
-            }
-            MmuFilamentSync.setSelectedGates(printerTitle, result)
-            dialog.dismiss()
-            callback.onSelected(result.clone())
-        }
-        return true
     }
 
 }

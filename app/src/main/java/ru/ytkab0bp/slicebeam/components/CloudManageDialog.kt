@@ -7,7 +7,9 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,9 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -43,9 +43,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Icon
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.cloud.CloudController
@@ -54,8 +55,8 @@ import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
-/** Cloud account actions and subscription controls. */
-class CloudManageBottomSheet(context: Context) : BottomSheetDialog(context) {
+/** Cloud account actions and subscription controls, hosted entirely by Compose. */
+class CloudManageDialog(context: Context) {
     private val sheetContext = context
     private var screenState by mutableStateOf(
         CloudManageScreenState.resolve(
@@ -65,10 +66,13 @@ class CloudManageBottomSheet(context: Context) : BottomSheetDialog(context) {
         ),
     )
 
-    init {
-        val composeView = ComposeView(context).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
+    @Composable
+    fun Content(onDismiss: () -> Unit) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                 BeamComposeTheme {
                     CloudManageContent(
                         state = screenState,
@@ -76,19 +80,12 @@ class CloudManageBottomSheet(context: Context) : BottomSheetDialog(context) {
                         onManageSubscription = ::openSubscription,
                         onLogout = {
                             CloudController.logout()
-                            dismiss()
+                            onDismiss()
                         },
                     )
                 }
             }
         }
-        setContentView(
-            composeView,
-            android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
     }
 
     private fun setCloudSyncEnabled(isChecked: Boolean) {

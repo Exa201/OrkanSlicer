@@ -6,13 +6,17 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import org.json.JSONObject
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.BeamServerData
@@ -24,36 +28,34 @@ import ru.ytkab0bp.slicebeam.ui.components.ChangeLogContent
 import ru.ytkab0bp.slicebeam.ui.components.ChangeLogContentResolver
 import java.util.Locale
 
-/** Release notes and optional supporter page, rendered with the shared Compose theme. */
-class ChangeLogBottomSheet(context: Context) : BottomSheetDialog(context) {
-    private val sheetContext = context
+/** Release notes and optional supporter page, rendered in a Compose-owned dialog. */
+class ChangeLogDialog(private val context: Context) {
     private var hasSupporterPage by mutableStateOf(BeamServerData.isBoostyAvailable())
     private var supporters by mutableStateOf(currentSupporters())
+    private val releaseNotes by lazy { loadReleaseNotes(context) }
 
-    init {
-        val composeView = ComposeView(context).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
+    @Composable
+    fun Content(onDismiss: () -> Unit) {
+        DisposableEffect(this) {
+            SliceBeam.EVENT_BUS.registerListener(this@ChangeLogDialog)
+            onDispose { SliceBeam.EVENT_BUS.unregisterListener(this@ChangeLogDialog) }
+        }
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                 BeamComposeTheme {
                     ChangeLogContent(
-                        releaseNotes = loadReleaseNotes(context),
+                        releaseNotes = releaseNotes,
                         hasSupporterPage = hasSupporterPage,
                         supporters = supporters,
                         onOpenSupport = ::openSupportPage,
-                        onDismiss = ::dismiss,
+                        onDismiss = onDismiss,
                     )
                 }
             }
         }
-        setContentView(
-            composeView,
-            android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-        SliceBeam.EVENT_BUS.registerListener(this)
-        setOnDismissListener { SliceBeam.EVENT_BUS.unregisterListener(this) }
     }
 
     @EventHandler(runOnMainThread = true)
@@ -63,18 +65,13 @@ class ChangeLogBottomSheet(context: Context) : BottomSheetDialog(context) {
         hasSupporterPage = BeamServerData.isBoostyAvailable()
     }
 
-    override fun show() {
-        super.show()
-        behavior.setState(BottomSheetBehavior.STATE_EXPANDED)
-    }
-
     private fun openSupportPage() {
         try {
-            sheetContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_URL)))
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_URL)))
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(sheetContext, R.string.ChangelogSupportLinkOpenFailed, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.ChangelogSupportLinkOpenFailed, Toast.LENGTH_SHORT).show()
         } catch (_: SecurityException) {
-            Toast.makeText(sheetContext, R.string.ChangelogSupportLinkOpenFailed, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.ChangelogSupportLinkOpenFailed, Toast.LENGTH_SHORT).show()
         }
     }
 

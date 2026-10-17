@@ -94,9 +94,9 @@ object PreSliceFilamentDialog {
         val printer = config?.let { current -> current.presets?.get("printer")?.let(current::findPrinter) }
         val printerTitle = printer?.title.orEmpty()
         val physicalGates = if (printer != null && supportsPhysicalSlots(printer))
-            MmuFilamentAssignmentDialog.availableGates(printerTitle, true) else IntArray(0)
+            MmuFilamentAssignments.availableGates(printerTitle, true) else IntArray(0)
         val colorMapping = mutableStateOf(if (physicalGates.isNotEmpty())
-            MmuFilamentAssignmentDialog.initialMapping(printerTitle, maxOf(slots.size, model?.requiredFilamentCount ?: 1), physicalGates).toList()
+            MmuFilamentAssignments.initialMapping(printerTitle, maxOf(slots.size, model?.requiredFilamentCount ?: 1), physicalGates).toList()
             else emptyList())
         val onePhysicalGate = mutableIntStateOf(colorMapping.value.firstOrNull() ?: physicalGates.firstOrNull() ?: 0)
         // A project may use only T1, while its palette still contains T0 and T1.
@@ -168,7 +168,7 @@ object PreSliceFilamentDialog {
                         callback.onSelected(result)
                     }
                     if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) &&
-                        MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, gates, activeTools)) {
+                        MmuFilamentAssignments.hasMaterialMismatch(printerTitle, gates, activeTools)) {
                         requestMismatchWarning(finish)
                     } else finish()
                 },
@@ -316,7 +316,7 @@ private fun PreSliceFilamentContent(
             if (physicalGates.isNotEmpty()) {
                 MmuAssignmentContent(printerTitle, colorMapping.size, physicalGates, slots, colorMapping,
                     usedTools = usedTools, showHelp = false, onMappingChange = onColorMappingChange)
-                if (MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, colorMapping,
+                if (MmuFilamentAssignments.hasMaterialMismatch(printerTitle, colorMapping,
                         usedTools.toList())) Text(
                     stringResource(R.string.PreSliceMaterialMismatchHint),
                     color = MaterialTheme.colorScheme.error, fontSize = 13.sp,

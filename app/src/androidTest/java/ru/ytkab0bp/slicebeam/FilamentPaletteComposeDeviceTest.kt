@@ -15,6 +15,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.platform.LocalDensity
@@ -27,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,18 +37,164 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateThumbnail
 import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
-import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.view.FilamentPaletteContent
 import ru.ytkab0bp.slicebeam.view.PaletteSlotSnapshot
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedComposeMenuAction
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenuActionsContent
+import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
+import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
+import ru.ytkab0bp.slicebeam.components.FilamentSlotSheet
+import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import ru.ytkab0bp.slicebeam.view.FilamentPaletteController
+import ru.ytkab0bp.slicebeam.SliceBeam
+import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileColorOption
 
 /** Exercises the real virtualized palette row with both supported and synthetic UI-only sizes. */
 @RunWith(AndroidJUnit4::class)
 class FilamentPaletteComposeDeviceTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun workspaceFilamentSheetRendersAndDismissesFromCancel() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val app = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = app
+        Prefs.init(app)
+        val dismissed = mutableStateOf(false)
+        lateinit var sheet: WorkspaceFilamentPaletteSheet
+        compose.runOnUiThread {
+            sheet = WorkspaceFilamentPaletteSheet(
+                context = context,
+                controller = FilamentPaletteController(),
+                hasModel = false,
+                onAssignModel = {},
+            )
+        }
+        compose.setContent {
+            BeamComposeTheme {
+                if (!dismissed.value) sheet.Content { dismissed.value = true }
+            }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.WorkspaceFilamentPaletteTitle)).assertIsDisplayed()
+        val cancel = compose.onNodeWithText(context.getString(android.R.string.cancel))
+            .assertIsDisplayed().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        cancel.performClick()
+        compose.runOnIdle { assertTrue(dismissed.value) }
+        assertEquals(0, compose.onAllNodesWithText(
+            context.getString(R.string.WorkspaceFilamentPaletteTitle),
+        ).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun workspaceProfileSheetRendersAndAndroidBackDismisses() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val app = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = app
+        Prefs.init(app)
+        val previousConfig = SliceBeam.CONFIG
+        val config = context.assets.open("orca_profiles/Anycubic.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+        SliceBeam.CONFIG = config
+        val dismissed = mutableStateOf(false)
+        lateinit var sheet: WorkspaceProfileSheet
+        compose.runOnUiThread { sheet = WorkspaceProfileSheet(context, null) }
+        compose.setContent {
+            BeamComposeTheme {
+                if (!dismissed.value) sheet.Content { dismissed.value = true }
+            }
+        }
+
+        try {
+            compose.onNodeWithText(context.getString(R.string.WorkspaceProfilesTitle)).assertIsDisplayed()
+            compose.onNodeWithText(context.getString(R.string.WorkspaceProfilePrinter)).assertIsDisplayed()
+            val apply = compose.onNodeWithText(context.getString(R.string.WorkspaceProfilesApply))
+                .assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+            apply.assertWidthIsAtLeast(48.dp)
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            compose.runOnIdle { assertTrue(dismissed.value) }
+            assertEquals(0, compose.onAllNodesWithText(
+                context.getString(R.string.WorkspaceProfilesTitle),
+            ).fetchSemanticsNodes().size)
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
+    fun filamentSlotEditorAndColorPaletteStayInComposeAndCommitChosenColor() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val slot = FilamentSlot(0xFFFF0000.toInt(), "PLA")
+        var changes = 0
+        var dismissed = false
+        val sheet = FilamentSlotSheet(
+            slot = slot,
+            canDelete = true,
+            listener = object : FilamentSlotSheet.Listener {
+                override fun onChanged(slot: FilamentSlot) { changes++ }
+                override fun onDelete() = Unit
+            },
+        )
+
+        compose.setContent {
+            BeamComposeTheme {
+                if (!dismissed) sheet.Content { dismissed = true }
+            }
+        }
+        compose.onNodeWithText(context.getString(R.string.SlotFilamentConfig)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.FilamentSlotColor)).performClick()
+        compose.onNodeWithText(context.getString(R.string.ColorChooserCommon)).assertIsDisplayed()
+        val black = compose.onAllNodesWithContentDescription(
+            context.getString(R.string.ColorChooserSwatchDescription, "#000000"),
+        ).onFirst().assertIsDisplayed()
+        black.assertWidthIsAtLeast(44.dp).assertHeightIsAtLeast(44.dp).performClick()
+        compose.runOnIdle {
+            assertEquals(0xFF000000.toInt(), slot.color)
+            assertEquals(1, changes)
+        }
+        compose.onNodeWithText(context.getString(R.string.SlotFilamentConfig)).assertIsDisplayed()
+        instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitForIdle()
+        compose.runOnIdle { assertTrue(dismissed) }
+    }
+
+    @Test
+    fun profileColorSettingOpensComposePaletteAndCommitsTheChosenColor() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var selectedColor: Int? = null
+        compose.setContent {
+            BeamComposeTheme {
+                ComposeProfileColorOption.Content(
+                    title = "Profile color setting",
+                    initialValue = "#FF0000",
+                    onColorPicked = { selectedColor = it },
+                    onLongClick = Runnable {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Profile color setting").performClick()
+        compose.onNodeWithText(context.getString(R.string.ColorChooserCommon)).assertIsDisplayed()
+        compose.onAllNodesWithContentDescription(
+            context.getString(R.string.ColorChooserSwatchDescription, "#FF0000"),
+        ).onFirst().performClick()
+        compose.runOnIdle { assertEquals(0xFFFF0000.toInt(), selectedColor) }
+    }
 
     @Test
     fun longAceGateRowHasAccessibleScrollControlAndReachesLastGate() {

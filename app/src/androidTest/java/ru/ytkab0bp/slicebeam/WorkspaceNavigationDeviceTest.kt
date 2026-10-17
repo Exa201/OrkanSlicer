@@ -115,6 +115,8 @@ class WorkspaceNavigationDeviceTest {
                 selectWorkspaceRoute(bed, WorkspaceDestination.PROJECT.ordinal)
             }
             awaitMenuTransition(scenario)
+            exerciseWorkspacePanel(scenario, "showWorkspaceProfileSheet", "PROFILE_PICKER", withContext = true)
+            exerciseWorkspacePanel(scenario, "showWorkspaceFilamentPalette", "FILAMENT_PALETTE")
             exerciseComposeToolRoute(scenario, OrientationPositionMenu::class.java) { OrientationPositionMenu(it) }
             exerciseComposeToolRoute(scenario, OrientationRotationMenu::class.java) { OrientationRotationMenu(it) }
             exerciseComposeToolRoute(scenario, TransformScaleMenu::class.java) { TransformScaleMenu(it) }
@@ -143,6 +145,33 @@ class WorkspaceNavigationDeviceTest {
             "onMenuNavigationSelected", Boolean::class.javaPrimitiveType, Int::class.javaPrimitiveType,
         ).apply { isAccessible = true }
         method.invoke(bed, true, slot)
+    }
+
+    private fun exerciseWorkspacePanel(
+        scenario: ActivityScenario<MainActivity>,
+        methodName: String,
+        expectedPanel: String,
+        withContext: Boolean = false,
+    ) {
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            val method = if (withContext) {
+                BedFragment::class.java.getDeclaredMethod(methodName, android.content.Context::class.java)
+            } else {
+                BedFragment::class.java.getDeclaredMethod(methodName)
+            }.apply { isAccessible = true }
+            if (withContext) method.invoke(bed, activity) else method.invoke(bed)
+
+            val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            val panel = controller.javaClass.getMethod("getActivePanel").invoke(controller)
+            assertEquals(expectedPanel, panel?.toString())
+            assertTrue("workspace sheet content must be hosted by Compose", controller.javaClass
+                .getMethod("getActivePanelContent").invoke(controller) != null)
+            assertTrue("Android Back should dismiss the active workspace sheet", bed.onBackPressed())
+            assertEquals(null, controller.javaClass.getMethod("getActivePanel").invoke(controller))
+            assertEquals(null, controller.javaClass.getMethod("getActivePanelContent").invoke(controller))
+        }
     }
 
     private fun <T : WorkspaceComposeToolRoute> exerciseComposeToolRoute(

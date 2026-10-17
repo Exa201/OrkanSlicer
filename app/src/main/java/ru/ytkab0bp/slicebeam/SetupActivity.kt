@@ -52,7 +52,7 @@ import cz.msebera.android.httpclient.Header
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
-import ru.ytkab0bp.slicebeam.components.CloudManageBottomSheet
+import ru.ytkab0bp.slicebeam.components.CloudManageDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileConfigSnapshot
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
@@ -86,6 +86,7 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 class SetupActivity:AppCompatActivity() {
 private var setupPages by mutableStateOf<List<SetupComposePage>>(emptyList())
+private var cloudManageDialog by mutableStateOf<CloudManageDialog?>(null)
 private var visibleSetupPageCount by mutableIntStateOf(1)
 private var setupPagerInputEnabled by mutableStateOf(true)
 private var setupPageNavigationRequest by mutableStateOf<SetupPageNavigationRequest?>(null)
@@ -785,6 +786,11 @@ invalidateTitleY()
 },
 onPagerStateChanged = ::onSetupPagerStateChanged,
 )
+cloudManageDialog?.let { dialog ->
+    dialog.Content {
+        if (cloudManageDialog === dialog) cloudManageDialog = null
+    }
+}
 }
 }
 return themedView
@@ -960,7 +966,7 @@ loggingIn = loggingIn,
 onAccountAction = {
 if (Prefs.getCloudAPIToken() != null)
 {
-CloudManageBottomSheet(this@SetupActivity).show()
+cloudManageDialog = CloudManageDialog(this@SetupActivity)
 }
 else
 {
