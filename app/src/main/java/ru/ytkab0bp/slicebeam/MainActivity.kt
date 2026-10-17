@@ -99,6 +99,25 @@ get() = delegate ?: throw IllegalStateException("Navigation is not initialized")
 private var delegate: NavigationDelegate? = null
 private var exitConfirmationDialog: AlertDialog? = null
 private val activityResultLaunchers = HashMap<Int, ActivityResultLauncher<Intent>>()
+/** Shows file-operation errors in the workspace when it is active, retaining the platform fallback
+ * for activity states that do not currently host a BedFragment. */
+internal fun showFileOperationError(title: String, message: String) {
+    if (isFinishing || isDestroyed) return
+    val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+    if (bed?.canShowWorkspaceComposeDialog() == true) {
+        bed.showWorkspaceMessageDialog(
+            title = title,
+            message = message,
+            confirmLabel = getString(android.R.string.ok),
+        )
+        return
+    }
+    BeamAlertDialogBuilder(this)
+        .setTitle(title)
+        .setMessage(message)
+        .setPositiveButton(android.R.string.ok, null)
+        .show()
+}
 private fun interface BundleProfileFinder {
 fun find(name:String):ConfigObject?
 }
@@ -361,9 +380,10 @@ Toast.makeText(this, R.string.MenuFileOpenMultipleStlOnly, Toast.LENGTH_LONG).sh
 }
 if (stlFiles.isEmpty())
 {
-BeamAlertDialogBuilder(this).setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(R.string.MenuFileOpenMultipleStlOnly)
-.setPositiveButton(android.R.string.ok, null).show()
+showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed),
+    getString(R.string.MenuFileOpenMultipleStlOnly),
+)
 }
 else
 {
@@ -414,11 +434,10 @@ val uri = data?.getData() ?: return
 val fileName = IOUtils.getDisplayName(uri)
 if (fileName == null)
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.MenuFileOpenFileFailedNullName)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.MenuFileOpenFileFailedNullName),
+)
 return
 }
 if (isOrcaBundleFile(fileName))
@@ -428,11 +447,10 @@ return
 }
 if (!fileName.endsWith(".ini"))
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.MenuFileImportProfilesFailedNotIni)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.MenuFileImportProfilesFailedNotIni),
+)
 return
 }
 try
@@ -440,11 +458,7 @@ try
 loadIniForImport(getContentResolver().openInputStream(uri) ?: return)
 }
 catch (e:FileNotFoundException) {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(getString(R.string.MenuFileImportProfilesFailed), e.toString())
 }
 }
 else if (requestCode == REQUEST_CODE_AI_GENERATOR_TAKE_PHOTO)
@@ -545,11 +559,10 @@ val bundle = JSONObject(root.getString("bundle_structure_json"))
 if (!bundle.optString("bundle_type", "").endsWith("config bundle"))
 {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.OrcaConversionNotAConfigBundle)
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.OrcaConversionNotAConfigBundle),
+) })
 return@submit
 }
 importOrcaBundle(root)
@@ -557,27 +570,22 @@ SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 }
 catch (ep:IOUtils.MissingProfileException) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(getString(R.string.MenuFileImportProfilesFailedBaseProfileNotFound, ep.profile))
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.MenuFileImportProfilesFailedBaseProfileNotFound, ep.profile),
+) })
 }
 catch (e:IOException) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed), e.toString(),
+) })
 }
 catch (e:Exception) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed), e.toString(),
+) })
 }
 finally
 {
@@ -1491,11 +1499,10 @@ override fun onFailed(error: Exception) {
     SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
     f.delete()
     if (!isFinishing() && !isDestroyed()) {
-        BeamAlertDialogBuilder(this@MainActivity)
-            .setTitle(R.string.MenuFileOpenFileFailed)
-            .setMessage(error.message ?: getString(R.string.MenuFileOpenFileFailed))
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
+        showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            error.message ?: getString(R.string.MenuFileOpenFileFailed),
+        )
     }
 }
 })
@@ -1505,20 +1512,16 @@ catch (e:Slic3rRuntimeError) {
 android.util.Log.e("MainActivity", "Failed to load model", e)
 f.delete()
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this@MainActivity)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+) })
 }
 catch (e:Exception) {
 android.util.Log.e("MainActivity", "Silent crash in loadFile", e)
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this@MainActivity)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+) })
 }
 } })
 }
@@ -1587,11 +1590,10 @@ fileName = uri.getLastPathSegment()
 }
 if (fileName == null)
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(R.string.MenuFileOpenFileFailedNullName)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed),
+    getString(R.string.MenuFileOpenFileFailedNullName),
+)
 return
 }
 if (isOrcaBundleFile(fileName))
@@ -1606,21 +1608,16 @@ try
 loadIniForImport(resolver.openInputStream(uri) ?: return)
 }
 catch (e:FileNotFoundException) {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(getString(R.string.MenuFileImportProfilesFailed), e.toString())
 }
 return
 }
 if (!isSupportedModelFile(fileName))
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(getString(R.string.UnsupportedFileType, fileName))
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed),
+    getString(R.string.UnsupportedFileType, fileName),
+)
 return
 }
 val f = getSafeCachedModelFile(fileName)
@@ -1646,11 +1643,9 @@ loadFile(f, false)
 catch (e:Exception) {
 Log.e("MainActivity", "Failed to write cache file", e)
 f.delete()
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+) })
 }
 })
 }

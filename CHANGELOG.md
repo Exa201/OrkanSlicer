@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.268 (alpha)
+
+- Show file and profile import failures in the Compose workspace dialog while the Bed workspace is active.
+- Preserve the platform alert fallback outside the workspace and leave profile import, model loading, and cleanup behavior unchanged.
+- Add Honor coverage for the actual unsupported-file `loadFile` route and Compose dismissal.
+
 ## 0.8.267 (alpha)
 
 - Host the GL-triggered prime-tower position editor in the exclusive Compose workspace dialog.

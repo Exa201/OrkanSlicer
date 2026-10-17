@@ -781,6 +781,8 @@ internal fun isModelContextMenuAttached(): Boolean =
     workspaceController.activePanel == WorkspaceOverlayPanel.MODEL_CONTEXT_MENU
 internal fun isWorkspaceMessageDialogAttached(): Boolean =
     workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG
+internal fun canShowWorkspaceComposeDialog(): Boolean =
+    getContext() != null && overlayLayout != null
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
 val currentGlView = glView

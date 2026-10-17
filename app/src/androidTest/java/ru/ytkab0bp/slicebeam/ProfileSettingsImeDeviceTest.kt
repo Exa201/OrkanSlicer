@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.view.KeyEvent
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedTextField
@@ -125,6 +126,24 @@ class ProfileSettingsImeDeviceTest {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         compose.waitUntil(5_000) { !bed.isWorkspaceMessageDialogAttached() }
         compose.runOnIdle { assertEquals("The dialog is dismissed by the second Back", false, activity.isFinishing) }
+    }
+
+    @Test
+    fun unsupportedFileImportUsesWorkspaceComposeErrorDialog() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        activity.runOnUiThread {
+            MainActivity::class.java.getDeclaredMethod("loadFile", Uri::class.java)
+                .apply { isAccessible = true }
+                .invoke(activity, Uri.parse("file:///tmp/unsupported-model.testtype"))
+        }
+
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(
+            activity.getString(R.string.UnsupportedFileType, "unsupported-model.testtype"),
+        ).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
     }
 
     @Test
