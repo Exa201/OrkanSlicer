@@ -1,9 +1,6 @@
 package ru.ytkab0bp.slicebeam.components
 
 import android.app.Activity
-import android.view.ViewGroup
-import android.view.WindowManager
-import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,9 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -32,11 +27,9 @@ import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceChoiceField
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
 import ru.ytkab0bp.slicebeam.utils.IOUtils
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import java.io.File
 import java.util.Locale
 import kotlin.math.max
@@ -51,21 +44,8 @@ object FastenerGenerator {
     private fun open(activity: Activity, bed: BedFragment) {
         val form = mutableStateOf(FastenerFormLogic.defaults())
         val error = mutableStateOf<String?>(null)
-        val composeView = ComposeView(activity).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        }
-        val dialog = BeamAlertDialogBuilder(activity)
-            .setTitle(R.string.FastenerTitle)
-            .setView(composeView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-
-        composeView.setContent {
-            BeamComposeTheme {
+        bed.showWorkspaceComposeDialog { dismiss ->
+            GeneratorWorkspaceDialog(R.string.FastenerTitle, onDismiss = dismiss) {
                 FastenerFormContent(
                     values = form.value,
                     errorMessage = error.value,
@@ -78,7 +58,7 @@ object FastenerGenerator {
                         if (issue != null) {
                             error.value = issue
                         } else {
-                            dialog.dismiss()
+                            dismiss()
                             generate(
                                 activity,
                                 bed,
@@ -96,7 +76,7 @@ object FastenerGenerator {
                         if (issue != null) {
                             error.value = issue
                         } else {
-                            dialog.dismiss()
+                            dismiss()
                             generateFitSample(
                                 activity,
                                 bed,
@@ -110,13 +90,6 @@ object FastenerGenerator {
                 )
             }
         }
-        dialog.setOnShowListener {
-            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(
-                ru.ytkab0bp.slicebeam.theme.ThemesRepo.getColor(android.R.attr.colorAccent),
-            )
-        }
-        dialog.show()
     }
 
     private fun generate(activity: Activity, bed: BedFragment, type: Int, size: Int,
@@ -143,13 +116,7 @@ object FastenerGenerator {
             } catch (error: Exception) {
                 progress.fail()
                 if (output.exists()) output.delete()
-                ViewUtils.postOnMainThread {
-                    BeamAlertDialogBuilder(activity)
-                        .setTitle(R.string.ConverterFailed)
-                        .setMessage(error.message ?: error.toString())
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                }
+                showGeneratorFailure(activity, bed, error.message ?: error.toString())
             }
         }
     }
@@ -171,13 +138,7 @@ object FastenerGenerator {
             } catch (error: Exception) {
                 progress.fail()
                 if (output.exists()) output.delete()
-                ViewUtils.postOnMainThread {
-                    BeamAlertDialogBuilder(activity)
-                        .setTitle(R.string.ConverterFailed)
-                        .setMessage(error.message ?: error.toString())
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                }
+                showGeneratorFailure(activity, bed, error.message ?: error.toString())
             }
         }
     }
@@ -191,7 +152,8 @@ private fun FastenerFormContent(
     onGenerate: (FastenerFormValues) -> Unit,
     onFitSample: (FastenerFormValues) -> Unit,
 ) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.82f
+    // Leave room for the workspace dialog title and Back/Cancel actions on short screens.
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.68f
     val types = stringArrayResource(R.array.FastenerTypes).toList()
     val sizes = stringArrayResource(R.array.FastenerSizes).toList()
     val fits = stringArrayResource(R.array.FastenerThreadClearancePresets).toList()

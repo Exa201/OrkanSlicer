@@ -3,7 +3,6 @@ package ru.ytkab0bp.slicebeam.components
 import android.app.Activity
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -46,9 +45,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import java.util.concurrent.atomic.AtomicBoolean
@@ -69,27 +66,18 @@ internal object LitoGenOptionsDialog {
     fun show(
         activity: Activity,
         images: List<Uri>,
-        onGenerate: (LitoGenOptions, saveAfter: Boolean) -> Boolean,
+        bed: BedFragment,
+        onGenerate: (LitoGenOptions, saveAfter: Boolean) -> String?,
     ) {
-        lateinit var dialog: AlertDialog
-        val composeView = ComposeView(activity).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        }
-        dialog = BeamAlertDialogBuilder(activity)
-            .setTitle(R.string.LitoGenTitle)
-            .setView(composeView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        composeView.setContent {
-            BeamComposeTheme {
+        bed.showWorkspaceComposeDialog { dismiss ->
+            GeneratorWorkspaceDialog(R.string.LitoGenTitle, onDismiss = dismiss) {
                 LitoGenOptionsContent(activity, images) { options, saveAfter ->
-                    val accepted = onGenerate(options, saveAfter)
-                    if (accepted) dialog.dismiss()
-                    accepted
+                    val error = onGenerate(options, saveAfter)
+                    if (error == null) dismiss()
+                    error
                 }
             }
         }
-        dialog.show()
     }
 }
 
@@ -97,7 +85,7 @@ internal object LitoGenOptionsDialog {
 private fun LitoGenOptionsContent(
     activity: Activity,
     images: List<Uri>,
-    onGenerate: (LitoGenOptions, saveAfter: Boolean) -> Boolean,
+    onGenerate: (LitoGenOptions, saveAfter: Boolean) -> String?,
 ) {
     var widthText by remember(images) { mutableStateOf("60") }
     var heightText by remember(images) { mutableStateOf("60") }
@@ -112,7 +100,8 @@ private fun LitoGenOptionsContent(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val wideLayout = configuration.screenWidthDp >= 600
-    val dialogHeight = (screenHeight * 0.8f).coerceAtMost(600.dp).coerceAtLeast(220.dp)
+    val dialogHeight = (screenHeight * 0.62f).coerceAtMost(560.dp).coerceAtLeast(200.dp)
+    var validationError by remember(images) { mutableStateOf<String?>(null) }
     val previewFilter = remember(brightness, contrast, invert) {
         litoGenPreviewFilter(brightness, contrast, invert)
     }
@@ -211,19 +200,33 @@ private fun LitoGenOptionsContent(
             )
         }
 
+        validationError?.let { message ->
+            Text(message, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+        }
+
         Spacer(Modifier.fillMaxWidth().padding(top = 6.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(
-                onClick = { onGenerate(readOptions(widthText, heightText, minThicknessText, maxThicknessText, brightness, contrast, invert, detailIndex), false) },
+                onClick = {
+                    validationError = onGenerate(
+                        readOptions(widthText, heightText, minThicknessText, maxThicknessText, brightness, contrast, invert, detailIndex),
+                        false,
+                    )
+                },
                 modifier = Modifier.weight(1f).heightIn(min = 50.dp),
             ) {
                 Text(stringResource(R.string.LithophaneGenerate), fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 2)
             }
             OutlinedButton(
-                onClick = { onGenerate(readOptions(widthText, heightText, minThicknessText, maxThicknessText, brightness, contrast, invert, detailIndex), true) },
+                onClick = {
+                    validationError = onGenerate(
+                        readOptions(widthText, heightText, minThicknessText, maxThicknessText, brightness, contrast, invert, detailIndex),
+                        true,
+                    )
+                },
                 modifier = Modifier.weight(1f).heightIn(min = 50.dp),
             ) {
                 Text(stringResource(R.string.LithophaneGenerateAndSave), fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 2)

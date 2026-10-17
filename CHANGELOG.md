@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.275 (alpha)
+
+- Host all ten Maker generator forms and the LitoGEN options editor in the exclusive Compose workspace dialog, removing their native AlertDialog/ComposeView wrappers.
+- Keep validation errors inside their forms and route STL-generation failures through the workspace message dialog. Preserve dimension checks, image previews, file-picker flow and explicit generation/save actions.
+- Cancel and Android Back dismiss without starting generation. Honor verifies cancellation for all eleven forms and LitoGEN validation retention.
+
 ## 0.8.274 (alpha)
 
 - Host the pre-slicing model-to-filament assignment flow in the Compose workspace, including individual assignments, imported-color preservation, ACE mappings, and the material-mismatch confirmation.
