@@ -4,7 +4,8 @@
 - Full `:app:testDebugUnitTest :app:testSliceTestUnitTest`: 556 tests in each suite, 0 failures/errors/skips. Added `WorkspacePanelSizePolicyTest` coverage for fixed, fractional, fill, clamped, and invalid dimensions; `WorkspaceControllerTest` now verifies panel size ownership.
 - Honor `WorkspaceModePanelHostDeviceTest` on 0.8.302/code 337: 2/2 passed, 0 skipped/failures (portrait fixed dp and landscape fractional bounds).
 - Full `:app:connectedSliceTestAndroidTest` after the BedFragment cleanup: 140 unique tests, 135 passed, 5 skipped, 0 failures/errors; Gradle reported 145 executions including retries/report accounting. The 5 skips are two unavailable private KromaCut fixtures and three unavailable private multicolor fixtures. The emulator remained offline.
-- Debug APK assembly, installation of the normal Debug package, and full Honor suite remain pending after the final BedFragment cleanup.
+- Final code commit `aaf02c7` (`refactor: move workspace tool sizing into Compose`). Debug APK `app/build/outputs/apk/debug/OrkanSlicer_aaf02c7f62.apk`, 157,214,976 bytes; SHA-256 `B56112611F25B189DBEFAFD88DA6E689CA56F54EAEBB7274E854D20FA29C0634`. APK metadata verified: package `com.codemastercody3d.orcaslicermobile`, version 0.8.302/code 337. Installed/launched on Honor PTP-N49 (Android 16); exact package remained alive and a fresh 5,000-line logcat scan had no FATAL, ANR, OOM, or fatal-signal markers. `emulator-5554` remains offline.
+- The final-code full Honor suite is 140 unique tests, 135 passed, 5 skipped, 0 failures/errors. The skip set is limited to unavailable private KromaCut and multicolor fixtures. This is not a full menu acceptance: many individual menu actions/global submenus remain unverified.
 - UI 2.0 Phases 4 and 5 remain incomplete; the panel sizing adapter is one structural cleanup only.
 
 ## OrkanSlicer UI 2.0 – 0.8.301 verification (2026-10-18)
