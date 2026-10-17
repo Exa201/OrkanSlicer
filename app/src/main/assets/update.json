@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.294\n\n• Die sechs aktiven Arbeitsbereich-Menüs verwenden jetzt ausschließlich WorkspaceShell; doppelte Android-View-Menühosts und ihre alte Lebenszyklusverwaltung wurden entfernt.\n• Die Filamentauswahl eines Objekts ersetzt importierte 3MF-Teil- und Farbmal-Zuweisungen. Drucker-, Druck- und Filamenteinstellungen aus 3MF bleiben unabhängig auswählbar.",
-  "en": "OrkanSlicer 0.8.294\n\n• The six active workspace menus now use WorkspaceShell as their only host; duplicate Android View menu hosts and their legacy lifecycle plumbing were removed.\n• Explicit object-filament selection replaces imported 3MF part and painted-facet assignments. Imported printer, print, and filament settings remain independently selectable.",
-  "ru": "OrkanSlicer 0.8.294\n\n• Шесть активных меню рабочего пространства теперь используют только WorkspaceShell; дублирующие Android View-хосты меню и старое управление их жизненным циклом удалены.\n• Явный выбор филамента объекта заменяет импортированные назначения деталей и окрашенных граней 3MF. Настройки принтера, печати и филамента выбираются независимо."
+  "de": "OrkanSlicer 0.8.295\n\n• Das anfängliche Projektmenü wird vor der ersten Workspace-Darstellung an BedFragment gebunden; Dateiaktionen erscheinen bereits beim ersten Öffnen.",
+  "en": "OrkanSlicer 0.8.295\n\n• Bind the initial Project menu before the first workspace composition so file actions are available as soon as the menu is first opened.",
+  "ru": "OrkanSlicer 0.8.295\n\n• Начальное меню проекта привязывается до первой отрисовки рабочего пространства, поэтому действия с файлами доступны при первом открытии меню."
 }

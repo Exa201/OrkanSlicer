@@ -1283,6 +1283,10 @@ val portrait = usesCompactPortraitLayout(ctx)
 compactPortraitLayout = portrait
 panelWebViewContainer = FrameLayout(ctx)
 panelWebViewContainer!!.setVisibility(View.GONE)
+// PROJECT is the initial destination, so bind its controller before its first
+// Compose composition. Otherwise FileMenu builds an empty action list until the
+// user navigates away and back to this route.
+menuMap.get(currentMenuSlot).onSetBed(this)
 contentView = createWorkspaceContent(ctx, portrait)
 overlayLayout!!.addView(contentView, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))

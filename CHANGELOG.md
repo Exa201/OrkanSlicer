@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.295 (alpha)
+
+- Bind the initially selected Project menu to BedFragment before WorkspaceShell creates its first Compose route, so the first tap displays file actions rather than an empty panel.
+- Add an Honor device regression test for opening Project on first launch and displaying both model import and 3MF export actions.
+
 ## 0.8.294 (alpha)
 
 - Remove the obsolete Android View menu-host lifecycle from the active workspace destinations; `WorkspaceShell` remains their only visible host.
