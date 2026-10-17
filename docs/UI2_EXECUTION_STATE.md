@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — converter save follow-up and errors moved to workspace Compose (0.8.285 / 2026-10-17)
+
+- Replaced the converter's saved-output Load/Only Save question and error alert with dialogs in the exclusive workspace Compose host. The platform create-document/folder pickers, copy behavior, temporary cache-output cleanup, model-load callback, and native converter pipeline remain unchanged; the Android dialogs remain as no-workspace fallbacks.
+- Added Honor integration coverage for the saved-output cleanup action and converter error dismissal. Full verification: Debug unit 552/552 and Slice unit 552/552, both with zero failures/errors/skips; Honor connected instrumentation XML reports 119 tests, 3 skipped private multi-color fixtures, zero failures/errors; `:app:assembleDebug` succeeded. The aggregate Gradle command completed successfully; emulator remained offline.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_29fed8b3f8.apk`, 157,196,566 bytes, SHA-256 `266F2000B9697A439BBF8DF190BD94751F93299175EA4E3C1763FA60A0E4973D`. BuildConfig commit `29fed8b3f8`.
+- Installed on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; package reports 0.8.285 / code 320. Cold launch resumed `ru.ytkab0bp.slicebeam.MainActivity`; fresh 10,000-line logcat sample contained no fatal exception, ANR, OOM, or fatal-signal match. No screenshots or printer actions were used.
+- Code commit `29fed8b3f8a100778c9939ad4b27ba6282e631f5`; documentation commit pending. Branch push and PR #2 update pending. Overall UI 2.0 remains in progress.
+- Remaining image-converter UI: parameter/mode form, progress presentation, save/create-document handoff and no-workspace fallback inventory. Next: inspect and migrate the active converter parameter/mode form as a single workspace route while preserving generation, validation, picker and native processing behavior. Multi-plate project persistence remains incomplete; retain the active-plate-only export warning.
+
 ## Current continuation — Lithophane tone editor moved to workspace Compose (0.8.284 / 2026-10-17)
 
 - Migrated the image-tone editor into the exclusive workspace Compose host with grayscale mode, brightness, contrast, inversion, rendered relief preview, and Apply/Cancel. The active converter form is dismissed while the editor is open and reopened on editor close; Apply commits values, while Cancel/Back leaves the previous values untouched. Preview requests are canceled when controls change or the host leaves composition, and bitmap ownership is released safely. The native fallback remains only when no workspace host is available.
