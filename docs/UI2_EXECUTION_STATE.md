@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — app-settings reset and folder-picker dialogs moved to Compose (0.8.264 / 2026-10-17)
+
+- Replaced the app-settings reset confirmation and converter folder-picker failure alert with Compose dialogs rendered in the existing Compose settings root. The reset callback is invoked only by the explicit OK action; Cancel and Android Back dismiss without clearing configuration or preferences. The actual reset transaction remains unchanged.
+- Added Honor Compose coverage for reset Cancel, reset Back, explicit confirmation callback, and folder-picker error dismissal: 5/5 targeted tests passed. Full Debug and Slice unit suites: 552/552 each, zero failures/errors/skips. The targeted suite used `:app:connectedSliceTestAndroidTest`; offline `emulator-5554` was skipped.
+- Debug APK built from code commit `697fabb29c1d84fd3d573d9328e7ef0cfa5e1561`: `app/build/outputs/apk/debug/OrkanSlicer_697fabb29c.apk`, 157,058,145 bytes, SHA-256 `3769DA64C5D52E95CC6C4D524204FA227B2CCA058A4A02C31893FFB13AEF70CD`.
+- Installed on Honor PTP-N49 / Android 16, exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.264 / code 299. Cold start reached the app MainActivity; fresh 6,000-line logcat sample had no crash, ANR, OOM, or fatal-signal matches. No screenshot, printer operation, or print start.
+- Code commit `697fabb29c1d84fd3d573d9328e7ef0cfa5e1561` is local; push and PR #2 update are pending. Do not merge/release.
+- Remaining SettingsFragment routes: third-party accent color picker remains native for compatibility; system folder picker itself remains platform-owned. Continue auditing legacy UI groups (converter/generator workflows and protected upload/print dialogs); keep the multi-plate active-plate-only export warning.
+
 ## Current continuation — MMU profile sync error moved to Compose (0.8.263 / 2026-10-17)
 
 - Replaced the Android `BeamAlertDialogBuilder` failure alert in `PrintConfigFragment` with the shared Compose `WorkspaceMessageDialog`. Kept Moonraker/MMU synchronization, preference and filament-slot updates unchanged; marshal results onto the main thread and ignore stale callbacks after fragment destruction.
