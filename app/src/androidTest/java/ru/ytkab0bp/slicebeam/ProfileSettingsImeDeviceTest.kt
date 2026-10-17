@@ -1,5 +1,20 @@
 package ru.ytkab0bp.slicebeam
 
+import android.view.KeyEvent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -17,6 +32,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -77,6 +93,35 @@ class ProfileSettingsImeDeviceTest {
         }
     }
 
+    @Test
+    fun workspaceDialogBackHidesImeBeforeDismissingTheDialog() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        activity.runOnUiThread {
+            bed.showWorkspaceComposeDialog { dismiss -> WorkspaceImeBackProbe(dismiss) }
+        }
+        compose.waitUntil(5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.waitUntil(10_000) {
+            ViewCompat.getRootWindowInsets(activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
+
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(10_000) {
+            ViewCompat.getRootWindowInsets(activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) != true
+        }
+        compose.runOnIdle {
+            assertEquals("Back hides the keyboard first and leaves the workspace dialog open", true,
+                bed.isWorkspaceMessageDialogAttached())
+            assertEquals("The workspace stays active behind its dialog", false, activity.isFinishing)
+        }
+
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        compose.runOnIdle { assertEquals("The dialog is dismissed by the second Back", false, activity.isFinishing) }
+    }
+
     private fun createInitializedActivityRule() = run {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as SliceBeam
@@ -97,5 +142,26 @@ class ProfileSettingsImeDeviceTest {
         }
         SliceBeam.CONFIG = config
         createAndroidComposeRule<MainActivity>()
+    }
+}
+
+@Composable
+private fun WorkspaceImeBackProbe(dismiss: () -> Unit) {
+    val requester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    var value by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        androidx.compose.runtime.withFrameNanos { }
+        requester.requestFocus()
+        keyboard?.show()
+    }
+    Column {
+        Text("Workspace dialog keyboard probe")
+        OutlinedTextField(
+            value = value,
+            onValueChange = { value = it },
+            modifier = Modifier.fillMaxWidth().focusRequester(requester),
+        )
+        androidx.compose.material3.TextButton(onClick = dismiss) { Text("Close") }
     }
 }

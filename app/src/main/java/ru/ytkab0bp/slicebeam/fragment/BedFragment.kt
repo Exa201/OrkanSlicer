@@ -155,7 +155,6 @@ get() = workspaceController.activePlateIndex
 set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
 private var currentUnfoldMenu: UnfoldMenu? = null
-private var workspaceDialogView: ComposeView? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
@@ -758,22 +757,17 @@ internal fun showWorkspaceMessageDialog(
     onDismiss: () -> Unit = {},
     onConfirm: () -> Unit = {},
 ) {
-    val context = getContext() ?: return
-    val root = overlayLayout ?: return
+    if (getContext() == null) return
     workspaceController.dismissActivePanel()
     currentUnfoldMenu?.dismiss()
-    val host = ComposeView(context)
     var resolved = false
     fun close(confirmed: Boolean) {
         if (resolved) return
         resolved = true
-        if (workspaceDialogView === host) workspaceDialogView = null
-        (host.parent as? ViewGroup)?.removeView(host)
         workspaceController.clearPanel(WorkspaceOverlayPanel.MESSAGE_DIALOG)
         if (confirmed) onConfirm() else onDismiss()
     }
-    host.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-    host.setContent {
+    val content: @Composable () -> Unit = {
         BeamComposeTheme {
             WorkspaceMessageDialog(
                 title = title,
@@ -785,45 +779,36 @@ internal fun showWorkspaceMessageDialog(
             )
         }
     }
-    workspaceDialogView = host
-    root.addView(host, FrameLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.MATCH_PARENT,
-    ))
-    workspaceController.activatePanel(WorkspaceOverlayPanel.MESSAGE_DIALOG) { close(false) }
+    workspaceController.activatePanel(
+        panel = WorkspaceOverlayPanel.MESSAGE_DIALOG,
+        content = content,
+        dismiss = { close(false) },
+    )
 }
 /** Hosts a workspace-owned Compose dialog under the same exclusive overlay/back handling. */
 internal fun showWorkspaceComposeDialog(content: @Composable (dismiss: () -> Unit) -> Unit) {
-    val context = getContext() ?: return
-    val root = overlayLayout ?: return
+    if (getContext() == null) return
     workspaceController.dismissActivePanel()
     currentUnfoldMenu?.dismiss()
-    val host = ComposeView(context)
     var resolved = false
     fun close() {
         if (resolved) return
         resolved = true
-        if (workspaceDialogView === host) workspaceDialogView = null
-        (host.parent as? ViewGroup)?.removeView(host)
         workspaceController.clearPanel(WorkspaceOverlayPanel.MESSAGE_DIALOG)
     }
-    host.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-    host.setContent {
-        BeamComposeTheme { content(::close) }
-    }
-    workspaceDialogView = host
-    root.addView(host, FrameLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.MATCH_PARENT,
-    ))
-    workspaceController.activatePanel(WorkspaceOverlayPanel.MESSAGE_DIALOG) { close() }
+    workspaceController.activatePanel(
+        panel = WorkspaceOverlayPanel.MESSAGE_DIALOG,
+        content = { BeamComposeTheme { content(::close) } },
+        dismiss = { close() },
+    )
 }
 fun showSelectedModelContextMenu() {
     showModelContextMenu(glView?.renderer?.selectedObject ?: -1)
 }
 internal fun isModelContextMenuAttached(): Boolean =
     workspaceController.activePanel == WorkspaceOverlayPanel.MODEL_CONTEXT_MENU
-internal fun isWorkspaceMessageDialogAttached(): Boolean = workspaceDialogView?.isAttachedToWindow == true
+internal fun isWorkspaceMessageDialogAttached(): Boolean =
+    workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
 val ctx = getContext()
 val currentGlView = glView
@@ -1007,10 +992,8 @@ return super.onBackPressed()
 override fun onDestroy() {
 super.onDestroy()
 workspaceController.clearPanel(WorkspaceOverlayPanel.MODEL_CONTEXT_MENU)
-workspaceDialogView?.let { dialog ->
-    (dialog.parent as? ViewGroup)?.removeView(dialog)
-    workspaceDialogView = null
-    workspaceController.clearPanel(WorkspaceOverlayPanel.MESSAGE_DIALOG)
+if (workspaceController.activePanel == WorkspaceOverlayPanel.MESSAGE_DIALOG) {
+    workspaceController.dismissActivePanel()
 }
 destroyed = true
 modelImportGeneration++

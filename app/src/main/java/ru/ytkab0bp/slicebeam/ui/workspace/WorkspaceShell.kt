@@ -193,7 +193,11 @@ internal fun WorkspaceShell(
               content = modePanelContent,
           )
       }
-      transientPanelContent?.invoke()
+      transientPanelContent?.let { panelContent ->
+          // Replacing one transient dialog with another must dispose the old Compose
+          // Dialog window instead of reusing its back callback for the new content.
+          key(panelContent) { panelContent() }
+      }
     }
 }
 

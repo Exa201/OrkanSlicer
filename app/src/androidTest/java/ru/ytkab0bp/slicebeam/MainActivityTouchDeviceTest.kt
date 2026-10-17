@@ -3,6 +3,8 @@ package ru.ytkab0bp.slicebeam
 import android.app.Application
 import android.os.SystemClock
 import android.view.MotionEvent
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -195,6 +197,7 @@ class MainActivityTouchDeviceTest {
                 assertTrue("Back should leave the workspace activity active", activity.isFinishing.not())
                 assertFalse("Back should dismiss the model action dialog", requireNotNull(bed).isModelContextMenuAttached())
             }
+            SystemClock.sleep(350L)
 
             // Model object workflows now use the exclusive Compose workspace-dialog host.
             scenario.onActivity {
@@ -218,15 +221,40 @@ class MainActivityTouchDeviceTest {
                     requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
             instrumentation.waitForIdleSync()
+            var duplicateKeyboardVisible = false
+            val duplicateImeDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (!duplicateKeyboardVisible && SystemClock.uptimeMillis() < duplicateImeDeadline) {
+                scenario.onActivity { activity ->
+                    duplicateKeyboardVisible = ViewCompat.getRootWindowInsets(activity.window.decorView)
+                        ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+                if (!duplicateKeyboardVisible) SystemClock.sleep(50L)
+            }
+            assertTrue("Duplicate count input should request the system keyboard", duplicateKeyboardVisible)
             // Back hides the numeric keyboard before dismissing the focused duplicate-count dialog.
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             instrumentation.waitForIdleSync()
+            scenario.onActivity { assertTrue("First Back hides the keyboard and keeps duplicate input open",
+                requireNotNull(bed).isWorkspaceMessageDialogAttached()) }
+            var duplicateKeyboardHidden = false
+            val hiddenImeDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (!duplicateKeyboardHidden && SystemClock.uptimeMillis() < hiddenImeDeadline) {
+                scenario.onActivity { activity ->
+                    duplicateKeyboardHidden = ViewCompat.getRootWindowInsets(activity.window.decorView)
+                        ?.isVisible(WindowInsetsCompat.Type.ime()) != true
+                }
+                if (!duplicateKeyboardHidden) SystemClock.sleep(50L)
+            }
+            assertTrue("First Back should hide the duplicate input keyboard", duplicateKeyboardHidden)
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertTrue("Closing duplicate input must keep the workspace active", !activity.isFinishing)
                 assertFalse("Back should close duplicate input", requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
+            // The Compose AlertDialog is backed by its own Android dialog window. Let its
+            // dismissal finish before replacing it with the next transient dialog.
+            SystemClock.sleep(350L)
 
             scenario.onActivity {
                 val fileMenu = FileMenu().apply { onSetBed(requireNotNull(bed)) }
@@ -237,12 +265,14 @@ class MainActivityTouchDeviceTest {
                     requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
             instrumentation.waitForIdleSync()
+            SystemClock.sleep(250L)
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertTrue("Closing profile selection must keep the workspace active", !activity.isFinishing)
                 assertFalse("Back should close profile selection", requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
+            SystemClock.sleep(350L)
 
             scenario.onActivity {
                 val workspace = requireNotNull(bed)
@@ -264,6 +294,7 @@ class MainActivityTouchDeviceTest {
                 assertEquals("Cancel must leave the model geometry unchanged", model.getTriangleCount(0),
                     requireNotNull(bed).currentModel?.getTriangleCount(0))
             }
+            SystemClock.sleep(350L)
 
             val cameraControlModeBefore = Prefs.getCameraControlMode()
             scenario.onActivity { activity ->
@@ -284,6 +315,7 @@ class MainActivityTouchDeviceTest {
                 assertEquals("Cancel must not change the stored camera control mode", cameraControlModeBefore,
                     Prefs.getCameraControlMode())
             }
+            SystemClock.sleep(350L)
 
             val workspaceDialogDismissed = java.util.concurrent.atomic.AtomicBoolean(false)
             scenario.onActivity { activity ->
@@ -305,6 +337,7 @@ class MainActivityTouchDeviceTest {
                 assertFalse("Back should close the Compose confirmation", requireNotNull(bed).isWorkspaceMessageDialogAttached())
                 assertTrue("Back should resolve the Compose confirmation as dismissed", workspaceDialogDismissed.get())
             }
+            SystemClock.sleep(350L)
 
             assertImportPromptDismissesWithoutApproval(
                 scenario, instrumentation, requireNotNull(bed), "confirmImportSimplification",
