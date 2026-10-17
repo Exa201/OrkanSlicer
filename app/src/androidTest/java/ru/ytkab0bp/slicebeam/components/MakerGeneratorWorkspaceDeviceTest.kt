@@ -19,6 +19,7 @@ import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.components.bed_menu.showAIGeneratorWorkspace
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
@@ -27,6 +28,26 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 class MakerGeneratorWorkspaceDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
+
+    @Test
+    fun aiGeneratorSelectionUsesWorkspaceCancelAndBackWithoutLaunchingExternalActivities() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+
+        activity.runOnUiThread { showAIGeneratorWorkspace(bed) }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("ai-generator-camera").assertIsDisplayed()
+        compose.onNodeWithTag("ai-generator-gallery").assertIsDisplayed()
+        compose.onNodeWithTag("generator-dialog-cancel").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+        activity.runOnUiThread { showAIGeneratorWorkspace(bed) }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("ai-generator-camera").assertIsDisplayed()
+        activity.onBackPressedDispatcher.onBackPressed()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertFalse("Back should dismiss the cloud generator choice", activity.isFinishing)
+    }
 
     @Test
     fun generatorFormsCancelAndBackThroughWorkspaceWithoutStartingGeneration() {

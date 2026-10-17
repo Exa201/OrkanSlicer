@@ -127,7 +127,6 @@ class WorkspaceNavigationDeviceTest {
             exerciseComposeToolRoute(scenario, CalibrationModelsMenu::class.java) { CalibrationModelsMenu() }
             exerciseComposeToolRoute(scenario, SliceInfoMenu::class.java) { SliceInfoMenu(SliceMenu()) }
             exerciseComposeToolRoute(scenario, SliceLayersMenu::class.java) { SliceLayersMenu() }
-            exerciseComposeToolRoute(scenario, FileMenu.AIGeneratorMenu::class.java) { FileMenu.AIGeneratorMenu() }
             exerciseComposeToolRoute(scenario, KromacutEditorMenu::class.java) { KromacutEditorMenu() }
             exercisePaintCancellationAgainstLoadedModel(scenario, context)
         } finally {

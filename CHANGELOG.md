@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.276 (alpha)
+
+- Move the cloud model generator camera/gallery choice and live quota display into the exclusive Compose workspace dialog.
+- Keep the generation quota and in-progress guards, cloud quota refresh events, temporary camera file provider, and Android picker result routing intact.
+- Close the workspace choice before launching the system camera or gallery; Cancel and Back remain workspace-owned.
+
 ## 0.8.275 (alpha)
 
 - Host all ten Maker generator forms and the LitoGEN options editor in the exclusive Compose workspace dialog, removing their native AlertDialog/ComposeView wrappers.

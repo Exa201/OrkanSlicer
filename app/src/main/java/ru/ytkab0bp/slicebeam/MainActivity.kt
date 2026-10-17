@@ -77,7 +77,6 @@ import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.config.ProfileConfigImportValidator
 import ru.ytkab0bp.slicebeam.config.ProfileConfigLoadWarning
 import ru.ytkab0bp.slicebeam.config.ProfileConfigSnapshot
-import ru.ytkab0bp.slicebeam.events.NeedDismissAIGeneratorMenu
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
@@ -471,7 +470,6 @@ showFileOperationError(getString(R.string.MenuFileImportProfilesFailed), e.toStr
 }
 else if (requestCode == REQUEST_CODE_AI_GENERATOR_TAKE_PHOTO)
 {
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissAIGeneratorMenu())
 val photo = aiTempFile
 aiTempFile = null
 try {
@@ -487,7 +485,6 @@ try {
 }
 else if (requestCode == REQUEST_CODE_AI_GENERATOR_CHOOSE_PHOTO)
 {
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissAIGeneratorMenu())
 try
 {
 val uri = data?.getData() ?: return
