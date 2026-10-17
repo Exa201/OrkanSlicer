@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.271 (alpha)
+
+- Show the SVG simplification consent prompt and simplification errors in the active Compose workspace.
+- Keep simplification behind explicit user consent, retain the size limit, and write only to a separate cache copy so the source remains unchanged.
+- Add Honor coverage for the real workspace prompt and Cancel preserving the source file.
+
 ## 0.8.270 (alpha)
 
 - Move 3MF embedded printer, print, and filament settings selection into the Compose workspace dialog.

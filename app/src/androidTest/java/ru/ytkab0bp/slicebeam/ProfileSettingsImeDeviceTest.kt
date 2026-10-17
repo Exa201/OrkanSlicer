@@ -50,6 +50,7 @@ import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 
 /** Exercises the real process-profile filter inside its profile screen while the IME is open. */
@@ -370,6 +371,34 @@ class ProfileSettingsImeDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
         assertEquals("Cancelled file choice must not retain the previous project's settings", false,
             TemporaryProjectSettings.active)
+    }
+
+    @Test
+    fun svgSimplificationRequiresWorkspaceConsentAndCancelKeepsOriginal() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val source = File(activity.cacheDir, "ui2-svg-consent-test.svg")
+        val original = "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0 L1 1\"/></svg>"
+        source.writeText(original)
+        try {
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "showSvgSimplifyPrompt",
+                    File::class.java,
+                    Boolean::class.javaPrimitiveType,
+                    String::class.java,
+                ).apply { isAccessible = true }.invoke(activity, source, false, "SVG exceeds the import contour limit")
+            }
+
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithText(activity.getString(R.string.SvgSimplifyTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.SvgSimplifyAction)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertEquals("Cancel leaves the imported SVG untouched", original, source.readText())
+        } finally {
+            source.delete()
+        }
     }
 
     private fun MainActivity.showThreeMfChoiceForTest(

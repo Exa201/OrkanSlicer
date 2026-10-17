@@ -534,6 +534,12 @@
     <string name="MenuFileCopyMove">Duplicate / move</string>
     <string name="MenuFileOpenFileLoaded">File loaded.</string>
     <string name="MenuFileOpenFileFailed">Failed to open model</string>
+    <string name="SvgSimplifyTitle">Simplify SVG?</string>
+    <string name="SvgSimplifyPrompt">%1$s\n\nWould you like to reduce the contours and load a simplified copy? The original file will remain unchanged.</string>
+    <string name="SvgSimplifyUnavailable">%1$s\n\nFiles over 25 MB cannot be simplified on this device.</string>
+    <string name="SvgSimplifyAction">Simplify and load</string>
+    <string name="SvgSimplifyFailedTitle">SVG simplification failed</string>
+    <string name="SvgSimplifyFailedFallback">The contours could not be safely reduced.</string>
     <string name="MenuFileOpenFileFailedNullName">Failed to resolve file name.</string>
     <string name="MenuFileOpenFileBigObject">Large model loaded. Processing may take longer.</string>
     <string name="MenuFileOpenSimplifiedLoaded">Simplified and loaded: %1$s → %2$s triangles.</string>

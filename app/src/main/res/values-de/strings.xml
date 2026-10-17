@@ -527,6 +527,12 @@
     <string name="MenuFileCopyMove">Duplizieren / verschieben</string>
     <string name="MenuFileOpenFileLoaded">Datei geladen.</string>
     <string name="MenuFileOpenFileFailed">Modell konnte nicht geöffnet werden</string>
+    <string name="SvgSimplifyTitle">SVG vereinfachen?</string>
+    <string name="SvgSimplifyPrompt">%1$s\n\nSollen die Konturen reduziert und eine vereinfachte Kopie geladen werden? Das Original bleibt unverändert.</string>
+    <string name="SvgSimplifyUnavailable">%1$s\n\nDateien über 25 MB können auf diesem Gerät nicht vereinfacht werden.</string>
+    <string name="SvgSimplifyAction">Vereinfachen und laden</string>
+    <string name="SvgSimplifyFailedTitle">SVG konnte nicht vereinfacht werden</string>
+    <string name="SvgSimplifyFailedFallback">Die Konturen konnten nicht sicher reduziert werden.</string>
     <string name="MenuFileOpenFileFailedNullName">Fehler beim Auflösen des Dateinamens.</string>
     <string name="MenuFileOpenFileBigObject">Großes Modell geladen. Die Verarbeitung kann etwas länger dauern.</string>
     <string name="MenuFileOpenSimplifiedLoaded">Vereinfacht und geladen: %1$s → %2$s Dreiecke.</string>

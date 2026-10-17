@@ -68,6 +68,7 @@ import ru.ytkab0bp.slicebeam.components.ProfileImportCategory
 import ru.ytkab0bp.slicebeam.components.ProfileImportKey
 import ru.ytkab0bp.slicebeam.components.ProfileImportOption
 import ru.ytkab0bp.slicebeam.components.ThreeMfImportChoiceDialog
+import ru.ytkab0bp.slicebeam.components.SvgSimplifyConsentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
@@ -1657,23 +1658,35 @@ ViewUtils.postOnMainThread({ showFileOperationError(
 private fun showSvgSimplifyPrompt(source:File, autoorient:Boolean, problem:String) {
 if (isFinishing() || isDestroyed()) return
 val canSimplify = ru.ytkab0bp.slicebeam.components.SvgImportGuard.canSimplify(source)
-val dialog = BeamAlertDialogBuilder(this)
-if (canSimplify)
-dialog.setTitle("SVG vereinfachen?")
-else
-    dialog.setTitle(R.string.MenuFileOpenFileFailed)
-dialog.setMessage(if (canSimplify)
-problem + "\n\nSoll die App die Konturen automatisch reduzieren und die vereinfachte Datei laden? Das Original bleibt unverÃ¤ndert."
-else
-problem + "\n\nDateien Ã¼ber 25 MB kÃ¶nnen auf dem GerÃ¤t nicht automatisch vereinfacht werden.")
-if (canSimplify)
-{
-dialog.setPositiveButton("Vereinfachen und laden", { d, w-> simplifyAndLoadSvg(source, autoorient) })
-dialog.setNegativeButton("Abbrechen", null)
+val title = if (canSimplify) getString(R.string.SvgSimplifyTitle) else getString(R.string.MenuFileOpenFileFailed)
+val message = getString(if (canSimplify) R.string.SvgSimplifyPrompt else R.string.SvgSimplifyUnavailable, problem)
+val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        SvgSimplifyConsentDialog(
+            title = title,
+            message = message,
+            canSimplify = canSimplify,
+            simplifyLabel = getString(R.string.SvgSimplifyAction),
+            okLabel = getString(android.R.string.ok),
+            cancelLabel = getString(android.R.string.cancel),
+            onDismiss = dismiss,
+            onSimplify = {
+                dismiss()
+                simplifyAndLoadSvg(source, autoorient)
+            },
+        )
+    }
+    return
 }
-else
-{
-dialog.setPositiveButton(android.R.string.ok, null)
+val dialog = BeamAlertDialogBuilder(this)
+    .setTitle(title)
+    .setMessage(message)
+if (canSimplify) {
+    dialog.setPositiveButton(R.string.SvgSimplifyAction) { _, _ -> simplifyAndLoadSvg(source, autoorient) }
+    dialog.setNegativeButton(android.R.string.cancel, null)
+} else {
+    dialog.setPositiveButton(android.R.string.ok, null)
 }
 dialog.show()
 }
@@ -1703,10 +1716,10 @@ simplified.delete()
 android.util.Log.e("MainActivity", "Failed to simplify SVG", e)
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 ViewUtils.postOnMainThread({ if (isFinishing() || isDestroyed()) return@postOnMainThread
-BeamAlertDialogBuilder(this@MainActivity)
-.setTitle("SVG konnte nicht vereinfacht werden")
-.setMessage(if (e.message == null) "Die Konturen konnten nicht sicher reduziert werden." else e.message)
-.setPositiveButton(android.R.string.ok, null).show() })
+showFileOperationError(
+    getString(R.string.SvgSimplifyFailedTitle),
+    e.message ?: getString(R.string.SvgSimplifyFailedFallback),
+) })
 }
 })
 }

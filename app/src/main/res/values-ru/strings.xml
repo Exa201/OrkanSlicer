@@ -64,6 +64,12 @@
     <string name="MenuFileOpen">Открыть модель</string>
     <string name="MenuFileOpenFileLoaded">Файл загружен.</string>
     <string name="MenuFileOpenFileFailed">Не удалось открыть модель</string>
+    <string name="SvgSimplifyTitle">Упростить SVG?</string>
+    <string name="SvgSimplifyPrompt">%1$s\n\nУменьшить детализацию контуров и загрузить упрощённую копию? Исходный файл останется неизменным.</string>
+    <string name="SvgSimplifyUnavailable">%1$s\n\nНа этом устройстве нельзя упростить файлы размером более 25 МБ.</string>
+    <string name="SvgSimplifyAction">Упростить и загрузить</string>
+    <string name="SvgSimplifyFailedTitle">Не удалось упростить SVG</string>
+    <string name="SvgSimplifyFailedFallback">Не удалось безопасно уменьшить детализацию контуров.</string>
     <string name="MenuFileOpenFileFailedNullName">Не удалось определить имя файла.</string>
     <string name="MenuFileOpenFileBigObject">Файл содержит более 500к треугольников. Нарезка может быть медленной.</string>
     <string name="MenuFileOpenFileLoading">Загрузка файла…</string>
