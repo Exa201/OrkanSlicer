@@ -19,6 +19,11 @@ object AdaptiveNavigationPolicy {
     fun usesCompactBottomLabels(windowWidthDp: Int, fontScale: Float): Boolean =
         usesCompactLabels(fontScale) || (windowWidthDp in 1 until COMPACT_BOTTOM_LABEL_WIDTH_DP)
 
+    /** Compact visible labels remain necessary in two-row navigation when a word cannot wrap. */
+    @JvmStatic
+    fun usesCompactWorkspaceLabels(windowWidthDp: Int, fontScale: Float, isPortrait: Boolean): Boolean =
+        !isPortrait || usesCompactBottomLabels(windowWidthDp, fontScale)
+
     @JvmStatic
     fun usesTwoRowBottomNavigation(fontScale: Float, itemCount: Int): Boolean =
         usesCompactLabels(fontScale) && itemCount > 3

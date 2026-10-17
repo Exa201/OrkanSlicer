@@ -1,3 +1,12 @@
+# Current continuation — compact workspace navigation labels (2026-10-17)
+
+- Work began at HEAD `0b73d4d7243f20afa495ee5fd5e87fa2aa06b4a7`, branch `codex/rinkhals-safe-start-audit`, PR #2. Version advanced from 0.8.297/code 332 to 0.8.298/code 333.
+- The Honor screenshot at 320 dp / 150% showed the bottom destination `Werkzeuge` shortened visually to `Werkzeu…`. Added a width/font/orientation policy so compact visible labels are retained even when large-font navigation uses two rows; complete destination accessibility labels remain unchanged. Updated changelog and in-app release notes.
+- Added a policy unit test and extended the navigation Compose device test to 320 dp / 150%, asserting both destination semantics and the visible compact `Tools` label. Debug unit suite: 553/553, zero failures/errors/skips. Slice unit suite: 553/553, zero failures/errors/skips.
+- Targeted Honor PTP-N49 instrumentation: `AdaptiveWorkspaceNavigationDeviceTest`, 2/2 passed, 0 failures/errors/skips. The offline emulator was skipped. `:app:assembleDebug` succeeded for version 0.8.298; final APK metadata/hash will be recorded after the implementation commit and rebuild.
+- No changes were made to legacy UnfoldMenu routes or native/GL code. Phase 4 remains partial and Phase 5 remains incomplete; full global menu-action audit, complete dialog inventory/migration, broad TalkBack session, and physical display/font sweep remain open. Multi-plate project persistence remains separate and incomplete.
+- Next: commit the seven source/changelog/version files and this status update to the existing branch; rebuild after commit so APK BuildConfig identifies the final commit; install and verify exact OrkanSlicer package on Honor, restore display/font settings, scan fresh logcat, then push and update PR #2. Continue remaining Phase 4/5 work afterward.
+
 # Current continuation — compact printer-profile layout fix (2026-10-17)
 
 - Current production-code commit: `d25dc8f4334c871349c7da84512b1694c4111f25` on `codex/rinkhals-safe-start-audit`; test-only commits follow it. PR #2 remains the target. Version 0.8.297 / code 332. This commit adds export-dialog list test tags and device coverage; the preceding production fix is `b12bb30c1758bf33ac1e4bae851f6d09d1ecd66d`.

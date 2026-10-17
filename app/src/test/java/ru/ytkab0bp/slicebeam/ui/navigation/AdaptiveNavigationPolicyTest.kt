@@ -21,6 +21,14 @@ class AdaptiveNavigationPolicyTest {
     }
 
     @Test
+    fun largeTextKeepsCompactLabelsInTwoRowWorkspaceNavigation() {
+        assertTrue(AdaptiveNavigationPolicy.usesCompactWorkspaceLabels(320, 1.5f, true))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactWorkspaceLabels(400, 1.5f, true))
+        assertFalse(AdaptiveNavigationPolicy.usesCompactWorkspaceLabels(480, 1f, true))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactWorkspaceLabels(720, 1f, false))
+    }
+
+    @Test
     fun largeTextUsesTwoNavigationRowsWhenLabelsNeedRoom() {
         assertFalse(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 3))
         assertTrue(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 5))

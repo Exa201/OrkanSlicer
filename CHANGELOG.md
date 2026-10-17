@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.298 (alpha)
+
+- Use compact workspace destination labels on small and large-text layouts so the Tools destination remains fully readable while its complete accessibility label is preserved.
+- Cover compact labels at 320 dp / 150% font with navigation accessibility tests.
+
 ## 0.8.297 (alpha)
 
 - Keep the compact workspace printer-profile title to one line at large font sizes so long names do not push out the build plate; the full profile name remains available to accessibility services.

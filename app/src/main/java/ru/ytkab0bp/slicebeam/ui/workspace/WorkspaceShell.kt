@@ -78,15 +78,10 @@ internal fun WorkspaceShell(
         navigationItemCount,
     )
     val background = MaterialTheme.colorScheme.background
-    val twoRowNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
+    val compactLabels = AdaptiveNavigationPolicy.usesCompactWorkspaceLabels(
+        LocalConfiguration.current.screenWidthDp,
         LocalDensity.current.fontScale,
-        WorkspaceDestination.values().size,
-    )
-    val compactLabels = !portrait || (
-        AdaptiveNavigationPolicy.usesCompactBottomLabels(
-            LocalConfiguration.current.screenWidthDp,
-            LocalDensity.current.fontScale,
-        ) && !twoRowNavigation
+        portrait,
     )
     val navigationItems = WorkspaceDestination.values().map { destination ->
         val compactTitle = when (destination) {

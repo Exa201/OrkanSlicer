@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.297\n\n• Lange Druckerprofilnamen halten die kompakte Anzeige auch bei großer Schrift einzeilig; der vollständige Name bleibt für Screenreader verfügbar.",
-  "en": "OrkanSlicer 0.8.297\n\n• Long printer profile names stay on one line in the compact status at large text sizes; the full name remains available to screen readers.",
-  "ru": "OrkanSlicer 0.8.297\n\n• Длинные названия профилей принтера остаются в одну строку при крупном шрифте; полное имя доступно программам чтения с экрана."
+  "de": "OrkanSlicer 0.8.298\n\n• Workspace-Zielbeschriftungen bleiben auf kleinen Displays und bei großer Schrift vollständig lesbar; der vollständige Name ist weiterhin für Screenreader verfügbar.",
+  "en": "OrkanSlicer 0.8.298\n\n• Workspace destination labels stay readable on small screens and at large text sizes; full names remain available to screen readers.",
+  "ru": "OrkanSlicer 0.8.298\n\n• Подписи разделов рабочего пространства остаются читаемыми на небольших экранах и при крупном шрифте; полные названия доступны программам чтения с экрана."
 }

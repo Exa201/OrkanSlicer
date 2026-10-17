@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 
 @RunWith(AndroidJUnit4::class)
@@ -71,14 +73,17 @@ class AdaptiveWorkspaceNavigationDeviceTest {
                 label = context.getString(destination.navigationTitleRes),
                 icon = destination.iconRes,
                 accessibilityLabel = context.getString(destination.navigationTitleRes),
-                compactLabel = context.getString(destination.titleRes),
+                compactLabel = context.getString(
+                    if (destination == WorkspaceDestination.TOOLS) R.string.MenuOptionsCompact
+                    else destination.titleRes,
+                ),
             )
         }
 
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
                 BeamComposeTheme {
-                    Box(Modifier.width(360.dp)) {
+                    Box(Modifier.width(320.dp)) {
                         AdaptiveWorkspaceNavigation(
                             items = items,
                             selectedSlot = WorkspaceDestination.PROJECT.ordinal,
@@ -94,5 +99,6 @@ class AdaptiveWorkspaceNavigationDeviceTest {
             compose.onNodeWithContentDescription(context.getString(destination.navigationTitleRes))
                 .assertIsDisplayed()
         }
+        compose.onNodeWithText(context.getString(R.string.MenuOptionsCompact)).assertIsDisplayed()
     }
 }
