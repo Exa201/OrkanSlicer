@@ -64,7 +64,7 @@ internal fun WorkspaceShell(
     platePickerContent: @Composable () -> Unit,
     printerWebButtonContent: @Composable () -> Unit,
     modePanelContent: (@Composable () -> Unit)?,
-    modePanelFraction: Float?,
+    modePanelSize: WorkspacePanelSize?,
     onModePanelDismiss: () -> Unit,
     transientPanelContent: (@Composable () -> Unit)?,
     snackbarController: WorkspaceSnackbarController,
@@ -194,7 +194,7 @@ internal fun WorkspaceShell(
       if (modePanelContent != null) {
           WorkspaceModePanelHost(
               onDismiss = onModePanelDismiss,
-              panelFraction = modePanelFraction,
+              panelSize = modePanelSize,
               content = modePanelContent,
           )
       }

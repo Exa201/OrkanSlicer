@@ -588,10 +588,9 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
     val context = getContext() ?: return
     val portrait = context.resources.configuration.orientation ==
         android.content.res.Configuration.ORIENTATION_PORTRAIT
-    val panelContainer = overlayLayout ?: return
     val routeContent = menu.createWorkspaceContent(portrait, this) ?: return
     val toolId = menu.javaClass.name
-    val panelFraction = menu.workspacePanelFraction(panelContainer, portrait)
+    val panelSize = menu.workspacePanelSize()
     menu.setWorkspaceDismiss { workspaceController.clearTool(toolId) }
     menu.setOnDismiss {
         if (menu.isAttached()) return@setOnDismiss
@@ -601,7 +600,7 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
         toolId = toolId,
         dismiss = { menu.dismiss() },
         panelContent = { menu.WorkspaceContent(routeContent) },
-        panelFraction = panelFraction,
+        panelSize = panelSize,
     )
 }
 private fun showModelContextMenu(objectIndex:Int) {
@@ -1261,11 +1260,7 @@ glView!!.onPrimeTowerTap = { showPrimeTowerPositionDialogForCurrentPlate() }
 glView!!.renderer.model = currentModel
 resetModelHistory()
 glView!!.renderer.setGCodeViewer(gCodeResult)
-overlayLayout = object:FrameLayout(ctx) {
-protected override fun onSizeChanged(w:Int, h:Int, oldw:Int, oldh:Int) {
-super.onSizeChanged(w, h, oldw, oldh)
-}
-}
+overlayLayout = FrameLayout(ctx)
 updatePlateIndicator()
 updateProfileStatus()
 val portrait = usesCompactPortraitLayout(ctx)
@@ -1411,7 +1406,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         }
                     },
                     modePanelContent = workspaceController.activeToolPanelContent,
-                    modePanelFraction = workspaceController.activeToolPanelFraction,
+                    modePanelSize = workspaceController.activeToolPanelSize,
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },
                     transientPanelContent = workspaceController.activePanelContent,
                     snackbarController = snackbarController,
@@ -1428,15 +1423,6 @@ overlayLayout!!.addView(contentView, 0, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 glView!!.requestRender()
 }
-internal fun restoreWorkspaceAfterMenuDismiss() {
-glView?.apply {
-translationX = 0f
-translationY = 0f
-invalidate()
-}
-glView?.requestRender()
-}
-
 private fun selectMenu(slot: Int, routeChanged: Boolean = slot != workspaceController.selectedDestinationSlot) {
 if (glView!!.renderer.resetFlattenMode())
 {

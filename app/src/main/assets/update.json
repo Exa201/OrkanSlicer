@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.301\n\n• Der Menü-Übergangszustand wird auch bei programmgesteuerten Routenwechseln mit eingeklappter Werkzeugleiste zuverlässig zurückgesetzt.",
-  "en": "OrkanSlicer 0.8.301\n\n• The menu transition state now settles reliably for programmatic route changes while the tool panel is collapsed.",
-  "ru": "OrkanSlicer 0.8.301\n\n• Состояние перехода меню теперь корректно завершается и при программной смене маршрута со свернутой панелью инструментов."
+  "de": "OrkanSlicer 0.8.302\n\n• Die Größenberechnung von Werkzeugpanels liegt jetzt in Compose und verwendet responsive dp-Grenzen statt Android-View-Pixel.",
+  "en": "OrkanSlicer 0.8.302\n\n• Tool panel sizing now belongs to Compose and uses responsive dp constraints instead of Android View pixels.",
+  "ru": "OrkanSlicer 0.8.302\n\n• Размеры панелей инструментов теперь рассчитываются в Compose с адаптивными dp-ограничениями вместо пикселей Android View."
 }

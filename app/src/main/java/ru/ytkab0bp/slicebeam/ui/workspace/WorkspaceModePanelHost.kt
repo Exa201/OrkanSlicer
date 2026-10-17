@@ -23,13 +23,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 /** Responsive sheet for native-renderer tool controls now presented by Compose. */
 @Composable
 internal fun WorkspaceModePanelHost(
     onDismiss: () -> Unit,
-    panelFraction: Float? = null,
+    panelSize: WorkspacePanelSize? = null,
     content: @Composable () -> Unit,
 ) {
     val dismissLabel = stringResource(android.R.string.cancel)
@@ -44,24 +45,26 @@ internal fun WorkspaceModePanelHost(
                     role = Role.Button
                 },
         )
-        val requestedFraction = panelFraction?.coerceIn(0f, 1f)
+        val dimension = panelSize?.let { if (portrait) it.portrait else it.landscape }
+        val availableDp = if (portrait) maxHeight.value else maxWidth.value
+        val requestedDp = dimension?.let { WorkspacePanelSizePolicy.resolve(it, availableDp) }
         val panelModifier = if (portrait) {
             Modifier.align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .then(
-                    if (requestedFraction != null) Modifier.height(maxHeight * requestedFraction)
+                    if (requestedDp != null) Modifier.height(requestedDp.dp)
                     else Modifier.heightIn(max = maxHeight * 0.82f),
                 )
         } else {
             Modifier.align(Alignment.CenterEnd)
                 .then(
-                    if (requestedFraction != null) Modifier.width(maxWidth * requestedFraction)
+                    if (requestedDp != null) Modifier.width(requestedDp.dp)
                     else Modifier.widthIn(max = 420.dp),
                 )
                 .fillMaxHeight()
         }
         Surface(
-            modifier = panelModifier,
+            modifier = panelModifier.testTag("workspace-mode-panel"),
             shape = if (portrait) RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 else RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp),
             color = MaterialTheme.colorScheme.surface,

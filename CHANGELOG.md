@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.302 (alpha)
+
+- Move workspace tool panel sizing from BedFragment's Android FrameLayout pixel measurements into a Compose-owned, dp-based responsive sizing policy while preserving the existing per-tool dimensions.
+- Add Compose panel bounds coverage for portrait and landscape plus unit coverage for fixed, fractional, fill, clamped, and invalid sizes.
+
 ## 0.8.301 (alpha)
 
 - Settle workspace route-transition state from `WorkspaceShell`, including direct route changes while the portrait tool panel is collapsed; this prevents the navigation guard from remaining stuck when the animated menu host is absent.

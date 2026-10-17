@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Paint
 import android.view.HapticFeedbackConstants
 import android.view.View
-import android.widget.FrameLayout
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,7 +74,8 @@ import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.DoubleMatrix
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -358,9 +358,10 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
         )
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-        if (portrait) ViewUtils.dp(52) + ViewUtils.dp(64) + ViewUtils.dp(80 + 24) * 3 + ViewUtils.dp(12)
-        else (into.width * 0.5f).toInt()
+    internal override fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.Fixed(440f),
+        landscape = WorkspacePanelDimension.Fraction(0.5f),
+    )
 
     override fun onCreate() {
         super.onCreate()

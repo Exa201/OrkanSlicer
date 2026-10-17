@@ -1,3 +1,12 @@
+## OrkanSlicer UI 2.0 – 0.8.302 workspace panel sizing (2026-10-18)
+
+- Moved tool panel sizing from Android `FrameLayout` pixel measurements in `BedFragment` and tool routes to a Compose-owned `WorkspacePanelSize` resolved against `WorkspaceModePanelHost` dp constraints. Existing per-tool size behavior is represented explicitly.
+- Full `:app:testDebugUnitTest :app:testSliceTestUnitTest`: 556 tests in each suite, 0 failures/errors/skips. Added `WorkspacePanelSizePolicyTest` coverage for fixed, fractional, fill, clamped, and invalid dimensions; `WorkspaceControllerTest` now verifies panel size ownership.
+- Honor `WorkspaceModePanelHostDeviceTest` on 0.8.302/code 337: 2/2 passed, 0 skipped/failures (portrait fixed dp and landscape fractional bounds).
+- Full `:app:connectedSliceTestAndroidTest` after the BedFragment cleanup: 140 unique tests, 135 passed, 5 skipped, 0 failures/errors; Gradle reported 145 executions including retries/report accounting. The 5 skips are two unavailable private KromaCut fixtures and three unavailable private multicolor fixtures. The emulator remained offline.
+- Debug APK assembly, installation of the normal Debug package, and full Honor suite remain pending after the final BedFragment cleanup.
+- UI 2.0 Phases 4 and 5 remain incomplete; the panel sizing adapter is one structural cleanup only.
+
 ## OrkanSlicer UI 2.0 – 0.8.301 verification (2026-10-18)
 
 - Change: centralize transition state in `WorkspaceController`, capture the previous destination before selection, and settle transitions from `WorkspaceShell` even when a programmatic route change occurs with the portrait tool panel collapsed. This prevents both rapid route redirection and a permanently locked navigation guard when no menu host is composed. Version 0.8.301/code 336.

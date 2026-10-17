@@ -2,7 +2,6 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.content.Context
 import android.view.View
-import android.widget.FrameLayout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,9 +43,8 @@ import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Vec3d
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
-import kotlin.math.max
-import kotlin.math.min
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 import kotlin.math.round
 import kotlin.math.roundToInt
 
@@ -253,10 +251,10 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
         )
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int {
-        val maxPortrait = max(ViewUtils.dp(240), into.height / 3)
-        return if (portrait) min(ViewUtils.dp(300), maxPortrait) else min(ViewUtils.dp(360), (into.width * 0.42f).toInt())
-    }
+    internal override fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.ClampedFraction(1f / 3f, minDp = 240f, maxDp = 300f),
+        landscape = WorkspacePanelDimension.ClampedFraction(0.42f, maxDp = 360f),
+    )
 
     private companion object {
         const val CONNECTOR_COUNT_REFRESH_MS = 300L

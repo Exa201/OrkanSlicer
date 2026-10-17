@@ -31,7 +31,7 @@ internal class WorkspaceController(
     var activeToolPanelContent by mutableStateOf<(@Composable () -> Unit)?>(null)
         private set
 
-    var activeToolPanelFraction by mutableStateOf<Float?>(null)
+    var activeToolPanelSize by mutableStateOf<WorkspacePanelSize?>(null)
         private set
 
     var isNavigationTransitionInProgress by mutableStateOf(false)
@@ -60,7 +60,7 @@ internal class WorkspaceController(
         dismissActivePanel()
         activeToolId = null
         activeToolPanelContent = null
-        activeToolPanelFraction = null
+        activeToolPanelSize = null
         return selectDestination(slot)
     }
 
@@ -81,21 +81,21 @@ internal class WorkspaceController(
         toolId: String,
         dismiss: () -> Unit,
         panelContent: @Composable () -> Unit,
-        panelFraction: Float? = null,
-    ) = activateTool(toolId, dismiss, panelContent, panelFraction)
+        panelSize: WorkspacePanelSize? = null,
+    ) = activateTool(toolId, dismiss, panelContent, panelSize)
 
     private fun activateTool(
         toolId: String,
         dismiss: () -> Unit,
         panelContent: (@Composable () -> Unit)?,
-        panelFraction: Float? = null,
+        panelSize: WorkspacePanelSize? = null,
     ) {
         // SPECIAL_TOOL is one panel kind, but selecting a different tool must still
         // dismiss the previous tool host instead of silently replacing its callback.
         if (activeToolId != null && activeToolId != toolId) dismissActivePanel()
         activeToolId = toolId
         activeToolPanelContent = panelContent
-        activeToolPanelFraction = panelFraction?.coerceIn(0f, 1f)
+        activeToolPanelSize = panelSize
         overlays.activate(WorkspaceOverlayPanel.SPECIAL_TOOL, dismiss)
     }
 
@@ -105,7 +105,7 @@ internal class WorkspaceController(
         if (activeToolId != toolId) return
         activeToolId = null
         activeToolPanelContent = null
-        activeToolPanelFraction = null
+        activeToolPanelSize = null
         overlays.clear(WorkspaceOverlayPanel.SPECIAL_TOOL)
     }
 

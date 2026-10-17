@@ -2,7 +2,6 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.content.Context
 import android.view.View
-import android.widget.FrameLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,7 +53,8 @@ import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Vec3d
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 
 internal enum class OrientationAxis { X, Y, Z }
 
@@ -270,9 +270,10 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
         ManualEditorContent()
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-        if (portrait) ViewUtils.dp(64) + ViewUtils.dp(120) * 2 + ViewUtils.dp(12)
-        else (into.width * 0.5f).toInt()
+    internal override fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.Fixed(316f),
+        landscape = WorkspacePanelDimension.Fraction(0.5f),
+    )
 
     override fun onCreate() {
         super.onCreate()
@@ -454,9 +455,10 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
         ManualEditorContent()
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-        if (portrait) ViewUtils.dp(64) + ViewUtils.dp(120) * 3 + ViewUtils.dp(12)
-        else (into.width * 0.5f).toInt()
+    internal override fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.Fixed(436f),
+        landscape = WorkspacePanelDimension.Fraction(0.5f),
+    )
 
     override fun onCreate() {
         super.onCreate()

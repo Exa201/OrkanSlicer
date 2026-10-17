@@ -11,7 +11,6 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import android.widget.FrameLayout
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,6 +40,8 @@ import java.io.FileOutputStream
 import java.util.Locale
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.launchAppActivityResult
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
 /** Bundled Kromacut editor shown inside the converter panel. */
@@ -145,9 +146,10 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
         }
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-        if (portrait) into.height - into.paddingTop - into.paddingBottom
-        else into.width - into.paddingLeft - into.paddingRight
+    internal override fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.FillAvailable,
+        landscape = WorkspacePanelDimension.FillAvailable,
+    )
 
     override fun onDestroy() {
         activeError = null

@@ -1,10 +1,10 @@
 package ru.ytkab0bp.slicebeam.components
 
-import android.widget.FrameLayout
 import androidx.annotation.CallSuper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 
 /**
  * Lifecycle adapter for a Compose-owned workspace tool route. Native/GL operations remain in
@@ -21,8 +21,7 @@ abstract class WorkspaceComposeToolRoute {
     private var workspaceDismiss: (() -> Unit)? = null
     private var workspaceCompositionVisible = false
 
-    open fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-        ((if (portrait) into.height else into.width) * 0.6f).toInt()
+    internal open fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize()
 
     @CallSuper
     protected open fun onCreate() = Unit
@@ -86,13 +85,6 @@ abstract class WorkspaceComposeToolRoute {
         workspaceDismiss = null
     }
 
-    internal fun workspacePanelFraction(into: FrameLayout, portrait: Boolean): Float {
-        val available = (if (portrait) into.height else into.width).coerceAtLeast(0)
-        if (available == 0) return 0.6f
-        val bounded = WorkspaceToolPanelLayoutPolicy.constrainSide(getRequestedSize(into, portrait), available)
-        return (bounded.toFloat() / available).coerceIn(0f, 1f)
-    }
-
     open fun isAttached(): Boolean = workspaceCompositionVisible && !isDismissing
 
     open fun dismiss() {
@@ -107,7 +99,3 @@ abstract class WorkspaceComposeToolRoute {
 internal data class WorkspaceToolContent(val portrait: Boolean)
 
 /** Bounds requested sheet sizes to the available workspace space. */
-internal object WorkspaceToolPanelLayoutPolicy {
-    fun constrainSide(requestedSize: Int, availableSize: Int): Int =
-        requestedSize.coerceAtLeast(0).coerceAtMost(availableSize.coerceAtLeast(0))
-}
