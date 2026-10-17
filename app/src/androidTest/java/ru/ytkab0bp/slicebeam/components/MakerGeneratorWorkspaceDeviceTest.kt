@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertFalse
@@ -106,6 +107,52 @@ class MakerGeneratorWorkspaceDeviceTest {
             completed && !bed.isWorkspaceMessageDialogAttached()
         }
         assertTrue("Completion callback must run after the workspace progress panel closes", completed)
+    }
+
+    @Test
+    fun imageConverterOptionsUseWorkspaceAndKeepModeAndEditorStateOnBack() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val imageFile = java.io.File(activity.cacheDir, "converter-options-compose-test.png")
+        Bitmap.createBitmap(16, 12, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(android.graphics.Color.LTGRAY)
+            imageFile.outputStream().use { compress(Bitmap.CompressFormat.PNG, 100, it) }
+            recycle()
+        }
+
+        activity.runOnUiThread {
+            ImageToStlConverter.showOptions(activity, Uri.fromFile(imageFile), bed)
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterTitle)).assertIsDisplayed()
+        compose.onNodeWithTag("image-to-stl-target").assertIsDisplayed()
+        compose.onNodeWithTag("image-to-stl-mode").assertIsDisplayed()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("image-to-stl-source-preview").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithTag("image-to-stl-mode").performClick()
+        val curvedMode = activity.resources.getStringArray(ru.ytkab0bp.slicebeam.R.array.ImageToStlModes)[5]
+        compose.onNodeWithText(curvedMode).performClick()
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.LithophaneCurveRadius))
+            .performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithTag("image-to-stl-edit-image").performScrollTo()
+        compose.onNodeWithTag("image-to-stl-edit-image").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.LithophaneImageEditor)).fetchSemanticsNodes().isNotEmpty()
+        }
+        activity.onBackPressedDispatcher.onBackPressed()
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("image-to-stl-mode").assertIsDisplayed()
+        compose.onNodeWithText(curvedMode).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.LithophaneCurveRadius))
+            .performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithTag("generator-dialog-cancel").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertFalse("Cancel must not start generation or finish the workspace", activity.isFinishing)
+        imageFile.delete()
     }
 
     @Test

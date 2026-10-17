@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.287 (alpha)
+
+- Move the image-to-STL/lithophane parameter form into the workspace Compose dialog, including target/mode selection, mode-specific dimensions, resolution, wrap/wave controls, source preview, and image-editor handoff.
+- Preserve the native generator, validation, document picker, output callbacks, tone settings, and the Android-view fallback when no workspace host is available.
+- Add Honor coverage for mode changes, preview, returning from the image editor, and Back cancellation.
+
 ## 0.8.286 (alpha)
 
 - Host local generator progress inside the exclusive workspace Compose overlay, including elapsed time, estimated remaining time, and stage progress.
