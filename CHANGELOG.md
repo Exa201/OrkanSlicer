@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.265 (alpha)
+
+- Show Kromacut file-picker and export failures in the existing Compose tool panel.
+- Keep the active WebView, file chooser callback, temporary-file cleanup, and generated-file handoff unchanged.
+- Allow long error details to scroll inside the dialog and add Honor UI coverage.
+
 ## 0.8.264 (alpha)
 
 - Move the app-settings reset confirmation and converter-folder-picker error to Compose.

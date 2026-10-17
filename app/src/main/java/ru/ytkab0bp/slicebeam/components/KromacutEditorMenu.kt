@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
-import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -16,15 +15,23 @@ import android.widget.FrameLayout
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
@@ -34,9 +41,6 @@ import java.io.FileOutputStream
 import java.util.Locale
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.launchAppActivityResult
-import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
 /** Bundled Kromacut editor shown inside the converter panel. */
@@ -44,6 +48,7 @@ class KromacutEditorMenu : UnfoldMenu() {
     private var webView: WebView? = null
     private var outputStream: FileOutputStream? = null
     private var outputFile: File? = null
+    private var activeError by mutableStateOf<String?>(null)
 
     companion object {
         const val REQUEST_CODE_FILE = 15
@@ -87,6 +92,9 @@ class KromacutEditorMenu : UnfoldMenu() {
                 factory = { createEditor(context).also { it.loadUrl(EDITOR_URL) } },
                 modifier = Modifier.weight(1f),
             )
+            activeError?.let { detail ->
+                KromacutErrorDialog(detail) { activeError = null }
+            }
         }
     }
 
@@ -129,11 +137,7 @@ class KromacutEditorMenu : UnfoldMenu() {
                     } catch (error: Exception) {
                         fileCallback = null
                         callback.onReceiveValue(null)
-                        BeamAlertDialogBuilder(ctx)
-                            .setTitle(R.string.ConverterFailed)
-                            .setMessage(R.string.ConverterFolderPickerUnavailable)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show()
+                        activeError = ctx.getString(R.string.ConverterFolderPickerUnavailable)
                         false
                     }
                 }
@@ -146,6 +150,7 @@ class KromacutEditorMenu : UnfoldMenu() {
         else into.width - into.paddingLeft - into.paddingRight
 
     override fun onDestroy() {
+        activeError = null
         fileCallback?.onReceiveValue(null)
         fileCallback = null
         try {
@@ -220,12 +225,8 @@ class KromacutEditorMenu : UnfoldMenu() {
         outputFile = null
         val detail = message ?: "Kromacut konnte die Datei nicht speichern."
         ViewUtils.postOnMainThread {
-            val context = fragment?.getContext() ?: return@postOnMainThread
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.ConverterFailed)
-                .setMessage(detail)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            if (fragment?.getView() == null) return@postOnMainThread
+            activeError = detail
         }
     }
 
@@ -242,4 +243,26 @@ class KromacutEditorMenu : UnfoldMenu() {
         @JavascriptInterface
         fun failDownload(message: String?) = this@KromacutEditorMenu.failDownload(message)
     }
+}
+
+@Composable
+internal fun KromacutErrorDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ConverterFailed)) },
+        text = {
+            Text(
+                text = message,
+                modifier = Modifier
+                    .testTag("kromacut-error-message")
+                    .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.5f)
+                    .verticalScroll(rememberScrollState()),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.ok))
+            }
+        },
+    )
 }

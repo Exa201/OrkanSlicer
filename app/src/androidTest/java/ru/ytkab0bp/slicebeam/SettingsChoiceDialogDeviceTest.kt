@@ -5,7 +5,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -21,6 +24,7 @@ import ru.ytkab0bp.slicebeam.fragment.SettingsChoiceDialog
 import ru.ytkab0bp.slicebeam.fragment.SettingsChoiceDialogState
 import ru.ytkab0bp.slicebeam.fragment.SettingsFolderPickerErrorDialog
 import ru.ytkab0bp.slicebeam.fragment.SettingsResetConfirmationDialog
+import ru.ytkab0bp.slicebeam.components.KromacutErrorDialog
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 
 /** Verifies the shared settings selection dialog's scrolling, selection, and cancellation. */
@@ -134,6 +138,21 @@ class SettingsChoiceDialogDeviceTest {
 
         compose.onNodeWithText(context.getString(R.string.ConverterFailed)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.ConverterFolderPickerUnavailable)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
+        compose.runOnIdle { assertTrue(dismissed) }
+    }
+
+    @Test
+    fun longKromacutErrorCanScrollAndDismiss() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val detail = (1..40).joinToString("\n") { "Kromacut failure detail $it" }
+        var dismissed = false
+        compose.setContent {
+            BeamComposeTheme { KromacutErrorDialog(detail) { dismissed = true } }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.ConverterFailed)).assertIsDisplayed()
+        compose.onNodeWithTag("kromacut-error-message").assert(hasScrollAction())
         compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
         compose.runOnIdle { assertTrue(dismissed) }
     }
