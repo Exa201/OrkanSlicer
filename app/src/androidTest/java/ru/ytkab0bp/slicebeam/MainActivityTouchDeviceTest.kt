@@ -22,6 +22,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenuItems
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.SliceUploadController
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
@@ -336,6 +337,26 @@ class MainActivityTouchDeviceTest {
                 assertTrue("Back should leave the workspace activity active", activity.isFinishing.not())
                 assertFalse("Back should close the Compose confirmation", requireNotNull(bed).isWorkspaceMessageDialogAttached())
                 assertTrue("Back should resolve the Compose confirmation as dismissed", workspaceDialogDismissed.get())
+            }
+            SystemClock.sleep(350L)
+
+            scenario.onActivity {
+                SliceUploadController.showPreparationFailure(requireNotNull(bed), "Test preparation failure")
+            }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity {
+                assertTrue(
+                    "Slice preparation failures should use the Compose workspace dialog",
+                    requireNotNull(bed).isWorkspaceMessageDialogAttached(),
+                )
+            }
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            scenario.onActivity {
+                assertFalse(
+                    "Back should dismiss the slice preparation failure dialog",
+                    requireNotNull(bed).isWorkspaceMessageDialogAttached(),
+                )
             }
             SystemClock.sleep(350L)
 

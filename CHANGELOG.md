@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.266 (alpha)
+
+- Show slice preparation, printer upload/start, G-code integrity, and Anycubic mapping failures in the shared Compose workspace dialog.
+- Preserve main-thread delivery, upload cleanup, integrity validation, and all existing print-start safeguards.
+- Add Honor coverage for the real slice preparation failure route and Compose Back dismissal.
+
 ## 0.8.265 (alpha)
 
 - Show Kromacut file-picker and export failures in the existing Compose tool panel.

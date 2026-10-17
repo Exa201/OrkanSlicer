@@ -26,7 +26,6 @@ import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.BuildConfig
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -192,11 +191,12 @@ object SliceUploadController {
     fun showPreparationFailure(fragment: BedFragment, detail: String? = null) {
         ViewUtils.postOnMainThread {
             val context = fragment.getContext() ?: return@postOnMainThread
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.MenuSliceSendToPrinterFailed)
-                .setMessage(detail?.takeIf { it.isNotBlank() } ?: context.getString(R.string.AnycubicGcodePrepareFailed))
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.MenuSliceSendToPrinterFailed),
+                message = detail?.takeIf { it.isNotBlank() }
+                    ?: context.getString(R.string.AnycubicGcodePrepareFailed),
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 
@@ -541,12 +541,12 @@ object SliceUploadController {
         else PrinterResponseInspector.failureDetail(responseBody, error?.localizedMessage ?: error?.toString())
         ViewUtils.postOnMainThread {
             val context = fragment.getContext() ?: return@postOnMainThread
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.MenuSliceSendToPrinterFailed)
-                .setMessage((if (statusCode > 0) "HTTP $statusCode: " else "") +
-                    detail.ifBlank { context.getString(R.string.MenuSliceSendToPrinterFailed) })
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.MenuSliceSendToPrinterFailed),
+                message = (if (statusCode > 0) "HTTP $statusCode: " else "") +
+                    detail.ifBlank { context.getString(R.string.MenuSliceSendToPrinterFailed) },
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 
@@ -793,11 +793,11 @@ object SliceUploadController {
                     context.getString(R.string.GCodeIntegrityHeightMismatch)
                 else -> context.getString(R.string.GCodeIntegrityGeneric)
             }
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.GCodeIntegrityTitle)
-                .setMessage(message)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.GCodeIntegrityTitle),
+                message = message,
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 
@@ -806,11 +806,11 @@ object SliceUploadController {
             val context = fragment.getContext() ?: return@postOnMainThread
             val text = if (count == null) context.getString(message)
             else context.resources.getQuantityString(message, count, count)
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.MenuSliceSendToPrinterFailed)
-                .setMessage(text)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.MenuSliceSendToPrinterFailed),
+                message = text,
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 
