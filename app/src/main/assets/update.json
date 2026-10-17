@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.296\n\n• Ein neues Workspace-Werkzeug ersetzt jetzt das aktive Werkzeug zuverlässig, statt beim Werkzeugwechsel ignoriert zu werden.",
-  "en": "OrkanSlicer 0.8.296\n\n• Selecting a new workspace tool now reliably replaces the active tool instead of being ignored.",
-  "ru": "OrkanSlicer 0.8.296\n\n• Выбор нового инструмента рабочего пространства теперь надежно заменяет активный инструмент, а не игнорируется."
+  "de": "OrkanSlicer 0.8.297\n\n• Lange Druckerprofilnamen halten die kompakte Anzeige auch bei großer Schrift einzeilig; der vollständige Name bleibt für Screenreader verfügbar.",
+  "en": "OrkanSlicer 0.8.297\n\n• Long printer profile names stay on one line in the compact status at large text sizes; the full name remains available to screen readers.",
+  "ru": "OrkanSlicer 0.8.297\n\n• Длинные названия профилей принтера остаются в одну строку при крупном шрифте; полное имя доступно программам чтения с экрана."
 }

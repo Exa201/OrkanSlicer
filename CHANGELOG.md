@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.297 (alpha)
+
+- Keep the compact workspace printer-profile title to one line at large font sizes so long names do not push out the build plate; the full profile name remains available to accessibility services.
+- Add a narrow-display, 150% font Compose device regression test for profile status height and accessibility semantics.
+
 ## 0.8.296 (alpha)
 
 - Allow a new Compose workspace tool to replace the currently active tool through the exclusive WorkspaceController panel flow instead of silently ignoring the selection.
