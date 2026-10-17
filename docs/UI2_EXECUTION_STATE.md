@@ -1,3 +1,10 @@
+# Current continuation — custom color picker migrated to Compose (0.8.289 / 2026-10-17)
+
+- Replaced the remaining third-party `BeamColorPickerPopUp` custom color wheel with a shared Compose HSV editor (`CustomColorPickerDialog`) using accessible Hue, Saturation, and Brightness sliders. The palette and app accent-color setting now share the same Compose flow. Cancel preserves the current color; resetting to the default is an explicit action. Removed the unused Colorpicker dependency and legacy popup class; localized strings and the Honor test cover cancel, slider change/apply, and reset.
+- Verification: Debug unit 552/552, Slice unit 552/552 (zero failures/errors/skips). Honor instrumentation: 127 tests executed, 3 private multi-color fixture tests skipped, zero failures; `:app:assembleDebug` succeeded. The emulator was offline and skipped by Gradle.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_4204ea078f.apk`, 157,215,386 bytes, SHA-256 `00C68DA4929EDDEDF417981C8246C1B9FBB5B60D8F20D2F6EC263DDDDFD189FB`. Installed on Honor PTP-N49 / Android 16 for package `com.codemastercody3d.orcaslicermobile`; package reports version 0.8.289 / code 324. Cold launch resumed `ru.ytkab0bp.slicebeam.MainActivity`; fresh logcat scan showed no fatal exception, ANR, OOM, or fatal signal. No screenshots or printer actions were used.
+- Code commit: `4204ea078f23b1936e912a25c8c84e7f0acaff4c`. Documentation commit and push/PR update pending at this status edit. PR #2 remains the target; no merge or release. UI 2.0 remains in progress.
+- Next: continue from the remaining active UI routes using the existing Compose workspace architecture; keep the active-plate-only multi-plate export warning. Full multi-plate persistence and broad practical menu/accessibility coverage remain open.
 # OrkanSlicer UI 2.0 execution state
 
 ## Current continuation — printer upload progress hosted by workspace Compose (0.8.288 / 2026-10-17)
