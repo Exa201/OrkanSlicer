@@ -63,6 +63,29 @@ class InitialProjectMenuDeviceTest {
             controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
     }
 
+    @Test
+    fun toolsMenuProfileExportActionOpensComposeFlowAndAndroidBackDismissesIt() {
+        val activity = compose.activity
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuOptions))
+            .assertIsDisplayed()
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfiles))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfiles))
+            .assertIsDisplayed()
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfilesPrints))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfilesPrints)).assertIsDisplayed()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitForIdle()
+        compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfilesPrints)).assertDoesNotExist()
+    }
+
     private fun createInitializedActivityRule() = run {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
