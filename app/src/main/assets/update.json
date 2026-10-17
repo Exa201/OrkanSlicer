@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.300\n\n• Workspace-Menüwechsel verwenden jetzt eine zentrale Übergangssperre. Schnelle Menütipps und Layoutwechsel während der Animation werden zuverlässig behandelt.",
-  "en": "OrkanSlicer 0.8.300\n\n• Workspace menu changes now use a centralized transition guard. Rapid menu taps and layout changes during the animation are handled reliably.",
-  "ru": "OrkanSlicer 0.8.300\n\n• Переходы между меню рабочего пространства теперь используют централизованную блокировку. Быстрые нажатия и изменения компоновки во время анимации обрабатываются корректно."
+  "de": "OrkanSlicer 0.8.301\n\n• Der Menü-Übergangszustand wird auch bei programmgesteuerten Routenwechseln mit eingeklappter Werkzeugleiste zuverlässig zurückgesetzt.",
+  "en": "OrkanSlicer 0.8.301\n\n• The menu transition state now settles reliably for programmatic route changes while the tool panel is collapsed.",
+  "ru": "OrkanSlicer 0.8.301\n\n• Состояние перехода меню теперь корректно завершается и при программной смене маршрута со свернутой панелью инструментов."
 }

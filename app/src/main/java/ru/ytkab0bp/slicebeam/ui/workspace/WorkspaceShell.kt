@@ -99,6 +99,17 @@ internal fun WorkspaceShell(
             compactLabel = if (compactLabels) stringResource(compactTitle) else null,
         )
     }
+    LaunchedEffect(activeMenuSlot, portrait, toolPanelExpanded) {
+        // A programmatic route change can happen while the compact portrait menu is
+        // collapsed (for example after loading G-code). In that layout the animated
+        // menu host is absent, so transition cleanup must be owned by the shell itself.
+        if (portrait && !toolPanelExpanded) {
+            onMenuTransitionSettled()
+        } else {
+            delay(260)
+            onMenuTransitionSettled()
+        }
+    }
     val header: @Composable (Modifier) -> Unit = { modifier ->
         Row(
             modifier = modifier
@@ -133,7 +144,6 @@ internal fun WorkspaceShell(
                 WorkspaceMenuHost(
                     slot = activeMenuSlot,
                     composeContentForSlot = menuComposeContentForSlot,
-                    onTransitionSettled = onMenuTransitionSettled,
                     modifier = Modifier.fillMaxWidth().height(toolPanelHeightDp.coerceAtLeast(0).dp),
                 )
                 Spacer(Modifier.fillMaxWidth().height(1.dp).background(background.copy(alpha = 0.35f)))
@@ -169,7 +179,6 @@ internal fun WorkspaceShell(
             WorkspaceMenuHost(
                 slot = activeMenuSlot,
                 composeContentForSlot = menuComposeContentForSlot,
-                onTransitionSettled = onMenuTransitionSettled,
                 modifier = Modifier.width(menuWidthDp.dp).fillMaxHeight(),
             )
             Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -210,7 +219,6 @@ internal fun WorkspaceShell(
 private fun WorkspaceMenuHost(
     slot: Int,
     composeContentForSlot: @Composable (Int) -> Unit,
-    onTransitionSettled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedContent(
@@ -226,11 +234,6 @@ private fun WorkspaceMenuHost(
         key(targetSlot) {
             composeContentForSlot(targetSlot)
         }
-    }
-    LaunchedEffect(slot) {
-        // Keep BedFragment's action guard aligned with the Compose route transition.
-        delay(260)
-        onTransitionSettled()
     }
 }
 

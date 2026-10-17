@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.301 (alpha)
+
+- Settle workspace route-transition state from `WorkspaceShell`, including direct route changes while the portrait tool panel is collapsed; this prevents the navigation guard from remaining stuck when the animated menu host is absent.
+- Add Honor coverage for programmatic route changes with the portrait menu collapsed.
+
 ## 0.8.300 (alpha)
 
 - Keep workspace navigation transition state in `WorkspaceController` and correctly capture route changes before updating the selected destination, so configuration changes and rapid menu taps respect the active transition.

@@ -120,9 +120,27 @@ class WorkspaceNavigationDeviceTest {
             scenario.onActivity { activity ->
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
                 assertMenuAttached(bed, SliceMenu::class.java)
-                selectWorkspaceRoute(bed, WorkspaceDestination.PROJECT.ordinal)
+                val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                    .apply { isAccessible = true }.get(bed)
+                controller.javaClass.getMethod("setToolPanelExpanded", Boolean::class.javaPrimitiveType)
+                    .invoke(controller, false)
+                val selectMenu = BedFragment::class.java.getDeclaredMethod(
+                    "selectMenu", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType,
+                ).apply { isAccessible = true }
+                // A G-code load changes the selected route directly. With the portrait
+                // menu collapsed, no WorkspaceMenuHost exists to report animation end.
+                selectMenu.invoke(bed, WorkspaceDestination.PROJECT.ordinal, true)
+                assertTrue(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
             }
             awaitMenuTransition(scenario)
+            scenario.onActivity { activity ->
+                val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                    .apply { isAccessible = true }.get(bed)
+                assertFalse("collapsed portrait routes must not leave navigation locked",
+                    controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
+                assertFalse(controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
+            }
             exerciseWorkspacePanel(scenario, "showWorkspaceProfileSheet", "PROFILE_PICKER", withContext = true)
             exerciseWorkspacePanel(scenario, "showWorkspaceFilamentPalette", "FILAMENT_PALETTE")
             exerciseComposeToolRoute(scenario, OrientationPositionMenu::class.java) { OrientationPositionMenu(it) }
