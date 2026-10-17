@@ -8,7 +8,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -79,11 +78,11 @@ class SliceMenu : ListBedMenu() {
                 if (error != null) {
                     val context = fragment?.getContext()
                     if (context != null) {
-                        BeamAlertDialogBuilder(context)
-                            .setTitle(R.string.MmuSyncFailed)
-                            .setMessage(R.string.MmuAssignmentSyncFailed)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show()
+                        fragment?.showWorkspaceMessageDialog(
+                            title = context.getString(R.string.MmuSyncFailed),
+                            message = context.getString(R.string.MmuAssignmentSyncFailed),
+                            confirmLabel = context.getString(android.R.string.ok),
+                        )
                     }
                     return@synchronize
                 }

@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — Smart Expert Slice Compose dialogs (0.8.260 / 2026-10-17)
+
+- Migrated the Smart Expert Slice setup form, cancellable analysis progress, and result actions to the exclusive Workspace Compose dialog host. GL geometry analysis, background profile analysis, model-key/revision checks, the profile snapshot, and explicit apply/slice callbacks remain intact.
+- Added an idempotent workspace-dialog dismiss callback with an external-dismiss hook so Android Back cancels Smart Slice work. MMU synchronization failure feedback now uses the workspace message dialog.
+- Added five Honor Compose UI tests for input validation and value submission, Cancel, Android Back, progress cancellation, and result dismissal without applying changes or starting a slice. The tests do not invoke geometry analysis or slicing.
+- Targeted verification: Smart Slice value unit test passed; Honor `SmartSliceDialogsDeviceTest`: 5/5 passed. Full Debug/Slice suites, full Honor instrumentation, final build, and device install for 0.8.260 are pending.
+- Version bumped to alpha `0.8.260` / `versionCode 295`; repository and localized in-app changelogs updated.
+- Next: run full Debug and Slice unit suites, complete Honor instrumentation, assemble the debug APK, install/launch the exact OrkanSlicer package, and record artifact hash. Then continue with remaining global menu and legacy dialog routes.
+
 ## Latest continuation — Quick Slice and calibration error dialogs (0.8.259 / 2026-10-17)
 
 - Quick Slice now opens as Compose `AlertDialog` content through `BedFragment.showWorkspaceComposeDialog`; the manual `ComposeView` + `BeamAlertDialogBuilder` route is removed. Validation remains before profile changes, and only the explicit Slice button can save profiles or call `startSlicing()`. Cancel and Android Back close without saving or starting a slice.

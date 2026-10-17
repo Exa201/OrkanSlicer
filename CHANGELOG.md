@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.260 (alpha)
+
+- Move Smart Expert Slice setup, cancellable analysis progress, and result actions into the exclusive Compose workspace dialog host.
+- Keep GL geometry analysis, background profile analysis, model-revision checks, cancellation, and explicit apply/slice actions intact.
+- Use an adaptive action flow for the result dialog and migrate MMU synchronization failure feedback to the workspace message dialog.
+- Add Honor UI tests for validation, Cancel, Back, progress cancellation, and result dismissal without running analysis or slicing.
+
 ## 0.8.259 (alpha)
 
 - Move Quick Slice into the exclusive Compose workspace dialog host; keep all profile validation and persistence behind the explicit Slice action.

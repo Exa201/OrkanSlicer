@@ -786,8 +786,11 @@ internal fun showWorkspaceMessageDialog(
     )
 }
 /** Hosts a workspace-owned Compose dialog under the same exclusive overlay/back handling. */
-internal fun showWorkspaceComposeDialog(content: @Composable (dismiss: () -> Unit) -> Unit) {
-    if (getContext() == null) return
+internal fun showWorkspaceComposeDialog(
+    onExternalDismiss: () -> Unit = {},
+    content: @Composable (dismiss: () -> Unit) -> Unit,
+): () -> Unit {
+    if (getContext() == null) return {}
     workspaceController.dismissActivePanel()
     currentUnfoldMenu?.dismiss()
     var resolved = false
@@ -799,8 +802,12 @@ internal fun showWorkspaceComposeDialog(content: @Composable (dismiss: () -> Uni
     workspaceController.activatePanel(
         panel = WorkspaceOverlayPanel.MESSAGE_DIALOG,
         content = { BeamComposeTheme { content(::close) } },
-        dismiss = { close() },
+        dismiss = {
+            if (!resolved) onExternalDismiss()
+            close()
+        },
     )
+    return ::close
 }
 fun showSelectedModelContextMenu() {
     showModelContextMenu(glView?.renderer?.selectedObject ?: -1)
