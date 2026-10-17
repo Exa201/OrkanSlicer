@@ -1,5 +1,13 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — rename and consolidate Compose workspace tool routes (0.8.279 / 2026-10-17)
+
+- Replaced the legacy-named `UnfoldMenu` lifecycle adapter with `WorkspaceComposeToolRoute`, renamed its panel policy/content types, and removed the `showUnfoldMenu(View)` entry point. Source search now finds no active `UnfoldMenu`, `showUnfoldMenu`, or `currentUnfoldMenu` references.
+- Position, rotation, scale, cut, and Kromacut routes now enter through `BedFragment.showWorkspaceComposeTool` and the exclusive `WorkspaceController` tool panel. Existing Compose forms and their GL/native lifecycle callbacks remain in place; this change does not claim transform-operation coverage against an imported model.
+- Debug/Slice unit suites passed 552/552 each; Slice AndroidTest Kotlin compilation passed; Honor `WorkspaceNavigationDeviceTest` passed 1/1, exercising direct Compose tool attachment and Android Back cleanup. `git diff --check` passed.
+- Debug APK `app/build/outputs/apk/debug/OrkanSlicer_2041b61894.apk`: 157,127,543 bytes, SHA-256 `B8EB59144AA8F7614DB6EC3FFBF657EBEDA8CAF24A8AA45F3B74AE7C336C4FA1`. Installed on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; version 0.8.279 / code 314 confirmed. Cold-started `MainActivity` was top-resumed; fresh 10,000-line logcat sample contained no fatal exception, ANR, OOM, or fatal-signal markers. Emulator remains offline. No screenshot or printer operation.
+- Code commit `2041b61` is local; push and PR #2 update are pending. Overall UI migration remains in progress. Next concrete task: inventory remaining app-owned Android dialogs and view wrappers, then migrate the next complete safe functional group.
+
 ## Current continuation — slice result panels hosted by workspace Compose (0.8.278 / 2026-10-17)
 
 - Replaced the active post-slice `SliceInfoMenu` and `SliceLayersMenu` UnfoldMenu routes with exclusive workspace Compose dialogs, and removed their exercise from the legacy-host regression test. Slice info keeps the color-scheme chooser, seam visibility, summary values, role visibility safeguards, timeline, and GL-queued viewer updates. Layer controls keep block selection, range sliders, debounce/cancel behavior, preview-selection metadata, and GL-thread viewer updates.
