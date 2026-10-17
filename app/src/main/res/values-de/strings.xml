@@ -299,6 +299,12 @@
     <string name="LithophaneStudioClose">Zurück zu OrkanSlicer</string>
     <string name="GeneratedOutputTitle">Modell erstellt</string>
     <string name="GeneratedOutputQuestion">Möchtest du das Ergebnis direkt im Slicer verwenden oder als Datei speichern?</string>
+    <string name="LithophanePairQuestion">Lithophane und LED-Basis wurden als zwei STL-Modelle erzeugt. Sollen beide Teile auf die Druckplatte geladen werden?</string>
+    <string name="LithophanePairSaveQuestion">Welche der erzeugten STL-Dateien möchtest du speichern?</string>
+    <string name="LithophaneSaveModelOnly">Nur Lithophane speichern</string>
+    <string name="LithophaneSaveAccessoryOnly">Nur LED-Basis speichern</string>
+    <string name="LithophaneSaveBoth">Beide Dateien speichern</string>
+    <string name="GeneratedOutputSaveTitle">Erzeugte Dateien speichern</string>
     <string name="GeneratedOutputUse">In den Slicer übernehmen</string>
     <string name="GeneratedOutputSave">Generieren und speichern</string>
     <string name="GeneratedOutputCancel">Verwerfen</string>

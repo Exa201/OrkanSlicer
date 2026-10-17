@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.283 (alpha)
+
+- Move generated STL/model decisions, paired lithophane/LED-base actions, and raster result previews into workspace Compose dialogs.
+- Preserve output deletion, save-pickers, model loading, and the sequential save-both flow; release preview bitmaps when their dialog leaves composition.
+- Add Honor coverage for generated output, pair actions, and preview lifecycle.
+
 ## 0.8.282 (alpha)
 
 - Move the image converter source/target format chooser from an Android view dialog into the workspace Compose dialog host; keep the system document picker and conversion pipeline unchanged.

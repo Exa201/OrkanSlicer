@@ -852,8 +852,45 @@ showError(activity, error)
 }
 }
 private fun showGeneratedPair(activity:Activity, model:File, accessory:File, bed:BedFragment) {
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedPairOutputDialog(
+            onDismiss = dismiss,
+            onLoadModelOnly = {
+                dismiss()
+                try { bed.loadModel(model) } catch (e:Exception) { showError(activity, e) }
+                accessory.delete()
+            },
+            onLoadBoth = {
+                dismiss()
+                try {
+                    bed.loadModel(model)
+                    bed.loadModel(accessory)
+                } catch (e:Exception) { showError(activity, e) }
+            },
+            onSaveModel = {
+                dismiss()
+                accessory.delete()
+                requestSave(activity, model, "stl", bed)
+            },
+            onSaveAccessory = {
+                dismiss()
+                model.delete()
+                requestSave(activity, accessory, "stl", bed)
+            },
+            onSaveBoth = {
+                dismiss()
+                requestSave(activity, accessory, "stl", bed)
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+                    { requestSave(activity, model, "stl", bed) }, 1200L,
+                )
+            },
+        )
+    }
+    return
+}
 BeamAlertDialogBuilder(activity).setTitle(R.string.GeneratedOutputTitle)
-.setMessage("Lithophane und LED-Basis wurden als zwei STL-Modelle erzeugt. Beide Teile gemeinsam auf die Druckplatte laden?")
+.setMessage(R.string.LithophanePairQuestion)
 .setNegativeButton(R.string.LithophaneGenerate, { d, w->
 if (bed != null)
 {
@@ -879,7 +916,9 @@ showError(activity, e)
 } })
 .setNeutralButton(R.string.ConverterOnlySave, { d, w-> BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterSavedTitle)
 .setMessage("Welche STL-Datei mÃ¶chtest du speichern?")
-.setItems(arrayOf<CharSequence>("Nur Lithophane", "Nur LED-Basis", "Beide Dateien nacheinander"),
+.setItems(intArrayOf(
+R.string.LithophaneSaveModelOnly, R.string.LithophaneSaveAccessoryOnly, R.string.LithophaneSaveBoth,
+).map { activity.getText(it) }.toTypedArray(),
 { dialog, which-> if (which == 0)
 {
 accessory.delete()
@@ -923,7 +962,7 @@ if (output != null && output.exists()) output.delete()
 showError(activity, error)
 }
 }
-private fun showGeneratedOutput(activity:Activity, output:File, extension:String, bed:BedFragment) {
+internal fun showGeneratedOutput(activity:Activity, output:File, extension:String, bed:BedFragment) {
 val loadable = ("stl".equals(extension) || "svg".equals(extension) || "3mf".equals(extension)) && bed != null
 if (!loadable)
 {
@@ -934,6 +973,27 @@ return
 }
 requestSave(activity, output, extension, bed)
 return
+}
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedModelOutputDialog(
+            message = output.name + "\n\n" + activity.getString(R.string.GeneratedOutputQuestion),
+            onDismiss = dismiss,
+            onDiscard = { dismiss(); output.delete() },
+            onSave = { dismiss(); requestSave(activity, output, extension, bed) },
+            onUse = {
+                dismiss()
+                try {
+                    bed.loadModel(output, false, 1, object:BedFragment.ModelLoadCallback {
+                        override fun onLoaded(model:ru.ytkab0bp.slicebeam.slic3r.Model, firstNewObject:Int, addedObjects:Int) {
+                            output.delete()
+                        }
+                    })
+                } catch (error:Exception) { showError(activity, error) }
+            },
+        )
+    }
+    return
 }
 BeamAlertDialogBuilder(activity).setTitle(R.string.GeneratedOutputTitle)
 .setMessage(output.getName() + "\n\n" + activity.getString(R.string.GeneratedOutputQuestion))
@@ -959,6 +1019,17 @@ if (bitmap == null)
 {
 requestSave(activity, output, extension, bed)
 return
+}
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedRasterPreviewDialog(
+            bitmap = bitmap,
+            onDismiss = dismiss,
+            onDiscard = { dismiss(); output.delete() },
+            onSave = { dismiss(); requestSave(activity, output, extension, bed) },
+        )
+    }
+    return
 }
 val preview = ImageView(activity)
 preview.setImageBitmap(bitmap)

@@ -303,6 +303,12 @@
     <string name="LithophaneStudioClose">Back to OrkanSlicer</string>
     <string name="GeneratedOutputTitle">Model generated</string>
     <string name="GeneratedOutputQuestion">Use the result in the slicer now, or save it as a file?</string>
+    <string name="LithophanePairQuestion">The lithophane and LED base were generated as two STL models. Load both parts onto the build plate?</string>
+    <string name="LithophanePairSaveQuestion">Which generated STL files do you want to save?</string>
+    <string name="LithophaneSaveModelOnly">Save lithophane only</string>
+    <string name="LithophaneSaveAccessoryOnly">Save LED base only</string>
+    <string name="LithophaneSaveBoth">Save both files</string>
+    <string name="GeneratedOutputSaveTitle">Save generated files</string>
     <string name="GeneratedOutputUse">Use in slicer</string>
     <string name="GeneratedOutputSave">Generate and save</string>
     <string name="GeneratedOutputCancel">Discard</string>

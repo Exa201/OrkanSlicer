@@ -30,6 +30,23 @@ class MakerGeneratorWorkspaceDeviceTest {
     val compose = createInitializedActivityRule()
 
     @Test
+    fun generatedModelDiscardUsesWorkspaceAndDeletesOnlyThatOutput() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val output = java.io.File(activity.cacheDir, "workspace-output-test.stl").apply {
+            writeBytes(byteArrayOf(1, 2, 3, 4))
+        }
+
+        activity.runOnUiThread { ImageToStlConverter.showGeneratedOutput(activity, output, "stl", bed) }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(output.name, substring = true).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputCancel)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertFalse("Discard should remove the generated cache output", output.exists())
+        assertFalse("The output dialog must leave the workspace active", activity.isFinishing)
+    }
+
+    @Test
     fun aiGeneratorSelectionUsesWorkspaceCancelAndBackWithoutLaunchingExternalActivities() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
