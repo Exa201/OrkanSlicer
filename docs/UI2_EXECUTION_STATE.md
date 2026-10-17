@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — Kromacut failures shown in the Compose tool panel (0.8.265 / 2026-10-17)
+
+- Removed the two remaining Kromacut `BeamAlertDialogBuilder` error routes: file-picker launch failure and export/write failure. Both now share a scrollable Compose Material3 error dialog inside the existing Kromacut tool panel. The embedded WebView, chooser callback clearing, temporary-file cleanup, and generated-file handoff are unchanged; WebView disposal clears transient error UI.
+- Honor `SettingsChoiceDialogDeviceTest`: 6/6 passed, including long-message scroll semantics. Debug unit suite: 552/552; Slice unit suite: 552/552; zero failures/errors/skips in both.
+- APK built from code commit `5506e0593f6175d5dd4132f4db8363fd9bed1f3b`: `app/build/outputs/apk/debug/OrkanSlicer_5506e0593f.apk`, 157,058,096 bytes, SHA-256 `6A73132ADB09A8B49FF1EEF26B70E9A88EEDD147B2D675931C823531B4319BFA`.
+- Installed on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`, version 0.8.265 / code 300. Cold start reached `MainActivity`; fresh 6,000-line logcat sample had no crash, ANR, OOM, or fatal-signal markers. Emulator remains offline; no screenshots or printer operation.
+- Code commit `5506e0593f6175d5dd4132f4db8363fd9bed1f3b` is local; push and PR #2 update are pending. No merge/release.
+- Continue migrating safe legacy feedback routes in grouped commits; retain active-plate-only 3MF warning and all upload/print safety checks.
+
 ## Current continuation — app-settings reset and folder-picker dialogs moved to Compose (0.8.264 / 2026-10-17)
 
 - Replaced the app-settings reset confirmation and converter folder-picker failure alert with Compose dialogs rendered in the existing Compose settings root. The reset callback is invoked only by the explicit OK action; Cancel and Android Back dismiss without clearing configuration or preferences. The actual reset transaction remains unchanged.
