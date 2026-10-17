@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — Setup notices moved to Compose (0.8.281 / 2026-10-17)
+
+- Migrated the active simple notice/error routes in `SetupActivity` from `BeamAlertDialogBuilder` to the reusable `SetupMessageDialog` Compose host: early-access notice, picker launch errors, invalid profile/import feedback, empty import, profile-list empty state, and save/import errors. Existing validation, file selection, import/export callbacks, and workflow state remain unchanged. `SetupActivity` no longer calls `BeamAlertDialogBuilder`.
+- Added `SetupMessageDialogDeviceTest` for explicit OK and Android Back dismissal. The complete Honor instrumentation suite passed: 108 executed cases, 3 private multi-color fixture cases skipped, 0 failures. The sequential import-dialog test was stabilized by waiting for Compose window disposal between consecutive prompts; that focused test also passed 1/1. Debug and Slice unit suites each passed 552/552 (0 failures/errors/skips). Full `:app:assembleDebug` succeeded.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_0ca882714c.apk`, 157,143,866 bytes, SHA-256 `5837E1F0145F041AD2C569F1967482AE7162390D726EEB9FCC416C7756ACF402`. `BuildConfig.COMMIT` is `0ca882714c`.
+- Installed on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile` reports version 0.8.281 / code 316. Cold launch reached `ru.ytkab0bp.slicebeam.MainActivity` as top resumed; fresh 10,000-line logcat scan found no fatal exception, ANR, OOM, or fatal-signal markers. Emulator remains offline. No screenshots or printer actions were used.
+- Code commits: `e0e0c6ae0eed03fffb170c8b7f1ce47214ba04f` and test stabilization `0ca882714c4a297e14b6e6958346b82c29e63838`. Docs commit: pending. Branch push and PR #2 update: pending.
+- UI 2.0 remains in progress. The complex image-to-STL converter progress host is still an Activity alert because the prior ComposeView experiment lacked view-tree lifecycle ownership and was reverted. Multi-plate project persistence remains separately incomplete; retain the active-plate-only export warning. Next: inspect active converter/setup fallback routes and migrate a safe cohesive group without changing native conversion or project semantics.
+
 ## Current continuation — Compose workspace panels, dialog hosts, and 0.8.280 verification (2026-10-17)
 
 - Migrated the filament palette, profile panel, slot editor, color chooser, cloud-management dialog, changelog dialog, and non-cancelable slicing-progress host into Compose-owned workspace panels/dialogs. Removed the unused Android ACE filament-assignment AlertDialog wrapper while keeping its mapping and gate-validation helpers in `MmuFilamentAssignments`; the active pre-slice Compose assignment still uses those helpers.
