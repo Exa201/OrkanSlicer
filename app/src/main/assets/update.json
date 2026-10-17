@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.299\n\n• Werkzeugfenster werden jetzt ausschließlich über den zentralen Workspace-Zustand geschlossen und gewechselt; Android-Zurück und Werkzeugwechsel verwenden denselben Lifecycle.",
-  "en": "OrkanSlicer 0.8.299\n\n• Tool panels now close and switch through the single workspace state owner; Android Back and tool replacement share the same lifecycle.",
-  "ru": "OrkanSlicer 0.8.299\n\n• Панели инструментов теперь закрываются и переключаются через единое состояние рабочего пространства; кнопка «Назад» и замена инструмента используют общий жизненный цикл."
+  "de": "OrkanSlicer 0.8.300\n\n• Workspace-Menüwechsel verwenden jetzt eine zentrale Übergangssperre. Schnelle Menütipps und Layoutwechsel während der Animation werden zuverlässig behandelt.",
+  "en": "OrkanSlicer 0.8.300\n\n• Workspace menu changes now use a centralized transition guard. Rapid menu taps and layout changes during the animation are handled reliably.",
+  "ru": "OrkanSlicer 0.8.300\n\n• Переходы между меню рабочего пространства теперь используют централизованную блокировку. Быстрые нажатия и изменения компоновки во время анимации обрабатываются корректно."
 }

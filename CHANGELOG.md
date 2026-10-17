@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.300 (alpha)
+
+- Keep workspace navigation transition state in `WorkspaceController` and correctly capture route changes before updating the selected destination, so configuration changes and rapid menu taps respect the active transition.
+- Add controller and Honor navigation regression coverage for the shared transition guard.
+
 ## 0.8.298 (alpha)
 
 - Use compact workspace destination labels on small and large-text layouts so the Tools destination remains fully readable while its complete accessibility label is preserved.

@@ -180,6 +180,17 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    fun navigationTransitionGuardLivesInWorkspaceController() {
+        val controller = WorkspaceController()
+
+        assertFalse(controller.isNavigationTransitionInProgress)
+        controller.updateNavigationTransitionInProgress(true)
+        assertTrue(controller.isNavigationTransitionInProgress)
+        controller.updateNavigationTransitionInProgress(false)
+        assertFalse(controller.isNavigationTransitionInProgress)
+    }
+
+    @Test
     fun invalidNavigationDoesNotDismissCurrentPanel() {
         val controller = WorkspaceController()
         var dismissed = 0

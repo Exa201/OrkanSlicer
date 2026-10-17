@@ -34,6 +34,9 @@ internal class WorkspaceController(
     var activeToolPanelFraction by mutableStateOf<Float?>(null)
         private set
 
+    var isNavigationTransitionInProgress by mutableStateOf(false)
+        private set
+
     var activePanelContent by mutableStateOf<(@Composable () -> Unit)?>(null)
         private set
 
@@ -59,6 +62,10 @@ internal class WorkspaceController(
         activeToolPanelContent = null
         activeToolPanelFraction = null
         return selectDestination(slot)
+    }
+
+    fun updateNavigationTransitionInProgress(inProgress: Boolean) {
+        isNavigationTransitionInProgress = inProgress
     }
 
     fun setActivePlate(index: Int): Boolean {

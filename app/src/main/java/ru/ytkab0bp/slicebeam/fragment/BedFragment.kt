@@ -115,7 +115,6 @@ private var menuToolsExpanded:Boolean
 get() = workspaceController.toolPanelExpanded
 set(value) { workspaceController.toolPanelExpanded = value }
 private var filamentPaletteRevision by mutableIntStateOf(0)
-private var isAnimatingMenu:Boolean = false
 private var currentMenuSlot:Int
 get() = workspaceController.selectedDestinationSlot
 set(value) { workspaceController.selectDestination(value) }
@@ -1294,7 +1293,7 @@ if (portrait == compactPortraitLayout && !fontScaleChanged) {
     filamentPaletteRevision++
     return
 }
-if (isAnimatingMenu)
+if (workspaceController.isNavigationTransitionInProgress)
 {
 overlayLayout!!.postDelayed({ onConfigurationChanged(newConfig) }, 300)
 return
@@ -1303,11 +1302,12 @@ syncCurrentModel()
 rebuildAdaptiveLayout(ctx, portrait)
 }
 private fun onMenuNavigationSelected(bottomNavigation: Boolean, slot: Int) {
-    if (slot !in WorkspaceDestination.values().indices || isAnimatingMenu) return
+    if (slot !in WorkspaceDestination.values().indices || workspaceController.isNavigationTransitionInProgress) return
     if (slot == currentMenuSlot) {
         if (bottomNavigation) setPortraitToolPanelExpanded(!menuToolsExpanded)
         return
     }
+    val routeChanged = slot != workspaceController.selectedDestinationSlot
     menuMap.get(slot).onSetBed(this)
     // Keep route, selected tool and transient workspace surfaces in one state
     // transition before the Compose route transition starts.
@@ -1323,7 +1323,7 @@ private fun onMenuNavigationSelected(bottomNavigation: Boolean, slot: Int) {
     } else {
         (menuMap.get(WorkspaceDestination.SLICE.ordinal) as SliceMenu).refreshItems(bottomNavigation)
     }
-    selectMenu(slot)
+    selectMenu(slot, routeChanged)
 }
 
 private fun setPortraitToolPanelExpanded(expanded: Boolean) {
@@ -1357,7 +1357,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         }
                         WorkspaceComposeBedMenuHost(menu, portrait)
                     },
-                    onMenuTransitionSettled = { isAnimatingMenu = false },
+                    onMenuTransitionSettled = { workspaceController.updateNavigationTransitionInProgress(false) },
                     projectSettingsContent = { BeamComposeTheme { TemporaryProjectSettingsBar() } },
                     profileStatusContent = {
                         BeamComposeTheme(themeRevision = profileStatusThemeRevision) {
@@ -1437,14 +1437,13 @@ invalidate()
 glView?.requestRender()
 }
 
-private fun selectMenu(slot: Int) {
-val routeChanged = slot != currentMenuSlot
+private fun selectMenu(slot: Int, routeChanged: Boolean = slot != workspaceController.selectedDestinationSlot) {
 if (glView!!.renderer.resetFlattenMode())
 {
 glView!!.requestRender()
 SliceBeam.EVENT_BUS.fireEvent(FlattenModeResetEvent())
 }
-isAnimatingMenu = routeChanged
+workspaceController.updateNavigationTransitionInProgress(routeChanged)
 currentMenuSlot = slot
 }
 fun interface ModelLoadCallback {

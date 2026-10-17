@@ -73,6 +73,13 @@ class WorkspaceNavigationDeviceTest {
                 val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
                 workspaceRenderer = requireNotNull(bed.glView)
                 selectWorkspaceRoute(bed, 1)
+                val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                    .apply { isAccessible = true }.get(bed)
+                assertTrue("the controller must guard the route animation", controller.javaClass
+                    .getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
+                // A second tap before the animated route settles must not redirect the host.
+                selectWorkspaceRoute(bed, 0)
+                assertEquals(1, controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller))
             }
             awaitMenuTransition(scenario)
             scenario.onActivity { activity ->
@@ -279,7 +286,6 @@ class WorkspaceNavigationDeviceTest {
 
     private fun awaitMenuTransition(scenario: ActivityScenario<MainActivity>) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val field = BedFragment::class.java.getDeclaredField("isAnimatingMenu").apply { isAccessible = true }
         val deadline = SystemClock.uptimeMillis() + 5_000L
         while (SystemClock.uptimeMillis() < deadline) {
             instrumentation.waitForIdleSync()
@@ -296,7 +302,9 @@ class WorkspaceNavigationDeviceTest {
                 val workspaceRoot = BedFragment::class.java.getDeclaredField("contentView")
                     .apply { isAccessible = true }.get(bed) as android.view.View
                 val workspaceHostCount = findViews(workspaceRoot).filterIsInstance<ComposeView>().count()
-                settled = !field.getBoolean(bed) && currentMenu is WorkspaceComposeBedMenu &&
+                val transitionInProgress = workspaceController.javaClass.getMethod("isNavigationTransitionInProgress")
+                    .invoke(workspaceController) as Boolean
+                settled = !transitionInProgress && currentMenu is WorkspaceComposeBedMenu &&
                     workspaceHostCount == 1
             }
             if (settled) return
