@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — Compose workspace panels, dialog hosts, and 0.8.280 verification (2026-10-17)
+
+- Migrated the filament palette, profile panel, slot editor, color chooser, cloud-management dialog, changelog dialog, and non-cancelable slicing-progress host into Compose-owned workspace panels/dialogs. Removed the unused Android ACE filament-assignment AlertDialog wrapper while keeping its mapping and gate-validation helpers in `MmuFilamentAssignments`; the active pre-slice Compose assignment still uses those helpers.
+- Kept profile editing, color/material callbacks, cloud preference updates, changelog event subscription, slice-progress events, GL/native callbacks, and exclusive workspace panel ownership. The progress host reports completion once even if duplicate completion events arrive.
+- Honor PTP-N49 combined verification: Debug unit 552/552, Slice unit 552/552, connected SliceTest instrumentation 28/28; all with zero failures and skips. The run included palette, slot/color/profile interaction, workspace navigation, cloud dialog, changelog, slice progress, and ACE filament mapping suites. Full Debug build succeeded.
+- Debug APK: `app/build/outputs/apk/debug/OrkanSlicer_1b2c74159b.apk`, 157,144,180 bytes, SHA-256 `76245931FC1FC134E182D5A1153CFE0D4B2704DCBA358AB7DE9EC28F949CE8A4`. Installed on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile` reports version 0.8.280 / code 315. Cold launch resumed `ru.ytkab0bp.slicebeam.MainActivity`; a fresh 10,000-line logcat scan had no fatal exception, ANR, OOM, or fatal-signal markers. No screenshots or printer actions were used.
+- Code commit `1b2c74159b64173367cbe5fd114216710d62e21b` is local; normal push and PR #2 update are pending. The emulator is still offline. `update.json` parses and `git diff --check` passed.
+- Remaining work is not complete: inventory/migrate the remaining app-owned Android dialog and tool routes, continue practical menu/accessibility coverage, and separately implement compatible multi-plate persistence only with verified project-format support. `ConverterProgressDialog` intentionally remains an Activity-level alert/progress host; a ComposeView migration attempt failed due to missing view-tree lifecycle ownership and was fully reverted. Next: inspect and migrate the next safe set of profile/global dialog routes while preserving input validation and cancellation semantics. Overall UI 2.0 remains in progress.
+
 ## Current continuation — rename and consolidate Compose workspace tool routes (0.8.279 / 2026-10-17)
 
 - Replaced the legacy-named `UnfoldMenu` lifecycle adapter with `WorkspaceComposeToolRoute`, renamed its panel policy/content types, and removed the `showUnfoldMenu(View)` entry point. Source search now finds no active `UnfoldMenu`, `showUnfoldMenu`, or `currentUnfoldMenu` references.
