@@ -230,7 +230,7 @@ class FileMenu : ListBedMenu() {
         }
 
         items += BedMenuItem(R.string.MenuFileCalibrations, R.drawable.menu_calibrate_la_28)
-            .onClick { view -> bed.showUnfoldMenu(CalibrationsMenu(), view) }
+            .onClick { showCalibrationWorkspace(bed) }
         items += BedMenuItem(R.string.MenuFileImportProfiles, R.drawable.folder_simple_arrow_up_outline_28)
             .onClick {
                 val activity = bed.getContext() as? Activity ?: return@onClick

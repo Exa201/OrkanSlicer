@@ -18,8 +18,6 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.OptionsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenu
-import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationsMenu
-import ru.ytkab0bp.slicebeam.components.bed_menu.CalibrationModelsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceInfoMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceLayersMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceMenu
@@ -123,8 +121,6 @@ class WorkspaceNavigationDeviceTest {
             exerciseComposeToolRoute(scenario, OrientationRotationMenu::class.java) { OrientationRotationMenu(it) }
             exerciseComposeToolRoute(scenario, TransformScaleMenu::class.java) { TransformScaleMenu(it) }
             exerciseComposeToolRoute(scenario, TransformCutMenu::class.java) { TransformCutMenu(it) }
-            exerciseComposeToolRoute(scenario, CalibrationsMenu::class.java) { CalibrationsMenu() }
-            exerciseComposeToolRoute(scenario, CalibrationModelsMenu::class.java) { CalibrationModelsMenu() }
             exerciseComposeToolRoute(scenario, SliceInfoMenu::class.java) { SliceInfoMenu(SliceMenu()) }
             exerciseComposeToolRoute(scenario, SliceLayersMenu::class.java) { SliceLayersMenu() }
             exerciseComposeToolRoute(scenario, KromacutEditorMenu::class.java) { KromacutEditorMenu() }

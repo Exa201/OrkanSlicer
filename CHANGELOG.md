@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.277 (alpha)
+
+- Replace both calibration `UnfoldMenu` routes with one exclusive Compose workspace flow for calibration presets, parameter entry, result recording, and bundled model selection.
+- Preserve preset validation, pending calibration values, profile staging, model-import ordering, placeholder-model behavior, and safe workspace error feedback.
+- Cancel and Android Back return between calibration pages or close the workflow without setting a calibration or importing a model.
+
 ## 0.8.276 (alpha)
 
 - Move the cloud model generator camera/gallery choice and live quota display into the exclusive Compose workspace dialog.
