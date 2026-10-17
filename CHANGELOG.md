@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.282 (alpha)
+
+- Move the image converter source/target format chooser from an Android view dialog into the workspace Compose dialog host; keep the system document picker and conversion pipeline unchanged.
+- Add Honor Compose coverage for format selection and Android Back cancellation.
+
 ## 0.8.281 (alpha)
 
 - Move onboarding and setup profile-import notices into the existing Compose setup root, including early-access, invalid-file, import-failure, no-profile, and save-failure messages.

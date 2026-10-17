@@ -59,10 +59,28 @@ private val cubeImageSelection = ArrayList<Uri>(4)
 private var selectingCubeImages:Boolean = false
 @JvmStatic
 fun pickImage(activity:Activity) {
-showFormatPairPicker(activity)
+showFormatPairPicker(activity, null)
+}
+@JvmStatic
+fun pickImage(activity:Activity, bed:BedFragment?) {
+showFormatPairPicker(activity, bed)
 }
 /** Pick a supported local image conversion pair before choosing its source file. */
- private fun showFormatPairPicker(activity:Activity) {
+private fun showFormatPairPicker(activity:Activity, bed:BedFragment?) {
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        ImageFormatPairDialog(
+            onDismiss = dismiss,
+            onChooseSource = { sourceFormat, targetFormat ->
+                requestedSourceFormat = sourceFormat
+                requestedTargetFormat = targetFormat
+                dismiss()
+                pickSelectedSource(activity, sourceFormat)
+            },
+        )
+    }
+    return
+}
 val form = LinearLayout(activity)
 form.setOrientation(LinearLayout.VERTICAL)
 form.setPadding(ViewUtils.dp(24), ViewUtils.dp(8), ViewUtils.dp(24), ViewUtils.dp(4))

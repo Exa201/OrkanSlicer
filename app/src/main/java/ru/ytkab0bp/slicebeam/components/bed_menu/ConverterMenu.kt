@@ -47,7 +47,7 @@ class ConverterMenu : BedMenu() {
 
     private fun createActions(): List<BedComposeMenuAction> = listOf(
         BedComposeMenuAction(R.string.ConverterPickImage, R.drawable.picture_outline_28, {
-            withActivity { activity, _ -> ImageToStlConverter.pickImage(activity) }
+            withActivity { activity, current -> ImageToStlConverter.pickImage(activity, current) }
         }),
         BedComposeMenuAction(R.string.MenuFileKromacut, R.drawable.picture_stack_outline_28, { anchor ->
             fragment?.showWorkspaceComposeTool(KromacutEditorMenu())

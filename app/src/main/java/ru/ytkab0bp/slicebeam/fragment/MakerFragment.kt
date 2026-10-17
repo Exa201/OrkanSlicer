@@ -99,7 +99,7 @@ class MakerFragment : Fragment() {
             R.string.MakerConvertersDescription,
             R.drawable.picture_outline_28,
             listOf(
-                action(R.string.ImageToStlMenu) { activity()?.let { ImageToStlConverter.pickImage(it) } },
+                action(R.string.ImageToStlMenu) { bed -> activity()?.let { ImageToStlConverter.pickImage(it, bed) } },
                 action(R.string.LithophaneGeneratorMenu) { activity()?.let { ImageToStlConverter.pickLithophane(it) } },
             ),
         ),
