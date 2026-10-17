@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — Image-converter format choice moved to workspace Compose (0.8.282 / 2026-10-17)
+
+- Replaced the active image-to-STL source/output format picker in `MakerFragment` and the workspace `ConverterMenu` with `ImageFormatPairDialog`, hosted by the existing exclusive workspace Compose dialog host. Format indices still feed the same MIME-specific Android document picker, detected-format validation, and conversion pipeline. The platform picker and native conversion/preview/save operations are unchanged; the Android-view picker remains only as a compatibility fallback when no workspace host is available.
+- Added Honor Compose tests for source/target selection (JPEG to WebP) and Android Back cancellation without launching the picker. Full Honor connected instrumentation passed: 110 reported test cases, 3 private multi-color fixture cases skipped, 0 failures/errors. Debug unit: 552/552; Slice unit: 552/552; both 0 failures/errors/skips. Full `:app:assembleDebug` succeeded.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_1eb476c6cc.apk`, 157,160,157 bytes, SHA-256 `DF1BE6931660D3A7673955FE276B3B67C11DE69BCA860E4945A2478D1586BAF5`. BuildConfig commit `1eb476c6cc`.
+- Installed on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile` reports 0.8.282 / code 317. Cold launch resumed `ru.ytkab0bp.slicebeam.MainActivity`; fresh 10,000-line logcat scan had no fatal exception, ANR, OOM, or fatal signal. Emulator remains offline. No screenshots or printer actions were used.
+- Code commit `1eb476c6cc2a818a6f9b9006143512303be1c253`; documentation commit pending. Branch push and PR #2 update pending.
+- Remaining work: converter mode/options, save/overwrite/result actions and progress remain Android dialog/view-backed; the complex progress host was not migrated because an earlier ComposeView lacked lifecycle ownership. Continue these routes as a bounded group. Multi-plate persistence remains incomplete and separately scoped; retain its active-plate-only export warning. Overall UI 2.0 remains in progress.
+
 ## Current continuation — Setup notices moved to Compose (0.8.281 / 2026-10-17)
 
 - Migrated the active simple notice/error routes in `SetupActivity` from `BeamAlertDialogBuilder` to the reusable `SetupMessageDialog` Compose host: early-access notice, picker launch errors, invalid profile/import feedback, empty import, profile-list empty state, and save/import errors. Existing validation, file selection, import/export callbacks, and workflow state remain unchanged. `SetupActivity` no longer calls `BeamAlertDialogBuilder`.
