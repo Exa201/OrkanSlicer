@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — SVG simplification consent on workspace Compose (0.8.271 / 2026-10-17)
+
+- Migrated the active Bed workspace SVG simplification consent and failure feedback to the existing exclusive Compose dialog host. Simplification remains gated by explicit consent and the size limit; it processes a separate cache copy so the selected source file is not modified. Non-workspace activity states retain the platform dialog fallback.
+- Added Honor device coverage invoking the real `showSvgSimplifyPrompt` route and verifying that Cancel leaves the original SVG content unchanged. Targeted `ProfileSettingsImeDeviceTest`: 11/11 passed. Debug and Slice unit suites: 552/552 each, zero failures/errors/skips.
+- `:app:assembleDebug` succeeded from code commit `b7f85114bfa4142350b3fd4e6b3efad55df8adb6`. APK: `app/build/outputs/apk/debug/OrkanSlicer_b7f85114bf.apk`, 157,111,096 bytes, SHA-256 `EF7305118DE334D71C05975999A7754B74D8BFFB619343E89C547946078F8F99`.
+- Installed on Honor PTP-N49 / Android 16 as the exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.271 / code 306. Cold launch reached `MainActivity` top-resumed; fresh logcat sample had no fatal exception, ANR, OOM, or fatal-signal match. Emulator remains offline; no screenshots, printer commands, or print starts.
+- Code commit `b7f85114bfa4142350b3fd4e6b3efad55df8adb6`; documentation update and push to the existing branch/PR #2 are pending. No merge/release.
+- Next: migrate the root workspace app-exit confirmation to the Compose host, retaining platform fallback outside Bed and preserving the explicit confirmation side effects.
+
 ## Current continuation — 3MF embedded-settings choice on Compose workspace (0.8.270 / 2026-10-17)
 
 - Replaced the active Bed workspace's Android `LinearLayout` / `Spinner` / `CheckBox` / `ScrollView` 3MF settings choice with `ThreeMfImportChoiceDialog`. The original Android view dialog remains only as fallback for activity states without an attached workspace host.
