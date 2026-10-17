@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.274 (alpha)
+
+- Host the pre-slicing model-to-filament assignment flow in the Compose workspace, including individual assignments, imported-color preservation, ACE mappings, and the material-mismatch confirmation.
+- Keep assignment persistence and the slicing callback behind explicit Apply/Continue; Cancel and Android Back leave assignments untouched. Preserve access to temperature settings.
+- Add Honor coverage for the real workspace route's Cancel and Back behavior.
+
 ## 0.8.273 (alpha)
 
 - Move print preparation and its ACE/material warnings into the exclusive Compose workspace dialog host.

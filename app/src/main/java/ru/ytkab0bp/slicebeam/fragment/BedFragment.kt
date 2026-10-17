@@ -297,7 +297,7 @@ fun showModelColorSlots(synchronize: Boolean = false) {
         }
         return
     }
-    PreSliceFilamentDialog.show(context, model, { selectedSlots ->
+    PreSliceFilamentDialog.show(this, model, { selectedSlots ->
         applyFilamentAssignment(model, selectedSlots) {
             Toast.makeText(context, R.string.ModelColorSlotsSaved, Toast.LENGTH_SHORT).show()
         }
@@ -350,7 +350,7 @@ if (preparedFilamentModel === activeModel &&
     runSlice(activeModel, onSuccess)
     return
 }
-PreSliceFilamentDialog.show(ctx, activeModel, { selectedSlots ->
+PreSliceFilamentDialog.show(this, activeModel, { selectedSlots ->
     applyFilamentAssignment(activeModel, selectedSlots) { runSlice(activeModel, onSuccess) }
 })
 }

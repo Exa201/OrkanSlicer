@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
+import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -113,6 +114,37 @@ class SlicePrintPreparationComposeDeviceTest {
         assertEquals("Only the separate firmware-checked confirmation maps to the print branch",
             "firmware-checked-print", action.get())
         assertFalse("The test callback must not finish or print from the device", activity.isFinishing)
+    }
+
+    @Test
+    fun preSliceAssignmentCancelAndBackDoNotApplyAssignments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val selected = AtomicReference<IntArray?>()
+
+        fun showAssignment() {
+            PreSliceFilamentDialog.show(
+                fragment = bed,
+                model = null,
+                callback = PreSliceFilamentDialog.Callback { selected.set(it) },
+                positiveLabel = ru.ytkab0bp.slicebeam.R.string.ModelColorSlotsApply,
+                titleLabel = ru.ytkab0bp.slicebeam.R.string.ModelColorSlotsAction,
+            )
+        }
+
+        activity.runOnUiThread(::showAssignment)
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
+        compose.onNodeWithTag("pre-slice-cancel").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertNull("Cancel must not commit a filament assignment", selected.get())
+
+        activity.runOnUiThread(::showAssignment)
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        activity.onBackPressedDispatcher.onBackPressed()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertNull("Workspace Back must not commit a filament assignment", selected.get())
+        assertFalse(activity.isFinishing)
     }
 
     private fun createInitializedActivityRule() = run {
