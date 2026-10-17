@@ -314,9 +314,12 @@ class MainActivityRotationDeviceTest {
     }
 
     private fun assertMenuNavigationIsCompose(fragment: BedFragment) {
-        val field = BedFragment::class.java.getDeclaredField("navigationView").apply { isAccessible = true }
-        val navigation = field.get(fragment)
-        assertTrue("The work-menu navigation should use Compose", navigation is ComposeView)
-        assertTrue("The Compose work-menu navigation should stay attached", (navigation as ComposeView).isAttachedToWindow)
+        val field = BedFragment::class.java.getDeclaredField("contentView").apply { isAccessible = true }
+        val workspaceRoot = field.get(fragment)
+        assertTrue("The workspace navigation should be hosted by WorkspaceShell Compose", workspaceRoot is ComposeView)
+        assertTrue(
+            "The WorkspaceShell Compose root should stay attached",
+            (workspaceRoot as ComposeView).isAttachedToWindow,
+        )
     }
 }

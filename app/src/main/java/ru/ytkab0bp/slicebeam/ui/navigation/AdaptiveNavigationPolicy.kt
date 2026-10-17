@@ -1,10 +1,40 @@
 package ru.ytkab0bp.slicebeam.ui.navigation
 
+import kotlin.math.ceil
+
 /** Chooses compact bottom navigation or an expanded rail from the current app-window width. */
 object AdaptiveNavigationPolicy {
     const val EXPANDED_WIDTH_DP = 600
-    const val NAVIGATION_RAIL_WIDTH_DP = 64
+    const val NAVIGATION_RAIL_WIDTH_DP = 80
+    const val LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP = 96
+    const val COMPACT_BOTTOM_LABEL_WIDTH_DP = 440
     const val NAVIGATION_BAR_HEIGHT_DP = 56
+    const val COMPACT_LABEL_FONT_SCALE = 1.15f
+
+    @JvmStatic
+    fun usesCompactLabels(fontScale: Float): Boolean = fontScale >= COMPACT_LABEL_FONT_SCALE
+
+    /** Shortens visible labels when six bottom destinations would wrap in a phone-width window. */
+    @JvmStatic
+    fun usesCompactBottomLabels(windowWidthDp: Int, fontScale: Float): Boolean =
+        usesCompactLabels(fontScale) || (windowWidthDp in 1 until COMPACT_BOTTOM_LABEL_WIDTH_DP)
+
+    @JvmStatic
+    fun usesTwoRowBottomNavigation(fontScale: Float, itemCount: Int): Boolean =
+        usesCompactLabels(fontScale) && itemCount > 3
+
+    @JvmStatic
+    fun navigationBarHeightDp(fontScale: Float, itemCount: Int): Int =
+        if (usesTwoRowBottomNavigation(fontScale, itemCount)) {
+            (NAVIGATION_BAR_HEIGHT_DP * fontScale.coerceAtLeast(1f)).let { ceil(it).toInt() } * 2
+        } else {
+            NAVIGATION_BAR_HEIGHT_DP
+        }
+
+    /** Wider rail space preserves system text scaling and readable destination names. */
+    @JvmStatic
+    fun navigationRailWidthDp(fontScale: Float): Int =
+        if (fontScale >= 1.2f) LARGE_TEXT_NAVIGATION_RAIL_WIDTH_DP else NAVIGATION_RAIL_WIDTH_DP
 
     @JvmStatic
     fun usesBottomNavigation(windowWidthDp: Int, isPortrait: Boolean): Boolean =
@@ -21,4 +51,21 @@ object AdaptiveNavigationPolicy {
         val portraitWindow = isPortraitWindow(windowWidthDp, windowHeightDp, isPortrait)
         return portraitWindow && usesBottomNavigation(windowWidthDp, portraitWindow)
     }
+}
+
+/** Reserves the plate viewport by keeping portrait action menus collapsed until requested. */
+object WorkspaceToolPanelPolicy {
+    const val COMPACT_MENU_HEIGHT_DP = 68
+    const val TWO_ROW_MENU_HEIGHT_DP = 140
+    const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 160
+
+    @JvmStatic
+    fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float): Int {
+        if (!needsTwoRows) return COMPACT_MENU_HEIGHT_DP
+        return if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
+    }
+
+    @JvmStatic
+    fun reservedHeightDp(isPortrait: Boolean, expanded: Boolean, menuHeightDp: Int): Int =
+        if (isPortrait && expanded) menuHeightDp.coerceAtLeast(0) else 0
 }

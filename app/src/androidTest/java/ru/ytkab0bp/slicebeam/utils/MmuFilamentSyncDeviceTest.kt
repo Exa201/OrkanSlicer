@@ -15,7 +15,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
-import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
+import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignments
 import ru.ytkab0bp.slicebeam.components.bed_menu.SlicePreparationTools
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType
 import java.net.InetAddress
@@ -55,6 +55,23 @@ class MmuFilamentSyncDeviceTest {
         }
     }
 
+    @Test fun realPreferencesRoundTripLargeFilamentListsAndEnforceSixteenSlotLimit() {
+        for (requestedCount in listOf(1, 4, 8, 16, 24)) {
+            val requested = List(requestedCount) { index ->
+                FilamentSlot(0xFF000000.toInt() or ((index + 1) * 0x010101), "Long synthetic material name $index")
+            }
+            Prefs.setStoredFilamentSlots(requested)
+            requireNotNull(Prefs.getPrefs()).edit().commit()
+            val restored = Prefs.getStoredFilamentSlots()
+            val expectedCount = minOf(requestedCount, Prefs.MAX_FILAMENT_COLORS)
+            assertEquals("stored count for request $requestedCount", expectedCount, restored.size)
+            restored.forEachIndexed { index, slot ->
+                assertEquals("Long synthetic material name $index", slot.type)
+                assertEquals(requested[index].color, slot.color)
+            }
+        }
+    }
+
     @Test fun parserDoesNotInventFilamentsForEmptyUnknownOrMalformedSlots() {
         val payload = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 1))
         val mmu = payload.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
@@ -78,38 +95,46 @@ class MmuFilamentSyncDeviceTest {
         assertEquals(4 to null, sync(response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))))
         assertEquals(4, Prefs.getFilamentSlots().size)
 
-        val gapPayload = response(intArrayOf(2, 0, 3, 1), intArrayOf(1, 0, 1, 0))
+        val gapPayload = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 0))
         assertEquals(2 to null, sync(gapPayload))
-        assertEquals(listOf("PLA", "PETG"), Prefs.getFilamentSlots().map { it.type })
-        assertArrayEquals(intArrayOf(0, 2), MmuFilamentSync.getSelectedGates(title, 2))
-        assertArrayEquals(intArrayOf(0), MmuFilamentSync.getSelectedGates(title, 1))
+        assertEquals(listOf("PLA", null, "PETG", null), Prefs.getFilamentSlots().map { it.type })
+        assertArrayEquals(intArrayOf(0, 1, 2, 3), MmuFilamentSync.getSelectedGates(title, 4))
         assertArrayEquals(intArrayOf(0, 2), MmuFilamentSync.loadedGates(title))
-        assertEquals(1, MmuFilamentSync.toolForGate(title, 0))
-        assertEquals(0, MmuFilamentSync.toolForGate(title, 2))
+        assertEquals(0, MmuFilamentSync.toolForGate(title, 0))
+        assertEquals(2, MmuFilamentSync.toolForGate(title, 2))
 
         gapPayload.getJSONObject("result").getJSONObject("status").getJSONObject("mmu").getJSONArray("gate_color").put(2, "ABCDEF")
         assertEquals(2 to null, sync(gapPayload, full = false))
-        assertEquals(2, Prefs.getFilamentSlots().size)
-        assertEquals(0xFFABCDEF.toInt(), Prefs.getFilamentSlots()[1].color)
+        assertEquals(4, Prefs.getFilamentSlots().size)
+        assertEquals(0xFFABCDEF.toInt(), Prefs.getFilamentSlots()[2].color)
 
         assertEquals(1 to null, sync(response(intArrayOf(0, 1, 2, 3), intArrayOf(0, 0, 0, 1))))
-        assertEquals(1, Prefs.getFilamentSlots().size)
-        assertEquals("TPU", Prefs.getFilamentSlots()[0].type)
-        assertArrayEquals(intArrayOf(3), MmuFilamentSync.getSelectedGates(title, 1))
+        assertEquals(4, Prefs.getFilamentSlots().size)
+        assertEquals(listOf(null, null, null, "TPU"), Prefs.getFilamentSlots().map { it.type })
+        assertArrayEquals(intArrayOf(0, 1, 2, 3), MmuFilamentSync.getSelectedGates(title, 4))
+    }
+
+    @Test fun explicitSyncRejectsPrinterToolMapsThatWouldRewriteSlotCommands() {
+        Prefs.setFilamentSlots(listOf(FilamentSlot(0xFF123456.toInt(), "ABS")))
+        val mapped = response(intArrayOf(2, 0, 3, 1), intArrayOf(1, 0, 1, 0))
+        val result = sync(mapped)
+        assertEquals(0, result.first)
+        assertTrue(result.second.orEmpty().contains("T0"))
+        assertEquals(listOf("ABS"), Prefs.getFilamentSlots().map { it.type })
     }
 
     @Test fun emptySecondAceGateStaysVisibleWithoutShiftingTheOtherGates() {
         val payload = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 1))
         assertEquals(3 to null, sync(payload))
-        assertEquals(listOf("PLA", "PETG", "TPU"), Prefs.getFilamentSlots().map { it.type })
-        assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.getSelectedGates(title, 3))
+        assertEquals(listOf("PLA", null, "PETG", "TPU"), Prefs.getFilamentSlots().map { it.type })
+        assertArrayEquals(intArrayOf(0, 1, 2, 3), MmuFilamentSync.getSelectedGates(title, 4))
+        assertArrayEquals(intArrayOf(0, 1, 2, 3), MmuFilamentSync.paletteGates(title, 4))
+        MmuFilamentSync.setSelectedGates(title, intArrayOf(3, 0, 2, 1))
+        assertArrayEquals(intArrayOf(0, 1, 2, 3), MmuFilamentSync.paletteGates(title, 4))
+        MmuFilamentSync.removeSelectedGate(1, 4)
         assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.paletteGates(title, 3))
-        MmuFilamentSync.setSelectedGates(title, intArrayOf(3, 0, 2))
-        assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.paletteGates(title, 3))
-        MmuFilamentSync.removeSelectedGate(1, 3)
-        assertArrayEquals(intArrayOf(0, 3), MmuFilamentSync.paletteGates(title, 2))
-        assertArrayEquals(intArrayOf(3, 2), MmuFilamentSync.getSelectedGates(title, 2))
-        MmuFilamentSync.setSelectedGates(title, intArrayOf(0, 2, 3))
+        assertArrayEquals(intArrayOf(3, 2, 1), MmuFilamentSync.getSelectedGates(title, 3))
+        MmuFilamentSync.setSelectedGates(title, intArrayOf(0, 1, 2, 3))
         assertEquals(3 to null, sync(payload))
         val physical = MmuFilamentSync.physicalGates(title)
         assertEquals(listOf(0, 1, 2, 3), physical.map { it.index })
@@ -123,7 +148,7 @@ class MmuFilamentSyncDeviceTest {
     @Test fun loadedGateWithoutFirmwareToolIsVisibleButNotSelectable() {
         assertEquals(3 to null, sync(response(intArrayOf(0, 1, 2), intArrayOf(1, 1, 1, 1))))
         assertEquals(4, MmuFilamentSync.physicalGates(title).size)
-        assertArrayEquals(intArrayOf(0, 1, 2), MmuFilamentAssignmentDialog.availableGates(title, false))
+        assertArrayEquals(intArrayOf(0, 1, 2), MmuFilamentAssignments.availableGates(title, false))
     }
 
     @Test fun freshUploadCheckRejectsASlotEmptiedAfterTheSendDialogOpened() {
@@ -134,14 +159,14 @@ class MmuFilamentSyncDeviceTest {
         assertNotNull(checkedAssignment)
         assertNull(SlicePreparationTools.firstUnavailableAceTool(
             tools, MmuFilamentSync.getSelectedGates(title, 3),
-            MmuFilamentAssignmentDialog.availableGates(title, false)))
+            MmuFilamentAssignments.availableGates(title, false)))
 
         assertNull(sync(response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 0, 1, 1)), full = false).second)
         assertArrayEquals(intArrayOf(0, 2, 3), MmuFilamentSync.loadedGates(title))
         assertNotEquals(checkedAssignment, MmuFilamentSync.assignedGates(title, tools))
         assertEquals(1, SlicePreparationTools.firstUnavailableAceTool(
             tools, MmuFilamentSync.getSelectedGates(title, 3),
-            MmuFilamentAssignmentDialog.availableGates(title, false)))
+            MmuFilamentAssignments.availableGates(title, false)))
     }
 
     @Test fun freshUploadCheckDetectsAChangedColorOrMaterialOnALoadedGate() {

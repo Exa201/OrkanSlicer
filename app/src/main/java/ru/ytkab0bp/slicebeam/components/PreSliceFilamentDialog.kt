@@ -1,8 +1,6 @@
 package ru.ytkab0bp.slicebeam.components
 
-import android.content.Context
 import android.graphics.Color as AndroidColor
-import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,19 +30,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
+import ru.ytkab0bp.slicebeam.config.BedSurfaceTemperaturePolicy
 import ru.ytkab0bp.slicebeam.slic3r.Model
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
@@ -61,9 +60,10 @@ object PreSliceFilamentDialog {
     }
 
     @JvmStatic
-    fun show(context: Context, model: Model?, callback: Callback,
+    fun show(fragment: BedFragment, model: Model?, callback: Callback,
              positiveLabel: Int = R.string.PreSliceStart,
              titleLabel: Int = R.string.PreSliceSlotTitle) {
+        val context = fragment.getContext() ?: return
         val slots = Prefs.getFilamentSlots().ifEmpty {
             listOf(FilamentSlot(AndroidColor.DKGRAY, "PLA")).also(Prefs::setFilamentSlots)
         }
@@ -77,13 +77,14 @@ object PreSliceFilamentDialog {
             .distinct().sorted().map { it - 1 }.toIntArray()
         val sliceTemperatures = runCatching {
             val snapshot = SliceBeam.buildCurrentConfigObject(model?.requiredFilamentCount ?: -1)
+            val bedTemperatureKeys = BedSurfaceTemperaturePolicy.keysFor(snapshot["curr_bed_type"])
             usedTools.map { tool ->
                 fun value(key: String): String {
                     val values = snapshot[key].orEmpty().split(',').map(String::trim)
                     return (values.getOrNull(tool) ?: values.lastOrNull()).orEmpty().ifBlank { "?" }
                 }
                 context.getString(R.string.PreSliceTemperatureRow, tool,
-                    value("hot_plate_temp_initial_layer"), value("hot_plate_temp"),
+                    value(bedTemperatureKeys.firstLayer), value(bedTemperatureKeys.otherLayers),
                     value("nozzle_temperature_initial_layer"), value("nozzle_temperature"))
             }
         }.getOrDefault(emptyList())
@@ -93,9 +94,9 @@ object PreSliceFilamentDialog {
         val printer = config?.let { current -> current.presets?.get("printer")?.let(current::findPrinter) }
         val printerTitle = printer?.title.orEmpty()
         val physicalGates = if (printer != null && supportsPhysicalSlots(printer))
-            MmuFilamentAssignmentDialog.availableGates(printerTitle, true) else IntArray(0)
+            MmuFilamentAssignments.availableGates(printerTitle, true) else IntArray(0)
         val colorMapping = mutableStateOf(if (physicalGates.isNotEmpty())
-            MmuFilamentAssignmentDialog.initialMapping(printerTitle, maxOf(slots.size, model?.requiredFilamentCount ?: 1), physicalGates).toList()
+            MmuFilamentAssignments.initialMapping(printerTitle, maxOf(slots.size, model?.requiredFilamentCount ?: 1), physicalGates).toList()
             else emptyList())
         val onePhysicalGate = mutableIntStateOf(colorMapping.value.firstOrNull() ?: physicalGates.firstOrNull() ?: 0)
         // A project may use only T1, while its palette still contains T0 and T1.
@@ -104,15 +105,19 @@ object PreSliceFilamentDialog {
         val selectedSlots = mutableStateOf(initialSlots.toList())
         val useOneSlot = mutableStateOf(assignmentsMatch)
         val allSlotIndex = mutableIntStateOf(initialSlots.firstOrNull() ?: 0)
+        val editTemperatures: (() -> Unit)? = if (sliceTemperatures.isNotEmpty() && context is MainActivity) {
+            {
+                (context.navigationDelegate as? ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+                    ?.switchToSlot(3)
+            }
+        } else null
 
-        val composeView = ComposeView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme {
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            PreSliceFilamentDialogContent(
+                titleLabel = titleLabel,
+                positiveLabel = positiveLabel,
+                onDismiss = dismiss,
+                content = {
                     PreSliceFilamentContent(
                         model = model,
                         slots = slots,
@@ -134,54 +139,87 @@ object PreSliceFilamentDialog {
                         onColorMappingChange = { colorMapping.value = it },
                         onePhysicalGate = onePhysicalGate.intValue,
                         onOnePhysicalGateChange = { onePhysicalGate.intValue = it },
+                        onEditTemperatures = editTemperatures?.let { action -> { dismiss(); action() } },
                     )
-                }
-            }
-        }
-        val dialog = BeamAlertDialogBuilder(context)
-            .setTitle(titleLabel)
-            .setView(composeView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(positiveLabel, null)
-            .apply {
-                if (sliceTemperatures.isNotEmpty() && context is ru.ytkab0bp.slicebeam.MainActivity) {
-                    setNeutralButton(R.string.PreSliceEditTemperatures) { _, _ ->
-                        (context.navigationDelegate as? ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
-                            ?.switchToSlot(3)
+                },
+                onConfirm = { requestMismatchWarning ->
+                    val oneSource = if (useOneSlot.value && !preserveColors.value && physicalGates.isNotEmpty()) {
+                        val physical = MmuFilamentSync.gateSlot(printerTitle, onePhysicalGate.intValue)
+                        val candidates = slots.mapIndexed { index, slot ->
+                            MmuColorAssignmentPolicy.Slot(index, slot.color, slot.type)
+                        }
+                        MmuColorAssignmentPolicy.suggest(
+                            physical?.color, physical?.type, allSlotIndex.intValue, candidates,
+                        )
+                    } else allSlotIndex.intValue
+                    val result = PreSliceFilamentAssignments.resolve(
+                        selectedSlots.value.toIntArray(), oneSource, useOneSlot.value, preserveColors.value,
+                    )
+                    val gates = colorMapping.value.toMutableList()
+                    val activeTools = if (preserveColors.value) usedTools.toList() else listOf(oneSource)
+                    if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) && !preserveColors.value) {
+                        gates[oneSource] = onePhysicalGate.intValue
                     }
-                }
-            }
-            .show()
-
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val oneSource = if (useOneSlot.value && !preserveColors.value && physicalGates.isNotEmpty()) {
-                val physical = MmuFilamentSync.gateSlot(printerTitle, onePhysicalGate.intValue)
-                val candidates = slots.mapIndexed { index, slot -> MmuColorAssignmentPolicy.Slot(index, slot.color, slot.type) }
-                MmuColorAssignmentPolicy.suggest(physical?.color, physical?.type, allSlotIndex.intValue, candidates)
-            } else allSlotIndex.intValue
-            val result = PreSliceFilamentAssignments.resolve(selectedSlots.value.toIntArray(),
-                oneSource, useOneSlot.value, preserveColors.value)
-            val gates = colorMapping.value.toMutableList()
-            val activeTools = if (preserveColors.value) usedTools.toList() else listOf(oneSource)
-            if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value)) {
-                if (!preserveColors.value) gates[oneSource] = onePhysicalGate.intValue
-            }
-            val finish = {
-                if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value))
-                    MmuFilamentSync.setSelectedGates(printerTitle, gates.toIntArray())
-                dialog.dismiss()
-                callback.onSelected(result)
-            }
-            if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) &&
-                MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, gates, activeTools)) {
-                BeamAlertDialogBuilder(context)
-                    .setTitle(R.string.PreSliceMaterialMismatchTitle)
-                    .setMessage(R.string.PreSliceMaterialMismatchConfirm)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(R.string.PreSliceMaterialMismatchContinue) { _, _ -> finish() }
-                    .show()
-            } else finish()
+                    val finish = {
+                        if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value)) {
+                            MmuFilamentSync.setSelectedGates(printerTitle, gates.toIntArray())
+                        }
+                        dismiss()
+                        callback.onSelected(result)
+                    }
+                    if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) &&
+                        MmuFilamentAssignments.hasMaterialMismatch(printerTitle, gates, activeTools)) {
+                        requestMismatchWarning(finish)
+                    } else finish()
+                },
+            )
         }
+    }
+}
+
+@Composable
+private fun PreSliceFilamentDialogContent(
+    titleLabel: Int,
+    positiveLabel: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (requestMismatchWarning: ((() -> Unit) -> Unit)) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    var continueAfterMismatch by androidx.compose.runtime.remember { mutableStateOf<(() -> Unit)?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(titleLabel), modifier = Modifier.testTag("pre-slice-title")) },
+        text = { content() },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm { action -> continueAfterMismatch = action } },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("pre-slice-confirm"),
+            ) { Text(stringResource(positiveLabel)) }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp).testTag("pre-slice-cancel"),
+            ) { Text(stringResource(android.R.string.cancel)) }
+        },
+    )
+    continueAfterMismatch?.let { finish ->
+        AlertDialog(
+            onDismissRequest = { continueAfterMismatch = null },
+            title = { Text(stringResource(R.string.PreSliceMaterialMismatchTitle)) },
+            text = { Text(stringResource(R.string.PreSliceMaterialMismatchConfirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { continueAfterMismatch = null; finish() },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(stringResource(R.string.PreSliceMaterialMismatchContinue)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { continueAfterMismatch = null }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
     }
 }
 
@@ -226,6 +264,7 @@ private fun PreSliceFilamentContent(
     onColorMappingChange: (List<Int>) -> Unit,
     onePhysicalGate: Int,
     onOnePhysicalGateChange: (Int) -> Unit,
+    onEditTemperatures: (() -> Unit)?,
 ) {
     // Leave space for the dialog title and both action rows, including large font scales.
     val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.56f
@@ -277,7 +316,7 @@ private fun PreSliceFilamentContent(
             if (physicalGates.isNotEmpty()) {
                 MmuAssignmentContent(printerTitle, colorMapping.size, physicalGates, slots, colorMapping,
                     usedTools = usedTools, showHelp = false, onMappingChange = onColorMappingChange)
-                if (MmuFilamentAssignmentDialog.hasMaterialMismatch(printerTitle, colorMapping,
+                if (MmuFilamentAssignments.hasMaterialMismatch(printerTitle, colorMapping,
                         usedTools.toList())) Text(
                     stringResource(R.string.PreSliceMaterialMismatchHint),
                     color = MaterialTheme.colorScheme.error, fontSize = 13.sp,
@@ -345,6 +384,11 @@ private fun PreSliceFilamentContent(
                     textColor = primaryColor,
                     showRadio = false,
                 )
+            }
+        }
+        onEditTemperatures?.let { editTemperatures ->
+            TextButton(onClick = editTemperatures, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.PreSliceEditTemperatures))
             }
         }
     }

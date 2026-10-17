@@ -1,10 +1,10 @@
 package ru.ytkab0bp.slicebeam.components
 
 import android.os.Process
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -12,18 +12,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -37,7 +41,6 @@ import ru.ytkab0bp.slicebeam.smartslice.GeometryAnalysis
 import ru.ytkab0bp.slicebeam.smartslice.SmartSliceEngine
 import ru.ytkab0bp.slicebeam.smartslice.SmartSliceIntent
 import ru.ytkab0bp.slicebeam.smartslice.SmartSliceResult
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import java.util.HashMap
 import java.util.concurrent.Executors
@@ -63,76 +66,43 @@ class SmartSliceDialog private constructor() {
 
             val printerNames = SliceBeam.requireConfig().printerConfigs.mapNotNull { it.title }
             val activePrinter = SliceBeam.requireConfig().presets?.get("printer")
-            val selectedPrinter = mutableIntStateOf(printerNames.indexOf(activePrinter).coerceAtLeast(0))
-            val selectedPurpose = mutableIntStateOf(0)
-            val selectedPriority = mutableIntStateOf(1)
-            val wall = mutableStateOf("")
-            val layer = mutableStateOf("")
-            val invalidWall = mutableStateOf(false)
-            val invalidLayer = mutableStateOf(false)
             val purposeOptions = context.resources.getStringArray(R.array.SmartSlicePurposes).toList()
             val priorityOptions = context.resources.getStringArray(R.array.SmartSlicePriorities).toList()
-
-            val form = ComposeView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-                setContent {
-                    BeamComposeTheme {
-                        SmartSliceFormContent(
-                            printerNames = printerNames,
-                            purposeOptions = purposeOptions,
-                            priorityOptions = priorityOptions,
-                            selectedPrinter = selectedPrinter.intValue,
-                            selectedPurpose = selectedPurpose.intValue,
-                            selectedPriority = selectedPriority.intValue,
-                            onPrinterSelected = { selectedPrinter.intValue = it },
-                            onPurposeSelected = { selectedPurpose.intValue = it },
-                            onPrioritySelected = { selectedPriority.intValue = it },
-                            wall = wall.value,
-                            onWallChanged = { wall.value = it; invalidWall.value = false },
-                            layer = layer.value,
-                            onLayerChanged = { layer.value = it; invalidLayer.value = false },
-                            invalidWall = invalidWall.value,
-                            invalidLayer = invalidLayer.value,
-                        )
+            val options = SmartSliceFormOptions(
+                printerNames = printerNames,
+                purposeOptions = purposeOptions,
+                priorityOptions = priorityOptions,
+                selectedPrinter = printerNames.indexOf(activePrinter).coerceAtLeast(0),
+            )
+            fragment.showWorkspaceComposeDialog { dismissForm ->
+                SmartSliceFormDialog(options, onDismiss = dismissForm) { submission ->
+                    printerNames.getOrNull(submission.selectedPrinter)?.let { printer ->
+                        if (!SliceBeam.applyProfileSelection(printer = printer)) {
+                            Toast.makeText(context, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
+                            return@SmartSliceFormDialog
+                        }
+                        fragment.refreshProfileStatus()
                     }
-                }
-            }
-            val dialog = BeamAlertDialogBuilder(context)
-                .setTitle(R.string.SmartSliceTitle)
-                .setView(form)
-                .setPositiveButton(R.string.SmartSliceAnalyze, null)
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val resolved = SmartSliceInputValues.resolve(wall.value, layer.value)
-                invalidWall.value = resolved.invalidWall
-                invalidLayer.value = resolved.invalidLayer
-                val numeric = resolved.values ?: return@setOnClickListener
-                printerNames.getOrNull(selectedPrinter.intValue)?.let { printer ->
-                    if (!SliceBeam.applyProfileSelection(printer = printer)) {
-                        Toast.makeText(context, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
-                        return@setOnClickListener
+                    val intent = SmartSliceIntent(
+                        SmartSliceIntent.Purpose.values().getOrElse(submission.selectedPurpose) { SmartSliceIntent.Purpose.DECORATION },
+                        SmartSliceIntent.Priority.values().getOrElse(submission.selectedPriority) { SmartSliceIntent.Priority.BALANCED },
+                        submission.values.wallMm,
+                        submission.values.layerMm,
+                    )
+                    val configSnapshot = ConfigObject(SliceBeam.buildCurrentConfigObject())
+                    val before = HashMap(configSnapshot.values)
+                    val cancelled = AtomicBoolean()
+                    dismissForm()
+                    val dismissProgress = fragment.showWorkspaceComposeDialog(
+                        onExternalDismiss = { cancelled.set(true) },
+                    ) { dismiss ->
+                        SmartSliceProgressDialog(onCancel = {
+                            cancelled.set(true)
+                            dismiss()
+                        })
                     }
-                    fragment.refreshProfileStatus()
+                    analyzeModel(fragment, context, intent, configSnapshot, before, cancelled, dismissProgress)
                 }
-                val intent = SmartSliceIntent(
-                    SmartSliceIntent.Purpose.values().getOrElse(selectedPurpose.intValue) { SmartSliceIntent.Purpose.DECORATION },
-                    SmartSliceIntent.Priority.values().getOrElse(selectedPriority.intValue) { SmartSliceIntent.Priority.BALANCED },
-                    numeric.wallMm,
-                    numeric.layerMm,
-                )
-                val configSnapshot = ConfigObject(SliceBeam.buildCurrentConfigObject())
-                val before = HashMap(configSnapshot.values)
-                val cancelled = AtomicBoolean()
-                val progress = BeamAlertDialogBuilder(context)
-                    .setTitle(R.string.SmartSliceTitle)
-                    .setView(smartSliceProgressView(context))
-                    .setNegativeButton(android.R.string.cancel) { _, _ -> cancelled.set(true) }
-                    .setOnCancelListener { cancelled.set(true) }
-                    .show()
-                dialog.dismiss()
-                analyzeModel(fragment, context, intent, configSnapshot, before, cancelled, progress)
             }
         }
 
@@ -143,14 +113,14 @@ class SmartSliceDialog private constructor() {
             configSnapshot: ConfigObject,
             before: Map<String, String>,
             cancelled: AtomicBoolean,
-            progress: androidx.appcompat.app.AlertDialog,
+            dismissProgress: () -> Unit,
         ) {
             fragment.glView?.queueEvent {
                 if (cancelled.get()) return@queueEvent
                 val model = fragment.currentModel
                 if (model == null) {
                     ViewUtils.postOnMainThread {
-                        progress.dismiss()
+                        dismissProgress()
                         Toast.makeText(context, R.string.SmartSliceNoModel, Toast.LENGTH_SHORT).show()
                     }
                     return@queueEvent
@@ -160,25 +130,27 @@ class SmartSliceDialog private constructor() {
                     GeometryAnalysis.analyze(model)
                 } catch (_: RuntimeException) {
                     ViewUtils.postOnMainThread {
-                        progress.dismiss()
+                        dismissProgress()
                         Toast.makeText(context, R.string.SmartSliceFailed, Toast.LENGTH_LONG).show()
                     }
                     return@queueEvent
                 }
+                if (cancelled.get()) return@queueEvent
                 try {
                     ANALYSIS_EXECUTOR.execute {
+                        if (cancelled.get()) return@execute
                         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
                         val result: SmartSliceResult = try {
                             SmartSliceEngine.analyze(geometry, intent, configSnapshot)
                         } catch (_: RuntimeException) {
                             ViewUtils.postOnMainThread {
-                                progress.dismiss()
+                                dismissProgress()
                                 if (!cancelled.get()) Toast.makeText(context, R.string.SmartSliceFailed, Toast.LENGTH_LONG).show()
                             }
                             return@execute
                         }
                         ViewUtils.postOnMainThread {
-                            progress.dismiss()
+                            dismissProgress()
                             if (cancelled.get()) return@postOnMainThread
                             val activeModel = fragment.currentModel
                             if (activeModel == null || modelKey != activeModel.key ||
@@ -192,55 +164,177 @@ class SmartSliceDialog private constructor() {
                     }
                 } catch (_: RejectedExecutionException) {
                     ViewUtils.postOnMainThread {
-                        progress.dismiss()
+                        dismissProgress()
                         Toast.makeText(context, R.string.SmartSliceBusy, Toast.LENGTH_SHORT).show()
                     }
                 }
             } ?: run {
-                progress.dismiss()
+                dismissProgress()
                 Toast.makeText(context, R.string.SmartSliceFailed, Toast.LENGTH_SHORT).show()
             }
         }
 
         private fun showResult(fragment: BedFragment, result: SmartSliceResult, before: Map<String, String>) {
             val context = fragment.getContext() ?: return
-            val summary = ComposeView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-                setContent {
-                    BeamComposeTheme {
-                        val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.72f
-                        Column(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
-                                .padding(horizontal = 22.dp, vertical = 12.dp),
-                        ) {
-                            Text(
-                                text = context.getString(R.string.SmartSliceResultWithChanges, result.summary(), result.changeSummary(before)),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
-                            )
-                        }
-                    }
-                }
+            val summary = context.getString(
+                R.string.SmartSliceResultWithChanges,
+                result.summary(),
+                result.changeSummary(before),
+            )
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                SmartSliceResultDialog(
+                    summary = summary,
+                    onDismiss = dismiss,
+                    onApplyAndSlice = {
+                        SmartSliceEngine.apply(result)
+                        fragment.refreshProfileStatus()
+                        dismiss()
+                        fragment.startSlicing()
+                    },
+                    onApplyEdit = {
+                        SmartSliceEngine.apply(result)
+                        fragment.refreshProfileStatus()
+                        Toast.makeText(context, R.string.SmartSliceApplied, Toast.LENGTH_LONG).show()
+                        dismiss()
+                    },
+                )
             }
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.SmartSliceResult)
-                .setView(summary)
-                .setPositiveButton(R.string.SmartSliceApplyAndSlice) { _, _ ->
-                    SmartSliceEngine.apply(result)
-                    fragment.refreshProfileStatus()
-                    fragment.startSlicing()
-                }
-                .setNeutralButton(R.string.SmartSliceApplyEdit) { _, _ ->
-                    SmartSliceEngine.apply(result)
-                    fragment.refreshProfileStatus()
-                    Toast.makeText(context, R.string.SmartSliceApplied, Toast.LENGTH_LONG).show()
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
         }
     }
+}
+
+internal data class SmartSliceFormOptions(
+    val printerNames: List<String>,
+    val purposeOptions: List<String>,
+    val priorityOptions: List<String>,
+    val selectedPrinter: Int,
+)
+
+internal data class SmartSliceFormSubmission(
+    val selectedPrinter: Int,
+    val selectedPurpose: Int,
+    val selectedPriority: Int,
+    val values: SmartSliceNumericValues,
+)
+
+@Composable
+internal fun SmartSliceFormDialog(
+    options: SmartSliceFormOptions,
+    onDismiss: () -> Unit,
+    onAnalyze: (SmartSliceFormSubmission) -> Unit,
+) {
+    var selectedPrinter by remember(options) { mutableIntStateOf(options.selectedPrinter) }
+    var selectedPurpose by remember(options) { mutableIntStateOf(0) }
+    var selectedPriority by remember(options) { mutableIntStateOf(1) }
+    var wall by remember(options) { mutableStateOf("") }
+    var layer by remember(options) { mutableStateOf("") }
+    var invalidWall by remember(options) { mutableStateOf(false) }
+    var invalidLayer by remember(options) { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.SmartSliceTitle)) },
+        text = {
+            SmartSliceFormContent(
+                printerNames = options.printerNames,
+                purposeOptions = options.purposeOptions,
+                priorityOptions = options.priorityOptions,
+                selectedPrinter = selectedPrinter,
+                selectedPurpose = selectedPurpose,
+                selectedPriority = selectedPriority,
+                onPrinterSelected = { selectedPrinter = it },
+                onPurposeSelected = { selectedPurpose = it },
+                onPrioritySelected = { selectedPriority = it },
+                wall = wall,
+                onWallChanged = { wall = it; invalidWall = false },
+                layer = layer,
+                onLayerChanged = { layer = it; invalidLayer = false },
+                invalidWall = invalidWall,
+                invalidLayer = invalidLayer,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val resolution = SmartSliceInputValues.resolve(wall, layer)
+                    invalidWall = resolution.invalidWall
+                    invalidLayer = resolution.invalidLayer
+                    resolution.values?.let { values ->
+                        onAnalyze(SmartSliceFormSubmission(selectedPrinter, selectedPurpose, selectedPriority, values))
+                    }
+                },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text(stringResource(R.string.SmartSliceAnalyze)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+internal fun SmartSliceProgressDialog(onCancel: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.SmartSliceTitle)) },
+        text = {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                CircularProgressIndicator()
+                Text(stringResource(R.string.SmartSliceAnalyzing), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+internal fun SmartSliceResultDialog(
+    summary: String,
+    onDismiss: () -> Unit,
+    onApplyAndSlice: () -> Unit,
+    onApplyEdit: () -> Unit,
+) {
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.72f
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.SmartSliceResult)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+                    .padding(horizontal = 22.dp, vertical = 12.dp),
+            ) {
+                Text(summary, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 22.sp)
+            }
+        },
+        confirmButton = {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
+            ) {
+                TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(onClick = onApplyEdit, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.SmartSliceApplyEdit))
+                }
+                TextButton(onClick = onApplyAndSlice, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.SmartSliceApplyAndSlice))
+                }
+            }
+        },
+        dismissButton = {},
+    )
 }
 
 @Composable
@@ -276,7 +370,7 @@ private fun SmartSliceFormContent(
         OutlinedTextField(
             value = wall,
             onValueChange = onWallChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("smart-slice-wall"),
             label = { Text(stringResource(R.string.SmartSliceWallOptional)) },
             supportingText = if (invalidWall) ({ Text(stringResource(R.string.SmartSliceInvalidDimension)) }) else null,
             isError = invalidWall,
@@ -286,30 +380,13 @@ private fun SmartSliceFormContent(
         OutlinedTextField(
             value = layer,
             onValueChange = onLayerChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("smart-slice-layer"),
             label = { Text(stringResource(R.string.SmartSliceLayerOptional)) },
             supportingText = if (invalidLayer) ({ Text(stringResource(R.string.SmartSliceInvalidDimension)) }) else null,
             isError = invalidLayer,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
-    }
-}
-
-private fun smartSliceProgressView(context: android.content.Context): ComposeView = ComposeView(context).apply {
-    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-    setContent {
-        BeamComposeTheme {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
-            ) {
-                CircularProgressIndicator()
-                Text(stringResource(R.string.SmartSliceAnalyzing), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
-            }
-        }
     }
 }
 

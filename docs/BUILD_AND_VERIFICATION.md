@@ -1,4 +1,82 @@
+## UI 2.0 – erster Arbeitsstand (2026-10-16)
+
+Die Arbeitsbereichsnavigation trennt jetzt **Projekt** (Modell importieren, Projekt exportieren)
+von **Modell** (Objektliste, Kopien, Druckplattenwechsel, Zentrieren, Plattenfüllung, Anordnen,
+Ausrichten und Löschen). Das Modellmenü verwendet wie Bearbeiten ein kompaktes Zwei-Reihen-Raster.
+Die unteren Navigationsziele haben kurze sichtbare Beschriftungen und vollständige
+Accessibility-Namen. „Kopien erstellen“ beschreibt den Mengen-Dialog; „Alle anordnen“ bezeichnet
+die Aktion, die alle Modelle auf der aktuellen Druckplatte verteilt. Der Renderer und die
+Slicer-Engine wurden nicht geändert. IDs, Titel und Symbole der Ziele liegen nun im
+Navigationspaket (`WorkspaceDestination`), getrennt vom Fragment-Lifecycle.
+
+Die vorhandene Oberfläche erfüllt bereits die drei vorgegebenen Gestaltungsrichtungen: freie,
+große Druckplatte mit einklappbarer Werkzeugfläche, kleiner Filament-Farbbutton mit Bottom Sheet
+auf dem Smartphone beziehungsweise Seitenpanel ab 600 dp und gemeinsame Compose-/Material-3-
+Komponenten. Das Filamentpanel wurde auf dem Honor geöffnet; ACE-Fächer und T0–T3-Zuordnung waren
+sichtbar. Diese Änderung ist ein UI-Migrationsschritt und noch nicht die vollständige Ablösung der
+imperativen `BedFragment`-Workspace-Hülle. Die weitere Entkopplung von Navigation, Zustand,
+Workspace-Layout und Renderer-Adapter ist in `ORKANSLICER_UI_2_ROADMAP.md` festgehalten.
+
+Verifiziert: `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` je 523/523 bestanden,
+`:app:assembleDebug` einschließlich ARM64-CMake erfolgreich; APK
+`app/build/outputs/apk/debug/OrkanSlicer_f85550d8fb.apk` (157.129.650 Byte, SHA-256
+`2E8553021218AE9AC782B9F8B5BF23CECF9BB9E23C66E38A3D195A5425FDEB03`). Auf dem Honor PTP-N49
+installiert und gestartet. Projekt-/Modellnavigation, zweireihiges Modellmenü und Filamentpanel
+visuell geprüft; keine Abstürze, ANRs oder OOMs im abgefragten Logcat. Der Android-CLI-
+Accessibility-Dump scheiterte an der Instrumentierungsverbindung. Der Emulator-Installationsversuch
+endete nach APK-Transfer mit I/O-Timeout; Emulatorprüfung daher nicht bestätigt. Kein Druck gestartet.
+Der aktualisierte PR #2 ist offen gegen `master`; aktueller UI-Arbeitsstand `162c070` wurde gepusht.
+
+## Entwicklungsstand 0.8.242 – Temperaturen für die aktive Druckoberfläche
+
+Filamentprofile zeigen jetzt separate Werte für erste und weitere Schichten auf glatter kühler,
+Engineering-, Hochtemperatur-, strukturierter PEI-, strukturierter kühler und SuperTack-Platte.
+Die Auswahl `curr_bed_type` im Druckerprofil bestimmt die Vorschau im Druckdialog. Fehlende Werte
+werden nur aus älteren Profilen ergänzt; bereits gespeicherte Oberflächenwerte bleiben unverändert.
+
+Verifiziert: Profilroutenprüfung 488 Einstellungen (319/100/69), beide Unit-Suiten 520/520,
+`:app:assembleDebug` einschließlich ARM64-CMake erfolgreich, nativer Slice-/G-Code-Gerätetest
+auf Honor bestanden (Textured PEI: M140 S62; kein S81). Debug-App auf Honor und Emulator
+installiert; Honor-Startbildschirm visuell kontrolliert. Die Gradle-Instrumentierung über beide
+Geräte lief wegen Emulator-ADB-Timeout nicht durch; der gezielte Test wurde direkt auf dem Honor
+ausgeführt. Keine native Abhängigkeit fehlte, kein Druck wurde gestartet.
+
+Alpha 0.8.242: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.242. Das APK-Asset `OrkanSlicer_0bde473343.apk` (156.867.235 Byte) hat den bestätigten GitHub-Digest `sha256:4c1a0c27b5f463fe9068d99fa74fff50d532824c9a4cc7c62c1312ca62183cee`, identisch mit der lokalen APK. Zum damaligen Release-Zeitpunkt lag PR #2 bei `0bde473343`; der PR ist weiterhin offen gegen `master`, kein Merge ausgeführt.
+
 # Gebündelter Build- und Prüfablauf
+
+## Entwicklungsstand 0.8.241 – ACE-Slots behalten ihre festen T-Indizes
+
+Die vollständige ACE-Synchronisierung komprimiert belegte Fächer nicht mehr. T0 bleibt ACE 1,
+T1 bleibt ACE 2 usw.; ein leeres Fach wird als leerer T-Slot gespeichert, statt spätere
+Filamente umzuschreiben. Nicht identische Moonraker-Toolmaps werden beim vollständigen Sync
+abgewiesen. Die Filamentpalette erhält leere Slots beim Speichern und zeigt nur belegte
+Materialien als verfügbaren Bestand.
+
+Verifiziert: `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` je 517/517 bestanden;
+`:app:assembleDebug` einschließlich ARM64-CMake-Build erfolgreich; Honor PTP-N49: APK
+installiert und gestartet, **Sync** zeigte T0→ACE 1, T1→ACE 2, T2→ACE 3, T3→ACE 4. Kein Druck
+wurde gestartet. Vorhandene Nutzer mit einer früher komprimierten gespeicherten Palette müssen
+einmal **Sync** ausführen. Der Emulator wurde für diese Änderung nicht erneut geprüft.
+
+## Arbeitsstand: Objektliste
+
+`:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden mit je 516 Tests;
+`:app:assembleDebug` war ebenfalls erfolgreich. Die Debug-APK wurde auf dem Honor PTP-N49 installiert und OrkanSlicer startete
+bis zur Modellansicht. Der Screenshot bestätigt den App-Start; die neue Objektliste selbst
+ließ sich nicht prüfen, weil in der Sitzung kein Modell geladen war. Honor und Emulator waren
+per ADB sichtbar. Der ARM64-Nativkern wurde als unverändert/up-to-date übernommen. Kein Druck
+wurde gestartet.
+
+## Build 0.8.241 – 3MF-Farbmalerei-Rundlauf repariert
+
+Der Honor-Gerätetest `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurviveThreeMfExportAndImport` reproduzierte den Verlust gemalter Filamente beim 3MF-Rundlauf. Ursache: Der Orca/Bambu-Importer las nur `paint_color`, obwohl der verwendete Prusa-3MF-Exporter `slic3rpe:mmu_segmentation` schreibt. Beide 3MF-Parserpfade des Orca/Bambu-Importers akzeptieren nun beide Attribute. Zusätzlich baut eine Paint-Session ihren Selektor auf Volume 0 auf, dessen Facettenannotation sie speichert, sodass Dreiecksindizes bei Mehrvolumenobjekten übereinstimmen.
+
+Der gezielte Round-trip-Test und die gesamte `TwoColorProjectDeviceTest`-Klasse (2/2) bestanden auf dem HONOR PTP-N49. `:app:testDebugUnitTest`, `:app:testSliceTestUnitTest` und `:app:assembleDebug` einschließlich ARM64-Nativkern bestanden ebenfalls. Die APK wurde auf dem Honor installiert und gestartet. Einzelnes Undo für Pinselstriche, Zoom beim Malen und komplexe Mehrvolumenmodelle bleiben offen.
+
+Alpha 0.8.241 wurde unter `https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.241` veröffentlicht. Das APK-Asset `OrkanSlicer_0.8.241_alpha_debug.apk` (156.849.377 Byte) hat den bestätigten GitHub-Digest `sha256:4b04e1a7392c2e2b87c0bd4ec859c4b7f02674204d93b6d2bfeb08cbbdaacc8e`, identisch mit der lokalen APK. PR #2 bleibt offen gegen `master`, Kopfcommit `bf1c3707fb8d181de8861e79ef4b1aa0461d682a`; kein Merge ausgeführt. Die bestehende Raycast-API gibt keine Volume-/Facet-ID zurück. Deshalb ist Malen direkt auf einzelnen Volumes komplexer Orca/Bambu-Baugruppen nicht verifiziert und darf nicht aus dem Round-trip-Test für die einfache Zweiteil-Fixture abgeleitet werden.
+
+Zusatzprüfung der Brückenoptionen: `NativeSliceDeviceTest.bridgeSettingsReachNativeConfigAndGenerateBridgeGcode` bestand auf dem Honor. Er prüft vier Brückeneinstellungen in der generierten Native-Konfiguration, Bridge-Markierung im G-Code sowie den Klipper-Pressure-Advance-Befehl. Eine getrennte äußere/innere Rollenassertion ist aus dem G-Code-Parser hier nicht ableitbar: Orca gibt für beide `BridgeInfill` aus. Der Test startet keinen Druck; physische Qualitätsabnahme bleibt offen.
 
 ## Build 0.8.174 – SliceBeam-Menüaufbau auf dem Honor geprüft
 
@@ -447,3 +525,180 @@ Build 0.8.86 (`versionCode 121`, `compileSdk 36`, `targetSdk 36`, `minSdk 23`) b
 
 Debug-APK: `outputs/OrkanSlicer_0.8.86_debug.apk` (153.524.689 Byte; SHA-256 `F4EDE461E6513FBEB1BA3078315AD8055C94FA3744FB1F754A2E93DFE758833F`). Release-APK: `outputs/OrkanSlicer_0.8.86_release_unsigned.apk` (146.224.407 Byte; SHA-256 `66A74795BE88E4B423B14F647914A9893270ED4C9C80E913869F4DBBFAFC0527`); ohne Release-Keystore unsigniert. Bericht und Verifikationsprotokoll: `outputs/OrkanSlicer_0.8.86_Buildbericht.md` und `outputs/OrkanSlicer_0.8.86/verification-transcript.txt`.
 
+
+## Workspace-UI 2.0 – integrierter Debug-Build (2026-10-16)
+
+Die Compose-basierte `WorkspaceShell` ersetzt den manuellen Aufbau der Haupt-Workspace-Menüs in
+`BedFragment`. Der bestehende `GLView` wird über `RendererAdapter` innerhalb seines gemessenen
+Viewport weiterverwendet. Das Printer-Web-Fehlerpanel ist Compose/Material 3; WebView und
+Fortschrittsanzeige bleiben in ihrem Lifecycle-Host. ACE-Gerätetests wurden auf die fest
+positionsgebundene Zuordnung (T0→Slot 1 bis T3→Slot 4, Lücken bleiben erhalten) korrigiert und
+prüfen explizit, dass ein abweichendes Tool-Mapping nicht die Slotbefehle umschreibt.
+
+Verifikation des Quellstands vor dem finalen Commit:
+
+- `:app:testDebugUnitTest`: 526 Tests, 0 Fehler.
+- `:app:testSliceTestUnitTest`: 526 Tests, 0 Fehler.
+- `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49/Android 16: 39 bestanden, 0 Fehler,
+  3 übersprungen (private multicolor 3MF-Projekt-Fixture fehlt).
+- `:app:assembleDebug`: erfolgreich, ARM64-Nativkern eingeschlossen.
+- Debug-APK (`versionName 0.8.242`, `versionCode 277`) wurde auf dem Honor installiert und
+  gestartet. Screenshot-Prüfung bestätigt sichtbare globale Navigation, Profil-/Filament-/
+  Plattensteuerung, Druckplatte und Workspace-Navigation ohne Überdeckung durch die GL-Oberfläche.
+  Logcat-Auszug nach Start enthielt keinen FATAL EXCEPTION-, ANR- oder OOM-Treffer.
+- Emulator: Gradle konnte `emulator-5554` nicht abfragen (ddmlib property-fetch timeout); kein
+  Emulator-Gerätetest wird als bestanden gewertet.
+- Kein Druckstart wurde ausgelöst. Der UI-2.0-Migrationsstand ist noch nicht vollständig:
+  Dialoge/Sonderwerkzeuge, zentrale Overlaysteuerung und weitere `BedFragment`-Zuständigkeiten
+  verbleiben. Die Roadmap führt diese Punkte weiter.
+
+Der abschließende APK-Pfad und SHA-256 werden nach dem Commit in PR #2 ergänzt. Der Build ist eine
+lokale Debug-APK und kein öffentliches Release.
+
+Finaler APK-Artefakt nach Commit `6b9b3c0423b9eb1d075521a2bd97eaeec330e10d`:
+
+- `app/build/outputs/apk/debug/OrkanSlicer_6b9b3c0423.apk`
+- 156.885.758 Byte; SHA-256 `E27CBF94377B3D694F4B4D9F8BC7EF8D6EB972DF15878BC9CDAA2F2C73AB6AD6`.
+- Diese Debug-APK wurde nach dem Build erneut auf dem Honor installiert und gestartet. Das Paket
+  blieb als `MainActivity` aktiv; der geprüfte Logcat-Auszug zeigte keinen FATAL-, ANR- oder
+  OOM-Eintrag.
+
+## Build-Verifikation: Workspace Panels und Profilfilter (2026-10-16)
+
+- `:app:testDebugUnitTest`: 531/531 bestanden.
+- `:app:testSliceTestUnitTest`: 531/531 bestanden.
+- `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 39 bestanden, 0 Fehler,
+  3 übersprungen (private Mehrfarb-3MF-Fixtures nicht vorhanden).
+- `:app:assembleDebug`: erfolgreich, ARM64-Kern eingeschlossen.
+- Manuelle Honor-Prüfung: Profilblatt geöffnet, lange Druckprofilliste mit Suchfeld und Tastatur
+  geprüft, Suchtext `0.16mm` filterte die Treffer, System-Back schloss die Ebenen nacheinander,
+  danach öffnete die Plattenauswahl. Kein Druckstart.
+- Beim ersten Öffnen der langen Auswahl trat ein Compose-Intrinsic-Measurement-Absturz auf; die
+  Liste wurde aus dem Dropdown in einen begrenzten Dialog verschoben. Der reparierte Stand wurde
+  erneut installiert und der lange Suchpfad lief ohne neuen Crash. Der alte Crash-Bericht blieb
+  zunächst als SafeStart-Wiederherstellungsseite sichtbar und wurde mit „App neu starten“ beendet.
+- Gradle meldete weiterhin einen Property-Fetch-Timeout für `emulator-5554`; der Emulator ist nicht
+  als geprüft gewertet.
+- Kein CPU-/RAM-Benchmark wurde durchgeführt. Der Lazy-Render-Pfad vermeidet das gleichzeitige
+  Komponieren aller Optionen; quantitative Performance-Messungen bleiben offen.
+
+Finaler UI-Panel-Build nach Code-Commit `49cb9fcb30cf5c76f0371ed34420c4708643cd1f`:
+
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_49cb9fcb30.apk`
+- 156.903.080 Byte; SHA-256 `17FF2BCBE4EB5236A48CF2E6A37B487CB743750ACDE3B4D98AD819352ACC2ADB`.
+- `:app:assembleDebug` nach dem Code-Commit erfolgreich. Die beiden Unit-Suiten mit je 531 Tests und die Honor-Instrumentierung (39 bestanden, 3 Fixture-bedingt übersprungen) waren mit demselben Quellstand bereits erfolgreich.
+- Genau diese APK wurde auf dem Honor PTP-N49 installiert und gestartet; `MainActivity` blieb im Vordergrund. Ein frischer Logcat-Ausschnitt hatte keine FATAL EXCEPTION-, ANR-, OOM- oder Intrinsic-Measurement-Fehler. Ein Screenshot zeigt die große Druckplatte und Workspace-Navigation. Das Profilfilter-/Panelverhalten wurde im unmittelbar vorhergehenden Gerätedurchgang mit demselben Quellstand geprüft.
+- Ein zusätzlicher Emulator-Installationsversuch hing im ADB-Transfer und wurde abgebrochen; Emulatorprüfung nicht bestanden/nicht bestätigt.
+- Diese APK entspricht Code-Commit `49cb9fc`. Spätere reine Dokumentationsänderungen ändern den APK-Inhalt nicht. Debug-Build, kein Release.
+
+## Workspace state and large-text navigation follow-up (2026-10-16)
+
+- `WorkspaceController` now combines the active workspace destination, its expanded menu, selected plate index, active special tool, and the existing exclusive overlay coordinator. `BedFragment` delegates its menu and plate-picker selection state to it. The controller does not duplicate GL-owned model selection, domain/profile state, dialog state, or slicing state; those remain in their existing owners and are part of the remaining migration.
+- Added controller tests for navigation/panel ownership, plate state, and special-tool exclusivity. Adaptive navigation tests cover the two-row policy and its height. At large font scales, the main navigation uses two rows (3+2) and workspace navigation uses 3+3, preserving full labels instead of compressing them into one row. Activity font-scale handling updates this UI without intentionally rebuilding the GL renderer.
+- Honor PTP-N49 / Android 16 at 130% system text: opened and visually checked the workspace, Druck, Filament, Drucker, and App settings screens. Main navigation remained visible in two rows. The Druck and Filament areas use scrollable content for the larger settings/material lists; printer and app settings showed readable section controls. No print action was invoked. These screenshots do not establish coverage of landscape, the smallest display size, larger accessibility font settings, or every nested menu.
+- Full verification on code commit `0e4e7f002cec8393cd5505a2000f0700e9c7853b`: `:app:testDebugUnitTest` 536 tests; `:app:testSliceTestUnitTest` 536 tests; `:app:connectedSliceTestAndroidTest` on Honor, 39 passed and 3 skipped because private multicolor fixtures are absent; `:app:assembleDebug` passed. The fresh Honor logcat scan had no `FATAL EXCEPTION`, `ANR in`, or `OutOfMemoryError` matches. The emulator is offline after its previously observed ADB property/transfer hang; no emulator test is claimed.
+- Debug APK for that code commit: `app/build/outputs/apk/debug/OrkanSlicer_0e4e7f002c.apk` (156,904,735 bytes; SHA-256 `508D87138D3BE5B7F252F8E0410C2D8B534BEA9415BB972BAD68116BACF0C13C`). This is a local debug build, not a public release.
+- UI 2.0 is not complete. `BedFragment` still owns renderer/lifecycle and domain integration plus some legacy presentation; workspace state does not yet centrally own all requested UI domains. Remaining work includes systematic nested-menu/dialog/special-tool migration and verification, small/landscape and accessibility-size checks, 1–20 plate stress coverage, long filament-list persistence cases, and broader functional coverage. Do not treat this milestone as full UI acceptance.
+- The APK corresponds to code commit `0e4e7f0`; this verification entry is a later documentation-only commit.
+
+## Workspace UI follow-up: model actions and adaptive navigation (2026-10-16)
+
+- Migrated the selected-model context menu from the legacy Android item dialog to a scrollable Material 3 Compose dialog. All existing model actions and handlers remain connected; renderer-bound actions still use the existing GL-thread dispatch. The dialog is coordinated as an exclusive workspace overlay, and Back/dismiss clears it safely.
+- On narrow phones the global navigation uses compact visible labels while retaining descriptive accessibility labels. At larger text scales the workspace navigation reserves height for both rows; the camera action shortens visually to “Iso” while preserving its semantic label.
+- Honor PTP-N49 / Android 16 was checked at 150% font scale. Screenshots show the open camera panel, both workspace navigation rows, and readable “Iso” action; no print was started. App was installed/launched; the inspected logcat had no fatal, ANR, or OOM entries.
+- Verification on code commit `5e91004574fe74be9e0c4c24fc4a12123f210bc9`: `:app:testDebugUnitTest` 538/538; `:app:testSliceTestUnitTest` 538/538; Honor `:app:connectedSliceTestAndroidTest` 39 passed, 0 failed, 3 skipped because private multicolor fixtures are unavailable; `:app:assembleDebug` passed. `git diff --check` passed.
+- Debug APK: `app/build/outputs/apk/debug/OrkanSlicer_5e91004574.apk` (156,905,221 bytes; SHA-256 `D8264E19D85B88CB0D8FE1E5FEA96F17BA52B6029EC0EAF2B526FB919F6C95DC`). This is a local debug build, not a release.
+- This does not complete UI 2.0. The wider migration remains open: legacy `BedFragment` presentation and technical/domain responsibilities, remaining dialogs and specialist routes, full menu-by-menu interaction audit, small/landscape/accessibility coverage, and 1–20 plate / long filament stress tests. Emulator checks remain unconfirmed after the prior ADB transfer hang. No print or release was initiated and PR #2 remains unmerged.
+
+This verification entry is documentation for code commit `5e91004574fe74be9e0c4c24fc4a12123f210bc9`; later documentation changes do not alter the APK.
+
+## Workspace dialog migration sprint (2026-10-16, code `043842e67307da514fadf3560c9a72cf40453401`)
+
+- Added the shared Material 3 `WorkspaceMessageDialog` and registered it as an exclusive overlay in the existing `WorkspaceController` coordinator. Back/dismiss removes the Compose host and leaves the workspace active.
+- Migrated 9 legacy dialog call sites in the workspace/model actions: 7 from `BedFragment` (Moonraker sync error, missing-model slice warning, sync-failure confirmation, slice error, large-model simplification consent, printer setup prompt, plate deletion confirmation) and 2 model-menu deletion confirmations. Explicit user confirmation remains required for destructive operations and model simplification.
+- Source-count audit: the selected workspace/model files had 12 `BeamAlertDialogBuilder` call sites before this change; 9 were replaced. Three remain in `BedFragment`: the prime-tower position editor and two background-import confirmation dialogs. Native file/system dialogs, GL tool hosts, and unrelated settings/setup dialogs remain outside this migration group.
+- Verification: `:app:testDebugUnitTest` 539/539; `:app:testSliceTestUnitTest` 539/539; Honor `:app:connectedSliceTestAndroidTest` 39 passed, 0 failed, 3 skipped because the private multicolor fixtures are unavailable; `:app:assembleDebug` passed. The existing Honor touch test now also opens the shared Compose confirmation and verifies that Back closes it while the Activity remains active.
+- The final APK for this code commit was installed/launched on Honor PTP-N49 / Android 16. Workspace screenshot reviewed; no FATAL/ANR/OOM matches in the checked logcat. No print was started.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_043842e673.apk` (156,921,610 bytes; SHA-256 `94AAD0F1EC68A62CC25F4BCFFA0CBF79CC3220069AB056C99C00E581733F57BF`). Local debug build only.
+- Audit scope and remaining migration: this sprint functionally checked the model-menu delete confirmations and the shared workspace dialog/back route; it did not complete the full audit of all six workspace destinations and their submenus. The file action rail remains a horizontal lazy list, with the next tile partially visible at the edge as a swipe cue. Remaining work includes the legacy transform/special-tool and import/prime-tower dialog routes, broader global menus, BedFragment's renderer/domain responsibilities, small/landscape/accessibility coverage, and plate/filament stress fixtures. UI 2.0 is not complete. No merge or release.
+
+## Adaptive workspace action menu and synthetic list checks (2026-10-16)
+
+- Source review found that the file/project menu itself has two actions, while the adjacent Options/tools destination can expose four actions, or five when AI generation is available. Its Compose action rail had a two-row renderer available but did not select it, so the trailing tile could be only partially visible without a clear indication of more content.
+- The action layout now automatically switches to a two-row horizontal grid when the action count exceeds the responsive column count (four on ordinary phones, three on narrow windows or at large font scale). `BedFragment` reserves the matching expanded panel height for the Tools destination, preserving the touchable area and overlay margin calculation. Actions remain lazy and keep their full TalkBack title.
+- Added four test cases: one adaptive menu policy test, two plate-layout stress-policy tests, and one filament-capacity boundary test (suite counts rose from 539 to 543). Plate counts 1/3/6/10/20 exercise the layout policy; large text/narrow width use grid. Filament UI list counts 1/4/8/16 and synthetic overflow 24 confirm the existing 16-slot product cap and do not alter it.
+- These are policy-level synthetic tests, not full project save/reload stress runs or a device-driven 24-row UI test. The existing plate chooser uses `LazyVerticalGrid`, keyed items, active-plate initial scroll position, and a bounded 420 dp viewport for larger lists; those behaviors were inspected but were not exercised with real 3MF projects in this run.
+- Verification on code commit `2997bc6367f9df611078f457209a9c50fa29a9ae`: `:app:testDebugUnitTest` 543/543; `:app:testSliceTestUnitTest` 543/543; Honor `:app:connectedSliceTestAndroidTest` 39 passed, 0 failed, 3 skipped due to unavailable private multicolor fixtures; `:app:assembleDebug` passed. `git diff --check` passed. SDK XML version and existing Kotlin/annotation-processor warnings were reported; no compilation/test failures remained.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_2997bc6367.apk` (156,921,605 bytes; SHA-256 `FEE9C11CE36816709A2E17670FA29A9A8E73E1B3B5581BAC012193BBDFE1DE1B`). It was installed and launched on Honor PTP-N49 / Android 16; process remained alive and the last 1,600 logcat lines had no `FATAL EXCEPTION`, `ANR in`, or `OutOfMemoryError`. This run confirmed installation/start, not a full visual interaction sweep of every menu. `emulator-5554` remained offline. No print was started.
+- UI 2.0 remains incomplete: this sprint changed the Tools action rail and added policy tests; it did not migrate the remaining legacy dialog/tool/global routes or complete small-display, landscape, accessibility, plate project persistence, or long-list device checks. PR #2 remains open and unmerged; no release was created.
+
+## Workspace migration and real plate/filament integration follow-up (2026-10-16)
+
+- Migrated the large-STL continuation and oversized-model simplification consent prompts in `BedFragment` from blocking AppCompat alert dialogs to the existing exclusive Compose workspace message dialog. Cancel, Back, overlay replacement, and the existing two-minute worker timeout all resolve conservatively; simplification remains opt-in. The `BedFragment` prime-tower position editor is still a classic dialog because it contains a validated multi-field Compose editor and has not yet been replaced.
+- Extended Honor instrumentation with generated real 3MF packages containing 1, 3, 6, 10, and 20 plate entries. The native model reader loaded every generated plate and checked its object and alternating filament-tool assignment. Added SharedPreferences write/read tests for long material names and 1/4/8/16/24 synthetic entries; the actual stored palette is capped at 16 and preferences are restored after the test. Added a device assertion that Back resolves the shared Compose dialog through its dismissal callback.
+- Latest verification for code commit `300cade4442839adcc3378baa1b5abf2c7bf2ee7`: `:app:testDebugUnitTest` 543/543; `:app:testSliceTestUnitTest` 543/543; Honor `:app:connectedSliceTestAndroidTest` 41 tests started, 0 failed, 3 skipped for missing private multicolor fixtures; `:app:assembleDebug` passed. The 20-plate native reader and SharedPreferences stress cases ran on the Honor.
+- Debug APK: `app/build/outputs/apk/debug/OrkanSlicer_300cade444.apk` (156,921,608 bytes; SHA-256 `DEAC7785BC3175A10F1C348DBA3D57C71CD37692829916707F4C6F7A8175D091`). Installed and launched on Honor PTP-N49 / Android 16; process alive and last 1,800 logcat lines had no fatal exception, ANR, or OOM. No print was started.
+- Scope limitation: these are native per-plate load and palette preference persistence tests, not full workspace UI operations for adding/deleting/duplicating plates, nor save/reload of a complete multi-plate project. Source review shows the current 3MF export handler invokes `export3mf` on only the active renderer model; full multi-plate export/persistence is therefore not claimed. No automated app-level round-trip was added for that unsupported route.
+- Legacy status: the targeted `BedFragment` import prompts are migrated, but the prime-tower editor, transform/calibration/profile dialogs, seven `UnfoldMenu` subclass files, and global MainActivity/settings dialogs remain in use. `BedFragment` still owns GL/lifecycle and substantial model/plate integration, along with the legacy FrameLayout overlay host; these are not removed by the Compose shell. Raw `BeamAlertDialogBuilder` counts are not presented as unique route counts because many builder calls are repeated branches of the same flow.
+- UI 2.0 remains incomplete. A complete route-by-route interaction audit, small-width/landscape and accessibility-font bounds pass, full workspace state/lifecycle migration, UI-level filament action/profile switching, and whole-project multi-plate save/reload remain open. Emulator remains offline. PR #2 remains open and no release or merge was performed.
+
+Final import-consent device check and Debug APK (2026-10-16):
+
+- The Honor test opens the large-STL and oversized-model consent prompts from waiting import workers, presses Back, and asserts both operations return `false` without explicit consent. Targeted `MainActivityTouchDeviceTest`: 1/1 passed. The preceding full Honor suite on the same production sources passed 41 started, 0 failed, 3 skipped for unavailable private multicolor fixtures; both Unit suites passed 543/543.
+- Test-only code commit: `2a289c73a6134223640b702f787ce0e4eb6ba348`. Final Debug APK rebuilt for this commit: `app/build/outputs/apk/debug/OrkanSlicer_2a289c73a6.apk` (156,921,603 bytes; SHA-256 `10341808F7F2C1B1C6E126F44507ED182F69D14E315789EA74334F3CF6144739`). Installed and launched on Honor PTP-N49 / Android 16; process stayed alive and checked logcat had no fatal/ANR/OOM.
+- The targeted test run does not replace a fresh full 41-test instrumentation run after the test-only commit. No production Kotlin changed after the full suite; this final added test passed separately.
+
+## Model actions and profile export migration (2026-10-16)
+
+- Migrated the six `FileMenuObjectActions` dialog entry points (copy/move chooser, object list, selected-object actions, object filament assignment, duplicate count, and target plate picker) to Compose Material 3 under the existing exclusive workspace overlay. Native model operations and GL-queue calls are preserved; object-to-tool remains one-based in libSlic3r (`T0`/first UI slot -> extruder 1). The object list is lazy/scrollable, exposes the assigned material and color, and disables slot assignment when no slots exist.
+- Replaced the three-step AppCompat profile export chooser with one scrollable Compose wizard, category Back/Next, checkbox selection, and the existing Android document picker at completion. The no-selection error remains a Compose workspace message.
+- Removed the associated legacy `AlertDialog`, `LinearLayout`, `TextView`, `ScrollView`, `EditText`, and dialog `FrameLayout` implementation from these two menu routes. Added Honor coverage that opens and dismisses the object-list, duplicate-count, and profile-export dialogs. Back first dismisses the numeric keyboard, then the dialog; the device test verifies both Back steps.
+- Verification on code commit `279799a730d6ff6f5bd7245912fca8fd6529e0d5`: Debug unit 543/543; Slice unit 543/543; Honor PTP-N49 Android 16 instrumented suite 41 started, 0 failed, 3 skipped because private multicolor fixtures are unavailable. `:app:assembleDebug` passed. App installed/launched on Honor; captured the workspace screenshot; checked 2,000-line logcat tail had no fatal, ANR, or OOM matches. Emulator `emulator-5554` remains offline.
+- Debug APK: `app/build/outputs/apk/debug/OrkanSlicer_279799a730.apk`, 156,954,378 bytes; SHA-256 `E4B19C931E26C5FA3CA06E6841BF103C3661D60D3A15700930C9E617380923B4`.
+- Migration remains incomplete. The full menu/submenu audit, remaining calibration/transform/slicing/print and global settings dialogs, most UI responsibilities in `BedFragment`, small/landscape/accessibility coverage, and end-to-end multi-plate save/reload plus UI-level filament/plate mutations remain open. The screenshot still shows the trailing file action partly visible as a horizontal-scroll cue; its full menu behavior was not audited in this run. No printer action, merge, or release was performed.
+
+## Transform and camera dialog migration (2026-10-16)
+
+- Replaced the AppCompat model-simplification preset and custom triangle-count dialogs with Compose Material 3 choice/input dialogs, hosted by the exclusive workspace overlay. Presets and numeric clamping remain; simplification still runs only after tapping Start. The custom editor keeps the valid range 4 to triangle-count minus 1.
+- Replaced the camera-control-mode single-choice dialog with the same Compose workspace dialog host. Choosing a row persists the selected mode; Back/cancel leaves the preference unchanged.
+- Extended the Honor touch integration test to open and dismiss both routes. It verifies Back leaves the loaded model's triangle count and the camera mode preference unchanged.
+- Full verification for code commit `be1a32070d0d55a1da089e7bcac3b2e97846dc43`: Debug unit 543/543; Slice unit 543/543; Honor PTP-N49 Android 16 suite 41 started, 0 failed, 3 skipped (private multicolor fixtures unavailable). Targeted touch test also passed after these changes. `:app:assembleDebug` passed.
+- Debug APK: `app/build/outputs/apk/debug/OrkanSlicer_be1a32070d.apk`, 156,954,369 bytes; SHA-256 `BDC633D324D0314843737FD11442366D7C8B5BC991CF38809BEB00B6D44FB02A`. Installed/launched on Honor; app process remained alive, a workspace screenshot was captured/reviewed, and checked logcat contained no fatal/ANR/OOM matches. Emulator remains offline.
+- The remaining legacy menus/dialogs, central workspace migration, full route-by-route UI audit, small/landscape/accessibility coverage and end-to-end plate/filament workflows remain open. The screenshot continues to show the rightmost file action partially clipped at the horizontal rail edge; no complete menu audit is claimed. No printer action, merge or release.
+
+## Workspace route transition and native plate export follow-up (2026-10-16)
+
+- Fixed a stale View-backed menu transition in `BedFragment`: route changes now record the previous menu slot before updating `WorkspaceController`, and the outgoing view animation removes the actual previous menu rather than looking up the already-selected destination. `WorkspaceController.navigateToDestination` changes routes atomically, dismisses a transient panel/tool, and rejects invalid route indexes without disturbing the active panel.
+- Added two controller unit tests and `WorkspaceNavigationDeviceTest`, which switches File → Model → File on Honor and asserts the selected menu is the sole attached menu view after each transition. This verifies the stale mixed-menu regression observed in the prior workspace screenshot.
+- Extended `MultiPlateProjectDeviceTest` with a native export/reload check for each plate in generated projects of 1, 3, 6, 10, and 20 plates. Each plate model is translated, exported through the existing native `Model.export3mf` API, released, reloaded, and checked for object count, assigned filament, and restored position. This is a per-plate single-model roundtrip, not a whole-project multi-plate save/reload test; the app export path still exports the active model only. Single-model export compacts unused tool indexes, so exact multi-tool index preservation is covered separately by the existing two-color project test.
+- Verification on code commit `2ec8ba8572...`: Debug unit suite 545/545; Slice unit suite 545/545; Honor PTP-N49 / Android 16 `:app:connectedSliceTestAndroidTest` 43 tests, 0 failures, 3 skipped because the private multicolor fixtures are unavailable. The 20-plate generated native export/reload test and the route transition device test passed. `:app:assembleDebug` passed; `git diff --check` passed.
+- Final Debug APK for code commit `2ec8ba8572...`: `app/build/outputs/apk/debug/OrkanSlicer_2ec8ba8572.apk` (156,954,374 bytes; SHA-256 `D6F097A2C10A1B08252B537A76A55793FF3C585314D5D136A3531F8455EFB59A`). Installed and started on Honor PTP-N49 / Android 16. After dismissing the first-run change log, a workspace screenshot showed the plate and main navigation; the app process remained alive, and the checked logcat tail had no fatal exception, ANR, or OOM. `emulator-5554` remains offline.
+- This sprint does not finish UI 2.0. The manual View-based workspace/menu hosts, remaining legacy tool/dialog/global routes, complete route-by-route interaction audit, small-width/landscape/accessibility-size checks, full multi-plate project persistence, and UI-level filament-list mutation/profile-switch tests remain open. The file rail still needs full visual/action audit. No printer was contacted, no print was started, and no merge or release was performed.
+
+## Mehrplatten-Export-Schutz (2026-10-16, Code `be7979c`)
+
+- Die native Exportmethode `Model.export3mf` erhält ein einzelnes Modell. `MainActivity` exportiert das aktive Renderer-Modell; der Importer liest dagegen Plattenmetadaten aus `Metadata/model_settings.config` und lädt einzelne Platten lazy. In der vorhandenen API gibt es keinen Serializer, der alle `BedFragment.platesModels`, Projektplatten-IDs und Profilzustände als einen 3MF-Projektcontainer ausgibt. Ein kompatibles Container-Merge wurde deshalb nicht spekulativ implementiert.
+- Als unmittelbarer Schutz zeigt „3MF sichern“ bei mehr als einer Platte jetzt einen lokalisierten Compose-Hinweis an: Nur die aktive Platte wird exportiert, der Rest fehlt. Abbrechen/Zurück startet keinen Dateidialog; nach Bestätigung wird ein plattenbezogener Dateiname vorgeschlagen. Einplatten-Exporte bleiben direkt.
+- Der Honor-Mehrplattentest lädt ein Zwei-Platten-Projekt, wählt die Exportaktion und prüft Öffnen und Abbrechen des Hinweises. Die native per-Platte Export-/Ladeprüfung für Projektgrößen 1/3/6/10/20 bleibt erhalten.
+- Vollverifikation auf Code-Commit `be7979cf64...`: Debug-Unit 545/545; Slice-Unit 545/545; Honor PTP-N49 Android 16 Instrumentierung 43 Tests, 0 Fehler, 3 private Mehrfarben-Fixtures übersprungen; Debug-APK-Build erfolgreich. APK installiert und gestartet; Workspace-Screenshot geprüft, Logcat-Ausschnitt ohne fatal/ANR/OOM.
+- APK `app/build/outputs/apk/debug/OrkanSlicer_be7979cf64.apk` (156,972,983 Byte; SHA-256 `D10742C62C6484932BFA848EE705E6DF5C6747E39B8C4A57AA6160BA9AC91540`).
+- UI 2.0 und vollständige Mehrplatten-Projektspeicherung bleiben offen. Legacy-Werkzeughosts und weitere Workspace-/Einstellungsrouten bestehen. Der Offline-Emulator verhindert Emulatorprüfung; kleine Displaybreiten, Querformat und Accessibility-Schriftstufen wurden in diesem Durchgang nicht vollständig abgenommen. Es wurde kein Druck gestartet und nichts gemergt oder veröffentlicht.
+
+## Filamentleisten-Virtualisierung und Compose-UI-Test (2026-10-16, Code `b83c9ab0a55b13b52dbf182b56c7a25ceb472d21`)
+
+- Die kompakte Filamentleiste verwendet jetzt `LazyRow` mit stabilen Slot-Schlüsseln statt alle Kacheln gleichzeitig in einer scrollenden `Row` zu komponieren. Damit bleibt der Darstellungspfad für längere Listen virtualisiert; die persistierte Drucker-/ACE-Grenze (T0–T15, 16 Slots) wurde nicht verändert.
+- Ergänzt wurde `FilamentPaletteComposeDeviceTest`: Auf dem Honor rendert und bedient der Test die gemeinsame Compose-Kacheloberfläche mit 1, 4, 8, 16 und 24 Einträgen. Für jede Größe scrollt er zum letzten Material und klickt es. Die 24 Einträge sind ausschließlich synthetische UI-Testdaten und werden nicht in Preferences oder Druckerprofile geschrieben.
+- Prüfergebnis: Debug-Unit 545/545 bestanden; Slice-Unit 545/545 bestanden; neuer Honor-Compose-Test 1 bestanden; `:app:assembleDebug` erfolgreich. Der Emulator `emulator-5554` blieb offline. Die finale Debug-APK wurde auf Honor PTP-N49 / Android 16 installiert und gestartet; Prozess vorhanden, im geprüften Logcat-Ausschnitt keine FATAL-, ANR- oder OOM-Zeile. Workspace-Screenshot nach Schließen des Änderungsdialogs visuell kontrolliert.
+- APK `app/build/outputs/apk/debug/OrkanSlicer_b83c9ab0a5.apk` (156,973,274 Byte; SHA-256 `70F2D6A3099BE27EBF53DC0EB04DCDF4BEF5F24DD6C36A4843480C3E2DD99949`). APK-Code-Commit: `b83c9ab0a55b13b52dbf182b56c7a25ceb472d21`.
+- Scope-Grenze: Dieser Durchgang virtualisiert und testet die Filament-Kachelreihe; er migriert nicht die BedFragment-Menühosts oder den `UnfoldMenu`-Overlayhost. Im Quellcode bestehen weiterhin 10 konkrete `UnfoldMenu`-Werkzeugrouten (Position, Rotation, Skalierung, Schneiden, zwei Slice-Details, zwei Kalibrierungsrouten, AI-Generator, Kromacut-Editor) sowie die drei GL-gebundenen View-Modushosts. Die sechs Hauptnavigationseinträge wurden in diesem Durchgang nicht vollständig praktisch auditiert; nur der Workspace-Startbildschirm und die Filamentliste wurden visuell beziehungsweise interaktiv geprüft. Kleine Displaybreiten, Querformat, große Schriftstufen und vollständige TalkBack-Fokusreihenfolge bleiben offen.
+- Mehrplattenpersistenz bleibt unverändert unvollständig: `Model.export3mf` exportiert ein einzelnes aktives Modell, während BedFragment Platten und lazy geladene Modelle separat im Speicher hält. Der bestehende Hinweis gegen einen irreführenden Gesamtexport bleibt aktiv. Es wurde kein vollständiger 3MF-Projektroundtrip ergänzt oder behauptet.
+- Kein Druckstart, keine Firmwareänderung, kein Merge und kein Release.
+
+## OrkanSlicer 0.8.243 Alpha auf GitHub (2026-10-16)
+
+- Version in `app/build.gradle`: `versionName 0.8.243`, `versionCode 278`. `CHANGELOG.md` enthält die Einträge 0.8.243 und 0.8.242; die Release-Notizen führen bekannte Grenzen, insbesondere den aktiven-Platte-only-3MF-Export, ausdrücklich auf.
+- Code-Commit für die APK und den Tag `v0.8.243`: `dce1d88754dda32c480f98671ca52ec3f8c14816`. Der Branch `codex/rinkhals-safe-start-audit` wurde nach GitHub gepusht; PR #2 bleibt offen und ungemergt.
+- Verifikation dieses Codes: `:app:testDebugUnitTest` 545 Tests, 0 fehlgeschlagen; `:app:testSliceTestUnitTest` 545 Tests, 0 fehlgeschlagen; `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 44 Tests, 0 fehlgeschlagen, 3 übersprungen (private Mehrfarben-Fixtures fehlen); `:app:assembleDebug` erfolgreich. Der Emulator `emulator-5554` war offline.
+- Debug-APK `app/build/outputs/apk/debug/OrkanSlicer_dce1d88754.apk`, 156,973,276 Byte, SHA-256 `5425BDB3322EB0447660C7485B147BC7A307BBC8D6FCAD271B1F63E9C1589418`. APK-Metadaten wurden geprüft: Version 0.8.243 / Code 278. APK auf Honor installiert und gestartet; App-Prozess lief. Geprüfter Logcat-Ausschnitt enthielt keine FATAL EXCEPTION-, ANR- oder OOM-Meldungen.
+- GitHub Alpha-Prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.243. APK ist als `OrkanSlicer_0.8.243_alpha_debug.apk` gelabelt. Dies ist ein Debug-Build, kein produktionssigniertes offizielles Release.
+- Weiterhin offen: UI 2.0 ist nicht vollständig migriert; mehrere Legacy-Werkzeughosts bleiben, und der vollständige Mehrplatten-Projektroundtrip wurde nicht umgesetzt. Diese Release-Notiz behauptet keine vollständige UI-Abnahme.

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -46,6 +47,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+/** A menu route whose visible workspace content is hosted directly by WorkspaceShell. */
+internal interface WorkspaceComposeBedMenu {
+    @Composable
+    fun WorkspaceContent(portrait: Boolean)
+
+    fun onWorkspaceMenuVisible() = Unit
+
+    fun onWorkspaceMenuHidden() = Unit
+}
+
+@Composable
+internal fun WorkspaceComposeBedMenuHost(menu: WorkspaceComposeBedMenu, portrait: Boolean) {
+    androidx.compose.runtime.DisposableEffect(menu) {
+        menu.onWorkspaceMenuVisible()
+        onDispose { menu.onWorkspaceMenuHidden() }
+    }
+    menu.WorkspaceContent(portrait)
+}
 
 /** A menu action that can be shared by responsive Compose menus. */
 internal data class BedComposeMenuAction(
@@ -60,6 +80,13 @@ internal data class BedComposeMenuAction(
 
 /** Keeps phone portrait actions wide enough to read; longer menus remain swipeable. */
 internal object BedMenuActionTileWidthPolicy {
+    fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
+        if (fontScale >= 1.15f || screenWidthDp < 400) 3 else 4
+
+    /** Avoid showing a clipped last action in a single-row phone menu. */
+    fun usesTwoRows(actionCount: Int, portrait: Boolean, screenWidthDp: Int, fontScale: Float): Boolean =
+        portrait && actionCount > columnsForLayout(fontScale, screenWidthDp)
+
     fun widthDp(screenWidthDp: Int, actionCount: Int): Int = when {
         actionCount <= 0 -> 72
         else -> ((screenWidthDp.coerceAtLeast(320) - 8) / actionCount.coerceIn(1, 4)).coerceIn(72, 128)
@@ -69,8 +96,13 @@ internal object BedMenuActionTileWidthPolicy {
 @Composable
 internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait: Boolean, multiRow: Boolean = false) {
     val menuView = LocalView.current
-    if (portrait && multiRow) {
-        val tileWidth = BedMenuActionTileWidthPolicy.widthDp(LocalConfiguration.current.screenWidthDp, 4).dp
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    val fontScale = LocalDensity.current.fontScale
+    if (portrait && (multiRow || BedMenuActionTileWidthPolicy.usesTwoRows(
+            actions.size, portrait, widthDp, fontScale,
+        ))) {
+        val columns = BedMenuActionTileWidthPolicy.columnsForLayout(fontScale, widthDp)
+        val tileWidth = BedMenuActionTileWidthPolicy.widthDp(widthDp, columns).dp
         LazyHorizontalGrid(
             rows = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
@@ -134,13 +166,34 @@ private fun BedMenuActionTile(
     modifier: Modifier,
 ) {
     val fullTitle = stringResource(action.titleRes)
+    val fontScale = LocalDensity.current.fontScale
     val compactLabel = when (action.titleRes) {
+        R.string.MenuCameraIsometric -> if (fontScale >= 1.3f) R.string.MenuCameraIsometricCompact else action.titleRes
         R.string.ModelUndo -> R.string.EditUndoShort
         R.string.ModelRedo -> R.string.EditRedoShort
-        R.string.MenuArrangeAllObjects -> R.string.EditArrangeShort
+        R.string.MenuArrangeAllObjects -> R.string.EditArrangeAllShort
         R.string.MenuOrientAllObjects -> R.string.EditOrientShort
+        R.string.MenuOrientationArrange -> R.string.EditPackPlateShort
         R.string.MenuFileMoveToPlate -> R.string.EditMovePlateShort
-        R.string.ObjectActionMore -> R.string.EditMoreShort
+        R.string.ModelContextFillBed -> R.string.EditFillBedShort
+        R.string.ModelContextCenterOnBed -> R.string.EditCenterBedShort
+        R.string.ModelMenuDuplicate -> R.string.ModelMenuDuplicateShort
+        R.string.ModelMenuMoveToPlate -> R.string.ModelMenuMoveToPlateShort
+        R.string.ModelMenuCenterOnBed -> R.string.ModelMenuCenterOnBedShort
+        R.string.ModelMenuFillBed -> R.string.ModelMenuFillBedShort
+        R.string.ModelMenuArrange -> R.string.ModelMenuArrangeShort
+        R.string.ModelMenuOrientAll -> R.string.ModelMenuOrientAllShort
+        R.string.ModelMenuAutoOrientSelected -> R.string.ModelMenuAutoOrientSelectedShort
+        R.string.ModelMenuFlatten -> R.string.ModelMenuFlattenShort
+        R.string.ModelMenuDeleteSelected -> R.string.ModelMenuDeleteSelectedShort
+        R.string.ModelMenuSelectAll -> R.string.ModelMenuSelectAllShort
+        R.string.ModelMenuDeleteAll -> R.string.ModelMenuDeleteAllShort
+        R.string.WorkspaceObjects -> R.string.ModelMenuObjectsShort
+        R.string.ModelContextResetRotation -> R.string.EditResetRotationShort
+        R.string.ModelContextResetScale -> R.string.EditResetScaleShort
+        R.string.ModelContextSetOnFace -> R.string.EditLayFaceShort
+        R.string.ModelContextSelectAll -> R.string.EditSelectAllShort
+        R.string.ModelContextDeleteAll -> R.string.EditDeleteAllShort
         R.string.ModelColorSlotsAction -> R.string.ModelColorSlotsShort
         R.string.MenuSlicePerformance -> R.string.GCodePerformanceShort
         R.string.MenuSliceExportToFile -> R.string.GCodeExportShort

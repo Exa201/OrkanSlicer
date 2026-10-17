@@ -7,13 +7,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.LocalContext
 import ru.ytkab0bp.slicebeam.R
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.Camera
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -23,45 +20,46 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 
 /** Camera controls rendered with Compose while retaining the existing renderer and camera actions. */
-open class CameraMenu : BedMenu() {
+open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
     private var fragment: BedFragment? = null
 
     override fun onSetBed(fragment: BedFragment?) {
         this.fragment = fragment
     }
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                CameraMenuContent(
-                    portrait = portrait,
-                    initialOrthoEnabled = Prefs.isOrthoProjectionEnabled(),
-                    onPresetSelected = ::selectCamera,
-                    onControlModeSelected = { showControlModeDialog(ctx) },
-                    onOrthoChanged = ::setOrthoProjection,
-                )
-            }
-        }
-        return themedView
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        val context = LocalContext.current
+        CameraMenuContent(
+            portrait = portrait,
+            initialOrthoEnabled = Prefs.isOrthoProjectionEnabled(),
+            onPresetSelected = ::selectCamera,
+            onControlModeSelected = { showControlModeDialog(context) },
+            onOrthoChanged = ::setOrthoProjection,
+        )
     }
 
     private fun showControlModeDialog(context: Context) {
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MenuCameraControlModeFull)
-            .setSingleChoiceItems(
-                arrayOf(
-                    context.getString(R.string.MenuCameraControlModeOne),
-                    context.getString(R.string.MenuCameraControlModeTwo),
-                    context.getString(R.string.MenuCameraControlModeThree),
-                ),
-                Prefs.getCameraControlMode(),
-            ) { dialog, which ->
-                Prefs.setCameraControlMode(which)
-                dialog.dismiss()
-            }
-            .show()
+        val bed = fragment ?: return
+        val labels = listOf(
+            context.getString(R.string.MenuCameraControlModeOne),
+            context.getString(R.string.MenuCameraControlModeTwo),
+            context.getString(R.string.MenuCameraControlModeThree),
+        ).mapIndexed { index, label ->
+            if (index == Prefs.getCameraControlMode()) "✓ $label" else label
+        }
+        bed.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.MenuCameraControlModeFull),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = labels,
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    Prefs.setCameraControlMode(which)
+                },
+            )
+        }
     }
 
     private fun setOrthoProjection(enabled: Boolean) {

@@ -38,7 +38,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -51,7 +51,7 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 
 /** Compose editor for the cut plane and the optional connectors between cut pieces. */
-class TransformCutMenu(private val bed: BedFragment) : UnfoldMenu() {
+class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute() {
     private val tempMin = Vec3d()
     private val tempMax = Vec3d()
     private var cutObject = -1
@@ -210,53 +210,47 @@ class TransformCutMenu(private val bed: BedFragment) : UnfoldMenu() {
         dismiss()
     }
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                val zValue = cutZ.floatValue
-                val xDegrees = rotationX.floatValue
-                val yDegrees = rotationY.floatValue
-                val radius = connectorRadius.floatValue
-                val height = connectorHeight.floatValue
-                val type = connectorType.intValue
-                val addingConnectors = connectorModeState.value
-                val count = connectorCount.intValue
-                LaunchedEffect(addingConnectors, cutObject) {
-                    if (addingConnectors && cutObject >= 0) {
-                        while (isActive) {
-                            updateConnectorCount()
-                            delay(CONNECTOR_COUNT_REFRESH_MS)
-                        }
-                    }
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
+        val zValue = cutZ.floatValue
+        val xDegrees = rotationX.floatValue
+        val yDegrees = rotationY.floatValue
+        val radius = connectorRadius.floatValue
+        val height = connectorHeight.floatValue
+        val type = connectorType.intValue
+        val addingConnectors = connectorModeState.value
+        val count = connectorCount.intValue
+        LaunchedEffect(addingConnectors, cutObject) {
+            if (addingConnectors && cutObject >= 0) {
+                while (isActive) {
+                    updateConnectorCount()
+                    delay(CONNECTOR_COUNT_REFRESH_MS)
                 }
-                TransformCutEditorContent(
-                    zValue = zValue,
-                    zMin = zRange.min,
-                    zMax = zRange.max,
-                    rotationX = xDegrees,
-                    rotationY = yDegrees,
-                    connectorRadius = radius,
-                    connectorHeight = height,
-                    connectorType = type,
-                    connectorCount = count,
-                    connectorMode = addingConnectors,
-                    canCut = cutObject >= 0 && bed.glView?.renderer?.model != null,
-                    onZChanged = ::setCutZ,
-                    onRotationXChanged = ::setRotationX,
-                    onRotationYChanged = ::setRotationY,
-                    onConnectorModeChanged = ::toggleConnectorMode,
-                    onRadiusChanged = ::setConnectorRadius,
-                    onHeightChanged = ::setConnectorHeight,
-                    onTypeChanged = ::setConnectorType,
-                    onUndoConnector = ::undoConnector,
-                    onClearConnectors = ::clearConnectors,
-                    onApplyCut = ::applyCut,
-                )
             }
         }
-        return themedView
+        TransformCutEditorContent(
+            zValue = zValue,
+            zMin = zRange.min,
+            zMax = zRange.max,
+            rotationX = xDegrees,
+            rotationY = yDegrees,
+            connectorRadius = radius,
+            connectorHeight = height,
+            connectorType = type,
+            connectorCount = count,
+            connectorMode = addingConnectors,
+            canCut = cutObject >= 0 && bed.glView?.renderer?.model != null,
+            onZChanged = ::setCutZ,
+            onRotationXChanged = ::setRotationX,
+            onRotationYChanged = ::setRotationY,
+            onConnectorModeChanged = ::toggleConnectorMode,
+            onRadiusChanged = ::setConnectorRadius,
+            onHeightChanged = ::setConnectorHeight,
+            onTypeChanged = ::setConnectorType,
+            onUndoConnector = ::undoConnector,
+            onClearConnectors = ::clearConnectors,
+            onApplyCut = ::applyCut,
+        )
     }
 
     override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int {

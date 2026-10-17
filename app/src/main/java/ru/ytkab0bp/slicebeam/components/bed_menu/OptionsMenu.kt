@@ -1,34 +1,26 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.content.Context
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 
 /** Exposes workspace tools directly instead of hiding them behind the File menu's More dialog. */
 class OptionsMenu : ListBedMenu() {
     private val actionSource = FileMenu()
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        refreshActions()
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(composeActions.value, portrait)
-            }
-        }
-        return themedView
-    }
-
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
+
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        LaunchedEffect(this, fragment) { refreshActions() }
+        BedMenuActionsContent(composeActions.value, portrait)
+    }
 
     private fun refreshActions() {
         actionSource.onSetBed(fragment)

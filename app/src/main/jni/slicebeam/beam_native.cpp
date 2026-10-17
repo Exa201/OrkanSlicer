@@ -1287,9 +1287,8 @@ extern "C" {
             env->ReleaseStringUTFChars(configPath, chars);
             config.normalize_fdm();
 
-            // The app's bed temperatures live in the hot-plate slots (legacy bed_temperature keys
-            // migrate to hot_plate_temp); the engine reads the slot picked by curr_bed_type, whose
-            // compiled default is Cool Plate — which would silently ignore those values.
+            // Legacy bed_temperature keys migrate to hot_plate_temp. When an older profile omits
+            // curr_bed_type, keep Orkan's established PEI/high-temperature plate fallback.
             if (config.option("curr_bed_type", false) == nullptr)
                 config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(btPEI));
 
@@ -2496,10 +2495,10 @@ extern "C" {
         s->model = mRef;
         s->objIdx = objIdx;
         s->mode = mode;
-        // Use the same merged object mesh the GLModel/raycaster uses, so hit coords and triangle
-        // indices line up exactly. Paint states are stored per triangle index, so they still map
-        // back to volume[0]'s facet annotation (single-volume objects).
-        s->mesh = obj->mesh();
+        // Keep selector triangle indices aligned with the annotation on volume[0].
+        // obj->mesh() merges all model-part volumes, but commit stores the selector into only
+        // volume[0]; for multi-volume assemblies the later volume indices then cannot round-trip.
+        s->mesh = obj->volumes[0]->mesh();
         s->selector = std::make_unique<Slic3r::TriangleSelector>(s->mesh);
         const auto& data = facets_for_mode(obj->volumes[0], mode).get_data();
         if (!data.triangles_to_split.empty())
@@ -2623,8 +2622,8 @@ extern "C" {
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
         ModelObject* obj = s->model->model.objects[s->objIdx];
 
-        // The merged session mesh matches obj->mesh(); commit to volumes[0] as the standard for
-        // single-part models. Write to the facet channel for this session's mode.
+        // The session selector is built from volumes[0], so its triangle indices map directly
+        // to the annotation we commit here.
         for (auto* v : obj->volumes) {
             if (v == obj->volumes[0]) {
                 facets_for_mode(v, s->mode).set(*s->selector);

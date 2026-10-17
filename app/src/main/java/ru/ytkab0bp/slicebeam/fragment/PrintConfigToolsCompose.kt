@@ -12,17 +12,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -32,10 +36,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -175,6 +180,7 @@ internal fun FlushVolumesEditor(
                                 modifier = Modifier
                                     .width(CELL_WIDTH)
                                     .padding(horizontal = 2.dp, vertical = 3.dp)
+                                    .testTag("flush-cell-$index")
                                     .semantics { contentDescription = label },
                                 singleLine = true,
                                 isError = error,
@@ -198,6 +204,45 @@ internal fun FlushVolumesEditor(
             )
         }
     }
+}
+
+@Composable
+internal fun FlushVolumesDialog(
+    matrix: PrintConfigFlushMatrix,
+    onDismiss: () -> Unit,
+    onApply: (String) -> Unit,
+) {
+    val cells = remember(matrix) { mutableStateListOf<String>().apply { addAll(matrix.cells) } }
+    val error = remember(matrix) { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.FlushVolumes)) },
+        text = {
+            FlushVolumesEditor(
+                matrix = matrix,
+                cells = cells.toList(),
+                error = error.value,
+                onCellChanged = { index, value ->
+                    if (index in cells.indices) cells[index] = value
+                    error.value = false
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val serialized = PrintConfigToolsLogic.serializeFlushMatrix(matrix.side, cells.toList())
+                    if (serialized == null) error.value = true else onApply(serialized)
+                },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text(stringResource(android.R.string.ok)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -264,16 +309,19 @@ internal fun PrimeTowerPositionEditor(
                     value = xValues.getOrElse(plate) { "15" },
                     label = stringResource(R.string.PrintConfigPrimeX),
                     error = error,
-                    modifier = Modifier.weight(1f).then(
-                        if (plate == 0) Modifier.focusRequester(firstFieldFocus) else Modifier,
-                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("prime-tower-x-$plate")
+                        .let { field ->
+                            if (plate == 0) field.focusRequester(firstFieldFocus) else field
+                        },
                     onValueChanged = { onXChanged(plate, it) },
                 )
                 TowerPositionField(
                     value = yValues.getOrElse(plate) { "15" },
                     label = stringResource(R.string.PrintConfigPrimeY),
                     error = error,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("prime-tower-y-$plate"),
                     imeAction = if (plate == positions.plateCount - 1) ImeAction.Done else ImeAction.Next,
                     onValueChanged = { onYChanged(plate, it) },
                 )
@@ -287,6 +335,55 @@ internal fun PrimeTowerPositionEditor(
             )
         }
     }
+}
+
+@Composable
+internal fun PrimeTowerPositionDialog(
+    positions: PrintConfigTowerPositions,
+    onDismiss: () -> Unit,
+    onApply: (Pair<String, String>) -> Unit,
+    plateNumberOffset: Int = 0,
+    helpTextResource: Int = R.string.PrintConfigPrimeTowerPositionHelp,
+) {
+    val xValues = remember(positions) { mutableStateListOf<String>().apply { addAll(positions.x) } }
+    val yValues = remember(positions) { mutableStateListOf<String>().apply { addAll(positions.y) } }
+    val error = remember(positions) { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.PrimeTowerPosition)) },
+        text = {
+            PrimeTowerPositionEditor(
+                positions = positions,
+                xValues = xValues.toList(),
+                yValues = yValues.toList(),
+                error = error.value,
+                plateNumberOffset = plateNumberOffset,
+                helpTextResource = helpTextResource,
+                onXChanged = { index, value ->
+                    if (index in xValues.indices) xValues[index] = value
+                    error.value = false
+                },
+                onYChanged = { index, value ->
+                    if (index in yValues.indices) yValues[index] = value
+                    error.value = false
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val serialized = PrintConfigToolsLogic.serializeTowerPositions(xValues.toList(), yValues.toList())
+                    if (serialized == null) error.value = true else onApply(serialized)
+                },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text(stringResource(android.R.string.ok)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable

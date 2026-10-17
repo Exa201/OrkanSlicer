@@ -7,8 +7,32 @@ import org.junit.Test
 
 class AdaptiveNavigationPolicyTest {
     @Test
-    fun expandedNavigationRailKeepsAStableFiniteWidth() {
-        assertEquals(64, AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP)
+    fun largeTextUsesCompactVisibleNavigationLabels() {
+        assertFalse(AdaptiveNavigationPolicy.usesCompactLabels(1.14f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactLabels(1.15f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactLabels(1.5f))
+    }
+
+    @Test
+    fun phoneWidthUsesCompactWorkspaceLabelsButLargeWindowsKeepFullLabels() {
+        assertTrue(AdaptiveNavigationPolicy.usesCompactBottomLabels(393, 1f))
+        assertFalse(AdaptiveNavigationPolicy.usesCompactBottomLabels(480, 1f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactBottomLabels(720, 1.3f))
+    }
+
+    @Test
+    fun largeTextUsesTwoNavigationRowsWhenLabelsNeedRoom() {
+        assertFalse(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 3))
+        assertTrue(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 5))
+        assertEquals(146, AdaptiveNavigationPolicy.navigationBarHeightDp(1.3f, 6))
+        assertEquals(56, AdaptiveNavigationPolicy.navigationBarHeightDp(1f, 6))
+    }
+
+    @Test
+    fun expandedNavigationRailAdaptsWidthForLargeSystemText() {
+        assertEquals(80, AdaptiveNavigationPolicy.navigationRailWidthDp(1f))
+        assertEquals(96, AdaptiveNavigationPolicy.navigationRailWidthDp(1.2f))
+        assertEquals(96, AdaptiveNavigationPolicy.navigationRailWidthDp(1.5f))
     }
 
     @Test

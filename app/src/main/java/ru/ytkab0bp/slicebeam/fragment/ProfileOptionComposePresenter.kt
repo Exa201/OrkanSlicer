@@ -1,11 +1,9 @@
 package ru.ytkab0bp.slicebeam.fragment
 
 import android.content.Context
-import android.graphics.Color
 import androidx.compose.runtime.Composable
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.ColorChooserSheet
 import ru.ytkab0bp.slicebeam.config.ProfilePointValueValidator
 import ru.ytkab0bp.slicebeam.config.ProfileStringVectorCodec
 import ru.ytkab0bp.slicebeam.config.LineWidthConversion
@@ -25,7 +23,6 @@ import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfilePointOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileStringOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileStringVectorOption
 import ru.ytkab0bp.slicebeam.ui.settings.ComposeProfileVectorOption
-import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.util.Arrays
 import java.util.function.Consumer
 import java.util.function.Supplier
@@ -109,7 +106,7 @@ object ProfileOptionComposePresenter {
             ProfileOptionDirectComposePolicy.Kind.COLOR -> ComposeProfileColorOption.Content(
                 localized(def.getLabel()),
                 initialValue,
-                colorPicker(context, def, Supplier { initialValue }, onChanged),
+                colorPicker(onChanged),
                 onLongClick,
             )
 
@@ -266,7 +263,7 @@ object ProfileOptionComposePresenter {
             return ComposeProfileColorOption.create(
                 localized(def.getLabel()),
                 normalizedProvider(valueProvider),
-                colorPicker(context, def, normalizedProvider(valueProvider), onChanged),
+                colorPicker(onChanged),
                 onLongClick,
             )
         }
@@ -421,24 +418,8 @@ object ProfileOptionComposePresenter {
             }
         }
 
-    private fun colorPicker(
-        context: Context,
-        def: ConfigOptionDef,
-        valueProvider: Supplier<String>,
-        onChanged: Consumer<String>,
-    ): Runnable = Runnable {
-        val defaultColor = try {
-            (Color.parseColor(valueProvider.get().orEmpty()) and 0xFFFFFF) or 0xFF000000.toInt()
-        } catch (_: Exception) {
-            Prefs.getAccentColor()
-        }
-        ColorChooserSheet(
-            context,
-            defaultColor,
-            ColorChooserSheet.OnColorChosen { color ->
-                onChanged.accept(String.format("#%06X", color and 0xFFFFFF))
-            },
-        ).show()
+    private fun colorPicker(onChanged: Consumer<String>): (Int) -> Unit = { color ->
+        onChanged.accept(String.format("#%06X", color and 0xFFFFFF))
     }
 
     private fun localized(value: String?): String =

@@ -440,12 +440,13 @@ def main() -> None:
     native_config_bridge = uncommented(read(JAVA / "slic3r/OrcaConfigBridge.kt"))
     native_kotlin = uncommented(read(JAVA / "slic3r/Native.kt"))
     native_bridge_cpp = uncommented(read(ROOT / "app/src/main/jni/slicebeam/beam_native.cpp"))
+    native_declarations = re.findall(r"(?m)^\s*external fun ([A-Za-z0-9_]+)\(", native_kotlin)
     native_jvm_methods = re.findall(
-        r"(?m)^\s*@JvmStatic\s*\n\s*(?:@Throws\([^\n]+\)\s*\n\s*)?external fun ([A-Za-z0-9_]+)\([^\n]*\): [A-Za-z0-9_?]+",
+        r"(?m)^\s*@JvmStatic\s*\n\s*(?:@Throws\([^\n]+\)\s*\n\s*)?external fun ([A-Za-z0-9_]+)\(",
         native_kotlin,
     )
-    if len(native_jvm_methods) != 122 or len(set(native_jvm_methods)) != 122:
-        errors.append("The Kotlin JNI facade must expose all 122 distinct methods as Java statics")
+    if len(set(native_declarations)) != len(native_declarations) or set(native_jvm_methods) != set(native_declarations):
+        errors.append("Every distinct Kotlin JNI declaration must be exposed as a Java static")
     jni_symbols = set(re.findall(
         r"Java_ru_ytkab0bp_slicebeam_slic3r_Native_([A-Za-z0-9_]+)\s*\(", native_bridge_cpp
     ))
@@ -469,11 +470,11 @@ def main() -> None:
     model_kotlin = uncommented(read(JAVA / "slic3r/Model.kt"))
     model_bridge = uncommented(read(JAVA / "slic3r/OrcaModelBridge.kt"))
     bed_fragment = uncommented(read(JAVA / "fragment/BedFragment.kt"))
-    if "OrcaModelBridge.load(path, plateId)" not in model_kotlin:
+    if "OrcaModelBridge.load(path, plateId, progress)" not in model_kotlin:
         errors.append("Model constructors do not load files through the Kotlin JNI facade")
-    if "Native.model_read_from_file(path, baseName(source.name), plateId)" not in model_bridge:
+    if "Native.model_read_from_file(path, baseName(source.name), plateId, progress)" not in model_bridge:
         errors.append("Kotlin model facade does not call the existing native file importer")
-    if "external fun model_read_from_file(path: String, baseName: String, plateId: Int): Long" not in native_kotlin:
+    if "external fun model_read_from_file(path: String, baseName: String, plateId: Int, progress: ImportProgressCallback?): Long" not in native_kotlin:
         errors.append("The existing model_read_from_file JNI declaration was changed or removed")
     if "Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file" not in native_bridge_cpp:
         errors.append("The existing native model importer implementation is missing")
@@ -490,13 +491,17 @@ def main() -> None:
         errors.append("Failed multi-plate imports must reset shared UI state on the main thread and reject stale failures")
     if "modelLoadInProgress || newPlateIndex" not in bed_fragment:
         errors.append("Plate selection must be disabled while a model import is in progress")
-    visible_bed_temperature_keys = filament_option_keys & {"hot_plate_temp", "hot_plate_temp_initial_layer", "cool_plate_temp", "eng_plate_temp", "textured_plate_temp", "supertack_plate_temp"}
-    if visible_bed_temperature_keys != {"hot_plate_temp", "hot_plate_temp_initial_layer"}:
-        errors.append("Filament editor must expose exactly one general bed-temperature pair")
+    expected_bed_temperature_keys = {
+        f"{surface}_temp{suffix}"
+        for surface in ("cool_plate", "eng_plate", "hot_plate", "textured_plate", "textured_cool_plate", "supertack_plate")
+        for suffix in ("", "_initial_layer")
+    }
+    visible_bed_temperature_keys = filament_option_keys & expected_bed_temperature_keys
+    if visible_bed_temperature_keys != expected_bed_temperature_keys:
+        errors.append("Filament editor must expose separate first-layer and normal temperatures for every Orca bed surface")
     if "OrcaFilamentSettingsBuilder.build(this)" not in filament_fragment:
         errors.append("Filament settings do not use the Kotlin settings builder")
     for retained_behavior in (
-        "options[\"$surface$stage\"]",
         "Slic3rUtils.isPrinterCompatible(",
         "Slic3rUtils.isCompatible(",
         "seenTitles.add(profile.title.orEmpty())",
@@ -505,6 +510,11 @@ def main() -> None:
     ):
         if retained_behavior not in filament_fragment:
             errors.append(f"Kotlin filament profile screen lost required behavior: {retained_behavior}")
+    if "override fun updateConfigField" in filament_fragment:
+        errors.append("Editing one filament bed-surface temperature must not rewrite the other surfaces")
+    preslice_dialog = uncommented(read(JAVA / "components/PreSliceFilamentDialog.kt"))
+    if "BedSurfaceTemperaturePolicy.keysFor(snapshot[\"curr_bed_type\"])" not in preslice_dialog:
+        errors.append("Pre-slice temperature summary must show the active plate's native temperature fields")
     if "OrcaFilamentSettingsCatalog.categories()" not in filament_builder:
         errors.append("Kotlin filament builder does not render from the central settings catalog")
     if ".requireContext()" in filament_builder or ".requireContext()" in process_builder:
@@ -534,13 +544,16 @@ def main() -> None:
     if "OrcaPrinterSettingsBuilder.build(this)" not in printer_fragment:
         errors.append("Printer settings are not rendered from the Kotlin catalog adapter")
     for retained_behavior in (
-        "MmuFilamentSync.synchronizeAll(selected)",
         "PrinterWebOriginPolicy.dashboardUrl(selected.get(\"print_host\"))",
         "ProfileSettingsRepository.applyPendingFor(getProfileListType(), selected)",
         "SliceBeam.applyProfileSelection(printer = item.title)",
     ):
         if retained_behavior not in printer_fragment:
             errors.append(f"Kotlin printer profile screen lost required behavior: {retained_behavior}")
+    if "MmuFilamentSync.synchronizeAll(" in printer_fragment:
+        errors.append("ACE synchronization must have one entry point in the process screen, not a duplicate printer-screen action")
+    if "MmuFilamentSync.synchronizeAll(printer)" not in process_fragment:
+        errors.append("Process screen must retain the single ACE synchronization entry point")
     if "OrcaPrinterSettingsCatalog.leadingCategories()" not in printer_builder or "OrcaPrinterSettingsCatalog.trailingCategories()" not in printer_builder:
         errors.append("Kotlin printer builder does not render both fixed setting groups")
     if "repeat(extruderCount)" not in printer_builder or "extruderCount == 1) -1 else index" not in printer_builder:
@@ -711,7 +724,8 @@ def main() -> None:
         "createNavigationHost(ctx)", "ComposeView(ctx)", "AdaptiveWorkspaceNavigation(",
         "ViewCompositionStrategy.DisposeOnDetachedFromWindow", "updateSelectedNavigationSlot(",
         "navigationThemeRevision++", "MobileNavigationPolicy.destinations().map { slot ->",
-        "accessibilityLabel = ctx.getString(getSlotTooltip(slot))", "const val SETTINGS_SLOT = 5",
+        "accessibilityLabel = ctx.getString(getSlotNavigationTitle(slot))", "const val SETTINGS_SLOT = 5",
+        "AdaptiveNavigationPolicy.navigationRailWidthDp(configuration.fontScale)",
         "lastPrimarySlot", "override fun onBackPressed()", "super.onBackPressed()",
         "fun onConfigurationChanged(configuration: Configuration)",
         "layout.removeView(navigation)", "content?.layoutParams",
@@ -724,8 +738,8 @@ def main() -> None:
     adaptive_navigation = uncommented(read(JAVA / "ui/navigation/AdaptiveWorkspaceNavigation.kt"))
     for retained_component in (
         "Row(Modifier.fillMaxWidth().selectableGroup())", "Column(",
-        "Role.Tab", "maxLines = 1", "softWrap = false",
-        "fontSize = if (compactRail) 10.sp else 11.sp", "accessibilityLabel",
+        "Role.Tab", "maxLines = 2", "softWrap = true",
+        "OrkanUiTokens.navigationLabelSize", "accessibilityLabel",
     ):
         if retained_component not in adaptive_navigation:
             errors.append(f"Compose adaptive navigation is missing {retained_component}")

@@ -76,6 +76,7 @@ class TemporaryProjectSettingsDeviceTest {
                 OrcaFilamentSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
             return ThreeMfProjectSettingsReader.read(file, PrintConfigDef.getInstance().options, processKeys, filamentKeys)
                 .also { assertTrue(it.hasSettings); assertEquals(0, it.ignoredValues) }
+                .copy(preferOwnFilamentTemperatures = false)
         } finally { file.delete() }
     }
 

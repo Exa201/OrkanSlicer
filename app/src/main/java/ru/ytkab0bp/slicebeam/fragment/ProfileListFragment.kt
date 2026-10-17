@@ -80,6 +80,7 @@ abstract class ProfileListFragment : Fragment() {
     private var dropdownMenu by mutableStateOf(ProfileDropdownMenuPolicy.create(emptyList(), -1))
     private var dropdownMenuTitle by mutableIntStateOf(R.string.SlotPrinterConfigTooltip)
     private var dropdownExpanded by mutableStateOf(false)
+    private var activeOptionHelpDialog by mutableStateOf<ProfileOptionHelpDialogState?>(null)
     private var dropdownItemsSnapshot: List<ProfileListItem> = emptyList()
     private var renderedProfileTitle: String? = null
     private var renderedConfigUid: Int = -1
@@ -90,6 +91,10 @@ abstract class ProfileListFragment : Fragment() {
     /** Optional Compose quick controls shown between the filament palette and category navigation. */
     @Composable
     protected open fun BelowFilamentPaletteContent(modifier: Modifier = Modifier) = Unit
+
+    /** Optional route summary/actions shown at a stable position above profile settings. */
+    @Composable
+    protected open fun ProfileHeaderContent(modifier: Modifier = Modifier) = Unit
 
     /** Profile config screens override this to render categories as horizontal tabbed pages. */
     protected open fun useTabs(): Boolean = false
@@ -288,6 +293,9 @@ abstract class ProfileListFragment : Fragment() {
                         if (profileSettingsViewModel != null) {
                             ComposeProfileSettingsStatus(profileSettingsViewModel!!)
                         }
+                        ProfileHeaderContent(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
                         if (showFilamentPalette() && !isPortrait) {
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 filamentPaletteController?.Content(
@@ -322,6 +330,9 @@ abstract class ProfileListFragment : Fragment() {
                             }
                         }
                         profileFooter?.Content(isPortrait)
+                        activeOptionHelpDialog?.let { dialog ->
+                            ProfileOptionHelpDialog(dialog) { activeOptionHelpDialog = null }
+                        }
                     }
                 }
             }
@@ -335,6 +346,7 @@ abstract class ProfileListFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        activeOptionHelpDialog = null
         SliceBeam.EVENT_BUS.unregisterListener(this)
         unfolded.clear()
     }
@@ -606,9 +618,12 @@ abstract class ProfileListFragment : Fragment() {
                 if (position >= 0) recyclerView?.refreshItem(position)
             },
             Runnable {
-                val context = getContext()
                 val controller = profileFilterController
-                if (context != null && controller != null) controller.showOptionHelp(context, definition)
+                if (controller != null) {
+                    controller.showOptionHelp(definition) { dialog ->
+                        activeOptionHelpDialog = dialog
+                    }
+                }
             },
         )
     }

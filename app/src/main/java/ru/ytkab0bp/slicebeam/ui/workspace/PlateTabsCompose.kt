@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.MutableState
@@ -85,11 +87,16 @@ internal fun PlateTabs(
     objectCounts: List<Int>,
     thumbnails: List<PlateThumbnail>,
     onOpen: () -> Unit,
+    onDismiss: () -> Unit,
     onSelect: (Int) -> Unit,
     onClose: (Int) -> Unit,
     onAdd: () -> Unit,
 ) {
     var open by openState
+    val closePicker = {
+        open = false
+        onDismiss()
+    }
     val configuration = LocalConfiguration.current
     val screenHeightDp = configuration.screenHeightDp
     val estimatedGridColumns = ((configuration.screenWidthDp - 88) / 104).coerceIn(1, 4)
@@ -108,7 +115,7 @@ internal fun PlateTabs(
         }
     }
     if (open) {
-        Dialog(onDismissRequest = { open = false }, properties = DialogProperties(usePlatformDefaultWidth = true)) {
+        Dialog(onDismissRequest = closePicker, properties = DialogProperties(usePlatformDefaultWidth = true)) {
             Surface(shape = RoundedCornerShape(OrkanUiTokens.dialogCornerRadius), color = MaterialTheme.colorScheme.surface) {
                 Column(Modifier.padding(OrkanUiTokens.panelPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.PlatePickerTitle), style = MaterialTheme.typography.titleMedium)
@@ -117,10 +124,10 @@ internal fun PlateTabs(
                             verticalAlignment = Alignment.CenterVertically) {
                             (0 until plateCount).forEach { index ->
                                 PlatePickerCard(index, index == selectedIndex, objectCounts.getOrNull(index) ?: -1,
-                                    { onSelect(index); open = false }, { onClose(index) },
+                                    { onSelect(index); closePicker() }, { onClose(index) },
                                     Modifier.padding(end = OrkanUiTokens.regularGap), thumbnails.getOrNull(index))
                             }
-                            AddPlateButton { onAdd(); open = false }
+                            AddPlateButton { onAdd(); closePicker() }
                         }
                     } else if (pickerLayout == PlatePickerLayout.CIRCLE) {
                         Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
@@ -128,12 +135,12 @@ internal fun PlateTabs(
                                 val angle = -PI / 2 + (2 * PI * index / plateCount)
                                 PlatePickerCard(
                                     index, index == selectedIndex, objectCounts.getOrNull(index) ?: -1,
-                                    { onSelect(index); open = false }, { onClose(index) },
+                                    { onSelect(index); closePicker() }, { onClose(index) },
                                     Modifier.offset((95 * cos(angle)).dp, (95 * sin(angle)).dp),
                                     thumbnails.getOrNull(index),
                                 )
                             }
-                            AddPlateButton { onAdd(); open = false }
+                            AddPlateButton { onAdd(); closePicker() }
                         }
                     } else LazyVerticalGrid(
                         columns = GridCells.Adaptive(96.dp),
@@ -146,14 +153,16 @@ internal fun PlateTabs(
                     ) {
                         items(plateCount, key = { it }) { index ->
                             PlatePickerCard(index, index == selectedIndex, objectCounts.getOrNull(index) ?: -1,
-                                { onSelect(index); open = false }, { onClose(index) }, thumbnail = thumbnails.getOrNull(index))
+                                { onSelect(index); closePicker() }, { onClose(index) }, thumbnail = thumbnails.getOrNull(index))
                         }
                         item(key = "add") {
-                            AddPlateButton { onAdd(); open = false }
+                            AddPlateButton { onAdd(); closePicker() }
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Text(stringResource(android.R.string.cancel), Modifier.clickable { open = false }.padding(8.dp))
+                        TextButton(onClick = closePicker, modifier = Modifier.heightIn(min = OrkanUiTokens.touchTarget)) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
                     }
                 }
             }
@@ -165,6 +174,8 @@ internal fun PlateTabs(
 private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
                             onSelect: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier,
                             thumbnail: PlateThumbnail? = null) {
+    val selectDescription = stringResource(R.string.PlatePickerSelectDescription,
+        (index + 1).toString())
     val deleteDescription = stringResource(R.string.PlateCloseDescription,
         stringResource(R.string.PlateNumber, (index + 1).toString()))
     Surface(modifier = modifier.size(width = 88.dp, height = 110.dp),
@@ -172,7 +183,9 @@ private fun PlatePickerCard(index: Int, selected: Boolean, objectCount: Int,
         border = if (selected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Column(Modifier.fillMaxWidth().height(62.dp).clickable(role = Role.Button, onClick = onSelect),
+            Column(Modifier.fillMaxWidth().height(62.dp)
+                .semantics { contentDescription = selectDescription }
+                .clickable(role = Role.Button, onClick = onSelect),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text((index + 1).toString(), style = MaterialTheme.typography.titleMedium)

@@ -1,17 +1,11 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.text.InputType
 import android.view.View
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.Toast
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -20,22 +14,25 @@ import java.util.Locale
 /** Kotlin-owned object selection, duplication, filament and plate actions for the live File menu. */
 class FileMenuObjectActions(private val fragment: BedFragment) {
     private fun hasSelection(): Boolean =
-        fragment.glView!!.renderer.selectedObject != -1 && fragment.glView!!.renderer.model != null
+        fragment.glView?.renderer?.let { it.selectedObject != -1 && it.model != null } == true
 
     fun showCopyMoveDialog(view: View) {
         val context = view.context
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MenuFileCopyMove)
-            .setItems(
-                arrayOf<CharSequence>(
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.MenuFileCopyMove),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = listOf(
                     context.getString(R.string.MenuFileDuplicateCount),
                     context.getString(R.string.MenuFileMoveToPlate),
                 ),
-            ) { _, which ->
-                if (which == 0) showDuplicateDialog(view) else showMoveToPlateDialog(view)
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    if (which == 0) showDuplicateDialog(view) else showMoveToPlateDialog(view)
+                },
+            )
+        }
     }
 
     fun showObjectsDialog(view: View) {
@@ -46,154 +43,182 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
             return
         }
 
-        val objects = Array<CharSequence>(count) { index ->
-            model?.getObjectName(index)
-                ?: view.context.getString(R.string.MenuFileObjectNumber, index + 1)
+        val context = view.context
+        val selected = fragment.glView?.renderer?.selectedObject ?: -1
+        val filamentSlots = Prefs.getFilamentSlots()
+        val rows = (0 until count).map { index ->
+            val name = model?.getObjectName(index)
+                ?: context.getString(R.string.MenuFileObjectNumber, index + 1)
+            val tool = (model?.getExtruder(index) ?: 1).minus(1).coerceAtLeast(0)
+            val slot = filamentSlots.getOrNull(tool)
+            ModelObjectRow(
+                name = name,
+                tool = tool,
+                material = slot?.type?.takeIf(String::isNotBlank) ?: context.getString(R.string.FilamentType),
+                color = slot?.color ?: 0xFF888888.toInt(),
+                selected = index == selected,
+                assignEnabled = filamentSlots.isNotEmpty(),
+            )
         }
-        val selected = fragment.glView!!.renderer.selectedObject
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileObjects)
-            .setSingleChoiceItems(objects, selected) { dialog, which ->
-                dialog.dismiss()
-                fragment.glView!!.selectModel(which) {
-                    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelObjectsDialog(
+                title = context.getString(R.string.MenuFileObjects),
+                cancelLabel = context.getString(android.R.string.cancel),
+                assignLabel = context.getString(R.string.ObjectActionAssignFilamentShort),
+                rows = rows,
+                onDismiss = dismiss,
+                onSelect = { index ->
+                    dismiss()
+                    fragment.glView?.selectModel(index) {
+                        SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+                    }
+                },
+                onAssign = { index ->
+                    dismiss()
+                    showObjectFilamentSlotDialog(view, index)
+                },
+            )
+        }
     }
 
     fun showSelectedObjectActions(view: View) {
         if (!hasSelection()) return
         val context = view.context
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MenuFileObjectActions)
-            .setItems(
-                arrayOf<CharSequence>(
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.MenuFileObjectActions),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = listOf(
                     context.getString(R.string.MenuFileDuplicateCount),
                     context.getString(R.string.MenuFileMoveToPlate),
-                    context.getString(R.string.ModelContextSelectFilamentSlot),
-                    context.getString(R.string.ModelContextCenterOnBed),
-                    context.getString(R.string.MenuOrientationArrange),
                     context.getString(R.string.MenuToolbarSplit),
                     context.getString(R.string.MenuFileDelete),
                 ),
-            ) { _, which ->
-                when (which) {
-                    0 -> showDuplicateDialog(view)
-                    1 -> showMoveToPlateDialog(view)
-                    2 -> showObjectFilamentSlotDialog(view)
-                    3 -> fragment.glView!!.centerSelectedOnBed(fragment::updateModel)
-                    4 -> {
-                        fragment.glView!!.arrange()
-                        fragment.updateModel()
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    when (which) {
+                        0 -> showDuplicateDialog(view)
+                        1 -> showMoveToPlateDialog(view)
+                        2 -> fragment.splitSelectedObject()
+                        3 -> fragment.glView?.deleteSelectedModel(fragment::updateModel)
                     }
-                    5 -> fragment.splitSelectedObject()
-                    6 -> fragment.glView!!.deleteSelectedModel(fragment::updateModel)
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+                },
+            )
+        }
     }
 
     /** Assigns a whole object to an ACE/slicer tool; fine-grained color painting stays separate. */
     fun showObjectFilamentSlotDialog(view: View) {
         if (!hasSelection()) return
+        val selected = fragment.glView?.renderer?.selectedObject ?: return
+        showObjectFilamentSlotDialog(view, selected)
+    }
+
+    private fun showObjectFilamentSlotDialog(view: View, objectIndex: Int) {
         val slots: List<FilamentSlot> = Prefs.getFilamentSlots()
         if (slots.isEmpty()) return
-
-        val selected = fragment.glView!!.renderer.selectedObject
         val model = fragment.currentModel ?: return
-        val choices = Array<CharSequence>(minOf(4, slots.size)) { "" }
-        val currentTool = model.getExtruder(selected) - 1
-        for (tool in choices.indices) {
+        if (objectIndex !in 0 until model.objectsCount) return
+
+        val context = view.context
+        val currentTool = model.getExtruder(objectIndex) - 1
+        val choices = (0 until minOf(4, slots.size)).map { tool ->
             val slot = slots[tool]
-            val label = view.context.getString(
+            val label = context.getString(
                 R.string.ModelContextFilamentSlot,
                 tool,
                 slot.type,
                 String.format(Locale.ROOT, "#%06X", slot.color and 0xFFFFFF),
             )
-            choices[tool] = if (tool == currentTool) "✓ $label" else label
+            if (tool == currentTool) "✓ $label" else label
         }
-
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.ModelContextSelectFilamentSlot)
-            .setItems(choices) { _, which ->
-                val filament = which + 1 // libSlic3r object extruders are one-based.
-                fragment.glView!!.queueEvent {
-                    fragment.glView!!.renderer.setObjectBaseFilament(selected, filament)
-                    fragment.glView!!.requestRender()
-                    ViewUtils.postOnMainThread {
-                        Toast.makeText(
-                            view.context,
-                            view.context.getString(R.string.ModelContextFilamentSlotApplied, which),
-                            Toast.LENGTH_SHORT,
-                        ).show()
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.ModelContextSelectFilamentSlot),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = choices,
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    val viewport = fragment.glView ?: return@ModelChoiceDialog
+                    // Slicer extruders are one-based: T0 always maps to physical/UI slot 1.
+                    val filament = which + 1
+                    viewport.queueEvent {
+                        // An explicit object assignment must replace 3MF per-volume and paint
+                        // assignments too; changing only the object's base extruder leaves those
+                        // imported material overrides active during preview and slicing.
+                        viewport.renderer.setObjectUniformFilament(objectIndex, filament)
+                        viewport.requestRender()
+                        ViewUtils.postOnMainThread {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.ModelContextFilamentSlotApplied, which),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
                     }
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+                },
+            )
+        }
     }
 
     fun showDuplicateDialog(view: View) {
-        val input = EditText(view.context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText("1")
-            setSelectAllOnFocus(true)
-        }
-        val padding = ViewUtils.dp(24)
-        val container = FrameLayout(view.context).apply {
-            setPadding(padding, 0, padding, 0)
-            addView(
-                input,
-                FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        if (!hasSelection()) return
+        val context = view.context
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            DuplicateModelDialog(
+                title = context.getString(R.string.MenuFileDuplicateCount),
+                hint = context.getString(R.string.MenuFileDuplicateCountHint),
+                confirmLabel = context.getString(R.string.ModelContextDuplicate),
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onConfirm = { copies ->
+                    dismiss()
+                    fragment.glView?.duplicateSelectedModel(copies) {
+                        fragment.updateModel()
+                        Toast.makeText(
+                            context,
+                            context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, copies, copies),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                },
             )
         }
-
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileDuplicateCount)
-            .setMessage(R.string.MenuFileDuplicateCountHint)
-            .setView(container)
-            .setPositiveButton(R.string.ModelContextDuplicate) { _, _ ->
-                val copies = input.text.toString().toIntOrNull()?.coerceIn(1, 50) ?: 1
-                fragment.glView!!.duplicateSelectedModel(copies) {
-                    fragment.updateModel()
-                    Toast.makeText(
-                        view.context,
-                        view.context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, copies, copies),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 
     fun showMoveToPlateDialog(view: View) {
+        if (!hasSelection()) return
         val plateCount = fragment.plateCount
         if (plateCount < 2) {
             Toast.makeText(view.context, R.string.MenuFileMoveNoOtherPlate, Toast.LENGTH_SHORT).show()
             return
         }
 
-        val current = fragment.currentPlateIndex
-        val targets = (0 until plateCount).filter { it != current }
-        val labels = targets.map { view.context.getString(R.string.PlateNumber, (it + 1).toString()) }
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileMoveToPlate)
-            .setItems(labels.toTypedArray()) { _, which ->
-                val target = targets[which]
-                fragment.moveSelectedObjectToPlate(target) {
-                    Toast.makeText(
-                        view.context,
-                        view.context.getString(R.string.MenuFileMovedToPlate, (target + 1).toString()),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        val context = view.context
+        val source = fragment.currentPlateIndex
+        val targets = (0 until plateCount).filter { it != source }
+        val labels = targets.map { context.getString(R.string.PlateNumber, (it + 1).toString()) }
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.MenuFileMoveToPlate),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = labels,
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    val target = targets.getOrNull(which) ?: return@ModelChoiceDialog
+                    if (target !in 0 until fragment.plateCount || target == fragment.currentPlateIndex) return@ModelChoiceDialog
+                    fragment.moveSelectedObjectToPlate(target) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.MenuFileMovedToPlate, (target + 1).toString()),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                },
+            )
+        }
     }
 }

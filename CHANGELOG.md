@@ -1,5 +1,333 @@
 # Changelog
 
+## 0.8.294 (alpha)
+
+- Remove the obsolete Android View menu-host lifecycle from the active workspace destinations; `WorkspaceShell` remains their only visible host.
+- Convert the dormant converter menu to the shared Compose menu contract and verify the six active workspace routes do not retain duplicate View hosts.
+
+## 0.8.293 (alpha)
+
+- Make an explicit object-filament choice replace imported 3MF part and painted-facet overrides, both from the object action menu and the color-paint base-filament controls.
+- Keep 3MF printer, print, and filament setting choices independent; add Honor UI checks for selecting only print settings or only filament settings and a native 3MF assignment regression test.
+
+## 0.8.292 (alpha)
+
+- Stack printer web error actions on narrow panels and at 130% or larger system font scale, keeping retry and external-open controls fully reachable.
+- Add Honor bounds and 48 dp target checks for 320 dp / 100%, 360 dp / 130%, and 320 dp / 150% layouts.
+
+## 0.8.291 (alpha)
+
+- Move printer WebView loading, error, retry, external-open, and close controls into the Compose workspace panel; keep only the WebView surface in its technical Android container.
+- Replace the remaining nested ComposeViews and native progress indicator in the BedFragment printer panel with Compose state and Material 3 controls.
+- Add Honor coverage for printer panel retry, external open, close, and Android view attachment.
+
+## 0.8.290 (alpha)
+
+- Host the printer WebView panel inside the Compose WorkspaceShell overlay instead of attaching it as a separate BedFragment-wide View overlay.
+- Keep WebView creation, origin restrictions, and renderer lifecycle in BedFragment while making exclusive panel state and Back dismissal use WorkspaceController.
+- Add Honor coverage for attaching and detaching the technical Android view through the Compose panel host.
+
+## 0.8.289 (alpha)
+
+- Replace the remaining third-party native color-picker dialog with one shared Compose custom-color editor using accessible hue, saturation, and brightness sliders.
+- Use the shared Compose palette for the app accent color; make Cancel preserve the current color and expose reset as an explicit action.
+- Remove the unused Colorpicker dependency and add Honor coverage for custom color cancellation, selection, application, and reset.
+
+## 0.8.288 (alpha)
+
+- Replace the printer-upload `ProgressDialog` with a non-cancelable workspace Compose panel showing preparation, upload percentage, and printer-status checks.
+- Keep upload reservation, G-code validation, ACE verification, server callbacks, and the existing single-attempt print-start safety flow unchanged.
+- Route AI-generator failures through the shared workspace error dialog and add Honor coverage for error dismissal and upload progress/back behavior.
+
+## 0.8.287 (alpha)
+
+- Move the image-to-STL/lithophane parameter form into the workspace Compose dialog, including target/mode selection, mode-specific dimensions, resolution, wrap/wave controls, source preview, and image-editor handoff.
+- Preserve the native generator, validation, document picker, output callbacks, tone settings, and the Android-view fallback when no workspace host is available.
+- Add Honor coverage for mode changes, preview, returning from the image editor, and Back cancellation.
+
+## 0.8.286 (alpha)
+
+- Host local generator progress inside the exclusive workspace Compose overlay, including elapsed time, estimated remaining time, and stage progress.
+- Preserve background generation, output validation, completion callbacks, and the non-cancelable behavior; retain the Android dialog fallback when the workspace is unavailable.
+- Pass the active BedFragment from converter and maker generators and add Honor coverage for progress updates and completion.
+
+## 0.8.285 (alpha)
+
+- Move post-save load/keep decisions and converter errors into the exclusive workspace Compose dialog host.
+- Preserve the platform create-document and folder pickers, file copy behavior, and temporary-output cleanup semantics.
+- Add Honor coverage for saved-output cleanup and converter error dismissal.
+
+## 0.8.284 (alpha)
+
+- Move lithophane image-tone editing into the exclusive workspace Compose host, including the rendered relief preview, grayscale mode, brightness, contrast, inversion, and explicit apply/cancel behavior.
+- Preserve tone values only on Apply, return to the existing converter options after closing the editor, cancel stale preview work, and dispose preview bitmaps safely.
+- Add Honor coverage for the workspace editor, preview rendering, Apply, and Back cancellation.
+
+## 0.8.283 (alpha)
+
+- Move generated STL/model decisions, paired lithophane/LED-base actions, and raster result previews into workspace Compose dialogs.
+- Preserve output deletion, save-pickers, model loading, and the sequential save-both flow; release preview bitmaps when their dialog leaves composition.
+- Add Honor coverage for generated output, pair actions, and preview lifecycle.
+
+## 0.8.282 (alpha)
+
+- Move the image converter source/target format chooser from an Android view dialog into the workspace Compose dialog host; keep the system document picker and conversion pipeline unchanged.
+- Add Honor Compose coverage for format selection and Android Back cancellation.
+
+## 0.8.281 (alpha)
+
+- Move onboarding and setup profile-import notices into the existing Compose setup root, including early-access, invalid-file, import-failure, no-profile, and save-failure messages.
+- Preserve the same OK and Android Back dismissal behavior; add device coverage for notice display and both dismissal paths.
+
+## 0.8.280 (alpha)
+
+- Move workspace filament, slot editing, color selection, and profile panels into the exclusive Compose overlay host; retain the existing material assignment and profile callbacks.
+- Replace the cloud-management, release-notes, and slicing-progress Android bottom-sheet hosts with Compose dialogs. Slicing progress remains non-cancelable and reports completion once.
+- Remove the unused legacy ACE assignment AlertDialog wrapper; keep gate mapping and validation shared with the active Compose print-preparation flow.
+- Add Honor coverage for the migrated dialog routes, Android Back behavior, long filament lists, physical slot editing, plate selection, and slicing progress.
+
+## 0.8.279 (alpha)
+
+- Replace the historical `UnfoldMenu` lifecycle adapter with `WorkspaceComposeToolRoute` and remove the anchor-based `showUnfoldMenu` entry point.
+- Route position, rotation, scale, cut, and Kromacut tools through the exclusive workspace Compose tool panel while preserving their existing Compose controls and renderer lifecycle callbacks.
+- Verify direct tool opening, panel ownership, lifecycle cleanup, and Android Back on Honor; this host check does not claim model-transform operation coverage.
+
+## 0.8.278 (alpha)
+
+- Replace the post-slice G-code information and layer-range `UnfoldMenu` routes with workspace-owned Compose dialogs.
+- Keep G-code color schemes, seam and extrusion-role visibility, summary information, timeline, layer-range editing, and GL-thread preview updates connected to the existing viewer.
+- Closing either result panel preserves the current preview range and uses the exclusive workspace Back/dismiss handling.
+
+## 0.8.277 (alpha)
+
+- Replace both calibration `UnfoldMenu` routes with one exclusive Compose workspace flow for calibration presets, parameter entry, result recording, and bundled model selection.
+- Preserve preset validation, pending calibration values, profile staging, model-import ordering, placeholder-model behavior, and safe workspace error feedback.
+- Cancel and Android Back return between calibration pages or close the workflow without setting a calibration or importing a model.
+
+## 0.8.276 (alpha)
+
+- Move the cloud model generator camera/gallery choice and live quota display into the exclusive Compose workspace dialog.
+- Keep the generation quota and in-progress guards, cloud quota refresh events, temporary camera file provider, and Android picker result routing intact.
+- Close the workspace choice before launching the system camera or gallery; Cancel and Back remain workspace-owned.
+
+## 0.8.275 (alpha)
+
+- Host all ten Maker generator forms and the LitoGEN options editor in the exclusive Compose workspace dialog, removing their native AlertDialog/ComposeView wrappers.
+- Keep validation errors inside their forms and route STL-generation failures through the workspace message dialog. Preserve dimension checks, image previews, file-picker flow and explicit generation/save actions.
+- Cancel and Android Back dismiss without starting generation. Honor verifies cancellation for all eleven forms and LitoGEN validation retention.
+
+## 0.8.274 (alpha)
+
+- Host the pre-slicing model-to-filament assignment flow in the Compose workspace, including individual assignments, imported-color preservation, ACE mappings, and the material-mismatch confirmation.
+- Keep assignment persistence and the slicing callback behind explicit Apply/Continue; Cancel and Android Back leave assignments untouched. Preserve access to temperature settings.
+- Add Honor coverage for the real workspace route's Cancel and Back behavior.
+
+## 0.8.273 (alpha)
+
+- Move print preparation and its ACE/material warnings into the exclusive Compose workspace dialog host.
+- Preserve printer-change re-slicing, validation, upload-only, and the separate firmware-checked print confirmation; add Honor coverage proving Cancel does not dispatch and upload-only cannot request printing.
+
+## 0.8.272 (alpha)
+
+- Show the root-workspace app-exit confirmation in the exclusive Compose dialog host, retaining the native fallback outside an active Bed workspace.
+- Keep the existing explicit-exit cleanup and add Honor coverage for back navigation, visible confirmation text, and cancellation without closing the app.
+
+## 0.8.271 (alpha)
+
+- Show the SVG simplification consent prompt and simplification errors in the active Compose workspace.
+- Keep simplification behind explicit user consent, retain the size limit, and write only to a separate cache copy so the source remains unchanged.
+- Add Honor coverage for the real workspace prompt and Cancel preserving the source file.
+
+## 0.8.270 (alpha)
+
+- Move 3MF embedded printer, print, and filament settings selection into the Compose workspace dialog.
+- Keep project settings temporary, retain saved profiles, and clear the previous project's overrides when the new choice is cancelled.
+- Add Honor coverage for selected settings, profile preservation, and cancellation cleanup.
+
+## 0.8.269 (alpha)
+
+- Move profile import warnings, print/filament/printer selection, and overwrite/skip conflict handling into one Compose workspace flow.
+- Keep all profiles selected by default and preserve validation warnings, cancellation, import transaction snapshot, and save-failure rollback.
+- Add Honor coverage for warning acknowledgement, selection toggles, conflict skip/overwrite, and cancellation.
+
+## 0.8.268 (alpha)
+
+- Show file and profile import failures in the Compose workspace dialog while the Bed workspace is active.
+- Preserve the platform alert fallback outside the workspace and leave profile import, model loading, and cleanup behavior unchanged.
+- Add Honor coverage for the actual unsupported-file `loadFile` route and Compose dismissal.
+
+## 0.8.267 (alpha)
+
+- Host the GL-triggered prime-tower position editor in the exclusive Compose workspace dialog.
+- Keep the active plate offset, pending profile edits, render refresh, Cancel behavior, and keyboard-safe scrolling.
+- Add Honor coverage for Cancel, Android Back, and explicit Apply through the BedFragment workspace route.
+
+## 0.8.266 (alpha)
+
+- Show slice preparation, printer upload/start, G-code integrity, and Anycubic mapping failures in the shared Compose workspace dialog.
+- Preserve main-thread delivery, upload cleanup, integrity validation, and all existing print-start safeguards.
+- Add Honor coverage for the real slice preparation failure route and Compose Back dismissal.
+
+## 0.8.265 (alpha)
+
+- Show Kromacut file-picker and export failures in the existing Compose tool panel.
+- Keep the active WebView, file chooser callback, temporary-file cleanup, and generated-file handoff unchanged.
+- Allow long error details to scroll inside the dialog and add Honor UI coverage.
+
+## 0.8.264 (alpha)
+
+- Move the app-settings reset confirmation and converter-folder-picker error to Compose.
+- Preserve the explicit reset confirmation boundary; Cancel and Back cannot reset settings.
+- Add Honor UI coverage for reset confirmation and folder-picker error dismissal.
+
+## 0.8.263 (alpha)
+
+- Render MMU filament-sync errors in the print-profile screen with the existing Compose message dialog.
+- Keep sync callbacks on the UI thread and ignore results from a profile screen that has already been destroyed.
+
+## 0.8.262 (alpha)
+
+- Move process, printer, and filament profile option-help dialogs and their favorite actions into Compose.
+- Replace the app-settings theme, render-scale, and text-scale choice dialogs with one scrollable Compose selection component.
+- Keep preference persistence, theme invalidation, and selection/cancel behavior; add Honor interaction coverage for help favorites and long settings lists.
+
+## 0.8.261 (alpha)
+
+- Move the print-profile flush-volume matrix and prime-tower position editors into Compose dialogs hosted by the profile screen.
+- Preserve input validation, locale-aware decimals, per-plate coordinates, pending profile updates, and explicit Apply/Cancel behavior.
+- Add Honor coverage for both dialog validation and actual profile-screen actions without persisting cancelled edits.
+
+## 0.8.260 (alpha)
+
+- Move Smart Expert Slice setup, cancellable analysis progress, and result actions into the exclusive Compose workspace dialog host.
+- Keep GL geometry analysis, background profile analysis, model-revision checks, cancellation, and explicit apply/slice actions intact.
+- Use an adaptive action flow for the result dialog and migrate MMU synchronization failure feedback to the workspace message dialog.
+- Add Honor UI tests for validation, Cancel, Back, progress cancellation, and result dismissal without running analysis or slicing.
+
+## 0.8.259 (alpha)
+
+- Move Quick Slice into the exclusive Compose workspace dialog host; keep all profile validation and persistence behind the explicit Slice action.
+- Use the workspace message dialog for calibration-model load errors.
+- Test invalid quick-slice values, corrected values, Cancel, and Android Back without starting a slice.
+
+## 0.8.258 (alpha)
+
+- Move snackbar state and rendering into the Compose workspace instead of attaching a separate Android overlay view.
+- Preserve tagged progress replacement, timed dismissal, swipe-to-dismiss policy, and actionable snackbar callbacks.
+- Position workspace notifications around the navigation and tool panels without shrinking the build-plate viewport.
+- Add controller-state unit coverage and Honor Compose UI tests for tagged progress, button context, and expiry.
+
+## 0.8.257 (alpha)
+
+- Render generic workspace confirmation and message dialogs from the exclusive Compose workspace panel.
+- Focus the duplicate-count field on open and handle Android Back by hiding the IME before dismissing the dialog.
+
+## 0.8.256 (alpha)
+
+- Remove the unused AndroidView fallback and legacy View-based overlay from the workspace tool host; tool routes now require Compose content.
+- Remove the unreferenced legacy WebViewMenu. Kromacut's active embedded WebView, editor, file chooser, and download flow remain intact.
+- Keep real Compose tool lifecycle, Back cleanup, responsive panel, and outside-dismiss device coverage on the production workspace host.
+
+## 0.8.255 (alpha)
+
+- Profile-settings favorites filter now announces its enabled/disabled state to screen readers in English, German, and Russian.
+- Added Honor coverage for the favorites toggle, search input, and profile-level picker at 320 dp and 150% text scale.
+
+## 0.8.254 (alpha)
+
+- App-setting sections now announce their expanded or collapsed state to screen readers.
+- Added Honor coverage for settings section state, touch size, and an actual theme-setting action across 320/360/400 dp portrait and 640×320 dp landscape at 100/130/150% Compose font scales.
+
+## 0.8.253 (alpha)
+
+- Maker section controls now announce whether they expand or directly open a specific action.
+- Maker generator rows meet the 48 dp touch minimum and are tested at 320 dp width with 150% text scale.
+
+## 0.8.252 (alpha)
+
+- The workspace menu host now requires all six primary destinations to provide Compose content directly; it no longer silently falls back to mounting an Android menu view.
+- Unknown workspace destinations fail explicitly instead of being routed to the Project menu.
+
+## 0.8.251 (alpha)
+
+- The build-plate picker Cancel action now has a Material 3 touch target that meets the 48 dp accessibility minimum.
+- Build-plate selection cards expose distinct TalkBack labels and are verified through 1/3/6/10/20-plate UI fixtures.
+
+## 0.8.250 (alpha)
+
+- Added a labeled, accessible 48 dp control to reveal the remaining ACE physical slots when the printer slot row overflows; it does not alter hardware slot mappings.
+
+## 0.8.249 (alpha)
+
+- Render project settings, profile status, filament access, plate selection, and printer-web access directly in `WorkspaceShell` Compose content instead of separate AndroidView-wrapped ComposeViews.
+- Keep the GLView host stable across workspace navigation and verify that it is not recreated while switching all six main-menu routes on Honor.
+
+## 0.8.248 (alpha)
+
+- Render all six workspace main-menu destinations directly in the shared Compose `WorkspaceShell`; retain legacy view rendering only as a compatibility fallback.
+- Tie list-menu EventBus listeners to the active Compose destination lifecycle and verify Project, Model, Camera, Edit, Tools and Slice navigation on Honor without allocating legacy menu views.
+
+## 0.8.247 (alpha)
+
+- Render the camera and model-edit menus directly in the Compose `WorkspaceShell` instead of allocating their legacy menu views.
+- Preserve transform-menu model-selection updates with a Compose-scoped event-bus subscription; verify both routes and legacy-view absence on Honor.
+
+## 0.8.246 (alpha)
+
+- Complete the plate-switch callback after activating an already-loaded plate, on the GL thread, matching lazy-loaded plate completion.
+- Test switching between both loaded plates in the real two-plate 3MF workspace flow.
+- Exercise filament rows and two-row tool actions at 320/360/400 dp with 100/130/150% Compose font scales; verify reachability and 48 dp touch bounds on Honor.
+
+## 0.8.245 (alpha)
+
+- Ensure every measurement-panel exit path releases the renderer's measurement state and points.
+- Verify loaded-model paint cancellation and measurement-mode cleanup on Honor PTP-N49 / Android 16.
+
+- Render the model context menu through Compose workspace overlay state instead of attaching a separate `ComposeView` host from `BedFragment`; preserve exclusive-panel and Back dismissal behavior.
+- Verify Compose overlay content replacement and cleanup in `WorkspaceController` tests and the Honor context-menu dismissal test. Keep the existing dialog hosts until focused-input Back behavior is proven on device.
+- Render the Kromacut close toolbar in the Compose workspace route while retaining its embedded WebView, bundled asset loading, file chooser, and download bridge. Remove the unused second `MainActivity` UnfoldMenu/back-state host.
+- Verify all ten direct Compose workspace tool routes on Honor, including Kromacut's attached WebView and its restricted file-access settings.
+- Load the bundled two-color 3MF on Honor, start a GL paint session, cancel with Android Back, and verify the renderer exits paint mode without changing the model.
+
+## 0.8.244 (alpha)
+
+- Move workspace menu route transitions into `WorkspaceShell` with Compose `AnimatedContent`; keep the GL renderer host stable.
+- Render transform, cut, calibration, slice-information, layer-preview, and AI-generator tool routes directly in the Compose workspace panel while preserving callbacks, GL-thread operations, and Android activity-result flows.
+- Verify nine Compose tool routes on Honor for attach, active composition, and Back cleanup; keep Kromacut's required WebView/editor integration on its existing route.
+
+## 0.8.243 (alpha)
+
+- Add per-object names, T0-based tool, material and color to the model list, with direct filament assignment.
+- Preserve painted facet assignments across OrkanSlicer 3MF export and import. Accept both `paint_color` and `slic3rpe:mmu_segmentation`, and keep paint selectors aligned with the annotated volume mesh.
+- Add a device regression test for paint, export, import and restored filament assignments.
+- Continue the Compose workspace migration with shared panels and dialogs, clearer model actions, and responsive navigation. This is an incremental migration; legacy tool hosts remain.
+- Warn before exporting a project with multiple plates because the current 3MF export includes only the active plate.
+- Virtualize the compact filament palette and verify scrolling and selection with 1, 4, 8, 16 and 24 UI entries. The 24-entry case is synthetic; supported ACE capacity is unchanged.
+- Keep fixed T0/T1/T2/T3-to-ACE slot mapping, including empty slots, and retain Moonraker upload/print-start safeguards.
+
+## 0.8.242 (alpha)
+
+- Separate first-layer and other-layer temperatures for six Orca bed surfaces.
+- Select the active bed surface in printer settings and preview its temperatures before slicing.
+- Preserve existing surface values and backfill only missing legacy values.
+
+## 0.8.241 (alpha)
+
+- Preserve painted facet assignments when reopening an OrkanSlicer 3MF; the Orca/Bambu importer now accepts both supported paint attribute names.
+- Keep paint selection indices aligned with the annotated mesh for multi-volume objects.
+- Verify painting and 3MF export/import on the Honor device.
+
+## 0.8.240 (alpha)
+
+- Commit color, support, seam, and fuzzy painting before refreshing the workspace model history, so undo and redo operate on the completed painted model.
+- Make paint tools and filament swatches at least 48 dp tall, expose their active state and accessible action labels, and announce whether painting is paused or active.
+
+## 0.8.239 (alpha)
+
+- Open the complete filament palette from the compact workspace color button. Phones use an expanded bottom sheet; wide windows use a side panel.
+- Reuse the existing filament and ACE slot controller for palette editing, then open the existing model assignment flow from the panel.
+- Clarify compact model actions: filling the plate makes copies, while arranging repositions the models already on the plate. Keep the model action grid in two rows.
+
 ## 0.8.232 (alpha)
 
 - Keep the saved filament temperatures and pressure-advance values aligned with their physical ACE gates when an empty gate makes the model palette compact (for example, ACE 1, 3 and 4). Changing a model tool's gate now selects the corresponding saved palette profile instead of treating the gate number as a palette index.

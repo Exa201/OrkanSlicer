@@ -11,6 +11,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -24,6 +25,7 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 class MobileNavigationDelegate : DelegateSlotImpl() {
     private var portrait = false
     private var bottomNavigation = false
+    private var compactNavigationLabels = false
     private var root: FrameLayout? = null
     private var rootLayout: LinearLayout? = null
     private var navigationView: ComposeView? = null
@@ -60,6 +62,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             configuration.screenWidthDp,
             portrait,
         )
+        compactNavigationLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
         selectedNavigationSlot = MobileNavigationPolicy.selectedDestination(currentSlot)
         rootLayout = navigationLayout
         navigationLayout.orientation = if (bottomNavigation) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
@@ -91,7 +94,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             val rail = createNavigationHost(ctx)
             navigationView = rail
             navigationLayout.addView(rail, LinearLayout.LayoutParams(
-                ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP),
+                ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(ctx.resources.configuration.fontScale)),
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ))
         }
@@ -115,20 +118,29 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
     }
 
     private fun createNavigationHost(ctx: Context): ComposeView {
-        val items = MobileNavigationPolicy.destinations().map { slot ->
-            WorkspaceNavigationItem(
-                slot = slot,
-                label = ctx.getString(getSlotNavigationTitle(slot)),
-                icon = getSlotIcon(slot),
-                accessibilityLabel = ctx.getString(getSlotTooltip(slot)),
-                compactLabel = if (slot == MobileNavigationPolicy.PREVIEW_SLOT) ctx.getString(R.string.NavigationPreviewCompact) else null,
-            )
-        }
         return ComposeView(ctx).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
                 key(navigationThemeRevision) {
                     BeamComposeTheme {
+                        val compactLabels = AdaptiveNavigationPolicy.usesCompactLabels(
+                            LocalDensity.current.fontScale,
+                        ) && !AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
+                            LocalDensity.current.fontScale,
+                            MobileNavigationPolicy.destinations().size,
+                        )
+                        val items = MobileNavigationPolicy.destinations().map { slot ->
+                            val fullTitle = getSlotNavigationTitle(slot)
+                            WorkspaceNavigationItem(
+                                slot = slot,
+                                label = ctx.getString(
+                                    if (compactLabels) compactNavigationTitle(slot) else fullTitle,
+                                ),
+                                icon = getSlotIcon(slot),
+                                // Keep complete destination names available when labels are compacted.
+                                accessibilityLabel = ctx.getString(fullTitle),
+                            )
+                        }
                         AdaptiveWorkspaceNavigation(
                             items = items,
                             selectedSlot = selectedNavigationSlot,
@@ -160,7 +172,8 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             configuration.screenWidthDp,
             portrait,
         )
-        if (useBottomNavigation == bottomNavigation) return
+        val useCompactLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
+        if (useBottomNavigation == bottomNavigation && useCompactLabels == compactNavigationLabels) return
         val layout = rootLayout ?: return
         val navigation = navigationView ?: return
         val ctx = context ?: return
@@ -169,6 +182,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
         // overlays and WebViews inside the current screen during rotation and window resizing.
         layout.removeView(navigation)
         bottomNavigation = useBottomNavigation
+        compactNavigationLabels = useCompactLabels
         layout.orientation = if (bottomNavigation) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
         val replacement = createNavigationHost(ctx)
         navigationView = replacement
@@ -190,10 +204,18 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
                 1f,
             )
             layout.addView(replacement, LinearLayout.LayoutParams(
-                ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP),
+                ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(configuration.fontScale)),
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ))
         }
+    }
+
+    private fun compactNavigationTitle(slot: Int): Int = when (slot) {
+        MobileNavigationPolicy.PREVIEW_SLOT -> R.string.NavigationPreviewCompact
+        MobileNavigationPolicy.PRINT_SLOT -> R.string.NavigationPrintCompact
+        MobileNavigationPolicy.FILAMENT_SLOT -> R.string.NavigationFilamentCompact
+        MobileNavigationPolicy.PRINTER_SLOT -> R.string.NavigationPrinterCompact
+        else -> R.string.NavigationAppCompact
     }
 
     override fun onBackPressed(): Boolean {

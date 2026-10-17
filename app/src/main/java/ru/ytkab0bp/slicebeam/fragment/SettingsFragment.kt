@@ -7,6 +7,7 @@ import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,11 +39,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mrudultora.colorpicker.ColorPickerPopUp
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.BeamServerData
 import ru.ytkab0bp.slicebeam.MainActivity
@@ -50,8 +52,7 @@ import ru.ytkab0bp.slicebeam.launchAppActivityResult
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
-import ru.ytkab0bp.slicebeam.components.BeamColorPickerPopUp
+import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
 import ru.ytkab0bp.slicebeam.navigation.Fragment
@@ -60,6 +61,7 @@ import ru.ytkab0bp.slicebeam.theme.BeamTheme
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.settings.SettingsMenuLayoutPolicy
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 import ru.ytkab0bp.slicebeam.utils.ConverterStorage
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
@@ -67,6 +69,10 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 class SettingsFragment : Fragment() {
     private var themeRevision by mutableIntStateOf(0)
     private var expandedSections by mutableStateOf(emptySet<Int>())
+    private var activeChoiceDialog by mutableStateOf<SettingsChoiceDialogState?>(null)
+    private var showAccentColorDialog by mutableStateOf(false)
+    private var showFolderPickerError by mutableStateOf(false)
+    private var showResetConfirmation by mutableStateOf(false)
 
     override fun onCreate() {
         super.onCreate()
@@ -74,6 +80,10 @@ class SettingsFragment : Fragment() {
     }
 
     override fun onDestroy() {
+        activeChoiceDialog = null
+        showAccentColorDialog = false
+        showFolderPickerError = false
+        showResetConfirmation = false
         SliceBeam.EVENT_BUS.unregisterListener(this)
         super.onDestroy()
     }
@@ -88,28 +98,62 @@ class SettingsFragment : Fragment() {
             val revision = themeRevision
             if (revision >= 0) {
                 BeamComposeTheme {
-                    SettingsContent(
-                        expandedSections = expandedSections,
-                        cloudAvailable = BeamServerData.isCloudAvailable(),
-                        boostyAvailable = BeamServerData.isBoostyAvailable(),
-                        themeName = ctx.getString(Prefs.getThemeMode().title),
-                        accentColor = "#%08X".format(Prefs.getAccentColor()),
-                        renderScale = "${(Prefs.getRenderScale() * 100).toInt()}%",
-                        uiTextScale = "${(Prefs.getUiTextScale() * 100).toInt()}%",
-                        converterRoot = ConverterStorage.getRootDisplayName(ctx),
-                        onToggleSection = ::toggleSection,
-                        onMaker = ::openMaker,
-                        onTheme = ::showThemePicker,
-                        onAccent = ::showAccentPicker,
-                        onRenderScale = ::showRenderScalePicker,
-                        onUiTextScale = ::showUiTextScalePicker,
-                        onConverterFolder = ::chooseConverterFolder,
-                        onCloud = { startSetup(SetupActivity.EXTRA_CLOUD_PROFILE) },
-                        onAddPrinter = { startSetup(SetupActivity.EXTRA_ADD_PRINTER) },
-                        onAbout = { startSetup(SetupActivity.EXTRA_ABOUT) },
-                        onBoosty = { startSetup(SetupActivity.EXTRA_BOOSTY_ONLY) },
-                        onReset = ::confirmReset,
-                    )
+                    Box(Modifier.fillMaxSize()) {
+                        SettingsContent(
+                            expandedSections = expandedSections,
+                            cloudAvailable = BeamServerData.isCloudAvailable(),
+                            boostyAvailable = BeamServerData.isBoostyAvailable(),
+                            themeName = ctx.getString(Prefs.getThemeMode().title),
+                            accentColor = "#%08X".format(Prefs.getAccentColor()),
+                            renderScale = "${(Prefs.getRenderScale() * 100).toInt()}%",
+                            uiTextScale = "${(Prefs.getUiTextScale() * 100).toInt()}%",
+                            converterRoot = ConverterStorage.getRootDisplayName(ctx),
+                            onToggleSection = ::toggleSection,
+                            onMaker = ::openMaker,
+                            onTheme = ::showThemePicker,
+                            onAccent = ::showAccentPicker,
+                            onRenderScale = ::showRenderScalePicker,
+                            onUiTextScale = ::showUiTextScalePicker,
+                            onConverterFolder = ::chooseConverterFolder,
+                            onCloud = { startSetup(SetupActivity.EXTRA_CLOUD_PROFILE) },
+                            onAddPrinter = { startSetup(SetupActivity.EXTRA_ADD_PRINTER) },
+                            onAbout = { startSetup(SetupActivity.EXTRA_ABOUT) },
+                            onBoosty = { startSetup(SetupActivity.EXTRA_BOOSTY_ONLY) },
+                            onReset = ::confirmReset,
+                        )
+                        activeChoiceDialog?.let { dialog ->
+                            SettingsChoiceDialog(dialog) { activeChoiceDialog = null }
+                        }
+                        if (showAccentColorDialog) {
+                            ColorChooserDialog(
+                                initialColor = Prefs.getAccentColor(),
+                                resetLabel = ctx.getString(R.string.SettingsInterfaceColorReset),
+                                onDismiss = { showAccentColorDialog = false },
+                                onColorChosen = { color ->
+                                    Prefs.setAccentColor(color)
+                                    applyAccentColor()
+                                },
+                                onReset = {
+                                    Prefs.setAccentColor(SetupActivity.AccentColors.DEFAULT.color)
+                                    applyAccentColor()
+                                },
+                            )
+                        }
+                        if (showFolderPickerError) {
+                            SettingsFolderPickerErrorDialog(
+                                onDismiss = { showFolderPickerError = false },
+                            )
+                        }
+                        if (showResetConfirmation) {
+                            SettingsResetConfirmationDialog(
+                                onDismiss = { showResetConfirmation = false },
+                                onConfirm = {
+                                    showResetConfirmation = false
+                                    performReset()
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -133,37 +177,33 @@ class SettingsFragment : Fragment() {
     private fun showThemePicker() {
         val context = getContext() ?: return
         val modes = Prefs.ThemeMode.values()
-        val labels = modes.map { context.getString(it.title) }.toTypedArray()
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.SettingsInterfaceTheme)
-            .setSingleChoiceItems(labels, Prefs.getThemeMode().ordinal) { dialog, which ->
-                Prefs.setThemeMode(which)
-                (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) }
-                themeRevision++
-                dialog.dismiss()
+        showChoiceDialog(
+            title = R.string.SettingsInterfaceTheme,
+            options = modes.map { context.getString(it.title) },
+            selectedIndex = Prefs.getThemeMode().ordinal,
+        ) { which ->
+            Prefs.setThemeMode(which)
+            (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) }
+            themeRevision++
+        }
+    }
+
+    private fun showChoiceDialog(
+        title: Int,
+        options: List<String>,
+        selectedIndex: Int,
+        onSelected: (Int) -> Unit,
+    ) {
+        activeChoiceDialog = SettingsChoiceDialogState(title, options, selectedIndex) { index ->
+            if (index in options.indices) {
+                onSelected(index)
+                activeChoiceDialog = null
             }
-            .show()
+        }
     }
 
     private fun showAccentPicker() {
-        val context = getContext() ?: return
-        BeamColorPickerPopUp(context)
-            .setDialogTitle(context.getString(R.string.SettingsInterfaceColor))
-            .setDefaultColor(Prefs.getAccentColor())
-            .setShowAlpha(false)
-            .setOnPickColorListener(object : ColorPickerPopUp.OnPickColorListener {
-                override fun onColorPicked(color: Int) {
-                    Prefs.setAccentColor(color)
-                    applyAccentColor()
-                }
-
-                override fun onCancel() {
-                    Prefs.setAccentColor(SetupActivity.AccentColors.DEFAULT.color)
-                    applyAccentColor()
-                }
-            })
-            .setNegativeButtonText(context.getString(R.string.SettingsInterfaceColorReset))
-            .show()
+        if (getContext() != null) showAccentColorDialog = true
     }
 
     private fun applyAccentColor() {
@@ -175,18 +215,14 @@ class SettingsFragment : Fragment() {
     }
 
     private fun showRenderScalePicker() {
-        val context = getContext() ?: return
+        if (getContext() == null) return
         val variants = floatArrayOf(1f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f)
-        val labels = variants.map { "${(it * 100).toInt()}%" }.toTypedArray()
+        val labels = variants.map { "${(it * 100).toInt()}%" }
         val selected = variants.indexOfFirst { it == Prefs.getRenderScale() }.coerceAtLeast(0)
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.SettingsInterfaceResolutionScale)
-            .setSingleChoiceItems(labels, selected) { dialog, which ->
-                Prefs.setRenderScale(variants[which])
-                themeRevision++
-                dialog.dismiss()
-            }
-            .show()
+        showChoiceDialog(R.string.SettingsInterfaceResolutionScale, labels, selected) { which ->
+            Prefs.setRenderScale(variants[which])
+            themeRevision++
+        }
     }
 
     private fun showUiTextScalePicker() {
@@ -200,16 +236,12 @@ class SettingsFragment : Fragment() {
                 else -> context.getString(R.string.SettingsTextSizeExtraLarge)
             }
             "$sizeLabel · ${(scale * 100).toInt()}%"
-        }.toTypedArray()
+        }
         val selected = variants.indexOfFirst { it == Prefs.getUiTextScale() }.coerceAtLeast(0)
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.SettingsInterfaceTextSize)
-            .setSingleChoiceItems(labels, selected) { dialog, which ->
-                Prefs.setUiTextScale(variants[which])
-                themeRevision++
-                dialog.dismiss()
-            }
-            .show()
+        showChoiceDialog(R.string.SettingsInterfaceTextSize, labels, selected) { which ->
+            Prefs.setUiTextScale(variants[which])
+            themeRevision++
+        }
     }
 
     private fun chooseConverterFolder() {
@@ -220,29 +252,22 @@ class SettingsFragment : Fragment() {
                 MainActivity.REQUEST_CODE_CONVERTER_ROOT_SETTINGS,
             )
         } catch (_: Exception) {
-            BeamAlertDialogBuilder(activity)
-                .setTitle(R.string.ConverterFailed)
-                .setMessage(R.string.ConverterFolderPickerUnavailable)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            showFolderPickerError = true
         }
     }
 
     private fun confirmReset() {
+        showResetConfirmation = true
+    }
+
+    private fun performReset() {
         val activity = getContext() as? Activity ?: return
-        BeamAlertDialogBuilder(activity)
-            .setTitle(R.string.SettingsResetToDefaultTitle)
-            .setMessage(R.string.SettingsResetToDefaultDescription)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                SliceBeam.getConfigFile().delete()
-                SliceBeam.CONFIG = null
-                Prefs.getPrefs()?.edit()?.clear()?.apply()
-                Prefs.setLastCommit()
-                activity.startActivity(Intent(activity, SetupActivity::class.java))
-                activity.finish()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        SliceBeam.getConfigFile().delete()
+        SliceBeam.CONFIG = null
+        Prefs.getPrefs()?.edit()?.clear()?.apply()
+        Prefs.setLastCommit()
+        activity.startActivity(Intent(activity, SetupActivity::class.java))
+        activity.finish()
     }
 
     fun refreshConverterFolderSetting() {
@@ -261,7 +286,31 @@ class SettingsFragment : Fragment() {
 }
 
 @Composable
-private fun SettingsContent(
+internal fun SettingsFolderPickerErrorDialog(onDismiss: () -> Unit) {
+    WorkspaceMessageDialog(
+        title = stringResource(R.string.ConverterFailed),
+        message = stringResource(R.string.ConverterFolderPickerUnavailable),
+        confirmLabel = stringResource(android.R.string.ok),
+        dismissLabel = null,
+        onDismiss = onDismiss,
+        onConfirm = onDismiss,
+    )
+}
+
+@Composable
+internal fun SettingsResetConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    WorkspaceMessageDialog(
+        title = stringResource(R.string.SettingsResetToDefaultTitle),
+        message = stringResource(R.string.SettingsResetToDefaultDescription),
+        confirmLabel = stringResource(android.R.string.ok),
+        dismissLabel = stringResource(android.R.string.cancel),
+        onDismiss = onDismiss,
+        onConfirm = onConfirm,
+    )
+}
+
+@Composable
+internal fun SettingsContent(
     expandedSections: Set<Int>,
     cloudAvailable: Boolean,
     boostyAvailable: Boolean,
@@ -502,7 +551,7 @@ private fun SettingsContent(
 }
 
 @Composable
-private fun SettingsSection(
+internal fun SettingsSection(
     index: Int,
     expandedSections: Set<Int>,
     onToggle: (Int) -> Unit,
@@ -513,6 +562,7 @@ private fun SettingsSection(
     content: @Composable () -> Unit,
 ) {
     val expanded = index in expandedSections
+    val expansionStateDescription = stringResource(if (expanded) R.string.MakerCollapse else R.string.MakerExpand)
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = if (denseLandscape) 6.dp else if (compactLayout) 8.dp else 12.dp),
         shape = RoundedCornerShape(if (compactLayout) 26.dp else 30.dp),
@@ -523,6 +573,7 @@ private fun SettingsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(role = Role.Button) { onToggle(index) }
+                    .semantics { stateDescription = expansionStateDescription }
                     .heightIn(min = if (compactLayout) 48.dp else 56.dp)
                     .padding(
                         horizontal = if (compactLayout) 12.dp else 14.dp,

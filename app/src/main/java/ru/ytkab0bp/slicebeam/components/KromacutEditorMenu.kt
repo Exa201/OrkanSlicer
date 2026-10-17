@@ -5,20 +5,35 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
-import android.util.TypedValue
-import android.view.Gravity
-import android.view.View
-import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 import java.io.File
@@ -26,22 +41,20 @@ import java.io.FileOutputStream
 import java.util.Locale
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.launchAppActivityResult
-import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
 /** Bundled Kromacut editor shown inside the converter panel. */
-class KromacutEditorMenu : UnfoldMenu() {
+class KromacutEditorMenu : WorkspaceComposeToolRoute() {
     private var webView: WebView? = null
     private var outputStream: FileOutputStream? = null
     private var outputFile: File? = null
+    private var activeError by mutableStateOf<String?>(null)
 
     companion object {
         const val REQUEST_CODE_FILE = 15
+        private const val EDITOR_URL = "https://appassets.androidplatform.net/assets/kromacut-editor/index.html"
 
         private var fileCallback: ValueCallback<Array<Uri>>? = null
-        private var activeMenu: KromacutEditorMenu? = null
-
         @JvmStatic
         fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
             if (requestCode != REQUEST_CODE_FILE) return false
@@ -59,27 +72,34 @@ class KromacutEditorMenu : UnfoldMenu() {
         }
     }
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        activeMenu = this
-        val root = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-
-        val close = TextView(ctx).apply {
-            setText(R.string.KromacutEditorClose)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setTextColor(ThemesRepo.getColor(android.R.attr.textColorPrimary))
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(ViewUtils.dp(16), 0, ViewUtils.dp(16), 0)
-            background = ViewUtils.createRipple(
-                ThemesRepo.getColor(android.R.attr.colorControlHighlight), 0f,
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
+        val context = LocalContext.current
+        Column(Modifier.fillMaxSize()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp,
+            ) {
+                TextButton(
+                    onClick = { dismiss() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.KromacutEditorClose))
+                }
+            }
+            AndroidView(
+                factory = { createEditor(context).also { it.loadUrl(EDITOR_URL) } },
+                modifier = Modifier.weight(1f),
             )
-            setOnClickListener { dismiss() }
+            activeError?.let { detail ->
+                KromacutErrorDialog(detail) { activeError = null }
+            }
         }
-        root.addView(
-            close,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewUtils.dp(44)),
-        )
+    }
 
-        val editor = WebView(ctx).apply {
+    private fun createEditor(ctx: Context): WebView {
+        return WebView(ctx).apply {
             setBackgroundColor(0xFF101115.toInt())
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -88,13 +108,12 @@ class KromacutEditorMenu : UnfoldMenu() {
             settings.allowContentAccess = true
             settings.javaScriptCanOpenWindowsAutomatically = false
             addJavascriptInterface(DownloadBridge(), "OrcaMobile")
-        }
-        webView = editor
+            webView = this
 
-        val loader = WebViewAssetLoader.Builder()
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(ctx))
-            .build()
-        editor.webViewClient = object : WebViewClientCompat() {
+            val loader = WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(ctx))
+                .build()
+            webViewClient = object : WebViewClientCompat() {
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest,
@@ -102,37 +121,28 @@ class KromacutEditorMenu : UnfoldMenu() {
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
                 request.url.host != "appassets.androidplatform.net"
-        }
-        editor.webChromeClient = object : WebChromeClient() {
-            override fun onShowFileChooser(
-                view: WebView,
-                callback: ValueCallback<Array<Uri>>,
-                params: FileChooserParams,
-            ): Boolean {
-                fileCallback?.onReceiveValue(null)
-                fileCallback = callback
-                return try {
-                    val chooser = params.createIntent()
-                    (ctx as Activity).launchAppActivityResult(chooser, REQUEST_CODE_FILE)
-                    true
-                } catch (error: Exception) {
-                    fileCallback = null
-                    callback.onReceiveValue(null)
-                    BeamAlertDialogBuilder(ctx)
-                        .setTitle(R.string.ConverterFailed)
-                        .setMessage(R.string.ConverterFolderPickerUnavailable)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                    false
+            }
+            webChromeClient = object : WebChromeClient() {
+                override fun onShowFileChooser(
+                    view: WebView,
+                    callback: ValueCallback<Array<Uri>>,
+                    params: FileChooserParams,
+                ): Boolean {
+                    fileCallback?.onReceiveValue(null)
+                    fileCallback = callback
+                    return try {
+                        val chooser = params.createIntent()
+                        (ctx as Activity).launchAppActivityResult(chooser, REQUEST_CODE_FILE)
+                        true
+                    } catch (error: Exception) {
+                        fileCallback = null
+                        callback.onReceiveValue(null)
+                        activeError = ctx.getString(R.string.ConverterFolderPickerUnavailable)
+                        false
+                    }
                 }
             }
         }
-        root.addView(
-            editor,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
-        )
-        editor.loadUrl("https://appassets.androidplatform.net/assets/kromacut-editor/index.html")
-        return root
     }
 
     override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
@@ -140,7 +150,7 @@ class KromacutEditorMenu : UnfoldMenu() {
         else into.width - into.paddingLeft - into.paddingRight
 
     override fun onDestroy() {
-        if (activeMenu === this) activeMenu = null
+        activeError = null
         fileCallback?.onReceiveValue(null)
         fileCallback = null
         try {
@@ -191,7 +201,7 @@ class KromacutEditorMenu : UnfoldMenu() {
             outputFile = null
             val extension = file.name.lowercase(Locale.ROOT).substringAfterLast('.', "bin")
             ViewUtils.postOnMainThread {
-                dismiss(true)
+                dismiss()
                 val activity = fragment?.getContext() as? Activity
                 val bed = fragment
                 if (activity != null && bed != null) {
@@ -215,12 +225,8 @@ class KromacutEditorMenu : UnfoldMenu() {
         outputFile = null
         val detail = message ?: "Kromacut konnte die Datei nicht speichern."
         ViewUtils.postOnMainThread {
-            val context = fragment?.getContext() ?: return@postOnMainThread
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.ConverterFailed)
-                .setMessage(detail)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            if (fragment?.getView() == null) return@postOnMainThread
+            activeError = detail
         }
     }
 
@@ -237,4 +243,26 @@ class KromacutEditorMenu : UnfoldMenu() {
         @JavascriptInterface
         fun failDownload(message: String?) = this@KromacutEditorMenu.failDownload(message)
     }
+}
+
+@Composable
+internal fun KromacutErrorDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ConverterFailed)) },
+        text = {
+            Text(
+                text = message,
+                modifier = Modifier
+                    .testTag("kromacut-error-message")
+                    .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.5f)
+                    .verticalScroll(rememberScrollState()),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.ok))
+            }
+        },
+    )
 }
