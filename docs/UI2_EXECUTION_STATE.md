@@ -5,9 +5,12 @@
 - Migrated the Smart Expert Slice setup form, cancellable analysis progress, and result actions to the exclusive Workspace Compose dialog host. GL geometry analysis, background profile analysis, model-key/revision checks, the profile snapshot, and explicit apply/slice callbacks remain intact.
 - Added an idempotent workspace-dialog dismiss callback with an external-dismiss hook so Android Back cancels Smart Slice work. MMU synchronization failure feedback now uses the workspace message dialog.
 - Added five Honor Compose UI tests for input validation and value submission, Cancel, Android Back, progress cancellation, and result dismissal without applying changes or starting a slice. The tests do not invoke geometry analysis or slicing.
-- Targeted verification: Smart Slice value unit test passed; Honor `SmartSliceDialogsDeviceTest`: 5/5 passed. Full Debug/Slice suites, full Honor instrumentation, final build, and device install for 0.8.260 are pending.
+- Verification: Smart Slice value unit test passed; targeted Honor `SmartSliceDialogsDeviceTest`: 5/5 passed. Full Debug unit suite: 552/552; Slice unit suite: 552/552. Full Honor connected XML: 73 tests, 0 failures, 0 errors, 3 skipped private multi-color fixtures (Gradle reported 76 executions); emulator remained offline. Full `:app:assembleDebug` succeeded.
+- Honor PTP-N49 / Android 16 installed and launched OrkanSlicer package `com.codemastercody3d.orcaslicermobile`, version 0.8.260 / code 295. MainActivity was top-resumed; a fresh 6,000-line logcat sample contained no fatal, ANR, OOM, or fatal-signal matches. No screenshot or print operation.
+- Code commit: `f8c6c8f05bc4199aaec13d6fda94636f27516333`. Debug APK built from this exact code commit: `app/build/outputs/apk/debug/OrkanSlicer_f8c6c8f05b.apk`, 157,041,607 bytes, SHA-256 `3B705A39F3296AA07A7C05A7D9BF53AD2DC2394232A96E4E9749AD4A44F7DB24`.
 - Version bumped to alpha `0.8.260` / `versionCode 295`; repository and localized in-app changelogs updated.
-- Next: run full Debug and Slice unit suites, complete Honor instrumentation, assemble the debug APK, install/launch the exact OrkanSlicer package, and record artifact hash. Then continue with remaining global menu and legacy dialog routes.
+- PR #2 is open and GitHub currently reports it mergeable; no merge or release was performed. Emulator remains offline.
+- Next: migrate the two print-profile tool editors (flush-volume matrix and prime-tower position) off nested legacy Android AlertDialogs while preserving validation, IME behavior, pending-profile transactions, and Cancel semantics; add device tests for actual dialog host behavior. Then continue with remaining global menu and legacy dialog routes.
 
 ## Latest continuation — Quick Slice and calibration error dialogs (0.8.259 / 2026-10-17)
 
