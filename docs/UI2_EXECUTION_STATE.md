@@ -7,7 +7,7 @@
 - Removed the unused `restoreWorkspaceAfterMenuDismiss()` helper (no source references existed) and a no-op `FrameLayout.onSizeChanged` override; the plain root FrameLayout remains only as the lifecycle container for Compose and the GL/WebView Android adapters.
 - Dialog review found active MainActivity Android-dialog paths are primarily platform fallbacks when no attached workspace Compose host exists; the normal project import and profile import flows use Compose. Those fallbacks remain intentionally for non-workspace Activity states. No further dialog route is declared migrated by this panel change.
 - Phase 5 is still incomplete. Existing Honor tests exercise representative Project, Tools/profile-export, Camera, Model/Edit/Transform, Filament, Plate, and Slice flows, but no exhaustive per-action audit has been completed.
-- Code commit `aaf02c7` is ready to push; GitHub PR #2 still points at `629c8a8` at this checkpoint. Next: inspect the six route action maps and global profile/printer actions for a concrete P0/P1 gap, then push/update PR #2. Do not report Phase 4 or 5 complete.
+- Code commit `aaf02c7` and verification docs commit `18bc22e` are pushed. PR #2 is open, targets `codex/rinkhals-safe-start-audit`, reports `MERGEABLE`, and has no checks reported. Next: inspect the six route action maps and global profile/printer actions for a concrete P0/P1 gap. Do not report Phase 4 or 5 complete.
 
 # Previous continuation — collapsed-route transition cleanup (2026-10-18, 0.8.301)
 
