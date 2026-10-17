@@ -7,9 +7,9 @@
 - Added Honor UI tests for invalid/corrected Quick Slice input, Cancel, and Android Back; no test invokes slice execution. Existing Quick Slice profile transaction/value unit coverage remains in place.
 - Verification: Debug unit 552/552, Slice unit 552/552 (0 failures/errors/skips each); Honor connected suite XML 68 tests, 0 failures, 3 private multi-color fixtures skipped (71 Gradle executions including skip variants); emulator remained offline. Full `:app:assembleDebug` succeeded.
 - Honor PTP-N49 / Android 16 installed and launched OrkanSlicer package `com.codemastercody3d.orcaslicermobile`, version 0.8.259 / code 294. `ru.ytkab0bp.slicebeam.MainActivity` top-resumed; 5,000-line logcat sample had no fatal, ANR, OOM, or fatal-signal matches. No screenshot or print operation.
-- Pre-commit APK: `app/build/outputs/apk/debug/OrkanSlicer_5b811f4103.apk`, 157,025,254 bytes, SHA-256 `8A5E2A14EFEA2A3AE5134DCCD036A10AA6BBDCCA6C93576F536F945FF89E0A29`. Rebuild after committing for final commit metadata.
+- Code commit: `bffad223db...` (`bffad22`). Final APK rebuilt against that commit: `app/build/outputs/apk/debug/OrkanSlicer_bffad22577.apk`, 157,025,251 bytes, SHA-256 `47085E1485815E07941B902C98583A64337942F14228F5E70A173D10F06AE480`.
 - UI 2.0 remains in progress: remaining global menu/action audit, platform dialogs beyond Quick Slice/calibration load errors (especially smart-slice and upload flows), responsive/accessibility coverage, real plate/filament interactions, and technical BedFragment WebView/GL/lifecycle boundaries. Preserve all upload/print safety and the multi-plate active-plate-only export warning.
-- Next: continue migrating safe dialog routes that can use the existing workspace host without changing print/upload transaction behavior. Current branch is `codex/rinkhals-safe-start-audit`, PR #2 remains open and unmerged. Preserve `.codex-remote-attachments/`.
+- The code commit is ready to push; PR #2 remains open and unmerged. Next: continue migrating safe dialog routes that can use the existing workspace host without changing print/upload transaction behavior. Preserve `.codex-remote-attachments/`.
 
 ## Latest continuation — workspace snackbar migration (0.8.258 / 2026-10-17)
 
