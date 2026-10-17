@@ -1,3 +1,11 @@
+## OrkanSlicer UI 2.0 – 0.8.300 verification (2026-10-17)
+
+- Change: move the workspace menu transition guard into `WorkspaceController` and capture the old route before changing the selected destination. Add a controller test and a device regression that tries a second route during the animation. Version 0.8.300/code 335.
+- Debug JVM suite: 555 tests, 0 failures/errors/skips. Slice JVM suite: 555 tests, 0 failures/errors/skips. Targeted Honor `WorkspaceNavigationDeviceTest` including the rapid-route assertion: 1/1 passed, 0 skipped/failures. Emulator `emulator-5554` remained offline.
+- `:app:assembleDebug` passed from code commit `2a6f0dc696b3a8acbdda872e74d16a56ef7b0dda`. Debug APK `app/build/outputs/apk/debug/OrkanSlicer_2a6f0dc696.apk`, 157,215,103 bytes; SHA-256 `07751230EDFFD61BF075E4E57E04F15D3518B9D0A590C79685686A2C6DD80521`. APK installed on Honor PTP-N49 (Android 16); exact package metadata `com.codemastercody3d.orcaslicermobile` reports 0.8.300/code 335, `MainActivity` top-resumed. Fresh 5,000-line logcat scan: no FATAL EXCEPTION, ANR, OOM, or fatal-signal matches.
+- These are targeted route-transition checks; the full Honor suite was last run on 0.8.299 and has not been rerun for 0.8.300. Phase 4/5 remain incomplete. No merge, release, firmware operation, printer command, or print job.
+- Phase 4 and Phase 5 remain incomplete. This fix improves transition-state ownership; it does not claim a complete dialog or menu action audit. No merge, release, firmware operation, printer command or print job.
+
 ## OrkanSlicer UI 2.0 – 0.8.299 verification (2026-10-17)
 
 - `WorkspaceController` now owns active Compose tool identity and dismissal; the duplicate BedFragment tool reference was removed. The targeted Honor `WorkspaceNavigationDeviceTest` passed 1/1, and the full connected Honor suite was rerun on this source: XML report 138 unique cases, 133 passed, 5 skipped, 0 failures/errors. Gradle reported 143 executions due to runner retries/reporting. The five skips are unavailable KromaCut and private multicolor fixtures; emulator 5554 remained offline.

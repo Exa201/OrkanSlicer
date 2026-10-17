@@ -1,4 +1,12 @@
-# Current continuation — compact workspace navigation labels (2026-10-17)
+# Current continuation — workspace route transition guard (2026-10-17, 0.8.300)
+
+- Fixed the stale menu-animation guard: `BedFragment` previously compared the requested slot after `WorkspaceController.navigateToDestination()` had already updated the selected slot, so route changes were recorded as settled immediately. Transition state now has one owner in `WorkspaceController`; the previous slot is captured before navigation, rapid taps and configuration changes consult that state, and the Compose transition clears it after settling.
+- Added a controller state test and strengthened `WorkspaceNavigationDeviceTest` to issue a second route selection during the first transition and assert the controller keeps the first destination. Targeted Honor `WorkspaceNavigationDeviceTest`: 1/1 passed, 0 skipped/failures. Debug and Slice JVM suites each passed 555/555, 0 failures/errors/skips.
+- Version/changelog advanced to 0.8.300/code 335. `:app:assembleDebug` passed at code commit `2a6f0dc696b3a8acbdda872e74d16a56ef7b0dda`. APK `app/build/outputs/apk/debug/OrkanSlicer_2a6f0dc696.apk`: 157,215,103 bytes; SHA-256 `07751230EDFFD61BF075E4E57E04F15D3518B9D0A590C79685686A2C6DD80521`. Installed on Honor PTP-N49 under `com.codemastercody3d.orcaslicermobile`; metadata reports version 0.8.300/code 335, `MainActivity` top-resumed. Fresh 5,000-line logcat scan had no FATAL EXCEPTION, ANR, OOM, or fatal-signal matches. Emulator remains offline.
+- Phase 4 remains incomplete: the workspace dialog routes are inventoried and current active workspace paths are Compose, but fallback routes outside an attached workspace and remaining BedFragment technical bridge duties need final audit/documentation. Phase 5 remains incomplete: representative actions are covered, not every action across all six destinations and global submenus. Do not report the UI 2.0 as complete.
+- Code commit is local and ready to push with the verification docs. Next: update PR #2 and continue outstanding Phase 4 dialog-route checks and Phase 5 action-level menu audit; neither phase is complete.
+
+# Previous continuation — compact workspace navigation labels (2026-10-17)
 
 ## Current continuation — one owner for active tool lifecycle (2026-10-17, 0.8.299)
 
