@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.285 (alpha)
+
+- Move post-save load/keep decisions and converter errors into the exclusive workspace Compose dialog host.
+- Preserve the platform create-document and folder pickers, file copy behavior, and temporary-output cleanup semantics.
+- Add Honor coverage for saved-output cleanup and converter error dismissal.
+
 ## 0.8.284 (alpha)
 
 - Move lithophane image-tone editing into the exclusive workspace Compose host, including the rendered relief preview, grayscale mode, brightness, contrast, inversion, and explicit apply/cancel behavior.

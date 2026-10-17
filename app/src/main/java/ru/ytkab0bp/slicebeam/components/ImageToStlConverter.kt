@@ -1280,9 +1280,26 @@ return
 }
 showSavedOutputQuestion(activity, output, extension!!, bed)
 }
-private fun showSavedOutputQuestion(activity:Activity, output:File, extension:String, bed:BedFragment?) {
+internal fun showSavedOutputQuestion(activity:Activity, output:File, extension:String, bed:BedFragment?) {
 if (("stl".equals(extension) || "svg".equals(extension) || "3mf".equals(extension)) && bed != null)
 {
+if (bed.canShowWorkspaceComposeDialog()) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratedSavedOutputDialog(
+            onDismiss = dismiss,
+            onKeepSaved = { dismiss(); output.delete() },
+            onLoad = {
+                dismiss()
+                try {
+                    bed.loadModel(output)
+                } catch (e:Exception) {
+                    showError(activity, e)
+                }
+            },
+        )
+    }
+    return
+}
 BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterSavedTitle)
 .setMessage(R.string.ConverterLoadQuestion)
 .setNegativeButton(R.string.ConverterOnlySave, { d, w-> output.delete() })
@@ -1571,8 +1588,20 @@ return edit
 private fun parse(value:String, fallback:Float, min:Float, max:Float):Float {
 return ru.ytkab0bp.slicebeam.utils.LithophaneInput.parseClamped(value, fallback, min, max)
 }
-private fun showError(activity:Activity, error:Exception) {
-ViewUtils.postOnMainThread({ if (activity.isFinishing()) return@postOnMainThread
+internal fun showError(activity:Activity, error:Exception) {
+ViewUtils.postOnMainThread({ if (activity.isFinishing() || activity.isDestroyed) return@postOnMainThread
+val bed = (activity as? MainActivity)?.let {
+    runCatching { it.navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+}
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        ConverterErrorDialog(
+            message = error.message ?: error.toString(),
+            onDismiss = dismiss,
+        )
+    }
+    return@postOnMainThread
+}
 BeamAlertDialogBuilder(activity).setTitle(R.string.ConverterFailed)
 .setMessage(if (error.message == null) error.toString() else error.message)
 .setPositiveButton(android.R.string.ok, null).show() })

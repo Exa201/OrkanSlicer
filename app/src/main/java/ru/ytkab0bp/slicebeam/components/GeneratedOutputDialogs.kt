@@ -155,3 +155,43 @@ internal fun GeneratedRasterPreviewDialog(
         },
     )
 }
+
+@Composable
+internal fun GeneratedSavedOutputDialog(
+    onDismiss: () -> Unit,
+    onKeepSaved: () -> Unit,
+    onLoad: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ConverterSavedTitle)) },
+        text = { Text(stringResource(R.string.ConverterLoadQuestion)) },
+        confirmButton = {
+            TextButton(onClick = onLoad, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.ConverterLoad))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepSaved, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.ConverterOnlySave))
+            }
+        },
+    )
+}
+
+@Composable
+internal fun ConverterErrorDialog(
+    message: String,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ConverterFailed)) },
+        text = { Text(message) },
+        confirmButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.ok))
+            }
+        },
+    )
+}

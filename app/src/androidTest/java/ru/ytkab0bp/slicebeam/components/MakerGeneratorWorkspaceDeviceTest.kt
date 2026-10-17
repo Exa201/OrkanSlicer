@@ -49,6 +49,39 @@ class MakerGeneratorWorkspaceDeviceTest {
     }
 
     @Test
+    fun savedModelFollowupUsesWorkspaceAndKeepDeletesOnlyTemporaryOutput() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val output = java.io.File(activity.cacheDir, "workspace-saved-followup-test.stl").apply {
+            writeBytes(byteArrayOf(5, 6, 7, 8))
+        }
+
+        activity.runOnUiThread {
+            ImageToStlConverter.showSavedOutputQuestion(activity, output, "stl", bed)
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterLoadQuestion)).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterOnlySave)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertFalse("Keep-saved action should remove only the temporary cache output", output.exists())
+    }
+
+    @Test
+    fun converterErrorUsesWorkspaceComposeAndDismissesWithOk() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+
+        activity.runOnUiThread {
+            ImageToStlConverter.showError(activity, java.io.IOException("Converter test error"))
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterFailed)).assertIsDisplayed()
+        compose.onNodeWithText("Converter test error").assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+    }
+
+    @Test
     fun lithophaneToneEditorAppliesChangesThroughWorkspaceCompose() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
