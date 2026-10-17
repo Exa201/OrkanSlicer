@@ -32,6 +32,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,6 +43,8 @@ import ru.ytkab0bp.slicebeam.components.ProfileConfigImportDialog
 import ru.ytkab0bp.slicebeam.components.ProfileImportCategory
 import ru.ytkab0bp.slicebeam.components.ProfileImportKey
 import ru.ytkab0bp.slicebeam.components.ProfileImportOption
+import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
+import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
@@ -54,6 +57,11 @@ import java.util.concurrent.atomic.AtomicReference
 class ProfileSettingsImeDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
+
+    @After
+    fun clearTemporaryProjectSettings() {
+        TemporaryProjectSettings.clear()
+    }
 
     @Test
     fun profileFiltersRemainUsableWithKeyboardVisible() {
@@ -279,6 +287,103 @@ class ProfileSettingsImeDeviceTest {
         compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
         assertEquals("Cancel never triggers the import callback", null, imported.get())
+    }
+
+    @Test
+    fun threeMfSettingsChoiceAppliesOnlySelectedTemporaryOverrides() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val config = SliceBeam.requireConfig()
+        val printer = requireNotNull(config.presets?.get("printer"))
+        val alternatePrinter = requireNotNull(config.printerConfigs.mapNotNull { it.title }.firstOrNull { it != printer })
+        val savedPrintValue = config.findPrint(config.presets?.get("print"))?.get("layer_height")
+        val savedFilamentValue = config.findFilament(config.presets?.get("filament"))?.get("nozzle_temperature")
+
+        activity.runOnUiThread {
+            activity.showThreeMfChoiceForTest(
+                bed,
+                ThreeMfProjectSettings(
+                    sourceName = "settings-choice.3mf",
+                    process = mapOf("layer_height" to "0.24", "curr_bed_type" to "Textured PEI Plate"),
+                    filaments = listOf(mapOf(
+                        "filament_colour" to "#112233",
+                        "filament_type" to "PETG",
+                        "nozzle_temperature" to "240",
+                    )),
+                    filamentTypes = emptyMap(),
+                    printerTitle = alternatePrinter,
+                ),
+                hasFileFilaments = true,
+            )
+        }
+
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(activity.getString(R.string.Project3mfImportTitle)).assertIsDisplayed()
+        val useFilePrinter = activity.getString(R.string.Project3mfUseFilePrinter, alternatePrinter)
+        compose.onNodeWithText(useFilePrinter).performClick()
+        compose.onNodeWithText(useFilePrinter).performClick()
+        compose.onNodeWithText(activity.getString(R.string.Project3mfUsePrintSettings)).performClick()
+        compose.onNodeWithText(activity.getString(R.string.Project3mfUseFilamentSettings)).performClick()
+        compose.onNodeWithText(activity.getString(R.string.Project3mfApplyChoice)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+        assertTrue("The choice activates project-local settings", TemporaryProjectSettings.active)
+        assertTrue("Selected print settings stay project-local", TemporaryProjectSettings.owns(ConfigObject.PROFILE_LIST_PRINT))
+        assertTrue("Selected filament settings stay project-local", TemporaryProjectSettings.owns(ConfigObject.PROFILE_LIST_FILAMENT))
+        val effective = ConfigObject().apply { TemporaryProjectSettings.applyTo(this) }
+        assertEquals("0.24", effective["layer_height"])
+        assertEquals("Unchecking the file printer reselects the current printer", printer, config.presets?.get("printer"))
+        assertEquals("Unchecking the file printer excludes its plate type", null, effective["curr_bed_type"])
+        assertEquals("240", effective["nozzle_temperature"])
+        assertEquals("The dialog never writes the saved print profile", savedPrintValue,
+            config.findPrint(config.presets?.get("print"))?.get("layer_height"))
+        assertEquals("The dialog never writes the saved filament profile", savedFilamentValue,
+            config.findFilament(config.presets?.get("filament"))?.get("nozzle_temperature"))
+    }
+
+    @Test
+    fun cancellingThreeMfSettingsChoiceClearsPreviousProjectOverrides() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        TemporaryProjectSettings.activate(ThreeMfProjectSettings(
+            sourceName = "previous.3mf",
+            process = mapOf("layer_height" to "0.3"),
+            filaments = emptyList(),
+            filamentTypes = emptyMap(),
+        ))
+        assertTrue(TemporaryProjectSettings.active)
+
+        activity.runOnUiThread {
+            activity.showThreeMfChoiceForTest(
+                bed,
+                ThreeMfProjectSettings(
+                    sourceName = "cancelled.3mf",
+                    process = mapOf("layer_height" to "0.24"),
+                    filaments = emptyList(),
+                    filamentTypes = emptyMap(),
+                ),
+                hasFileFilaments = false,
+            )
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertEquals("Cancelled file choice must not retain the previous project's settings", false,
+            TemporaryProjectSettings.active)
+    }
+
+    private fun MainActivity.showThreeMfChoiceForTest(
+        bed: BedFragment,
+        settings: ThreeMfProjectSettings,
+        hasFileFilaments: Boolean,
+    ) {
+        val resultType = Class.forName("ru.ytkab0bp.slicebeam.MainActivity\$Project3mfImportResult")
+        val result = resultType.getDeclaredConstructor().apply { isAccessible = true }.newInstance()
+        resultType.getDeclaredField("settings").apply { isAccessible = true }.set(result, settings)
+        resultType.getDeclaredField("hasFileFilaments").apply { isAccessible = true }.setBoolean(result, hasFileFilaments)
+        MainActivity::class.java.getDeclaredMethod("show3mfImportChoice", BedFragment::class.java, resultType)
+            .apply { isAccessible = true }
+            .invoke(this, bed, result)
     }
 
     @Test

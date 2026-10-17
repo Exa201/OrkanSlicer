@@ -67,6 +67,7 @@ import ru.ytkab0bp.slicebeam.components.ProfileConfigImportDialog
 import ru.ytkab0bp.slicebeam.components.ProfileImportCategory
 import ru.ytkab0bp.slicebeam.components.ProfileImportKey
 import ru.ytkab0bp.slicebeam.components.ProfileImportOption
+import ru.ytkab0bp.slicebeam.components.ThreeMfImportChoiceDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
@@ -802,6 +803,62 @@ private fun show3mfImportChoice(fragment: BedFragment, projectImport: Project3mf
     val filePrinterIndex = names.indexOf(filePrinter)
     val currentPrinter = config.presets?.get("printer")
     val ownPrinterIndex = names.indexOf(currentPrinter).coerceAtLeast(0)
+    if (fragment.canShowWorkspaceComposeDialog()) {
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ThreeMfImportChoiceDialog(
+                title = getString(R.string.Project3mfImportTitle),
+                explanation = getString(R.string.Project3mfImportExplanation),
+                printerLabel = getString(R.string.Project3mfTargetPrinter),
+                printerNames = names,
+                initialPrinterIndex = ownPrinterIndex,
+                filePrinterIndex = filePrinterIndex,
+                filePrinterLabel = getString(R.string.Project3mfUseFilePrinter, filePrinter),
+                unavailableFilePrinterLabel = getString(R.string.Project3mfFilePrinterUnavailable, filePrinter.ifBlank { "–" }),
+                printSettingsLabel = getString(R.string.Project3mfUsePrintSettings),
+                filamentSettingsLabel = getString(R.string.Project3mfUseFilamentSettings),
+                temporaryNote = getString(R.string.Project3mfImportTemporaryNote),
+                applyLabel = getString(R.string.Project3mfApplyChoice),
+                cancelLabel = getString(android.R.string.cancel),
+                canUsePrintSettings = projectImport.settings?.process?.any { it.key != "curr_bed_type" } == true,
+                canUseFilamentSettings = projectImport.hasFileFilaments,
+                onDismiss = dismiss,
+                onApply = { target, useFilePrinter, usePrintSettings, useFilamentSettings ->
+                    if (target != null && target != config.presets?.get("printer") && !SliceBeam.applyProfileSelection(printer = target)) {
+                        Toast.makeText(this, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
+                    } else {
+                        val selected = projectImport.settings?.let { source ->
+                            ThreeMfImportSelection.select(
+                                source,
+                                usePrintSettings,
+                                useFilamentSettings,
+                                Prefs.getStoredFilamentSlots(),
+                                useFilePrinter,
+                            )
+                        }
+                        TemporaryProjectSettings.activate(selected)
+                        fragment.refreshProfileStatus()
+                        fragment.glView?.requestRender()
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.Project3mfChoiceApplied))
+                        dismiss()
+                    }
+                },
+            )
+        }
+        return
+    }
+    show3mfImportChoicePlatform(fragment, projectImport, config, names, filePrinter, filePrinterIndex, ownPrinterIndex)
+}
+
+/** Platform fallback for rare activity states with no attached Bed workspace host. */
+private fun show3mfImportChoicePlatform(
+    fragment: BedFragment,
+    projectImport: Project3mfImportResult,
+    config: Slic3rConfigWrapper,
+    names: List<String>,
+    filePrinter: String,
+    filePrinterIndex: Int,
+    ownPrinterIndex: Int,
+) {
     val root = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(ViewUtils.dp(20), ViewUtils.dp(4), ViewUtils.dp(20), ViewUtils.dp(8))

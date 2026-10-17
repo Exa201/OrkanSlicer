@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.270 (alpha)
+
+- Move 3MF embedded printer, print, and filament settings selection into the Compose workspace dialog.
+- Keep project settings temporary, retain saved profiles, and clear the previous project's overrides when the new choice is cancelled.
+- Add Honor coverage for selected settings, profile preservation, and cancellation cleanup.
+
 ## 0.8.269 (alpha)
 
 - Move profile import warnings, print/filament/printer selection, and overwrite/skip conflict handling into one Compose workspace flow.
