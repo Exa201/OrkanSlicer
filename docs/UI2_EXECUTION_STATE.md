@@ -1,5 +1,13 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — 3MF import settings choice migration (0.8.269 / 2026-10-17)
+
+- Migrated the active Bed workspace profile import flow (validation warnings, grouped profile selection, and conflict resolution) from native AlertDialogs to the exclusive Workspace Compose dialog. Existing fallback dialogs remain for non-workspace contexts.
+- Preserved warning order, default selection, selected-profile keys, overwrite/skip/cancel behavior, validation, saved-profile snapshot, `saveConfig()` rollback, and import result reporting.
+- Honor PTP-N49 / Android 16 targeted `ProfileSettingsImeDeviceTest`: 8/8 passed, including warning/selection/conflict flow, selection toggle, overwrite/cancel, and actual unsupported-file route. Debug and Slice unit suites: 552/552 each (zero failures/errors/skips). `emulator-5554` remains offline.
+- `:app:assembleDebug` succeeded from code commit `fcc0bb56de5877ae29b2a2a9d5764d34e690fdde`. APK: `app/build/outputs/apk/debug/OrkanSlicer_fcc0bb56de.apk`, 157,091,026 bytes, SHA-256 `CAD0FEB3DDDBE80D91FFCAD68CAA92A9E13CF165E85854CBA36D56CB37142FDF`. Installed and cold-launched on Honor under exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.269 / code 304; `MainActivity` top-resumed; fresh logcat had zero fatal/ANR/OOM/fatal-signal matches.
+- Next: migrate the remaining active 3MF embedded-settings/printer selection dialog to the workspace Compose host, preserving current printer selection, embedded-profile opt-in, temporary project settings, renderer refresh, and safe cancel behavior. UI 2.0 remains in progress; multi-plate project persistence remains incomplete and the active-plate-only export warning stays.
+- Code commit `fcc0bb56de5877ae29b2a2a9d5764d34e690fdde`; documentation for this verification is being committed separately. PR #2 remains open and mergeable; no merge/release, screenshots, firmware, printer commands, or print starts.
 ## Current continuation — file/profile loading errors hosted by the workspace (0.8.268 / 2026-10-17)
 
 - Routed active-workspace project and profile loading error feedback through the exclusive Compose workspace message dialog. Covered multi-STL validation, invalid/missing profile import names and extensions, Orca bundle parse/validation failures, missing profile parents, model-load failures, unsupported file types, and cached-file write failures. Outside an active Bed workspace, the existing platform alert remains as a fallback.
