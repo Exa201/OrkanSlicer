@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.281 (alpha)
+
+- Move onboarding and setup profile-import notices into the existing Compose setup root, including early-access, invalid-file, import-failure, no-profile, and save-failure messages.
+- Preserve the same OK and Android Back dismissal behavior; add device coverage for notice display and both dismissal paths.
+
 ## 0.8.280 (alpha)
 
 - Move workspace filament, slot editing, color selection, and profile panels into the exclusive Compose overlay host; retain the existing material assignment and profile callbacks.
