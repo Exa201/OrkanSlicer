@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -79,6 +80,32 @@ class MakerGeneratorWorkspaceDeviceTest {
         compose.onNodeWithText("Converter test error").assertIsDisplayed()
         compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+    }
+
+    @Test
+    fun converterProgressUsesWorkspaceAndCompletesWithoutCancelingTheJob() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val title = "Workspace converter progress test"
+        var completed = false
+        lateinit var progress: ConverterProgressDialog.Progress
+
+        activity.runOnUiThread {
+            progress = ConverterProgressDialog.show(activity, title, bed)
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithText(title).assertIsDisplayed()
+        compose.onNodeWithTag("converter-progress-stage").assertIsDisplayed()
+
+        progress.setStage(42, "Workspace test generation")
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Workspace test generation").fetchSemanticsNodes().isNotEmpty()
+        }
+        progress.complete { completed = true }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            completed && !bed.isWorkspaceMessageDialogAttached()
+        }
+        assertTrue("Completion callback must run after the workspace progress panel closes", completed)
     }
 
     @Test

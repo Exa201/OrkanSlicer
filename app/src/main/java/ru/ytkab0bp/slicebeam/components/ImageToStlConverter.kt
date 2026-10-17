@@ -488,7 +488,7 @@ if (images.isEmpty())
 Toast.makeText(activity, R.string.ConverterPickImage, Toast.LENGTH_LONG).show()
 return@generate
 }
-val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
 IOUtils.IO_POOL.execute({ val stem = if (selectedMode == 3) "lithophane-cube-kit" else if (selectedMode == 4) "lithophane-frame" else if (selectedMode == 5) "lithophane-curved" else if (selectedMode == 2) "lithophane" else "converted-image"
 val output = File(activity.getCacheDir(), stem + "-" + System.currentTimeMillis() + "." + extension)
 val accessory = if (makeBase && selectedMode == 10)

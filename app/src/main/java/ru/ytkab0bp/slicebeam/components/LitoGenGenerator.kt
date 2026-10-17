@@ -70,7 +70,7 @@ object LitoGenGenerator {
         saveAfter: Boolean,
     ) {
         val detail = intArrayOf(64, 96, 128, 192)[options.detailIndex]
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "litogen-photo-cube-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

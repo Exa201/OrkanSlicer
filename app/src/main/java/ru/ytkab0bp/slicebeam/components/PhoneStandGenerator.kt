@@ -47,7 +47,7 @@ object PhoneStandGenerator {
         val lip = PhoneStandFormLogic.parse(values.lipHeight)
         val cableGap = PhoneStandFormLogic.parse(values.cableGap)
         val cableDepth = PhoneStandFormLogic.parse(values.cableDepth)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "phone-stand-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

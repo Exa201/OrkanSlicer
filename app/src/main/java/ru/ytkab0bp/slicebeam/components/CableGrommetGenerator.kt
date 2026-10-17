@@ -36,7 +36,7 @@ object CableGrommetGenerator {
         val flangeThickness = CableGrommetFormLogic.parse(values.flangeThickness)
         val tubeLength = CableGrommetFormLogic.parse(values.tubeLength)
         val screwHole = CableGrommetFormLogic.parse(values.screwHole)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "cable-grommet-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

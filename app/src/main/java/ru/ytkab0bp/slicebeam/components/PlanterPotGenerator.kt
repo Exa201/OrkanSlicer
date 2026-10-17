@@ -48,7 +48,7 @@ object PlanterPotGenerator {
         val saucerWall = PlanterPotFormLogic.parse(values.saucerWall)
         val saucerHeight = PlanterPotFormLogic.parse(values.saucerHeight)
         val saucerBase = PlanterPotFormLogic.parse(values.saucerBase)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "planter-pot-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

@@ -18,13 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.appcompat.app.AlertDialog
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import java.io.File
 import java.io.RandomAccessFile
@@ -33,18 +34,21 @@ import java.util.Locale
 /** Visible progress and elapsed/remaining time for local converter jobs. */
 object ConverterProgressDialog {
     @JvmStatic
-    fun show(activity: Activity, title: String): Progress = Progress.create(activity, title)
+    fun show(activity: Activity, title: String, bed: BedFragment? = null): Progress =
+        Progress.create(activity, title, bed)
 
-    class Progress private constructor(activity: Activity, title: String) {
+    class Progress private constructor(activity: Activity, title: String, bed: BedFragment?) {
         companion object {
             @JvmSynthetic
-            internal fun create(activity: Activity, title: String): Progress = Progress(activity, title)
+            internal fun create(activity: Activity, title: String, bed: BedFragment?): Progress =
+                Progress(activity, title, bed)
         }
 
         private val activity = activity
         private val handler = Handler(Looper.getMainLooper())
         private val startedAt = System.currentTimeMillis()
-        private val dialog: AlertDialog
+        private val platformDialog: androidx.appcompat.app.AlertDialog?
+        private var closeWorkspaceDialog: (() -> Unit)? = null
 
         @Volatile private var outputFile: File? = null
         @Volatile private var stageProgress = 3
@@ -72,20 +76,36 @@ object ConverterProgressDialog {
         }
 
         init {
-            val composeView = ComposeView(activity).apply {
-                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-                setContent {
-                    BeamComposeTheme {
-                        ConverterProgressContent(displayState)
+            if (bed?.canShowWorkspaceComposeDialog() == true) {
+                closeWorkspaceDialog = bed.showWorkspaceComposeDialog { _ ->
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = {},
+                        properties = androidx.compose.ui.window.DialogProperties(
+                            dismissOnBackPress = false,
+                            dismissOnClickOutside = false,
+                        ),
+                        title = { Text(title) },
+                        text = { ConverterProgressContent(displayState) },
+                        confirmButton = {},
+                    )
+                }
+                platformDialog = null
+            } else {
+                val composeView = ComposeView(activity).apply {
+                    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+                    setContent {
+                        BeamComposeTheme {
+                            ConverterProgressContent(displayState)
+                        }
                     }
                 }
+                val builder = BeamAlertDialogBuilder(activity)
+                builder.setTitle(title)
+                builder.setView(composeView)
+                builder.setCancelable(false)
+                platformDialog = builder.create()
+                if (!activity.isFinishing && !activity.isDestroyed) platformDialog.show()
             }
-            val builder = BeamAlertDialogBuilder(activity)
-            builder.setTitle(title)
-            builder.setView(composeView)
-            builder.setCancelable(false)
-            dialog = builder.create()
-            if (!activity.isFinishing && !activity.isDestroyed) dialog.show()
             handler.post(refresh)
         }
 
@@ -111,7 +131,7 @@ object ConverterProgressDialog {
                         stage = activity.getString(R.string.ConverterProgressComplete, elapsed),
                         elapsedMillis = System.currentTimeMillis() - startedAt,
                     )
-                    dialog.dismiss()
+                    dismissVisibleProgress()
                     next?.let(handler::post)
                 }
             }
@@ -122,8 +142,14 @@ object ConverterProgressDialog {
             finished = true
             handler.post {
                 handler.removeCallbacks(refresh)
-                if (dialog.isShowing) dialog.dismiss()
+                dismissVisibleProgress()
             }
+        }
+
+        private fun dismissVisibleProgress() {
+            closeWorkspaceDialog?.invoke()
+            closeWorkspaceDialog = null
+            platformDialog?.takeIf { it.isShowing }?.dismiss()
         }
 
         private fun getFileProgress(): Int {
@@ -161,6 +187,7 @@ private fun ConverterProgressContent(state: ConverterProgressDisplay) {
     ) {
         Text(
             text = state.stage,
+            modifier = Modifier.testTag("converter-progress-stage"),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 15.sp,
             maxLines = 2,

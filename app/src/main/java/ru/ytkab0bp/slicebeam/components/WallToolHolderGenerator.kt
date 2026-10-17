@@ -35,7 +35,7 @@ object WallToolHolderGenerator {
         val thickness = WallToolHolderFormLogic.parse(values.thickness)
         val screw = WallToolHolderFormLogic.parse(values.screw)
         val guideHeight = WallToolHolderFormLogic.parse(values.guideHeight)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "wall-tool-holder-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

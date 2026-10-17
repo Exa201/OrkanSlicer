@@ -95,7 +95,7 @@ object FastenerGenerator {
     private fun generate(activity: Activity, bed: BedFragment, type: Int, size: Int,
                          a: Float, b: Float, c: Float, d: Float) {
         val nominal = FastenerStandards.diameter(size)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val part = if (type == 0) "schraube" else if (type == 1) "mutter" else "scheibe"
             val nominalName = "M" + FastenerStandards.fileNumber(nominal)
@@ -125,7 +125,7 @@ object FastenerGenerator {
                                   pitch: Float, acrossFlats: Float, nutHeight: Float) {
         val diameter = FastenerStandards.diameter(size)
         val headHeight = max(1.2f, diameter * .67f)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir,
                 "OrkanSlicer-Passprobe-M${FastenerStandards.fileNumber(diameter)}-${System.currentTimeMillis()}.stl")

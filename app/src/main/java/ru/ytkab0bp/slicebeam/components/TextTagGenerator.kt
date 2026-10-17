@@ -46,7 +46,7 @@ class TextTagGenerator private constructor() {
             val base = TextTagFormLogic.parse(values.baseThickness)
             val raised = TextTagFormLogic.parse(values.raisedHeight)
             val hole = TextTagFormLogic.parse(values.holeDiameter)
-            val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+            val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
             IOUtils.IO_POOL.execute {
                 val output = File(activity.cacheDir, "text-tag-${System.currentTimeMillis()}.stl")
                 progress.setOutputFile(output)

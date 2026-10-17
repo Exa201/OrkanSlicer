@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.286 (alpha)
+
+- Host local generator progress inside the exclusive workspace Compose overlay, including elapsed time, estimated remaining time, and stage progress.
+- Preserve background generation, output validation, completion callbacks, and the non-cancelable behavior; retain the Android dialog fallback when the workspace is unavailable.
+- Pass the active BedFragment from converter and maker generators and add Honor coverage for progress updates and completion.
+
 ## 0.8.285 (alpha)
 
 - Move post-save load/keep decisions and converter errors into the exclusive workspace Compose dialog host.

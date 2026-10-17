@@ -38,7 +38,7 @@ object PlantLabelSetGenerator {
         val raised = PlantTagsFormLogic.parse(values.raised)
         val hole = PlantTagsFormLogic.parse(values.hole)
         val gap = PlantTagsFormLogic.parse(values.gap)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "plant-tags-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

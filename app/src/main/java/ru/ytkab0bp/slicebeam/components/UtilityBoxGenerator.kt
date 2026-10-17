@@ -32,7 +32,7 @@ object UtilityBoxGenerator {
         val clearance = UtilityBoxFormLogic.parse(values.clearance)
         val lidSkirt = UtilityBoxFormLogic.parse(values.lidSkirt)
         val cableHole = UtilityBoxFormLogic.parse(values.cableHole)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "utility-box-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

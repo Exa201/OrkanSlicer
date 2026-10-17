@@ -36,7 +36,7 @@ object CableClipGenerator {
         val mouth = CableClipFormLogic.parse(values.mouth)
         val tabLength = CableClipFormLogic.parse(values.tabLength)
         val hole = CableClipFormLogic.parse(values.screwHole)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "cable-clip-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)

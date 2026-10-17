@@ -37,7 +37,7 @@ object PowerStripTrayGenerator {
         val stop = PowerStripFormLogic.parse(values.stop)
         val notch = PowerStripFormLogic.parse(values.notch)
         val screw = PowerStripFormLogic.parse(values.screw)
-        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking))
+        val progress = ConverterProgressDialog.show(activity, activity.getString(R.string.ConverterWorking), bed)
         IOUtils.IO_POOL.execute {
             val output = File(activity.cacheDir, "power-strip-tray-${System.currentTimeMillis()}.stl")
             progress.setOutputFile(output)
