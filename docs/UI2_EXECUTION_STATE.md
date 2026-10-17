@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — 0.8.254 (2026-10-17)
+
+- Code commit: `4554f6e26ae782db8816a98244952a7902b47d08` (`Expose settings section state to accessibility`). App-setting accordion headers now expose their expanded/collapsed state to screen readers. `SettingsAccessibilityDeviceTest` performs the real theme-setting callback and validates semantics and 48 dp target height at 320 dp and 150% Compose font scale.
+- The preceding 0.8.253 Maker change remains included: single-action section headers announce the actual action, expandable sections announce their toggle action, and generator rows use at least 48 dp.
+- Targeted Honor settings accessibility test: 1/1 passed. Full Honor Slice instrumentation: 61 XML cases, 0 failures/errors, 3 unavailable private multi-color fixtures skipped (58 executed passed); emulator `emulator-5554` remained offline.
+- Debug and Slice unit suites: 549/549 each, 0 failures/errors/skips. `:app:assembleDebug` passed from code commit `4554f6e`.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_4554f6e26a.apk`, 157,040,704 bytes; SHA-256 `C036DA9D1A82704A7215D8FA68189AE9E2CDC1DFA64C94580BAC8E9FAFD43111`.
+- Installed and launched on Honor PTP-N49 / Android 16 under verified package `com.codemastercody3d.orcaslicermobile`, version `0.8.254` / code `289`; `MainActivity` top-resumed and fresh logcat contained no crash/ANR/OOM/fatal-signal markers. No print job was started.
+- UI 2.0 remains incomplete. Next: continue checking actual settings/profile and workspace action routes, add broader constrained-layout and accessibility coverage, and migrate remaining safe legacy surface areas. Keep the generic BedFragment dialog/overlay host until IME-aware Back coverage exists. Full multi-plate persistence remains separate and incomplete; retain the active-plate export warning.
+- Branch `codex/rinkhals-safe-start-audit`; PR #2 remains open and unmerged. Preserve `.codex-remote-attachments/`.
+
 ## Latest continuation — 0.8.253 (2026-10-17)
 
 - Code commit: `cecb2461283a07519cb56befdb282974d46cbd20` (`Improve Maker accessibility and touch targets`). Maker section headers now expose distinct localized TalkBack descriptions for expandable groups versus single-action launchers; action rows and headings have a 48 dp minimum target.
