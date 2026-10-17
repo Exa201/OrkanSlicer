@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 
@@ -45,7 +46,7 @@ internal fun ProfileExportSelectionDialog(
         onDismissRequest = onDismiss,
         title = { Text(titles[index]) },
         text = {
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxHeight).testTag("profile-export-category-list")) {
                 itemsIndexed(categories[index]) { itemIndex, label ->
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 4.dp),
@@ -55,6 +56,7 @@ internal fun ProfileExportSelectionDialog(
                         Checkbox(
                             checked = checked[index][itemIndex],
                             onCheckedChange = { checked[index][itemIndex] = it },
+                            modifier = Modifier.testTag("profile-export-selection-$index-$itemIndex"),
                         )
                         Text(label, Modifier.weight(1f))
                     }
