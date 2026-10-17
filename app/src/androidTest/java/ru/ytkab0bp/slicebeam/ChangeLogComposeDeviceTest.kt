@@ -36,6 +36,7 @@ class ChangeLogComposeDeviceTest {
         }
 
         compose.onNodeWithText(compose.activity.getString(R.string.Changelog)).assertIsDisplayed()
+        compose.onNodeWithText("OrkanSlicer 0.8.296", substring = true).assertIsDisplayed()
         InstrumentationRegistry.getInstrumentation()
             .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.waitForIdle()

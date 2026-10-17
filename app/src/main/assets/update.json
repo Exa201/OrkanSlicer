@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.295\n\n• Das anfängliche Projektmenü wird vor der ersten Workspace-Darstellung an BedFragment gebunden; Dateiaktionen erscheinen bereits beim ersten Öffnen.",
-  "en": "OrkanSlicer 0.8.295\n\n• Bind the initial Project menu before the first workspace composition so file actions are available as soon as the menu is first opened.",
-  "ru": "OrkanSlicer 0.8.295\n\n• Начальное меню проекта привязывается до первой отрисовки рабочего пространства, поэтому действия с файлами доступны при первом открытии меню."
+  "de": "OrkanSlicer 0.8.296\n\n• Ein neues Workspace-Werkzeug ersetzt jetzt das aktive Werkzeug zuverlässig, statt beim Werkzeugwechsel ignoriert zu werden.",
+  "en": "OrkanSlicer 0.8.296\n\n• Selecting a new workspace tool now reliably replaces the active tool instead of being ignored.",
+  "ru": "OrkanSlicer 0.8.296\n\n• Выбор нового инструмента рабочего пространства теперь надежно заменяет активный инструмент, а не игнорируется."
 }
