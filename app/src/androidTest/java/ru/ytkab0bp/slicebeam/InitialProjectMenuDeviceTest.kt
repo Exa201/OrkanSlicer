@@ -2,11 +2,13 @@ package ru.ytkab0bp.slicebeam
 
 import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -84,6 +86,50 @@ class InitialProjectMenuDeviceTest {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.waitForIdle()
         compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfilesPrints)).assertDoesNotExist()
+    }
+
+    @Test
+    fun cameraMenuActionsUpdateProjectionAndCameraControlPreference() {
+        val activity = compose.activity
+        val previousProjection = Prefs.isOrthoProjectionEnabled()
+        val previousControlMode = Prefs.getCameraControlMode()
+        try {
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuCamera))
+                .assertIsDisplayed()
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuCameraTop))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+
+            val projectionAction = compose.onNodeWithContentDescription(
+                activity.getString(R.string.MenuCameraOrtho),
+            ).assertIsDisplayed()
+            projectionAction.performClick()
+            compose.waitForIdle()
+            assertEquals("camera projection tile should update the persisted preference",
+                !previousProjection, Prefs.isOrthoProjectionEnabled())
+
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(8)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuCameraControlMode))
+                .assertIsDisplayed()
+                .performClick()
+            val targetMode = (previousControlMode + 1) % 3
+            val targetLabel = activity.getString(
+                when (targetMode) {
+                    0 -> R.string.MenuCameraControlModeOne
+                    1 -> R.string.MenuCameraControlModeTwo
+                    else -> R.string.MenuCameraControlModeThree
+                },
+            )
+            compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
+            compose.waitForIdle()
+            assertEquals("camera control dialog selection should update its preference",
+                targetMode, Prefs.getCameraControlMode())
+        } finally {
+            Prefs.setOrthoProjectionEnabled(previousProjection)
+            Prefs.setCameraControlMode(previousControlMode)
+        }
     }
 
     private fun createInitializedActivityRule() = run {
