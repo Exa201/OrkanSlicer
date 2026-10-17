@@ -1,6 +1,7 @@
 ## OrkanSlicer UI 2.0 – 0.8.299 verification (2026-10-17)
 
 - `WorkspaceController` now owns active Compose tool identity and dismissal; the duplicate BedFragment tool reference was removed. The targeted Honor `WorkspaceNavigationDeviceTest` passed 1/1, and the full connected Honor suite was rerun on this source: XML report 138 unique cases, 133 passed, 5 skipped, 0 failures/errors. Gradle reported 143 executions due to runner retries/reporting. The five skips are unavailable KromaCut and private multicolor fixtures; emulator 5554 remained offline.
+- Additional real-model Honor action test: Edit → Move opened the Compose position tool, applied a temporary translation preview, and Android Back cancelled it without changing persisted model X/Y/Z. `MainActivityTouchDeviceTest`: 1/1 passed, 0 skipped/failures.
 - Debug and Slice JVM suites each passed 554/554 with 0 failures/errors/skips. `:app:assembleDebug` passed. APK `app/build/outputs/apk/debug/OrkanSlicer_f9dbcbf123.apk`: 157,215,098 bytes, SHA-256 `001E6C2993CA2FC4341E85D2680FCB6342DFBDE3E11E00C61CD8C43D7BA56DA7`.
 - Version 0.8.299/code 334; production code commit `f9dbcbf1234ab317c5896c5a68d39952e967048b`. The APK was installed and launched on Honor before the full connected suite. No full global-menu action audit or physical TalkBack traversal is claimed. Phase 4 and Phase 5 remain incomplete; see `docs/UI2_EXECUTION_STATE.md`.
 

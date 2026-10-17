@@ -21,6 +21,7 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenuItems
+import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationPositionMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenuItems
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceUploadController
@@ -29,6 +30,7 @@ import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.view.GLView
 
 /** Exercises the real GLView tap path on an Android device with a loaded model. */
@@ -166,6 +168,60 @@ class MainActivityTouchDeviceTest {
                 assertSameModelSelection(bed, model)
                 assertModelSelectedWithoutModal(activity)
             }
+
+            // Exercise the real Edit-menu Move action with a loaded model. The preview is
+            // intentionally cancelled with Android Back; persisted model coordinates must stay put.
+            val translationBeforeEdit = Vec3d().also { model.getTranslation(0, it) }
+            val positionToolRef = AtomicReference<OrientationPositionMenu?>()
+            scenario.onActivity {
+                val workspace = requireNotNull(bed)
+                val openPosition: java.util.function.Consumer<android.view.View> =
+                    java.util.function.Consumer {
+                        OrientationPositionMenu(workspace).also { tool ->
+                            positionToolRef.set(tool)
+                            workspace.showWorkspaceComposeTool(tool)
+                        }
+                    }
+                val noOp: java.util.function.Consumer<android.view.View> = java.util.function.Consumer { }
+                val moveAction = TransformMenuItems(workspace, openPosition, noOp, noOp, noOp)
+                    .createItems().single { it.titleRes == R.string.MenuToolbarMove }
+                assertTrue("Move should be enabled for the selected model", moveAction.enabled)
+                moveAction.onClick(requireNotNull(viewport))
+            }
+            instrumentation.waitForIdleSync()
+            val positionTool = requireNotNull(positionToolRef.get())
+            val attachDeadline = SystemClock.uptimeMillis() + 3_000L
+            while (!positionTool.isAttached() && SystemClock.uptimeMillis() < attachDeadline) {
+                instrumentation.waitForIdleSync()
+                SystemClock.sleep(40L)
+            }
+            assertTrue("The Edit menu Move action should open its Compose tool", positionTool.isAttached())
+            scenario.onActivity {
+                positionTool.translateVisual(
+                    translationBeforeEdit.x + 12.0,
+                    translationBeforeEdit.y + 7.0,
+                    translationBeforeEdit.z,
+                )
+            }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity {
+                val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                    .apply { isAccessible = true }.get(requireNotNull(bed))
+                assertEquals("Move should be the only active workspace tool",
+                    OrientationPositionMenu::class.java.name,
+                    controller.javaClass.getMethod("getActiveToolId").invoke(controller))
+                assertTrue("Android Back should cancel the Move preview", requireNotNull(bed).onBackPressed())
+            }
+            instrumentation.waitForIdleSync()
+            val translationAfterCancel = Vec3d().also { model.getTranslation(0, it) }
+            assertEquals("Cancelling Move must preserve model X", translationBeforeEdit.x, translationAfterCancel.x, 0.0001)
+            assertEquals("Cancelling Move must preserve model Y", translationBeforeEdit.y, translationAfterCancel.y, 0.0001)
+            assertEquals("Cancelling Move must preserve model Z", translationBeforeEdit.z, translationAfterCancel.z, 0.0001)
+            scenario.onActivity {
+                assertFalse("Cancelled Move should clear its active tool state",
+                    requireNotNull(positionToolRef.get()).isAttached())
+            }
+            SystemClock.sleep(350L)
 
             val objectCountBeforeDeleteCancel = model.objectsCount
             scenario.onActivity {
