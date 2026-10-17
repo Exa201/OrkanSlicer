@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — root-workspace app-exit confirmation on Compose (0.8.272 / 2026-10-17)
+
+- The root Bed workspace now hosts the app-exit confirmation in the existing exclusive Compose message dialog. Non-Bed activity states keep the Android alert fallback. Cancel/back dismiss without finishing; the explicit confirm action retains the existing session-plate reset, temporary project-settings clear, and `finishAfterTransition()` behavior.
+- Updated `MainActivityBackDeviceTest` to exercise the real AndroidX back dispatcher and Compose dialog on Honor. It asserts the visible title/message and cancels twice without finishing. Targeted test: 1/1 passed. Debug and Slice unit suites: 552/552 each, zero failures/errors/skips.
+- `:app:assembleDebug` succeeded from code commit `10953cce95062fa2f3e177f88890fad99c4ef420`. APK `app/build/outputs/apk/debug/OrkanSlicer_10953cce95.apk`, 157,111,102 bytes, SHA-256 `C34DCBDE38004526D8649617F7D42D8AD81EFD28D47CBBCAA659B15DE3A6FF42`.
+- Installed on Honor PTP-N49 / Android 16 as package `com.codemastercody3d.orcaslicermobile`, version 0.8.272 / code 307. `MainActivity` reached top-resumed; fresh logcat sample had no fatal exception, ANR, OOM, or fatal-signal match. No screenshots, printer commands, or print start.
+- Code commit `10953cce95062fa2f3e177f88890fad99c4ef420`; documentation commit, push, and PR #2 evidence comment pending. No merge/release.
+- Next: continue the active Compose migration of pre-slice/print-preparation UI only after its upload-only, reslice, ACE-slot and explicit print-confirmation paths are covered without dispatching a real printer action.
+
 ## Current continuation — SVG simplification consent on workspace Compose (0.8.271 / 2026-10-17)
 
 - Migrated the active Bed workspace SVG simplification consent and failure feedback to the existing exclusive Compose dialog host. Simplification remains gated by explicit consent and the size limit; it processes a separate cache copy so the selected source file is not modified. Non-workspace activity states retain the platform dialog fallback.
