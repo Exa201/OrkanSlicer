@@ -67,7 +67,6 @@ import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
-import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -108,7 +107,7 @@ private data class TransformScaleDimensions(val x: Double, val y: Double, val z:
 }
 
 /** Compose-based, responsive scale editor for the selected model. */
-class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
     private val rulerValues = mutableStateOf(TransformScaleRulerValues(100, 100, 100))
     private val actualScale = mutableStateOf(TransformScaleValues(1.0, 1.0, 1.0))
     private val dimensionsMm = mutableStateOf(TransformScaleDimensions(0.0, 0.0, 0.0))
@@ -330,17 +329,6 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu(), ComposeWo
             hasSelection.value = false
             selectedObjectForScale = -1
         }
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                ComposeContent(portrait)
-            }
-        }
-        return themedView
     }
 
     @Composable

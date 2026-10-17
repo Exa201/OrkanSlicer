@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.256 (alpha)
+
+- Remove the unused AndroidView fallback and legacy View-based overlay from the workspace tool host; tool routes now require Compose content.
+- Remove the unreferenced legacy WebViewMenu. Kromacut's active embedded WebView, editor, file chooser, and download flow remain intact.
+- Keep real Compose tool lifecycle, Back cleanup, responsive panel, and outside-dismiss device coverage on the production workspace host.
+
 ## 0.8.255 (alpha)
 
 - Profile-settings favorites filter now announces its enabled/disabled state to screen readers in English, German, and Russian.

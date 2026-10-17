@@ -1,9 +1,8 @@
 package ru.ytkab0bp.slicebeam
 
-import android.content.Context
-import android.view.View
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -54,14 +53,13 @@ class GlModePanelsComposeDeviceTest {
             .assertIsDisplayed()
             .performClick()
         compose.runOnIdle { assertTrue(dismissed) }
-        compose.onNodeWithText("Workspace tool panel").assertDoesNotExist()
+        compose.onNodeWithText("Workspace tool panel").assertIsNotDisplayed()
     }
 
     @Test
     fun unfoldMenuRouteIsHostedAndDisposedByTheComposeWorkspacePanel() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
         val menu = LifecycleProbeMenu()
-        val content = menu.createWorkspaceContent(context, portrait = true, fragment = BedFragment())!!
+        val content = menu.createWorkspaceContent(portrait = true, fragment = BedFragment())!!
         val visible = mutableStateOf(true)
         var dismissed = 0
         menu.setOnDismiss { dismissed++ }
@@ -141,7 +139,10 @@ private class LifecycleProbeMenu : UnfoldMenu() {
     var created = 0
     var destroyed = 0
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): View = View(ctx)
+    @androidx.compose.runtime.Composable
+    override fun ComposeContent(portrait: Boolean) {
+        androidx.compose.material3.Text("Tool lifecycle probe")
+    }
 
     override fun onCreate() {
         created++

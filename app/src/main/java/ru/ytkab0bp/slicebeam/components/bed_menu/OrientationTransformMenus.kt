@@ -46,7 +46,6 @@ import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
-import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -80,7 +79,7 @@ internal object OrientationTransformPolicy {
 }
 
 /** Shared Compose shell and decimal-entry dialog for position and rotation editors. */
-abstract class OrientationTransformMenuBase(fragment: BedFragment) : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+abstract class OrientationTransformMenuBase(fragment: BedFragment) : UnfoldMenu() {
     private val manualDialogVisible = mutableStateOf(false)
     private val manualDialogTitle = mutableIntStateOf(R.string.MenuOrientationPositionX)
     private val manualValue = mutableStateOf("")
@@ -243,10 +242,6 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
             bed.glView?.renderer?.selectedObject?.takeIf { it >= 0 }?.let { previewTranslation(it, target) }
             commitTranslation()
         }
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View = themedComposeView(ctx) { _ ->
-        ComposeContent(portrait)
     }
 
     @Composable
@@ -424,10 +419,6 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
         rotation.value = OrientationVector3(0.0, 0.0, 0.0)
         rulerValues.value = OrientationAxisValues(0, 0, 0)
         glView.requestRender()
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View = themedComposeView(ctx) { _ ->
-        ComposeContent(portrait)
     }
 
     @Composable

@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.255\n\n• Der Favoritenfilter in den Druckprofileinstellungen sagt seinen Aktiviert-/Deaktiviert-Zustand jetzt für Screenreader an.\n• Ein Honor-Test prüft Favoritenfilter, Suche und Qualitätsstufe bei 320 dp und 150 % Textgröße.",
-  "en": "OrkanSlicer 0.8.255\n\n• The profile-settings favorites filter now announces its enabled/disabled state to screen readers.\n• Honor coverage checks the favorites filter, search, and settings level at 320 dp and 150% text scale.",
-  "ru": "OrkanSlicer 0.8.255\n\n• Фильтр избранного в настройках профиля теперь сообщает средствам чтения экрана о включенном или выключенном состоянии.\n• Тест на Honor проверяет избранное, поиск и уровень настроек при ширине 320 dp и масштабе текста 150 %."
+  "de": "OrkanSlicer 0.8.256\n\n• Der nicht mehr verwendete Android-View-Fallback und der alte Werkzeug-Overlay-Host wurden entfernt; Werkzeugrouten benötigen jetzt Compose-Inhalte.\n• Kromacuts eingebetteter WebView-Editor mit Dateiauswahl und Download bleibt erhalten. Der aktive Compose-Werkzeughost wird auf Honor geprüft.",
+  "en": "OrkanSlicer 0.8.256\n\n• Removed the unused Android View fallback and legacy tool overlay; workspace tool routes now require Compose content.\n• Kromacut's embedded WebView editor, file chooser, and download flow remain. The active Compose tool host is covered on Honor.",
+  "ru": "OrkanSlicer 0.8.256\n\n• Удалены неиспользуемый Android View fallback и старый контейнер инструментов; маршруты рабочего пространства теперь требуют Compose-контент.\n• Встроенный WebView-редактор Kromacut, выбор файлов и загрузка сохранены. Активный Compose-контейнер инструментов проверен на Honor."
 }

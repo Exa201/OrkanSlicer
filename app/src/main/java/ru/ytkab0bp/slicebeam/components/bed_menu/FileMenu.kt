@@ -56,7 +56,6 @@ import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
-import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
@@ -370,7 +369,7 @@ class FileMenu : ListBedMenu() {
     }
 
     /** Camera, gallery and quota controls for the optional cloud model generator. */
-    class AIGeneratorMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+    class AIGeneratorMenu : UnfoldMenu() {
         private var remainingLabel by mutableStateOf("")
         private var quotaProgress by mutableFloatStateOf(0f)
 
@@ -380,17 +379,6 @@ class FileMenu : ListBedMenu() {
             } else {
                 (into.width * 0.6f).toInt()
             }
-
-        override fun onCreateView(ctx: Context, portrait: Boolean): View {
-            val themedView = ThemeAwareComposeView(ctx)
-            themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            themedView.setContent {
-                BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                    ComposeContent(portrait)
-                }
-            }
-            return themedView
-        }
 
         @Composable
         override fun ComposeContent(portrait: Boolean) {

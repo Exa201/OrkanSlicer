@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
-import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
@@ -69,7 +68,7 @@ import ru.ytkab0bp.slicebeam.view.SegmentsView
 import java.text.DecimalFormat
 
 /** Post-slice G-code information panel and visibility controls. */
-class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
     private var state by mutableStateOf(SliceInfoUiState())
     private var invalidateGl: Runnable? = null
     private var visible = false
@@ -78,17 +77,6 @@ class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu(), ComposeWo
     private fun getViewer(): GCodeViewer? = fragment?.glView?.renderer?.viewer
 
     private fun getResult(): GCodeProcessorResult? = fragment?.glView?.renderer?.gcodeResult
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        return ThemeAwareComposeView(ctx).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme(themeRevision = themeRevision) {
-                    ComposeContent(portrait)
-                }
-            }
-        }
-    }
 
     @Composable
     override fun ComposeContent(portrait: Boolean) {

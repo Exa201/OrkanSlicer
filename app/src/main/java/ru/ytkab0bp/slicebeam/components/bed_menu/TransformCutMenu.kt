@@ -39,7 +39,6 @@ import kotlinx.coroutines.isActive
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
-import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -52,7 +51,7 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 
 /** Compose editor for the cut plane and the optional connectors between cut pieces. */
-class TransformCutMenu(private val bed: BedFragment) : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+class TransformCutMenu(private val bed: BedFragment) : UnfoldMenu() {
     private val tempMin = Vec3d()
     private val tempMax = Vec3d()
     private var cutObject = -1
@@ -209,17 +208,6 @@ class TransformCutMenu(private val bed: BedFragment) : UnfoldMenu(), ComposeWork
             bed.updateModel()
         }
         dismiss()
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                ComposeContent(portrait)
-            }
-        }
-        return themedView
     }
 
     @Composable

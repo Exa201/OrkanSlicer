@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
-import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy
 import ru.ytkab0bp.slicebeam.slic3r.GCodePreviewSelection
@@ -47,7 +46,7 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
 /** Layer-range editor for the sliced G-code preview. */
-class SliceLayersMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+class SliceLayersMenu : UnfoldMenu() {
     private var layerRange by mutableStateOf(SliceLayerRange(1, 1, 1))
     private var title by mutableStateOf("")
     private var blockSize by mutableIntStateOf(GCodePreviewPolicy.DEFAULT_BLOCK_SIZE)
@@ -131,15 +130,6 @@ class SliceLayersMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     private fun cancelPendingApply() {
         applyCallback?.let { ViewUtils.removeCallbacks(it) }
         applyCallback = null
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View = ThemeAwareComposeView(ctx).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        setContent {
-            BeamComposeTheme(themeRevision = themeRevision) {
-                ComposeContent(portrait)
-            }
-        }
     }
 
     @Composable

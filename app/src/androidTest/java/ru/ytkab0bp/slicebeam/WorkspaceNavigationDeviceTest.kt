@@ -179,9 +179,10 @@ class WorkspaceNavigationDeviceTest {
             val menu = requireNotNull(launchedMenu)
             assertTrue("${expectedType.simpleName} should be the active tool", expectedType.isInstance(menu))
             assertTrue("${expectedType.simpleName} direct Compose content should be visible", menu.isAttached())
-            assertEquals("${expectedType.simpleName} should not allocate an Android route View", null,
-                UnfoldMenu::class.java.getDeclaredField("workspaceContent")
-                    .apply { isAccessible = true }.get(menu))
+            assertTrue(
+                "${expectedType.simpleName} lifecycle adapter must not retain an Android route View",
+                UnfoldMenu::class.java.declaredFields.none { android.view.View::class.java.isAssignableFrom(it.type) },
+            )
             assertTrue("${expectedType.simpleName} Compose lifecycle should be active", UnfoldMenu::class.java
                 .getDeclaredField("workspaceCompositionVisible").apply { isAccessible = true }.getBoolean(menu))
             if (expectedType == KromacutEditorMenu::class.java) {

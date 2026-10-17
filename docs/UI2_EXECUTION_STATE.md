@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Latest continuation — Compose-only tool-route host (0.8.256 / 2026-10-17)
+
+- Current code change removes the unused `AndroidView` fallback from `UnfoldMenu`; all active tool routes must now provide Compose content and share the `WorkspaceModePanelHost`. Removed the unreferenced `WorkspaceToolOverlay` and `WebViewMenu` classes and the obsolete view-host test. Kromacut's active WebView remains embedded inside its Compose editor, including the existing file chooser/download behavior. Removed BedFragment's now-dead legacy relayout call.
+- The full Honor run initially exposed one stale reflection assertion in `WorkspaceNavigationDeviceTest` that referenced the removed `workspaceContent` field. Replaced it with a structural assertion that the UnfoldMenu adapter retains no Android `View`; the targeted `WorkspaceNavigationDeviceTest` then passed 1/1 on PTP-N49 / Android 16.
+- After the fix, full `:app:connectedSliceTestAndroidTest` passed on Honor: Gradle reported 65 executions, 3 unavailable private multi-color fixtures skipped, 0 failures. `emulator-5554` remained offline. Debug and Slice unit suites each passed 549/549 (0 failures/errors/skips). `git diff --check` passed.
+- Version/changelog/runtime update set to `0.8.256` / code `291`. Final APK and hash are pending the post-commit build. Honor package remains `com.codemastercody3d.orcaslicermobile`; no print job was started.
+- UI 2.0 remains incomplete. Remaining work includes global menu action-by-action verification, legacy `BedMenu`/generic dialog responsibilities, broader responsive/accessibility paths, and the separately scoped multi-plate project serializer. Retain the active-plate-only export warning.
+- Current branch `codex/rinkhals-safe-start-audit`; PR #2 remains open and unmerged. Preserve `.codex-remote-attachments/`.
+
 ## Test-only continuation — profile filter in the live parent screen (2026-10-17)
 
 - Added `ProfileSettingsImeDeviceTest`, which opens the real process-profile route in `MainActivity`, expands its production filter, types a query, confirms Android reports the IME visible, opens and closes the profile-level menu without changing the saved level, toggles favorites on and back off, clears the query, and collapses the filter.

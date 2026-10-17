@@ -40,7 +40,7 @@ import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
 /** Bundled Kromacut editor shown inside the converter panel. */
-class KromacutEditorMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+class KromacutEditorMenu : UnfoldMenu() {
     private var webView: WebView? = null
     private var outputStream: FileOutputStream? = null
     private var outputFile: File? = null
@@ -64,17 +64,6 @@ class KromacutEditorMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
                 callback.onReceiveValue(results)
             }
             return true
-        }
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        return ThemeAwareComposeView(ctx).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme(themeRevision = themeRevision) {
-                    ComposeContent(portrait)
-                }
-            }
         }
     }
 
@@ -207,7 +196,7 @@ class KromacutEditorMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
             outputFile = null
             val extension = file.name.lowercase(Locale.ROOT).substringAfterLast('.', "bin")
             ViewUtils.postOnMainThread {
-                dismiss(true)
+                dismiss()
                 val activity = fragment?.getContext() as? Activity
                 val bed = fragment
                 if (activity != null && bed != null) {

@@ -54,7 +54,6 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.components.UnfoldMenu
-import ru.ytkab0bp.slicebeam.components.ComposeWorkspaceUnfoldMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.NeedDismissCalibrationsMenu
@@ -69,20 +68,9 @@ import java.io.File
 import java.io.FileOutputStream
 
 /** Calibration actions and test models opened from the File menu. */
-class CalibrationsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+class CalibrationsMenu : UnfoldMenu() {
     override fun getRequestedSize(into: android.widget.FrameLayout, portrait: Boolean): Int =
         (if (portrait) into.height * 0.56f else into.width * 0.6f).toInt()
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        return ThemeAwareComposeView(ctx).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme(themeRevision = themeRevision) {
-                    ComposeContent(portrait)
-                }
-            }
-        }
-    }
 
     @Composable
     override fun ComposeContent(portrait: Boolean) {
@@ -97,7 +85,7 @@ class CalibrationsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
                 onCalibration = { selectedCalibration = it },
                 onRecordResult = { recordResult = true },
                 onModels = {
-                    dismiss(true)
+                    dismiss()
                     ViewUtils.postOnMainThread({
                         bed.glView?.let { bed.showUnfoldMenu(CalibrationModelsMenu(), it) }
                     }, 180)
@@ -185,7 +173,7 @@ class CalibrationsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     private fun finishCalibrationSelection(context: Context) {
         Toast.makeText(context, R.string.CalibrationReadyToSlice, Toast.LENGTH_LONG).show()
         SliceBeam.EVENT_BUS.fireEvent(NeedDismissCalibrationsMenu())
-        dismiss(true)
+        dismiss()
     }
 
     private fun clearPendingCalibration() {
@@ -250,20 +238,9 @@ class CalibrationsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
     }
 }
 
-class CalibrationModelsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
+class CalibrationModelsMenu : UnfoldMenu() {
     override fun getRequestedSize(into: android.widget.FrameLayout, portrait: Boolean): Int =
         if (portrait) into.height - into.paddingTop - into.paddingBottom else into.width
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        return ThemeAwareComposeView(ctx).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme(themeRevision = themeRevision) {
-                    ComposeContent(portrait)
-                }
-            }
-        }
-    }
 
     @Composable
     override fun ComposeContent(portrait: Boolean) {
@@ -294,7 +271,7 @@ class CalibrationModelsMenu : UnfoldMenu(), ComposeWorkspaceUnfoldMenu {
 
     private fun loadModels(bed: BedFragment, assetNames: List<String>) {
         SliceBeam.EVENT_BUS.fireEvent(NeedDismissCalibrationsMenu())
-        dismiss(true)
+        dismiss()
         ViewUtils.postOnMainThread({
             Thread({
                 val files = mutableListOf<File>()

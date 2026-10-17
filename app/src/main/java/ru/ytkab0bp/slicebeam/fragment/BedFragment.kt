@@ -630,7 +630,7 @@ fun showUnfoldMenu(menu: UnfoldMenu, @Suppress("UNUSED_PARAMETER") from: View) {
     val portrait = context.resources.configuration.orientation ==
         android.content.res.Configuration.ORIENTATION_PORTRAIT
     val panelContainer = overlayLayout ?: return
-    val routeContent = menu.createWorkspaceContent(context, portrait, this) ?: return
+    val routeContent = menu.createWorkspaceContent(portrait, this) ?: return
     val toolId = menu.javaClass.name
     val panelFraction = menu.workspacePanelFraction(panelContainer, portrait)
     menu.setWorkspaceDismiss { workspaceController.clearTool(toolId) }
@@ -1266,10 +1266,6 @@ glView!!.renderer.setGCodeViewer(gCodeResult)
 overlayLayout = object:FrameLayout(ctx) {
 protected override fun onSizeChanged(w:Int, h:Int, oldw:Int, oldh:Int) {
 super.onSizeChanged(w, h, oldw, oldh)
-if (currentUnfoldMenu != null)
-{
-currentUnfoldMenu!!.relayout()
-}
 }
 }
 updatePlateIndicator()

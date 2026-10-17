@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -14,10 +15,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import ru.ytkab0bp.slicebeam.components.WorkspaceToolOverlayContent
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceModePanelHost
 
-/** Exercises the Compose tool sheet and its outside-dismiss path on a real Android runtime. */
+/** Exercises the production workspace tool sheet and outside-dismiss path on Android. */
 @RunWith(AndroidJUnit4::class)
 class WorkspaceToolOverlayDeviceTest {
     @get:Rule
@@ -30,14 +31,15 @@ class WorkspaceToolOverlayDeviceTest {
         var dismissed = false
         compose.setContent {
             BeamComposeTheme {
-                WorkspaceToolOverlayContent(
-                    visible = visible.value,
-                    exitDurationMs = 180,
-                    panelFraction = { 0.6f },
-                    onDismiss = { visible.value = false },
-                    onDismissAnimationFinished = { dismissed = true },
-                ) {
-                    androidx.compose.material3.Text("Tool settings")
+                if (visible.value) {
+                    WorkspaceModePanelHost(
+                        onDismiss = {
+                            visible.value = false
+                            dismissed = true
+                        },
+                    ) {
+                        androidx.compose.material3.Text("Tool settings")
+                    }
                 }
             }
         }
@@ -47,11 +49,11 @@ class WorkspaceToolOverlayDeviceTest {
         compose.onNodeWithContentDescription(cancelDescription).performTouchInput {
             click(Offset(10f, 10f))
         }
-        compose.waitUntil(3_000) { dismissed }
         compose.runOnIdle {
             assertTrue(dismissed)
             assertTrue(!visible.value)
         }
+        compose.onNodeWithText("Tool settings").assertIsNotDisplayed()
     }
 }
 
