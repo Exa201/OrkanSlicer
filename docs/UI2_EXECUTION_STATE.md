@@ -1,3 +1,13 @@
+# Current continuation — initial Project menu and 3MF filament audit (0.8.295 / 2026-10-17)
+
+- Root cause: `WorkspaceController` starts on `PROJECT`, but `BedFragment.onCreateView` did not call `onSetBed` for that initial menu. `FileMenu` therefore composed an empty action list until navigating to another route and back.
+- Fix: bind `menuMap.get(currentMenuSlot)` to this `BedFragment` before creating `WorkspaceShell` content. `InitialProjectMenuDeviceTest` verifies the cold-start route binding, first Project tap, and visible “Load model” / “Export 3mf” actions.
+- Filament priority remains fixed in `9e24743`: object-level assignment uses the native uniform-filament operation to clear imported 3MF part/paint overrides. Honor regression `explicitUniformObjectFilamentChoiceReplacesThreeMfPartAssignment` passed. `ThreeMfImportChoiceDialogDeviceTest` also passed both checks for choosing filament-only or print-only settings; painted assignments survived the 3MF export/import regression.
+- Verification on Honor PTP-N49 / Android 16: connected instrumentation log `OK (131 tests)` with 3 private multicolor-fixture skips and zero failures. Debug unit suite: 552 passed; Slice unit suite: 552 passed. The emulator remains offline.
+- Debug APK `app/build/outputs/apk/debug/OrkanSlicer_ef18db7de0.apk`, 157,215,066 bytes, SHA-256 `661472FD0490531FA233A2A953A042734CCBC28D7DBADB380542F85536D71229`, version 0.8.295 / code 330. `:app:assembleDebug` succeeded; APK installed and `MainActivity` launched on the Honor. A 3,000-line logcat scan contained no crash, ANR, or OOM match.
+- Code commit `ef18db7de0eac8256eb1c542d540b9b1634ede51` pushed to `codex/rinkhals-safe-start-audit`. Alpha APK release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.295. PR #2 is open against `master`; GitHub currently reports `CLEAN`.
+- UI 2.0 remains in progress. Next: continue source-backed migration of remaining reachable global Android dialog routes and legacy tool hosts. Full menu/accessibility coverage and multi-plate project persistence remain open.
+
 # Current continuation — legacy workspace menu hosts removed (0.8.294 / 2026-10-17)
 
 - Removed the obsolete `BedMenu` View creation/storage lifecycle and duplicate `onCreateView` hosts from the six active destinations (Project, Model, Camera, Edit, Tools, Slice). Their visible content is rendered through the existing `WorkspaceShell`/`WorkspaceComposeBedMenuHost`; `BedFragment` retains the technical FrameLayout, stable renderer adapter, and required Android/WebView integrations.
