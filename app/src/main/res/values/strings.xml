@@ -94,6 +94,8 @@
     <string name="MakerOpenKromacut">Open Kromacut Studio</string>
     <string name="MakerExpand">Expand</string>
     <string name="MakerCollapse">Collapse</string>
+    <string name="MakerSectionToggleDescription">%1$s, %2$s</string>
+    <string name="MakerSectionOpenDescription">Open %1$s</string>
     <string name="MakerOpenAction">›</string>
     <string name="LitoGenTitle">LitoGEN · Photo models</string>
     <string name="LitoGenDescription">A photo cube with four side images and an optional fifth image on the lid. STL parts are arranged for printing.</string>

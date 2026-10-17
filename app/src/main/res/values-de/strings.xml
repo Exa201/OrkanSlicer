@@ -93,6 +93,8 @@
     <string name="MakerOpenKromacut">Kromacut-Studio öffnen</string>
     <string name="MakerExpand">Aufklappen</string>
     <string name="MakerCollapse">Zuklappen</string>
+    <string name="MakerSectionToggleDescription">%1$s, %2$s</string>
+    <string name="MakerSectionOpenDescription">Öffnen: %1$s</string>
     <string name="MakerOpenAction">›</string>
     <string name="LitoGenTitle">LitoGEN · Fotomodelle</string>
     <string name="LitoGenDescription">Neuer Fotowürfel: vier Seitenbilder und optional ein fünftes Bild auf dem Deckel. Druckteile werden platzsparend als STL ausgegeben.</string>

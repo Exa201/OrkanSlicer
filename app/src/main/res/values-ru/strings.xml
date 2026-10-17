@@ -16,6 +16,8 @@
     <string name="ConverterProgressRemaining">Осталось примерно: %1$s</string>
     <string name="ConverterProgressComplete">Готово · 100%% · прошло %1$s</string>
     <string name="SlotBed">Просмотр</string>
+    <string name="MakerSectionToggleDescription">%1$s, %2$s</string>
+    <string name="MakerSectionOpenDescription">Открыть: %1$s</string>
     <string name="SlotPrintConfig">Печать</string>
     <string name="SlotPrintConfigTooltip">Профиль печати</string>
     <string name="SlotFilamentConfig">Филамент</string>

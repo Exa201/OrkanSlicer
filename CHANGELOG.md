@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.253 (alpha)
+
+- Maker section controls now announce whether they expand or directly open a specific action.
+- Maker generator rows meet the 48 dp touch minimum and are tested at 320 dp width with 150% text scale.
+
 ## 0.8.252 (alpha)
 
 - The workspace menu host now requires all six primary destinations to provide Compose content directly; it no longer silently falls back to mounting an Android menu view.
