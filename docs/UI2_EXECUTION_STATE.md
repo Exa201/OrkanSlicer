@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — MMU profile sync error moved to Compose (0.8.263 / 2026-10-17)
+
+- Replaced the Android `BeamAlertDialogBuilder` failure alert in `PrintConfigFragment` with the shared Compose `WorkspaceMessageDialog`. Kept Moonraker/MMU synchronization, preference and filament-slot updates unchanged; marshal results onto the main thread and ignore stale callbacks after fragment destruction.
+- Added one Honor Compose test for displaying and dismissing the MMU sync error. The targeted Honor suite `PrintConfigToolsDialogsDeviceTest` passed 3/3. The targeted `PrintConfigToolsLogicTest` passed 7/7. Full Debug unit suite passed 552/552; full Slice unit suite passed 552/552.
+- Debug APK built from code commit `f46cc008afeba248f3e8baa240c2ac6188427fc7`: `app/build/outputs/apk/debug/OrkanSlicer_f46cc008af.apk`, 157,058,286 bytes, SHA-256 `E531F16701F3AABFD76F8C0565D19AA6B3F7BC9D0AC0BD3AC92F326A34755E6F`.
+- Installed on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`, version 0.8.263 / code 298. Cold start reached `MainActivity`; fresh 6,000-line logcat sample contained no crash, ANR, OOM, or fatal-signal markers. Emulator remains offline. No screenshots, printer operations, or print starts.
+- Previous 0.8.262 full verification remains current for unchanged routes: 552/552 Debug and Slice unit tests; full Honor suite 76 passed, 3 private multi-color fixtures skipped, zero failures/errors. This is not a full new 0.8.263 integration run.
+- Code commit `f46cc008afeba248f3e8baa240c2ac6188427fc7` is local; push and PR #2 update are pending. PR #2 was last observed open and mergeable. No merge/release.
+- Remaining work: continue the action-by-action audit of legacy dialogs and global routes; preserve upload/print safety and active-plate-only 3MF export warning. Next likely safe target: remaining non-destructive print/upload feedback dialogs, after checking their host/lifecycle path.
+
 ## Current continuation — profile help and app-settings choices (0.8.262 / 2026-10-17)
 
 - Replaced the active Android profile-option help/favorite alert with a Compose Material dialog hosted by `ProfileListFragment`; the favorite callback still persists the existing key and reapplies the favorites-only filter when active. Long help text scrolls inside the dialog.
