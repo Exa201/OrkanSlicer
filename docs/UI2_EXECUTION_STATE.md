@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — pre-slice filament assignment on workspace Compose (0.8.274 / 2026-10-17)
+
+- Migrated both active Bed workspace call sites (`showModelColorSlots` and `startSlicing`) to the exclusive Compose workspace dialog host. Removed the native `AlertDialog`/`ComposeView` route from `PreSliceFilamentDialog`; the shared assignment content remains Compose.
+- Preserved one-slot and per-object assignments, imported part-color preservation, temperature-settings navigation, ACE physical-slot mapping, material mismatch validation and its explicit Continue confirmation. Selected ACE gates and the callback that applies model assignments / proceeds to slicing only run after explicit confirmation. Cancel and workspace Back do not invoke the callback.
+- Honor PTP-N49 / Android 16 targeted instrumentation `SlicePrintPreparationComposeDeviceTest`: 3/3 passed, including real pre-slice workspace Cancel and Back checks and the preceding print-preparation safety actions. The test suite uses injected callbacks; no print or printer/network action was made. Emulator remains offline.
+- Debug and Slice unit suites: 552/552 each, zero failures/errors/skips. Debug Kotlin and SliceTest AndroidTest Kotlin compilation passed. `git diff --check` passed.
+- Code commit: `fdb558808170ee4ec202a27f5e9700a2ae181fef`. `:app:assembleDebug` succeeded. APK: `app/build/outputs/apk/debug/OrkanSlicer_fdb5588081.apk`, 157,143,883 bytes, SHA-256 `4D9EFC945254D47E6E5819450F400956BA5BB356FC056AE0842F22F1F47076A6`.
+- Installed and cold-started on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; verified version 0.8.274 / code 309 and `MainActivity` top-resumed. Fresh 6,000-line logcat sample had no fatal exception, app ANR, OOM, or fatal-signal matches. `emulator-5554` remains offline. No printer command, network send, screenshot, or print start.
+- Targeted Honor `SlicePrintPreparationComposeDeviceTest`: 3/3 passed. Debug and Slice unit suites: 552/552 each, zero failures/errors/skips.
+- Next: push this verification update to the existing branch and update PR #2, then continue auditing active legacy UI routes. UI migration is in progress; full multi-plate project persistence remains separate and incomplete.
+
 ## Current continuation — print preparation safety dialogs on workspace Compose (0.8.273 / 2026-10-17)
 
 - Migrated the active print-preparation route from a native `AlertDialog` hosting a `ComposeView` to the exclusive Compose workspace dialog host. The printer selector, profile activation/re-slicing path, ACE routing availability guard, material mismatch warning, empty-slot warning, upload-only action, and separate firmware-checked print confirmation remain distinct.
