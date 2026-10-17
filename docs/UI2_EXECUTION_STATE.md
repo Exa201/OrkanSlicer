@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — 3MF embedded-settings choice on Compose workspace (0.8.270 / 2026-10-17)
+
+- Replaced the active Bed workspace's Android `LinearLayout` / `Spinner` / `CheckBox` / `ScrollView` 3MF settings choice with `ThreeMfImportChoiceDialog`. The original Android view dialog remains only as fallback for activity states without an attached workspace host.
+- Preserved own-printer default, explicit file-printer opt-in, print/filament opt-ins defaulting off, printer-selection reset when the embedded printer is unchecked, temporary project settings, saved profile objects, renderer refresh, applied snackbar, and clearing previous project overrides before a new choice/cancel.
+- Added two actual `MainActivity.show3mfImportChoice` Honor UI tests: selecting embedded settings changes only temporary effective project values and leaves saved profiles/printer unchanged; cancelling a new choice clears prior project settings. Targeted `ProfileSettingsImeDeviceTest`: 10/10 passed on Honor PTP-N49 / Android 16. Debug and Slice unit suites: 552/552 each, 0 failures/errors/skips.
+- `:app:assembleDebug` succeeded from code commit `94d9ba9fd7edfa3a310d7601ad27a6a2c76e15fb`. APK `app/build/outputs/apk/debug/OrkanSlicer_94d9ba9fd7.apk`, 157,107,340 bytes, SHA-256 `5DD071CC00F634DE9B5A9B18BB2FFB34B288CBF542CEEA89261BA387C64EAFD9`. Installed on Honor under `com.codemastercody3d.orcaslicermobile`, version 0.8.270 / code 305; cold start reached `MainActivity` top-resumed and the fresh logcat sample had no fatal exception, ANR, OOM, or fatal-signal matches.
+- Offline emulator remains untested. No screenshots, printer commands, firmware changes, or print start. Multi-plate project persistence remains incomplete; active-plate-only export warning is preserved.
+- Code commit `94d9ba9fd7edfa3a310d7601ad27a6a2c76e15fb`; this verification status is being committed separately. PR #2 remains open; no merge/release.
+- Next: move the active-workspace SVG simplification consent and safe failure feedback into the Compose workspace while preserving the original-file integrity and explicit user consent before simplification.
 ## Current continuation — 3MF import settings choice migration (0.8.269 / 2026-10-17)
 
 - Migrated the active Bed workspace profile import flow (validation warnings, grouped profile selection, and conflict resolution) from native AlertDialogs to the exclusive Workspace Compose dialog. Existing fallback dialogs remain for non-workspace contexts.
