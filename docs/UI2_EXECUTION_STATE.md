@@ -1,5 +1,13 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Test-only continuation — profile filter in the live parent screen (2026-10-17)
+
+- Added `ProfileSettingsImeDeviceTest`, which opens the real process-profile route in `MainActivity`, expands its production filter, types a query, confirms Android reports the IME visible, opens and closes the profile-level menu without changing the saved level, toggles favorites on and back off, clears the query, and collapses the filter.
+- Targeted Honor run `:app:connectedSliceTestAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ru.ytkab0bp.slicebeam.ProfileSettingsImeDeviceTest`: 1/1 passed on PTP-N49 / Android 16. `emulator-5554` remained offline. The test initializes the bundled Anycubic configuration, uses no synthetic production profile data, and performs no printer operations.
+- This is instrumentation-only; app version remains `0.8.255` / code `290`, and the 0.8.255 APK/hash above still identifies the runtime code. The full unit and device suites were not rerun after this test-only addition.
+- UI 2.0 remains incomplete. Remaining work: action-by-action audit and safe migration of active legacy/tool routes, responsive/accessibility areas beyond the covered settings/Maker cases, and the separate incomplete multi-plate project serializer. Keep the BedFragment generic dialog/overlay host until IME-aware Back coverage exists, and retain the active-plate export warning.
+- Branch `codex/rinkhals-safe-start-audit`; PR #2 remains open and unmerged. Preserve `.codex-remote-attachments/`.
+
 ## Latest continuation — 0.8.255 (2026-10-17)
 
 - Code commit: `8b09ccae815b243eb1747f4a73a418466826712b` (`Announce profile favorites filter state`). The profile settings favorites filter now announces its localized enabled/disabled state. Added Honor Compose coverage for opening filters, toggling favorites, entering and trimming a query, and selecting a profile settings level at 320 dp / 150% font scale.
@@ -8,7 +16,7 @@
 - Debug/Slice unit suites: 549/549 each, 0 failures/errors/skips. Full Honor instrumentation: 62 XML cases, 0 failures/errors, 3 unavailable private multi-color fixtures skipped (59 executed passed); emulator `emulator-5554` remained offline. `:app:assembleDebug` passed.
 - APK: `app/build/outputs/apk/debug/OrkanSlicer_8b09ccae81.apk`, 157,041,648 bytes; SHA-256 `E760C092D90C2EC2050E09E0D82544CA17119E9A0D97A505C12203281D51B4C2`.
 - Installed/launched on Honor PTP-N49 / Android 16 using verified package `com.codemastercody3d.orcaslicermobile`, version `0.8.255` / code `290`; `MainActivity` top-resumed and fresh logcat contained no crash/ANR/OOM/fatal-signal markers. No printer job was started.
-- UI 2.0 remains incomplete. Next: continue action-by-action global/profile audit and safely test IME-visible profile controls in their parent screen; retain the BedFragment generic dialog/overlay host until IME-aware Back coverage exists. Full multi-plate project persistence remains separate and incomplete; keep the active-plate export warning.
+- UI 2.0 remains incomplete. Next: continue action-by-action global/profile and workspace route audits; retain the BedFragment generic dialog/overlay host until IME-aware Back coverage exists. Full multi-plate project persistence remains separate and incomplete; keep the active-plate export warning.
 - Branch `codex/rinkhals-safe-start-audit`; PR #2 remains open and unmerged. Preserve `.codex-remote-attachments/`.
 
 ## Latest continuation — 0.8.254 (2026-10-17)
