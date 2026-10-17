@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.298\n\n• Workspace-Zielbeschriftungen bleiben auf kleinen Displays und bei großer Schrift vollständig lesbar; der vollständige Name ist weiterhin für Screenreader verfügbar.",
-  "en": "OrkanSlicer 0.8.298\n\n• Workspace destination labels stay readable on small screens and at large text sizes; full names remain available to screen readers.",
-  "ru": "OrkanSlicer 0.8.298\n\n• Подписи разделов рабочего пространства остаются читаемыми на небольших экранах и при крупном шрифте; полные названия доступны программам чтения с экрана."
+  "de": "OrkanSlicer 0.8.299\n\n• Werkzeugfenster werden jetzt ausschließlich über den zentralen Workspace-Zustand geschlossen und gewechselt; Android-Zurück und Werkzeugwechsel verwenden denselben Lifecycle.",
+  "en": "OrkanSlicer 0.8.299\n\n• Tool panels now close and switch through the single workspace state owner; Android Back and tool replacement share the same lifecycle.",
+  "ru": "OrkanSlicer 0.8.299\n\n• Панели инструментов теперь закрываются и переключаются через единое состояние рабочего пространства; кнопка «Назад» и замена инструмента используют общий жизненный цикл."
 }

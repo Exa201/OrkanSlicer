@@ -99,6 +99,26 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    fun dismissActiveToolUsesItsRouteCallbackAndClearsOnlyToolState() {
+        val controller = WorkspaceController()
+        var dismissCount = 0
+        var paletteDismissed = false
+        controller.activatePanel(WorkspaceOverlayPanel.FILAMENT_PALETTE) { paletteDismissed = true }
+        controller.selectTool("transform.position") {
+            dismissCount++
+            controller.clearTool("transform.position")
+        }
+
+        assertTrue(controller.dismissActiveTool())
+        assertTrue(paletteDismissed)
+        assertEquals(1, dismissCount)
+        assertNull(controller.activeToolId)
+        assertNull(controller.activeToolPanelContent)
+        assertNull(controller.activePanel)
+        assertFalse(controller.dismissActiveTool())
+    }
+
+    @Test
     fun delayedDismissalOfPreviousToolCannotClearTheReplacementTool() {
         val controller = WorkspaceController()
         var delayedCleanup: (() -> Unit)? = null

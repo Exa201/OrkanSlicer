@@ -145,7 +145,6 @@ var currentPlateIndex: Int
 get() = workspaceController.activePlateIndex
 set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
-private var activeWorkspaceComposeTool: WorkspaceComposeToolRoute? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
@@ -597,10 +596,8 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
     menu.setWorkspaceDismiss { workspaceController.clearTool(toolId) }
     menu.setOnDismiss {
         if (menu.isAttached()) return@setOnDismiss
-        if (activeWorkspaceComposeTool === menu) activeWorkspaceComposeTool = null
         workspaceController.clearTool(toolId)
     }
-    activeWorkspaceComposeTool = menu
     workspaceController.selectToolWithPanel(
         toolId = toolId,
         dismiss = { menu.dismiss() },
@@ -611,10 +608,7 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
 private fun showModelContextMenu(objectIndex:Int) {
 val ctx = getContext()
 if (ctx == null || glView == null || objectIndex == -1) return
-if (activeWorkspaceComposeTool != null)
-{
-activeWorkspaceComposeTool!!.dismiss()
-}
+workspaceController.dismissActiveTool()
 if (workspaceController.activePanel == WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) return
 val actions = listOf(
     ctx.getString(R.string.ModelContextDuplicate),
@@ -721,7 +715,7 @@ internal fun showWorkspaceMessageDialog(
 ) {
     if (getContext() == null) return
     workspaceController.dismissActivePanel()
-    activeWorkspaceComposeTool?.dismiss()
+    workspaceController.dismissActiveTool()
     var resolved = false
     fun close(confirmed: Boolean) {
         if (resolved) return
@@ -754,7 +748,7 @@ internal fun showWorkspaceComposeDialog(
 ): () -> Unit {
     if (getContext() == null) return {}
     workspaceController.dismissActivePanel()
-    activeWorkspaceComposeTool?.dismiss()
+    workspaceController.dismissActiveTool()
     var resolved = false
     fun close() {
         if (resolved) return
@@ -800,7 +794,7 @@ private fun showSliceProgress(context: Context) {
 internal fun showPrinterUploadProgress(initialMessage: String): PrinterUploadProgressDialog? {
     val context = getContext() ?: return null
     workspaceController.dismissActivePanel()
-    activeWorkspaceComposeTool?.dismiss()
+    workspaceController.dismissActiveTool()
     val progress = PrinterUploadProgressDialog(context, initialMessage)
     activePrinterUploadProgress = progress
     workspaceController.activatePanel(
@@ -985,11 +979,8 @@ if (isPaintMode)
 cancelPaintMode()
 return true
 }
-if (activeWorkspaceComposeTool != null)
-{
-activeWorkspaceComposeTool!!.dismiss()
+if (workspaceController.dismissActiveTool())
 return true
-}
 if (workspaceController.activePanel == WorkspaceOverlayPanel.PRINTER_WEB)
 {
 destroyPrinterWebView()

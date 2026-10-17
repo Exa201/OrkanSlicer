@@ -102,6 +102,18 @@ internal class WorkspaceController(
         overlays.clear(WorkspaceOverlayPanel.SPECIAL_TOOL)
     }
 
+    /** Dismisses the selected tool through its registered lifecycle callback. */
+    fun dismissActiveTool(): Boolean {
+        val toolId = activeToolId ?: return false
+        if (overlays.activePanel == WorkspaceOverlayPanel.SPECIAL_TOOL &&
+            overlays.dismiss(WorkspaceOverlayPanel.SPECIAL_TOOL)
+        ) return true
+
+        // Recover from an inconsistent host without retaining an invisible tool state.
+        clearTool(toolId)
+        return true
+    }
+
     fun registerPanel(panel: WorkspaceOverlayPanel, dismiss: () -> Unit) =
         overlays.register(panel, dismiss)
 

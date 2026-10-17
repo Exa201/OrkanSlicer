@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -220,9 +221,12 @@ class WorkspaceNavigationDeviceTest {
         instrumentation.waitForIdleSync()
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-            assertEquals("${expectedType.simpleName} dismissal should clear the route", null,
-                BedFragment::class.java.getDeclaredField("activeWorkspaceComposeTool")
-                    .apply { isAccessible = true }.get(bed))
+            val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            assertNull("${expectedType.simpleName} dismissal should clear the controller tool id",
+                controller.javaClass.getMethod("getActiveToolId").invoke(controller))
+            assertNull("${expectedType.simpleName} dismissal should clear its exclusive workspace panel",
+                controller.javaClass.getMethod("getActivePanel").invoke(controller))
         }
     }
 
