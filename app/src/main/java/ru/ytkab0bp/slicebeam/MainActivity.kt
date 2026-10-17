@@ -97,6 +97,7 @@ import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 class MainActivity:AppCompatActivity() {
 private var id:Int = 0
 @get:NonNull
@@ -104,6 +105,7 @@ val navigationDelegate:NavigationDelegate
 get() = delegate ?: throw IllegalStateException("Navigation is not initialized")
 private var delegate: NavigationDelegate? = null
 private var exitConfirmationDialog: AlertDialog? = null
+private var dismissWorkspaceExitConfirmation: (() -> Unit)? = null
 private val activityResultLaunchers = HashMap<Int, ActivityResultLauncher<Intent>>()
 /** Shows file-operation errors in the workspace when it is active, retaining the platform fallback
  * for activity states that do not currently host a BedFragment. */
@@ -1950,6 +1952,32 @@ return MobileNavigationDelegate()
 private fun handleAppBack():Boolean {
 if (delegate?.onBackPressed() == true) return true
 if (exitConfirmationDialog?.isShowing == true) return true
+if (dismissWorkspaceExitConfirmation != null) return true
+val bed = runCatching { delegate?.getCurrentFragment() as? BedFragment }.getOrNull()
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    dismissWorkspaceExitConfirmation = bed.showWorkspaceComposeDialog(
+        onExternalDismiss = { dismissWorkspaceExitConfirmation = null },
+    ) { dismiss ->
+        WorkspaceMessageDialog(
+            title = getString(R.string.AppCloseConfirmTitle),
+            message = getString(R.string.AppCloseConfirmMessage),
+            confirmLabel = getString(R.string.AppCloseConfirmYes),
+            dismissLabel = getString(android.R.string.cancel),
+            onDismiss = {
+                dismissWorkspaceExitConfirmation = null
+                dismiss()
+            },
+            onConfirm = {
+                dismissWorkspaceExitConfirmation = null
+                dismiss()
+                Prefs.getPrefs()!!.edit().putInt("last_session_plate_count", 0).apply()
+                TemporaryProjectSettings.clear()
+                finishAfterTransition()
+            },
+        )
+    }
+    return true
+}
 exitConfirmationDialog = BeamAlertDialogBuilder(this)
 .setTitle(R.string.AppCloseConfirmTitle)
 .setMessage(R.string.AppCloseConfirmMessage)
@@ -1993,6 +2021,7 @@ protected override fun onDestroy() {
 super.onDestroy()
 exitConfirmationDialog?.dismiss()
 exitConfirmationDialog = null
+dismissWorkspaceExitConfirmation = null
 if (activeInstance === this)
 {
 activeInstance = null

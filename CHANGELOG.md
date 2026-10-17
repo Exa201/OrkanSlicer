@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.272 (alpha)
+
+- Show the root-workspace app-exit confirmation in the exclusive Compose dialog host, retaining the native fallback outside an active Bed workspace.
+- Keep the existing explicit-exit cleanup and add Honor coverage for back navigation, visible confirmation text, and cancellation without closing the app.
+
 ## 0.8.271 (alpha)
 
 - Show the SVG simplification consent prompt and simplification errors in the active Compose workspace.
