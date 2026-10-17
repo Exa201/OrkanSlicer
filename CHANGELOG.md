@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.278 (alpha)
+
+- Replace the post-slice G-code information and layer-range `UnfoldMenu` routes with workspace-owned Compose dialogs.
+- Keep G-code color schemes, seam and extrusion-role visibility, summary information, timeline, layer-range editing, and GL-thread preview updates connected to the existing viewer.
+- Closing either result panel preserves the current preview range and uses the exclusive workspace Back/dismiss handling.
+
 ## 0.8.277 (alpha)
 
 - Replace both calibration `UnfoldMenu` routes with one exclusive Compose workspace flow for calibration presets, parameter entry, result recording, and bundled model selection.

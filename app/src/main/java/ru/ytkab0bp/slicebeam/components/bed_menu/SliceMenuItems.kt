@@ -43,11 +43,11 @@ object SliceMenuItems {
         sendAction: SendAction,
     ): List<BedComposeMenuAction> {
         val items = mutableListOf(
-            BedComposeMenuAction(R.string.MenuSliceInfo, R.drawable.clock_circle_dashed_outline_24, { anchor ->
-                fragment.showUnfoldMenu(SliceInfoMenu(parentMenu), anchor)
+            BedComposeMenuAction(R.string.MenuSliceInfo, R.drawable.clock_circle_dashed_outline_24, {
+                showSliceInfoWorkspace(fragment, parentMenu)
             }),
-            BedComposeMenuAction(R.string.MenuSliceLayers, R.drawable.square_stack_up_outline_28, { anchor ->
-                fragment.showUnfoldMenu(SliceLayersMenu(), anchor)
+            BedComposeMenuAction(R.string.MenuSliceLayers, R.drawable.square_stack_up_outline_28, {
+                showSliceLayersWorkspace(fragment)
             }),
             BedComposeMenuAction(R.string.MenuSliceExportToFile, R.drawable.folder_simple_arrow_right_outline_28, {
                 val activity = fragment.getContext() as? Activity ?: return@BedComposeMenuAction

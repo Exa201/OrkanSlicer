@@ -1,32 +1,34 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.content.Context
-import android.view.View
-import android.widget.FrameLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -36,28 +38,50 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy
 import ru.ytkab0bp.slicebeam.slic3r.GCodePreviewSelection
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
-/** Layer-range editor for the sliced G-code preview. */
-class SliceLayersMenu : UnfoldMenu() {
+/** Hosts the post-slice layer range editor in the exclusive workspace overlay. */
+internal fun showSliceLayersWorkspace(bed: BedFragment) {
+    val controller = SliceLayersWorkspaceController(bed)
+    bed.showWorkspaceComposeDialog { dismiss ->
+        DisposableEffect(controller) {
+            controller.open()
+            onDispose { controller.close() }
+        }
+        AlertDialog(
+            onDismissRequest = dismiss,
+            title = { Text(stringResource(R.string.MenuSliceLayers), modifier = Modifier.testTag("slice-layers-title")) },
+            text = {
+                Box(Modifier.fillMaxWidth().heightIn(max = 470.dp)) {
+                    controller.Content()
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = dismiss, modifier = Modifier.heightIn(min = 48.dp).testTag("slice-layers-close")) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
+    }
+}
+
+private class SliceLayersWorkspaceController(private val bed: BedFragment) {
     private var layerRange by mutableStateOf(SliceLayerRange(1, 1, 1))
     private var title by mutableStateOf("")
     private var blockSize by mutableIntStateOf(GCodePreviewPolicy.DEFAULT_BLOCK_SIZE)
     private var applyCallback: Runnable? = null
     private var destroyed = false
 
-    private fun getViewer(): GCodeViewer? =
-        fragment?.glView?.renderer?.viewer
+    private fun getViewer(): GCodeViewer? = bed.glView?.renderer?.viewer
 
     private fun updateTitle(from: Int, to: Int) {
-        val context = fragment?.getContext() ?: return
+        val context = bed.getContext() ?: return
         title = context.getString(R.string.MenuSliceInfoLayers, from, to)
     }
 
@@ -102,7 +126,7 @@ class SliceLayersMenu : UnfoldMenu() {
     private fun applyView(from: Int, to: Int) {
         if (destroyed) return
         cancelPendingApply()
-        val viewport = fragment?.glView ?: return
+        val viewport = bed.glView ?: return
         val result = viewport.renderer.gcodeResult ?: return
         result.previewSelection = GCodePreviewSelection(from, to, blockSize)
         viewport.queueEvent {
@@ -133,7 +157,7 @@ class SliceLayersMenu : UnfoldMenu() {
     }
 
     @Composable
-    override fun ComposeContent(portrait: Boolean) {
+    fun Content() {
         SliceLayersContent(
             title = title,
             range = layerRange,
@@ -144,31 +168,21 @@ class SliceLayersMenu : UnfoldMenu() {
             onFromChanged = ::setFromFraction,
             onToChanged = ::setToFraction,
             onValueChangeFinished = ::finishLayerSliderInteraction,
-            onDismiss = ::dismiss,
         )
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-        if (portrait) {
-            minOf(ViewUtils.dp(410), (into.height * .7f).toInt())
-        } else {
-            super.getRequestedSize(into, false)
-        }
-
-    override fun onCreate() {
-        super.onCreate()
+    fun open() {
         destroyed = false
         val viewer = getViewer() ?: return
         val range = viewer.layersViewRange
-        blockSize = fragment?.glView?.renderer?.gcodeResult?.previewSelection?.blockSize
+        blockSize = bed.glView?.renderer?.gcodeResult?.previewSelection?.blockSize
             ?: GCodePreviewPolicy.DEFAULT_BLOCK_SIZE
         layerRange = normalizeSliceLayerRange(viewer.getLayersCount(), range.first, range.second)
         updateTitle(layerRange.from, layerRange.to)
     }
 
-    override fun onDestroy() {
+    fun close() {
         applyView(layerRange.from, layerRange.to)
-        super.onDestroy()
         destroyed = true
         cancelPendingApply()
     }
@@ -185,7 +199,6 @@ private fun SliceLayersContent(
     onFromChanged: (Float) -> Unit,
     onToChanged: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
-    onDismiss: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
@@ -193,7 +206,7 @@ private fun SliceLayersContent(
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
         Text(
             text = title,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).testTag("slice-layers-range-title"),
             color = MaterialTheme.colorScheme.primary,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
@@ -216,25 +229,6 @@ private fun SliceLayersContent(
         )
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Row(
-            modifier = Modifier.fillMaxWidth().height(52.dp)
-                .clickable(onClick = onDismiss)
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            androidx.compose.material3.Icon(
-                painter = painterResource(R.drawable.arrow_left_outline_28),
-                contentDescription = stringResource(R.string.MenuOrientationPositionBack),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(R.string.MenuOrientationPositionBack),
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
     }
 }
 

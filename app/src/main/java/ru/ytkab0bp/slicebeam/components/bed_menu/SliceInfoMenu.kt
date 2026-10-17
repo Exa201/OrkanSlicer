@@ -1,13 +1,11 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.content.Context
-import android.view.View
-import android.widget.FrameLayout
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +28,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,8 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -55,31 +54,54 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.LocalBeamThemeRevision
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SegmentsView
 import java.text.DecimalFormat
 
-/** Post-slice G-code information panel and visibility controls. */
-class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
+/** Hosts the post-slice G-code information view in the exclusive workspace overlay. */
+internal fun showSliceInfoWorkspace(bed: BedFragment, parentMenu: SliceMenu) {
+    val controller = SliceInfoWorkspaceController(bed, parentMenu)
+    bed.showWorkspaceComposeDialog { dismiss ->
+        DisposableEffect(controller) {
+            controller.open()
+            onDispose { controller.close() }
+        }
+        AlertDialog(
+            onDismissRequest = dismiss,
+            title = { Text(stringResource(R.string.MenuSliceInfo), modifier = Modifier.testTag("slice-info-title")) },
+            text = {
+                Box(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+                    controller.Content()
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = dismiss, modifier = Modifier.heightIn(min = 48.dp).testTag("slice-info-close")) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
+    }
+}
+
+private class SliceInfoWorkspaceController(private val bed: BedFragment, private val parentMenu: SliceMenu) {
     private var state by mutableStateOf(SliceInfoUiState())
     private var invalidateGl: Runnable? = null
     private var visible = false
     private var timelineVisible by mutableStateOf(false)
 
-    private fun getViewer(): GCodeViewer? = fragment?.glView?.renderer?.viewer
+    private fun getViewer(): GCodeViewer? = bed.glView?.renderer?.viewer
 
-    private fun getResult(): GCodeProcessorResult? = fragment?.glView?.renderer?.gcodeResult
+    private fun getResult(): GCodeProcessorResult? = bed.glView?.renderer?.gcodeResult
 
     @Composable
-    override fun ComposeContent(portrait: Boolean) {
+    fun Content() {
         val context = LocalContext.current
         val schemeNames = remember(context) { context.resources.getStringArray(R.array.GCodeColorSchemes).toList() }
         SliceInfoContent(
@@ -89,12 +111,10 @@ class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
             onSchemeSelected = ::selectScheme,
             onSeamsChanged = ::setSeamsVisible,
             onRoleVisibilityChanged = ::setRoleVisible,
-            onDismiss = ::dismiss,
         )
     }
 
-    override fun onCreate() {
-        super.onCreate()
+    fun open() {
         visible = true
         timelineVisible = false
         refreshInfoState()
@@ -103,32 +123,16 @@ class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
         }, 50)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    fun close() {
         visible = false
         timelineVisible = false
         invalidateGl?.let { ViewUtils.removeCallbacks(it) }
         invalidateGl = null
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int {
-        if (portrait) {
-            val viewer = getViewer()
-            if (viewer != null) {
-                val visibleCount = (0 until GCodeViewer.EXTRUSION_ROLES_COUNT)
-                    .count { viewer.getEstimatedTime(it) != 0f }
-                val content = ViewUtils.dp(42) * visibleCount + ViewUtils.dp(28) + ViewUtils.dp(52) +
-                    ViewUtils.dp(18 + 8) + ViewUtils.dp(44) + ViewUtils.dp(162)
-                val available = into.height - into.paddingTop - into.paddingBottom - ViewUtils.dp(24)
-                return minOf(content, maxOf(ViewUtils.dp(240), available))
-            }
-        }
-        return super.getRequestedSize(into, portrait)
-    }
-
     private fun selectScheme(index: Int) {
         val type = SCHEME_VALUES.getOrNull(index) ?: return
-        val glView = fragment?.glView ?: return
+        val glView = bed.glView ?: return
         state = state.copy(schemeIndex = index)
         glView.queueEvent {
             val glViewer = getViewer() ?: return@queueEvent
@@ -146,7 +150,7 @@ class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
         val viewer = getViewer() ?: return
         if (viewer.isOptionVisible(GCodeViewer.OPTION_TYPE_SEAMS) != visible) {
             viewer.toggleOptionVisibility(GCodeViewer.OPTION_TYPE_SEAMS)
-            fragment?.glView?.requestRender()
+            bed.glView?.requestRender()
         }
         state = state.copy(seamsVisible = visible)
     }
@@ -164,7 +168,7 @@ class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu() {
             invalidateGl = null
             val range = viewer.layersViewRange
             viewer.setLayersViewRange(range.first, range.second)
-            fragment?.glView?.requestRender()
+            bed.glView?.requestRender()
         }
         invalidateGl = callback
         ViewUtils.postOnMainThread(callback, 250)
@@ -397,7 +401,6 @@ private fun SliceInfoContent(
     onSchemeSelected: (Int) -> Unit,
     onSeamsChanged: (Boolean) -> Unit,
     onRoleVisibilityChanged: (Int, Boolean) -> Unit,
-    onDismiss: () -> Unit,
 ) {
     var showSchemeChooser by remember { mutableStateOf(false) }
     val selectedScheme = state.schemeIndex.coerceIn(0, (schemeNames.size - 1).coerceAtLeast(0))
@@ -410,7 +413,8 @@ private fun SliceInfoContent(
         Row(
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
                 .clickable { showSchemeChooser = true }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .testTag("slice-info-scheme"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -438,7 +442,8 @@ private fun SliceInfoContent(
                     role = Role.Checkbox,
                     onValueChange = onSeamsChanged,
                 )
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("slice-info-seams"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -493,25 +498,6 @@ private fun SliceInfoContent(
             modifier = Modifier.fillMaxWidth().height(28.dp).padding(horizontal = 12.dp, vertical = 8.dp),
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                .clickable(onClick = onDismiss)
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            androidx.compose.material3.Icon(
-                painter = painterResource(R.drawable.arrow_left_outline_28),
-                contentDescription = stringResource(R.string.MenuOrientationPositionBack),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(R.string.MenuOrientationPositionBack),
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
     }
 
     if (showSchemeChooser) {
