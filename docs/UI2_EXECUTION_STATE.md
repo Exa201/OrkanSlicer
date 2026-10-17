@@ -1,5 +1,14 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — Lithophane tone editor moved to workspace Compose (0.8.284 / 2026-10-17)
+
+- Migrated the image-tone editor into the exclusive workspace Compose host with grayscale mode, brightness, contrast, inversion, rendered relief preview, and Apply/Cancel. The active converter form is dismissed while the editor is open and reopened on editor close; Apply commits values, while Cancel/Back leaves the previous values untouched. Preview requests are canceled when controls change or the host leaves composition, and bitmap ownership is released safely. The native fallback remains only when no workspace host is available.
+- Added Honor coverage for apply, Back cancellation, parent callback, and asynchronous preview rendering. Full test run: Debug unit 552/552, Slice unit 552/552; zero failures/errors/skips. Honor instrumentation XML: 117 entries, 3 private multi-color fixture cases skipped, zero failures/errors. Full `:app:assembleDebug` succeeded.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_ba6c887708.apk`, 157,196,548 bytes, SHA-256 `932441868A697FB2A872CF881EE0703AF8367AC5FC7A6A0C6A2EF9B925B251B6`. BuildConfig commit `ba6c887708`.
+- Installed on Honor PTP-N49 / Android 16. Exact package `com.codemastercody3d.orcaslicermobile` reports 0.8.284 / code 319. Launcher resolution, cold launch, and top-resumed MainActivity were verified. Fresh 10,000-line logcat scan contained no fatal exception, ANR, OOM, or fatal signal. Emulator remains offline. No screenshots or printer actions were used.
+- Code commit `ba6c887708210321da87d4a6bc0cb5509ab77e91`; documentation commit pending. Branch push and PR #2 update pending.
+- Remaining converter UI: long parameter/mode form, progress host, save/create-document flows, and no-workspace Android fallback. Continue these as cohesive routes without changing native generation or picker semantics. Multi-plate persistence remains incomplete; retain the active-plate-only export warning. Overall UI 2.0 remains in progress.
+
 ## Current continuation — Converter results moved into workspace Compose (0.8.283 / 2026-10-17)
 
 - Migrated generated-model decisions, paired lithophane/LED-base actions, and raster-output preview to Compose dialogs in the exclusive workspace host. Preserved load-one/load-both, save one/both, delayed sequential save picker, discard/cache deletion, load callback cleanup, and raster bitmap disposal. Native generation and file pickers are unchanged. The Android dialog remains only as a no-workspace compatibility fallback.
