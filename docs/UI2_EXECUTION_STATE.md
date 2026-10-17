@@ -1,3 +1,10 @@
+# Current continuation — printer error actions adapt to narrow / large-font layouts (0.8.292 / 2026-10-17)
+
+- Printer Web error actions now switch from a side-by-side row to full-width stacked buttons below 360 dp or at font scale >= 1.3. This keeps retry and external-open reachable without changing the technical WebView host. Buttons use the shared 48 dp touch-target token.
+- Honor `PrinterWebWorkspacePanelDeviceTest`: 3/3 passed, including layout bounds and 48 dp action targets at 320 dp / 100%, 360 dp / 130%, and 320 dp / 150%. Debug unit 552/552 and Slice unit 552/552, zero failures/errors/skips. `:app:assembleDebug` passed; update.json parses and `git diff --check` passes.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_7f41833e62.apk`, 157,231,669 bytes, SHA-256 `17CAEFE850D3D999690CBE4FC9BF817ECEAE019C247DC88E82F7E214C1C676CE`. Installed on Honor PTP-N49 / Android 16, exact OrkanSlicer package `com.codemastercody3d.orcaslicermobile`, version 0.8.292 / code 327; `MainActivity` resumed and fresh logcat had no crash, ANR, OOM, or fatal-signal markers. Emulator remains offline. No screenshots or printer actions.
+- Code commit: `7f41833e62e092e18efda637aa622631cce33a39`. Documentation commit and PR update pending. PR #2 remains target; no merge/release. UI 2.0 remains in progress.
+- Next: continue migrating source-confirmed active UI surfaces into the existing Compose workspace. All current `UnfoldMenu` symbol hits are unrelated `unfolded` profile-category state; preserve the active-plate-only 3MF export warning and required Android/system integrations. Broad practical menu/accessibility coverage remains open.
 # Current continuation — printer WebView controls migrated to workspace Compose (0.8.291 / 2026-10-17)
 
 - Compose now owns the printer panel's loading state, error display, retry, external-browser action, and close control. `BedFragment` retains the technical WebView container, navigation/origin policy, and Android/WebView lifecycle; removed its nested error/close `ComposeView`s, native progress indicator, and related visibility/animation plumbing. Renderer and slicer engine are unchanged.
