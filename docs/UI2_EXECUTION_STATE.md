@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — image-to-STL options moved into workspace Compose (0.8.287 / 2026-10-17)
+
+- Replaced the active image-converter parameter/mode form with `ImageToStlOptionsForm` in the exclusive workspace dialog. The form includes source preview, target/mode selection, mode-dependent dimensions, resolution, curved/frame/round options, and editor handoff. Native generation, validation, output callbacks, document pickers, and tone-processing semantics remain shared with the Android fallback.
+- Fixed a reentrant panel-dismiss race: returning from the tone editor now posts the parent form reopen after the workspace clears the editor panel. Kept the 512 px source preview bitmap under Compose/GC ownership instead of recycling it while a frame could still be drawing.
+- Honor `MakerGeneratorWorkspaceDeviceTest`: 10/10 passed, including converter form mode selection, preview, editor Back/return with state preserved, and parent cancellation. Debug unit: 552/552, zero failures/errors/skips. Slice unit: 552/552, zero failures/errors/skips. `git diff --check`, update.json parse, and full `:app:assembleDebug` passed.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_0760e133c9.apk`, 157,245,854 bytes, SHA-256 `9C9D7E61BC750DB8A36114655DE7EF0E605399E0925B46F5F9B2794D7147756B`. BuildConfig commit `0760e133c9`.
+- Installed on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; package reports version 0.8.287 / code 322. Cold launch resumed `ru.ytkab0bp.slicebeam.MainActivity`; fresh 10,000-line logcat sample contained no fatal exception, app ANR, OOM, or fatal-signal markers. Emulator remains offline. No screenshots or printer actions were used.
+- Code commit `0760e133c9e805f006d0b2de293edfe467e76a12`; documentation commit pending. Branch push and PR #2 update pending. Overall UI 2.0 remains in progress.
+- Remaining generator UI includes the converter's Android-only compatibility fallbacks and other maker/global routes; continue inventorying active routes, migrating the next reachable legacy route as a group, and keep the active-plate-only multi-plate export warning. The multi-plate project serializer remains incomplete.
+
 ## Current continuation — maker generator progress hosted by workspace Compose (0.8.286 / 2026-10-17)
 
 - Moved progress UI for the local image converter and maker generators into the exclusive workspace Compose overlay. Elapsed/remaining estimates and stage progress remain live; native generation stays on the IO pool; completion callbacks, validation, and non-cancelable behavior are preserved. The Android ComposeView-in-AlertDialog fallback remains for calls without a workspace.
