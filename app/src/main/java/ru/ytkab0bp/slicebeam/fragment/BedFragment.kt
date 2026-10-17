@@ -91,6 +91,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
+import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebWorkspacePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 import ru.ytkab0bp.slicebeam.ui.workspace.PaintModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.VariableLayerHeightPanel
@@ -1000,7 +1001,7 @@ if (activeWorkspaceComposeTool != null)
 activeWorkspaceComposeTool!!.dismiss()
 return true
 }
-if (panelWebViewContainer != null && panelWebViewContainer!!.getVisibility() == View.VISIBLE)
+if (workspaceController.activePanel == WorkspaceOverlayPanel.PRINTER_WEB)
 {
 destroyPrinterWebView()
 return true
@@ -1094,9 +1095,13 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.PrinterWebHostMissing))
 return
 }
 workspaceController.dismissActivePanel()
-workspaceController.registerPanel(WorkspaceOverlayPanel.PRINTER_WEB) { destroyPrinterWebView() }
-panelWebViewContainer!!.setVisibility(View.VISIBLE)
-panelWebViewContainer!!.bringToFront()
+val panelContainer = panelWebViewContainer!!
+workspaceController.activatePanel(
+    panel = WorkspaceOverlayPanel.PRINTER_WEB,
+    content = { PrinterWebWorkspacePanel(panelContainer) },
+    dismiss = { destroyPrinterWebView() },
+)
+panelContainer.setVisibility(View.VISIBLE)
 if (printerWebCloseButton != null) printerWebCloseButton!!.setVisibility(View.VISIBLE)
 if (panelWebView != null)
 {
@@ -1331,8 +1336,6 @@ topMargin = rightMargin
 })
 contentView = createWorkspaceContent(ctx, portrait)
 overlayLayout!!.addView(contentView, FrameLayout.LayoutParams(
-ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-overlayLayout!!.addView(wfl, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 return overlayLayout!!
 }

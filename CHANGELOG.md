@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.290 (alpha)
+
+- Host the printer WebView panel inside the Compose WorkspaceShell overlay instead of attaching it as a separate BedFragment-wide View overlay.
+- Keep WebView creation, origin restrictions, and renderer lifecycle in BedFragment while making exclusive panel state and Back dismissal use WorkspaceController.
+- Add Honor coverage for attaching and detaching the technical Android view through the Compose panel host.
+
 ## 0.8.289 (alpha)
 
 - Replace the remaining third-party native color-picker dialog with one shared Compose custom-color editor using accessible hue, saturation, and brightness sliders.
