@@ -1,3 +1,13 @@
+# Current continuation — 3MF object-filament override fixed (0.8.293 / 2026-10-17)
+
+- Fixed both explicit object-filament entry points (`FileMenuObjectActions` and the color-paint base-filament control) to call the native uniform-filament operation. That operation clears imported per-volume and painted-facet overrides, so the selected slot is the one used for display and slicing.
+- Added Honor UI checks showing 3MF printer/print/filament choices are independent, plus a native test using the bundled two-color 3MF fixture to verify an object reassignment replaces its imported part assignment without changing the other object.
+- Verification: Debug unit 552/552; Slice unit 552/552; Honor instrumentation result log `OK (130 tests)`, including the new tests. Gradle's connected task returned a results-file lock/hash error after the UTP run had completed; the device result log confirms 130 passed and zero failures. Debug build succeeded.
+- APK `app/build/outputs/apk/debug/OrkanSlicer_9e24743294.apk`, 157,231,642 bytes, SHA-256 `D3A48DF177917CE00B1C3C133A56C5DEDE5DEE14D95F87967187F707D901CA03`, version 0.8.293 / code 328. Installed and launched on Honor PTP-N49 under `com.codemastercody3d.orcaslicermobile`; no crash, ANR, or OOM matched the fresh launch logcat sample. Emulator remains offline.
+- Code commit `9e247432941e6027922ab2178425d7950c1fd42d`, pushed to `codex/rinkhals-safe-start-audit`. Alpha APK uploaded at https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.293. PR #2 remains open and GitHub reports it mergeable; verification comment: https://github.com/Exa201/OrkanSlicer/pull/2#issuecomment-6237409433.
+- Route check: `rg 'UnfoldMenu\\(' app/src/main/java` found no active calls; remaining `unfolded` hits are profile-category expansion state. `BedFragment` returns a FrameLayout containing the Compose WorkspaceShell; GLView remains inside the stable `RendererAdapter`, and the WebView container is a technical Android integration. No legacy menu host was changed in this bugfix.
+- UI 2.0 is still in progress. Next: continue the source-backed audit of the remaining `BedMenu.onCreateView` compatibility hosts and global Android dialog routes; migrate only reachable routes, preserve system pickers/technical hosts, and add interaction coverage for each migrated route. Full broad menu/accessibility coverage remains open.
+
 # Current continuation — printer error actions adapt to narrow / large-font layouts (0.8.292 / 2026-10-17)
 
 - Printer Web error actions now switch from a side-by-side row to full-width stacked buttons below 360 dp or at font scale >= 1.3. This keeps retry and external-open reachable without changing the technical WebView host. Buttons use the shared 48 dp touch-target token.
