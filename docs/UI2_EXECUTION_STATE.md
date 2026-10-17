@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — file/profile loading errors hosted by the workspace (0.8.268 / 2026-10-17)
+
+- Routed active-workspace project and profile loading error feedback through the exclusive Compose workspace message dialog. Covered multi-STL validation, invalid/missing profile import names and extensions, Orca bundle parse/validation failures, missing profile parents, model-load failures, unsupported file types, and cached-file write failures. Outside an active Bed workspace, the existing platform alert remains as a fallback.
+- Kept import selection/validation, native model loading, temporary-file cleanup, async main-thread delivery, and the active-plate-only 3MF export warning unchanged.
+- Added a device test that invokes the actual private `loadFile(Uri)` path with an unsupported type, asserts the Compose workspace error text, and dismisses it. Targeted `ProfileSettingsImeDeviceTest`: 6/6 passed on Honor PTP-N49 / Android 16, zero failures/skips. Full Debug and Slice unit suites: 552/552 each, zero failures/errors/skips.
+- Debug APK from code commit `8e7cd7945bc2e0b0746dfad5750456d399dc6f94`: `app/build/outputs/apk/debug/OrkanSlicer_8e7cd7945b.apk`, 157,058,243 bytes, SHA-256 `3912AA157F5221D78CDB5B18E38AC60456F1248D9F5DDB6FEDBA4B8C569B47F4`. Verified exact package `com.codemastercody3d.orcaslicermobile`, version 0.8.268 / code 303.
+- Installed on Honor PTP-N49 / Android 16 and cold-started the exact OrkanSlicer package. `MainActivity` reached top-resumed; a cleared and fresh logcat sample had no fatal exception, ANR, OOM, or fatal-signal match. Offline emulator was not tested. No screenshots, printer commands, or print start.
+- Code commit and this documentation update are being pushed to the existing branch and recorded on PR #2. PR remains open; no merge or release. The UI migration is still in progress.
+- Next: migrate the profile import warning, selection, and conflict-resolution flow as one Compose workspace route while preserving default selections, validation warnings, overwrite/skip/cancel behavior, profile-save rollback, and the platform fallback when the workspace is absent.
+
 ## Current continuation — active-plate prime tower editor on Compose workspace (0.8.267 / 2026-10-17)
 
 - Replaced `BedFragment.showPrimeTowerPositionDialogForCurrentPlate()`'s Android `BeamAlertDialogBuilder`/`ComposeView` wrapper with the existing exclusive workspace Compose dialog host and `PrimeTowerPositionDialog`. The current-plate coordinate offset and tap-help text are passed through; profile-editor default behavior is unchanged.
