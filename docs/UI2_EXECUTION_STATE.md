@@ -1,5 +1,16 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — active-plate prime tower editor on Compose workspace (0.8.267 / 2026-10-17)
+
+- Replaced `BedFragment.showPrimeTowerPositionDialogForCurrentPlate()`'s Android `BeamAlertDialogBuilder`/`ComposeView` wrapper with the existing exclusive workspace Compose dialog host and `PrimeTowerPositionDialog`. The current-plate coordinate offset and tap-help text are passed through; profile-editor default behavior is unchanged.
+- Preserved the existing active-plate position update, GL redraw request, pending `ProfileSettingsRepository` draft behavior, Cancel semantics, and edit-only-until-profile-save behavior.
+- Added a Honor activity-level regression test invoking the actual BedFragment route. Targeted `ProfileSettingsImeDeviceTest`: 5/5 passed on Honor PTP-N49 / Android 16. It checked workspace host attachment, Back hiding the keyboard, Cancel preserving draft and saved preset, then Apply updating the pending draft only. No print or printer command was issued.
+- Debug and Slice unit suites: 552/552 each, zero failures/errors/skips. Offline emulator `emulator-5554` was unavailable and not counted as tested.
+- Debug APK built from code commit `698a975d98c0577ca5f5fcd561705749e8b9f91b`: `app/build/outputs/apk/debug/OrkanSlicer_698a975d98.apk`, 157,058,293 bytes, SHA-256 `CFF73B0F5F6450FAC04E699B13FBB5D350ECF67B5820224000D3128B1013723F`. Package verified as `com.codemastercody3d.orcaslicermobile`, version 0.8.267 / code 302.
+- Installed on the Honor and cold-launched the exact OrkanSlicer package; `MainActivity` reached top-resumed. The captured logcat sample had no FATAL EXCEPTION, app ANR, or OutOfMemoryError match. No screenshot was taken. SliceBeam was not used.
+- Code commit is being pushed with this status update to the existing branch and PR #2. The PR remains open; no merge or release. Keep the active-plate-only 3MF export warning. Continue remaining active legacy UI routes; this does not complete the UI migration.
+- Next: audit and migrate the next safe, grouped set of still-active app-owned dialog routes using the existing Compose/Workspace hosts, preserving operation-specific callbacks and safety gates.
+
 ## Current continuation — slice/upload failure feedback in Compose (0.8.266 / 2026-10-17)
 
 - Migrated the four message-only error routes in `SliceUploadController` to the existing exclusive Compose workspace dialog: slice preparation, upload/print-start failure, G-code integrity failure, and Anycubic mapping failure. Main-thread dispatch, progress dismissal, failure text, validation, upload reservations, and print-start safeguards remain unchanged.
