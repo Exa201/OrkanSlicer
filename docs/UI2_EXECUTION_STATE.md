@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — Maker generator forms hosted by workspace Compose (0.8.275 / 2026-10-17)
+
+- Migrated all ten reachable local Maker generator form routes (fasteners, cable clip, cable grommet, utility box, text tag, phone stand, planter, plant labels, power-strip tray, and wall-tool holder), plus the LitoGEN editor, into the exclusive Bed workspace Compose dialog host.
+- Preserved validation, normalization, explicit Generate/Save actions, image preview and picker behavior, STL writers/progress callbacks, and cleanup. Generator failures and LitoGEN validation are rendered within the workspace. Cancel and Android Back do not start STL generation.
+- Reduced generator form viewports to leave room for workspace dialog chrome on short screens.
+- Honor `MakerGeneratorWorkspaceDeviceTest`: 2/2 tests passed (Cancel/Back across ten Maker generators and LitoGEN, plus retained inline LitoGEN validation); emulator remains offline.
+- Debug and Slice unit suites: 552/552 each; SliceTest AndroidTest Kotlin compilation passed; `:app:connectedSliceTestAndroidTest` completed 2/2 on Honor, 0 skipped/failed; `:app:assembleDebug` succeeded; `git diff --check` passed.
+- Debug APK `app/build/outputs/apk/debug/OrkanSlicer_43198e7fde.apk`, 157,143,825 bytes, SHA-256 `9226FA7A400D3388F1E516780258FBD6D3EC8B3454257997EDCD568C1383713D`. Built from code commit `43198e7fde11807fd5f97377fd5ddff3fd5c4067`. Installed on Honor PTP-N49 / Android 16 for exact package `com.codemastercody3d.orcaslicermobile`; version 0.8.275 / code 310 confirmed; `MainActivity` top-resumed after cold start. Fresh 10,000-line logcat buffer had no fatal exception, app ANR, OOM or fatal-signal markers. Emulator remains offline.
+- No real STL generation, printer operation, screenshot, merge or release. Code commit `43198e7fde11807fd5f97377fd5ddff3fd5c4067` is created; PR #2 is open and was observed mergeable before this push. Next: commit and push this verification record, update PR #2, then continue migrating the remaining active UnfoldMenu/ComposeView routes. The overall UI migration remains in progress.
+
 ## Current continuation — pre-slice filament assignment on workspace Compose (0.8.274 / 2026-10-17)
 
 - Migrated both active Bed workspace call sites (`showModelColorSlots` and `startSlicing`) to the exclusive Compose workspace dialog host. Removed the native `AlertDialog`/`ComposeView` route from `PreSliceFilamentDialog`; the shared assignment content remains Compose.
