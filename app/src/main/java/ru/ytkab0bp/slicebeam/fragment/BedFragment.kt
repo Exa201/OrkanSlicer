@@ -1,12 +1,9 @@
 package ru.ytkab0bp.slicebeam.fragment
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
-import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
 import android.os.Debug
@@ -14,14 +11,12 @@ import android.os.Process
 import android.text.TextUtils
 import android.util.Log
 import android.util.SparseArray
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebSettings
 import android.widget.FrameLayout
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
@@ -82,13 +77,11 @@ import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabsPolicy
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateFootprint
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateThumbnail
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceProfileStatus
-import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebCloseButton
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
-import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebErrorPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebWorkspacePanel
@@ -164,7 +157,6 @@ private var plateThumbnails by mutableStateOf<List<PlateThumbnail>>(emptyList())
 private var platePreviewBuiltRevision = -1
 private var plateTabsThemeRevision by mutableIntStateOf(0)
 private val platePickerOpen = mutableStateOf(false)
-private var printerWebCloseButton: ComposeView? = null
 private var printerWebAvailable by mutableStateOf(false)
 private var printerWebThemeRevision by mutableIntStateOf(0)
 private var profileStatusTitle by mutableStateOf("")
@@ -208,9 +200,8 @@ private var hasWebError:Boolean = false
 private var panelWebView: WebView? = null
 private var panelWebViewContainer: FrameLayout? = null
 private var configuredWebHost: String? = null
-private var panelWebViewError: ComposeView? = null
 private var webViewErrorDescription by mutableStateOf<String?>(null)
-private var webViewProgressBar: ProgressBar? = null
+private var webViewIsLoading by mutableStateOf(false)
 val isPaintMode:Boolean
 get() {
 return workspaceController.activeToolId == "paint-mode"
@@ -1098,11 +1089,29 @@ workspaceController.dismissActivePanel()
 val panelContainer = panelWebViewContainer!!
 workspaceController.activatePanel(
     panel = WorkspaceOverlayPanel.PRINTER_WEB,
-    content = { PrinterWebWorkspacePanel(panelContainer) },
+    content = {
+        BeamComposeTheme(themeRevision = printerWebThemeRevision) {
+            PrinterWebWorkspacePanel(
+                panelView = panelContainer,
+                loading = webViewIsLoading,
+                errorDescription = webViewErrorDescription,
+                onRetry = ::openPrinterWebView,
+                onOpenInBrowser = {
+                    val host = configuredWebHost ?: return@PrinterWebWorkspacePanel
+                    try {
+                        getContext()?.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(host)))
+                    } catch (error: Exception) {
+                        Log.w("BedFragment", "Could not open printer page in external browser", error)
+                        getContext()?.let { Toast.makeText(it, R.string.PrinterWebOpenFailed, Toast.LENGTH_LONG).show() }
+                    }
+                },
+                onClose = ::destroyPrinterWebView,
+            )
+        }
+    },
     dismiss = { destroyPrinterWebView() },
 )
 panelContainer.setVisibility(View.VISIBLE)
-if (printerWebCloseButton != null) printerWebCloseButton!!.setVisibility(View.VISIBLE)
 if (panelWebView != null)
 {
  if (!hasWebError) return
@@ -1115,7 +1124,6 @@ if (panelWebView != null)
  failedWebView.destroy()
  hasWebError = false
  webViewErrorDescription = null
- panelWebViewError!!.setVisibility(View.GONE)
 }
 try
 {
@@ -1136,8 +1144,7 @@ hasWebError = false
 view.setVisibility(View.VISIBLE)
 view.setAlpha(0f)
 webViewErrorDescription = null
-panelWebViewError!!.setVisibility(View.GONE)
-webViewProgressBar!!.setAlpha(1f)
+webViewIsLoading = true
 }
 override fun onReceivedError(view:WebView, request:android.webkit.WebResourceRequest, error:android.webkit.WebResourceError) {
 if (request.isForMainFrame) showPrinterWebLoadError(view, error.description?.toString() ?: "Page load failed")
@@ -1153,7 +1160,7 @@ if (view === panelWebView && !hasWebError)
 {
 view.setVisibility(View.VISIBLE)
 view.animate().alpha((1).toFloat()).setDuration(150).start()
-webViewProgressBar!!.animate().alpha((0).toFloat()).setDuration(150).start()
+webViewIsLoading = false
 }
 }
 override fun onRenderProcessGone(view:WebView, detail:android.webkit.RenderProcessGoneDetail):Boolean {
@@ -1164,20 +1171,15 @@ private fun showPrinterWebLoadError(view:WebView, description:String) {
 if (view !== panelWebView || hasWebError) return
 hasWebError = true
 webViewErrorDescription = description
-panelWebViewError!!.setVisibility(View.VISIBLE)
-panelWebViewError!!.setAlpha(0f)
-panelWebViewError!!.animate().alpha((1).toFloat()).setDuration(150).setListener(object:AnimatorListenerAdapter() {
-override fun onAnimationEnd(animation:Animator) {
-if (view === panelWebView) view.setVisibility(View.GONE)
-}
-}).start()
-webViewProgressBar!!.animate().alpha((0).toFloat()).setDuration(150).start()
+webViewIsLoading = false
+view.animate().alpha((0).toFloat()).setDuration(150).withEndAction {
+    if (view === panelWebView) view.setVisibility(View.GONE)
+}.start()
 }
 })
 panelWebViewContainer!!.addView(webView, 0, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-panelWebViewError!!.setVisibility(View.GONE)
-webViewProgressBar!!.setAlpha(1f)
+webViewIsLoading = true
 hasWebError = false
 configuredWebHost?.let { webView.loadUrl(it) }
 }
@@ -1185,8 +1187,7 @@ catch (error:Exception) {
 Log.w("BedFragment", "Could not open printer web interface", error)
 hasWebError = true
 webViewErrorDescription = getContext()?.getString(R.string.PrinterWebOpenFailed)
-panelWebViewError!!.setVisibility(View.VISIBLE)
-webViewProgressBar!!.setAlpha(0f)
+webViewIsLoading = false
 }
 }
 @SuppressLint("SetJavaScriptEnabled")
@@ -1209,15 +1210,13 @@ val webView = panelWebView
 panelWebView = null
 hasWebError = false
 webViewErrorDescription = null
+webViewIsLoading = false
 if (webView != null)
 {
 webView.stopLoading()
 if (panelWebViewContainer != null) panelWebViewContainer!!.removeView(webView)
 webView.destroy()
 }
-if (panelWebViewError != null) panelWebViewError!!.setVisibility(View.GONE)
-if (webViewProgressBar != null) webViewProgressBar!!.setAlpha(0f)
-if (printerWebCloseButton != null) printerWebCloseButton!!.setVisibility(View.GONE)
 if (panelWebViewContainer != null) panelWebViewContainer!!.setVisibility(View.GONE)
 }
 override fun onPause() {
@@ -1288,52 +1287,7 @@ updateProfileStatus()
 val portrait = usesCompactPortraitLayout(ctx)
 compactPortraitLayout = portrait
 panelWebViewContainer = FrameLayout(ctx)
-val wfl = panelWebViewContainer
-panelWebViewError = ComposeView(ctx).apply {
-    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-    setContent {
-        val description = webViewErrorDescription
-        BeamComposeTheme(themeRevision = printerWebThemeRevision) {
-            if (description != null) {
-                PrinterWebErrorPanel(
-                    description = description,
-                    onRetry = ::openPrinterWebView,
-                    onOpenInBrowser = {
-                        val host = configuredWebHost ?: return@PrinterWebErrorPanel
-                        try {
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(host)))
-                        } catch (error: Exception) {
-                            Log.w("BedFragment", "Could not open printer page in external browser", error)
-                            Toast.makeText(ctx, R.string.PrinterWebOpenFailed, Toast.LENGTH_LONG).show()
-                        }
-                    },
-                )
-            }
-        }
-    }
-}
-wfl!!.addView(panelWebViewError, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-webViewProgressBar = ProgressBar(ctx)
-webViewProgressBar!!.setAlpha(0f)
-wfl!!.addView(webViewProgressBar, FrameLayout.LayoutParams(ViewUtils.dp(36), ViewUtils.dp(36), Gravity.CENTER))
-wfl!!.setVisibility(View.GONE)
-printerWebCloseButton = ComposeView(ctx).apply {
-setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-setContent {
-val revision = printerWebThemeRevision
-if (revision >= 0) BeamComposeTheme(themeRevision = revision) {
-PrinterWebCloseButton(onClose = ::destroyPrinterWebView)
-}
-}
-}
-printerWebCloseButton!!.setVisibility(View.GONE)
-wfl!!.addView(printerWebCloseButton, object:FrameLayout.LayoutParams(
-ViewUtils.dp(48), ViewUtils.dp(48), Gravity.TOP or Gravity.END) {
-init{
-rightMargin = ViewUtils.dp(12)
-topMargin = rightMargin
-}
-})
+panelWebViewContainer!!.setVisibility(View.GONE)
 contentView = createWorkspaceContent(ctx, portrait)
 overlayLayout!!.addView(contentView, FrameLayout.LayoutParams(
 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -2163,7 +2117,6 @@ plateTabsThemeRevision++
 profileStatusThemeRevision++
 printerWebThemeRevision++
 workspaceThemeRevision++
-webViewProgressBar?.setIndeterminateTintList(ColorStateList.valueOf(ThemesRepo.getColor(android.R.attr.textColorSecondary)))
 for (i in 0 until WorkspaceDestination.values().size)
 {
 if (i != currentMenuSlot)

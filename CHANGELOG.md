@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.291 (alpha)
+
+- Move printer WebView loading, error, retry, external-open, and close controls into the Compose workspace panel; keep only the WebView surface in its technical Android container.
+- Replace the remaining nested ComposeViews and native progress indicator in the BedFragment printer panel with Compose state and Material 3 controls.
+- Add Honor coverage for printer panel retry, external open, close, and Android view attachment.
+
 ## 0.8.290 (alpha)
 
 - Host the printer WebView panel inside the Compose WorkspaceShell overlay instead of attaching it as a separate BedFragment-wide View overlay.
