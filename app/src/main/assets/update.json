@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.260\n\n• Smart Expert Slice verwaltet Eingabe, abbrechbare Analyse und Ergebnisaktionen jetzt im Compose-Workspace.\n• GL-Analyse, Profiltransaktionen, Modellversionsprüfung und ausdrückliche Slice-Bestätigung bleiben erhalten.",
-  "en": "OrkanSlicer 0.8.260\n\n• Smart Expert Slice now hosts input, cancellable analysis, and result actions in the Compose workspace.\n• GL analysis, profile transactions, model revision checks, and explicit slice confirmation are preserved.",
-  "ru": "OrkanSlicer 0.8.260\n\n• Smart Expert Slice теперь использует Compose workspace для ввода, отменяемого анализа и результатов.\n• Сохранены GL-анализ, транзакции профиля, проверка версии модели и явное подтверждение нарезки."
+  "de": "OrkanSlicer 0.8.261\n\n• Die Dialoge für Spülvolumen-Matrix und Prime-Tower-Positionen in Druckprofilen verwenden jetzt Compose.\n• Validierung, Dezimalwerte, Plattenkoordinaten und das Anwenden/Verwerfen von Profiländerungen bleiben erhalten.",
+  "en": "OrkanSlicer 0.8.261\n\n• The print-profile flush-volume matrix and prime-tower position dialogs now use Compose.\n• Validation, decimal values, per-plate coordinates, and applying or discarding profile edits are preserved.",
+  "ru": "OrkanSlicer 0.8.261\n\n• Диалоги матрицы объёмов продувки и положения башни очистки в профиле печати переведены на Compose.\n• Сохранены проверка значений, десятичные числа, координаты по пластинам и применение либо отмена изменений профиля."
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.261 (alpha)
+
+- Move the print-profile flush-volume matrix and prime-tower position editors into Compose dialogs hosted by the profile screen.
+- Preserve input validation, locale-aware decimals, per-plate coordinates, pending profile updates, and explicit Apply/Cancel behavior.
+- Add Honor coverage for both dialog validation and actual profile-screen actions without persisting cancelled edits.
+
 ## 0.8.260 (alpha)
 
 - Move Smart Expert Slice setup, cancellable analysis progress, and result actions into the exclusive Compose workspace dialog host.

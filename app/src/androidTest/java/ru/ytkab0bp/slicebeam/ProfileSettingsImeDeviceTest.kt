@@ -19,6 +19,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
@@ -31,10 +32,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
-import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
+import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
+import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
@@ -120,6 +122,54 @@ class ProfileSettingsImeDeviceTest {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         compose.waitUntil(5_000) { !bed.isWorkspaceMessageDialogAttached() }
         compose.runOnIdle { assertEquals("The dialog is dismissed by the second Back", false, activity.isFinishing) }
+    }
+
+    @Test
+    fun printProfileFlushEditorIsHostedInComposeAndCancelKeepsSavedMatrix() {
+        val activity = compose.activity
+        activity.runOnUiThread { (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2) }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is PrintConfigFragment
+        }
+        val context = activity
+        val profile = SliceBeam.requireConfig().findPrint(SliceBeam.requireConfig().presets?.get("print"))
+        val savedBefore = profile?.get("flush_volumes_matrix")
+        val flushButtonLabel = context.getString(R.string.FlushVolumes)
+        val flushButtonDescription = context.getString(R.string.PrintConfigFlushVolumesHelp)
+        compose.onNodeWithContentDescription("$flushButtonLabel. $flushButtonDescription").performClick()
+        compose.onNodeWithTag("flush-cell-1").performTextClearance()
+        compose.onNodeWithTag("flush-cell-1").performTextInput("-1")
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
+        compose.onNodeWithText(context.getString(R.string.PrintConfigFlushVolumesInvalid)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(android.R.string.cancel)).performClick()
+        compose.onNodeWithText(context.getString(R.string.PrintConfigFlushVolumesHelp)).assertDoesNotExist()
+        assertEquals("Invalid edit and Cancel leave the saved profile unchanged", savedBefore,
+            profile?.get("flush_volumes_matrix"))
+    }
+
+    @Test
+    fun printProfilePrimeTowerComposeDialogCancelsWithoutChangingSavedPositions() {
+        val activity = compose.activity
+        activity.runOnUiThread { (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2) }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is PrintConfigFragment
+        }
+        val context = activity
+        val profile = SliceBeam.requireConfig().findPrint(SliceBeam.requireConfig().presets?.get("print"))
+        val xBefore = profile?.get("wipe_tower_x")
+        val yBefore = profile?.get("wipe_tower_y")
+        val towerButtonLabel = context.getString(R.string.PrimeTowerPositionShort)
+        val towerButtonDescription = context.getString(R.string.PrimeTowerPositionInlineHelp)
+        compose.onNodeWithContentDescription("$towerButtonLabel. $towerButtonDescription").performClick()
+        compose.onNodeWithTag("prime-tower-x-0").performTextClearance()
+        compose.onNodeWithTag("prime-tower-x-0").performTextInput("123.4")
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.onNodeWithText(context.getString(android.R.string.cancel)).assertIsDisplayed()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.onNodeWithText(context.getString(R.string.PrimeTowerPosition)).assertDoesNotExist()
+        assertEquals("Cancel leaves the saved X coordinate unchanged", xBefore, profile?.get("wipe_tower_x"))
+        assertEquals("Cancel leaves the saved Y coordinate unchanged", yBefore, profile?.get("wipe_tower_y"))
     }
 
     private fun createInitializedActivityRule() = run {

@@ -1,19 +1,14 @@
 package ru.ytkab0bp.slicebeam.fragment
 
-import android.content.Context
 import android.widget.Toast
-import android.view.WindowManager
-import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
@@ -22,8 +17,6 @@ import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
-import ru.ytkab0bp.slicebeam.theme.ThemesRepo
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
@@ -35,6 +28,7 @@ class PrintConfigFragment : ProfileListFragment() {
     private var currentConfig: ConfigObject? = null
     private var toolsThemeRevision by mutableIntStateOf(0)
     private var filamentSyncing by mutableStateOf(false)
+    private var activeToolDialog by mutableStateOf<PrintConfigToolDialogState?>(null)
 
     override fun getProfileListType(): Int = ConfigObject.PROFILE_LIST_PRINT
 
@@ -114,21 +108,43 @@ class PrintConfigFragment : ProfileListFragment() {
 
     @androidx.compose.runtime.Composable
     override fun BelowFilamentPaletteContent(modifier: Modifier) {
-        val context = LocalContext.current
         val revision = toolsThemeRevision
         val printer = SliceBeam.CONFIG?.let { config ->
             config.presets?.get("printer")?.let(config::findPrinter)
         }
         val canSync = PrintConfigToolsLogic.canSyncFilaments(printer?.get("print_host"))
-        key(revision) {
-            PrintConfigToolsBar(
-                modifier = modifier,
-                canSyncFilaments = canSync,
-                isSyncing = filamentSyncing,
-                onPrimeTower = { showPrimeTowerPositionDialog(context) },
-                onFlushVolumes = { showFlushVolumesDialog(context) },
-                onSyncFilaments = { printer?.let(::syncMmuFilaments) },
-            )
+        Box(modifier = modifier.fillMaxWidth()) {
+            key(revision) {
+                PrintConfigToolsBar(
+                    modifier = Modifier.fillMaxWidth(),
+                    canSyncFilaments = canSync,
+                    isSyncing = filamentSyncing,
+                    onPrimeTower = ::showPrimeTowerPositionDialog,
+                    onFlushVolumes = ::showFlushVolumesDialog,
+                    onSyncFilaments = { printer?.let(::syncMmuFilaments) },
+                )
+            }
+            when (val dialog = activeToolDialog) {
+                is PrintConfigToolDialogState.FlushVolumes -> FlushVolumesDialog(
+                    matrix = dialog.matrix,
+                    onDismiss = { activeToolDialog = null },
+                    onApply = { serialized ->
+                        activeToolDialog = null
+                        applyOptionValue("flush_volumes_matrix", serialized)
+                        getContext()?.let { Toast.makeText(it, R.string.PrintConfigFlushVolumesUpdated, Toast.LENGTH_SHORT).show() }
+                    },
+                )
+                is PrintConfigToolDialogState.PrimeTower -> PrimeTowerPositionDialog(
+                    positions = dialog.positions,
+                    onDismiss = { activeToolDialog = null },
+                    onApply = { serialized ->
+                        activeToolDialog = null
+                        applyOptionValue("wipe_tower_x", serialized.first)
+                        applyOptionValue("wipe_tower_y", serialized.second)
+                    },
+                )
+                null -> Unit
+            }
         }
     }
 
@@ -182,103 +198,21 @@ class PrintConfigFragment : ProfileListFragment() {
         onUpdateConfigItems()
     }
 
-    private fun showFlushVolumesDialog(ctx: Context) {
+    private fun showFlushVolumesDialog() {
         val matrix = PrintConfigToolsLogic.flushMatrix(
             serialized = optionValue("flush_volumes_matrix"),
             slotCount = Prefs.getFilamentSlots().size,
             maxSlots = Prefs.MAX_FILAMENT_COLORS,
         )
-        val cells = mutableStateListOf<String>().apply { addAll(matrix.cells) }
-        val error = mutableStateOf(false)
-        val composeView = ComposeView(ctx).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        }
-        val dialog = BeamAlertDialogBuilder(ctx)
-            .setTitle(R.string.FlushVolumes)
-            .setView(composeView)
-            .setPositiveButton(android.R.string.ok, null)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        composeView.setContent {
-            BeamComposeTheme {
-                FlushVolumesEditor(
-                    matrix = matrix,
-                    cells = cells.toList(),
-                    error = error.value,
-                    onCellChanged = { index, value ->
-                        if (index in cells.indices) cells[index] = value
-                        error.value = false
-                    },
-                )
-            }
-        }
-        dialog.setOnShowListener {
-            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-            styleDialogButtons(dialog)
-        }
-        dialog.show()
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val serialized = PrintConfigToolsLogic.serializeFlushMatrix(matrix.side, cells.toList())
-            if (serialized == null) {
-                error.value = true
-                return@setOnClickListener
-            }
-            applyOptionValue("flush_volumes_matrix", serialized)
-            Toast.makeText(ctx, R.string.PrintConfigFlushVolumesUpdated, Toast.LENGTH_SHORT).show()
-            dialog.dismiss()
-        }
+        activeToolDialog = PrintConfigToolDialogState.FlushVolumes(matrix)
     }
 
-    private fun showPrimeTowerPositionDialog(ctx: Context) {
+    private fun showPrimeTowerPositionDialog() {
         val positions = PrintConfigToolsLogic.towerPositions(
             optionValue("wipe_tower_x"),
             optionValue("wipe_tower_y"),
         )
-        val xValues = mutableStateListOf<String>().apply { addAll(positions.x) }
-        val yValues = mutableStateListOf<String>().apply { addAll(positions.y) }
-        val error = mutableStateOf(false)
-        val composeView = ComposeView(ctx).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        }
-        val dialog = BeamAlertDialogBuilder(ctx)
-            .setTitle(R.string.PrimeTowerPosition)
-            .setView(composeView)
-            .setPositiveButton(android.R.string.ok, null)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        composeView.setContent {
-            BeamComposeTheme {
-                PrimeTowerPositionEditor(
-                    positions = positions,
-                    xValues = xValues.toList(),
-                    yValues = yValues.toList(),
-                    error = error.value,
-                    onXChanged = { index, value ->
-                        if (index in xValues.indices) xValues[index] = value
-                        error.value = false
-                    },
-                    onYChanged = { index, value ->
-                        if (index in yValues.indices) yValues[index] = value
-                        error.value = false
-                    },
-                )
-            }
-        }
-        dialog.setOnShowListener {
-            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-            styleDialogButtons(dialog)
-        }
-        dialog.show()
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val serialized = PrintConfigToolsLogic.serializeTowerPositions(xValues.toList(), yValues.toList())
-            if (serialized == null) {
-                error.value = true
-                return@setOnClickListener
-            }
-            applyOptionValue("wipe_tower_x", serialized.first)
-            applyOptionValue("wipe_tower_y", serialized.second)
-            dialog.dismiss()
-        }
+        activeToolDialog = PrintConfigToolDialogState.PrimeTower(positions)
     }
 
     override fun cloneCurrentProfile() {
@@ -381,11 +315,9 @@ class PrintConfigFragment : ProfileListFragment() {
         return true
     }
 
-    companion object {
-        private fun styleDialogButtons(dialog: AlertDialog) {
-            val accent = ThemesRepo.getColor(android.R.attr.colorAccent)
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(accent)
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(accent)
-        }
-    }
+}
+
+private sealed interface PrintConfigToolDialogState {
+    data class FlushVolumes(val matrix: PrintConfigFlushMatrix) : PrintConfigToolDialogState
+    data class PrimeTower(val positions: PrintConfigTowerPositions) : PrintConfigToolDialogState
 }
