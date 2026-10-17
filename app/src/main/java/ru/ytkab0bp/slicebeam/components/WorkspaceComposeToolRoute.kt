@@ -10,7 +10,7 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
  * Lifecycle adapter for a Compose-owned workspace tool route. Native/GL operations remain in
  * their existing controllers; this class only binds the route to the exclusive workspace panel.
  */
-abstract class UnfoldMenu {
+abstract class WorkspaceComposeToolRoute {
     @JvmField
     protected var fragment: BedFragment? = null
 
@@ -43,13 +43,13 @@ abstract class UnfoldMenu {
     internal fun createWorkspaceContent(
         portrait: Boolean,
         fragment: BedFragment,
-    ): WorkspaceUnfoldContent? {
+    ): WorkspaceToolContent? {
         if (isVisible) return null
         this.fragment = fragment
         isVisible = true
         isDismissing = false
         workspaceDismiss = null
-        return WorkspaceUnfoldContent(portrait)
+        return WorkspaceToolContent(portrait)
     }
 
     internal fun setWorkspaceDismiss(dismiss: (() -> Unit)?) {
@@ -57,7 +57,7 @@ abstract class UnfoldMenu {
     }
 
     @Composable
-    internal fun WorkspaceContent(content: WorkspaceUnfoldContent) {
+    internal fun WorkspaceContent(content: WorkspaceToolContent) {
         DisposableEffect(this, content) {
             workspaceCompositionVisible = true
             if (!contentCreated) {
@@ -89,7 +89,7 @@ abstract class UnfoldMenu {
     internal fun workspacePanelFraction(into: FrameLayout, portrait: Boolean): Float {
         val available = (if (portrait) into.height else into.width).coerceAtLeast(0)
         if (available == 0) return 0.6f
-        val bounded = UnfoldMenuLayoutPolicy.constrainSide(getRequestedSize(into, portrait), available)
+        val bounded = WorkspaceToolPanelLayoutPolicy.constrainSide(getRequestedSize(into, portrait), available)
         return (bounded.toFloat() / available).coerceIn(0f, 1f)
     }
 
@@ -104,10 +104,10 @@ abstract class UnfoldMenu {
     }
 }
 
-internal data class WorkspaceUnfoldContent(val portrait: Boolean)
+internal data class WorkspaceToolContent(val portrait: Boolean)
 
 /** Bounds requested sheet sizes to the available workspace space. */
-internal object UnfoldMenuLayoutPolicy {
+internal object WorkspaceToolPanelLayoutPolicy {
     fun constrainSide(requestedSize: Int, availableSize: Int): Int =
         requestedSize.coerceAtLeast(0).coerceAtMost(availableSize.coerceAtLeast(0))
 }

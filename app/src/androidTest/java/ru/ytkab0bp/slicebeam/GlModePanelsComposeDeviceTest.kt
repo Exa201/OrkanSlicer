@@ -13,7 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.workspace.EmbossModePanel
@@ -135,7 +135,7 @@ class GlModePanelsComposeDeviceTest {
     }
 }
 
-private class LifecycleProbeMenu : UnfoldMenu() {
+private class LifecycleProbeMenu : WorkspaceComposeToolRoute() {
     var created = 0
     var destroyed = 0
 

@@ -50,7 +50,7 @@ class ConverterMenu : BedMenu() {
             withActivity { activity, _ -> ImageToStlConverter.pickImage(activity) }
         }),
         BedComposeMenuAction(R.string.MenuFileKromacut, R.drawable.picture_stack_outline_28, { anchor ->
-            fragment?.showUnfoldMenu(KromacutEditorMenu(), anchor)
+            fragment?.showWorkspaceComposeTool(KromacutEditorMenu())
         }),
         BedComposeMenuAction(R.string.LithophaneGeneratorMenu, R.drawable.picture_stack_outline_28, {
             withActivity { activity, _ -> ImageToStlConverter.pickLithophane(activity) }

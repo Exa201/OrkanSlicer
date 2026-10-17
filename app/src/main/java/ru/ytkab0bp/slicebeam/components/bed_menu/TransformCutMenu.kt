@@ -38,7 +38,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -51,7 +51,7 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 
 /** Compose editor for the cut plane and the optional connectors between cut pieces. */
-class TransformCutMenu(private val bed: BedFragment) : UnfoldMenu() {
+class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute() {
     private val tempMin = Vec3d()
     private val tempMax = Vec3d()
     private var cutObject = -1

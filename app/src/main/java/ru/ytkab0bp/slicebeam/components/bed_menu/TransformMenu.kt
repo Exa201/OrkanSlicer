@@ -51,10 +51,10 @@ class TransformMenu : ListBedMenu() {
 
     private fun createMenuItems(bed: ru.ytkab0bp.slicebeam.fragment.BedFragment) = TransformMenuItems(
         bed,
-        Consumer<View> { view -> bed.showUnfoldMenu(OrientationPositionMenu(bed), view) },
-        Consumer<View> { view -> bed.showUnfoldMenu(OrientationRotationMenu(bed), view) },
-        Consumer<View> { view -> bed.showUnfoldMenu(TransformScaleMenu(bed), view) },
-        Consumer<View> { view -> bed.showUnfoldMenu(TransformCutMenu(bed), view) },
+        Consumer<View> { bed.showWorkspaceComposeTool(OrientationPositionMenu(bed)) },
+        Consumer<View> { bed.showWorkspaceComposeTool(OrientationRotationMenu(bed)) },
+        Consumer<View> { bed.showWorkspaceComposeTool(TransformScaleMenu(bed)) },
+        Consumer<View> { bed.showWorkspaceComposeTool(TransformCutMenu(bed)) },
     )
 
     @EventHandler(runOnMainThread = true)

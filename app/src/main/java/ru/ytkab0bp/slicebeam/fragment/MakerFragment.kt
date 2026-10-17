@@ -114,7 +114,7 @@ class MakerFragment : Fragment() {
             R.string.MakerKromacutDescription,
             R.drawable.magic_wand_outline_28,
             listOf(action(R.string.MakerOpenKromacut) { bed ->
-                bed.getView()?.let { bed.showUnfoldMenu(KromacutEditorMenu(), it) }
+                bed.showWorkspaceComposeTool(KromacutEditorMenu())
             }),
         ),
         MakerSection(

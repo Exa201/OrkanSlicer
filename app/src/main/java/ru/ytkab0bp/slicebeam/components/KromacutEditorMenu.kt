@@ -44,7 +44,7 @@ import ru.ytkab0bp.slicebeam.launchAppActivityResult
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 
 /** Bundled Kromacut editor shown inside the converter panel. */
-class KromacutEditorMenu : UnfoldMenu() {
+class KromacutEditorMenu : WorkspaceComposeToolRoute() {
     private var webView: WebView? = null
     private var outputStream: FileOutputStream? = null
     private var outputFile: File? = null

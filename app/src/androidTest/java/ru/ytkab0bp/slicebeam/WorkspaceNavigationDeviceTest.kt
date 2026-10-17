@@ -23,7 +23,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationPositionMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationRotationMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformCutMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformScaleMenu
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.components.KromacutEditorMenu
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
@@ -145,7 +145,7 @@ class WorkspaceNavigationDeviceTest {
         method.invoke(bed, true, slot)
     }
 
-    private fun <T : UnfoldMenu> exerciseComposeToolRoute(
+    private fun <T : WorkspaceComposeToolRoute> exerciseComposeToolRoute(
         scenario: ActivityScenario<MainActivity>,
         expectedType: Class<T>,
         create: (BedFragment) -> T,
@@ -154,7 +154,7 @@ class WorkspaceNavigationDeviceTest {
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
             launchedMenu = create(bed)
-            bed.showUnfoldMenu(requireNotNull(launchedMenu), requireNotNull(bed.glView))
+            bed.showWorkspaceComposeTool(requireNotNull(launchedMenu))
         }
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val deadline = SystemClock.uptimeMillis() + 3_000L
@@ -172,9 +172,9 @@ class WorkspaceNavigationDeviceTest {
             assertTrue("${expectedType.simpleName} direct Compose content should be visible", menu.isAttached())
             assertTrue(
                 "${expectedType.simpleName} lifecycle adapter must not retain an Android route View",
-                UnfoldMenu::class.java.declaredFields.none { android.view.View::class.java.isAssignableFrom(it.type) },
+                WorkspaceComposeToolRoute::class.java.declaredFields.none { android.view.View::class.java.isAssignableFrom(it.type) },
             )
-            assertTrue("${expectedType.simpleName} Compose lifecycle should be active", UnfoldMenu::class.java
+            assertTrue("${expectedType.simpleName} Compose lifecycle should be active", WorkspaceComposeToolRoute::class.java
                 .getDeclaredField("workspaceCompositionVisible").apply { isAccessible = true }.getBoolean(menu))
             if (expectedType == KromacutEditorMenu::class.java) {
                 val webView = findViews(requireNotNull(bed.overlayLayout))
@@ -191,7 +191,7 @@ class WorkspaceNavigationDeviceTest {
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
             assertEquals("${expectedType.simpleName} dismissal should clear the route", null,
-                BedFragment::class.java.getDeclaredField("currentUnfoldMenu")
+                BedFragment::class.java.getDeclaredField("activeWorkspaceComposeTool")
                     .apply { isAccessible = true }.get(bed))
         }
     }

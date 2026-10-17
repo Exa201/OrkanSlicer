@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.279 (alpha)
+
+- Replace the historical `UnfoldMenu` lifecycle adapter with `WorkspaceComposeToolRoute` and remove the anchor-based `showUnfoldMenu` entry point.
+- Route position, rotation, scale, cut, and Kromacut tools through the exclusive workspace Compose tool panel while preserving their existing Compose controls and renderer lifecycle callbacks.
+- Verify direct tool opening, panel ownership, lifecycle cleanup, and Android Back on Honor; this host check does not claim model-transform operation coverage.
+
 ## 0.8.278 (alpha)
 
 - Replace the post-slice G-code information and layer-range `UnfoldMenu` routes with workspace-owned Compose dialogs.

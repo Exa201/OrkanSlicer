@@ -27,8 +27,8 @@ class OrientationMenu : ListBedMenu() {
         if (bed != null) {
             val items = OrientationMenuItems(
                 bed,
-                Consumer<View> { view -> bed.showUnfoldMenu(PositionMenu(), view) },
-                Consumer<View> { view -> bed.showUnfoldMenu(RotationMenu(), view) },
+                Consumer<View> { bed.showWorkspaceComposeTool(PositionMenu()) },
+                Consumer<View> { bed.showWorkspaceComposeTool(RotationMenu()) },
                 ::refreshActionItems,
             )
             menuItems = items
@@ -50,8 +50,8 @@ class OrientationMenu : ListBedMenu() {
         val items = remember(this, bed) {
             OrientationMenuItems(
                 bed,
-                Consumer<View> { view -> bed.showUnfoldMenu(PositionMenu(), view) },
-                Consumer<View> { view -> bed.showUnfoldMenu(RotationMenu(), view) },
+                Consumer<View> { bed.showWorkspaceComposeTool(PositionMenu()) },
+                Consumer<View> { bed.showWorkspaceComposeTool(RotationMenu()) },
                 ::refreshActionItems,
             )
         }

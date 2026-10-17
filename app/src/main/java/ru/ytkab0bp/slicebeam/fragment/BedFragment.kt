@@ -47,7 +47,7 @@ import ru.ytkab0bp.slicebeam.components.MmuFilamentAssignmentDialog
 import ru.ytkab0bp.slicebeam.components.ModelContextMenuDialog
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.components.SliceProgressBottomSheet
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
@@ -150,7 +150,7 @@ var currentPlateIndex: Int
 get() = workspaceController.activePlateIndex
 set(value) { workspaceController.setActivePlate(value) }
 private var gCodeResult: GCodeProcessorResult? = null
-private var currentUnfoldMenu: UnfoldMenu? = null
+private var activeWorkspaceComposeTool: WorkspaceComposeToolRoute? = null
 private var totalPlates = 1 // used for importing
 private var currentProjectFile: File? = null
 private var sourceProjectPlateCount:Int = 0
@@ -588,8 +588,9 @@ showWorkspaceComposeDialog { dismiss ->
     )
 }
 }
-fun showUnfoldMenu(menu: UnfoldMenu, @Suppress("UNUSED_PARAMETER") from: View) {
-    if (currentUnfoldMenu != null) return
+/** Opens a Compose-owned workspace tool in the exclusive tool panel. */
+fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
+    if (activeWorkspaceComposeTool != null) return
     val context = getContext() ?: return
     val portrait = context.resources.configuration.orientation ==
         android.content.res.Configuration.ORIENTATION_PORTRAIT
@@ -600,10 +601,10 @@ fun showUnfoldMenu(menu: UnfoldMenu, @Suppress("UNUSED_PARAMETER") from: View) {
     menu.setWorkspaceDismiss { workspaceController.clearTool(toolId) }
     menu.setOnDismiss {
         if (menu.isAttached()) return@setOnDismiss
-        if (currentUnfoldMenu === menu) currentUnfoldMenu = null
+        if (activeWorkspaceComposeTool === menu) activeWorkspaceComposeTool = null
         workspaceController.clearTool(toolId)
     }
-    currentUnfoldMenu = menu
+    activeWorkspaceComposeTool = menu
     workspaceController.selectToolWithPanel(
         toolId = toolId,
         dismiss = { menu.dismiss() },
@@ -614,9 +615,9 @@ fun showUnfoldMenu(menu: UnfoldMenu, @Suppress("UNUSED_PARAMETER") from: View) {
 private fun showModelContextMenu(objectIndex:Int) {
 val ctx = getContext()
 if (ctx == null || glView == null || objectIndex == -1) return
-if (currentUnfoldMenu != null)
+if (activeWorkspaceComposeTool != null)
 {
-currentUnfoldMenu!!.dismiss()
+activeWorkspaceComposeTool!!.dismiss()
 }
 if (workspaceController.activePanel == WorkspaceOverlayPanel.MODEL_CONTEXT_MENU) return
 val actions = listOf(
@@ -724,7 +725,7 @@ internal fun showWorkspaceMessageDialog(
 ) {
     if (getContext() == null) return
     workspaceController.dismissActivePanel()
-    currentUnfoldMenu?.dismiss()
+    activeWorkspaceComposeTool?.dismiss()
     var resolved = false
     fun close(confirmed: Boolean) {
         if (resolved) return
@@ -757,7 +758,7 @@ internal fun showWorkspaceComposeDialog(
 ): () -> Unit {
     if (getContext() == null) return {}
     workspaceController.dismissActivePanel()
-    currentUnfoldMenu?.dismiss()
+    activeWorkspaceComposeTool?.dismiss()
     var resolved = false
     fun close() {
         if (resolved) return
@@ -945,9 +946,9 @@ if (isPaintMode)
 cancelPaintMode()
 return true
 }
-if (currentUnfoldMenu != null)
+if (activeWorkspaceComposeTool != null)
 {
-currentUnfoldMenu!!.dismiss()
+activeWorkspaceComposeTool!!.dismiss()
 return true
 }
 if (panelWebViewContainer != null && panelWebViewContainer!!.getVisibility() == View.VISIBLE)
