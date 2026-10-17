@@ -874,6 +874,10 @@
     <string name="SettingsInterfaceThemeDark">Dunkel</string>
     <string name="SettingsInterfaceColor">Primärfarbe</string>
     <string name="SettingsInterfaceColorReset">Zurücksetzen auf Standard</string>
+    <string name="CustomColorHue">Farbton</string>
+    <string name="CustomColorSaturation">Sättigung</string>
+    <string name="CustomColorBrightness">Helligkeit</string>
+    <string name="CustomColorApply">Farbe übernehmen</string>
     <string name="SettingsInterfaceTextSize">Menüschriftgröße</string>
     <string name="SettingsInterfaceTextSizeDescription">Menüschrift anpassen; Android-Schrift bleibt aktiv.</string>
     <string name="SettingsTextSizeCompact">Kompakt</string>
@@ -954,7 +958,7 @@
     <string name="PrintConfigPrimePlateNumber">Platte %1$d</string>
     <string name="PrintConfigPrimeX">X (mm)</string>
     <string name="PrintConfigPrimeY">Y (mm)</string>
-    <string name="OpenColorWheel">Farbkreis öffnen …</string>
+    <string name="OpenCustomColorPicker">Benutzerdefinierte Farbe wählen …</string>
     <string name="ColorChooserCustom">Eigene Farbe</string>
     <string name="ColorChooserCommon">Häufige Farben</string>
     <string name="ColorChooserCss">CSS-Farben</string>

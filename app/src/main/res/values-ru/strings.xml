@@ -261,6 +261,11 @@
     <string name="SettingsInterfaceThemeDark">Тёмная</string>
     <string name="SettingsInterfaceColor">Первичный цвет</string>
     <string name="SettingsInterfaceColorReset">Цвет по-умолчанию</string>
+    <string name="CustomColorHue">Тон</string>
+    <string name="CustomColorSaturation">Насыщенность</string>
+    <string name="CustomColorBrightness">Яркость</string>
+    <string name="CustomColorApply">Применить цвет</string>
+    <string name="OpenCustomColorPicker">Выбрать свой цвет…</string>
     <string name="SettingsInterfaceResolutionScale">Масштаб разрешения 3D</string>
     <string name="SettingsInterfaceResolutionScaleDescription">Может увеличить производительность путём снижения разрешения</string>
     <string name="SettingsAbout">О приложении</string>

@@ -18,6 +18,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
@@ -45,6 +47,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenuActionsContent
 import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.FilamentSlotSheet
+import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
@@ -194,6 +197,53 @@ class FilamentPaletteComposeDeviceTest {
             context.getString(R.string.ColorChooserSwatchDescription, "#FF0000"),
         ).onFirst().performClick()
         compose.runOnIdle { assertEquals(0xFFFF0000.toInt(), selectedColor) }
+    }
+
+    @Test
+    fun customColorPickerSupportsCancelChangeApplyAndExplicitReset() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val visible = mutableStateOf(true)
+        val selectedColor = mutableIntStateOf(0xFFFF0000.toInt())
+        compose.setContent {
+            BeamComposeTheme {
+                if (visible.value) {
+                    ColorChooserDialog(
+                        initialColor = selectedColor.intValue,
+                        resetLabel = context.getString(R.string.SettingsInterfaceColorReset),
+                        onDismiss = { visible.value = false },
+                        onColorChosen = { selectedColor.intValue = it },
+                        onReset = { selectedColor.intValue = 0xFF336699.toInt() },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.OpenCustomColorPicker)).performClick()
+        compose.onNodeWithText(context.getString(R.string.CustomColorHue)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(android.R.string.cancel)).performClick()
+        compose.runOnIdle {
+            assertTrue("Cancel returns to the palette", visible.value)
+            assertEquals("Cancel leaves the existing color unchanged", 0xFFFF0000.toInt(), selectedColor.intValue)
+        }
+
+        compose.onNodeWithText(context.getString(R.string.OpenCustomColorPicker)).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.CustomColorHue))
+            .performSemanticsAction(SemanticsActions.SetProgress) { setProgress ->
+                assertTrue("Hue slider accepts an accessible value", setProgress(180f))
+            }
+        compose.onNodeWithText(context.getString(R.string.CustomColorApply)).performClick()
+        compose.runOnIdle {
+            assertEquals("Hue change is applied as an opaque color", 0xFF00FFFF.toInt(), selectedColor.intValue)
+            assertFalse("Applying closes the palette", visible.value)
+        }
+
+        compose.runOnIdle { visible.value = true }
+        compose.waitForIdle()
+        compose.onNodeWithText(context.getString(R.string.SettingsInterfaceColorReset)).performClick()
+        compose.runOnIdle {
+            assertEquals("Reset is an explicit action", 0xFF336699.toInt(), selectedColor.intValue)
+            assertFalse("Reset closes the palette", visible.value)
+        }
     }
 
     @Test

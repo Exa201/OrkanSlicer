@@ -968,11 +968,15 @@
     <string name="PrintConfigPrimePlateNumber">Plate %1$d</string>
     <string name="PrintConfigPrimeX">X (mm)</string>
     <string name="PrintConfigPrimeY">Y (mm)</string>
-    <string name="OpenColorWheel">Open color wheel…</string>
+    <string name="OpenCustomColorPicker">Choose a custom color…</string>
     <string name="ColorChooserCustom">Custom color</string>
     <string name="ColorChooserCommon">Common colors</string>
     <string name="ColorChooserCss">CSS colors</string>
     <string name="ColorChooserSwatchDescription">Color %1$s</string>
+    <string name="CustomColorHue">Hue</string>
+    <string name="CustomColorSaturation">Saturation</string>
+    <string name="CustomColorBrightness">Brightness</string>
+    <string name="CustomColorApply">Use color</string>
     <string name="FilamentType">Filament type</string>
     <string name="FilamentSlotColor">Color</string>
     <string name="FilamentPaletteAdd">Add filament slot</string>

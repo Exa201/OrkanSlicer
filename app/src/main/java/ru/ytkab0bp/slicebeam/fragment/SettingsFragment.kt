@@ -45,7 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mrudultora.colorpicker.ColorPickerPopUp
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.BeamServerData
 import ru.ytkab0bp.slicebeam.MainActivity
@@ -53,7 +52,7 @@ import ru.ytkab0bp.slicebeam.launchAppActivityResult
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamColorPickerPopUp
+import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
 import ru.ytkab0bp.slicebeam.navigation.Fragment
@@ -71,6 +70,7 @@ class SettingsFragment : Fragment() {
     private var themeRevision by mutableIntStateOf(0)
     private var expandedSections by mutableStateOf(emptySet<Int>())
     private var activeChoiceDialog by mutableStateOf<SettingsChoiceDialogState?>(null)
+    private var showAccentColorDialog by mutableStateOf(false)
     private var showFolderPickerError by mutableStateOf(false)
     private var showResetConfirmation by mutableStateOf(false)
 
@@ -81,6 +81,7 @@ class SettingsFragment : Fragment() {
 
     override fun onDestroy() {
         activeChoiceDialog = null
+        showAccentColorDialog = false
         showFolderPickerError = false
         showResetConfirmation = false
         SliceBeam.EVENT_BUS.unregisterListener(this)
@@ -122,6 +123,21 @@ class SettingsFragment : Fragment() {
                         )
                         activeChoiceDialog?.let { dialog ->
                             SettingsChoiceDialog(dialog) { activeChoiceDialog = null }
+                        }
+                        if (showAccentColorDialog) {
+                            ColorChooserDialog(
+                                initialColor = Prefs.getAccentColor(),
+                                resetLabel = ctx.getString(R.string.SettingsInterfaceColorReset),
+                                onDismiss = { showAccentColorDialog = false },
+                                onColorChosen = { color ->
+                                    Prefs.setAccentColor(color)
+                                    applyAccentColor()
+                                },
+                                onReset = {
+                                    Prefs.setAccentColor(SetupActivity.AccentColors.DEFAULT.color)
+                                    applyAccentColor()
+                                },
+                            )
                         }
                         if (showFolderPickerError) {
                             SettingsFolderPickerErrorDialog(
@@ -187,24 +203,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun showAccentPicker() {
-        val context = getContext() ?: return
-        BeamColorPickerPopUp(context)
-            .setDialogTitle(context.getString(R.string.SettingsInterfaceColor))
-            .setDefaultColor(Prefs.getAccentColor())
-            .setShowAlpha(false)
-            .setOnPickColorListener(object : ColorPickerPopUp.OnPickColorListener {
-                override fun onColorPicked(color: Int) {
-                    Prefs.setAccentColor(color)
-                    applyAccentColor()
-                }
-
-                override fun onCancel() {
-                    Prefs.setAccentColor(SetupActivity.AccentColors.DEFAULT.color)
-                    applyAccentColor()
-                }
-            })
-            .setNegativeButtonText(context.getString(R.string.SettingsInterfaceColorReset))
-            .show()
+        if (getContext() != null) showAccentColorDialog = true
     }
 
     private fun applyAccentColor() {

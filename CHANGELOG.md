@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.289 (alpha)
+
+- Replace the remaining third-party native color-picker dialog with one shared Compose custom-color editor using accessible hue, saturation, and brightness sliders.
+- Use the shared Compose palette for the app accent color; make Cancel preserve the current color and expose reset as an explicit action.
+- Remove the unused Colorpicker dependency and add Honor coverage for custom color cancellation, selection, application, and reset.
+
 ## 0.8.288 (alpha)
 
 - Replace the printer-upload `ProgressDialog` with a non-cancelable workspace Compose panel showing preparation, upload percentage, and printer-status checks.
