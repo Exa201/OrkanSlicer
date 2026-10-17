@@ -1,5 +1,15 @@
 # OrkanSlicer UI 2.0 execution state
 
+## Current continuation — maker generator progress hosted by workspace Compose (0.8.286 / 2026-10-17)
+
+- Moved progress UI for the local image converter and maker generators into the exclusive workspace Compose overlay. Elapsed/remaining estimates and stage progress remain live; native generation stays on the IO pool; completion callbacks, validation, and non-cancelable behavior are preserved. The Android ComposeView-in-AlertDialog fallback remains for calls without a workspace.
+- Passed the active `BedFragment` at all 13 progress call sites and added Honor interaction coverage for workspace visibility, stage updates, and completion callback behavior.
+- Verification: Debug unit 552/552, Slice unit 552/552; Honor instrumentation XML 120 cases, 3 private multi-color fixtures skipped, 0 failures/errors; full `:app:assembleDebug` successful. The focused `MakerGeneratorWorkspaceDeviceTest` passed 9/9 on Honor. Emulator remains offline.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_23b1503ce8.apk`, 157,212,956 bytes, SHA-256 `A6F3808B7473C8BBB6072245A79F03CC2B5B7FC892FDD55CC118305811285186`. BuildConfig commit `23b1503ce8`.
+- Installed on Honor PTP-N49 / Android 16, exact package `com.codemastercody3d.orcaslicermobile`; package reports 0.8.286 / code 321. Cold launch resumed `ru.ytkab0bp.slicebeam.MainActivity`; fresh 10,000-line logcat sample had no fatal exception, ANR, OOM, or fatal-signal match. No screenshots or printer actions were used.
+- Code commit `23b1503ce8ea4859dee674047b641827bee5ebfe`; documentation commit pending. Push and PR #2 update pending. Overall UI 2.0 remains in progress.
+- Remaining image-converter UI: parameter/mode form, progress no-workspace fallback, and save/create-document flow. Next: migrate the active converter parameter/mode form and image-source preview into one workspace Compose route, preserving current validation, mode-dependent fields, tone-editor handoff, worker parameters, and platform pickers. Active-plate-only multi-plate export warning remains.
+
 ## Current continuation — converter save follow-up and errors moved to workspace Compose (0.8.285 / 2026-10-17)
 
 - Replaced the converter's saved-output Load/Only Save question and error alert with dialogs in the exclusive workspace Compose host. The platform create-document/folder pickers, copy behavior, temporary cache-output cleanup, model-load callback, and native converter pipeline remain unchanged; the Android dialogs remain as no-workspace fallbacks.
