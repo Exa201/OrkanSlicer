@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.304 (alpha)
+
+- Keep tool actions readable on narrow workspace layouts with large system text by switching to wider, taller tiles and compact profile-action captions while preserving full accessibility labels.
+- Keep the workspace plate counter visible at 150% system text without expanding adjacent filament and printer controls.
+
+## 0.8.305 (alpha)
+
+- Show more of long calibration preset names and explanations at large system text sizes, and expose each complete title and explanation as one accessible action description.
+- Add a Compose device regression check for the calibration row at 320 dp and 150% font scale.
+
 ## 0.8.303 (alpha)
 
 - Let the workspace plate counter grow with system font scale so the selected and total plate numbers remain visible at large accessibility text sizes.

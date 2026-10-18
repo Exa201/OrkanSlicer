@@ -2,11 +2,12 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -35,6 +36,10 @@ class CalibrationWorkspaceDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
 
         compose.onNodeWithTag("calibration-dialog-title").assertIsDisplayed()
+        val firstPreset = CalibrationPresets.supported().first()
+        val fullActionDescription = activity.getString(firstPreset.titleRes) + ". " +
+            activity.getString(firstPreset.descriptionRes)
+        compose.onNodeWithContentDescription(fullActionDescription).assertIsDisplayed()
         compose.onNodeWithTag("calibration-preset-${CalibrationPresets.PA_LINE}").performClick()
         compose.onNodeWithTag("calibration-prepare").assertIsDisplayed()
         compose.onNodeWithTag("calibration-dialog-back").performClick()

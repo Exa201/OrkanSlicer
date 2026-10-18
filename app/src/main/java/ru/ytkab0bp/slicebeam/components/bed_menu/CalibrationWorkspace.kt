@@ -36,10 +36,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -463,15 +466,18 @@ private fun CalibrationNumberField(label: String, value: String, onValueChange: 
 }
 
 @Composable
-private fun CalibrationActionRow(
+internal fun CalibrationActionRow(
     icon: Int,
     title: String,
     subtitle: String,
     testTag: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val largeText = LocalDensity.current.fontScale >= 1.3f
     Surface(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag(testTag)
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).testTag(testTag)
+            .semantics { contentDescription = "$title. $subtitle" }
             .clickable(role = Role.Button, onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -493,14 +499,14 @@ private fun CalibrationActionRow(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
+                    maxLines = if (largeText) 3 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = subtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
-                    maxLines = 2,
+                    maxLines = if (largeText) 4 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
