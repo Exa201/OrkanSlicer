@@ -866,3 +866,12 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Debug-Build erfolgreich: `app/build/outputs/apk/debug/OrkanSlicer_8037527bd8.apk`, 157,215,107 Byte, SHA-256 `7FA1A708F44BEB6DC09C98AF6DC5B9D032B7D4819BBC9D3098AAC78A251A98CE`, Code-Commit `8037527bd89f5596e94cdf99c0db79c0616a74c8`, Version 0.8.303/code 338. Auf Honor installiert/gestartet; `MainActivity` top-resumed; frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Signal-Treffer.
 - Debug-/Slice-JVM-Suiten waren zuletzt 556/556 je Suite und wurden nach dieser Asset-only Änderung nicht erneut ausgeführt. Die sechs Workspace-Menüs sind weiterhin nicht vollständig auf jede Aktion abgenommen; physische enge Breiten und manuelle TalkBack bleiben offen.
 - Nach der Changelog-Asset-Korrektur erneut auf dem finalen Produkt-/Asset-Stand ausgeführt: `:app:testDebugUnitTest` 556/556 und `:app:testSliceTestUnitTest` 556/556; jeweils 0 Fehler, Errors oder Skips. PR #2 auf `6ed0dac7f9665f6af31504a18dffa199185c1155` ist offen und GitHub meldet `mergeable=true`, `mergeable_state=clean`. Kein Merge und kein Release.
+## 2026-10-18 — Manuelle echte STL-Datei-Importprüfung auf Honor
+
+- Auf Honor PTP-N49 / Android 16 wurde vor dem UI-Test das laufende Paket `com.codemastercody3d.orcaslicermobile` als OrkanSlicer bestätigt. Bei kaltem Start expandiert ein erster Tap auf das ausgewählte Projekt-Menü dessen Aktionspanel; „Modell laden“ ist unmittelbar erreichbar. Ein Wechsel in ein anderes Menü ist dafür nicht nötig.
+- Android DocumentsUI wurde real geöffnet und eine eigens erzeugte Kopie des Repository-Testmodells `box.stl` (684 Byte) gewählt. Der STL-Würfel erschien auf dem Workspace-Bett; die Objektliste zeigte genau ein Objekt; Modell- und Bearbeiten-Menüs blieben mit geladenem Modell bedienbar. App-Neustart verwarf den ungespeicherten Testzustand.
+- Screenshots liegen unter `app/build/reports/ui2-manual-audit/`: `project-first-tap-corrected.png`, `after-import.png`, `model-after-import.png`, `object-list-after-import.png`, `edit-after-import.png`, `restarted-empty.png`.
+- Nur die für den Test selbst angelegte `/sdcard/Download/ui2-audit-20261018-box.stl` wurde nach Größenprüfung (684 Byte) entfernt; danach wurde ihre Abwesenheit geprüft. Frische Logcat-Stichprobe ohne FATAL EXCEPTION-, ANR-, OOM- oder Fatal-Signal-Marker.
+- Manuelle Prüfung des tatsächlichen Systempicker-/Importpfads; kein automatisierter Test und keine vollständige Datei-/Menüabnahme. Kein Export, kein Netzwerk-Upload, kein Druckstart. Es wurde kein Produktcode oder APK-Inhalt geändert.
+
+\n
