@@ -1036,3 +1036,23 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Die Importauswahl wurde für sämtliche acht booleschen Kombinationen von Drucker-, Druck- und Filamenteinstellungen geprüft. Die Testassertionen sichern die unabhängige Auswahl, den Erhalt visueller Farben, das Nichtübernehmen abgewählter Profilwerte sowie den Erhalt eigener Materialtemperaturen und gespeicherter Profile.
 - Sieben tatsächliche native Slicing-Läufe nutzten die Fixture: eigene Profile, neu eingefärbte Palette, Paint-Materialzuweisung, Druckwerte allein, Filamentwerte allein, beide Gruppen und explizite Objektzuweisung auf Tool 2. Geprüft: Tool-Kommandos entsprechend der Modellzuordnung, vollständiger Konfigurationsblock, nichtleeres G-Code-Ergebnis und konsistente Layerzahl. Das ist kein Geräte-Druck-/Uploadtest.
 - Keine Runtime-Datei geändert; kein neuer Debug-Build oder APK. SliceTest-Variante nur für Instrumentierung eingesetzt. Produktionspaket com.codemastercody3d.orcaslicermobile wurde nicht ersetzt. Drei zusätzliche private Mehrfarben-Fixtures bleiben nicht verfügbar.
+
+## Honor-Drucker-, Druck- und Filamentprofilmenüs (2026-10-18)
+
+- PrintProfileDropdownIntegrationDeviceTest, Honor PTP-N49 / Android 16: 6/6 bestanden, 0 Skips/Fehler, XML-Zeitstempel 2026-10-18T16:23:24, Testzeit 22.743 s. Getestet wurden kompatibler Druckprofil-Picker/echte Aktivierung einer printer-scoped Kopie, Druckerwechsel mit Kompatibilitätssynchronisierung, Filamentprofil-Auswahl aus dem App-Menü und Palette-Slotzuordnung, Zurück-Abbruch des Druckerpickers ohne Zustandsänderung sowie ein Druckbettflächen-Draft mit Cancel/Back und bestätigtem Draft-Reset.
+- Der neue Filament-Auswahltest stellt SliceTest-Konfiguration, Filament-Slot-Preference, aktiven Slot, per-Drucker Auswahl und Draft wieder her. Er verändert keine produktive OrkanSlicer-App- oder Geräteprofile.
+- Gezieltes :app:connectedSliceTestAndroidTest erfolgreich (BUILD SUCCESSFUL; 117 actionable tasks, 8 executed, 109 up-to-date); Testvariante neu kompiliert. Emulator offline. Der separate vorherige Lauf derselben Klasse vor Hinzufügung des Filamentfalls hatte 5/5 bestanden; aktueller maßgeblicher Stand ist 6/6.
+- Nur Android-Instrumentierungstest geändert; kein Runtime-Produktcode, keine Debug-APK, keine vollständigen JVM-Unit-Suites. Kein Druckstart oder Druckerzugriff.
+
+## Finaler Honor-Lauf: Drucker-/Druck- und Filamentprofil-Picker (2026-10-18)
+
+- PrintProfileDropdownIntegrationDeviceTest erneut auf PTP-N49 / Android 16: 6 Tests, 0 Fehler/Errors/Skips, XML 2026-10-18T16:23:24, Laufzeit 22.743 s. Der finale Lauf folgt auf zwei vorangegangene erfolgreiche Läufe mit 5/5 und 6/6 nach Integration des Filament-Profilfalls.
+- Die neue UI-Aktion wählt ein kompatibles Filamentprofil in FilamentConfigFragment und verifiziert dessen aktive Profil- und Slotzuordnung. Der finally-Block stellt Testprofil, per-Drucker-Auswahl, Slotzuordnung, aktiven Slot und Draft wieder her und persistiert den wiederhergestellten SliceTest-Configstand.
+- Die bestehenden 5 Fälle prüften Druckprofil-Picker, printer-scoped Prozesskopie, Druckerwechsel/Kompatibilität, Back ohne aktive Profiländerung und nicht-persistierende Bettoberflächen-Draft-/Cancel-/Reset-Aktionen.
+- Gezielter SliceTest-Instrumentierungslauf: BUILD SUCCESSFUL. Emulator offline. Keine Produkt-Runtime-Datei, kein Debug-APK-Build und keine vollständige Unit-Suite in diesem Testschritt.
+
+## Profil-Picker-Retest auf Honor (2026-10-18, 16:34 UTC)
+
+- Nach Entfernen eines nicht belastbar ausführbaren Zusatztests wurde `PrintProfileDropdownIntegrationDeviceTest` erneut auf PTP-N49 / Android 16 ausgeführt: 6/6 bestanden, 0 Fehler/Skips, 22,818 s. JUnit-XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-18T16:34:44`. Der Offline-Emulator wurde übersprungen.
+- Ein Zusatztest für Filamenttemperatur bearbeiten/Abbrechen/Speichern fand die erwartete lokalisierte Compose-Optionszeile nicht (`Andere Schichten`); der zugehörige Gerätelauf war 6/7 mit einem Fehler. Kein Produktfehler wurde nachgewiesen. Der unzuverlässige Test wurde entfernt; Filamentwert-Edit/Cancel/Save bleibt ungeprüft.
+- Keine Runtime-Dateien geändert; kein Debug-APK-Build und kein vollständiger Unit-Lauf. SliceTest-App isoliert; kein Drucker, Upload oder Druckstart.

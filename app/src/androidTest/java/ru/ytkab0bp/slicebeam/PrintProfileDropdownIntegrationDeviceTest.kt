@@ -21,10 +21,12 @@ import ru.ytkab0bp.slicebeam.config.PrinterScopedProcessProfile
 import ru.ytkab0bp.slicebeam.fragment.PrinterConfigFragment
 import ru.ytkab0bp.slicebeam.fragment.ProfileConfigValueController
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
+import ru.ytkab0bp.slicebeam.fragment.FilamentConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
+import ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterProfileSelectionStore
 
@@ -265,6 +267,67 @@ class PrintProfileDropdownIntegrationDeviceTest {
         assertEquals("Dismissing printer selection leaves the filament preset unchanged",
             filamentBefore, config.presets?.get("filament"))
         compose.onNodeWithText(printerBefore).assertIsDisplayed()
+    }
+
+    @Test
+    fun selectingFilamentProfileThroughMenuUpdatesActiveProfileAndSelectedSlot() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printer = requireNotNull(config.presets?.get("printer"))
+        val previousFilament = requireNotNull(config.presets?.get("filament"))
+        val previousProcess = requireNotNull(config.presets?.get("print"))
+        val previousSlot = SlotFilamentProfiles.selectedSlot
+        val preferences = requireNotNull(Prefs.getPrefs())
+        val previousSlotProfiles = preferences.getString("filament_slot_profiles", null)
+        val previousPrinterSelection = PrinterProfileSelectionStore.read(printer)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(3)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is FilamentConfigFragment
+            }
+            val fragment = activity.navigationDelegate.getCurrentFragment() as FilamentConfigFragment
+            val target = activity.runOnUiThreadAndWait {
+                val items = FilamentConfigFragment::class.java
+                    .getDeclaredMethod("getItems", Boolean::class.javaPrimitiveType)
+                    .apply { isAccessible = true }
+                    .invoke(fragment, true) as List<*>
+                items.asSequence()
+                    .mapNotNull { item -> item?.javaClass?.getMethod("getTitle")?.invoke(item) as? String }
+                    .firstOrNull { it != previousFilament }
+            }
+            assertNotNull("The bundled fixture should expose a second compatible filament profile", target)
+
+            compose.onNodeWithText(previousFilament).assertIsDisplayed().performClick()
+            compose.onNodeWithText(requireNotNull(target)).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                config.presets?.get("filament") == target
+            }
+
+            assertEquals("Selecting a filament row updates the active profile", target, config.presets?.get("filament"))
+            assertNotNull("The selected material remains a real profile in the configuration", config.findFilament(target))
+            assertEquals("The active user palette slot records the selected profile", target,
+                SlotFilamentProfiles.titleFor(previousSlot, null))
+            assertEquals("Applying a profile choice leaves no editor draft behind", 0,
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_FILAMENT))
+            compose.onNodeWithText(requireNotNull(target)).assertIsDisplayed()
+        } finally {
+            config.presets?.put("filament", previousFilament)
+            config.presets?.put("print", previousProcess)
+            if (previousSlotProfiles == null) {
+                preferences.edit().remove("filament_slot_profiles").commit()
+            } else {
+                preferences.edit().putString("filament_slot_profiles", previousSlotProfiles).commit()
+            }
+            SlotFilamentProfiles.select(previousSlot)
+            previousPrinterSelection?.let {
+                PrinterProfileSelectionStore.write(printer, it.process, it.filament)
+            } ?: PrinterProfileSelectionStore.write(printer, null, null)
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_FILAMENT)
+            check(SliceBeam.saveConfig()) { "Could not restore the isolated test printer configuration" }
+        }
     }
 
     private fun createInitializedActivityRule() = run {
