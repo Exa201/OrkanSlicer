@@ -1,3 +1,10 @@
+## Debug-Prerelease 0.8.315 — 2026-10-19
+
+- Code `350`, source commit `8abb48a3ce47c59e2bd48056e8899039df0a3012`; `:app:assembleDebug` succeeded. APK `OrkanSlicer_8abb48a3ce.apk`, 157,232,984 bytes, SHA-256 `778AE75EB8EB9A1EF82F6A9011F07EFC5F4D8B213B2D767E2B7D239D914D939B`.
+- Debug JVM tests 561/561 and Slice JVM tests 561/561 passed, 0 failures/errors/skips. Honor full instrumentation: 198 total, 193 passed, 5 private fixture tests skipped, 0 failures/errors. `InitialProjectMenuDeviceTest` accounts for 23/23 passing cases.
+- Installed on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`; app version/code `0.8.315`/350; MainActivity resumed. Inspected logcat tail had no crash, ANR, OOM, or fatal-signal markers. Emulator remained offline.
+- Published as debug prerelease: [OrkanSlicer 0.8.315](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.315). Verification snapshot only; no production runtime behavior changed. Full Phase 5 audit and manual TalkBack traversal remain open.
+
 ## Workspace-Menüaktionen — Honor, 2026-10-18
 
 - Latest full `:app:connectedSliceTestAndroidTest` on Honor PTP-N49 / Android 16: 198 tests, 193 passed, 5 skipped, 0 failures/errors; XML timestamp `2026-10-18T22:06:22` UTC. It includes all 23 cases from the current `InitialProjectMenuDeviceTest`. Skips are private KromaCut/multicolor fixture cases; emulator `emulator-5554` remained offline.
