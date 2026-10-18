@@ -1,3 +1,9 @@
+### Ergänzende manuelle Projektdatei-Prüfung — Systempicker-Abbruch (2026-10-18)
+
+- Auf dem Honor PTP-N49 wurde aus OrkanSlicer → Projekt → „Modell laden“ der echte Android-DocumentsUI-Picker geöffnet. `topResumedActivity` bestätigte `com.google.android.documentsui/.picker.PickActivity`.
+- Android-Zurück navigierte innerhalb des Pickers aus dem Startordner über die Elternverzeichnisse; beim Verlassen kehrte die App auf die Projektansicht zurück. Der Zustand blieb bei 1 Druckplatte, ohne geladenes Modell. Kein Dokument wurde ausgewählt/importiert. Screenshots: `app/build/reports/ui2-font-scale-20261018/manual-system-picker-open.png` und `manual-project-picker-cancel-result.png`.
+- Dies ist ein manueller ADB-Gerätecheck, kein automatisierter Gerätetest. Die Automatisierung wurde wegen Android-16-`UiAutomationService already registered` beim externen Systempicker nicht beibehalten.
+
 ## 0.8.305 — Slicing-Layersteuerung und vollständiger Honor-Lauf (2026-10-18)
 
 - `SliceLayerPartControlsDeviceTest` prüft sichtbare Benutzeraktionen auf dem Honor PTP-N49: Teil 2 wählen (Layer 51–100), Blockgröße 25 einstellen (Layer 51–75) und alle Layer 1–120 anzeigen. Der gezielte aktuelle Lauf bestand 1/1.
