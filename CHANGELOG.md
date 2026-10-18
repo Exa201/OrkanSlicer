@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.310 (alpha)
+
+- Apply the selected UI text size immediately to open settings and the full workspace.
+- Keep all two-row workspace tool actions reachable on narrow displays and at larger system text sizes with visible paging controls.
+- Preserve tool-tile touch targets of at least 48 dp and accessible paging semantics.
+
 ## 0.8.309 (alpha)
 
 - Reserve space for a visible “More tools” paging control in the two-row workspace action grid so large-text layouts do not hide reachable actions at the screen edge.
