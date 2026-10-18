@@ -784,6 +784,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Emulator `emulator-5554` remains offline and was skipped. This is one tested settings action, not a complete App Settings audit. No runtime source or APK changed; no build/test result is claimed for other settings actions.
 - The initial Gradle invocation lacked `ANDROID_HOME`; using the existing `%LOCALAPPDATA%\Android\Sdk` resolved SDK discovery. An intermediate test assertion was corrected to account for the selected percentage appearing both in the setting summary and the open choice list. Final targeted device test passed.
 - Next: continue actual, safe global-menu actions and responsive/accessibility checks; preserve the active-plate-only export warning and the unverified multi-plate serializer boundary.
+
+### 2026-10-18 continuation: app-settings preference action
+
+- `SettingsMenuActionDeviceTest.renderScaleSelectionPersistsAndAndroidBackLeavesItUnchanged` passed 1/1 on Honor PTP-N49 / Android 16. It navigates to the actual Settings destination, changes Interface → Resolution scale, verifies the preference update, opens the choice again, verifies Android Back dismisses without changing the applied setting, then restores the original setting.
+- `emulator-5554` was skipped because it is offline. The first local Gradle command needed the existing SDK location exported as `ANDROID_HOME`; no project SDK configuration was changed. A test assertion was refined to account for the selected label appearing in both the summary and choice list.
+- This added test plus verification notes only; no runtime source or APK changed. The targeted device run completed successfully. It covers one setting only; full settings, display matrix and TalkBack audit remain open.
+- Next concrete audit target: add actual app-settings coverage for one reversible toggle/action not already covered by `SettingsAccessibilityDeviceTest` and `SettingsChoiceDialogDeviceTest`; then keep auditing other global menu actions.
 # Continuation update — Project/Files on-device action check (2026-10-18)
 
 - Phase 4 remains complete at its accepted architecture scope; no new runtime code change was required in this pass.
