@@ -5,7 +5,8 @@
 - Beide Profil-Editorpfade verwenden jetzt dieselbe Passwortklassifikation: Orcas als normaler String deklarierten `printhost_apikey` sowie native Passwortfelder markieren; gewöhnliche Druckerhosts bleiben normale Werte.
 - Neuer Regressionstest weist nach, dass 3MF-Projektsettings `print_host`, `host_type`, `printhost_apikey` und `printhost_webui` nicht in temporäre Prozess-/Filamentwerte übernehmen. Die Druckeridentität und sichere Druckeinstellungen bleiben erhalten.
 - Nachweis: beide vollständigen JVM-Suiten 561/561, 0 Fehler/Errors/Skips; API-Key-E2E-Test auf Honor 1/1. Vollständige Honor-Suite des verhaltensgleichen Standes: 188 Fälle, 183 bestanden, 5 private Fixtures übersprungen, 0 Fehler.
-- Version für den Abschluss dieses Sicherheits-/Profilpakets: 0.8.314 / Code 349. Release-APK und GitHub-Veröffentlichung stehen nach finalem Build und Gerätetest aus.
+- Das Sicherheits-/Profilpaket wurde mit 0.8.314 / Code 349 abgeschlossen. Debug-APK `OrkanSlicer_d29131f848.apk` (157,232,977 Byte, SHA-256 `ADD122224B6A27C3B80BD2666B176DBB2EADA3D87E7AC6B456771F3F1EBB0B56`) wurde auf Honor installiert und gestartet; Paket und Vordergrundaktivität bestätigt. Logcat-Stichprobe ohne Crash/ANR/OOM/Fatal-Signal.
+- GitHub Debug-Prerelease `v0.8.314` veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.314. Asset `OrkanSlicer_d29131f848.apk` (Label `OrkanSlicer_0.8.314_Debug.apk`), 157.232.977 Byte; GitHub-SHA-256 `add122224b6a27c3b80bd2666b176dbb2eada3d87e7ac6b456771f3f1ebb0b56`. PR #2 offen und mergeable, kein Merge.
 - Weiterhin nicht abgeschlossen: gesamter UI-2.0-Aktionsaudit, physische TalkBack-Traversierung und mehrplattenfähige Gesamt-Projektpersistenz.
 
 ## API-Schlüssel-Abbruch-/Speicherablauf und Honor-Regressionslauf — 2026-10-18

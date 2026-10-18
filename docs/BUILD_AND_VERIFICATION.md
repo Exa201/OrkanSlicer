@@ -1194,7 +1194,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Both profile editor render paths now use the same `isPasswordOption` policy. It classifies native password fields and Orca's schema-misclassified `printhost_apikey` as sensitive, without masking the ordinary `print_host` value.
 - Added `ThreeMfProjectSettingsReaderTest.projectSettingsNeverImportPrintHostCredentialsOrEndpoints`: synthetic 3MF project settings carrying a printer host, Moonraker type, API key, and Web UI URL retain safe layer settings and printer identity but import none of those connection/secret values.
 - The targeted password-policy and 3MF reader tests passed. `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest` each passed 561/561 (0 failures/errors/skips). Honor API-key lifecycle test passed 1/1 after the shared policy change; the full Honor suite on the prior behavior-equivalent build was 188 cases, 183 passed, 5 private-fixture skips, 0 failures.
-- Release candidate: v0.8.314 / versionCode 349. APK identity, hash, final install/start and GitHub release results are recorded below after those steps complete.
+- Final `:app:assembleDebug` succeeded on code commit `d29131f84861ce356aaa95ad2fdb0794c26311d5`. APK `OrkanSlicer_d29131f848.apk`, 157,232,977 bytes, SHA-256 `ADD122224B6A27C3B80BD2666B176DBB2EADA3D87E7AC6B456771F3F1EBB0B56`; Android package metadata confirms version 0.8.314 / versionCode 349.
+- Installed with `adb install -r` on Honor PTP-N49 and launched. `topResumedActivity` is `com.codemastercody3d.orcaslicermobile/ru.ytkab0bp.slicebeam.MainActivity`; the last 3000 logcat lines had no FATAL EXCEPTION, ANR, OOM, or fatal-signal markers. Emulator offline.
+- Published as a GitHub debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.314. Uploaded asset `OrkanSlicer_d29131f848.apk` is labeled `OrkanSlicer_0.8.314_Debug.apk` (157,232,977 bytes; GitHub digest `sha256:add122224b6a27c3b80bd2666b176dbb2eada3d87e7ac6b456771f3f1ebb0b56`), tagged to the code commit. PR #2 remains open and mergeable; no merge or stable release.
 
 ## Unit regression after API-key lifecycle coverage — 2026-10-18
 
