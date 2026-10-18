@@ -1062,3 +1062,15 @@ Final import-consent device check and Debug APK (2026-10-16):
 - `SettingsAccessibilityDeviceTest`: 1/1 bestanden auf Honor PTP-N49. Die Komponente wurde mit simulierten 320/360/400/640-dp-Konfigurationen, Hoch-/Querformat-Proportionen und Font-Scale 100/130/150 % getestet; geprüft wurden Accordion-StateDescription, 48-dp-Touchziele, Erreichbarkeit der Theme-Aktion und Expand/Collapse. Das ist ein automatisierter Compose-Konfigurationstest auf dem Gerät, keine physische Display-/Schriftänderung.
 - `ProfileFilterAccessibilityDeviceTest`: 1/1 bestanden auf Honor PTP-N49; Such-/Filterbereich bei simulierten 320 dp und 150 % Schrift, Favoriten-StateDescription, mindestens 48-dp-Ziele, Levelauswahl und Suchtexteingabe geprüft.
 - Beide waren SliceTest-Instrumentierungstests; `emulator-5554` offline. Keine Runtime-Änderung, kein Debug-APK-Build, kein TalkBack-Screenreader-Manuelltest.
+
+## Workspace-Menü-/Aktionsabnahme auf Honor (2026-10-18)
+
+- `InitialProjectMenuDeviceTest`: 14/14 bestanden, 0 Fehler/Skips auf Honor PTP-N49 / Android 16; JUnit XML `2026-10-18T16:40:41`, 51,29 s. Der Offline-Emulator wurde übersprungen.
+- Tatsächlich ausgeführt: erste Projektöffnung (Dateiaktionen sichtbar), Slice-Menü einschließlich manueller Filamentzuweisung mit Cancel/Back und lokaler Slice-Ergebnisaktionen, Projekt-Mehrplattenexportwarnung ohne SAF-Pickerstart, Compose-Profil-Export mit Back, Kamera-Projektion/Steuerungsmodus und alle Preset-Posen, Modellduplizierung, Objektmaterialzuweisung sowie Skalierung/Position/Drehung/Schneiden/variable Layer/Vereinfachen einschließlich Bestätigung, Cancel und Undo/Redo.
+- Der Slice-Test erzeugte nur lokale G-Code-Ergebnisse und prüfte Renderer-/Vorschaureaktionen; kein Upload und kein tatsächlicher Druckstart. Die Tests benutzen temporäre Modelle im Cache.
+
+## Globale App-Einstellungen auf Honor (2026-10-18)
+
+- `SettingsMenuActionDeviceTest`: 7/7 bestanden, 0 Fehler/Skips auf Honor PTP-N49 / Android 16; JUnit XML `2026-10-18T16:41:47`, 24,458 s. Emulator offline.
+- Geprüft: Render-Skalierung übernehmen sowie Back ohne Commit, Theme-Auswahl und Back, live UI-Schrift-Skalierung und Rückstellung, About-Route/Back, Drucker-Preset-Setup/Back ohne Änderung des aktiven Druckers, App-Reset abbrechen/Back ohne Konfigurationsänderung sowie Akzentfarb-Palette abbrechen/Swatch anwenden.
+- Nachlaufkontrolle: Systemschrift auf dem Honor 1.0; Produktionspaket `com.codemastercody3d.orcaslicermobile` blieb top-resumed. Frische 5.000-Zeilen-Logcat-Suche ohne FATAL/ANR/OOM/Fatal-signal Marker. Keine Firmwareänderung oder Druckaktion.

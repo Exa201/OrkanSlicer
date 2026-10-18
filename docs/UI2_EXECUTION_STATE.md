@@ -1030,3 +1030,17 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `ProfileFilterAccessibilityDeviceTest`: Honor 1/1 bestanden bei simulierter 320-dp-Breite/150 % Schrift; Favoritenstatus, 48-dp-Touchziele, Filterauswahl und Sucheingabe geprüft.
 - Zwei zusätzliche erfolgreiche fokussierte Gerätetest-Ausführungen: kumuliert 140 erfolgreiche Ausführungen in 29 Klassenläufen, nicht dedupliziert; zusätzlich bleibt ein nicht belastbarer Profilwert-Edit-Test als ein fehlgeschlagener Testlauf vermerkt. TalkBack manuell, tatsächliche physische Größen-/Schriftmatrix, vollständiger Aktionsaudit und volle Unit-Suites bleiben offen.
 - Letzter relevanter Code-Commit: `ee276650aa47b1069902bbaa7a4e7b0543038307`; diese Statusnachweise sind lokal noch nicht committed. Nächste Aufgabe: präzise Sichtsemantik der Filamentprofil-Einstellungszeile ermitteln und alternativ andere noch ungetestete globale UI-Aktionen mit echten Handlerwirkungen abnehmen.
+
+## Phase-5 Workspace-Aktionsabnahme auf Honor (2026-10-18, 16:40 UTC)
+
+- `InitialProjectMenuDeviceTest`: 14/14 auf Honor PTP-N49 / Android 16 bestanden, 0 Skips/Fehler; XML `2026-10-18T16:40:41`, Laufzeit 51,29 s. Emulator offline.
+- Praktisch geprüft wurden erste Projektmenüöffnung, Dateiaktionen, Mehrplattenexportwarnung/Abbruch, Slice-Bereitschaft/Filamentzuweisung und lokales Slicing samt Ergebnisaktionen, Kamera/alle Presetposen, Modellduplikation und -zuweisung sowie Transformationen, Cut/Variable-Layer, Vereinfachungszustimmung und Undo/Redo. Der Slicing-Fall startete keinen Upload/Druck.
+- Kumuliert 154 erfolgreiche fokussierte Testausführungen in 30 Klassenläufen, nicht dedupliziert; zusätzlich ein fehlgeschlagener Versuch mit dem nicht belastbaren Filamentwert-Edit-Selector, der nicht im Testcode verbleibt. 14 neue erfolgreiche Aktionsausführungen gegenüber dem letzten Status.
+- Geräteumgebung nach Test prüfen/wiederherstellen: Produktionsapp weiterhin separate Paket-ID, Systemschrift 1.0; Logcat gezielt auf Absturzmarker prüfen. Nächster Schwerpunkt: übrige globale Profil-/Filamentaktionen und Phase-6 tatsächliche Gerätevisualisierung/TalkBack-Grenzen.
+
+## Globale Einstellungen praktisch abgenommen (2026-10-18, 16:41 UTC)
+
+- `SettingsMenuActionDeviceTest`: 7/7 auf Honor PTP-N49 / Android 16 bestanden, 0 Skips/Fehler, 24,458 s (`2026-10-18T16:41:47`). Prüft Render-/UI-Skalierung, Theme, About, Drucker-Preset-Setup, Reset-Dialog-Abbruch und Akzentfarbe einschließlich Back-/Cancel-Zustand.
+- Zusammen mit den vorherigen 154 erfolgreichen fokussierten Ausführungen: 161 erfolgreiche Testausführungen über 31 Klassenläufe, nicht dedupliziert; ein separates experimentelles Filamentwert-Selector-Testing hatte einen Fehler und bleibt als ungeprüft dokumentiert.
+- Nachlauf: Systemschrift 1.0, OrkanSlicer MainActivity des Produktionspakets top-resumed, Logcat-Stichprobe ohne Crash/ANR/OOM/Fatal-Marker. Kein Runtime-Quellcode geändert; kein Debug-APK-Build.
+- Phase 5 ist durch weitere echte Projekt-/Modell-/Ansichts-/Bearbeiten-/Slicing- und App-Einstellungsaktionen stärker abgedeckt, aber der vollständige Aktionsbestand (insbesondere alle Profileditorwerte, Drucker-/Rinkhals- und ACE-Unteraktionen) ist noch nicht geschlossen. Phase 6 physische Displayprüfung/TalkBack ebenfalls offen.
