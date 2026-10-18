@@ -1,3 +1,15 @@
+## Aktueller Fortsetzungsstand — 0.8.304 (2026-10-18)
+
+- Aktiver Abschnitt: Phase 5, Menü-Aktionsabnahme; Phase 4 Workspace-Architektur bleibt anhand des bestehenden Codes und der bisherigen Tests akzeptiert. Phase 5/6 sind ausdrücklich nicht abgeschlossen.
+- Code-Commit: `28198535f0ec4bb42ce894d8985ff0c07678a768` (Branch `codex/rinkhals-safe-start-audit`). App-Version 0.8.304 / Code 339.
+- Sichtbarer 320-dp-/150%-Fehler behoben: Werkzeugkacheln wechseln bei Textskalierung ab 130 % auf zwei breitere Spalten und höhere Flächen. Die Profilaktionen zeigen die kurzen lokalisierten Beschriftungen „Import“/„Export“, behalten aber ihre vollständigen Accessibility-Beschreibungen. Profil-Auswahl wechselt bei großer Schrift in einen durchsuchbaren Dialog.
+- Praktische Honor-Prüfung PTP-N49 / Android 16: Screenshot des echten Tools-Menüs bei 320 dp und 150 % zeigt vollständige „Kalibrieren“-, „Export“- und „Import“-Beschriftungen; Druckplatte bleibt zentral sichtbar. Screenshot: `app/build/reports/ui2-font-scale-20261018/tools-320dp-150pct.png`. Testgerät danach auf physische Auflösung und 100 % Schrift zurückgesetzt.
+- Verifikation des aktuellen Quellstands: Debug-JVM 557/557; Slice-JVM 557/557; vollständige Honor-Slice-Instrumentierung 148 Testfälle, 143 bestanden, 5 wegen fehlender privater Fixtures übersprungen, 0 fehlgeschlagen/Errors. Zusätzlich die fokussierte `FilamentPaletteComposeDeviceTest` 14/14. Ein vorangegangener Voll-Lauf hatte einen einmaligen IME-/Profilfilter-Ausreißer; der isolierte Test und die anschließende vollständige Wiederholung bestanden.
+- Debug-Build erfolgreich. APK `OrkanSlicer_28198535f0.apk`, 157.216.376 Byte, SHA-256 `1BB3E788CE6E58E951FE3EF82CF94447553FF77EA14AFC2008592325EBED09A1`; auf dem Honor installiert und gestartet. Paket `com.codemastercody3d.orcaslicermobile`, Version 0.8.304/339; `MainActivity` war Vordergrund. Frischer Logcat-Suchlauf ohne Crash-, ANR-, OOM- oder Fatal-Signal-Marker. Emulator offline.
+- Noch offen: vollständige Ausführung der Aktionsmatrix für sechs Hauptmenüs und globale Untermenüs; manuelle TalkBack-Traversierung; echte physische 360/400-dp-Geräteprüfung; vollständige Mehrplatten-Projektpersistenz (separates Feature). Die getesteten Compose-Simulationen gelten nicht als manuelle Accessibility-Abnahme.
+- PR #2 ist gegen `master` offen und vor diesem Code-Push als mergeable/clean gemeldet. Der neueste Commit und die Nachweise sind noch auf den Branch/PR zu übertragen.
+- Nächste konkrete Aufgabe: Änderungen und Nachweise auf den bestehenden Branch pushen, PR #2 aktualisieren und danach Phase 5 mit noch nicht praktisch geprüften Edit-/Slicing-Aktionen fortsetzen.
+
 ## Continuation — result menus and project-local profile selection (2026-10-18)
 
 - PR #2 is open at code/documentation head `6ed0dac7f9665f6af31504a18dffa199185c1155`; GitHub reports `mergeable=true`, `mergeable_state=clean` (2026-10-18). No merge or release performed.
