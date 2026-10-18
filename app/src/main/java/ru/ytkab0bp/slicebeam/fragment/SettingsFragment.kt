@@ -97,7 +97,7 @@ class SettingsFragment : Fragment() {
         setContent {
             val revision = themeRevision
             if (revision >= 0) {
-                BeamComposeTheme {
+                BeamComposeTheme(themeRevision = revision) {
                     Box(Modifier.fillMaxSize()) {
                         SettingsContent(
                             expandedSections = expandedSections,

@@ -6,9 +6,11 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,6 +18,7 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.SettingsFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
 /** Exercises an app-settings action through MainActivity's real workspace destination. */
@@ -43,7 +46,7 @@ class SettingsMenuActionDeviceTest {
                 .assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceResolutionScale))
                 .assertIsDisplayed().performClick()
-            compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { Prefs.getRenderScale() == targetScale }
             assertEquals("Selecting a scale applies the selected app preference", targetScale, Prefs.getRenderScale(), 0f)
 
@@ -57,6 +60,88 @@ class SettingsMenuActionDeviceTest {
             assertEquals("Android Back dismisses without changing the applied setting", targetScale, Prefs.getRenderScale(), 0f)
         } finally {
             Prefs.setRenderScale(originalScale)
+        }
+    }
+
+    @Test
+    fun themeSelectionAppliesAndBackDoesNotChangeTheCommittedTheme() {
+        val activity = compose.activity
+        val originalTheme = Prefs.getThemeMode()
+        val targetTheme = Prefs.ThemeMode.values().first { it != originalTheme }
+        val targetLabel = activity.getString(targetTheme.title)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is SettingsFragment
+            }
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getThemeMode() == targetTheme }
+            assertEquals(targetTheme, Prefs.getThemeMode())
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).assertIsDisplayed()
+            InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertEquals("Android Back dismisses the theme picker without changing its committed value",
+                targetTheme, Prefs.getThemeMode())
+        } finally {
+            activity.runOnUiThread {
+                Prefs.setThemeMode(originalTheme.ordinal)
+                ThemesRepo.invalidate(activity)
+            }
+        }
+    }
+
+    @Test
+    fun textScaleSelectionUpdatesTheLiveSettingsLayoutAndCanBeRestored() {
+        val activity = compose.activity
+        val originalScale = Prefs.getUiTextScale()
+        val targetScale = if (originalScale < 1.5f) 1.5f else 1.4f
+        val targetLabel = "${(targetScale * 100).toInt()}%"
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is SettingsFragment
+            }
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
+                .assertIsDisplayed().performClick()
+
+            val heading = compose.onNodeWithText(activity.getString(R.string.SlotAppSettings))
+            heading.assertIsDisplayed()
+            val beforeHeight = heading.fetchSemanticsNode().size.height
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTextSize))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getUiTextScale() == targetScale }
+            compose.waitForIdle()
+
+            val afterHeight = compose.onNodeWithText(activity.getString(R.string.SlotAppSettings))
+                .fetchSemanticsNode().size.height
+            assertEquals(targetScale, Prefs.getUiTextScale(), 0f)
+            if (targetScale > originalScale) {
+                assertTrue("The live Compose heading must grow with the selected text scale ($beforeHeight → $afterHeight)",
+                    afterHeight > beforeHeight)
+            } else {
+                assertTrue("The live Compose heading must shrink with the selected text scale ($beforeHeight → $afterHeight)",
+                    afterHeight < beforeHeight)
+            }
+            compose.onNodeWithText(targetLabel).performScrollTo().assertIsDisplayed()
+        } finally {
+            Prefs.setUiTextScale(originalScale)
         }
     }
 
