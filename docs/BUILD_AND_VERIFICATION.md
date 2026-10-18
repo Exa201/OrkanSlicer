@@ -875,3 +875,12 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Manuelle Prüfung des tatsächlichen Systempicker-/Importpfads; kein automatisierter Test und keine vollständige Datei-/Menüabnahme. Kein Export, kein Netzwerk-Upload, kein Druckstart. Es wurde kein Produktcode oder APK-Inhalt geändert.
 
 \n
+## 2026-10-18 — Manuelle globale Profil-/Einstellungsprüfung auf Honor
+
+- Gerät: Honor PTP-N49 / Android 16; 1280×2800 px bei 560 dpi (≈366×800 dp Portrait), Android `font_scale=1.0`; OrkanSlicer-Paket `com.codemastercody3d.orcaslicermobile`. UI unverändert auf 0.8.308.
+- App-Einstellungen: Design-Auswahl geöffnet und mit Android-Zurück geschlossen; Scrollposition blieb erhalten. Drucker-Preset-Route öffnete `SetupActivity` und Back kehrte ohne Anlage eines Druckerprofils zurück. Konverter-Speicher zeigte „Documents“. App-Info/Credits waren bei langer Textmenge scrollbar und per Back schließbar.
+- Druckerprofil: Dropdown mit aktivem Anycubic und Qidi-Presets sowie Delete-/Duplicate-Menüpunkten angezeigt; keine destruktive Aktion ausgeführt. Filtereingabe „Qidi“ ergab „Keine Einstellungen gefunden“ im aktuellen Einstellungsbereich; weder Speichern noch Profilwerte wurden verändert.
+- Filament/Druck: Slot-Info, Materialdaten und Farbwahl geöffnet; Back schloss den Farbwähler und ließ `#F2754E` unverändert. Auf Druckseite waren T0–T3 sowie ACE-Zuordnung T0→ACE 1, T1→ACE 2, T2→ACE 3, T3→ACE 4 sichtbar; Back aus dem T2-Filamentpanel führte ohne Speichern zurück. „Sync“, „Speichern“, tatsächlicher Druckstart und Netzwerkaktionen nicht ausgelöst.
+- Die langen Einstellungs- und Filamentbereiche ließen sich vertikal scrollen; fixe Speichern-Aktionen blieben am unteren Rand. Screenshots: `app/build/reports/ui2-manual-audit/`. Manuelle Stichprobe, keine Vollabnahme und kein Test der Wertpersistenz. Keine Crash-/ANR-/OOM-Marker im danach geprüften Logcat-Ausschnitt.
+
+\n
