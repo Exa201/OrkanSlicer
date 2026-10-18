@@ -1,4 +1,12 @@
-## Aktueller Fortsetzungsstand — 0.8.308 (2026-10-18)
+## Aktueller Fortsetzungsstand — 0.8.309 (2026-10-18)
+
+- Phase 4: auf Basis der Compose-WorkspaceShell/RendererAdapter-Architektur und des vollständigen Honor-Regressionslaufs bestätigt; keine aktive doppelte View-Menünavigation in diesem Schritt verändert.
+- Phase 5/6: Physischer Honor-Screenshot bestätigte bei 320 dp und 150 % Schrift einen klar sichtbaren „Weitere Werkzeuge“-Pfeil am zweireihigen Bearbeitungsmenü. Die Kachelbreite reserviert jetzt den Pfeilbereich und der Pfeil blättert viewport-breit. Andere Grid-Aktionen bleiben über LazyGrid-Scroll erreichbar. Screenshot: `app/build/reports/ui2-manual-audit/phase6/final-edit-320dp-150.png`.
+- Tests auf Honor PTP-N49 / Android 16: vollständiger SliceTest-Gerätelauf 159 eindeutige Tests, 154 bestanden, 5 fixturebedingt übersprungen, 0 Fehler/Errors; Debug-JVM 559/559 und Slice-JVM 559/559 bestanden. Der Offline-Emulator wurde übersprungen. Der neue responsive Grid-Gerätetest besteht für 320/360/400 dp und Schrift 100/130/150 %; er prüft Aktionsbounds, sichtbaren Paging-Button, dass Paging weitere Aktionen einblendet, sowie Scrollzugriff bis zur letzten Kachel.
+- Debug-APK gebaut und auf Honor installiert/gestartet: OrkanSlicer 0.8.309/code 344 (Hash und Commit werden nach dem finalen Commit ergänzt). Physische Konfiguration anschließend auf 1280×2800 px, 560 dpi und Schriftfaktor 1.0 zurückgesetzt. `MainActivity` war top-resumed; aktuelle Logcat-Stichprobe ohne Crash-/ANR-/OOM-Marker.
+- Nächste konkrete Aufgabe: PR #2 nach Commit aktualisieren und Merge-Status abfragen. Phase 5 bleibt als vollständige Menüaktionsabnahme offen; Phase 6 bleibt hinsichtlich manueller TalkBack-Traversierung und physischer Breiten-/Querformatmatrix offen. Keine vollständige Mehrplatten-Projektpersistenz.
+
+## Vorheriger Fortsetzungsstand — 0.8.308 (2026-10-18)
 
 - Aktuelle Phase: Phase 5, funktionale Hauptmenü-Aktionsabnahme. Phase 4 ist anhand der bestehenden Compose-WorkspaceShell/RendererAdapter-Architektur akzeptiert; Phase 5 und Phase 6 sind nicht abgeschlossen.
 - Behoben: Position- und Rotations-Commit speichern native Änderungen jetzt als Undo-Schritte. Reset Rotation ruft eine native JNI-Funktion auf, setzt die Rotationen aller Modellvolumen zurück, behält Maßstab/Offsets bei und wird vom Edit- und Kontextmenü über denselben GL-thread-sicheren Pfad ausgeführt.

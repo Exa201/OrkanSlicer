@@ -3,14 +3,17 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -47,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 /** A menu route whose visible workspace content is hosted directly by WorkspaceShell. */
 internal interface WorkspaceComposeBedMenu {
@@ -102,10 +107,12 @@ internal object BedMenuActionTileWidthPolicy {
         columns: Int,
         horizontalPaddingDp: Int = 4,
         spacingDp: Int = 2,
+        reservedEndDp: Int = horizontalPaddingDp,
     ): Int {
         val safeColumns = columns.coerceAtLeast(1)
-        val available = screenWidthDp.coerceAtLeast(320) - horizontalPaddingDp * 2 - spacingDp * (safeColumns - 1)
-        return (available / safeColumns).coerceAtLeast(72).coerceAtMost(128)
+        val available = screenWidthDp.coerceAtLeast(320) - horizontalPaddingDp -
+            reservedEndDp - spacingDp * (safeColumns - 1)
+        return (available / safeColumns).coerceAtLeast(72)
     }
 }
 
@@ -118,16 +125,53 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             actions.size, portrait, widthDp, fontScale,
         ))) {
         val columns = BedMenuActionTileWidthPolicy.columnsForLayout(fontScale, widthDp)
-        val tileWidth = BedMenuActionTileWidthPolicy.gridTileWidthDp(widthDp, columns).dp
-        LazyHorizontalGrid(
-            rows = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            items(actions) { action ->
-                BedMenuActionTile(action, portrait = true, menuView = menuView,
-                    modifier = Modifier.width(tileWidth))
+        val rows = 2
+        val scrollHintWidth = OrkanUiTokens.touchTarget
+        val scrollHintEndGap = 4.dp
+        val scrollHintDescription = stringResource(R.string.WorkspaceMoreTitle)
+        val coroutineScope = rememberCoroutineScope()
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val scrollPagePx = with(LocalDensity.current) {
+                (maxWidth - scrollHintWidth - scrollHintEndGap).toPx()
+            }
+            val tileWidth = BedMenuActionTileWidthPolicy.gridTileWidthDp(
+                screenWidthDp = maxWidth.value.toInt(),
+                columns = columns,
+                horizontalPaddingDp = 4,
+                spacingDp = 2,
+                reservedEndDp = scrollHintWidth.value.toInt() + scrollHintEndGap.value.toInt(),
+            ).dp
+            val gridState = rememberLazyGridState()
+            LazyHorizontalGrid(
+                rows = GridCells.Fixed(rows),
+                state = gridState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 4.dp, end = scrollHintWidth + scrollHintEndGap),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                items(actions) { action ->
+                    BedMenuActionTile(action, portrait = true, menuView = menuView,
+                        modifier = Modifier.width(tileWidth))
+                }
+            }
+            if (gridState.canScrollForward) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = scrollHintEndGap)
+                        .size(scrollHintWidth)
+                        .semantics { contentDescription = scrollHintDescription }
+                        .clickable(role = Role.Button) {
+                            coroutineScope.launch { gridState.animateScrollBy(scrollPagePx) }
+                        },
+                    shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("›", fontSize = 32.sp, lineHeight = 32.sp)
+                    }
+                }
             }
         }
         return

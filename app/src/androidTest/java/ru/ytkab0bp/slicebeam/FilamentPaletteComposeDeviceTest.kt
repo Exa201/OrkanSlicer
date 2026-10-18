@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -619,13 +620,15 @@ class FilamentPaletteComposeDeviceTest {
             ) {
                 BeamComposeTheme {
                     Box(Modifier.width(widthDp.dp).height(160.dp).testTag("model-action-viewport")) {
-                        BedMenuActionsContent(
-                            actions = actionTitles.map { title ->
-                                BedComposeMenuAction(title, R.drawable.camera_mode_0_28, {})
-                            },
-                            portrait = true,
-                            multiRow = true,
-                        )
+                        key(widthDp, fontScale) {
+                            BedMenuActionsContent(
+                                actions = actionTitles.map { title ->
+                                    BedComposeMenuAction(title, R.drawable.camera_mode_0_28, {})
+                                },
+                                portrait = true,
+                                multiRow = true,
+                            )
+                        }
                     }
                 }
             }
@@ -640,13 +643,40 @@ class FilamentPaletteComposeDeviceTest {
             val viewport = compose.onNodeWithTag("model-action-viewport").fetchSemanticsNode().boundsInRoot
             val visibleColumns = ru.ytkab0bp.slicebeam.components.bed_menu.BedMenuActionTileWidthPolicy
                 .columnsForLayout(scale, width)
-            for (index in 0 until visibleColumns * 2) {
-                val action = compose.onNodeWithContentDescription(
-                    InstrumentationRegistry.getInstrumentation().targetContext.getString(actionTitles[index]),
-                ).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                assertTrue("Action $index starts outside $width dp viewport at ${scale}x", action.left >= viewport.left)
-                assertTrue("Action $index ends outside $width dp viewport at ${scale}x", action.right <= viewport.right)
+            val visibleActions = actionTitles.mapIndexedNotNull { index, title ->
+                compose.onAllNodesWithContentDescription(
+                    InstrumentationRegistry.getInstrumentation().targetContext.getString(title),
+                ).fetchSemanticsNodes().firstOrNull()?.let { index to it.boundsInRoot }
             }
+            for (index in 0 until visibleColumns * 2) {
+                val actionNodes = compose.onAllNodesWithContentDescription(
+                    InstrumentationRegistry.getInstrumentation().targetContext.getString(actionTitles[index]),
+                ).fetchSemanticsNodes()
+                assertTrue("Action $index not visible at $width dp / ${scale}x; viewport=$viewport, visible=$visibleActions",
+                    actionNodes.isNotEmpty())
+                val action = actionNodes.first().boundsInRoot
+                assertTrue("Action $index starts outside $width dp viewport at ${scale}x", action.left >= viewport.left)
+                assertTrue("Action $index overlaps the scroll hint at $width dp / ${scale}x",
+                    action.right <= viewport.right - 52f)
+            }
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val firstPageMaxIndex = visibleActions.maxOf { it.first }
+            compose.onNodeWithContentDescription(context.getString(R.string.WorkspaceMoreTitle))
+                .assertIsDisplayed().performClick()
+            compose.waitForIdle()
+            val afterPaging = actionTitles.mapIndexedNotNull { index, title ->
+                compose.onAllNodesWithContentDescription(context.getString(title))
+                    .fetchSemanticsNodes().firstOrNull()?.let { index to it.boundsInRoot }
+            }
+            assertTrue("more-tools button did not reveal another action at $width dp / ${scale}x; " +
+                "before=$visibleActions after=$afterPaging", afterPaging.any { it.first > firstPageMaxIndex })
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(actionTitles.lastIndex)
+            compose.waitForIdle()
+            val finalActionDescription = context.getString(actionTitles.last())
+            val finalAction = compose.onNodeWithContentDescription(finalActionDescription)
+                .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue("paging control must reveal complete actions at $width dp / ${scale}x",
+                finalAction.right <= viewport.right - 52f)
         }
     }
 

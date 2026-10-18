@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.309 (alpha)
+
+- Reserve space for a visible “More tools” paging control in the two-row workspace action grid so large-text layouts do not hide reachable actions at the screen edge.
+- Page the action grid by the available viewport width and keep all actions accessible through grid scrolling.
+- Add large-text tile-bound and paging interaction coverage for 320/360/400 dp layouts.
+
 ## 0.8.308 (alpha)
 
 - Record confirmed position and rotation edits in the model undo history so Undo/Redo restores the committed native transforms.

@@ -26,6 +26,7 @@
     <string name="FilamentSlotColor">Цвет</string>
     <string name="WorkspaceFilamentPaletteTitle">Филаменты</string>
     <string name="WorkspaceFilamentPaletteCount">Материалов: %1$d</string>
+    <string name="WorkspaceMoreTitle">Дополнительные инструменты</string>
     <string name="WorkspaceFilamentPaletteEdit">Изменить</string>
     <string name="WorkspaceFilamentAssignModel">Назначить филаменты модели</string>
     <string name="ColorChooserCustom">Свой цвет</string>
