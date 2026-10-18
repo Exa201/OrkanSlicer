@@ -130,6 +130,106 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun sliceMenuProducesResultAndExposesSafeResultActions() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "slice-menu-result-actions-test.stl")
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val oldPerformanceMode = Prefs.isPerformanceModeEnabled()
+        val oldGatePrinter = prefs.getString("mmu_choice_printer", null)
+        val oldGateChoices = prefs.getString("mmu_choice_gates", null)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            assertFalse("the fixture must start unsliced", bed.hasSliceResult())
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
+            compose.onNodeWithTag("pre-slice-confirm").performClick()
+
+            // The configured test printer may expose a cached physical-slot/material mismatch.
+            val mismatchContinue = compose.onAllNodesWithText(
+                activity.getString(R.string.PreSliceMaterialMismatchContinue),
+            )
+            if (mismatchContinue.fetchSemanticsNodes().isNotEmpty()) {
+                mismatchContinue.get(0).assertIsDisplayed().performClick()
+            }
+
+            compose.waitUntil(timeoutMillis = 120_000) { bed.hasSliceResult() }
+            assertTrue("native slicing must produce a non-empty G-code artifact",
+                BedFragment.tempGCodePath.isFile && BedFragment.tempGCodePath.length() > 0L)
+            val glView = requireNotNull(bed.glView)
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.gcodeResult != null }
+            val result = requireNotNull(glView.renderer.gcodeResult)
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.viewer != null }
+            assertTrue("sliced model should retain at least one assigned filament", model.getUsedFilaments(0).isNotEmpty())
+            val viewer = requireNotNull(glView.renderer.viewer)
+            val originalViewType = viewer.viewType
+            val originalSeamsVisible = readGCodeOptionOnGl(
+                glView,
+                ru.ytkab0bp.slicebeam.slic3r.GCodeViewer.OPTION_TYPE_SEAMS,
+            )
+
+            // Slicing refreshes the same Slice menu from pre-slice actions to result actions.
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceInfo))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("slice-info-title").assertIsDisplayed()
+            compose.onNodeWithTag("slice-info-scheme").assertIsDisplayed()
+            compose.onNodeWithTag("slice-info-seams").assertIsDisplayed()
+            val alternateScheme = activity.resources.getStringArray(R.array.GCodeColorSchemes).getOrNull(1)
+            assertTrue("the result should offer multiple G-code color schemes", !alternateScheme.isNullOrBlank())
+            compose.onNodeWithTag("slice-info-scheme").performClick()
+            compose.onNodeWithText(requireNotNull(alternateScheme)).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { viewer.viewType != originalViewType }
+            assertEquals("choosing a color scheme must update the rendered G-code view", 1, viewer.viewType)
+            compose.onNodeWithTag("slice-info-seams").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                readGCodeOptionOnGl(glView, ru.ytkab0bp.slicebeam.slic3r.GCodeViewer.OPTION_TYPE_SEAMS) != originalSeamsVisible
+            }
+            compose.onNodeWithTag("slice-info-close").performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceLayers))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("slice-layers-title").assertIsDisplayed()
+            compose.onNodeWithTag("slice-layers-range-title").assertIsDisplayed()
+            compose.onNodeWithText("25").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { result.previewSelection?.blockSize == 25 }
+            assertEquals("layer preview control must update the active G-code range policy", 25,
+                result.previewSelection?.blockSize)
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlicePerformance))
+                .assertIsDisplayed().performClick()
+            assertEquals("performance result action must toggle the preference", !oldPerformanceMode,
+                Prefs.isPerformanceModeEnabled())
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlicePerformance))
+                .assertIsDisplayed().performClick()
+            assertEquals("second toggle must restore the original preference", oldPerformanceMode,
+                Prefs.isPerformanceModeEnabled())
+            assertTrue("result actions must not replace or release the active G-code result",
+                glView.renderer.gcodeResult === result)
+        } finally {
+            Prefs.setPerformanceModeEnabled(oldPerformanceMode)
+            prefs.edit().apply {
+                if (oldGatePrinter == null) remove("mmu_choice_printer") else putString("mmu_choice_printer", oldGatePrinter)
+                if (oldGateChoices == null) remove("mmu_choice_gates") else putString("mmu_choice_gates", oldGateChoices)
+            }.commit()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun multiPlateProjectExportWarnsAndCancelDoesNotOpenDocumentPicker() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -816,6 +916,17 @@ class InitialProjectMenuDeviceTest {
     private fun instrumentationWaitForGlIdle() {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         SystemClock.sleep(250L)
+    }
+
+    private fun readGCodeOptionOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, option: Int): Boolean {
+        val finished = CountDownLatch(1)
+        val visible = AtomicReference<Boolean>()
+        glView.queueEvent {
+            visible.set(requireNotNull(glView.renderer.viewer).isOptionVisible(option))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return G-code option visibility", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(visible.get())
     }
 
     private fun readScaleOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Vec3d {
