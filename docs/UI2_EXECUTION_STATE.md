@@ -1,3 +1,9 @@
+## Fortsetzung 2026-10-18 — Einstellungs-Auswahldialoge
+
+- `SettingsChoiceDialogDeviceTest` auf Honor PTP-N49 / Android 16: 6/6 bestanden (JUnit-XML-Zeitstempel im aktuellen SliceTest-Ergebnis), 0 Skips/Fehler. Geprüft: lange Auswahl mit Auswahl und Abbruch, Reset-Abbruch per Schaltfläche und Android-Zurück ohne Aufruf der destruktiven Aktion, Reset nur nach explizitem Bestätigen sowie Compose-Fehlerdialoge für nicht verfügbaren Ordnerpicker und scrollbare KromaCut-Meldung.
+- Damit summieren sich die gezielten Klassenläufe dieses Durchgangs auf 64 Testausführungen über elf Klassen, alle ohne Fehler/Skips. Überschneidungen mit vorherigen vollständigen Läufen sind möglich; nicht als eindeutige Full-Suite-Zahl verwenden.
+- Nächster konkreter Schritt: sichere Slicing-/Druckvorbereitungsaktionen und verbleibende globale Profil-/Druckmenüs anhand vorhandener Compose-Handler testen. Keine echten Druckstarts.
+
 ## Fortsetzung 2026-10-18 — Profil-IME, Import und Dialogregressionen
 
 - `ProfileSettingsImeDeviceTest` auf Honor PTP-N49 / Android 16: 11/11 bestanden, 0 Skips/Fehler (XML 2026-10-18T15:59:29). Geprüft: Profilfilter bei offener Tastatur, Back blendet IME vor dem Schließen des Dialogs aus, Workspace-Fehlerdialog, Profilimport inkl. Konflikt-Überschreiben/Abbruch, selektive 3MF-Settingsübernahme und Abbruch, Vereinfachungszustimmung und Prime-Tower-Draft-/Abbruch-/Apply-Aktionen.
