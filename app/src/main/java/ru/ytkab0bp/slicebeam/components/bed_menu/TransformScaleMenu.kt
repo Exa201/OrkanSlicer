@@ -74,6 +74,7 @@ import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.DoubleMatrix
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
+import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 import java.util.Locale
@@ -222,6 +223,7 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
                     activeRenderer.setSelectionScale(1.0, 1.0, 1.0)
                     activeRenderer.invalidateGlModel(index)
                     glView.requestRender()
+                    ViewUtils.postOnMainThread { bed.updateModel() }
                 }
             }
         }

@@ -1770,6 +1770,10 @@ plateObjectCounts = platesModels.map { it?.objectsCount ?: -1 }
 /** Import commits happen on the GL thread after the earlier placeholder count was published. */
 private fun onModelImportCommitted() {
     platePreviewRevision++
+    // Import replaces or extends the active model outside the user's edit history.
+    // Seed history from the committed model so the first subsequent edit can be undone
+    // without restoring the empty workspace snapshot captured during fragment setup.
+    resetModelHistory()
     updatePlateIndicator()
 }
 /** Reuse the native model bounds to draw tiny XY footprints; never render a second 3D scene. */

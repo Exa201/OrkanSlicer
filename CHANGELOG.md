@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.307 (alpha)
+
+- Reset model undo history after a successful import so the first subsequent edit restores the imported model instead of an empty workspace.
+- Record confirmed scale changes in undo history and cover cancel, apply, undo, redo, and tool Back on the Honor device.
+
 ## 0.8.306 (alpha)
 
 - Keep every visible action tile inside the two-row workspace menu viewport by accounting for its horizontal padding and column spacing.

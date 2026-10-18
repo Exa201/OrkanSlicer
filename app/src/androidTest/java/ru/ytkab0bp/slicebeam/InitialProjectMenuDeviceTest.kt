@@ -40,6 +40,8 @@ import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.Vec3d
+import java.util.concurrent.atomic.AtomicReference
 
 /** Reproduces the first Project tap after a cold workspace launch. */
 @RunWith(AndroidJUnit4::class)
@@ -244,6 +246,105 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun editScaleActionCancelsWithoutMutationAndAppliesOnlyAfterConfirmation() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-scale-action-test.stl")
+        val previousLinked = Prefs.isScaleLinked()
+        val previousMillimeters = Prefs.isScaleInputInMM()
+        Prefs.setScaleLinked(false)
+        Prefs.setScaleInputInMM(false)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val loadDone = CountDownLatch(1)
+            val loaded = AtomicReference<Model?>()
+            val loadError = AtomicReference<Exception?>()
+            bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    loaded.set(loadedModel)
+                    loadDone.countDown()
+                }
+
+                override fun onFailed(error: Exception) {
+                    loadError.set(error)
+                    loadDone.countDown()
+                }
+            })
+            assertTrue("temporary scale model should finish loading", loadDone.await(60, TimeUnit.SECONDS))
+            val model = requireNotNull(loaded.get()) { "temporary scale model failed: ${loadError.get()}" }
+            assertEquals(1, model.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarNavigation))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuTransformScale))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(6)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription("X, X =", substring = true).assertIsDisplayed()
+            val original = readScaleOnGl(glView, 0)
+
+            compose.onNodeWithContentDescription("X, X =", substring = true).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ScaleManualPercent))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val cancelledScaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            cancelledScaleField.performTextClearance()
+            cancelledScaleField.performTextInput("150")
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            compose.waitForIdle()
+            val afterCancel = readScaleOnGl(glView, 0)
+            assertEquals("cancelling the manual editor must preserve X", original.x, afterCancel.x, 0.0001)
+            assertEquals("cancelling the manual editor must preserve Y", original.y, afterCancel.y, 0.0001)
+            assertEquals("cancelling the manual editor must preserve Z", original.z, afterCancel.z, 0.0001)
+
+            compose.onNodeWithContentDescription("X, X =", substring = true).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ScaleManualPercent))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val confirmedScaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            confirmedScaleField.performTextClearance()
+            confirmedScaleField.performTextInput("125")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            val afterApply = readScaleOnGl(glView, 0)
+            assertEquals("confirming X=125% should scale only X", original.x * 1.25, afterApply.x, 0.002)
+            assertEquals("unlinked X scaling should preserve Y", original.y, afterApply.y, 0.002)
+            assertEquals("unlinked X scaling should preserve Z", original.z, afterApply.z, 0.002)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            val afterUndo = readScaleOnGl(glView, 0)
+            assertEquals("Undo should restore the pre-scale model", original.x, afterUndo.x, 0.002)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            val afterRedo = readScaleOnGl(glView, 0)
+            assertEquals("Redo should restore the confirmed scale", original.x * 1.25, afterRedo.x, 0.002)
+
+            val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            assertTrue("workspace host should consume Back while the scale tool is active", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 5_000) {
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == null
+            }
+            assertEquals("Android Back should clear the active scale tool", null,
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController))
+            assertEquals("closing the tool must keep the committed scale", original.x * 1.25,
+                readScaleOnGl(glView, 0).x, 0.002)
+        } finally {
+            Prefs.setScaleLinked(previousLinked)
+            Prefs.setScaleInputInMM(previousMillimeters)
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelObjectsMenuAssignmentOverridesImportedThreeMfMaterial() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -306,6 +407,29 @@ class InitialProjectMenuDeviceTest {
     private fun instrumentationWaitForGlIdle() {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         SystemClock.sleep(250L)
+    }
+
+    private fun readScaleOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Vec3d {
+        val finished = CountDownLatch(1)
+        val scale = AtomicReference<Vec3d?>()
+        val failure = AtomicReference<Throwable?>()
+        glView.queueEvent {
+            try {
+                val model = requireNotNull(glView.renderer.model)
+                check(model.pointer != 0L) { "Renderer returned a released native model" }
+                check(index in 0 until model.objectsCount) {
+                    "Renderer model has ${model.objectsCount} objects; requested scale for index $index"
+                }
+                scale.set(Vec3d().also { model.getScale(index, it) })
+            } catch (error: Throwable) {
+                failure.set(error)
+            } finally {
+                finished.countDown()
+            }
+        }
+        assertTrue("GL thread did not return model scale", finished.await(10, TimeUnit.SECONDS))
+        failure.get()?.let { throw AssertionError("Could not read model scale on GL thread", it) }
+        return requireNotNull(scale.get())
     }
 
     private fun createInitializedActivityRule() = run {
