@@ -996,3 +996,7 @@ Final import-consent device check and Debug APK (2026-10-16):
 - `WorkspaceNavigationDeviceTest`: 1/1; `PaintModeComposeDeviceTest`: 2/2 für getrennte Commit-/Cancel-Aktionen; `GlModePanelsComposeDeviceTest`: 5/5 für Compose-Workspace-Panel, Backdrop-Dismiss und Variable-Layer-/Emboss-/Measure-Panels; `WorkspaceToolOverlayDeviceTest`: 1/1 für Outside-Tap-Dismiss. Alle Läufe auf Honor PTP-N49 / Android 16, jeweils 0 Skips/Fehler; Emulator offline.
 - Zusammen mit den direkt zuvor dokumentierten Settings (7/7), Filament-/Platten-Compose (15/15) und großem Enum-Dialog (1/1) wurden acht gezielte Klassenläufe mit 46 bestandenen Testausführungen durchgeführt. Das ist keine einzigartige Suite-Zahl und keine Vollabnahme aller Menüs.
 - Nachweis nach letztem Lauf: Systemschrift 1.0, Paket `com.codemastercody3d.orcaslicermobile` / `MainActivity` top-resumed. Frische 5.000-Zeilen-Logcat-Stichprobe ohne FATAL EXCEPTION, ANR, OOM oder Fatal signal.
+## Accessibility-Einstellungssektion auf Honor (2026-10-18)
+
+- `SettingsAccessibilityDeviceTest.interfaceSectionAnnouncesExpansionAndKeepsSettingsActionsReachable`: Honor PTP-N49 / Android 16, 1/1 bestanden, 0 Skips/Fehler (XML-Zeitstempel 2026-10-18T15:57:41). Verifiziert die Compose-Semantik zur Ankündigung der Interface-Sektion und Erreichbarkeit ihrer Einstellungsaktionen. Keine manuelle TalkBack-Traversierung.
+- System-Font-Scale 1.0 und OrkanSlicer-`MainActivity` im Vordergrund bestätigt. Frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker; Emulator offline.
