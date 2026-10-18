@@ -521,6 +521,109 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun sliceResultExportUsesDocumentPickerAndWritesTheGeneratedGcode() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "slice-result-export-model-${System.nanoTime()}.stl")
+        val output = File(activity.cacheDir, "slice-result-export-${System.nanoTime()}.gcode")
+        val requestCode = MainActivity.REQUEST_CODE_EXPORT_GCODE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        val outputUri = FileProvider.getUriForFile(activity, authority, output)
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val oldPerformanceMode = Prefs.isPerformanceModeEnabled()
+        val oldGatePrinter = prefs.getString("mmu_choice_printer", null)
+        val oldGateChoices = prefs.getString("mmu_choice_gates", null)
+
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("pre-slice-confirm").performClick()
+
+            val mismatchContinue = compose.onAllNodesWithText(
+                activity.getString(R.string.PreSliceMaterialMismatchContinue),
+            )
+            if (mismatchContinue.fetchSemanticsNodes().isNotEmpty()) {
+                mismatchContinue.get(0).assertIsDisplayed().performClick()
+            }
+            compose.waitUntil(timeoutMillis = 120_000) {
+                bed.hasSliceResult() && BedFragment.tempGCodePath.isFile && BedFragment.tempGCodePath.length() > 0
+            }
+
+            compose.onNodeWithText(activity.getString(R.string.GCodeExportShort))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            val request = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, request.action)
+            assertEquals("application/x-gcode", request.type)
+            assertEquals(requireNotNull(bed.glView).renderer.gcodeResult!!.getRecommendedName(),
+                request.getStringExtra(Intent.EXTRA_TITLE))
+
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_CANCELED, Intent())
+            }
+            assertFalse("canceling the G-code save must not create an output file", output.exists())
+
+            capturedIntent.set(null)
+            compose.onNodeWithText(activity.getString(R.string.GCodeExportShort))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, Intent().setData(outputUri))
+            }
+            compose.waitUntil(timeoutMillis = 10_000) { output.isFile && output.length() > 0L }
+            assertTrue("export must preserve the generated G-code bytes",
+                output.readBytes().contentEquals(BedFragment.tempGCodePath.readBytes()))
+        } finally {
+            launchers[requestCode] = previousLauncher
+            Prefs.setPerformanceModeEnabled(oldPerformanceMode)
+            prefs.edit().apply {
+                if (oldGatePrinter == null) remove("mmu_choice_printer") else putString("mmu_choice_printer", oldGatePrinter)
+                if (oldGateChoices == null) remove("mmu_choice_gates") else putString("mmu_choice_gates", oldGateChoices)
+            }.commit()
+            output.delete()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun multiPlateProjectExportWarnsAndCancelDoesNotOpenDocumentPicker() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

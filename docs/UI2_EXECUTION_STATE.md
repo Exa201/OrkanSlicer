@@ -2,6 +2,7 @@
 
 ## Vollständiger Honor-Regressionslauf — 2026-10-18
 
+- Neuester Projektmenü-/Slicing-Exportlauf: `InitialProjectMenuDeviceTest` 21/21 bestanden, 0 Fehler/Errors/Skips; XML `2026-10-18T21:32:52` UTC. Das neue Slicing-Exportgerätetest sliced ein Testmodell, prüft den echten `ACTION_CREATE_DOCUMENT`-Request mit G-code-MIME-Typ und empfohlenem Dateinamen, kontrolliert Abbruch ohne Datei und vergleicht nach echtem Resultatcallback die exportierten Bytes mit dem erzeugten G-code. Kein Druckstart/Upload.
 - Neuester gezielter Lauf nach Erweiterung des Projektmenütests: `InitialProjectMenuDeviceTest` 20/20 bestanden auf Honor PTP-N49 / Android 16, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T21:29:23` UTC. Ein- und Mehrfachauswahl-STL werden durch den echten Activity-Result-Handler geladen; der Mehrfachimport erfolgt sequenziell und entfernt seine temporären Cachedateien. Der Test der Mehrplattenwarnung bestätigt Dateiauswahl-Intent und unveränderten Plattenzustand bei Abbruch.
 - JVM-Suiten nach dem test-only Update: `:app:testDebugUnitTest` 561/561 und `:app:testSliceTestUnitTest` 561/561 bestanden, jeweils 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T21:21Z`.
 - `:app:connectedSliceTestAndroidTest`: JUnit-Aggregat `193` Tests, `188` bestanden, `5` wegen nicht verfügbarer privater KromaCut-/Mehrfarben-Fixtures übersprungen, `0` fehlgeschlagen/Errors. XML-Zeitstempel `2026-10-18T21:19:34` UTC. Honor PTP-N49 / Android 16; Emulator offline.
