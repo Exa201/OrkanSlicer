@@ -979,4 +979,3 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Auf Honor PTP-N49 / Android 16 wurde `ProfileEnumOptionAccessibilityDeviceTest.largeEnumDialogCanScrollToLastChoiceAndStillDismissWithoutApplying` ausgeführt: 1/1 bestanden, 0 übersprungen, 0 fehlgeschlagen. Das Compose-Testfenster verwendet 320 dp × 640 dp und 150 % Schrift; die Liste wird bis zur letzten Bettoberflächenoption gescrollt, „Abbrechen“ bleibt erreichbar, und kein neuer Wert wird übernommen.
 - Der reale Honor-Screenshot `app/build/reports/ui2-manual-audit/honor-150-profile-dialog-after-swipe.png` zeigt nach dem Scroll Titel, alle Auswahloptionen und den Abbrechen-Button gleichzeitig. Es wurde kein Fehler reproduziert.
 - Danach Systemschrift auf 1.0 zurückgesetzt und verifiziert. Foreground-Paket `com.codemastercody3d.orcaslicermobile`; Emulator offline. Es wurde ausschließlich Android-Testcode ergänzt; Runtime-Code und APK blieben unverändert.
-
