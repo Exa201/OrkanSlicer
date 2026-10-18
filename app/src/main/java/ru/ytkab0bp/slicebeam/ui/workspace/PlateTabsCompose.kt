@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -104,7 +105,11 @@ internal fun PlateTabs(
         screenHeightDp, LocalDensity.current.fontScale)
     val label = stringResource(R.string.PlateNumber, (selectedIndex + 1).toString())
     Surface(
-        modifier = Modifier.size(OrkanUiTokens.touchTarget).semantics { contentDescription = label }
+        // The two counter labels scale with system font size. Keep the 48 dp minimum
+        // touch target, but let the control grow vertically instead of clipping `/count`.
+        modifier = Modifier.width(OrkanUiTokens.touchTarget)
+            .heightIn(min = OrkanUiTokens.touchTarget)
+            .semantics { contentDescription = label }
             .clickable(role = Role.Button) { open = true; onOpen() },
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         color = MaterialTheme.colorScheme.surfaceVariant,

@@ -125,7 +125,7 @@ internal fun WorkspaceShell(
                 horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.compactGap),
             ) {
                 WorkspaceActionControl(filamentButtonContent)
-                WorkspaceActionControl(platePickerContent)
+                WorkspaceActionControl(platePickerContent, allowVerticalGrowth = true)
                 WorkspaceActionControl(printerWebButtonContent)
             }
         }
@@ -238,9 +238,17 @@ private fun WorkspaceMenuHost(
 }
 
 @Composable
-private fun WorkspaceActionControl(content: @Composable () -> Unit) {
+internal fun WorkspaceActionControl(
+    content: @Composable () -> Unit,
+    allowVerticalGrowth: Boolean = false,
+) {
     Box(
-        modifier = Modifier.size(OrkanUiTokens.touchTarget),
+        // Preserve the compact target at normal text sizes while allowing content such
+        // as the two-line plate counter to expand at large accessibility font scales.
+        modifier = Modifier.width(OrkanUiTokens.touchTarget).then(
+            if (allowVerticalGrowth) Modifier.heightIn(min = OrkanUiTokens.touchTarget)
+            else Modifier.height(OrkanUiTokens.touchTarget),
+        ),
         contentAlignment = androidx.compose.ui.Alignment.Center,
     ) { content() }
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.303 (alpha)
+
+- Let the workspace plate counter grow with system font scale so the selected and total plate numbers remain visible at large accessibility text sizes.
+- Add a 150% font-scale Compose regression check and verify the responsive workspace on Honor PTP-N49.
+
 ## 0.8.302 (alpha)
 
 - Move workspace tool panel sizing from BedFragment's Android FrameLayout pixel measurements into a Compose-owned, dp-based responsive sizing policy while preserving the existing per-tool dimensions.

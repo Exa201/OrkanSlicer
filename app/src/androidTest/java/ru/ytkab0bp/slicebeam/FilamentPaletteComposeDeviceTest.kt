@@ -315,6 +315,36 @@ class FilamentPaletteComposeDeviceTest {
     }
 
     @Test
+    fun plateCounterExpandsAtLargeFontScaleInsteadOfClippingItsCount() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val open = mutableStateOf(false)
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f, 1.5f),
+                LocalConfiguration provides Configuration().apply {
+                    screenWidthDp = 360
+                    screenHeightDp = 800
+                },
+            ) {
+                BeamComposeTheme {
+                    PlateTabs(
+                        openState = open,
+                        plateCount = 1,
+                        selectedIndex = 0,
+                        objectCounts = listOf(0),
+                        thumbnails = listOf(PlateThumbnail(emptyList())),
+                        onOpen = {}, onDismiss = {}, onSelect = {}, onClose = {}, onAdd = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription(context.getString(R.string.PlateNumber, "1"))
+            .assertIsDisplayed()
+            .assertHeightIsAtLeast(52.dp)
+    }
+
+    @Test
     fun platePickerSelectsLastPlateAcrossStressProjectSizes() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val count = mutableIntStateOf(1)
