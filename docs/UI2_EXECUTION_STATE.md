@@ -776,6 +776,14 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Preserve the unrelated untracked `.codex-remote-attachments/` directory; never stage it.
 - PR #2 is open, unmerged, and targets `master`. Code and verification documentation have been pushed to `codex/rinkhals-safe-start-audit`; the latest GitHub check reported `OPEN` and `CLEAN`. No merge or release was performed.
 - Next implementation task: continue the remaining active GL-tool and global menu route audit, then run responsive/accessibility configurations. Expand actual filament and plate UI interaction coverage where the existing Honor harness allows. Keep generic dialog hosts unchanged until an IME-aware device test is in place. Multi-plate project persistence remains separate and incomplete. Do not claim the overall migration complete.
+
+### 2026-10-18 continuation: app-settings action
+
+- Added `SettingsMenuActionDeviceTest.renderScaleSelectionPersistsAndAndroidBackLeavesItUnchanged`.
+- Honor PTP-N49 / Android 16: targeted Slice instrumentation passed 1/1. The test navigates into the real app Settings destination, opens Interface → Resolution scale, selects another value, confirms the preference changed, opens the options again, presses Android Back, confirms the applied value remains unchanged, and restores the original preference in `finally`.
+- Emulator `emulator-5554` remains offline and was skipped. This is one tested settings action, not a complete App Settings audit. No runtime source or APK changed; no build/test result is claimed for other settings actions.
+- The initial Gradle invocation lacked `ANDROID_HOME`; using the existing `%LOCALAPPDATA%\Android\Sdk` resolved SDK discovery. An intermediate test assertion was corrected to account for the selected percentage appearing both in the setting summary and the open choice list. Final targeted device test passed.
+- Next: continue actual, safe global-menu actions and responsive/accessibility checks; preserve the active-plate-only export warning and the unverified multi-plate serializer boundary.
 # Continuation update — Project/Files on-device action check (2026-10-18)
 
 - Phase 4 remains complete at its accepted architecture scope; no new runtime code change was required in this pass.
