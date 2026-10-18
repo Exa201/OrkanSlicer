@@ -81,7 +81,11 @@ internal data class BedComposeMenuAction(
 /** Keeps phone portrait actions wide enough to read; longer menus remain swipeable. */
 internal object BedMenuActionTileWidthPolicy {
     fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
-        if (fontScale >= 1.15f || screenWidthDp < 400) 3 else 4
+        when {
+            fontScale >= 1.3f -> 2
+            fontScale >= 1.15f || screenWidthDp < 400 -> 3
+            else -> 4
+        }
 
     /** Avoid showing a clipped last action in a single-row phone menu. */
     fun usesTwoRows(actionCount: Int, portrait: Boolean, screenWidthDp: Int, fontScale: Float): Boolean =
@@ -121,6 +125,7 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             LocalConfiguration.current.screenWidthDp,
             actions.size,
         ).dp
+        val tileHeight = if (fontScale >= 1.3f) 82.dp else OrkanUiTokens.menuTileHeight
         LazyRow(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 3.dp),
@@ -132,7 +137,7 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
                     action,
                     portrait = true,
                     menuView = menuView,
-                    modifier = Modifier.width(portraitActionTileWidth).height(OrkanUiTokens.menuTileHeight),
+                    modifier = Modifier.width(portraitActionTileWidth).height(tileHeight),
                 )
             }
         }
@@ -169,6 +174,8 @@ private fun BedMenuActionTile(
     val fontScale = LocalDensity.current.fontScale
     val compactLabel = when (action.titleRes) {
         R.string.MenuCameraIsometric -> if (fontScale >= 1.3f) R.string.MenuCameraIsometricCompact else action.titleRes
+        R.string.MenuFileImportProfiles -> if (fontScale >= 1.3f) R.string.MenuFileImportProfilesCompact else action.titleRes
+        R.string.MenuFileExportProfiles -> if (fontScale >= 1.3f) R.string.MenuFileExportProfilesCompact else action.titleRes
         R.string.ModelUndo -> R.string.EditUndoShort
         R.string.ModelRedo -> R.string.EditRedoShort
         R.string.MenuArrangeAllObjects -> R.string.EditArrangeAllShort

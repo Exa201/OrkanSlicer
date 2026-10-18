@@ -66,8 +66,8 @@ object WorkspaceToolPanelPolicy {
 
     @JvmStatic
     fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float): Int {
-        if (!needsTwoRows) return COMPACT_MENU_HEIGHT_DP
-        return if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
+        if (!needsTwoRows) return if (fontScale >= 1.3f) 88 else COMPACT_MENU_HEIGHT_DP
+        return if (fontScale >= 1.3f) 176 else if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
     }
 
     @JvmStatic

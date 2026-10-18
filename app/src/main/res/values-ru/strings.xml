@@ -107,6 +107,7 @@
     <string name="MenuFileCalibrationsModelsPyramid">Пирамида</string>
     <string name="MenuFileCalibrationsModelsSphere">Сфера</string>
     <string name="MenuFileImportProfiles">Импорт. профилей</string>
+    <string name="MenuFileImportProfilesCompact">Импорт</string>
     <string name="MenuFileImportProfilesFailed">Не удалось импортировать</string>
     <string name="MenuFileImportProfilesFailedBaseProfileNotFound">Родительский профиль не найден: %s</string>
     <string name="MenuFileImportProfilesFailedNotIni">Не файл .ini</string>
@@ -131,6 +132,7 @@
     <plurals name="MenuFileImportProfilesImportedCount"><item quantity="one">Импортирован %1$d профиль.</item><item quantity="few">Импортировано %1$d профиля.</item><item quantity="many">Импортировано %1$d профилей.</item><item quantity="other">Импортировано профилей: %1$d.</item></plurals>
     <plurals name="MenuFileImportProfilesSkippedCount"><item quantity="one">Пропущен %1$d существующий профиль.</item><item quantity="few">Пропущено %1$d существующих профиля.</item><item quantity="many">Пропущено %1$d существующих профилей.</item><item quantity="other">Пропущено существующих профилей: %1$d.</item></plurals>
     <string name="MenuFileExportProfiles">Экспорт. профилей</string>
+    <string name="MenuFileExportProfilesCompact">Экспорт</string>
     <string name="MenuFileExportProfilesPrints">Профили печати</string>
     <string name="MenuFileExportProfilesFilaments">Филаменты</string>
     <string name="MenuFileExportProfilesPrinters">Принтеры</string>

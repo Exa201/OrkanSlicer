@@ -25,11 +25,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import ru.ytkab0bp.slicebeam.R
@@ -47,7 +49,7 @@ internal fun SliceChoiceField(
     var expanded by remember { mutableStateOf(false) }
     var query by remember(options) { mutableStateOf("") }
     val selectedLabel = options.getOrNull(selectedIndex).orEmpty().ifBlank { "—" }
-    val searchable = options.size >= SliceChoiceFilter.SEARCH_THRESHOLD
+    val searchable = SliceChoiceFilter.usesSearch(options.size, LocalDensity.current.fontScale)
     val visibleOptions = remember(options, query) { SliceChoiceFilter.indices(options, query) }
     val availableDialogHeight = (LocalConfiguration.current.screenHeightDp - 48).coerceAtLeast(180)
 
@@ -61,7 +63,8 @@ internal fun SliceChoiceField(
             OutlinedButton(
                 onClick = { query = ""; expanded = true },
                 enabled = options.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                    .testTag("slice-choice-field-$label"),
                 shape = RoundedCornerShape(12.dp),
             ) {
                 Row(
@@ -102,7 +105,7 @@ internal fun SliceChoiceField(
                                 OutlinedTextField(
                                     value = query,
                                     onValueChange = { query = it },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().testTag("slice-choice-search"),
                                     singleLine = true,
                                     label = { Text(stringResource(R.string.SliceChoiceSearchHint)) },
                                 )
@@ -176,6 +179,10 @@ internal fun SliceChoiceField(
 /** Keeps long profile menus cheap to compose while preserving the source indices for selection. */
 internal object SliceChoiceFilter {
     const val SEARCH_THRESHOLD = 12
+    const val LARGE_TEXT_SEARCH_THRESHOLD = 1.3f
+
+    fun usesSearch(optionCount: Int, fontScale: Float): Boolean =
+        optionCount >= SEARCH_THRESHOLD || fontScale >= LARGE_TEXT_SEARCH_THRESHOLD
 
     fun indices(options: List<String>, query: String): List<Int> {
         val normalizedQuery = query.trim().lowercase(Locale.ROOT)

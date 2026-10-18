@@ -18,7 +18,7 @@ class WorkspaceToolPanelPolicyTest {
     fun twoRowActionsGrowForLargeSystemText() {
         assertEquals(140, WorkspaceToolPanelPolicy.menuHeightDp(true, 1f))
         assertEquals(160, WorkspaceToolPanelPolicy.menuHeightDp(true, 1.15f))
-        assertEquals(68, WorkspaceToolPanelPolicy.menuHeightDp(false, 1.5f))
+        assertEquals(88, WorkspaceToolPanelPolicy.menuHeightDp(false, 1.5f))
     }
 
     @Test

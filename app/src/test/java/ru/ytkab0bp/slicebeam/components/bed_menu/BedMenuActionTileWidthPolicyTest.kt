@@ -11,6 +11,7 @@ class BedMenuActionTileWidthPolicyTest {
         assertEquals(3, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 366))
         assertEquals(4, BedMenuActionTileWidthPolicy.columnsForLayout(1f, 411))
         assertEquals(3, BedMenuActionTileWidthPolicy.columnsForLayout(1.15f, 411))
+        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.3f, 320))
     }
 
     @Test
@@ -45,6 +46,7 @@ class BedMenuActionTileWidthPolicyTest {
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(5, true, 411, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(4, true, 320, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(4, true, 411, 1.5f))
+        assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 320, 1.5f))
         assertFalse(BedMenuActionTileWidthPolicy.usesTwoRows(8, false, 411, 1.5f))
     }
 }

@@ -676,6 +676,7 @@
     <string name="MenuFileCalibrationsModelsPyramid">Pyramide</string>
     <string name="MenuFileCalibrationsModelsSphere">Kugel</string>
     <string name="MenuFileImportProfiles">Profile importieren</string>
+    <string name="MenuFileImportProfilesCompact">Import</string>
     <string name="MenuFileImportProfilesFailed">Import fehlgeschlagen</string>
     <string name="MenuFileImportProfilesFailedBaseProfileNotFound">Basisprofil nicht gefunden: %s</string>
     <string name="MenuFileImportProfilesFailedNotIni">Keine .ini-Datei</string>
@@ -700,6 +701,7 @@
     <plurals name="MenuFileImportProfilesImportedCount"><item quantity="one">%1$d Profil importiert.</item><item quantity="other">%1$d Profile importiert.</item></plurals>
     <plurals name="MenuFileImportProfilesSkippedCount"><item quantity="one">%1$d vorhandenes Profil übersprungen.</item><item quantity="other">%1$d vorhandene Profile übersprungen.</item></plurals>
     <string name="MenuFileExportProfiles">Profile exportieren</string>
+    <string name="MenuFileExportProfilesCompact">Export</string>
     <string name="MenuFileExportProfilesPrints">Druckkonfigurationen</string>
     <string name="MenuFileExportProfilesFilaments">Filamente</string>
     <string name="MenuFileExportProfilesPrinters">Drucker</string>

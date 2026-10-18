@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.303\n\n• Der Druckplattenzähler bleibt auch bei 150 % Systemschrift vollständig sichtbar. Benachbarte Filament- und Druckeraktionen behalten ihre kompakte Touchfläche.",
-  "en": "OrkanSlicer 0.8.303\n\n• The plate counter stays fully visible with 150% system text. Adjacent filament and printer actions keep their compact touch targets.",
-  "ru": "OrkanSlicer 0.8.303\n\n• Счётчик печатных пластин остаётся полностью видимым при системном масштабе текста 150 %. Соседние элементы филамента и принтера сохраняют компактные области нажатия."
+  "de": "OrkanSlicer 0.8.304\n\n• Die Werkzeugkacheln wechseln bei 130 % und größerer Systemschrift in ein breiteres, höheres Raster. Kalibrierungs- und Profilaktionen bleiben so auch auf schmalen Displays besser lesbar.\n• Der Druckplattenzähler bleibt bei 150 % Systemschrift vollständig sichtbar; benachbarte Filament- und Druckeraktionen behalten ihre kompakte Touchfläche.",
+  "en": "OrkanSlicer 0.8.304\n\n• Tool tiles switch to a wider, taller grid at 130% system text and above, keeping calibration and profile actions readable on narrow displays.\n• The plate counter stays fully visible with 150% system text while adjacent filament and printer actions keep compact touch targets.",
+  "ru": "OrkanSlicer 0.8.304\n\n• При масштабе системного текста от 130 % плитки инструментов переходят в более широкую и высокую сетку, чтобы действия калибровки и профилей оставались читаемыми на узких экранах.\n• Счётчик пластин остаётся полностью видимым при масштабе 150 %, а соседние элементы филамента и принтера сохраняют компактные области нажатия."
 }

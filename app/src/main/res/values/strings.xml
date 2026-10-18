@@ -684,6 +684,7 @@
     <string name="MenuFileCalibrationsModelsPyramid">Pyramid</string>
     <string name="MenuFileCalibrationsModelsSphere">Sphere</string>
     <string name="MenuFileImportProfiles">Import profiles</string>
+    <string name="MenuFileImportProfilesCompact">Import</string>
     <string name="MenuFileImportProfilesFailed">Import failed</string>
     <string name="MenuFileImportProfilesFailedBaseProfileNotFound">Parent profile not found: %s</string>
     <string name="MenuFileImportProfilesFailedNotIni">Not an .ini file</string>
@@ -708,6 +709,7 @@
     <plurals name="MenuFileImportProfilesImportedCount"><item quantity="one">%1$d profile imported.</item><item quantity="other">%1$d profiles imported.</item></plurals>
     <plurals name="MenuFileImportProfilesSkippedCount"><item quantity="one">%1$d existing profile skipped.</item><item quantity="other">%1$d existing profiles skipped.</item></plurals>
     <string name="MenuFileExportProfiles">Export profiles</string>
+    <string name="MenuFileExportProfilesCompact">Export</string>
     <string name="MenuFileExportProfilesPrints">Print configs</string>
     <string name="MenuFileExportProfilesFilaments">Filaments</string>
     <string name="MenuFileExportProfilesPrinters">Printers</string>

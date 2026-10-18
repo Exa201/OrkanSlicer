@@ -14,10 +14,12 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.performScrollToIndex
@@ -36,6 +38,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.components.bed_menu.SliceChoiceField
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateTabs
 import ru.ytkab0bp.slicebeam.ui.workspace.PlateThumbnail
 import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
@@ -582,5 +585,70 @@ class FilamentPaletteComposeDeviceTest {
         lastAction.assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         lastAction.performClick()
         compose.runOnIdle { assertEquals(actionTitles.last(), selectedTitle) }
+    }
+
+    @Test
+    fun profileChoiceUsesSearchAtLargeTextAndSelectsMatchingOption() {
+        var selectedIndex = 0
+        val options = listOf("Standard 0.20", "Fine 0.12", "Ultra fine 0.06")
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
+                BeamComposeTheme {
+                    SliceChoiceField(
+                        label = "Process profile",
+                        selectedIndex = selectedIndex,
+                        options = options,
+                        onSelected = { selectedIndex = it },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("slice-choice-field-Process profile").performClick()
+        compose.onNodeWithTag("slice-choice-search").assertIsDisplayed().performTextInput("Ultra fine")
+        compose.onNodeWithText("Ultra fine 0.06").performClick()
+        compose.runOnIdle { assertEquals(2, selectedIndex) }
+    }
+
+    @Test
+    fun shortOptionsMenuUsesWiderReadableTilesAt320DpAnd150PercentText() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val actionTitles = listOf(
+            R.string.MenuFileCalibrations,
+            R.string.MenuFileImportProfiles,
+            R.string.MenuFileExportProfiles,
+        )
+        val configuration = Configuration().apply {
+            screenWidthDp = 320
+            screenHeightDp = 800
+        }
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f, 1.5f),
+                LocalConfiguration provides configuration,
+            ) {
+                BeamComposeTheme {
+                    Box(Modifier.width(320.dp).height(176.dp)) {
+                        BedMenuActionsContent(
+                            actions = actionTitles.map { title ->
+                                BedComposeMenuAction(
+                                    titleRes = title,
+                                    iconRes = R.drawable.menu_calibrate_la_28,
+                                    onClick = {},
+                                )
+                            },
+                            portrait = true,
+                        )
+                    }
+                }
+            }
+        }
+
+        for (title in actionTitles) {
+            val action = compose.onNodeWithContentDescription(context.getString(title)).assertIsDisplayed()
+            action.assertWidthIsAtLeast(120.dp).assertHeightIsAtLeast(48.dp)
+        }
+        compose.onNodeWithText(context.getString(R.string.MenuFileImportProfilesCompact)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.MenuFileExportProfilesCompact)).assertIsDisplayed()
     }
 }
