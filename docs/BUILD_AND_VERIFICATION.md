@@ -1115,3 +1115,7 @@ Final import-consent device check and Debug APK (2026-10-16):
 ## Honor profile dropdown — 2026-10-18
 
 `PrintProfileDropdownIntegrationDeviceTest` passed 7/7 on Honor PTP-N49 / Android 16 (0 skipped, 0 failed; JUnit XML timestamp 2026-10-18T18:09:03). The added real UI test covers a numeric filament profile draft: Cancel and Android Back discard the dialog edit; Apply stages the value in the draft without mutating the stored preset. The test clears its draft afterward. Test-only change; no runtime change or APK rebuild. Phase 5 action audit and Phase 6 manual TalkBack/display acceptance remain open. The current release remains the v0.8.312 debug verification snapshot.
+
+## Printer profile save flow — Honor, 2026-10-18
+
+The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP-N49 / Android 16 (0 skipped, 0 failed; XML timestamp `2026-10-18T18:11:54`). The new integration case changed `curr_bed_type`, confirmed the Compose profile-save dialog, verified the persisted test-profile value, and restored the fixture in cleanup. This remains test-only; no runtime change or APK rebuild. Phase 5 global/menu action coverage and Phase 6 manual TalkBack/physical display acceptance remain open.

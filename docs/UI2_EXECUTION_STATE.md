@@ -1062,3 +1062,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Der ergänzte Test bearbeitet den numerischen Filamentwert `filament_diameter` am Testprofil: Cancel und Android-Back verwerfen den unbestätigten Dialogwert; Apply schreibt nur in den Profilentwurf, nicht in den gespeicherten Preset. Der Testentwurf wird nachher entfernt.
 - Nur Instrumentierungstest und Testdokumentation geändert; kein Runtime-Code, kein neuer APK-Build. Release bleibt der Debug-Snapshot v0.8.312.
 - Phase 5 bleibt offen: vollständige Aktionsabnahme aller Haupt- und globalen Menüs ist nicht erreicht. Phase 6 bleibt wegen manueller TalkBack-Prüfung und nativer zusätzlicher Displaykonfigurationen offen. Nächste Aufgabe: Inventar der noch nicht durch Tests abgedeckten Drucker-/Rinkhals-Workspace-Aktionen aus ihren tatsächlichen Compose-Handlern erstellen und isoliert testen.
+
+## Druckerprofil speichern auf Honor (2026-10-18, 18:11 UTC)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: kompletter Lauf 8/8 bestanden auf Honor PTP-N49 / Android 16, 0 Skips/Fehler. JUnit-XML-Zeitstempel `2026-10-18T18:11:54`.
+- Der neue Integrationstest ändert `curr_bed_type` im Druckerprofil, bestätigt den Compose-Speicherdialog, prüft die persistierte Einstellung und stellt danach den ursprünglichen Testfixture-Wert wieder her. Zusammen deckt die Klasse Profil-Dropdowns, Auswahl-/Back-Abbruch, Filamentwert als Entwurf sowie Druckbett-Auswahl und Speichern ab.
+- Test und Verifikationsdokumentation geändert; kein Runtime-Code und kein APK-Build. Phase 5 bleibt offen für den noch nicht vollständigen Aktionsaudit von sechs Workspace-Menüs und globalen Drucker-/Rinkhals-Aktionen. Phase 6 bleibt offen für manuelle TalkBack- und zusätzliche physische Displayprüfungen.
+- Nächster konkreter Schritt: verbleibende Drucker-/Rinkhals-Workspace-Handler mit vorhandenen isolierten Netzwerk-/UI-Testmustern abgleichen und ungeprüfte Aktionen gezielt instrumentieren.

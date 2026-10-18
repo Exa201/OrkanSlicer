@@ -245,6 +245,60 @@ class PrintProfileDropdownIntegrationDeviceTest {
     }
 
     @Test
+    fun savingPrinterBedSurfaceDraftPersistsOnlyAfterSaveConfirmation() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printerTitle = requireNotNull(config.presets?.get("printer"))
+        val storedPrinter = requireNotNull(config.findPrinter(printerTitle))
+        val storedBedSurface = storedPrinter.get("curr_bed_type")
+        val option = requireNotNull(PrintConfigDef.getInstance().options["curr_bed_type"])
+        val optionTitle = Slic3rLocalization.getString(option.getLabel())
+        val optionValues = requireNotNull(option.enumValues)
+        val optionLabels = requireNotNull(option.enumLabels).map(Slic3rLocalization::getString)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+            }
+
+            val draft = activity.runOnUiThreadAndWait {
+                val fragment = activity.navigationDelegate.getCurrentFragment() as PrinterConfigFragment
+                PrinterConfigFragment::class.java.getDeclaredMethod("getCurrentConfig")
+                    .apply { isAccessible = true }
+                    .invoke(fragment) as ConfigObject
+            }
+            val currentValue = requireNotNull(draft.get("curr_bed_type"))
+            val targetIndex = optionValues.indices.first { optionValues[it] != currentValue }
+            val targetValue = optionValues[targetIndex]
+            val targetLabel = optionLabels[targetIndex]
+
+            val generalCategory = Slic3rLocalization.getString("General")
+            compose.onNodeWithText(generalCategory).performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsSave)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsSaveTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+
+            compose.waitUntil(timeoutMillis = 10_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) == 0 &&
+                    storedPrinter.get("curr_bed_type") == targetValue
+            }
+            assertEquals("The confirmed profile save applies the selected surface", targetValue,
+                storedPrinter.get("curr_bed_type"))
+            assertEquals("Saving the current profile leaves printer selection intact", printerTitle,
+                config.presets?.get("printer"))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
+            storedPrinter.put("curr_bed_type", storedBedSurface)
+            assertTrue("Restore the bundled printer fixture after the test", SliceBeam.saveConfig())
+        }
+    }
+
+    @Test
     fun printerProfilePickerBackDismissesWithoutChangingAnyActivePreset() {
         val activity = compose.activity
         val config = SliceBeam.requireConfig()
