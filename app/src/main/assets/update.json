@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.302\n\n• Die Größenberechnung von Werkzeugpanels liegt jetzt in Compose und verwendet responsive dp-Grenzen statt Android-View-Pixel.",
-  "en": "OrkanSlicer 0.8.302\n\n• Tool panel sizing now belongs to Compose and uses responsive dp constraints instead of Android View pixels.",
-  "ru": "OrkanSlicer 0.8.302\n\n• Размеры панелей инструментов теперь рассчитываются в Compose с адаптивными dp-ограничениями вместо пикселей Android View."
+  "de": "OrkanSlicer 0.8.303\n\n• Der Druckplattenzähler bleibt auch bei 150 % Systemschrift vollständig sichtbar. Benachbarte Filament- und Druckeraktionen behalten ihre kompakte Touchfläche.",
+  "en": "OrkanSlicer 0.8.303\n\n• The plate counter stays fully visible with 150% system text. Adjacent filament and printer actions keep their compact touch targets.",
+  "ru": "OrkanSlicer 0.8.303\n\n• Счётчик печатных пластин остаётся полностью видимым при системном масштабе текста 150 %. Соседние элементы филамента и принтера сохраняют компактные области нажатия."
 }
