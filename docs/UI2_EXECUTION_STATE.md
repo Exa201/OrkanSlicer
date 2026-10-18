@@ -1,8 +1,12 @@
+- `MmuFilamentSyncDeviceTest` auf Honor PTP-N49 / Android 16: 15/15 bestanden, 0 Skips/Fehler (JUnit-XML-Zeitstempel 2026-10-18T16:09:47). Der Test nutzt HTTP-/JSON-Testantworten und echte isolierte Preferences, die in `@After` wiederhergestellt werden. Geprüft: Filamentlisten 1/4/8/16/24 mit Hardwarelimit 16, ungültige/leere Gates, physische ACE-Gate-Indizes, Schutz gegen T-Command-/Slotverschiebung, Upload-Freshness bei entleertem oder geänderten Gate, Lösch-/Refresh-Verhalten und Projekt-Auto-Sync (Dateifarben bleiben, manueller Sync ändert nur temporäre Palette).
+- Diese 15 Tests sind zusammen mit den zuvor dokumentierten 86 Testausführungen nun 101 gezielte Ausführungen über 19 Klassenläufe; in den ausgewählten Läufen keine Skips/Fehler. Frühere Vollsuite-Überschneidungen möglich. Es wurde kein echter Drucker angesprochen, kein Hardware-Slot geändert und kein Druck gestartet.
+- Letzter Gerätenachweis: Systemschrift 1.0, OrkanSlicer-`MainActivity` top-resumed, frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker.
+
 ## Fortsetzung 2026-10-18 — native Mehrplatten-/3MF-Integration
 
 - `MultiPlateProjectDeviceTest` auf Honor PTP-N49 / Android 16: 4/4 bestanden, 0 Skips/Fehler (XML-Zeitstempel 2026-10-18T16:07:31). Tests: `nativeProjectLoadsEveryPlateForSmallAndLargeProjects` und `eachPlateModelSurvivesNativeThreeMfExportAndReload` bearbeiten 1/3/6/10/20 Platten; `loadsEachPlateAndItsOwnColorFromTheSameProject` prüft unabhängige Farben/Filamentindizes; `workspaceLoadsTheSecondPlateWithoutLosingTheFirst` prüft Plattenwechsel im echten Workspace. temporäre Fixtures liegen in `cacheDir`, vorherige Config-/Preferencewerte werden wiederhergestellt.
 - Verifikation umfasst native Projekt-Importe und einzelne aktive Plattenexport-/Reloads. Sie beweist **keinen** vollständigen Export aller Platten in eine gemeinsame 3MF-Datei; diese Persistenzaufgabe bleibt offen und die Mehrplattenexportwarnung darf nicht entfernt werden.
-- Zusammenfassung der gezielten Läufe dieses Fortsetzungsdurchgangs: 83 Testausführungen in 18 Geräteklassenläufen, alle bestanden, keine Skips/Fehler in diesen gefilterten Läufen. Keine deduplizierte Suite-Zahl; Emulator offline.
+- Zusammenfassung der gezielten Läufe bis hier: 83 Testausführungen in 17 Geräteklassenläufen, alle bestanden, keine Skips/Fehler in diesen gefilterten Läufen. Keine deduplizierte Suite-Zahl; Emulator offline.
 - Nach dem Lauf Font-Scale 1.0 und OrkanSlicer `MainActivity` top-resumed; frische 5.000-Zeilen-Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker.
 - Nächster Schritt: weiter offene globale Druck-/Profil-Aktionen und Hauptmenüeinträge einem echten Handler-Test zuordnen; vollständigen Gesamtexport nicht vortäuschen.
 
@@ -10,14 +14,14 @@
 
 - `PrinterWebWorkspacePanelDeviceTest` auf Honor: 3/3 bestanden; native technische View wird nur im sichtbaren Compose-Panel gehalten und bei Schließen abgelöst, Retry/extern öffnen/Schließen rufen getrennte Aktionen auf, Bounds bleiben bei 320/360 dp und 130/150 % Schrift innerhalb des Panels.
 - `SafeStartComposeDeviceTest.recoveryScreenRendersAfterStoredCrashWithoutOpeningWorkspace`: Honor 1/1 bestanden; persistierte Crash-Recovery zeigt ihre Compose-Oberfläche, ohne den Workspace zu öffnen. Kein Druckstart.
-- Zusammen mit den vorherigen gezielten Läufen dieses Durchgangs: 79 ausgeführte Tests in 17 Klassenläufen, alle bestanden, keine Skips/Fehler in den fokussierten Läufen. Kein eindeutiger Gesamt-Suite-Zähler; Fälle überlappen möglicherweise mit älteren Voll-Läufen.
+- Zusammen mit den vorherigen gezielten Läufen dieses Durchgangs: 79 ausgeführte Tests in 16 Klassenläufen, alle bestanden, keine Skips/Fehler in den fokussierten Läufen. Kein eindeutiger Gesamt-Suite-Zähler; Fälle überlappen möglicherweise mit älteren Voll-Läufen.
 - Runtime blieb unverändert; keine APK. Emulator offline. Moonraker-/Drucker-Webverbindung wurde nicht gegen einen realen Drucker getestet. Noch offen bleiben vollständiges Aktionsaudit, TalkBack manuell und native 320-dp-/Querformat-Konfiguration.
 - Nächster Schritt: verbleibende globale Filament-/Druckprofil-/Drucker-Menüaktionen mit tatsächlichen Handlern weiter abdecken; abschließend Testnachweise und PR-Head synchron halten.
 
 ## Fortsetzung 2026-10-18 — Sichere Slice-/Druckvorbereitung
 
 - Auf Honor PTP-N49 / Android 16 bestanden `SlicePrintPreparationComposeDeviceTest` 3/3, `SmartSliceDialogsDeviceTest` 5/5 und `QuickSliceDialogDeviceTest` 3/3, alle ohne Skip/Fehler. Geprüft: Abbruch dispatcht keinen Upload, Upload läuft nur über den injizierten Callback, Filamentzuweisungs-Abbruch/Back übernimmt keine Änderung, leere ACE-Warnung hält Upload und bestätigte Druckoption getrennt, ungültige Smart-Slice-Abmessungen werden verworfen, Formularabbruch/Back startet keine Analyse, Analyseabbruch wird weitergereicht, Ergebnisdialog schließen startet kein Slicing, Quick-Slice-Validierung und Cancel/Back ohne Start.
-- Zusammen mit den vorher dokumentierten gezielten Klassen sind es nun 75 erfolgreiche Testausführungen in 15 separaten Klassenläufen dieses Durchgangs, jeweils 0 Fehler/Skips. Das sind Ausführungen, keine eindeutige Gesamtsuite; frühere Full-Suites können dieselben Fälle enthalten. Kein realer Druck gestartet.
+- Zusammen mit den vorher dokumentierten gezielten Klassen sind es nun 75 erfolgreiche Testausführungen in 14 separaten Klassenläufen dieses Durchgangs, jeweils 0 Fehler/Skips. Das sind Ausführungen, keine eindeutige Gesamtsuite; frühere Full-Suites können dieselben Fälle enthalten. Kein realer Druck gestartet.
 - Nächste konkrete Prüfung: Drucker-/Rinkhals-Workspace-Panel auf reale beziehungsweise isolierte Verbindungsaktionen testen; falls externe Verbindung erforderlich ist, diese Grenze konkret dokumentieren.
 
 ## Fortsetzung 2026-10-18 — Einstellungs-Auswahldialoge
