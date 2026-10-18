@@ -228,6 +228,43 @@ class PrintProfileDropdownIntegrationDeviceTest {
     }
 
     @Test
+    fun printerDashboardButtonOpensExternalBrowserForTheConfiguredProfile() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printerTitle = requireNotNull(config.presets?.get("printer"))
+        val printer = requireNotNull(config.findPrinter(printerTitle))
+        val originalHost = printer.get("print_host")
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+
+        try {
+            printer.put("print_host", "http://printer.invalid:7125")
+            check(SliceBeam.saveConfig()) { "Could not prepare the isolated printer dashboard fixture" }
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+            }
+            compose.onNodeWithContentDescription(activity.getString(R.string.PrinterOpenWebDescription))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !activity.hasWindowFocus() }
+
+            assertTrue("The configured dashboard action opens an external browser",
+                !activity.hasWindowFocus())
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitUntil(timeoutMillis = 5_000) { activity.hasWindowFocus() }
+        } finally {
+            if (!activity.hasWindowFocus()) {
+                instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            }
+            if (originalHost == null) printer.values.remove("print_host")
+            else printer.put("print_host", originalHost)
+            config.presets?.put("printer", printerTitle)
+            check(SliceBeam.saveConfig()) { "Could not restore the isolated printer dashboard fixture" }
+        }
+    }
+
+    @Test
     fun activeCompatibleProcessPresetIsSelectedInFilteredMenuSnapshot() {
         val activity = compose.activity
         val config = SliceBeam.requireConfig()

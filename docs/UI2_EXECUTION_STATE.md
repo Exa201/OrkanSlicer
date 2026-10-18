@@ -1,5 +1,14 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Fortsetzung — Dashboard-Handoff und Profilaktionsregression
+
+- `PrintProfileDropdownIntegrationDeviceTest`: kompletter Lauf 14/14 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:47:22`.
+- Der neue Gerätefall ändert temporär den isolierten Druckerhost auf `printer.invalid:7125`, öffnet über den echten Compose-Button die externe Dashboard-URL und kehrt per Android-Zurück zu OrkanSlicer zurück. `ActivityTaskManager` protokollierte den erwarteten Handoff an Brave mit `http://printer.invalid/`; der Zielhost ist reserviert und entspricht keinem realen Drucker. Ursprüngliche Konfiguration wird wiederhergestellt.
+- Der Instrumentation-`ActivityMonitor` konnte den `Context.startActivity(ACTION_VIEW)`-Aufruf nicht abfangen; stattdessen bestätigt der Integrationstest den tatsächlichen Browser-Handoff anhand des Activity-Fokus. Die URL-Auflösung selbst ist zusätzlich durch `PrinterWebOriginPolicyTest` abgesichert.
+- Frischer Logcat-Ausschnitt nach dem Lauf ohne Crash-/ANR-/OOM-/Fatalmarker; OrkanSlicer `MainActivity` anschließend wieder top-resumed. Keine Produktivcodeänderung und kein APK-Build.
+- Phase 5 bleibt offen für den vollständigen globalen Menü-/Rinkhals-Aktionsaudit. Phase 6 manuelle TalkBack- und weitere physische Displaychecks bleiben offen. Noch kein neuer Release; v0.8.312 bleibt letzter Snapshot.
+- Nächster Schritt: verbleibende sichere Drucker-/Rinkhals- und Profilaktionen weiter abgleichen und prüfen; nach Abschluss der Phase den vereinbarten Debug-Release vorbereiten.
+
 ## Fortsetzung — Prime-Tower- und Flush-Volume-Aktionen
 
 - `PrintProfileDropdownIntegrationDeviceTest`: Regression nach Integration beider Werkzeugaktionen 13/13 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; JUnit-XML-Zeitstempel `2026-10-18T18:43:06`.

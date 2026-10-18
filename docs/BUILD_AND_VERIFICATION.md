@@ -1,3 +1,10 @@
+## Drucker-Dashboard-Handoff und Profilmenü-Regression (2026-10-18, 18:47 Ortszeit)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: vollständige Regression 14/14 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:47:22`.
+- Der neue UI-Fall konfiguriert nur in der isolierten SliceTest-App `printer.invalid:7125`, aktiviert den Drucker-Dashboard-Button und bestätigt, dass die App an den externen Browser übergibt. `ActivityTaskManager` protokollierte `http://printer.invalid/`; anschließend kehrte der Test per Android-Zurück zur OrkanSlicer-MainActivity zurück und stellte die Konfiguration wieder her. Es wurde kein Drucker verbunden und kein Druck gestartet.
+- Der Android-`ActivityMonitor` greift bei diesem direkten `Context.startActivity(ACTION_VIEW)` nicht als Interceptor. Daher prüft der Gerätefall den tatsächlichen Fokuswechsel; die genaue Port-Entfernung ist durch den separat getesteten `PrinterWebOriginPolicy`-Resolver abgedeckt.
+- Frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatalmarker. Kein Produktivcode oder APK geändert; v0.8.312 bleibt letzter Debug-Release.
+
 ## Flush-Volume-Aktion aus dem Druckprofil (2026-10-18, 18:43 Ortszeit)
 
 - `PrintProfileDropdownIntegrationDeviceTest`: vollständige Regression 13/13 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:43:06`.
