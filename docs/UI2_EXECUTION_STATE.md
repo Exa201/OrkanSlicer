@@ -1,3 +1,11 @@
+## Latest code — 150% plate-counter clipping fixed (2026-10-18)
+
+- Code commit: `6aedcb02a56fbb33976d1d33d056afc34e2fc754`; version 0.8.303/code 338. Fixed a physically observed 150%-font clipping bug by allowing the two-line plate counter and only its own workspace header control to grow vertically. Adjacent filament/printer controls remain fixed-height. Added a Compose layout regression that verifies the counter grows and the neighboring action stays at 48 dp.
+- Final-source tests: Debug JVM 556/556, Slice JVM 556/556; focused Honor `FilamentPaletteComposeDeviceTest` 11/11 and `WorkspaceModePanelHostDeviceTest` 3/3 (14/14). Full Honor suite from just before the final sizing correction was 140 passed, 3 private-fixture skips, 0 failures/errors; it was not repeated after this narrowly scoped layout fix.
+- Final Debug APK `OrkanSlicer_6aedcb02a5.apk`, 157,215,009 bytes, SHA-256 `6A534161C4A1761A605218018A4B4EE42A883CB1F3CDE35A61B846E16AC44B73`; built successfully, installed and started on Honor PTP-N49 / Android 16, package version confirmed 0.8.303/code 338, checked logcat clear of crash/ANR/OOM/fatal-signal markers. The physical 150% screenshot `app/build/reports/ui2-font-scale-20261018/OrkanSlicer_UI2_0.8.303_Honor_150_20261018.png` shows the plate count is fully visible and neighboring buttons are compact. Device font scale restored to 100%.
+- Phase 4 architecture acceptance remains complete; Phase 5 menu action audit and Phase 6 full responsive/accessibility sweep remain incomplete. The latest full Honor suite with supplied KromaCut fixture before this UI correction passed 140/143 with 3 private multicolor-fixture skips. The final correction is verified by the focused 14-test Honor run, not a post-fix full suite.
+- Next: push this code commit and update PR #2 with the version, APK, and test evidence. Then continue the incomplete action-by-action audit for Slice results and global printer/profile/settings menus; a physical TalkBack traversal and genuinely narrow-device sweep remain unverified.
+
 ## Latest verification — full Honor suite with supplied KromaCut project (2026-10-18)
 
 - Current branch head before this documentation update: `f5f2714f327a679d55c60d176913fc0d5d1721f2`; runtime app source remains 0.8.302/code 337 at `510989f5df128dcd7eeadf05dc3a34f669fee805` (subsequent commits are documentation-only).
