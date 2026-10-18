@@ -1105,3 +1105,9 @@ Final import-consent device check and Debug APK (2026-10-16):
 - GitHub Debug prerelease: [v0.8.312](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.312), asset uploaded, 157,233,039 bytes; GitHub digest `sha256:47b83326dd7c61c1b9ab133d1d2b76fa32662748d1ac64c31603c9f98ee6bbdc`. Source commit `19a2965b66e9a9d1dbc8744bf2ed386593a9f311`.
 - Phase 5's full action audit and Phase 6 manual TalkBack traversal remain open. Full multi-plate single-file persistence remains a separate incomplete task.
 
+## Weitere Profilaktionen nach v0.8.312 (2026-10-18)
+
+- Auf Honor PTP-N49 / Android 16 bestanden `PrintConfigToolsDialogsDeviceTest` 3/3, `ProfileOptionHelpDialogDeviceTest` 1/1 und `ProfileExportSelectionDialogDeviceTest` 2/2. Alle gefilterten Läufe: 0 Skips, 0 Fehler. Emulator weiterhin offline.
+- Abgenommen: Flush-Volumen ungültig/gültig mit Dezimalkomma, ungültige Eingabe nicht anwenden, Abbruch ohne Änderung, MMU-Sync-Fehlermeldung schließen; Profilhilfe/Favorit hinzufügen und entfernen mit restaurierten Präferenzen; langer Profil-Exportauswahldialog scrollen/Zurück und System-Back ohne Exportabschluss.
+- Diese Tests decken konkrete Dialog-/Profilaktionen ab, nicht alle globalen Profileditorwerte oder sämtliche Drucker-/Rinkhals-Menüaktionen. Keine Runtime-Änderung und kein neuer APK-Build nach v0.8.312.
+
