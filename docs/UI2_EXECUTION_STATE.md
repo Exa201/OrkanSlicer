@@ -1,5 +1,12 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Honor Workspace-Aktions- und Accessibility-Nachlauf — 2026-10-19
+
+- `InitialProjectMenuDeviceTest`: 23/23 in der vollständigen Honor-Suite enthalten. Aktuelle `:app:connectedSliceTestAndroidTest`-Suite: 198 Tests, 193 bestanden, 5 private Fixturetests übersprungen, 0 Fehler/Errors; XML `2026-10-18T22:06:22` UTC. Emulator offline.
+- Der reale Compose-Modellmenütest prüft Duplizieren, Select All über native `selectedObjectsCount`, Delete Selected und Delete All. Cancel/Android Back bewahren temporäre Testmodelle; Bestätigen löscht das vorgesehene Modell im nativen Renderer.
+- `SettingsAccessibilityDeviceTest` 1/1 und `ProfileFilterAccessibilityDeviceTest` 1/1 auf Honor bestanden. Simulierte Compose-Matrix umfasst Settings 320/360/400 dp portrait und 640×320 dp landscape bei 100/130/150% Font-Scale; Filter 320 dp/150%. Physisches Honor in diesem Lauf: 1280×2800 px, 560 dpi (~366 dp), Font-Scale 1.0. TalkBack war nicht als aktiver Service registriert; manuelle Traversierung bleibt offen.
+- Version vorbereitet als `0.8.315` / code `350`; es ist ein Verifikationssnapshot ohne Änderung des Produktionsverhaltens. Vollständige Phase-5-Menüabnahme, TalkBack und restliche Responsive-/Accessibility-Prüfung bleiben offen. APK-Build, Installationsstart und Release folgen nach finaler Build-Verifikation.
+
 ## Projektmenü-Aktionsprüfung auf Honor — 2026-10-18
 
 - `InitialProjectMenuDeviceTest`: 23/23 auf Honor PTP-N49 / Android 16 bestanden, 0 Skips/Fehler; JUnit XML `2026-10-18T21:55:31` UTC. Der echte Compose-Modellmenüweg dupliziert die angeforderte Anzahl und prüft den nativen Objektbestand. „Alle löschen“ und „Ausgewähltes Modell löschen“ wurden mit temporären Modellen über Abbrechen, Android-Zurück und Bestätigen geprüft: Abbruch/Back erhalten das Modell, Bestätigung entfernt es aus dem nativen Renderer.

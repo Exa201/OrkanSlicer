@@ -1023,6 +1023,17 @@ class InitialProjectMenuDeviceTest {
         assertEquals("two requested copies should be added to the original", 3,
             requireNotNull(bed.currentModel).objectsCount)
         assertFalse("successful duplication should close its dialog", bed.isWorkspaceMessageDialogAttached())
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(10)
+        compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSelectAll))
+            .assertIsDisplayed().assertIsEnabled().performClick()
+        val selectedCount = CountDownLatch(1)
+        val selectedObjects = AtomicReference<Int>()
+        viewport.queueEvent {
+            selectedObjects.set(viewport.renderer.selectedObjectsCount)
+            selectedCount.countDown()
+        }
+        assertTrue("GL thread should report the select-all result", selectedCount.await(10, TimeUnit.SECONDS))
+        assertEquals("Select All should select all three native models", 3, requireNotNull(selectedObjects.get()))
         modelFile.delete()
     }
 

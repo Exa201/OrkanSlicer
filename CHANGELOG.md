@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.315 (alpha)
+
+- Extend the real Compose Model-menu device audit: duplicate a requested number of copies, select all native objects, and exercise Delete Selected/Delete All through Cancel, Android Back, and confirmation.
+- Verify the action result against the native renderer using disposable STL test models; cancellation and Back preserve geometry, while confirmation removes the intended model(s).
+- Run the 198-case Honor instrumentation suite (193 passed, 5 private multicolor fixtures skipped, 0 failures) and the responsive/accessibility Compose tests on Honor.
+- Refresh the debug prerelease as a verification snapshot. No production runtime behavior changes are included; full menu acceptance and manual TalkBack traversal remain open.
+
 ## 0.8.314 (alpha)
 
 - Use one shared password-classification rule in both profile editor render paths so printer API keys stay masked consistently.
