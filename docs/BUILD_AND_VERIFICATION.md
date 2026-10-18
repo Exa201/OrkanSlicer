@@ -1,3 +1,11 @@
+## 0.8.306 — Kachelgrenzen im zweireihigen Workspace-Menü (2026-10-18)
+
+- Ursache des sichtbaren Randanschnitts: Die Rasterkachelbreite zog die 4-dp-Innenränder und 2-dp-Spaltenabstände nicht ab. `gridTileWidthDp` berechnet nun die verfügbare Rasterbreite mit diesen Abständen; Einzelreihen behalten ihre bisherige Breitenlogik.
+- Tests: Debug-JVM 558/558 und Slice-JVM 558/558, jeweils ohne Fehler/Errors/Skips. `BedMenuActionTileWidthPolicyTest` enthält die Raster-Grenzprüfung. Die Honor-Klasse `FilamentPaletteComposeDeviceTest` lief 15/15, 0 Skips/Fehler; der neue bounds-Test prüft sichtbare Actions bei (320, 360, 400) dp und Font-Scales (1.0, 1.3, 1.5).
+- Physische Kontrolle auf Honor PTP-N49 / Android 16: nach Installation und Start von 0.8.306 wurde das echte Modellmenü visuell geprüft; die drei sichtbaren Rasterspalten sind vollständig innerhalb des Workspace-Menüs. Screenshot: `app/build/reports/ui2-font-scale-20261018/v080306-model-menu.png`. Der separate Import-/Auswahl-/Flachlegen-/Löschablauf mit einem temporären Testwürfel war davor manuell auf derselben OrkanSlicer-App durchgeführt worden; die eigens angelegte STL wurde wieder entfernt. Keine vorhandenen Download-Dateien wurden verändert.
+- Debug-Build: `app/build/outputs/apk/debug/OrkanSlicer_fcd2a2437e.apk`, 157.216.243 Byte, SHA-256 `2667F699DBEE2F1DBD0F4EFD2D45845B3945A2E1AA284F7B3A8755FF797B8D03`, Code-Commit `fcd2a2437e5a4ba07f93535b52bed21e9f257fb7`, Version 0.8.306/code 341. APK auf Honor installiert; Paket `com.codemastercody3d.orcaslicermobile`, `MainActivity` top-resumed. Frische Logcat-Stichprobe ohne `FATAL EXCEPTION`, ANR, OOM oder Fatal-Signal-Treffer. Emulator blieb offline.
+- Dies ist gezielte Menü-/Rasterverifikation, keine vollständige Abnahme aller Menüs oder aller Modellaktionen. Phase 5 bleibt offen; physische TalkBack-Traversierung und volle responsive Gerätematrix bleiben in Phase 6 offen.
+
 ### Ergänzende manuelle Projektdatei-Prüfung — Systempicker-Abbruch (2026-10-18)
 
 - Auf dem Honor PTP-N49 wurde aus OrkanSlicer → Projekt → „Modell laden“ der echte Android-DocumentsUI-Picker geöffnet. `topResumedActivity` bestätigte `com.google.android.documentsui/.picker.PickActivity`.
