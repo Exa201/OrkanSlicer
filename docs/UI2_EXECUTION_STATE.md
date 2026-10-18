@@ -10,6 +10,12 @@
 - **Last relevant code commit:** `30c92d355d7a771eaf021dd878744ebca043fdc0`; documentation/release evidence is being synchronized separately.
 - **Next concrete task:** Continue Phase 5 with unverified global printer/profile actions, then resume Phase 6 responsive/accessibility acceptance; do not mark Phase 5/6 complete based on this subset.
 
+## Fortsetzung nach v0.8.311 — numerische Profilfelder und Generatoraktionen
+
+- Nach dem Release wurden weitere sichere Honor-Flows geprüft: `PrintProfileDropdownIntegrationDeviceTest` 6/6 (printer-scoped Prozessprofil, Drucker-/Filamentauswahl, Profilentwurf, Reset-Abbruch/Back); `MakerGeneratorWorkspaceDeviceTest` 11/11 und `MakerComposeDeviceTest` 2/2 (Generator-/Bildkonverteraktionen, Form-Abbruch/Back, temporäre Ausgabe und zugängliche Aktionen). Zusammen mit dem vorherigen 28-Testpaket ergibt das 47 erfolgreiche ausgewählte Gerätetest-Ausführungen vor dem neuen numerischen Test.
+- Neu ergänzt: `ProfileNumericOptionDeviceTest` mit 3 Honor-Fällen. 3/3 bestanden: Profilwert wird erst nach Bestätigung angewandt, Cancel und Android-Back verwerfen unbestätigte Änderungen, außerhalb des Wertebereichs ist OK deaktiviert. Die ersten Buildversuche für den neuen Test hatten nur Testquellcode-Kompilierfehler (falsche Compose-Test-API-Verwendung), die vor dem erfolgreichen Lauf korrigiert wurden; kein Produktfehler.
+- Diese Fortsetzung ergänzt Tests, ändert keinen App-Laufzeitcode und ändert den bereits veröffentlichten APK-Hash nicht. Phase 5 und Phase 6 bleiben offen.
+
 - **Current phase:** Phase 5, functional menu/action audit in progress. Phase 6 responsive and accessibility acceptance remains incomplete.
 - **Phase 4:** Workspace architecture accepted at the verified scope: WorkspaceShell/RendererAdapter and Compose-hosted workspace/menu state are established; BedFragment retains necessary GL/renderer, Android lifecycle, and integration duties. This does not claim all non-workspace Android fallback dialogs have been removed.
 - **Current verified increment:** The supplied KromaCut 3MF ran on Honor PTP-N49 / Android 16 with KromaCutThreeMfDeviceTest 2/2 passing, no skips/failures. It checks all eight settings-import choice combinations and seven native local G-code slice scenarios, including explicit object filament reassignment.
