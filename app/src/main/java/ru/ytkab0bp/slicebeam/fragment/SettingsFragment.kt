@@ -240,7 +240,7 @@ class SettingsFragment : Fragment() {
         val selected = variants.indexOfFirst { it == Prefs.getUiTextScale() }.coerceAtLeast(0)
         showChoiceDialog(R.string.SettingsInterfaceTextSize, labels, selected) { which ->
             Prefs.setUiTextScale(variants[which])
-            themeRevision++
+            (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) } ?: run { themeRevision++ }
         }
     }
 

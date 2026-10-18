@@ -1,6 +1,8 @@
 package ru.ytkab0bp.slicebeam
 
 import android.app.Application
+import android.util.SparseArray
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -16,6 +18,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.SettingsFragment
+import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.navigation.NavigationDelegate
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -119,6 +123,7 @@ class SettingsMenuActionDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
                 .assertIsDisplayed().performClick()
 
+            val workspaceRevisionBefore = workspaceThemeRevision(activity)
             val heading = compose.onNodeWithText(activity.getString(R.string.SlotAppSettings))
             heading.assertIsDisplayed()
             val beforeHeight = heading.fetchSemanticsNode().size.height
@@ -132,6 +137,8 @@ class SettingsMenuActionDeviceTest {
             val afterHeight = compose.onNodeWithText(activity.getString(R.string.SlotAppSettings))
                 .fetchSemanticsNode().size.height
             assertEquals(targetScale, Prefs.getUiTextScale(), 0f)
+            assertTrue("The already-created workspace must receive the global theme/text-scale invalidation",
+                workspaceThemeRevision(activity) > workspaceRevisionBefore)
             if (targetScale > originalScale) {
                 assertTrue("The live Compose heading must grow with the selected text scale ($beforeHeight → $afterHeight)",
                     afterHeight > beforeHeight)
@@ -168,5 +175,18 @@ class SettingsMenuActionDeviceTest {
         }
         SliceBeam.CONFIG = config
         createAndroidComposeRule<MainActivity>()
+    }
+
+    private fun workspaceThemeRevision(activity: MainActivity): Int {
+        val stacksField = NavigationDelegate::class.java.getDeclaredField("fragmentStack").apply {
+            isAccessible = true
+        }
+        val stacks = stacksField.get(activity.navigationDelegate) as SparseArray<*>
+        val bedStack = stacks.get(0) as java.util.Stack<*>
+        val bedFragment = bedStack.peek() as BedFragment
+        val revisionField = BedFragment::class.java.getDeclaredField("workspaceThemeRevision\$delegate").apply {
+            isAccessible = true
+        }
+        return (revisionField.get(bedFragment) as MutableIntState).intValue
     }
 }
