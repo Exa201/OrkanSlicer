@@ -985,3 +985,8 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Geprüfte reale Compose-Aktionen: Textskalierung aktualisiert live und lässt sich wiederherstellen; Akzentfarbe anwenden beziehungsweise mit Zurück abbrechen; Themeauswahl und Zurück; Drucker hinzufügen und Zurück ohne Änderung des aktiven Druckers; Reset bestätigen-Dialog abbrechen/mit Zurück schließen ohne Konfigurationsänderung; About öffnen und zur vorherigen Einstellungsroute zurückkehren; Rendererskalierung auswählen und Zurück ohne weitere Änderung.
 - Nach dem Lauf System-Font-Scale 1.0 bestätigt. `com.codemastercody3d.orcaslicermobile/ru.ytkab0bp.slicebeam.MainActivity` top-resumed; frische Logcat-Stichprobe (5.000 Zeilen) ohne FATAL EXCEPTION, ANR, OOM oder Fatal signal. `emulator-5554` offline. Kein Runtime-Code/APK geändert.
 
+## Filament- und Druckplatten-Compose-Abnahme auf Honor (2026-10-18)
+
+- `:app:connectedSliceTestAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ru.ytkab0bp.slicebeam.FilamentPaletteComposeDeviceTest` auf Honor PTP-N49 / Android 16: 15/15 bestanden, 0 Skips/Fehler (XML `TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel 2026-10-18T15:51:48).
+- Testfälle decken 1–24 Filamente mit Scrollen bis zum letzten Eintrag, Filamentfarben, Profilwahl/-abbruch, ACE-Gate-Scroll, Druckplattenwahl über Stressprojektgrößen bis zur letzten Platte, Abbruch-Touchziel sowie Responsive-/Large-Text-Werkzeugkacheln ab. Das sind UI-/Compose-Tests, keine Hardwarekapazitäts- oder Mehrplatten-Projektpersistenztests.
+- Nachweis nach dem Lauf: System-Font-Scale 1.0, OrkanSlicer-Paket `com.codemastercody3d.orcaslicermobile` / `MainActivity` im Vordergrund, Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker; Emulator offline. Keine Runtime-Änderung/APK.

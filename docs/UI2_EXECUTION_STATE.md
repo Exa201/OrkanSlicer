@@ -1,3 +1,9 @@
+## Fortsetzung 2026-10-18 — Filament- und Platten-Compose-Abnahme
+
+- `:app:connectedSliceTestAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ru.ytkab0bp.slicebeam.FilamentPaletteComposeDeviceTest` auf Honor PTP-N49 / Android 16: 15/15 bestanden, 0 Skips/Fehler (XML-Zeitstempel 2026-10-18T15:51:48). Geprüft wurden Filamentlisten 1–24 inklusive Scrollen/letzter Auswahl, Farbpalette, Profilwahl/-Abbruch, ACE-Gate-Scroll, Plattenauswahl bis zur letzten Platte in Stressgrößen, Touch-Ziel und responsive Werkzeugkacheln.
+- Nach dem Test System-Font-Scale 1.0; OrkanSlicer `MainActivity` top-resumed. Frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-Marker. Emulator offline.
+- Test-/Dokumentationsnachweis; keine Runtime-Änderung/APK. Phase 7 hat für die getesteten Compose-Listen-/Auswahlaktionen belastbare Honor-Abdeckung; Projektpersistenz über mehrere Platten bleibt eine getrennte offene Domänenaufgabe. Phase 5 bleibt insgesamt offen für vollständige funktionale Abnahme aller Projekt-, Modell-, Bearbeiten-, Ansicht-, Werkzeuge- und Slicing-Aktionen; Phase 6 manuelle TalkBack-/Fokusabnahme bleibt offen.
+
 ## Fortsetzung 2026-10-18 — App-Einstellungsaktionen auf Honor
 
 - Auf Honor PTP-N49 / Android 16 lief `:app:connectedSliceTestAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ru.ytkab0bp.slicebeam.SettingsMenuActionDeviceTest`: 7/7 bestanden, 0 Skips/Fehler (XML `TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel 2026-10-18T15:49:59). Abgedeckt: Live-Textskalierung und Rückstellung, Akzentfarbe samt Back/Anwenden, Theme samt Back, Drucker hinzufügen samt Back, Reset-Abbruch samt Back ohne Konfigurationsänderung, About öffnen/zurück sowie Renderer-Skalierung samt Back.
