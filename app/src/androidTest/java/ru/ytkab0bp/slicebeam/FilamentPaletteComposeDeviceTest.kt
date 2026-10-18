@@ -51,6 +51,7 @@ import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
+import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
@@ -154,6 +155,8 @@ class FilamentPaletteComposeDeviceTest {
         val selectedFilament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
         val nextProcess = requireNotNull(config.printConfigs.firstOrNull { it.title != selectedProcess.title })
         val nextProcessTitle = requireNotNull(nextProcess.title)
+        val nextFilament = requireNotNull(config.filamentConfigs.firstOrNull { it.title != selectedFilament.title })
+        val nextFilamentTitle = requireNotNull(nextFilament.title)
         config.presets = ConfigObject("presets").apply {
             put("printer", printer.title)
             put("print", selectedProcess.title)
@@ -166,18 +169,24 @@ class FilamentPaletteComposeDeviceTest {
                 sourceName = "profile-sheet-ui-test",
                 process = mapOf("layer_height" to "0.24", "wall_loops" to "9"),
                 filaments = listOf(mapOf("filament_type" to "PETG", "nozzle_temperature" to "222")),
-                filamentTypes = emptyMap(),
+                filamentTypes = mapOf(
+                    "filament_type" to ConfigOptionType.STRINGS,
+                    "filament_colour" to ConfigOptionType.STRINGS,
+                    "nozzle_temperature" to ConfigOptionType.INTS,
+                ),
                 printSettingsImported = true,
                 filamentSettingsImported = true,
             ),
         )
 
         val dismissed = mutableStateOf(false)
-        lateinit var sheet: WorkspaceProfileSheet
-        compose.runOnUiThread { sheet = WorkspaceProfileSheet(context, null) }
+        val currentSheet = mutableStateOf<WorkspaceProfileSheet?>(null)
+        compose.runOnUiThread { currentSheet.value = WorkspaceProfileSheet(context, null) }
         compose.setContent {
-            BeamComposeTheme {
-                if (!dismissed.value) sheet.Content { dismissed.value = true }
+            currentSheet.value?.let { sheet ->
+                BeamComposeTheme {
+                    if (!dismissed.value) sheet.Content { dismissed.value = true }
+                }
             }
         }
 
@@ -199,6 +208,29 @@ class FilamentPaletteComposeDeviceTest {
             )
             assertEquals("Quick profile changes in a project must not persist profile selection", savedSelection, config.presets!!.values)
             compose.runOnIdle { assertTrue("Applying the selected profile should close the sheet", dismissed.value) }
+
+            compose.runOnUiThread {
+                dismissed.value = false
+                currentSheet.value = WorkspaceProfileSheet(context, null)
+            }
+            compose.waitForIdle()
+            compose.onNodeWithText(requireNotNull(selectedFilament.title)).performClick()
+            compose.onNodeWithText(nextFilamentTitle).performClick()
+            compose.onNodeWithText(context.getString(R.string.WorkspaceProfilesApply)).performClick()
+            compose.waitForIdle()
+
+            assertEquals(
+                "Only the filament group selected in the sheet should replace the project filament values",
+                TemporaryProjectSettings.splitValue(requireNotNull(nextFilament["nozzle_temperature"]), ConfigOptionType.INTS).firstOrNull(),
+                TemporaryProjectSettings.valueFor(ConfigObject.PROFILE_LIST_FILAMENT, "nozzle_temperature", includeEdits = false),
+            )
+            assertEquals(
+                "The unselected process group must retain the previously imported project-local preset choice",
+                nextProcess["wall_loops"],
+                TemporaryProjectSettings.valueFor(ConfigObject.PROFILE_LIST_PRINT, "wall_loops", includeEdits = false),
+            )
+            assertEquals("Neither project-local profile choice may persist the saved selection", savedSelection, config.presets!!.values)
+            compose.runOnIdle { assertTrue("Applying the selected filament should close the sheet", dismissed.value) }
         } finally {
             TemporaryProjectSettings.clear()
             SliceBeam.CONFIG = previousConfig
