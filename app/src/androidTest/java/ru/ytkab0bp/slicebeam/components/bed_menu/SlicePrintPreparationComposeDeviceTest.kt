@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.app.Application
+import android.view.View
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -9,10 +10,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.MainActivity
+import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
@@ -145,6 +148,66 @@ class SlicePrintPreparationComposeDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
         assertNull("Workspace Back must not commit a filament assignment", selected.get())
         assertFalse(activity.isFinishing)
+    }
+
+    @Test
+    fun sliceMenuPrinterActionsRequireSupportedHostAndDispatchOnlyInjectedCallback() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val config = SliceBeam.requireConfig()
+        val printerTitle = requireNotNull(config.presets).get("printer")
+        val printer = requireNotNull(config.findPrinter(printerTitle))
+        val originalType = printer.get("host_type")
+        val originalHost = printer.get("print_host")
+        val originalKey = printer.get("printhost_apikey")
+        val anchor = View(activity)
+        val dispatched = mutableListOf<Triple<String, String, Boolean>>()
+
+        fun actionsFor(type: String, host: String): List<BedComposeMenuAction> {
+            printer.put("host_type", type)
+            printer.put("print_host", host)
+            printer.put("printhost_apikey", "synthetic-test-key")
+            return SliceMenuItems.createAfterSlice(bed, SliceMenu()) { selectedType, selectedHost, _, _, print ->
+                dispatched += Triple(selectedType, selectedHost, print)
+            }
+        }
+
+        try {
+            listOf("octoprint", "moonraker", "klipper").forEach { supportedType ->
+                val actions = actionsFor(supportedType, "https://printer.invalid")
+                val upload = actions.single { it.titleRes == R.string.MenuSliceSendToPrinter }
+                val print = actions.single { it.titleRes == R.string.MenuSliceSendToPrinterAndPrint }
+                upload.onClick(anchor)
+                print.onClick(anchor)
+            }
+            assertEquals(
+                listOf(
+                    Triple("octoprint", "https://printer.invalid", false),
+                    Triple("octoprint", "https://printer.invalid", true),
+                    Triple("moonraker", "https://printer.invalid", false),
+                    Triple("moonraker", "https://printer.invalid", true),
+                    Triple("klipper", "https://printer.invalid", false),
+                    Triple("klipper", "https://printer.invalid", true),
+                ),
+                dispatched,
+            )
+
+            assertTrue("unsupported host types must expose no printer actions",
+                actionsFor("unsupported", "https://printer.invalid").none {
+                    it.titleRes == R.string.MenuSliceSendToPrinter ||
+                        it.titleRes == R.string.MenuSliceSendToPrinterAndPrint
+                })
+            assertTrue("blank printer hosts must expose no printer actions",
+                actionsFor("moonraker", "").none {
+                    it.titleRes == R.string.MenuSliceSendToPrinter ||
+                        it.titleRes == R.string.MenuSliceSendToPrinterAndPrint
+                })
+            assertEquals("configuration filtering must not dispatch any hidden action", 6, dispatched.size)
+        } finally {
+            if (originalType == null) printer.values.remove("host_type") else printer.put("host_type", originalType)
+            if (originalHost == null) printer.values.remove("print_host") else printer.put("print_host", originalHost)
+            if (originalKey == null) printer.values.remove("printhost_apikey") else printer.put("printhost_apikey", originalKey)
+        }
     }
 
     private fun createInitializedActivityRule() = run {

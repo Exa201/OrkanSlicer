@@ -1,3 +1,9 @@
+## Slicing-Menü-Aktionsvertrag auf Honor — 2026-10-19
+
+- `SlicePrintPreparationComposeDeviceTest`: 4/4 bestanden auf Honor PTP-N49 / Android 16; XML `2026-10-18T22:27:48` UTC. Die zusätzliche Aktionstestabdeckung prüft die Produktions-Compose-Aktionsdefinitionen für Upload/Druck mit OctoPrint, Moonraker und Klipper. Die Handler wurden ausschließlich an einen injizierten In-Memory-Callback gerichtet; unbekannter Host und leerer Host erzeugen keine Druckeraktionen. Keine Netzwerkkommunikation, kein Upload, kein echter Druckstart. Fixturewerte werden restauriert.
+- Kein Runtime-Code geändert. Der Emulator blieb offline. Die volle Android-Instrumentierungssuite wurde für diesen Test-only Nachweis nicht erneut ausgeführt; zuletzt dokumentierter kompletter Lauf ist weiter unten separat datiert.
+- `git diff --check` erfolgreich.
+
 ## Debug-Prerelease 0.8.315 — 2026-10-19
 
 - Code `350`, source commit `8abb48a3ce47c59e2bd48056e8899039df0a3012`; `:app:assembleDebug` succeeded. APK `OrkanSlicer_8abb48a3ce.apk`, 157,232,984 bytes, SHA-256 `778AE75EB8EB9A1EF82F6A9011F07EFC5F4D8B213B2D767E2B7D239D914D939B`.

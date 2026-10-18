@@ -1,5 +1,12 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Slicing-Menü-Druckeraktionen abgesichert — 2026-10-19
+
+- `SlicePrintPreparationComposeDeviceTest`: 4/4 auf Honor PTP-N49 / Android 16 bestanden; JUnit XML `2026-10-18T22:27:48` UTC. Ein neuer Test prüft die tatsächlichen `SliceMenuItems.createAfterSlice`-Aktionen: Upload und Druckaktion werden für OctoPrint, Moonraker und Klipper mit getrennten Flags an einen injizierten Testcallback übergeben; unbekannte Hosttypen und leere Hosts bieten keine Druckeraktionen an. Druckerwerte werden im `finally`-Pfad restauriert. Kein Netzwerk, Upload oder Druckstart.
+- Der gezielte Einzeltest und anschließend die vollständige 4-Test-Klasse bestanden. `git diff --check` sauber. Der Emulator ist weiterhin offline.
+- Nur Instrumentierungstest geändert, keine Runtime-Änderung und keine neue APK nötig. Phase 5 bleibt offen: weitere reale Menüaktionen globaler Drucker-/Profilbereiche und vollständiger Aktionsaudit aller Hauptmenüs. Phase 6 bleibt offen: manuelle TalkBack-Prüfung und vollständige physische Display-/Schriftmatrix.
+- Nächster Schritt: nächste noch ungetestete, nicht-destruktive Drucker-/Rinkhals-Aktion anhand ihrer Compose-Handler ermitteln und im isolierten Honor-Testkontext prüfen.
+
 ## Honor Workspace-Aktions- und Accessibility-Nachlauf — 2026-10-19
 
 - `InitialProjectMenuDeviceTest`: 23/23 in der vollständigen Honor-Suite enthalten. Aktuelle `:app:connectedSliceTestAndroidTest`-Suite: 198 Tests, 193 bestanden, 5 private Fixturetests übersprungen, 0 Fehler/Errors; XML `2026-10-18T22:06:22` UTC. Emulator offline.
