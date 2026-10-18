@@ -1202,3 +1202,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - `:app:testDebugUnitTest :app:testSliceTestUnitTest` succeeded on commit `ec35f2a`: 559 tests in each suite, 0 failures, 0 errors, 0 skipped in both suites. Build completed in 42 seconds using the existing Gradle cache.
 - The earlier full Honor instrumentation record remains 188 tests / 183 passed / 5 skipped / 0 failed; no product-runtime change was part of this test extension.
+
+## 3MF printer metadata in temporary project state — Honor, 2026-10-18
+
+- The device fixture now includes an untrusted printer ID, host, Moonraker connection type, API key, and Web UI URL beside valid print/filament settings. The selected physical printer keeps its own connection settings and active preset; imported filament/process values remain available.
+- Full TemporaryProjectSettingsDeviceTest passed 3/3 on Honor PTP-N49 / Android 16 (0 skipped/failures; XML timestamp 2026-10-18T20:41:24). This includes a native slice using both imported filament temperatures. Emulator offline.
+- Instrumentation-only change; no runtime files or v0.8.314 APK changed. Broader UI 2.0 menu/action audit and manual TalkBack traversal remain open.

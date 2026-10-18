@@ -9,6 +9,12 @@
 - GitHub Debug-Prerelease `v0.8.314` veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.314. Asset `OrkanSlicer_d29131f848.apk` (Label `OrkanSlicer_0.8.314_Debug.apk`), 157.232.977 Byte; GitHub-SHA-256 `add122224b6a27c3b80bd2666b176dbb2eada3d87e7ac6b456771f3f1ebb0b56`. PR #2 offen und mergeable, kein Merge.
 - Weiterhin nicht abgeschlossen: gesamter UI-2.0-Aktionsaudit, physische TalkBack-Traversierung und mehrplattenfähige Gesamt-Projektpersistenz.
 
+## 3MF-Druckervertrauensgrenze im Android-Temporärprojekt — 2026-10-18
+
+- TemporaryProjectSettingsDeviceTest lädt mit nativen Orca-Optiondefinitionen synthetische fremde Drucker-ID, Host, Verbindungstyp, API-Schlüssel und Web-URL. Diese Projektmetadaten überschreiben weder aktive physische Druckerverbindung noch Preset; valide Filament- und Prozesseinstellungen bleiben wirksam.
+- Honor PTP-N49 / Android 16: gesamte Testklasse 3/3 bestanden, 0 Skips/Fehler, JUnit XML 2026-10-18T20:41:24; nativer Slice mit den importierten Filamentwerten eingeschlossen. Emulator offline.
+- Test-only-Änderung; v0.8.314 Runtime und APK unverändert. Nächste Aufgabe: weitere noch nicht einzeln abgenommene Datei-, Modell- und Profilaktionen aus den echten UI-Handlern gezielt prüfen. UI 2.0 bleibt in Arbeit.
+
 ## API-Schlüssel-Abbruch-/Speicherablauf und Honor-Regressionslauf — 2026-10-18
 
 - Der API-Key-Gerätetest prüft maskierte Anzeige und Anzeigen/Verbergen sowie vier Zustände: Abbrechen und Android-Zurück lassen Entwurf und gespeicherten Schlüssel unverändert; „Übernehmen“ ändert nur den Profilentwurf; erst bestätigtes Speichern schreibt den synthetischen Schlüssel in das ausgewählte Druckerprofil. Testwerte werden in `finally` wiederhergestellt, kein Netzwerkzugriff.

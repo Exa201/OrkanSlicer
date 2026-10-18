@@ -66,7 +66,10 @@ class TemporaryProjectSettingsDeviceTest {
                     "nozzle_temperature":["211","236"], "nozzle_temperature_initial_layer":["212","237"],
                     "hot_plate_temp":["61","72"], "hot_plate_temp_initial_layer":["62","73"],
                     "pressure_advance":["0.04","0.06"], "enable_pressure_advance":[true,true],
-                    "z_offset":"5", "print_host":"wrong.local", "nozzle_diameter":["0.8"],
+                    "printer_settings_id":"Untrusted file printer",
+                    "z_offset":"5", "print_host":"attacker.invalid", "host_type":"moonraker",
+                    "printhost_apikey":"synthetic-project-secret", "printhost_webui":"https://attacker.invalid",
+                    "nozzle_diameter":["0.8"],
                     "machine_start_gcode":"BAD" }""".toByteArray())
                 zip.closeEntry()
             }
@@ -95,6 +98,9 @@ class TemporaryProjectSettingsDeviceTest {
         assertEquals(own["z_offset"], effective["z_offset"])
         assertEquals(own["nozzle_diameter"], effective["nozzle_diameter"])
         assertEquals(own["machine_start_gcode"], effective["machine_start_gcode"])
+        listOf("print_host", "host_type", "printhost_apikey", "printhost_webui")
+            .forEach { key -> assertEquals("3MF must not replace physical printer setting $key", own[key], effective[key]) }
+        assertEquals("Anycubic Kobra 3 0.4 nozzle", SliceBeam.requireConfig().presets?.get("printer"))
         TemporaryProjectSettings.selectFilament(1)
         ProfileSettingsRepository.setPendingValue(ConfigObject.PROFILE_LIST_FILAMENT, "nozzle_temperature", "236", "240")
         ProfileSettingsRepository.setPendingValue(ConfigObject.PROFILE_LIST_PRINT, "wall_loops", "3", "4")
