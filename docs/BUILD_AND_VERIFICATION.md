@@ -1,3 +1,10 @@
+## 0.8.305 — Slicing-Layersteuerung und vollständiger Honor-Lauf (2026-10-18)
+
+- `SliceLayerPartControlsDeviceTest` prüft sichtbare Benutzeraktionen auf dem Honor PTP-N49: Teil 2 wählen (Layer 51–100), Blockgröße 25 einstellen (Layer 51–75) und alle Layer 1–120 anzeigen. Der gezielte aktuelle Lauf bestand 1/1.
+- Vollständiger Honor-Lauf des aktuellen SliceTest-Standes: 150 eindeutige Fälle, 145 bestanden, 5 wegen nicht verfügbarer privater KromaCut-/Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors. Die zusätzliche Layer-Aktionsprüfung wurde nach einer test-only Änderung separat erneut mit 1/1 bestätigt. Debug- und Slice-JVM-Suites: jeweils 557/557, ohne Fehler/Errors/Skips. `:app:assembleDebug` war erfolgreich.
+- Vorhandene Produkt-APK bleibt `app/build/outputs/apk/debug/OrkanSlicer_7b187866dc.apk` (0.8.305/code 340, 157.216.310 Byte, SHA-256 `489E0693A8B7A78C0963752A80CBFA47EBBA1C38C985B5234A4EC705F0DBE216`). Der neue Commit enthält nur den Geräte-Regressionstest und Dokumentation, keine zusätzliche Produktcodeänderung.
+- Menüs und globale Untermenüs sind weiterhin nur teilweise funktional abgenommen; diese Einzelergebnisse sind kein Abschluss der UI-2.0-Migration.
+
 ## OrkanSlicer 0.8.305 — Kalibrierungsdialog bei großer Schrift (2026-10-18)
 
 - Honor PTP-N49 / Android 16: Bei simulierter 320-dp-Breite und 150 % Systemschrift wurde die Kalibrierungsoberfläche tatsächlich geöffnet. Lange Aktionstitel und Beschreibungen umbrechen vollständig; die Abbrechen-Aktion bleibt erreichbar. Screenshot: `app/build/reports/ui2-font-scale-20261018/calibration-320dp-150pct-v080305.png`. Die Display- und Schrifteinstellungen wurden nach der Prüfung zurückgesetzt. Das ist kein separates physisches 320-dp-Gerät und keine manuelle TalkBack-Traversierung.

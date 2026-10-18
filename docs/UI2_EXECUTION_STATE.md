@@ -1,5 +1,7 @@
 ## Aktueller Fortsetzungsstand — 0.8.305 (2026-10-18)
 
+- Zusätzliche Slicing-Aktionsprüfung: `SliceLayerPartControlsDeviceTest` führt die sichtbare Layer-Auswahl aus, wählt Teil 2 (51–100), ändert die Größe auf 25 Layer (51–75) und stellt „Alle Layer“ (1–120) wieder her. Gezielter Lauf auf Honor: 1/1 bestanden. Vollständiger Honor-Lauf davor: 150 eindeutige Fälle, 145 bestanden, 5 wegen fehlender privater Fixtures übersprungen, 0 fehlgeschlagen/Errors; nach der kleinen Testanpassung wurde der gezielte Fall erneut bestanden. Debug- und Slice-JVM-Suites weiterhin jeweils 557/557.
+- Aktuelle Änderung ist Testabdeckung; Produktcode bleibt der verifizierte 0.8.305-Stand. Der Debug-APK `OrkanSlicer_7b187866dc.apk` und sein SHA-256 bleiben deshalb unverändert. Der neue Test wird noch auf den Branch übertragen.
 - Aktiver Abschnitt: Phase 5, Menü-Aktionsabnahme; Phase 4 bleibt anhand der Workspace-Architekturprüfungen akzeptiert. Phase 5/6 sind ausdrücklich nicht abgeschlossen.
 - Code-Commit: `7b187866dcd6d3db80b7e55e03afa3240343f628` (Branch `codex/rinkhals-safe-start-audit`). App-Version 0.8.305 / Code 340.
 - Auf dem Honor PTP-N49 bei simulierter 320-dp-Breite und 150 % Schrift wurde der Kalibrierungsdialog geprüft. Die Kalibrierungszeilen wachsen nun mehrzeilig; lange Titel und Beschreibungen bleiben lesbar und zugänglich. Die Abbruchaktion blieb erreichbar. Screenshot: `app/build/reports/ui2-font-scale-20261018/calibration-320dp-150pct-v080305.png`. Das Gerät wurde anschließend auf native Auflösung und 100 % Schrift zurückgestellt.
@@ -7,7 +9,7 @@
 - Debug-APK `app/build/outputs/apk/debug/OrkanSlicer_7b187866dc.apk`, 157.216.310 Byte, SHA-256 `489E0693A8B7A78C0963752A80CBFA47EBBA1C38C985B5234A4EC705F0DBE216`; installiert und gestartet auf Honor. Paket `com.codemastercody3d.orcaslicermobile`, Version 0.8.305/340. Frischer Logcat-Ausschnitt ohne Crash-, ANR-, OOM- oder Fatal-Signal-Marker. Emulator offline.
 - Noch offen: vollständige Aktionsabnahme der sechs Hauptmenüs und globalen Untermenüs; manuelle TalkBack-Traversierung; echte physische 360/400-dp-Prüfungen; vollständige Mehrplatten-Projektpersistenz als separates Feature. Die 320-dp-/150%-Darstellung wurde auf dem Honor durch temporäre Display-/Schrifteinstellungen simuliert und ist kein separates physisches Display.
 - PR #2 ist offen und GitHub meldet `mergeable=true`, `mergeStateStatus=CLEAN`. Der Commit `7b187866` und die Nachweise werden als Nächstes auf den bestehenden Branch übertragen.
-- Nächster konkreter Schritt: Code und Verifikationsdokumentation pushen, PR #2 aktualisieren, danach die nächste nicht abgenommene Edit-/Slicing-Aktion praktisch prüfen.
+- Nächster konkreter Schritt: den neuen Layer-Interaktionstest und Verifikationsnachweis committen/pushen; danach die nächste nicht abgenommene Projekt-/Dateiaktion praktisch prüfen.
 
 ## Aktueller Fortsetzungsstand — 0.8.304 (2026-10-18)
 
