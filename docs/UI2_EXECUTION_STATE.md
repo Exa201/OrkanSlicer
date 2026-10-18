@@ -1,3 +1,10 @@
+## Fortsetzung 2026-10-18 — Profil-IME, Import und Dialogregressionen
+
+- `ProfileSettingsImeDeviceTest` auf Honor PTP-N49 / Android 16: 11/11 bestanden, 0 Skips/Fehler (XML 2026-10-18T15:59:29). Geprüft: Profilfilter bei offener Tastatur, Back blendet IME vor dem Schließen des Dialogs aus, Workspace-Fehlerdialog, Profilimport inkl. Konflikt-Überschreiben/Abbruch, selektive 3MF-Settingsübernahme und Abbruch, Vereinfachungszustimmung und Prime-Tower-Draft-/Abbruch-/Apply-Aktionen.
+- Die gezielten Geräteklassen dieses Durchgangs umfassen nun 58 erfolgreiche Testausführungen in zehn Läufen (1 Enum, 7 Settings, 15 Filament/Platten, 14 Hauptmenü, 1 Navigation, 2 Paint, 5 GL-Panel, 1 Overlay, 1 Accessibility, 11 Profil/IME). Keine Skips/Fehler in diesen ausgewählten Klassen; kein deduplizierter Gesamt-Suite-Zähler.
+- Nachweis: Font-Scale 1.0, OrkanSlicer-`MainActivity` top-resumed; frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker. Emulator offline.
+- Der Lauf deckt weitere reale Dialog-/Profilaktionen ab, ersetzt aber nicht das vollständige Aktionsaudit der verbleibenden globalen Druck-/Drucker-/Filament-Untermenüs und sämtlicher sechs Hauptmenüs. Nächster Schritt: fortgesetzte Handler-zu-Test-Zuordnung und Tests für noch ungetestete Druck-/Profilaktionen; keine Behauptung des Abschlusses.
+
 ## Fortsetzung 2026-10-18 — Accessibility und konsolidierter Teststand
 
 - `SettingsAccessibilityDeviceTest.interfaceSectionAnnouncesExpansionAndKeepsSettingsActionsReachable` auf Honor PTP-N49 / Android 16: 1/1 bestanden (XML 2026-10-18T15:57:41). Das prüft Compose-Accessibility-Semantik/Erreichbarkeit für die erweiterte Interface-Einstellungssektion; es ersetzt keine manuelle TalkBack-Traversierung.

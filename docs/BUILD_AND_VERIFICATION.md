@@ -1000,3 +1000,8 @@ Final import-consent device check and Debug APK (2026-10-16):
 
 - `SettingsAccessibilityDeviceTest.interfaceSectionAnnouncesExpansionAndKeepsSettingsActionsReachable`: Honor PTP-N49 / Android 16, 1/1 bestanden, 0 Skips/Fehler (XML-Zeitstempel 2026-10-18T15:57:41). Verifiziert die Compose-Semantik zur Ankündigung der Interface-Sektion und Erreichbarkeit ihrer Einstellungsaktionen. Keine manuelle TalkBack-Traversierung.
 - System-Font-Scale 1.0 und OrkanSlicer-`MainActivity` im Vordergrund bestätigt. Frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker; Emulator offline.
+## Profil-IME-, Import- und Dialogtests auf Honor (2026-10-18)
+
+- `ProfileSettingsImeDeviceTest` auf Honor PTP-N49 / Android 16: 11/11 bestanden, 0 Skips/Fehler (JUnit-XML-Zeitstempel 2026-10-18T15:59:29).
+- Fälle prüfen Profilfilter mit sichtbarer IME, Android-Zurück (IME zuerst ausblenden), Compose-Fehlerdialog, Profilimport und Konfliktabbruch/-überschreiben, selektive 3MF-Einstellungsübernahme beziehungsweise Abbruch, Zustimmung vor Modellvereinfachung sowie Prime-Tower-Draft/Abbruch/Anwenden.
+- Nach dem Lauf Font-Scale 1.0 und OrkanSlicer-`MainActivity` im Vordergrund bestätigt; Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker, Emulator offline.
