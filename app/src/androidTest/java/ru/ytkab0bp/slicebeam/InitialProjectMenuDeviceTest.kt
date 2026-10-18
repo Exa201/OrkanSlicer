@@ -1,6 +1,13 @@
 package ru.ytkab0bp.slicebeam
 
 import android.app.Application
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityOptionsCompat
+import androidx.core.content.FileProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -81,6 +88,48 @@ class InitialProjectMenuDeviceTest {
         compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf)).assertIsDisplayed()
         assertTrue("the first Project tap should open its action panel",
             controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
+    }
+
+    @Test
+    fun projectMenuAddModelBuildsMultiSelectOpenDocumentRequest() {
+        val activity = compose.activity
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+
+        try {
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuProject))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+
+            val request = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, request.action)
+            assertEquals("*/*", request.type)
+            assertTrue(request.categories?.contains(Intent.CATEGORY_OPENABLE) == true)
+            assertTrue("the project route must allow selecting multiple models",
+                request.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
+        } finally {
+            launchers[requestCode] = previousLauncher
+        }
     }
 
     @Test
@@ -301,6 +350,145 @@ class InitialProjectMenuDeviceTest {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.waitForIdle()
         compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfilesPrints)).assertDoesNotExist()
+    }
+
+    @Test
+    fun toolsMenuProfileImportBuildsCorrectDocumentPickerRequest() {
+        val activity = compose.activity
+        val requestCode = MainActivity.REQUEST_CODE_IMPORT_PROFILES
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        try {
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuOptions))
+                .assertIsDisplayed()
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuFileImportProfiles))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+                .assertIsDisplayed()
+                .performClick()
+            val request = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, request.action)
+            assertEquals("*/*", request.type)
+            assertTrue(request.categories?.contains(Intent.CATEGORY_OPENABLE) == true)
+            assertFalse(request.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
+            assertTrue(request.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)?.contains("text/plain") == true)
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles)).assertIsDisplayed()
+            assertFalse("opening the picker must not show an import dialog before a result is selected",
+                (activity.navigationDelegate.getCurrentFragment() as BedFragment).isWorkspaceMessageDialogAttached())
+        } finally {
+            launchers[requestCode] = previousLauncher
+        }
+    }
+
+    @Test
+    fun toolsMenuProfileExportWritesSelectedProfilesToTheRequestedDocument() {
+        val activity = compose.activity
+        val requestCode = MainActivity.REQUEST_CODE_EXPORT_PROFILES
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+
+        val previousPrints = MainActivity.EXPORTING_PRINTS
+        val previousFilaments = MainActivity.EXPORTING_FILAMENTS
+        val previousPrinters = MainActivity.EXPORTING_PRINTERS
+        val output = File(activity.cacheDir, "codex-profile-export-${System.nanoTime()}.ini")
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        val outputUri = FileProvider.getUriForFile(activity, authority, output)
+
+        try {
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuOptions))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfiles))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfiles)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfilesPrints))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+
+            repeat(2) {
+                compose.onNodeWithText(activity.getString(R.string.IntroNext)).performClick()
+                compose.waitForIdle()
+            }
+            val exportLabels = compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfiles))
+            assertEquals("the open export dialog and workspace action should both have semantics", 2,
+                exportLabels.fetchSemanticsNodes().size)
+            exportLabels[1].performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                capturedIntent.get() != null
+            }
+
+            val request = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, request.action)
+            assertEquals("application/ini", request.type)
+            assertEquals("OrcaSlicerMobile_config_bundle.ini", request.getStringExtra(Intent.EXTRA_TITLE))
+            assertTrue(MainActivity.EXPORTING_PRINTS.orEmpty().isNotEmpty())
+            assertTrue(MainActivity.EXPORTING_FILAMENTS.orEmpty().isNotEmpty())
+            assertTrue(MainActivity.EXPORTING_PRINTERS.orEmpty().isNotEmpty())
+            val selectedPrintCount = MainActivity.EXPORTING_PRINTS.orEmpty().size
+            val selectedFilamentCount = MainActivity.EXPORTING_FILAMENTS.orEmpty().size
+            val selectedPrinterCount = MainActivity.EXPORTING_PRINTERS.orEmpty().size
+
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, Intent().setData(outputUri))
+            }
+            compose.waitUntil(timeoutMillis = 10_000) { output.isFile && output.length() > 0 }
+            val exported = Slic3rConfigWrapper(output)
+            assertEquals("export must contain all selected print profiles",
+                selectedPrintCount, exported.printConfigs.size)
+            assertEquals("export must contain all selected filament profiles",
+                selectedFilamentCount, exported.filamentConfigs.size)
+            assertEquals("export must contain all selected printer profiles",
+                selectedPrinterCount, exported.printerConfigs.size)
+        } finally {
+            launchers[requestCode] = previousLauncher
+            MainActivity.EXPORTING_PRINTS = previousPrints
+            MainActivity.EXPORTING_FILAMENTS = previousFilaments
+            MainActivity.EXPORTING_PRINTERS = previousPrinters
+            output.delete()
+        }
     }
 
     @Test

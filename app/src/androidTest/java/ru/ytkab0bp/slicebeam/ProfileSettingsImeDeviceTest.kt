@@ -50,6 +50,7 @@ import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 
@@ -288,6 +289,57 @@ class ProfileSettingsImeDeviceTest {
         compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
         assertEquals("Cancel never triggers the import callback", null, imported.get())
+    }
+
+    @Test
+    fun actualProfileImportHonorsDeselectionAndPersistsOnlyConfirmedProfiles() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val config = SliceBeam.requireConfig()
+        val profileName = "Codex isolated import ${System.currentTimeMillis()}"
+        val configFile = SliceBeam.getConfigFile()
+        val previousConfigFile = configFile.takeIf(File::isFile)?.readBytes()
+        val currentConfigFile = SliceBeam.getCurrentConfigFile()
+        val previousCurrentConfigFile = currentConfigFile.takeIf(File::isFile)?.readBytes()
+        val importBundle = Slic3rConfigWrapper().apply {
+            printConfigs += ConfigObject(profileName).apply { put("layer_height", "0.21") }
+        }.serialize().toByteArray()
+
+        fun openImportSelection() {
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "loadIniForImport",
+                    java.io.InputStream::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, ByteArrayInputStream(importBundle))
+            }
+            compose.waitUntil(timeoutMillis = 10_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithText(profileName).assertIsDisplayed()
+        }
+
+        try {
+            assertEquals("test profile must not already exist", null, config.findPrint(profileName))
+
+            // Imported profiles are preselected; unchecking one and confirming must not mutate config.
+            openImportSelection()
+            compose.onNodeWithText(profileName).performClick()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertEquals("deselected profile must not be added", null, config.findPrint(profileName))
+
+            // The same imported file adds the profile only after it remains selected and is confirmed.
+            openImportSelection()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertEquals("confirmed import must persist the selected profile", "0.21", config.findPrint(profileName)?.get("layer_height"))
+            assertTrue("confirmed import must save the profile config", configFile.isFile)
+            assertEquals("the serialized profile file must contain the imported value", "0.21",
+                Slic3rConfigWrapper(configFile).findPrint(profileName)?.get("layer_height"))
+        } finally {
+            config.printConfigs.removeAll { it.title == profileName }
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            if (previousCurrentConfigFile == null) currentConfigFile.delete() else currentConfigFile.writeBytes(previousCurrentConfigFile)
+        }
     }
 
     @Test

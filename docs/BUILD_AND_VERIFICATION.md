@@ -1,3 +1,10 @@
+## Workspace-Profilimport — Honor, 2026-10-18
+
+- `ProfileSettingsImeDeviceTest`: 12/12 passed on Honor PTP-N49 / Android 16, 0 failures/errors/skips; JUnit XML timestamp `2026-10-18T20:47:10` UTC.
+- The new integration case passes a synthetic INI through the application's actual profile-import parser and Compose selection flow. Deselecting the imported profile leaves in-memory config untouched; confirming the selected profile writes the value both to the active config and the serialized config file. Cleanup restores the original config files and removes the synthetic profile.
+- `InitialProjectMenuDeviceTest`: 17/17 passed on Honor PTP-N49 / Android 16, 0 failures/errors/skips; JUnit XML timestamp `2026-10-18T21:02:28` UTC. New cases verify model import builds a multi-select `ACTION_OPEN_DOCUMENT` request, profile import builds its `OPENABLE` request with MIME filtering, and profile export traverses three Compose selection pages, produces `ACTION_CREATE_DOCUMENT`, executes the actual result handler, and writes a parsed INI compared against selected print, filament, and printer profiles. The FileProvider output and launcher/profile-selection state are isolated and restored.
+- Emulator offline. Test-only source change; no runtime/APK change, so v0.8.314 remains the current debug prerelease. The complete Phase 5 action audit and manual TalkBack verification remain open.
+
 ## Nachlauf v0.8.313 — Honor Vollsuite und physische Responsive-Prüfung (2026-10-18)
 
 - Honor PTP-N49 / Android 16: `:app:connectedSliceTestAndroidTest` — 188 Tests, 0 Fehler/Errors, 5 private KromaCut-/Mehrfarben-Fixtures übersprungen (183 ausgeführt und bestanden). Enthalten sind die zentralen Workspace-Menüaktionen, Modelltransformationen, Slicing, Druckprofile, Filament-/Plattenlisten und Compose-Accessibility-Semantik.

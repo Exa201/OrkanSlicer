@@ -1,5 +1,15 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Profilimport über den Workspace — 2026-10-18
+
+- `ProfileSettingsImeDeviceTest.actualProfileImportHonorsDeselectionAndPersistsOnlyConfirmedProfiles` führt ein synthetisches INI-Profil durch den realen `MainActivity.loadIniForImport`-Parser und die Compose-Auswahl. Abwahl plus Bestätigung importiert nichts; ausgewähltes Profil wird nach bestätigtem Import im Speicher und in der serialisierten Profilkonfiguration nachgewiesen. Testdateien und beide Konfigurationsdateien werden im `finally`-Pfad wiederhergestellt.
+- Honor PTP-N49 / Android 16: gesamte Klasse 12/12 bestanden, 0 Fehler/Errors/Skips; JUnit XML `2026-10-18T20:47:10` UTC. Offline-Emulator wurde übersprungen.
+- Nur Instrumentierungstest geändert; kein Produktionscode, keine neue APK und kein Release nötig. v0.8.314 bleibt unverändert.
+- `InitialProjectMenuDeviceTest` prüft jetzt zusätzlich den tatsächlichen Modellimport-Launcherrequest (OPEN_DOCUMENT, OPENABLE und Mehrfachauswahl), den Profilimport-Launcherrequest (OPEN_DOCUMENT, OPENABLE, MIME-Filter und Einzeldateiauswahl) sowie den vollständigen Profil-Export vom Compose-Menü über ACTION_CREATE_DOCUMENT bis zum Resultatcallback und zur erneut gelesenen INI-Datei. Die drei exportierten Profilgruppen werden gegen die ausgewählten Profile verglichen.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 17/17 bestanden, 0 Fehler/Errors/Skips; JUnit XML `2026-10-18T21:02:28` UTC. Der vollständige Projektmenü-Regressionslauf besteht ebenfalls einschließlich Modell-/Transformations-, Kamera-, Slicing- und Mehrplattenwarnungsfällen.
+- Diese Ergänzungen sind Instrumentierungstests; kein Produktionscode, keine neue APK und kein weiteres Release. v0.8.314 bleibt unverändert.
+- Phase 5 bleibt offen: nicht jede Datei-, Modell- und globale Profilaktion ist funktional abgenommen. Phase 6 bleibt wegen nicht ausgeführter manueller TalkBack-Traversierung offen. Nächster Schritt: in der Aktionsmatrix verbleibende konkrete Handler abgleichen und die noch nicht praktisch geprüften Profil-/Druckeraktionen abarbeiten.
+
 ## Profilpasswort- und 3MF-Vertrauensgrenze — 2026-10-18
 
 - Beide Profil-Editorpfade verwenden jetzt dieselbe Passwortklassifikation: Orcas als normaler String deklarierten `printhost_apikey` sowie native Passwortfelder markieren; gewöhnliche Druckerhosts bleiben normale Werte.
