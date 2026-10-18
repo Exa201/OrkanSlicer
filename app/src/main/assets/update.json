@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.312 – UI-Prüfbuild (Debug)\n\n• Aktualisierter Debug-Prüfstand nach Honor-Prüfungen für Cloud-Profil-Setup und -Verwaltung, Zurück-Navigation, Workspace-Rotation und Touchbedienung sowie responsive Layouts bei kleiner Breite und großer Schrift. Dieser Build enthält keine Änderungen am Laufzeitverhalten.",
-  "en": "OrkanSlicer 0.8.312 – UI verification build (Debug)\n\n• Refreshed debug verification snapshot after Honor checks for cloud profile setup and management, Back navigation, workspace rotation and touch behavior, plus responsive narrow-screen and large-text layouts. This build contains no runtime behavior changes.",
-  "ru": "OrkanSlicer 0.8.312 – проверочная сборка интерфейса (Debug)\n\n• Обновлённая отладочная сборка после проверок Honor для настройки и управления облачным профилем, навигации «Назад», поворота рабочей области и сенсорного управления, а также адаптивной компоновки при узком экране и крупном шрифте. Эта сборка не содержит изменений поведения приложения."
+  "de": "OrkanSlicer 0.8.313 – Debug-Prerelease\n\n• Drucker-API-Schlüssel werden in Druckerprofilen jetzt verborgen angezeigt. Im Editor können sie explizit ein- und ausgeblendet werden. Änderungen bleiben bis zum Speichern des Profils im Entwurf.",
+  "en": "OrkanSlicer 0.8.313 – Debug prerelease\n\n• Printer API keys are now masked in printer profiles. The editor provides an explicit show/hide control, and edits remain in the draft until the profile is saved.",
+  "ru": "OrkanSlicer 0.8.313 – отладочная предварительная сборка\n\n• Ключи API принтера теперь скрыты в профилях принтера. В редакторе есть кнопка показа и скрытия; изменения остаются в черновике до сохранения профиля."
 }

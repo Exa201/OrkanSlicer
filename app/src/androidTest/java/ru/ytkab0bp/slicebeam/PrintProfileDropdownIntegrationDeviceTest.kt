@@ -5,13 +5,17 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.semantics.Role
@@ -41,6 +45,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
 import ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterProfileSelectionStore
+import ru.ytkab0bp.slicebeam.ui.settings.OrcaProfileGroupLocalizer
 
 /** Checks that the active printer-compatible process preset is marked in the real dropdown model. */
 @RunWith(AndroidJUnit4::class)
@@ -265,19 +270,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 false,
             ).orEmpty()
 
-            val physicalPrinterCategory = Slic3rLocalization.getString("Physical Printer")
-            val collapsed = activity.getString(R.string.ProfileGroupStateCollapsed)
-            val categories = compose.onAllNodesWithText(physicalPrinterCategory).fetchSemanticsNodes()
-            val categoryIndex = categories.indexOfFirst {
-                it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == collapsed
-            }
-            assertTrue("The Physical Printer profile category should be available", categoryIndex >= 0)
-            compose.onAllNodesWithText(physicalPrinterCategory)[categoryIndex].performClick()
-            val expanded = activity.getString(R.string.ProfileGroupStateExpanded)
-            assertTrue("The Physical Printer category should expose its expanded state",
-                compose.onAllNodesWithText(physicalPrinterCategory).fetchSemanticsNodes().any {
-                    it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == expanded
-                })
+            ensureProfileCategoryExpanded("Physical Printer")
             compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
 
             fun openPrintHostEditor() {
@@ -378,14 +371,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
                     .apply { isAccessible = true }
                     .invoke(fragment) as ConfigObject
             }
-            val physicalPrinterCategory = Slic3rLocalization.getString("Physical Printer")
-            val collapsed = activity.getString(R.string.ProfileGroupStateCollapsed)
-            val categories = compose.onAllNodesWithText(physicalPrinterCategory).fetchSemanticsNodes()
-            val categoryIndex = categories.indexOfFirst {
-                it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == collapsed
-            }
-            assertTrue("The Physical Printer profile category should be available", categoryIndex >= 0)
-            compose.onAllNodesWithText(physicalPrinterCategory)[categoryIndex].performClick()
+            ensureProfileCategoryExpanded("Physical Printer")
             compose.onNodeWithText(hostTypeTitle).performScrollTo().assertIsDisplayed()
 
             val rows = compose.onAllNodesWithText(hostTypeTitle).fetchSemanticsNodes()
@@ -419,6 +405,102 @@ class PrintProfileDropdownIntegrationDeviceTest {
             else storedPrinter.put("host_type", originalHostType)
             config.presets?.put("printer", printerTitle)
             check(SliceBeam.saveConfig()) { "Restore the isolated printer transport fixture" }
+        }
+    }
+
+    @Test
+    fun printerApiKeyEditorMasksRevealsAndKeepsSyntheticEditsInTheDraft() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printerTitle = requireNotNull(config.presets?.get("printer"))
+        val storedPrinter = requireNotNull(config.findPrinter(printerTitle))
+        val originalApiKey = storedPrinter.get("printhost_apikey")
+        val option = requireNotNull(PrintConfigDef.getInstance().options["printhost_apikey"])
+        val optionTitle = Slic3rLocalization.getString(option.getLabel())
+        val syntheticStoredApiKey = "stored-test-api-key"
+        val syntheticApiKey = "not-a-real-api-key"
+        var originalDraftApiKey: String? = null
+        ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
+        storedPrinter.put(option.key, syntheticStoredApiKey)
+        check(SliceBeam.saveConfig()) { "Could not prepare the isolated API key fixture" }
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+            }
+            val draft = activity.runOnUiThreadAndWait {
+                val fragment = activity.navigationDelegate.getCurrentFragment() as PrinterConfigFragment
+                PrinterConfigFragment::class.java.getDeclaredMethod("getCurrentConfig")
+                    .apply { isAccessible = true }
+                    .invoke(fragment) as ConfigObject
+            }
+            originalDraftApiKey = ProfileConfigValueController.valueFor(
+                ConfigObject.PROFILE_LIST_PRINTER, draft, option.key, option.guiType,
+                option.defaultValue, -1, false,
+            )
+            ensureProfileCategoryExpanded("Physical Printer")
+            compose.onNodeWithText("••••••").performScrollTo().assertIsDisplayed()
+            assertTrue("The saved API key must not be exposed in the profile row",
+                compose.onAllNodesWithText(syntheticStoredApiKey).fetchSemanticsNodes().isEmpty())
+            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
+
+            fun openApiKeyEditor() {
+                val rows = compose.onAllNodesWithText(optionTitle).fetchSemanticsNodes()
+                assertTrue("The printer API key profile option should be visible", rows.isNotEmpty())
+                val rowIndex = rows.indices.maxByOrNull { rows[it].boundsInRoot.top }
+                    ?: throw AssertionError("The printer API key row is not displayed")
+                compose.onAllNodesWithText(optionTitle)[rowIndex].performClick()
+                compose.onNodeWithText(activity.getString(R.string.ProfileStringInputLabel)).assertIsDisplayed()
+            }
+
+            openApiKeyEditor()
+            val showPasswordLabel = listOf(activity.getString(R.string.ProfileStringShowPassword), "Show")
+                .firstOrNull { compose.onAllNodesWithText(it, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+                ?: throw AssertionError("The password reveal button should expose a localized label")
+            val hidePasswordLabel = if (showPasswordLabel == "Show") "Hide"
+                else activity.getString(R.string.ProfileStringHidePassword)
+            compose.onNodeWithText(showPasswordLabel, useUnmergedTree = true).assertIsDisplayed()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(syntheticApiKey)
+            compose.onNodeWithText(showPasswordLabel, useUnmergedTree = true).performClick()
+            compose.onNodeWithText(hidePasswordLabel, useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText(syntheticApiKey).assertIsDisplayed()
+            compose.onNodeWithText(hidePasswordLabel, useUnmergedTree = true).performClick()
+            compose.onNodeWithText(showPasswordLabel, useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            compose.waitForIdle()
+            assertEquals("Cancel keeps the API key profile draft unchanged", originalDraftApiKey,
+                ProfileConfigValueController.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINTER, draft, option.key, option.guiType,
+                    option.defaultValue, -1, false,
+                ))
+            assertEquals(0, ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER))
+            assertEquals("Cancel never persists the edited key", syntheticStoredApiKey,
+                storedPrinter.get("printhost_apikey"))
+
+            openApiKeyEditor()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(syntheticApiKey)
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINTER)
+                    .containsKey(option.key)
+            }
+            assertEquals("Apply stages the synthetic key only in the profile draft", syntheticApiKey,
+                ProfileSettingsRepository.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINTER, draft, option.key, true,
+                ))
+            assertEquals("Apply does not persist or send the edited key", syntheticStoredApiKey,
+                storedPrinter.get("printhost_apikey"))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
+            if (originalApiKey == null) storedPrinter.values.remove("printhost_apikey")
+            else storedPrinter.put("printhost_apikey", originalApiKey)
+            config.presets?.put("printer", printerTitle)
+            check(SliceBeam.saveConfig()) { "Restore the isolated printer API key fixture" }
         }
     }
 
@@ -616,8 +698,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
         val targetValue = optionValues[targetIndex]
         val targetLabel = optionLabels[targetIndex]
 
-        val generalCategory = Slic3rLocalization.getString("General")
-        compose.onNodeWithText(generalCategory).performScrollTo().assertIsDisplayed().performClick()
+        ensureProfileCategoryExpanded("General")
         compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = 5_000) {
@@ -695,8 +776,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
             val targetValue = optionValues[targetIndex]
             val targetLabel = optionLabels[targetIndex]
 
-            val generalCategory = Slic3rLocalization.getString("General")
-            compose.onNodeWithText(generalCategory).performScrollTo().assertIsDisplayed().performClick()
+            ensureProfileCategoryExpanded("General")
             compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsSave)).assertIsDisplayed().performClick()
@@ -886,8 +966,9 @@ class PrintProfileDropdownIntegrationDeviceTest {
             activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
         }
 
-        compose.onNodeWithText(printerBefore).assertIsDisplayed().performClick()
-        compose.onNodeWithText(targetPrinter).assertIsDisplayed()
+        val profileButtonRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+        compose.onNode(hasText(printerBefore) and profileButtonRole).assertIsDisplayed().performClick()
+        compose.onAllNodesWithText(targetPrinter).onFirst().assertIsDisplayed()
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.waitForIdle()
 
@@ -897,7 +978,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
             processBefore, config.presets?.get("print"))
         assertEquals("Dismissing printer selection leaves the filament preset unchanged",
             filamentBefore, config.presets?.get("filament"))
-        compose.onNodeWithText(printerBefore).assertIsDisplayed()
+        compose.onNode(hasText(printerBefore) and profileButtonRole).assertIsDisplayed()
     }
 
     @Test
@@ -1008,22 +1089,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
         }
 
         try {
-            val filamentCategory = Slic3rLocalization.getString("Filament")
-            val matchingCategoryNodes = compose.onAllNodesWithText(filamentCategory).fetchSemanticsNodes()
-            assertTrue("Filament destination and settings category should be present",
-                matchingCategoryNodes.isNotEmpty())
-            val collapsed = activity.getString(R.string.ProfileGroupStateCollapsed)
-            val settingsCategoryIndex = matchingCategoryNodes.indexOfFirst {
-                it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == collapsed
-            }
-            assertTrue("Find the collapsible Filament settings category, not the workspace destination",
-                settingsCategoryIndex >= 0)
-            compose.onAllNodesWithText(filamentCategory)[settingsCategoryIndex].performClick()
-            val expanded = activity.getString(R.string.ProfileGroupStateExpanded)
-            assertTrue("The Filament category should report its expanded state",
-                compose.onAllNodesWithText(filamentCategory).fetchSemanticsNodes().any {
-                    it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == expanded
-                })
+            ensureProfileCategoryExpanded("Filament")
             compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
 
             fun clickSettingRow() {
@@ -1069,6 +1135,56 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 originalStoredValue, storedFilament.get(option.key))
         } finally {
             ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_FILAMENT)
+        }
+    }
+
+    private fun ensureProfileCategoryExpanded(categoryKey: String) {
+        val localizedTitle = Slic3rLocalization.getString(categoryKey)
+        val titles = listOf(
+            categoryKey,
+            localizedTitle,
+            OrcaProfileGroupLocalizer.mobileGroup(categoryKey, "de"),
+            OrcaProfileGroupLocalizer.mobileGroup(localizedTitle, "de"),
+        ).distinct()
+        val scrollableNodes = compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes()
+        assertTrue("The profile settings list should expose a scroll action", scrollableNodes.isNotEmpty())
+        for (scrollIndex in scrollableNodes.indices) {
+            for (title in titles) {
+                try {
+                    compose.onAllNodes(hasScrollAction())[scrollIndex].performScrollToNode(hasText(title))
+                } catch (_: AssertionError) {
+                    // Category selectors and their settings rows can be separate scroll containers.
+                }
+            }
+        }
+        val expanded = compose.activity.getString(R.string.ProfileGroupStateExpanded)
+        val collapsed = compose.activity.getString(R.string.ProfileGroupStateCollapsed)
+        val candidates = titles.flatMap { title ->
+            compose.onAllNodesWithText(title).fetchSemanticsNodes().map { title to it }
+        }
+        val stateful = candidates.firstOrNull {
+            it.second.config.getOrElse(SemanticsProperties.StateDescription) { "" } in setOf(expanded, collapsed)
+        }
+        if (stateful != null) {
+            if (stateful.second.config.getOrElse(SemanticsProperties.StateDescription) { "" } == expanded) return
+            val matchingNodes = compose.onAllNodesWithText(stateful.first).fetchSemanticsNodes()
+            val index = matchingNodes.indexOfFirst {
+                it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == collapsed
+            }
+            assertTrue("The collapsed profile category should remain in the UI", index >= 0)
+            compose.onAllNodesWithText(stateful.first)[index].performScrollTo().performClick()
+        } else {
+            val category = candidates.firstOrNull { (_, node) ->
+                node.config.contains(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            } ?: throw AssertionError("Profile category '$categoryKey' was not present in the active category selector")
+            compose.onNode(hasText(category.first).and(hasClickAction())).performClick()
+        }
+        if (stateful != null) {
+            compose.waitUntil(timeoutMillis = 5_000) {
+                titles.flatMap { compose.onAllNodesWithText(it).fetchSemanticsNodes() }.any {
+                    it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == expanded
+                }
+            }
         }
     }
 

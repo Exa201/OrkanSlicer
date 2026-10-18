@@ -197,7 +197,7 @@ object ProfileOptionComposePresenter {
                 localized(def.getLabel()),
                 initialValue,
                 localized(def.tooltip),
-                def.guiType == ConfigOptionDef.GUIType.PASSWORD,
+                def.guiType == ConfigOptionDef.GUIType.PASSWORD || def.key == "printhost_apikey",
                 def.multiline,
                 def.height.takeIf { it > 0 } ?: 8,
                 localizedCopy(def.enumLabels),
@@ -370,7 +370,7 @@ object ProfileOptionComposePresenter {
         ) {
             return ComposeProfileStringOption.create(
                 localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.tooltip),
-                def.guiType == ConfigOptionDef.GUIType.PASSWORD,
+                def.guiType == ConfigOptionDef.GUIType.PASSWORD || def.key == "printhost_apikey",
                 def.multiline, def.height.takeIf { it > 0 } ?: 8,
                 localizedCopy(def.enumLabels), def.enumValues, onChanged, onLongClick,
             )

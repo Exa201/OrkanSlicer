@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.313 (alpha)
+
+- Treat printer API keys and passwords as sensitive profile values: mask them in the printer profile list and provide explicit show/hide controls in the editor.
+- Keep API key edits staged in the printer profile draft until the user applies and saves the profile.
+- Add Honor device coverage for masked display, reveal/hide, Cancel, and draft-only Apply behavior.
+- Update the in-app release notes to match version 0.8.313 and its printer API-key change.
+
 ## 0.8.312 (alpha)
 
 - Publish a refreshed debug verification snapshot after Honor checks for cloud-profile setup/management, app Back behavior, workspace rotation/touch navigation, and responsive large-text layouts. No runtime feature changes are included in this verification snapshot.
