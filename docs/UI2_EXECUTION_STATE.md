@@ -1,3 +1,11 @@
+## Fortsetzung 2026-10-18 — Druckbetttyp-Dialog bei 150 %
+
+- Branch-HEAD vor diesem Nachweis: `a3acb243d24222ad1be0585507c690cd2633e85c` (`codex/rinkhals-safe-start-audit`). PR #2 ist `OPEN`, `MERGEABLE`, `CLEAN` und zeigt denselben Head.
+- 150-%-Screenshot `app/build/reports/ui2-manual-audit/honor-150-profile-dialog-after-swipe.png` auf Honor PTP-N49 geprüft: Druckbetttyp-Dialog zeigt Titel, alle sechs Auswahloptionen einschließlich „Kalte Druckplatte (SuperTack)“ und „Abbrechen“ gleichzeitig. Kein reproduzierbarer Clipping-/Overlayfehler nach dem Scrollen.
+- Neuer Instrumentierungstest `ProfileEnumOptionAccessibilityDeviceTest.largeEnumDialogCanScrollToLastChoiceAndStillDismissWithoutApplying`: Honor PTP-N49 / Android 16, 1/1 bestanden, 0 Skip/Fehler (XML-Zeitstempel 2026-10-18T15:46:36). Test simuliert 320 dp × 640 dp bei 150 % Compose-Schrift, scrollt zur letzten Option und schließt mit Abbrechen; es wird kein Wert angewandt.
+- Gerät wurde auf System-Font-Scale 1.0 zurückgestellt und geprüft; `MainActivity` von `com.codemastercody3d.orcaslicermobile` ist aktiv. SliceBeam wurde nicht gestartet. Nur Test-/Dokumentationscode; kein Runtime-Build erforderlich.
+- Phase 4 bleibt anhand der vorhandenen Architektur-/Regressionsnachweise bestätigt. Phase 5 und 6 bleiben teilweise offen: keine vollständige funktionale Aktionsabnahme aller Haupt-/Untermenüs und keine manuelle TalkBack-Prüfung. Nächster Schritt: globale Filament-/Profile-Untermenüaktionen mit isolierten Testwerten praktisch abnehmen und Status/Back-Verhalten nachweisen.
+
 ## Aktueller Fortsetzungsstand — 0.8.310 (2026-10-18)
 
 - Gebündelte vollständige Honor-Instrumentierung nach dem Profiltest: XML `TEST-PTP-N49 - 16-_app-.xml` enthält 172 eindeutige Fälle, 167 bestanden, 5 übersprungen, 0 Fehler/Errors. Gradle protokollierte 177 Ausführungen durch Wiederholungen; maßgeblich sind 172 eindeutige XML-Testfälle. Die Skips sind exakt zwei `KromaCutThreeMfDeviceTest`- und drei `ThreeMfMulticolorDeviceTest`-Fälle mit nicht verfügbaren privaten Fixtures. Emulator offline. Nach dem Lauf blieb `com.codemastercody3d.orcaslicermobile/ru.ytkab0bp.slicebeam.MainActivity` top-resumed; frische 5.000-Zeilen-Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker. System-Font-Scale bleibt 1.0.
