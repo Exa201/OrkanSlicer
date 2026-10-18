@@ -1056,3 +1056,9 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Nach Entfernen eines nicht belastbar ausführbaren Zusatztests wurde `PrintProfileDropdownIntegrationDeviceTest` erneut auf PTP-N49 / Android 16 ausgeführt: 6/6 bestanden, 0 Fehler/Skips, 22,818 s. JUnit-XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-18T16:34:44`. Der Offline-Emulator wurde übersprungen.
 - Ein Zusatztest für Filamenttemperatur bearbeiten/Abbrechen/Speichern fand die erwartete lokalisierte Compose-Optionszeile nicht (`Andere Schichten`); der zugehörige Gerätelauf war 6/7 mit einem Fehler. Kein Produktfehler wurde nachgewiesen. Der unzuverlässige Test wurde entfernt; Filamentwert-Edit/Cancel/Save bleibt ungeprüft.
 - Keine Runtime-Dateien geändert; kein Debug-APK-Build und kein vollständiger Unit-Lauf. SliceTest-App isoliert; kein Drucker, Upload oder Druckstart.
+
+## Compose-Accessibility-Regressionen auf Honor (2026-10-18)
+
+- `SettingsAccessibilityDeviceTest`: 1/1 bestanden auf Honor PTP-N49. Die Komponente wurde mit simulierten 320/360/400/640-dp-Konfigurationen, Hoch-/Querformat-Proportionen und Font-Scale 100/130/150 % getestet; geprüft wurden Accordion-StateDescription, 48-dp-Touchziele, Erreichbarkeit der Theme-Aktion und Expand/Collapse. Das ist ein automatisierter Compose-Konfigurationstest auf dem Gerät, keine physische Display-/Schriftänderung.
+- `ProfileFilterAccessibilityDeviceTest`: 1/1 bestanden auf Honor PTP-N49; Such-/Filterbereich bei simulierten 320 dp und 150 % Schrift, Favoriten-StateDescription, mindestens 48-dp-Ziele, Levelauswahl und Suchtexteingabe geprüft.
+- Beide waren SliceTest-Instrumentierungstests; `emulator-5554` offline. Keine Runtime-Änderung, kein Debug-APK-Build, kein TalkBack-Screenreader-Manuelltest.
