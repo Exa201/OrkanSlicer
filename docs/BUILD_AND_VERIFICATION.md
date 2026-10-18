@@ -1,3 +1,12 @@
+## 0.8.311 — Honor-Funktionsabnahme und Debug-Prüfsnapshot (2026-10-18)
+
+- Auf Honor PTP-N49 / Android 16 liefen 28 gezielte Instrumentierungstests über sieben Klassen erfolgreich: `PrintConfigToolsDialogsDeviceTest` 3/3, `CalibrationWorkspaceDeviceTest` 1/1, `ProfileOptionHelpDialogDeviceTest` 1/1, `CalibrationActionRowAccessibilityDeviceTest` 1/1, `GeneratedOutputDialogDeviceTest` 4/4, `FilamentPaletteComposeDeviceTest` 15/15 und `TemporaryProjectSettingsDeviceTest` 3/3. Kein Skip/Fehler in diesen gefilterten Läufen. Geprüft wurden Profil-Flush-Dialog Validierung/Dezimalwert/Abbruch/Übernahme, Kalibrierungsnavigation samt Barrierefreiheitsbeschreibung, getrennte erzeugte Modell-/Pair-/Raster-Aktionen, lange Filament- und Plattenlisten mit Auswahl/Scrollen, sowie temporäre 3MF-Projektwerte, Preset-Isolation und lokales G-Code-Slicing mit den gewählten Filamenten.
+- Das Slicing wurde lokal ausgeführt; kein Drucker-Upload und kein Druckstart. Temporäre Projekt-/Profilzustände sind testisoliert. Diese Läufe bilden keine vollständige Abnahme aller Workspace-Menüs.
+- Danach `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: je 559 Tests, 0 Fehler, 0 Errors, 0 Skips. Emulator `emulator-5554` war offline und wurde übersprungen.
+- Nach den Instrumentierungsläufen war `com.codemastercody3d.orcaslicermobile/ru.ytkab0bp.slicebeam.MainActivity` auf dem Honor top-resumed. Frische Logcat-Stichprobe von 5.000 Zeilen ohne `FATAL EXCEPTION`, ANR- oder OOM-Marker.
+- Version 0.8.311 / code 346 ist als transparenter Debug-Prüfsnapshot vorgesehen und enthält in diesem Schritt keine Laufzeitfunktionsänderung. Vor GitHub-Upload: APK-Build, Installations-/Startcheck, SHA-256 und Release-Asset noch nachweisen.
+- Phase 5 bleibt offen: nicht jede Aktion der sechs Hauptmenüs und globalen Drucker-/Profilrouten wurde ausgeführt. Phase 6 bleibt offen: kein manuelles TalkBack und keine native physische Displaygrößen-/Ausrichtungsmatrix in diesem Schritt.
+
 ## 0.8.308 — Transformationshistorie und natives Rotation-Reset (2026-10-18)
 
 - Honor-Prüfungen mit einem temporären STL-Würfel deckten zwei fehlende Undo-Snapshots auf: bestätigte Positionen und Rotationen änderten das native Modell, riefen danach aber `BedFragment.updateModel()` nicht auf. Beide Commits erfassen jetzt das Ergebnis nach der GL-Operation auf dem Main-Thread.

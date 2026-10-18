@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.311 (alpha)
+
+- Publish a refreshed debug verification snapshot after additional Honor checks for profile dialogs, calibration actions, filament/plate UI, and temporary 3MF project settings. No runtime feature changes are included in this snapshot.
+
 ## 0.8.310 (alpha)
 
 - Apply the selected UI text size immediately to open settings and the full workspace.
