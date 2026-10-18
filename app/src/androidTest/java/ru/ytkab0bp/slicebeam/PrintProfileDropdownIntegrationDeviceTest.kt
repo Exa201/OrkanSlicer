@@ -9,15 +9,18 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.PrinterScopedProcessProfile
+import ru.ytkab0bp.slicebeam.fragment.PrinterConfigFragment
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.PrinterProfileSelectionStore
 
 /** Checks that the active printer-compatible process preset is marked in the real dropdown model. */
 @RunWith(AndroidJUnit4::class)
@@ -107,6 +110,46 @@ class PrintProfileDropdownIntegrationDeviceTest {
             item?.javaClass?.getMethod("isSelected")?.invoke(item) as? Boolean == true
         }.mapNotNull { item -> item?.javaClass?.getMethod("getTitle")?.invoke(item) as? String }
         assertEquals("Exactly the printer-scoped active profile is marked in the filtered list", listOf(expectedScopedTitle), selectedTitles)
+    }
+
+    @Test
+    fun selectingPrinterProfileThroughMenuScopesItsActiveProcess() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val previousPrinter = requireNotNull(config.presets?.get("printer"))
+        val targetPrinter = "Anycubic 4Max Pro 0.4 nozzle"
+        assertNotNull("The bundled test configuration must contain the target printer", config.findPrinter(targetPrinter))
+        val previousPrinterSelection = PrinterProfileSelectionStore.read(previousPrinter)
+        val previousTargetSelection = PrinterProfileSelectionStore.read(targetPrinter)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+            }
+
+            compose.onNodeWithText(previousPrinter).assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetPrinter).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                SliceBeam.requireConfig().presets?.get("printer") == targetPrinter
+            }
+
+            val selectedConfig = SliceBeam.requireConfig()
+            val selectedProcess = requireNotNull(selectedConfig.presets?.get("print"))
+            val scopedProcess = requireNotNull(selectedConfig.findPrint(selectedProcess))
+            assertTrue(
+                "Changing printers must scope the active process to the selected printer",
+                PrinterScopedProcessProfile.belongsTo(scopedProcess, targetPrinter),
+            )
+            assertNotNull("The synchronized active filament must remain present", selectedConfig.findFilament(selectedConfig.presets?.get("filament")))
+        } finally {
+            previousPrinterSelection?.let { PrinterProfileSelectionStore.write(previousPrinter, it.process, it.filament) }
+                ?: PrinterProfileSelectionStore.write(previousPrinter, null, null)
+            previousTargetSelection?.let { PrinterProfileSelectionStore.write(targetPrinter, it.process, it.filament) }
+                ?: PrinterProfileSelectionStore.write(targetPrinter, null, null)
+        }
     }
 
     private fun createInitializedActivityRule() = run {
