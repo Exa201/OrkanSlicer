@@ -1189,6 +1189,13 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Full `:app:connectedSliceTestAndroidTest` on Honor: 188 test cases, 183 passed, 5 skipped private multicolor fixtures, 0 failures/errors (JUnit XML timestamp `2026-10-18T20:12:49`; 287.159 s). Emulator remained offline.
 - Test-only change; no runtime code, debug APK, or release changed. UI 2.0 Phase 5 action inventory and Phase 6 manual TalkBack traversal remain incomplete.
 
+## Printer secret import boundary and password presentation — 2026-10-18
+
+- Both profile editor render paths now use the same `isPasswordOption` policy. It classifies native password fields and Orca's schema-misclassified `printhost_apikey` as sensitive, without masking the ordinary `print_host` value.
+- Added `ThreeMfProjectSettingsReaderTest.projectSettingsNeverImportPrintHostCredentialsOrEndpoints`: synthetic 3MF project settings carrying a printer host, Moonraker type, API key, and Web UI URL retain safe layer settings and printer identity but import none of those connection/secret values.
+- The targeted password-policy and 3MF reader tests passed. `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest` each passed 561/561 (0 failures/errors/skips). Honor API-key lifecycle test passed 1/1 after the shared policy change; the full Honor suite on the prior behavior-equivalent build was 188 cases, 183 passed, 5 private-fixture skips, 0 failures.
+- Release candidate: v0.8.314 / versionCode 349. APK identity, hash, final install/start and GitHub release results are recorded below after those steps complete.
+
 ## Unit regression after API-key lifecycle coverage — 2026-10-18
 
 - `:app:testDebugUnitTest :app:testSliceTestUnitTest` succeeded on commit `ec35f2a`: 559 tests in each suite, 0 failures, 0 errors, 0 skipped in both suites. Build completed in 42 seconds using the existing Gradle cache.

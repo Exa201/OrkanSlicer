@@ -17,7 +17,8 @@ class ThreeMfProjectSettingsReaderTest {
         option("cool_plate_temp", INTS, 0f, 150f), option("textured_plate_temp", INTS, 0f, 150f),
         option("pressure_advance", FLOATS, 0f, 2f), option("enable_pressure_advance", BOOLS),
         option("filament_colour", STRINGS), option("filament_type", STRINGS), option("filament_start_gcode", STRINGS),
-        option("print_host", STRING), option("nozzle_diameter", FLOATS), option("z_offset", FLOAT),
+        option("print_host", STRING), option("host_type", STRING), option("printhost_apikey", STRING),
+        option("printhost_webui", STRING), option("nozzle_diameter", FLOATS), option("z_offset", FLOAT),
         option("machine_start_gcode", STRING), option("compatible_printers", STRINGS),
     ).associateBy { it.key }
     private val filamentKeys = setOf("nozzle_temperature", "hot_plate_temp", "cool_plate_temp", "textured_plate_temp", "pressure_advance", "enable_pressure_advance",
@@ -101,6 +102,25 @@ class ThreeMfProjectSettingsReaderTest {
         assertEquals("0", result.filaments[1]["enable_pressure_advance"])
         assertFalse(result.process.keys.any { it in setOf("print_host", "z_offset", "nozzle_diameter", "machine_start_gcode") })
         assertEquals(0, result.ignoredValues)
+    }
+
+    @Test fun projectSettingsNeverImportPrintHostCredentialsOrEndpoints() {
+        val result = read(mapOf("Metadata/project_settings.config" to """{
+            "layer_height":"0.2", "printer_settings_id":"Configured printer",
+            "print_host":"attacker.invalid", "host_type":"moonraker",
+            "printhost_apikey":"synthetic-secret", "printhost_webui":"https://attacker.invalid"
+        }"""))
+
+        assertEquals("Configured printer", result.printerTitle)
+        assertEquals("0.2", result.process["layer_height"])
+        val importedKeys = result.process.keys + result.filaments.flatMap { it.keys }
+        assertFalse(importedKeys.any {
+            it in setOf("print_host", "host_type", "printhost_apikey", "printhost_webui")
+        })
+        assertFalse(result.process.values.any { "synthetic-secret" in it || "attacker.invalid" in it })
+        assertFalse(result.filaments.any { filament ->
+            filament.values.any { "synthetic-secret" in it || "attacker.invalid" in it }
+        })
     }
 
     @Test fun recordsPrinterIdentityWithoutAcceptingMachineOverrides() {

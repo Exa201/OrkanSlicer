@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.314 (alpha)
+
+- Use one shared password-classification rule in both profile editor render paths so printer API keys stay masked consistently.
+- Keep printer hosts, connection types, Web UI endpoints, and API keys out of project-provided 3MF settings; add a regression test with synthetic hostile values.
+- Extend Honor coverage for API-key editor Back, Cancel, Apply, and confirmed profile Save behavior.
+- Refresh the debug prerelease after 561/561 Debug and Slice unit tests and the 183-pass Honor instrumentation run (five private fixtures skipped).
+
 ## 0.8.313 (alpha)
 
 - Treat printer API keys and passwords as sensitive profile values: mask them in the printer profile list and provide explicit show/hide controls in the editor.

@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Profilpasswort- und 3MF-Vertrauensgrenze — 2026-10-18
+
+- Beide Profil-Editorpfade verwenden jetzt dieselbe Passwortklassifikation: Orcas als normaler String deklarierten `printhost_apikey` sowie native Passwortfelder markieren; gewöhnliche Druckerhosts bleiben normale Werte.
+- Neuer Regressionstest weist nach, dass 3MF-Projektsettings `print_host`, `host_type`, `printhost_apikey` und `printhost_webui` nicht in temporäre Prozess-/Filamentwerte übernehmen. Die Druckeridentität und sichere Druckeinstellungen bleiben erhalten.
+- Nachweis: beide vollständigen JVM-Suiten 561/561, 0 Fehler/Errors/Skips; API-Key-E2E-Test auf Honor 1/1. Vollständige Honor-Suite des verhaltensgleichen Standes: 188 Fälle, 183 bestanden, 5 private Fixtures übersprungen, 0 Fehler.
+- Version für den Abschluss dieses Sicherheits-/Profilpakets: 0.8.314 / Code 349. Release-APK und GitHub-Veröffentlichung stehen nach finalem Build und Gerätetest aus.
+- Weiterhin nicht abgeschlossen: gesamter UI-2.0-Aktionsaudit, physische TalkBack-Traversierung und mehrplattenfähige Gesamt-Projektpersistenz.
+
 ## API-Schlüssel-Abbruch-/Speicherablauf und Honor-Regressionslauf — 2026-10-18
 
 - Der API-Key-Gerätetest prüft maskierte Anzeige und Anzeigen/Verbergen sowie vier Zustände: Abbrechen und Android-Zurück lassen Entwurf und gespeicherten Schlüssel unverändert; „Übernehmen“ ändert nur den Profilentwurf; erst bestätigtes Speichern schreibt den synthetischen Schlüssel in das ausgewählte Druckerprofil. Testwerte werden in `finally` wiederhergestellt, kein Netzwerkzugriff.

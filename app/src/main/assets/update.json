@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.313 – Debug-Prerelease\n\n• Drucker-API-Schlüssel werden in Druckerprofilen jetzt verborgen angezeigt. Im Editor können sie explizit ein- und ausgeblendet werden. Änderungen bleiben bis zum Speichern des Profils im Entwurf.",
-  "en": "OrkanSlicer 0.8.313 – Debug prerelease\n\n• Printer API keys are now masked in printer profiles. The editor provides an explicit show/hide control, and edits remain in the draft until the profile is saved.",
-  "ru": "OrkanSlicer 0.8.313 – отладочная предварительная сборка\n\n• Ключи API принтера теперь скрыты в профилях принтера. В редакторе есть кнопка показа и скрытия; изменения остаются в черновике до сохранения профиля."
+  "de": "OrkanSlicer 0.8.314 – Debug-Prerelease\n\n• Drucker-API-Schlüssel bleiben in beiden Profil-Editorpfaden verborgen. Änderungen werden erst nach bestätigtem Speichern übernommen.\n• 3MF-Projektwerte können keine Druckserver-Adresse, Web-URL, Verbindungstyp oder API-Schlüssel importieren.",
+  "en": "OrkanSlicer 0.8.314 – Debug prerelease\n\n• Printer API keys stay masked across both profile-editor paths. Changes are persisted only after confirmed profile save.\n• 3MF project settings cannot import a print-host address, Web UI URL, connection type, or API key.",
+  "ru": "OrkanSlicer 0.8.314 – отладочная предварительная сборка\n\n• Ключи API принтера скрыты в обоих редакторах профилей. Изменения сохраняются только после подтверждения сохранения профиля.\n• Настройки 3MF не могут импортировать адрес сервера печати, URL веб-интерфейса, тип соединения или API-ключ."
 }

@@ -29,6 +29,9 @@ import java.util.function.Supplier
 
 /** Builds Compose rows for every Orca setting type shown in profile screens. */
 object ProfileOptionComposePresenter {
+    internal fun isPasswordOption(def: ConfigOptionDef): Boolean =
+        def.guiType == ConfigOptionDef.GUIType.PASSWORD || def.key == "printhost_apikey"
+
     @Suppress("UNUSED_PARAMETER")
     @JvmStatic
     fun supportsDirect(def: ConfigOptionDef): Boolean = true
@@ -197,7 +200,7 @@ object ProfileOptionComposePresenter {
                 localized(def.getLabel()),
                 initialValue,
                 localized(def.tooltip),
-                def.guiType == ConfigOptionDef.GUIType.PASSWORD || def.key == "printhost_apikey",
+                isPasswordOption(def),
                 def.multiline,
                 def.height.takeIf { it > 0 } ?: 8,
                 localizedCopy(def.enumLabels),
@@ -370,7 +373,7 @@ object ProfileOptionComposePresenter {
         ) {
             return ComposeProfileStringOption.create(
                 localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.tooltip),
-                def.guiType == ConfigOptionDef.GUIType.PASSWORD || def.key == "printhost_apikey",
+                isPasswordOption(def),
                 def.multiline, def.height.takeIf { it > 0 } ?: 8,
                 localizedCopy(def.enumLabels), def.enumValues, onChanged, onLongClick,
             )
