@@ -1,3 +1,11 @@
+## Fortsetzung 2026-10-18 — Druckerpanel und Safe-Start-Recovery
+
+- `PrinterWebWorkspacePanelDeviceTest` auf Honor: 3/3 bestanden; native technische View wird nur im sichtbaren Compose-Panel gehalten und bei Schließen abgelöst, Retry/extern öffnen/Schließen rufen getrennte Aktionen auf, Bounds bleiben bei 320/360 dp und 130/150 % Schrift innerhalb des Panels.
+- `SafeStartComposeDeviceTest.recoveryScreenRendersAfterStoredCrashWithoutOpeningWorkspace`: Honor 1/1 bestanden; persistierte Crash-Recovery zeigt ihre Compose-Oberfläche, ohne den Workspace zu öffnen. Kein Druckstart.
+- Zusammen mit den vorherigen gezielten Läufen dieses Durchgangs: 79 ausgeführte Tests in 17 Klassenläufen, alle bestanden, keine Skips/Fehler in den fokussierten Läufen. Kein eindeutiger Gesamt-Suite-Zähler; Fälle überlappen möglicherweise mit älteren Voll-Läufen.
+- Runtime blieb unverändert; keine APK. Emulator offline. Moonraker-/Drucker-Webverbindung wurde nicht gegen einen realen Drucker getestet. Noch offen bleiben vollständiges Aktionsaudit, TalkBack manuell und native 320-dp-/Querformat-Konfiguration.
+- Nächster Schritt: verbleibende globale Filament-/Druckprofil-/Drucker-Menüaktionen mit tatsächlichen Handlern weiter abdecken; abschließend Testnachweise und PR-Head synchron halten.
+
 ## Fortsetzung 2026-10-18 — Sichere Slice-/Druckvorbereitung
 
 - Auf Honor PTP-N49 / Android 16 bestanden `SlicePrintPreparationComposeDeviceTest` 3/3, `SmartSliceDialogsDeviceTest` 5/5 und `QuickSliceDialogDeviceTest` 3/3, alle ohne Skip/Fehler. Geprüft: Abbruch dispatcht keinen Upload, Upload läuft nur über den injizierten Callback, Filamentzuweisungs-Abbruch/Back übernimmt keine Änderung, leere ACE-Warnung hält Upload und bestätigte Druckoption getrennt, ungültige Smart-Slice-Abmessungen werden verworfen, Formularabbruch/Back startet keine Analyse, Analyseabbruch wird weitergereicht, Ergebnisdialog schließen startet kein Slicing, Quick-Slice-Validierung und Cancel/Back ohne Start.

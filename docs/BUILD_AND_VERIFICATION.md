@@ -1012,3 +1012,7 @@ Final import-consent device check and Debug APK (2026-10-16):
 
 - Honor PTP-N49 / Android 16: `SlicePrintPreparationComposeDeviceTest` 3/3, `SmartSliceDialogsDeviceTest` 5/5 und `QuickSliceDialogDeviceTest` 3/3 bestanden; keine Skips/Fehler. Die Fälle verifizieren Cancel/Back ohne Dispatch oder Analyse, Validierung ungültiger Werte, Weitergabe eines injizierten Upload-/Analyse-Cancel-Callbacks, getrennte Upload-/explizite Druckoption, Ergebnis schließen ohne Slice-Start sowie Quick-Slice-Abbruch ohne Start.
 - Es wurde kein echter Druck gestartet. Emulator offline. Runtime/APK nicht geändert.
+## Drucker-Web-Panel und Safe-Start-Recovery auf Honor (2026-10-18)
+
+- `PrinterWebWorkspacePanelDeviceTest`: 3/3 bestanden; Android-View-Lifecycle innerhalb des Compose-Panels, getrennte Retry/Browser/Close-Aktionen und 320/360-dp-Bounds bei 100/130/150 % Compose-Schrift.
+- `SafeStartComposeDeviceTest.recoveryScreenRendersAfterStoredCrashWithoutOpeningWorkspace`: 1/1 bestanden; Recovery-Route nach persistiertem Crash öffnet nicht den normalen Workspace. Honor PTP-N49 / Android 16, keine Skips/Fehler. Keine reale Moonraker-Verbindung und kein Druckstart.
