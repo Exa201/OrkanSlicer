@@ -1,3 +1,10 @@
+## Nachlauf v0.8.313 — Honor Vollsuite und physische Responsive-Prüfung (2026-10-18)
+
+- Honor PTP-N49 / Android 16: `:app:connectedSliceTestAndroidTest` — 188 Tests, 0 Fehler/Errors, 5 private KromaCut-/Mehrfarben-Fixtures übersprungen (183 ausgeführt und bestanden). Enthalten sind die zentralen Workspace-Menüaktionen, Modelltransformationen, Slicing, Druckprofile, Filament-/Plattenlisten und Compose-Accessibility-Semantik.
+- Physisch visuell geprüft: 320 dp/150 %, 360 dp/130 %, 360 dp/150 %, ca. 400 dp/130 %, 400 dp/150 %, native ca. 366 dp/100 % sowie Landscape ca. 800 dp Breite/100 %. Alle sechs Hauptziele und die Druckplatte waren im Workspace erreichbar. Systemwerte danach restauriert.
+- TalkBack-Traversierung bleibt offen: Zwar installiert, aber vom automatisierten Geräteschalter nicht als aktiver Service registriert. Keine manuelle TalkBack-Bedienung als bestanden gewertet. Emulator offline.
+- Keine Produktionscodeänderung nach dem veröffentlichten APK; Version `0.8.313` / Code `348` bleibt aktueller Debug-Prerelease. Release-Asset: https://github.com/Exa201/OrkanSlicer/releases/download/v0.8.313/OrkanSlicer_0.8.313_Debug.apk
+
 ## v0.8.313 Release-Kandidat — Drucker-API-Schlüssel (2026-10-18)
 
 - Produktfix: `printhost_apikey` ist laut nativem Orca-Schema nur als String deklariert. Die gemeinsame Compose-Profileditor-Anbindung behandelt den Schlüssel jetzt in beiden Renderpfaden als sensibel: maskierte Vorschau, Passwortfeld und explizite Anzeigen/Verbergen-Schaltfläche.

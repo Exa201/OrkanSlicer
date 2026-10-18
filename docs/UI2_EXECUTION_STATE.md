@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Vollständiger Honor-Instrumentierungslauf und responsive Nachprüfung — 2026-10-18
+
+- `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 188 Fälle, 183 bestanden, 5 wegen nicht verfügbarer privater KromaCut-/Mehrfarben-Fixtures übersprungen, 0 fehlgeschlagen/Errors. Der Lauf enthält u. a. 14/14 `InitialProjectMenuDeviceTest`, 17/17 Druckerprofiltests, 15/15 Filament-/Plattenlayouttests, 7/7 App-Einstellungsaktionen, 3/3 Slicing-Vorbereitung, 3/3 adaptive Navigation und 1/1 Compose-Accessibility-Einstellungssemantik.
+- Zusätzliche echte Honor-Screenshots mit der veröffentlichten OrkanSlicer-Version bei 360 dp/130 %, 360 dp/150 % und 400 dp/150 % geprüft. Zusammen mit den früheren Prüfungen bei 320 dp/150 % und ca. 400 dp/130 % sind alle sechs Hauptnavigationen sichtbar und die Druckplatte bleibt zentral. Alle Display-, Dichte-, Font-Scale- und Rotationswerte anschließend auf Gerätewerte zurückgesetzt.
+- TalkBack ist auf dem Honor installiert, aber war nicht aktiviert. Der versuchsweise ADB-Schalter aktivierte keinen Accessibility-Service (`dumpsys accessibility` meldete keinen); die vorherigen Secure-Settings wurden wiederhergestellt. Deshalb keine manuelle TalkBack-Traversierung behauptet. Der Android-Emulator bleibt offline.
+- Phase 5 ist weiterhin teilweise offen: Die Geräte-Regression deckt viele wesentliche Aktionen ab, aber nicht jede aktive Import-/Export-/Modell-Menüaktion einzeln. Phase 6 ist ebenfalls teilweise offen wegen manueller TalkBack-Traversierung und nicht nativer kleiner Display-Hardware.
+- Aktueller Release bleibt Debug-Prerelease `v0.8.313`; Code-Branch enthält zusätzlich nur die hier dokumentierte Verifikation. Nächster Schritt: die noch nicht praktisch geprüften sicheren Datei-/Modellaktionen aus den Menü-Handlern ergänzen und vor einem weiteren Versionssprung Regressionen behandeln.
+
 ## Verborgenen Drucker-API-Schlüssel korrigiert — 2026-10-18
 
 - Tatsächlicher Produktfehler: Orcas natives Schema deklariert `printhost_apikey` als normalen String, nicht als Passwort. Die Compose-Profilzeile zeigte deshalb den Schlüssel unmaskiert und der Editor hatte keinen Anzeigen/Verbergen-Schalter.
