@@ -236,6 +236,37 @@ class PrintProfileDropdownIntegrationDeviceTest {
             storedPrinter.get("curr_bed_type"))
     }
 
+    @Test
+    fun printerProfilePickerBackDismissesWithoutChangingAnyActivePreset() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printerBefore = requireNotNull(config.presets?.get("printer"))
+        val processBefore = requireNotNull(config.presets?.get("print"))
+        val filamentBefore = requireNotNull(config.presets?.get("filament"))
+        val targetPrinter = "Anycubic 4Max Pro 0.4 nozzle"
+        assertNotNull(config.findPrinter(targetPrinter))
+
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+        }
+
+        compose.onNodeWithText(printerBefore).assertIsDisplayed().performClick()
+        compose.onNodeWithText(targetPrinter).assertIsDisplayed()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitForIdle()
+
+        assertEquals("Back dismisses the printer picker without applying its highlighted alternative",
+            printerBefore, config.presets?.get("printer"))
+        assertEquals("Dismissing printer selection leaves the process preset unchanged",
+            processBefore, config.presets?.get("print"))
+        assertEquals("Dismissing printer selection leaves the filament preset unchanged",
+            filamentBefore, config.presets?.get("filament"))
+        compose.onNodeWithText(printerBefore).assertIsDisplayed()
+    }
+
     private fun createInitializedActivityRule() = run {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
