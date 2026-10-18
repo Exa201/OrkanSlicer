@@ -84,6 +84,57 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun multiPlateProjectExportWarnsAndCancelDoesNotOpenDocumentPicker() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-multiplate-export-warning-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            assertEquals(1, bed.plateCount)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { bed.plateCount == 2 && bed.currentPlateIndex == 1 }
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { bed.currentPlateIndex == 0 }
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuProject))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+
+            compose.onNodeWithText(activity.getString(R.string.Project3mfExportActivePlateTitle))
+                .assertIsDisplayed()
+            compose.onNodeWithText(
+                activity.getString(R.string.Project3mfExportActivePlateMessage, 1, 2),
+                substring = true,
+            ).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.Project3mfExportActivePlateConfirm))
+                .assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.cancel))
+                .assertIsDisplayed().performClick()
+            compose.waitForIdle()
+
+            compose.onNodeWithText(activity.getString(R.string.Project3mfExportActivePlateTitle))
+                .assertDoesNotExist()
+            assertEquals("cancel must preserve the two-plate workspace", 2, bed.plateCount)
+            assertEquals("cancel must preserve the active plate", 0, bed.currentPlateIndex)
+            assertEquals("cancel must not mutate the model", 1, bed.currentModel?.objectsCount)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun toolsMenuProfileExportActionOpensComposeFlowAndAndroidBackDismissesIt() {
         val activity = compose.activity
         compose.onNodeWithContentDescription(activity.getString(R.string.MenuOptions))
