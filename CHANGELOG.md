@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.312 (alpha)
+
+- Publish a refreshed debug verification snapshot after Honor checks for cloud-profile setup/management, app Back behavior, workspace rotation/touch navigation, and responsive large-text layouts. No runtime feature changes are included in this verification snapshot.
+
 ## 0.8.311 (alpha)
 
 - Publish a refreshed debug verification snapshot after additional Honor checks for profile dialogs, calibration actions, filament/plate UI, and temporary 3MF project settings. No runtime feature changes are included in this snapshot.

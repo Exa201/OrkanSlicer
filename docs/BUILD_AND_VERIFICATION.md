@@ -1094,3 +1094,10 @@ Final import-consent device check and Debug APK (2026-10-16):
 - `SettingsMenuActionDeviceTest`: 7/7 bestanden, 0 Fehler/Skips auf Honor PTP-N49 / Android 16; JUnit XML `2026-10-18T16:41:47`, 24,458 s. Emulator offline.
 - Geprüft: Render-Skalierung übernehmen sowie Back ohne Commit, Theme-Auswahl und Back, live UI-Schrift-Skalierung und Rückstellung, About-Route/Back, Drucker-Preset-Setup/Back ohne Änderung des aktiven Druckers, App-Reset abbrechen/Back ohne Konfigurationsänderung sowie Akzentfarb-Palette abbrechen/Swatch anwenden.
 - Nachlaufkontrolle: Systemschrift auf dem Honor 1.0; Produktionspaket `com.codemastercody3d.orcaslicermobile` blieb top-resumed. Frische 5.000-Zeilen-Logcat-Suche ohne FATAL/ANR/OOM/Fatal-signal Marker. Keine Firmwareänderung oder Druckaktion.
+## 0.8.312 verification snapshot (2026-10-18)
+
+- Version: `0.8.312` (versionCode `347`); Debug APK only. No runtime feature changes are included in this verification snapshot.
+- Additional Honor PTP-N49 / Android 16 checks: `SetupCloudProfileDeviceTest` 1/1 passed; `CloudManageDialogComposeDeviceTest` 1/1 passed. Earlier same-day checks covered touch navigation, Android Back, rotation, Compose accessibility semantics, simulated 320/360/400 dp layouts, 100/130/150% font scales, and screenshot review. Simulated display/font configurations are not separate physical display devices.
+- Manual TalkBack traversal is not recorded as completed. Phase 5 full action audit and Phase 6 accessibility acceptance remain open.
+- The previously published `v0.8.311` APK SHA-256 continues to describe that earlier artifact only; record the new `v0.8.312` APK hash after the build.
+

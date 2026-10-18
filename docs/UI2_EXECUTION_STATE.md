@@ -1,5 +1,10 @@
 # UI 2.0 execution status — 2026-10-18
 
+- **Latest release preparation:** `0.8.312` / versionCode `347`, verification snapshot only. Cloud profile setup and cloud management dialog Back behavior passed on Honor (1/1 each); the release asset will be built and published after this source commit is pushed.
+- **Phase 6 responsive/accessibility evidence:** Honor physical screen was also tested with temporary simulated 320/360/400 dp widths, 100/130/150% font scales and landscape sizing. Screenshots were visually checked, original device size/density/font scale restored, and the application relaunched. Rotation, Back and touch tests passed. Automated Compose semantics/48 dp checks passed. Manual TalkBack traversal remains unperformed; therefore Phase 6 remains partially open, not fully accepted.
+- **Latest filtered Honor tests:** `SetupCloudProfileDeviceTest` 1/1 passed and `CloudManageDialogComposeDeviceTest` 1/1 passed. These are two additional executions after the preceding status, not a deduplicated suite count.
+- **Next after publishing:** Continue the Phase 5 action audit for uncovered global printer/profile handlers and the Phase 6 manual accessibility limitation. Do not describe UI 2.0 as complete; multi-plate single-file persistence also remains separate and open.
+
 - **Current phase:** Phase 5 functional menu/action audit remains in progress; Phase 6 responsive/accessibility acceptance remains open.
 - **Phase 4:** Accepted at the verified architecture scope. WorkspaceShell/RendererAdapter and WorkspaceController own visible workspace navigation/panels; BedFragment retains Android lifecycle, GL, renderer and necessary domain integration duties. No new architectural migration was needed in the latest test-only work.
 - **Current verification:** 77 selected Honor device-test executions across 17 class runs passed in this sequence, with 0 test failures/skips. Covered profile/calibration/generator/filament/plate dialogs, temporary project settings, GL/Paint panels, printer workspace/status, 14 project menu flows, 6 profile dropdown flows, and the supplied KromaCut 3MF. This is not a deduplicated full-suite count.
