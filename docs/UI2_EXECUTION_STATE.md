@@ -791,6 +791,16 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `emulator-5554` was skipped because it is offline. The first local Gradle command needed the existing SDK location exported as `ANDROID_HOME`; no project SDK configuration was changed. A test assertion was refined to account for the selected label appearing in both the summary and choice list.
 - This added test plus verification notes only; no runtime source or APK changed. The targeted device run completed successfully. It covers one setting only; full settings, display matrix and TalkBack audit remain open.
 - Next concrete audit target: add actual app-settings coverage for one reversible toggle/action not already covered by `SettingsAccessibilityDeviceTest` and `SettingsChoiceDialogDeviceTest`; then keep auditing other global menu actions.
+
+### 2026-10-18 — text-size preference live update fix (0.8.310)
+
+- A real Honor test found that selecting a new UI text scale changed the persisted preference but left the currently displayed Settings Compose density unchanged (the heading measured 84 px both before and after selection). This was a product defect, not a layout-test-only failure.
+- `SettingsFragment` now passes its `themeRevision` to `BeamComposeTheme`; the setting’s revision/recomposition therefore invalidates the density/theme wrapper as intended. The device test now selects a 150% or 140% value, compares live heading bounds, scrolls to the resulting summary, and restores the original preference.
+- Added real app-settings actions for render scale, theme selection and UI text scale, including Android Back behavior. `SettingsMenuActionDeviceTest`: 3/3 passed on Honor PTP-N49 / Android 16 after the fix. Before the product fix, the live text-scale bounds assertion failed and demonstrated the defect; after the fix it passed. This does not complete the whole Settings menu or manual TalkBack audit.
+- Version updated to 0.8.310 / code 345; German, English and Russian release notes updated.
+- Full validation on code commit `f51dc37e2e33e8236f01786e1448217bb60b06ea`: Debug JVM 559/559, Slice JVM 559/559; Honor Slice instrumentation XML 166 unique tests, 0 failures/errors, 5 private multicolor-fixture skips (Gradle runner executed 171 including retries); `:app:assembleDebug` succeeded. Emulator `emulator-5554` offline.
+- APK `app/build/outputs/apk/debug/OrkanSlicer_f51dc37e2e.apk`, 157,233,087 bytes, SHA-256 `159D3670D91B9DA4DD3A730868C76757FF2EC1A0D176CE820032B8C16A6DAEE5`. Installed on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`; versionName 0.8.310 / versionCode 345; `MainActivity` top-resumed. Fresh 5,000-line logcat sample had no crash/ANR/OOM/fatal-signal markers.
+- The complete menu action matrix, multi-plate project serializer, complete display/font matrix, and physical TalkBack traversal remain open. Continue Phase 5 with concrete, safe menu actions; keep Phase 6 incomplete until actual coverage is completed.
 # Continuation update — Project/Files on-device action check (2026-10-18)
 
 - Phase 4 remains complete at its accepted architecture scope; no new runtime code change was required in this pass.
