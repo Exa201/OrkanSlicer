@@ -1016,3 +1016,7 @@ Final import-consent device check and Debug APK (2026-10-16):
 
 - `PrinterWebWorkspacePanelDeviceTest`: 3/3 bestanden; Android-View-Lifecycle innerhalb des Compose-Panels, getrennte Retry/Browser/Close-Aktionen und 320/360-dp-Bounds bei 100/130/150 % Compose-Schrift.
 - `SafeStartComposeDeviceTest.recoveryScreenRendersAfterStoredCrashWithoutOpeningWorkspace`: 1/1 bestanden; Recovery-Route nach persistiertem Crash öffnet nicht den normalen Workspace. Honor PTP-N49 / Android 16, keine Skips/Fehler. Keine reale Moonraker-Verbindung und kein Druckstart.
+## Native Mehrplatten-/3MF-Integration auf Honor (2026-10-18)
+
+- `MultiPlateProjectDeviceTest` auf Honor PTP-N49 / Android 16: 4/4 bestanden, 0 Skips/Fehler (JUnit-XML-Zeitstempel 2026-10-18T16:07:31). Reale native Tests laden alle Platten aus kleinen synthetischen 3MF-Projekten mit 1, 3, 6, 10 und 20 Platten, vergleichen aktive Einzelplattenexport-/Reload-Modelle und Positionen, prüfen unterschiedliche Plattenfarben/Filamentindizes und wechseln im echten Workspace zur zweiten Platte, ohne die erste zu verlieren.
+- Tests nutzen temporäre Dateien unter `cacheDir` und restaurieren die getesteten Config-/Preferencewerte. Sie testen keinen vollständigen Export aller Platten in eine gemeinsame Projektdatei; Gesamtprojekt-Roundtrip bleibt offen. Keine Benutzerdateien überschrieben, kein Druckstart, Emulator offline.

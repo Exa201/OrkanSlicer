@@ -1,3 +1,11 @@
+## Fortsetzung 2026-10-18 — native Mehrplatten-/3MF-Integration
+
+- `MultiPlateProjectDeviceTest` auf Honor PTP-N49 / Android 16: 4/4 bestanden, 0 Skips/Fehler (XML-Zeitstempel 2026-10-18T16:07:31). Tests: `nativeProjectLoadsEveryPlateForSmallAndLargeProjects` und `eachPlateModelSurvivesNativeThreeMfExportAndReload` bearbeiten 1/3/6/10/20 Platten; `loadsEachPlateAndItsOwnColorFromTheSameProject` prüft unabhängige Farben/Filamentindizes; `workspaceLoadsTheSecondPlateWithoutLosingTheFirst` prüft Plattenwechsel im echten Workspace. temporäre Fixtures liegen in `cacheDir`, vorherige Config-/Preferencewerte werden wiederhergestellt.
+- Verifikation umfasst native Projekt-Importe und einzelne aktive Plattenexport-/Reloads. Sie beweist **keinen** vollständigen Export aller Platten in eine gemeinsame 3MF-Datei; diese Persistenzaufgabe bleibt offen und die Mehrplattenexportwarnung darf nicht entfernt werden.
+- Zusammenfassung der gezielten Läufe dieses Fortsetzungsdurchgangs: 83 Testausführungen in 18 Geräteklassenläufen, alle bestanden, keine Skips/Fehler in diesen gefilterten Läufen. Keine deduplizierte Suite-Zahl; Emulator offline.
+- Nach dem Lauf Font-Scale 1.0 und OrkanSlicer `MainActivity` top-resumed; frische 5.000-Zeilen-Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker.
+- Nächster Schritt: weiter offene globale Druck-/Profil-Aktionen und Hauptmenüeinträge einem echten Handler-Test zuordnen; vollständigen Gesamtexport nicht vortäuschen.
+
 ## Fortsetzung 2026-10-18 — Druckerpanel und Safe-Start-Recovery
 
 - `PrinterWebWorkspacePanelDeviceTest` auf Honor: 3/3 bestanden; native technische View wird nur im sichtbaren Compose-Panel gehalten und bei Schließen abgelöst, Retry/extern öffnen/Schließen rufen getrennte Aktionen auf, Bounds bleiben bei 320/360 dp und 130/150 % Schrift innerhalb des Panels.
