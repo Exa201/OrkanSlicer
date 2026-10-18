@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -148,12 +149,17 @@ internal fun DuplicateModelDialog(
                     label = { Text(title) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth().focusRequester(countFocusRequester),
+                    modifier = Modifier.fillMaxWidth()
+                        .focusRequester(countFocusRequester)
+                        .testTag("duplicate-model-count"),
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(count.toIntOrNull()?.coerceIn(1, 50) ?: 1) }, Modifier.heightIn(min = 48.dp)) {
+            TextButton(
+                onClick = { onConfirm(count.toIntOrNull()?.coerceIn(1, 50) ?: 1) },
+                Modifier.heightIn(min = 48.dp).testTag("duplicate-model-confirm"),
+            ) {
                 Text(confirmLabel)
             }
         },

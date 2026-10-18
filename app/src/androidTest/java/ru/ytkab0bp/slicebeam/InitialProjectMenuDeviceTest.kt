@@ -6,8 +6,11 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -16,17 +19,24 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertArrayEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import android.os.SystemClock
+import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.ListBedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPresetGeometry
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraVector
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 import ru.ytkab0bp.slicebeam.utils.Prefs
@@ -188,6 +198,114 @@ class InitialProjectMenuDeviceTest {
                     kotlin.math.abs(camera.position.z - target.position.z) < 0.1,
             )
         }
+    }
+
+    @Test
+    fun modelMenuDuplicateActionAppliesRequestedCopyCountToNativeModel() {
+        val activity = compose.activity
+        val context = activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(context.cacheDir, "menu-duplicate-action-test.stl")
+        context.assets.open("models/xyz_cube.stl").use { source ->
+            modelFile.outputStream().use(source::copyTo)
+        }
+        val loadDone = CountDownLatch(1)
+        var loaded: Model? = null
+        var loadError: Exception? = null
+        bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+            override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                loaded = loadedModel
+                loadDone.countDown()
+            }
+
+            override fun onFailed(error: Exception) {
+                loadError = error
+                loadDone.countDown()
+            }
+        })
+        assertTrue("temporary STL should load for the menu action", loadDone.await(60, TimeUnit.SECONDS))
+        assertEquals("temporary STL should load without error: $loadError", 1, requireNotNull(loaded).objectsCount)
+
+        val viewport = requireNotNull(bed.glView)
+        viewport.selectModel(0, Runnable {})
+        instrumentationWaitForGlIdle()
+        FileMenuObjectActions(bed).showDuplicateDialog(viewport)
+        val duplicateCount = compose.onNodeWithTag("duplicate-model-count").assertIsDisplayed()
+        duplicateCount.performTextClearance()
+        duplicateCount.performTextInput("2")
+        compose.onNodeWithTag("duplicate-model-confirm").performClick()
+        compose.waitUntil(timeoutMillis = 15_000) {
+            requireNotNull(bed.currentModel).objectsCount == 3
+        }
+        assertEquals("two requested copies should be added to the original", 3,
+            requireNotNull(bed.currentModel).objectsCount)
+        assertFalse("successful duplication should close its dialog", bed.isWorkspaceMessageDialogAttached())
+        modelFile.delete()
+    }
+
+    @Test
+    fun modelObjectsMenuAssignmentOverridesImportedThreeMfMaterial() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val file = File(activity.cacheDir, "menu-filament-assignment-test.3mf")
+        InstrumentationRegistry.getInstrumentation().context.assets.open("models/two-color-project.3mf").use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        val testSlots = listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "UI Test PLA"),
+            FilamentSlot(0xFF3366CC.toInt(), "UI Test PETG"),
+            FilamentSlot(0xFF33AA66.toInt(), "UI Test ABS"),
+        )
+        Prefs.setStoredFilamentSlots(testSlots)
+        try {
+            val loadedLatch = CountDownLatch(1)
+            var loaded: Model? = null
+            var loadFailure: Exception? = null
+            bed.loadModel(file, true, 1, object : BedFragment.ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    loaded = loadedModel
+                    loadedLatch.countDown()
+                }
+
+                override fun onFailed(error: Exception) {
+                    loadFailure = error
+                    loadedLatch.countDown()
+                }
+            })
+            assertTrue("color 3MF fixture should load", loadedLatch.await(60, TimeUnit.SECONDS))
+            assertEquals("color fixture load failure: $loadFailure", 2, requireNotNull(loaded).objectsCount)
+            assertTrue("fixture begins with imported tool 1", loaded!!.getUsedFilaments(0).contentEquals(intArrayOf(1)))
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuObjectsShort)).assertIsDisplayed().performClick()
+            compose.onAllNodesWithText(activity.getString(R.string.ObjectActionAssignFilamentShort))[0]
+                .assertIsDisplayed().performClick()
+            val targetLabel = activity.getString(
+                R.string.ModelContextFilamentSlot,
+                2,
+                "UI Test ABS",
+                String.format(java.util.Locale.ROOT, "#%06X", testSlots[2].color and 0xFFFFFF),
+            )
+            compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentModel?.getUsedFilaments(0)?.contentEquals(intArrayOf(3)) == true
+            }
+            assertArrayEquals("explicit Model-menu T2 assignment replaces imported 3MF T0",
+                intArrayOf(3), requireNotNull(bed.currentModel).getUsedFilaments(0))
+            assertArrayEquals("unselected second object keeps its imported T1 assignment",
+                intArrayOf(2), requireNotNull(bed.currentModel).getUsedFilaments(1))
+            assertFalse("uniform reassignment removes old per-volume paint overrides",
+                requireNotNull(bed.currentModel).hasPaint(0))
+        } finally {
+            Prefs.setStoredFilamentSlots(previousSlots)
+            file.delete()
+        }
+    }
+
+    private fun instrumentationWaitForGlIdle() {
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        SystemClock.sleep(250L)
     }
 
     private fun createInitializedActivityRule() = run {
