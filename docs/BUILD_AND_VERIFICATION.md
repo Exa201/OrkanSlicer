@@ -5,7 +5,9 @@
 - Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 9/9 bestanden; danach der um unbestätigte Rotation plus Back-Abbruch erweiterte Rotationstest 1/1 bestanden. Geprüft: Position 12,5 setzen, native Position prüfen, Undo/Redo; Rotation 90° erst nach Apply übernehmen, Preview mit Back abbrechen ohne native Mutation, bestätigte Rotation mit Undo/Redo, natives Reset Rotation aus dem Edit-Menü samt Callback/Status und Undo/Redo. Die GL-Thread-Abfragen lesen echte native Werte.
 - Vollständige Debug-JVM-Suite 558/558 und Slice-JVM-Suite 558/558, jeweils 0 Fehler/Errors/Skips. Der Emulator blieb offline.
 - Die vollständige UI-Aktionsabnahme bleibt offen: Phase 5 aktiv. Noch zu prüfen sind weitere Edit-/Werkzeugaktionen, Slice-/Dateiaktionen sowie globale Profileinstellungen; Responsive-/Accessibility-Abnahme bleibt teilweise offen. Keine Druckstarts oder Firmwareänderungen.
-- Debug-Build/APK für 0.8.308 wird nach dem Code-Commit erzeugt und hier mit Dateigröße und SHA-256 ergänzt.
+- Debug-Build des Code-Commits `b65895454b873b591a3bc1e03cab88a41cfeff5c` erfolgreich (`:app:assembleDebug`). APK: `app/build/outputs/apk/debug/OrkanSlicer_b65895454b.apk`, 157.233.085 Byte, SHA-256 `30A5AA0186DB33683CECB10AFC36990F7543FBEC5E9F42F0002CA1CAC3ACB250`.
+- Auf Honor PTP-N49 installiert und gestartet. Verifiziertes Paket: `com.codemastercody3d.orcaslicermobile`; `MainActivity` war top-resumed. Frische Prüfung relevanter Logcat-Marker lieferte keine `FATAL EXCEPTION`, ANR-, OOM- oder Fatal-Signal-Treffer. Der Emulator blieb offline.
+- Der Code-Commit wurde auf den bestehenden Branch gepusht. PR #2 ist offen; GitHub meldet `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`. Dies ist keine Merge- oder Release-Freigabe.
 
 ## 0.8.307 — Undo-Historie nach Import und Skalierungsaktion (2026-10-18)
 
