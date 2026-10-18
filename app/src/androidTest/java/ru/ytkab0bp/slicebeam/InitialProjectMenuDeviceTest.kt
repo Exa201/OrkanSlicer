@@ -11,6 +11,8 @@ import androidx.core.content.FileProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -36,7 +38,6 @@ import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
-import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.ListBedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPresetGeometry
@@ -1004,7 +1005,14 @@ class InitialProjectMenuDeviceTest {
         val viewport = requireNotNull(bed.glView)
         viewport.selectModel(0, Runnable {})
         instrumentationWaitForGlIdle()
-        FileMenuObjectActions(bed).showDuplicateDialog(viewport)
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
+            .assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText(activity.getString(R.string.ModelMenuDuplicateShort))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(activity.getString(R.string.ModelMenuDuplicateShort))
+            .assertIsDisplayed().assertIsEnabled().performClick()
         val duplicateCount = compose.onNodeWithTag("duplicate-model-count").assertIsDisplayed()
         duplicateCount.performTextClearance()
         duplicateCount.performTextInput("2")
@@ -1016,6 +1024,61 @@ class InitialProjectMenuDeviceTest {
             requireNotNull(bed.currentModel).objectsCount)
         assertFalse("successful duplication should close its dialog", bed.isWorkspaceMessageDialogAttached())
         modelFile.delete()
+    }
+
+    @Test
+    fun modelMenuDeleteAllCancelAndBackPreserveTheLoadedModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-delete-all-cancel-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            assertEquals(1, readObjectCountOnGl(glView))
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ModelMenuObjectsShort))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(11)
+
+            val deleteAll = compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteAll))
+                .assertIsDisplayed().assertIsEnabled()
+            deleteAll.performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelDeleteAllConfirm)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).assertIsDisplayed().performClick()
+            compose.waitForIdle()
+            assertFalse("cancel must dismiss the workspace confirmation", bed.isWorkspaceMessageDialogAttached())
+            assertEquals("cancel must not delete the loaded model", 1, readObjectCountOnGl(glView))
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteAll)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelDeleteAllConfirm)).assertIsDisplayed()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertFalse("Back must dismiss the workspace confirmation", bed.isWorkspaceMessageDialogAttached())
+            assertEquals("Back must not delete the loaded model", 1, readObjectCountOnGl(glView))
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteAll)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelDeleteAllConfirm)).assertIsDisplayed()
+            compose.onNode(
+                hasText(activity.getString(R.string.ModelMenuDeleteAll)) and hasClickAction(),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            val modelRemoved = CountDownLatch(1)
+            val rendererIsEmpty = AtomicReference<Boolean>()
+            glView.queueEvent {
+                rendererIsEmpty.set(glView.renderer.model == null)
+                modelRemoved.countDown()
+            }
+            assertTrue("GL thread should confirm delete-all completion", modelRemoved.await(10, TimeUnit.SECONDS))
+            assertTrue("confirm should remove the model from the native renderer", requireNotNull(rendererIsEmpty.get()))
+        } finally {
+            modelFile.delete()
+        }
     }
 
     @Test

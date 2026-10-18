@@ -1,5 +1,12 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Projektmenü-Aktionsprüfung auf Honor — 2026-10-18
+
+- `InitialProjectMenuDeviceTest`: 22/22 auf Honor PTP-N49 / Android 16 bestanden, 0 Skips/Fehler; JUnit XML `2026-10-18T21:49:50` UTC. Der echte Compose-Modellmenüweg dupliziert die angeforderte Anzahl und prüft den nativen Objektbestand. „Alle löschen“ wurde mit temporärem Modell über Abbrechen, Android-Zurück und Bestätigen geprüft: Abbruch/Back erhalten das Modell, Bestätigung entfernt es aus dem nativen Renderer.
+- Die aktualisierte Testklasse wurde vollständig auf dem Honor wiederholt: 22/22 bestanden. Der Emulator blieb offline. Der vollständige Instrumentierungslauf mit 196 aggregierten Tests (191 bestanden, 5 private Fixtures übersprungen) stammt vom älteren XML-Zeitpunkt `2026-10-18T21:38:59` UTC und enthält diese jüngsten Ergänzungen nicht.
+- Test-only Änderung; Produktionscode und Debug-APK unverändert, v0.8.314 bleibt aktuell. Phase 5 ist mit diesem Modellmenü-Aktionspaket erweitert, aber der globale und sechs Menüs umfassende Aktionsaudit bleibt offen. Phase 6 bleibt offen für die vollständige Responsive-/Accessibility-Abnahme und manuelle TalkBack-Traversierung.
+- Nächster konkreter Schritt: restliche tatsächliche Projekt-/Modellmenüaktionen gegen die vorhandene Abnahmematrix prüfen; danach globale Drucker-/Profilaktionen und verfügbare responsive Konfigurationen weiter abnehmen. Kein neuer Release aus diesem Test-only Paket.
+
 ## Vollständiger Honor-Regressionslauf — 2026-10-18
 
 - Neuester Projektmenü-/Slicing-Exportlauf: `InitialProjectMenuDeviceTest` 21/21 bestanden, 0 Fehler/Errors/Skips; XML `2026-10-18T21:32:52` UTC. Das neue Slicing-Exportgerätetest sliced ein Testmodell, prüft den echten `ACTION_CREATE_DOCUMENT`-Request mit G-code-MIME-Typ und empfohlenem Dateinamen, kontrolliert Abbruch ohne Datei und vergleicht nach echtem Resultatcallback die exportierten Bytes mit dem erzeugten G-code. Kein Druckstart/Upload.
