@@ -1,5 +1,12 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Vollständiger Honor-Regressionslauf — 2026-10-18
+
+- JVM-Suiten nach dem test-only Update: `:app:testDebugUnitTest` 561/561 und `:app:testSliceTestUnitTest` 561/561 bestanden, jeweils 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T21:21Z`.
+- `:app:connectedSliceTestAndroidTest`: JUnit-Aggregat `193` Tests, `188` bestanden, `5` wegen nicht verfügbarer privater KromaCut-/Mehrfarben-Fixtures übersprungen, `0` fehlgeschlagen/Errors. XML-Zeitstempel `2026-10-18T21:19:34` UTC. Honor PTP-N49 / Android 16; Emulator offline.
+- Enthält die aktualisierte Projektmenüklasse 18/18 mit Mehrplattenwarnung, Bestätigungsrequest und Picker-Abbruch. Kein Laufzeitcode geändert, keine neue APK/Release.
+- Phase 5 ist weiterhin offen: breite Instrumentierungsabdeckung ist keine vollständige manuelle Abnahme jeder Aktion aller Menüs. Phase 6 bleibt wegen der nicht durchgeführten manuellen TalkBack-Traversierung teilweise offen. Nächster konkreter Schritt: vorhandene Testmatrizen den sechs Compose-Menüs zuordnen und verbliebene Handler ohne praktische Aktion gezielt testen.
+
 ## Profilimport über den Workspace — 2026-10-18
 
 - `ProfileSettingsImeDeviceTest.actualProfileImportHonorsDeselectionAndPersistsOnlyConfirmedProfiles` führt ein synthetisches INI-Profil durch den realen `MainActivity.loadIniForImport`-Parser und die Compose-Auswahl. Abwahl plus Bestätigung importiert nichts; ausgewähltes Profil wird nach bestätigtem Import im Speicher und in der serialisierten Profilkonfiguration nachgewiesen. Testdateien und beide Konfigurationsdateien werden im `finally`-Pfad wiederhergestellt.
