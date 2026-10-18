@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Fortsetzung — Prime-Tower- und Flush-Volume-Aktionen
+
+- `PrintProfileDropdownIntegrationDeviceTest`: Regression nach Integration beider Werkzeugaktionen 13/13 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; JUnit-XML-Zeitstempel `2026-10-18T18:43:06`.
+- Der neue Flush-Volume-Fall öffnet das Werkzeug aus dem echten Druckprofilmenü, ändert eine Matrixzelle, übernimmt den Wert in den Profilentwurf und prüft, dass der gespeicherte Datensatz unverändert bleibt. Nach erneutem Öffnen verwirft Cancel die weitere Eingabe und bewahrt die bestätigte Entwurfsänderung.
+- Der erste Erwartungswert verwendete den leeren gespeicherten Matrixwert, während der Editor zusätzlich den nativen Schemazustand als Standard darstellt. Der Test verwendet jetzt denselben Schema-Standard; dies war ein Testfixture-/Erwartungsproblem, kein Produktfehler.
+- Phase 5 ist weiter offen für globale Drucker-/Rinkhals-Aktionen und den vollständigen Aktionsabgleich. Phase 6 bleibt manuell/physisch teilweise offen. Kein Produktivcode geändert, kein APK gebaut; v0.8.312 bleibt der letzte Release.
+- Nächster Schritt: weiter sichere tatsächliche Aktionen der globalen Drucker-/Filament-/Profileinstellungsrouten prüfen; anschließend Phase-5/6-Restbestand aktualisieren. Keinen realen Druck starten.
+
 ## Fortsetzung — integrierter Prime-Tower-Profilweg
 
 - `PrintProfileDropdownIntegrationDeviceTest`: kompletter Lauf 12/12 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; JUnit-XML-Zeitstempel `2026-10-18T18:39:12`.

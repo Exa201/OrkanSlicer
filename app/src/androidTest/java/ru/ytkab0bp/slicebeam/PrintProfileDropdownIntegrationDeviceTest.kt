@@ -562,6 +562,82 @@ class PrintProfileDropdownIntegrationDeviceTest {
     }
 
     @Test
+    fun flushVolumesToolStagesAppliedMatrixAndCancelKeepsTheExistingDraft() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val presets = requireNotNull(config.presets)
+        val originalPrinter = requireNotNull(presets["printer"])
+        val originalProcess = requireNotNull(presets["print"])
+        val originalTitles = config.printConfigs.mapNotNull { it.title }.toSet()
+        val printerSelections = config.printerConfigs.mapNotNull { profile ->
+            profile.title?.let { it to PrinterProfileSelectionStore.read(it) }
+        }.toMap()
+        ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrintConfigFragment
+            }
+            val activeProcess = requireNotNull(config.findPrint(requireNotNull(presets["print"])))
+            val originalMatrix = activeProcess.get("flush_volumes_matrix")
+            val dialogMatrix = originalMatrix ?: requireNotNull(
+                PrintConfigDef.getInstance().options["flush_volumes_matrix"]?.defaultValue,
+            )
+            val matrix = PrintConfigToolsLogic.flushMatrix(
+                dialogMatrix,
+                Prefs.getFilamentSlots().size,
+                Prefs.MAX_FILAMENT_COLORS,
+            )
+            val changedCells = matrix.cells.toMutableList().also { it[1] = "315" }
+            val expected = requireNotNull(
+                PrintConfigToolsLogic.serializeFlushMatrix(matrix.side, changedCells),
+            )
+
+            compose.onNodeWithText(activity.getString(R.string.FlushVolumes))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("flush-cell-1").performTextClearance()
+            compose.onNodeWithTag("flush-cell-1").performTextInput("315")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINT)
+                    .containsKey("flush_volumes_matrix")
+            }
+
+            assertEquals(expected, ProfileSettingsRepository.valueFor(
+                ConfigObject.PROFILE_LIST_PRINT, activeProcess, "flush_volumes_matrix", true,
+            ))
+            assertEquals("Applying the matrix updates only the profile draft",
+                originalMatrix, activeProcess.get("flush_volumes_matrix"))
+
+            compose.onNodeWithText(activity.getString(R.string.FlushVolumes))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("flush-cell-1").performTextClearance()
+            compose.onNodeWithTag("flush-cell-1").performTextInput("400")
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            compose.waitForIdle()
+            assertEquals("Cancel keeps the confirmed matrix and discards the second edit", expected,
+                ProfileSettingsRepository.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINT, activeProcess, "flush_volumes_matrix", true,
+                ))
+            assertEquals("The stored profile remains unchanged until Save",
+                originalMatrix, activeProcess.get("flush_volumes_matrix"))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+            config.printConfigs.removeAll { it.title !in originalTitles }
+            presets.put("printer", originalPrinter)
+            presets.put("print", originalProcess)
+            printerSelections.forEach { (title, selection) ->
+                if (selection == null) PrinterProfileSelectionStore.write(title, null, null)
+                else PrinterProfileSelectionStore.write(title, selection.process, selection.filament)
+            }
+            check(SliceBeam.saveConfig()) { "Could not restore the isolated process profile fixture" }
+        }
+    }
+
+    @Test
     fun printerProfilePickerBackDismissesWithoutChangingAnyActivePreset() {
         val activity = compose.activity
         val config = SliceBeam.requireConfig()

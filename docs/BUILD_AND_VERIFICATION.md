@@ -1,3 +1,9 @@
+## Flush-Volume-Aktion aus dem Druckprofil (2026-10-18, 18:43 Ortszeit)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: vollständige Regression 13/13 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:43:06`.
+- Der ergänzte reale Menütest öffnet „Flush volumes“ im Druckprofil, übernimmt eine Matrixänderung ausschließlich in den Profilentwurf, öffnet das Werkzeug erneut und verwirft eine zweite Änderung mit Cancel. Der gespeicherte Prozessdatensatz bleibt vor dem separaten Profil-Speichern unverändert.
+- Für den Sollwert wird der im Profil-Editor wirksame Orca-Schema-Standard verwendet, wenn im Profil selbst keine Matrix gespeichert ist. Emulator offline; kein Produktionscode und kein APK-Build in diesem Schritt.
+
 ## Prime-Tower-Aktion aus dem Druckprofil (2026-10-18, 18:39 Ortszeit)
 
 - `PrintProfileDropdownIntegrationDeviceTest`: vollständige Regression 12/12 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:39:12`.
