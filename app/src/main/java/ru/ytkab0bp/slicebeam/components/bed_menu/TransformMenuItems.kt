@@ -6,7 +6,6 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.GLRenderer
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import java.util.function.Consumer
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -24,14 +23,8 @@ internal class TransformMenuItems(
         val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
         return listOf(
             selectionAction(R.string.ModelContextResetRotation, R.drawable.menu_orientation_rotation_28, availability) {
-                fragment.glView!!.queueEvent {
-                    renderer.setSelectionRotation(0.0, 0.0, 0.0)
-                    renderer.invalidateSelectionObject()
-                    fragment.glView!!.requestRender()
-                    ViewUtils.postOnMainThread {
-                        fragment.updateModel()
-                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetRotationDone))
-                    }
+                fragment.resetModelRotation(renderer.selectedObject) {
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetRotationDone))
                 }
             },
             selectionAction(R.string.ModelContextResetScale, R.drawable.arrow_up_right_corner_outline_24, availability) {

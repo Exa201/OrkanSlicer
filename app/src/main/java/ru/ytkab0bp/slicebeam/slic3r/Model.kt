@@ -118,6 +118,12 @@ open class Model private constructor(@JvmField var pointer: Long) {
         resetBoundingBox()
     }
 
+    /** Reset rotations on all object volumes without changing their translations or scales. */
+    open fun resetRotation(i: Int) {
+        Native.model_reset_rotation(pointer, i)
+        resetBoundingBox()
+    }
+
     open fun flattenRotate(i: Int, surface: GLModel) {
         Native.model_flatten_rotate(pointer, i, surface.pointer)
         resetBoundingBox()

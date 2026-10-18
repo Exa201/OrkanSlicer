@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.308 (alpha)
+
+- Record confirmed position and rotation edits in the model undo history so Undo/Redo restores the committed native transforms.
+- Make Reset Rotation clear each native model volume's rotation, preserve its other transform values, keep the object on the bed, and record the reset as an undoable edit.
+- Add Honor device coverage for native position/rotation values, Undo/Redo, and the real Edit-menu reset action.
+
 ## 0.8.307 (alpha)
 
 - Reset model undo history after a successful import so the first subsequent edit restores the imported model instead of an empty workspace.

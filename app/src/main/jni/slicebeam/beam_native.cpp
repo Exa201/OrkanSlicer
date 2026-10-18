@@ -797,6 +797,15 @@ extern "C" {
         model->model.objects[i]->invalidate_bounding_box();
     }
 
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1reset_1rotation(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || i >= model->model.objects.size()) return;
+        ModelObject* object = model->model.objects[i];
+        for (ModelVolume* volume : object->volumes)
+            volume->set_rotation(Vec3d::Zero());
+        object->invalidate_bounding_box();
+    }
+
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1flatten_1rotate(JNIEnv* env, jclass, jlong ptr, jint i, jlong surface_ptr) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         GLModelRef* surface = (GLModelRef*) (intptr_t) surface_ptr;

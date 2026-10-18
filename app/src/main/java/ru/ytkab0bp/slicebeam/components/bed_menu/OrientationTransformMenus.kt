@@ -53,6 +53,7 @@ import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Vec3d
+import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 
@@ -207,10 +208,19 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
             runCatching {
                 val current = Vec3d()
                 model.getTranslation(index, current)
+                if (kotlin.math.abs(target.x - current.x) < 1e-9 &&
+                    kotlin.math.abs(target.y - current.y) < 1e-9 &&
+                    kotlin.math.abs(target.z - current.z) < 1e-9
+                ) {
+                    renderer.setSelectionTranslation(0.0, 0.0, 0.0)
+                    glView.requestRender()
+                    return@runCatching
+                }
                 model.translate(index, target.x - current.x, target.y - current.y, target.z - current.z)
                 renderer.setSelectionTranslation(0.0, 0.0, 0.0)
                 renderer.invalidateGlModel(index)
                 glView.requestRender()
+                ViewUtils.postOnMainThread { bed.updateModel() }
             }
         }
         glView.requestRender()
@@ -415,6 +425,7 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
                 activeRenderer.setSelectionRotation(0.0, 0.0, 0.0)
                 activeRenderer.invalidateGlModel(index)
                 glView.requestRender()
+                ViewUtils.postOnMainThread { bed.updateModel() }
             }
         }
         rotation.value = OrientationVector3(0.0, 0.0, 0.0)

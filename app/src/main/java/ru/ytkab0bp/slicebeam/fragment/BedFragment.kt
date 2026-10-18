@@ -656,13 +656,9 @@ ViewUtils.postOnMainThread({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextAutoOriented, Toast.LENGTH_SHORT).show() }) })
     },
     {
-        val viewport = glView
-        if (viewport != null) viewport.queueEvent({ viewport.renderer.setSelectionRotation(0.0, 0.0, 0.0)
-viewport.renderer.model?.ensureOnBed(objectIndex)
-viewport.renderer.invalidateSelectionObject()
-viewport.requestRender()
-ViewUtils.postOnMainThread({ updateModel()
-Toast.makeText(ctx, R.string.ModelContextResetRotationDone, Toast.LENGTH_SHORT).show() }) })
+        resetModelRotation(objectIndex) {
+            Toast.makeText(ctx, R.string.ModelContextResetRotationDone, Toast.LENGTH_SHORT).show()
+        }
     },
     {
         resetModelScale(objectIndex) {
@@ -711,6 +707,26 @@ fun resetModelScale(objectIndex: Int? = null, onReset: () -> Unit = {}) {
         model.scale(index, 1.0, 1.0, 1.0)
         model.ensureOnBed(index)
         renderer.setSelectionScale(1.0, 1.0, 1.0)
+        renderer.invalidateGlModel(index)
+        viewport.requestRender()
+        ViewUtils.postOnMainThread {
+            updateModel()
+            onReset()
+        }
+    }
+}
+
+/** Reset committed native rotation for one object and record the action for Undo/Redo. */
+fun resetModelRotation(objectIndex: Int? = null, onReset: () -> Unit = {}) {
+    val viewport = glView ?: return
+    viewport.queueEvent {
+        val renderer = viewport.renderer
+        val index = objectIndex ?: renderer.selectedObject
+        val model = renderer.model ?: return@queueEvent
+        if (index !in 0 until model.objectsCount) return@queueEvent
+        model.resetRotation(index)
+        model.ensureOnBed(index)
+        renderer.setSelectionRotation(0.0, 0.0, 0.0)
         renderer.invalidateGlModel(index)
         viewport.requestRender()
         ViewUtils.postOnMainThread {

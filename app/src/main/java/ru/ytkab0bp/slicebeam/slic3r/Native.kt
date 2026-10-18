@@ -139,6 +139,8 @@ class Native {
     @JvmStatic
     external fun model_rotate(ptr: Long, i: Int, x: Double, y: Double, z: Double): Unit
     @JvmStatic
+    external fun model_reset_rotation(ptr: Long, i: Int): Unit
+    @JvmStatic
     external fun model_flatten_rotate(ptr: Long, i: Int, surfacePtr: Long): Unit
     @JvmStatic
     external fun model_create_flatten_planes(ptr: Long, i: Int): LongArray
