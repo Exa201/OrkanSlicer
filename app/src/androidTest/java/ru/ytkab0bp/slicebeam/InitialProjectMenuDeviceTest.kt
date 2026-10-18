@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -18,8 +19,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import android.os.SystemClock
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ListBedMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
+import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPresetGeometry
+import ru.ytkab0bp.slicebeam.components.bed_menu.CameraVector
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -129,6 +134,59 @@ class InitialProjectMenuDeviceTest {
         } finally {
             Prefs.setOrthoProjectionEnabled(previousProjection)
             Prefs.setCameraControlMode(previousControlMode)
+        }
+    }
+
+    @Test
+    fun cameraPresetTilesUpdateTheRendererPoseForEveryPreset() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuCamera))
+            .assertIsDisplayed()
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText(activity.getString(R.string.MenuCameraTop))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        val camera = requireNotNull(bed.glView).renderer.camera
+        val modelBed = requireNotNull(bed.glView).renderer.bed!!
+        val min = requireNotNull(modelBed.getVolumeMin())
+        val max = requireNotNull(modelBed.getVolumeMax())
+        val minVector = CameraVector(min.x, min.y, min.z)
+        val maxVector = CameraVector(max.x, max.y, max.z)
+        val presets = listOf(
+            Triple(0, R.string.MenuCameraIsometric, CameraPreset.ISOMETRIC),
+            Triple(2, R.string.MenuCameraTop, CameraPreset.TOP),
+            Triple(3, R.string.MenuCameraBottom, CameraPreset.BOTTOM),
+            Triple(4, R.string.MenuCameraFront, CameraPreset.FRONT),
+            Triple(5, R.string.MenuCameraBack, CameraPreset.BACK),
+            Triple(6, R.string.MenuCameraLeft, CameraPreset.LEFT),
+            Triple(7, R.string.MenuCameraRight, CameraPreset.RIGHT),
+        )
+        presets.forEach { (index, presetLabel, preset) ->
+            val target = CameraPresetGeometry.resolve(preset, minVector, maxVector)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(index)
+            compose.onNodeWithContentDescription(activity.getString(presetLabel))
+                .assertIsDisplayed()
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                kotlin.math.abs(camera.position.x - target.position.x) < 0.1 &&
+                    kotlin.math.abs(camera.position.y - target.position.y) < 0.1 &&
+                    kotlin.math.abs(camera.position.z - target.position.z) < 0.1 &&
+                    kotlin.math.abs(camera.origin.x - target.origin.x) < 0.1 &&
+                    kotlin.math.abs(camera.origin.y - target.origin.y) < 0.1 &&
+                    kotlin.math.abs(camera.origin.z - target.origin.z) < 0.1
+            }
+            // Let the renderer's spring animation settle before requesting the next preset.
+            SystemClock.sleep(900L)
+            compose.waitForIdle()
+            assertTrue(
+                "${activity.getString(presetLabel)} must apply its configured renderer camera pose",
+                kotlin.math.abs(camera.position.x - target.position.x) < 0.1 &&
+                    kotlin.math.abs(camera.position.y - target.position.y) < 0.1 &&
+                    kotlin.math.abs(camera.position.z - target.position.z) < 0.1,
+            )
         }
     }
 
