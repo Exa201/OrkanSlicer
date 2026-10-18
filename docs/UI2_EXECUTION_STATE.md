@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Fortsetzung — Druckerprofil-Transportart und Sicherheitsrouten (2026-10-18, 21:01 Ortszeit)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: kompletter Honor-Lauf 16/16 bestanden, 0 Skips/Fehler; XML `2026-10-18T19:00:51` (UTC). Neuer Fall prüft im realen Compose-Druckerprofileditor die Auswahl von Moonraker/OctoPrint, Draft vor dem Speichern und bestätigtes Speichern. Das isolierte Profil wird in `finally` zurückgesetzt; es wurde keine Netzwerkverbindung ausgelöst.
+- In diesem Arbeitsdurchgang zusätzlich ausgeführt: `PrinterWebWorkspacePanelDeviceTest` 3/3, `SettingsMenuActionDeviceTest` 7/7, `MmuFilamentSyncDeviceTest` 15/15, `SlicePrintPreparationComposeDeviceTest` 3/3, `CloudManageDialogComposeDeviceTest` 1/1 und `SetupCloudProfileDeviceTest` 1/1 auf Honor, jeweils 0 Skips/Fehler. Die zuletzt gefilterten Cloud-/Settings-/Panel-Klassen verifizieren sichtbare Aktionen bzw. Back-Verhalten; sie schließen nicht den vollständigen Menüaktionsbestand.
+- Drucker-Upload-Sicherheits-Unit-Tests in beiden JVM-Varianten: Debug 12/12 und Slice 12/12. Enthalten sind Origin-/URL-Validierung, Upload-Reservierung und Moonraker-Antwort-/Startbestätigungsauswertung. Kein Upload an einen echten Drucker und kein Druckstart.
+- Gerätewerte nach den Läufen: 1280×2800 px, 560 dpi (ca. 411 dp), Font-Scale 1.0; Produktivapp top-resumed. `emulator-5554` offline. Dies ersetzt weder weitere native Displaygrößen noch die manuelle TalkBack-Abnahme.
+- Nur Instrumentierungs-/Dokumentationsarbeit; kein Runtime-Code und kein APK-Build. Phase 5 bleibt offen, bis die tatsächlichen Aktionen aller Menübereiche inventarisiert und als getestet/blockiert dokumentiert sind. Phase 6 bleibt wegen manueller TalkBack-Prüfung und echter Displaykonfigurationen offen. Nächster Schritt: globale Handlerliste gegen vorhandene reale UI-/Sicherheitsprüfungen abgleichen und offene sichere Aktionen ergänzen; Release erst nach Abschluss der vereinbarten nächsten Phase.
+
 ## Fortsetzung — Druckerhost im Profil-Editor und sichere Druckvorbereitung (2026-10-18, 20:55 Ortszeit)
 
 - `PrintProfileDropdownIntegrationDeviceTest`: kompletter Lauf 15/15 auf Honor PTP-N49 / Android 16 bestanden, 0 Skips/Fehler. Der neue `print_host`-Test bearbeitet den Stringwert im tatsächlichen Compose-Druckerprofil-Editor: Cancel und Android-Zurück verwerfen die Änderung, Apply hält sie nur im Draft, und erst bestätigtes Profil-Speichern schreibt `http://profile-edit.invalid:7125` in das isolierte Testprofil. `finally` stellt den ursprünglichen Wert wieder her. Der reservierte `.invalid`-Host wurde nicht aufgerufen.

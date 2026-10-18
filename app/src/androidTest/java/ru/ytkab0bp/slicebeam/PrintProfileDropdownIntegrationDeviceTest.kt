@@ -352,6 +352,77 @@ class PrintProfileDropdownIntegrationDeviceTest {
     }
 
     @Test
+    fun printerHostTypeCanBeSelectedAndSavedWithoutContactingThePrinter() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printerTitle = requireNotNull(config.presets?.get("printer"))
+        val storedPrinter = requireNotNull(config.findPrinter(printerTitle))
+        val originalHostType = storedPrinter.get("host_type")
+        val targetHostType = if (originalHostType == "moonraker") "octoprint" else "moonraker"
+        val targetLabel = activity.getString(
+            if (targetHostType == "moonraker") R.string.PrinterHostMoonraker else R.string.PrinterHostOctoPrint,
+        )
+        val hostTypeOption = requireNotNull(PrintConfigDef.getInstance().options["host_type"])
+        val hostTypeTitle = Slic3rLocalization.getString(hostTypeOption.getLabel())
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+            }
+            val draft = activity.runOnUiThreadAndWait {
+                val fragment = activity.navigationDelegate.getCurrentFragment() as PrinterConfigFragment
+                PrinterConfigFragment::class.java.getDeclaredMethod("getCurrentConfig")
+                    .apply { isAccessible = true }
+                    .invoke(fragment) as ConfigObject
+            }
+            val physicalPrinterCategory = Slic3rLocalization.getString("Physical Printer")
+            val collapsed = activity.getString(R.string.ProfileGroupStateCollapsed)
+            val categories = compose.onAllNodesWithText(physicalPrinterCategory).fetchSemanticsNodes()
+            val categoryIndex = categories.indexOfFirst {
+                it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == collapsed
+            }
+            assertTrue("The Physical Printer profile category should be available", categoryIndex >= 0)
+            compose.onAllNodesWithText(physicalPrinterCategory)[categoryIndex].performClick()
+            compose.onNodeWithText(hostTypeTitle).performScrollTo().assertIsDisplayed()
+
+            val rows = compose.onAllNodesWithText(hostTypeTitle).fetchSemanticsNodes()
+            assertTrue("The host type setting should be visible", rows.isNotEmpty())
+            val rowIndex = rows.indices.maxByOrNull { rows[it].boundsInRoot.top }
+                ?: throw AssertionError("The host type row is not displayed")
+            compose.onAllNodesWithText(hostTypeTitle)[rowIndex].performClick()
+            compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+
+            assertEquals("Selecting a host type changes only the active printer draft", targetHostType,
+                ProfileConfigValueController.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINTER, draft, hostTypeOption.key,
+                    hostTypeOption.guiType, hostTypeOption.defaultValue, -1, false,
+                ))
+            assertEquals("Host type selection does not mutate the stored profile before Save",
+                originalHostType, storedPrinter.get("host_type"))
+            compose.onNodeWithText(activity.getString(R.string.SettingsSave)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsSaveTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) == 0 &&
+                    storedPrinter.get("host_type") == targetHostType
+            }
+            assertEquals("Confirmed Save persists the selected host type", targetHostType,
+                storedPrinter.get("host_type"))
+            assertEquals("Changing transport type preserves the selected printer profile", printerTitle,
+                config.presets?.get("printer"))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
+            if (originalHostType == null) storedPrinter.values.remove("host_type")
+            else storedPrinter.put("host_type", originalHostType)
+            config.presets?.put("printer", printerTitle)
+            check(SliceBeam.saveConfig()) { "Restore the isolated printer transport fixture" }
+        }
+    }
+
+    @Test
     fun printerDashboardButtonOpensExternalBrowserForTheConfiguredProfile() {
         val activity = compose.activity
         val config = SliceBeam.requireConfig()

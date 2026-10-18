@@ -1,3 +1,11 @@
+## Printer transport selection and safe-route regressions — Honor, 2026-10-18
+
+- `PrintProfileDropdownIntegrationDeviceTest`: 16/16 passed on Honor PTP-N49 / Android 16, 0 skipped/failures; JUnit XML timestamp `2026-10-18T19:00:51` UTC. The new UI case selects Moonraker/OctoPrint in the printer profile, confirms the profile draft changes before Save and the selected transport is persisted only after the confirmed Save. Cleanup restores the isolated fixture; no connection was attempted.
+- Additional Honor runs: `PrinterWebWorkspacePanelDeviceTest` 3/3, `SettingsMenuActionDeviceTest` 7/7, `MmuFilamentSyncDeviceTest` 15/15, `SlicePrintPreparationComposeDeviceTest` 3/3, `CloudManageDialogComposeDeviceTest` 1/1, `SetupCloudProfileDeviceTest` 1/1; each had zero skips/failures. These validate targeted actions and Back behavior, not a complete menu audit.
+- Debug and Slice JVM filters for printer upload/Moonraker safety each passed 12/12 (origin policy, upload URL and reservation, Moonraker response and print-start confirmation parsing). No real printer connection, upload, or print start was performed.
+- Honor snapshot after the runs: 1280×2800 px, 560 dpi (about 411 dp width), system font scale 1.0, production app resumed. Emulator offline. This does not complete physical alternate-size or manual TalkBack acceptance.
+- Test-only changes; no production runtime or APK change. The v0.8.312 debug prerelease remains the latest release while Phase 5 menu audit and Phase 6 accessibility/display work remain open.
+
 ## Druckerprofil-Host-Editor und sichere Routenregression — Honor, 2026-10-18
 
 - `PrintProfileDropdownIntegrationDeviceTest`: 15/15 passed on Honor PTP-N49 / Android 16, 0 skipped/failures. The new `print_host` profile UI test verifies that Cancel and Android Back discard the text edit, Apply stages it only in the profile draft, and the confirmed profile Save persists the reserved `http://profile-edit.invalid:7125` value only to the isolated test fixture; cleanup restores the original host. No connection was made to this reserved host.
