@@ -1098,7 +1098,10 @@ Final import-consent device check and Debug APK (2026-10-16):
 
 - Version: `0.8.312` (versionCode `347`); Debug APK only. No runtime feature changes are included in this verification snapshot.
 - In-app notes source: `app/src/main/assets/update.json` updated to match manifest version `0.8.312` in German, English, and Russian. A pre-publication device screenshot caught the prior `0.8.311` text; the APK was rebuilt after correcting it.
-- Additional Honor PTP-N49 / Android 16 checks: `SetupCloudProfileDeviceTest` 1/1 passed; `CloudManageDialogComposeDeviceTest` 1/1 passed. Earlier same-day checks covered touch navigation, Android Back, rotation, Compose accessibility semantics, simulated 320/360/400 dp layouts, 100/130/150% font scales, and screenshot review. Simulated display/font configurations are not separate physical display devices.
-- Manual TalkBack traversal is not recorded as completed. Phase 5 full action audit and Phase 6 accessibility acceptance remain open.
-- The previously published `v0.8.311` APK SHA-256 continues to describe that earlier artifact only; record the new `v0.8.312` APK hash after the build.
+- Additional Honor PTP-N49 / Android 16 checks: `SetupCloudProfileDeviceTest` 1/1, `CloudManageDialogComposeDeviceTest` 1/1, and `ChangeLogComposeDeviceTest` 1/1 passed, all 0 skips/failures. The last test confirms the matching 0.8.312 in-app notes.
+- Earlier same-day checks covered touch navigation, Android Back, workspace rotation, Compose accessibility semantics, simulated 320/360/400 dp layouts, 100/130/150% font scales, and screenshot review. These overrides ran on the Honor, not on separate physical displays. Manual TalkBack traversal remains unperformed.
+- Final `:app:assembleDebug`: successful (28 seconds after correcting the notes; the first version-triggered native build took 12m16s). APK `OrkanSlicer_19a2965b66.apk`, 157,233,039 bytes, SHA-256 `47B83326DD7C61C1B9AB133D1D2B76FA32662748D1AC64C31603C9F98EE6BBDC`.
+- Installed and launched on Honor PTP-N49, package `com.codemastercody3d.orcaslicermobile`; versionCode 347 / versionName 0.8.312 confirmed. The app was top-resumed; logcat scan showed no crash, ANR, OOM, or fatal-signal markers. Screenshot visually confirmed the 0.8.312 release notes.
+- GitHub Debug prerelease: [v0.8.312](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.312), asset uploaded, 157,233,039 bytes; GitHub digest `sha256:47b83326dd7c61c1b9ab133d1d2b76fa32662748d1ac64c31603c9f98ee6bbdc`. Source commit `19a2965b66e9a9d1dbc8744bf2ed386593a9f311`.
+- Phase 5's full action audit and Phase 6 manual TalkBack traversal remain open. Full multi-plate single-file persistence remains a separate incomplete task.
 
