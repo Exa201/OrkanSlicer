@@ -133,6 +133,99 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun singlePlateProjectExportWritesReloadableThreeMfForTheActiveModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "single-plate-export-model-${System.nanoTime()}.stl")
+        val output = File(activity.cacheDir, "single-plate-export-${System.nanoTime()}.3mf")
+        val currentConfigFile = SliceBeam.getCurrentConfigFile()
+        val previousCurrentConfig = currentConfigFile.takeIf(File::isFile)?.readBytes()
+        val requestCode = MainActivity.REQUEST_CODE_EXPORT_3MF
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        val outputUri = FileProvider.getUriForFile(activity, authority, output)
+        var model: Model? = null
+
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            model = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, requireNotNull(model).objectsCount)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuProject))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuFileExport3mf))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf))
+                .assertIsEnabled().performClick()
+
+            val cancelledRequest = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, cancelledRequest.action)
+            assertEquals("application/3mf", cancelledRequest.type)
+            assertEquals("OrkanSlicer_project.3mf", cancelledRequest.getStringExtra(Intent.EXTRA_TITLE))
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_CANCELED, Intent())
+            }
+            assertFalse("cancelling the save picker must not create an export file", output.exists())
+            capturedIntent.set(null)
+
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, Intent().setData(outputUri))
+            }
+            compose.waitUntil(timeoutMillis = 15_000) { output.isFile && output.length() > 0 }
+            java.util.zip.ZipFile(output).use { archive ->
+                assertTrue("the output must contain a 3MF model entry", archive.getEntry("3D/3dmodel.model") != null)
+            }
+            val reloaded = Model(output, 1)
+            try {
+                assertEquals("exported 3MF must reload the active plate's object", 1, reloaded.objectsCount)
+            } finally {
+                reloaded.release()
+            }
+        } finally {
+            launchers[requestCode] = previousLauncher
+            output.delete()
+            modelFile.delete()
+            model?.release()
+            if (previousCurrentConfig == null) currentConfigFile.delete()
+            else currentConfigFile.writeBytes(previousCurrentConfig)
+        }
+    }
+
+    @Test
     fun sliceMenuManualActionOpensFilamentAssignmentAndCancelOrBackPreservesModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -283,6 +376,24 @@ class InitialProjectMenuDeviceTest {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val modelFile = File(activity.cacheDir, "menu-multiplate-export-warning-test.stl")
+        val output = File(activity.cacheDir, "menu-multiplate-export-warning-${System.nanoTime()}.3mf")
+        val requestCode = MainActivity.REQUEST_CODE_EXPORT_3MF
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
         try {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
@@ -324,7 +435,31 @@ class InitialProjectMenuDeviceTest {
             assertEquals("cancel must preserve the two-plate workspace", 2, bed.plateCount)
             assertEquals("cancel must preserve the active plate", 0, bed.currentPlateIndex)
             assertEquals("cancel must not mutate the model", 1, bed.currentModel?.objectsCount)
+            assertEquals("dismissing the warning must not launch the document picker", null, capturedIntent.get())
+
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.Project3mfExportActivePlateConfirm))
+                .assertIsDisplayed().performClick()
+
+            val request = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, request.action)
+            assertEquals("application/3mf", request.type)
+            assertEquals("OrkanSlicer_plate_1.3mf", request.getStringExtra(Intent.EXTRA_TITLE))
+
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_CANCELED, Intent())
+            }
+            assertFalse("cancelling the document picker must not create an export file", output.exists())
+            assertEquals("the confirmed export is limited to the selected plate", 2, bed.plateCount)
+            assertEquals("the confirmed export must not switch the selected plate", 0, bed.currentPlateIndex)
         } finally {
+            launchers[requestCode] = previousLauncher
+            output.delete()
             modelFile.delete()
         }
     }
