@@ -787,3 +787,8 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Debug-APK `app/build/outputs/apk/debug/OrkanSlicer_dce1d88754.apk`, 156,973,276 Byte, SHA-256 `5425BDB3322EB0447660C7485B147BC7A307BBC8D6FCAD271B1F63E9C1589418`. APK-Metadaten wurden geprüft: Version 0.8.243 / Code 278. APK auf Honor installiert und gestartet; App-Prozess lief. Geprüfter Logcat-Ausschnitt enthielt keine FATAL EXCEPTION-, ANR- oder OOM-Meldungen.
 - GitHub Alpha-Prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.243. APK ist als `OrkanSlicer_0.8.243_alpha_debug.apk` gelabelt. Dies ist ein Debug-Build, kein produktionssigniertes offizielles Release.
 - Weiterhin offen: UI 2.0 ist nicht vollständig migriert; mehrere Legacy-Werkzeughosts bleiben, und der vollständige Mehrplatten-Projektroundtrip wurde nicht umgesetzt. Diese Release-Notiz behauptet keine vollständige UI-Abnahme.
+
+## 2026-10-18 — Weitere fokussierte Workspace- und Paint-Prüfungen
+
+- Honor PTP-N49 / Android 16: PaintModeComposeDeviceTest 2/2 und WorkspaceNavigationDeviceTest 1/1 bestanden. Zusammen mit den zuvor aufgeführten fokussierten Klassen sind damit 62 Einzelfälle dokumentiert, alle bestanden, ohne Skips/Fehler. Es handelt sich um gezielte Klassenläufe, nicht um eine vollständige Abnahme aller Menüaktionen.
+- PR #2 ist offen und aktuell CLEAN/mergeable auf Head 4a059a247aacb8db17b81e9cd2bc6f1d23e0fdce. Produktcode und Debug-APK wurden in diesem Fortsetzungsschritt nicht geändert; kein neuer APK-Build ist daraus abzuleiten.
