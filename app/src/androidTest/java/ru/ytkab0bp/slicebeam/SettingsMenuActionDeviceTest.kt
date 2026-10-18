@@ -224,6 +224,44 @@ class SettingsMenuActionDeviceTest {
     }
 
     @Test
+    fun appResetActionCanBeCancelledOrDismissedWithBackWithoutChangingConfiguration() {
+        val activity = compose.activity
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val originalPrinter = config.presets?.get("printer")
+        val originalProcess = config.presets?.get("print")
+        val originalFilament = config.presets?.get("filament")
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is SettingsFragment
+        }
+
+        fun openResetConfirmation() {
+            compose.onNodeWithText(activity.getString(R.string.SettingsResetToDefault))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsResetToDefaultTitle)).assertIsDisplayed()
+        }
+        fun assertConfigurationUnchanged() {
+            assertTrue("Reset cancellation must retain the same active config", SliceBeam.CONFIG === config)
+            assertEquals(originalPrinter, config.presets?.get("printer"))
+            assertEquals(originalProcess, config.presets?.get("print"))
+            assertEquals(originalFilament, config.presets?.get("filament"))
+        }
+
+        openResetConfirmation()
+        compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+        compose.waitForIdle()
+        assertConfigurationUnchanged()
+
+        openResetConfirmation()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitForIdle()
+        assertConfigurationUnchanged()
+        compose.onNodeWithText(activity.getString(R.string.SlotAppSettings)).assertIsDisplayed()
+    }
+
+    @Test
     fun accentColorPaletteBackCancelsAndSelectingASwatchAppliesTheColor() {
         val activity = compose.activity
         val originalColor = Prefs.getAccentColor()
