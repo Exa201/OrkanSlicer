@@ -1,3 +1,10 @@
+## OrkanSlicer 0.8.305 — Kalibrierungsdialog bei großer Schrift (2026-10-18)
+
+- Honor PTP-N49 / Android 16: Bei simulierter 320-dp-Breite und 150 % Systemschrift wurde die Kalibrierungsoberfläche tatsächlich geöffnet. Lange Aktionstitel und Beschreibungen umbrechen vollständig; die Abbrechen-Aktion bleibt erreichbar. Screenshot: `app/build/reports/ui2-font-scale-20261018/calibration-320dp-150pct-v080305.png`. Die Display- und Schrifteinstellungen wurden nach der Prüfung zurückgesetzt. Das ist kein separates physisches 320-dp-Gerät und keine manuelle TalkBack-Traversierung.
+- Vollständige aktuelle Tests: Debug-JVM 557/557 und Slice-JVM 557/557 bestanden. Honor-Instrumentierung: 149 Fälle, 144 bestanden, 5 wegen nicht verfügbarer privater Fixtures übersprungen, 0 Fehler/Errors. Der Emulator blieb offline.
+- Debug-Build erfolgreich: `app/build/outputs/apk/debug/OrkanSlicer_7b187866dc.apk`, 157.216.310 Byte, SHA-256 `489E0693A8B7A78C0963752A80CBFA47EBBA1C38C985B5234A4EC705F0DBE216`. Installiert und gestartet auf Honor PTP-N49; Paketversion 0.8.305 / Code 340. Der frische Logcat-Ausschnitt enthielt keine Crash-, ANR-, OOM- oder Fatal-Signal-Marker.
+- Code-Commit `7b187866dcd6d3db80b7e55e03afa3240343f628`. Die sechs Hauptmenüs und globalen Untermenüs sind weiterhin nicht vollständig funktional abgenommen; UI 2.0 wird nicht als abgeschlossen gewertet.
+
 ## OrkanSlicer 0.8.304 — responsive Werkzeugkacheln (2026-10-18)
 
 - Sichtbarer Honor-Befund bei 320 dp / 150 % Systemschrift: Werkzeugaktionen waren zu schmal, und die Beschriftungen „Profile importieren/exportieren“ wurden abgeschnitten. Ab 130 % werden zwei breitere Spalten mit höheren Kacheln verwendet; die Profilaktionen zeigen lokalisierte Kurzlabels, während TalkBack die vollständige Aktion erhält. Profiloptionen werden bei großer Schrift über einen durchsuchbaren Dialog erreichbar.
