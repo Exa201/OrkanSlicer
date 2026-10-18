@@ -8,6 +8,11 @@
 - Geändert wurden nur Instrumentierungstest und Verifikationsdokumentation. Keine Runtime-Änderung, kein APK-Neubau und keine neue Release-Veröffentlichung.
 - Phase 5 bleibt offen (nicht alle tatsächlichen Menüaktionen einzeln abgenommen); Phase 6 bleibt offen (manuelle TalkBack-Traversierung nicht durchgeführt). Nächster Schritt: weitere ungeprüfte Drucker-/Profilaktionen anhand ihrer Compose-Handler identifizieren und mit isolierten Fixtures testen; ein Release folgt erst nach Abschluss des nächsten vollständigen Phasenpakets.
 
+## Unit-Regression nach API-Key-Test — 2026-10-18
+
+- Auf Commit `ec35f2a`: `:app:testDebugUnitTest :app:testSliceTestUnitTest` erfolgreich, jeweils 559/559, 0 Fehler/Errors/Skips, 42 s.
+- Kein Produktivcode geändert. Die aktuelle Version v0.8.313 bleibt der veröffentlichte Debug-Prerelease. Nächste Arbeit: weiter Phase 5/6 abschließen; der vollständige Menu-Aktionsaudit und manuelle TalkBack-Prüfung stehen noch aus.
+
 ## Vollständiger Honor-Instrumentierungslauf und responsive Nachprüfung — 2026-10-18
 
 - `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 188 Fälle, 183 bestanden, 5 wegen nicht verfügbarer privater KromaCut-/Mehrfarben-Fixtures übersprungen, 0 fehlgeschlagen/Errors. Der Lauf enthält u. a. 14/14 `InitialProjectMenuDeviceTest`, 17/17 Druckerprofiltests, 15/15 Filament-/Plattenlayouttests, 7/7 App-Einstellungsaktionen, 3/3 Slicing-Vorbereitung, 3/3 adaptive Navigation und 1/1 Compose-Accessibility-Einstellungssemantik.

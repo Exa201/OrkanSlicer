@@ -1188,3 +1188,8 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - The full `PrintProfileDropdownIntegrationDeviceTest` passed 17/17 on Honor PTP-N49 / Android 16, 0 skipped/failures (JUnit XML timestamp `2026-10-18T20:07:17`). The dashboard browser test failed once in an earlier class run but passed alone and again in this complete class run, so no reproducible test-order failure remains.
 - Full `:app:connectedSliceTestAndroidTest` on Honor: 188 test cases, 183 passed, 5 skipped private multicolor fixtures, 0 failures/errors (JUnit XML timestamp `2026-10-18T20:12:49`; 287.159 s). Emulator remained offline.
 - Test-only change; no runtime code, debug APK, or release changed. UI 2.0 Phase 5 action inventory and Phase 6 manual TalkBack traversal remain incomplete.
+
+## Unit regression after API-key lifecycle coverage — 2026-10-18
+
+- `:app:testDebugUnitTest :app:testSliceTestUnitTest` succeeded on commit `ec35f2a`: 559 tests in each suite, 0 failures, 0 errors, 0 skipped in both suites. Build completed in 42 seconds using the existing Gradle cache.
+- The earlier full Honor instrumentation record remains 188 tests / 183 passed / 5 skipped / 0 failed; no product-runtime change was part of this test extension.
