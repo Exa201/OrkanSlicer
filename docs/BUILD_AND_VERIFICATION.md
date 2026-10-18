@@ -1181,3 +1181,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 ## Printer profile dropdown clone/delete — Honor, 2026-10-18
 
 `PrintProfileDropdownIntegrationDeviceTest` passed 9/9 on Honor PTP-N49 / Android 16 (0 skipped, 0 failed; XML timestamp `2026-10-18T18:25:36`). The test scrolls to the lower dropdown actions, clones a temporary printer profile, checks copied settings, deletes the clone through the same menu and restores active and per-printer selections. The first exploratory test omitted scrolling and was a test interaction issue; the corrected test and full class passed. Test-only change; no runtime APK rebuild. Full Phase 5 action coverage and Phase 6 manual TalkBack/physical display checks remain open.
+
+## Printer API-key edit lifecycle and full Honor regression — 2026-10-18
+
+- Extended `printerApiKeyEditorMasksRevealsAndKeepsSyntheticEditsInTheDraft` to verify Cancel and Android Back both discard the unconfirmed API-key edit, Apply stages it only in the profile draft, and explicit profile-save confirmation persists it only to the selected printer profile. The fixture restores its original key and active profile in `finally`; no network request is made.
+- The full `PrintProfileDropdownIntegrationDeviceTest` passed 17/17 on Honor PTP-N49 / Android 16, 0 skipped/failures (JUnit XML timestamp `2026-10-18T20:07:17`). The dashboard browser test failed once in an earlier class run but passed alone and again in this complete class run, so no reproducible test-order failure remains.
+- Full `:app:connectedSliceTestAndroidTest` on Honor: 188 test cases, 183 passed, 5 skipped private multicolor fixtures, 0 failures/errors (JUnit XML timestamp `2026-10-18T20:12:49`; 287.159 s). Emulator remained offline.
+- Test-only change; no runtime code, debug APK, or release changed. UI 2.0 Phase 5 action inventory and Phase 6 manual TalkBack traversal remain incomplete.

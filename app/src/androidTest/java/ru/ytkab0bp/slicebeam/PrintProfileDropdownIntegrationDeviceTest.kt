@@ -484,6 +484,21 @@ class PrintProfileDropdownIntegrationDeviceTest {
             openApiKeyEditor()
             compose.onNode(hasSetTextAction()).performTextClearance()
             compose.onNode(hasSetTextAction()).performTextInput(syntheticApiKey)
+            InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertEquals("Android Back must discard the unconfirmed API key edit", originalDraftApiKey,
+                ProfileConfigValueController.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINTER, draft, option.key, option.guiType,
+                    option.defaultValue, -1, false,
+                ))
+            assertEquals(0, ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER))
+            assertEquals("Back never persists the edited key", syntheticStoredApiKey,
+                storedPrinter.get("printhost_apikey"))
+
+            openApiKeyEditor()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(syntheticApiKey)
             compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINTER)
@@ -495,6 +510,18 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 ))
             assertEquals("Apply does not persist or send the edited key", syntheticStoredApiKey,
                 storedPrinter.get("printhost_apikey"))
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsSave)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsSaveTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) == 0 &&
+                    storedPrinter.get("printhost_apikey") == syntheticApiKey
+            }
+            assertEquals("Confirmed profile Save persists the API key to the selected printer only",
+                syntheticApiKey, storedPrinter.get("printhost_apikey"))
+            assertEquals("Saving API key does not change the active printer profile", printerTitle,
+                config.presets?.get("printer"))
         } finally {
             ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
             if (originalApiKey == null) storedPrinter.values.remove("printhost_apikey")

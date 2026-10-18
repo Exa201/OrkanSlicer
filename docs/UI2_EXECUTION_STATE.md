@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## API-Schlüssel-Abbruch-/Speicherablauf und Honor-Regressionslauf — 2026-10-18
+
+- Der API-Key-Gerätetest prüft maskierte Anzeige und Anzeigen/Verbergen sowie vier Zustände: Abbrechen und Android-Zurück lassen Entwurf und gespeicherten Schlüssel unverändert; „Übernehmen“ ändert nur den Profilentwurf; erst bestätigtes Speichern schreibt den synthetischen Schlüssel in das ausgewählte Druckerprofil. Testwerte werden in `finally` wiederhergestellt, kein Netzwerkzugriff.
+- `PrintProfileDropdownIntegrationDeviceTest`: 17/17 bestanden auf Honor PTP-N49 / Android 16, 0 Skips/Fehler, XML `2026-10-18T20:07:17`. Der Dashboard-Browser-Test, der in einem früheren Klassenlauf einmal fehlschlug, bestand isoliert und im erneuten vollständigen Lauf; die Ursache des Einzelfehlers ist nicht belegt.
+- Vollständige `:app:connectedSliceTestAndroidTest`: XML `2026-10-18T20:12:49`, 188 Fälle, 183 bestanden, 5 private Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors. Emulator offline.
+- Geändert wurden nur Instrumentierungstest und Verifikationsdokumentation. Keine Runtime-Änderung, kein APK-Neubau und keine neue Release-Veröffentlichung.
+- Phase 5 bleibt offen (nicht alle tatsächlichen Menüaktionen einzeln abgenommen); Phase 6 bleibt offen (manuelle TalkBack-Traversierung nicht durchgeführt). Nächster Schritt: weitere ungeprüfte Drucker-/Profilaktionen anhand ihrer Compose-Handler identifizieren und mit isolierten Fixtures testen; ein Release folgt erst nach Abschluss des nächsten vollständigen Phasenpakets.
+
 ## Vollständiger Honor-Instrumentierungslauf und responsive Nachprüfung — 2026-10-18
 
 - `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 188 Fälle, 183 bestanden, 5 wegen nicht verfügbarer privater KromaCut-/Mehrfarben-Fixtures übersprungen, 0 fehlgeschlagen/Errors. Der Lauf enthält u. a. 14/14 `InitialProjectMenuDeviceTest`, 17/17 Druckerprofiltests, 15/15 Filament-/Plattenlayouttests, 7/7 App-Einstellungsaktionen, 3/3 Slicing-Vorbereitung, 3/3 adaptive Navigation und 1/1 Compose-Accessibility-Einstellungssemantik.
