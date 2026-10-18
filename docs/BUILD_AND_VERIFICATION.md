@@ -884,3 +884,10 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Die langen Einstellungs- und Filamentbereiche ließen sich vertikal scrollen; fixe Speichern-Aktionen blieben am unteren Rand. Screenshots: `app/build/reports/ui2-manual-audit/`. Manuelle Stichprobe, keine Vollabnahme und kein Test der Wertpersistenz. Keine Crash-/ANR-/OOM-Marker im danach geprüften Logcat-Ausschnitt.
 
 \n
+## 2026-10-18 — Druckprofil-Auswahlmarkierung mit Integrationstest abgeglichen
+
+- Die sichtbare leere Markierung gehörte zum generischen „0.16mm High Quality“-Preset. Nach `ensurePrinterScopedProcess()` ist das eigentliche aktive Profil druckerspezifisch benannt. Der generische Listeneintrag ist deshalb nicht der aktuell aktive Datensatz.
+- `PrintProfileDropdownIntegrationDeviceTest` auf Honor PTP-N49: 1/1 bestanden. Der Test setzt das gebündelte Anycubic-Prozessprofil, navigiert zum realen PrintConfigFragment und verifiziert im kompatibilitätsgefilterten Dropdown-Snapshot genau einen ausgewählten Eintrag, dessen Titel dem aktiven printer-scoped `presets["print"]` entspricht. Ein erster Assertionsentwurf nutzte den Titel vor der vorgesehenen Profilkopie und schlug deshalb fehl; die nach Fragmentinitialisierung gelesene Auswahl ist nun korrekt verifiziert.
+- Keine Profilwerte gespeichert, kein Produktcode oder Debug-APK geändert. Nur gezielte `sliceTest`-Instrumentierung; vollständige Unit-/Honor-Suites wurden dafür nicht wiederholt. Screenshot des zuvor missverständlichen generischen Eintrags: `app/build/reports/ui2-manual-audit/profile-radio-verify.png`.
+
+\n

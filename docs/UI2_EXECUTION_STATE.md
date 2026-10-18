@@ -792,7 +792,6 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Zuletzt vollständige Honor-Instrumentierung: 152/157 bestanden, 5 Fixture-bedingt übersprungen, 0 Fehler (XML, eindeutige Tests); danach die ausgelassenen KromaCut-Tests mit bereitgestellter Fixture separat 2/2 bestanden. Debug-/Slice-JVM zuletzt 558/558 auf unverändertem Produktcode. APK bleibt `OrkanSlicer_b65895454b.apk`, SHA-256 `30A5AA0186DB33683CECB10AFC36990F7543FBEC5E9F42F0002CA1CAC3ACB250`.
 - Nächster konkreter Schritt: den Projekt-Menü-Dateiimport als abgeschlossene manuelle Route in der Aktionsmatrix führen, anschließend die noch nicht praktisch ausgeführten globalen Drucker-/Profil-/App-Aktionen auf isolierten Testprofilen abarbeiten. GitHub: Branch `codex/rinkhals-safe-start-audit`; PR #2 offen.
 
-\n
 ## Honor-Fortsetzung — globale Profil- und Einstellungsbedienung (2026-10-18)
 
 - Weiterer manueller Test auf demselben PTP-N49 / Android 16 (1280×2800 px, 560 dpi ≈ 366×800 dp Portrait; Android `font_scale=1.0`, UI-Menüschrift in OrkanSlicer 100 %). Gerät blieb im verifizierten OrkanSlicer-Paket. Keine Änderung an Produktcode oder Profilwerten.
@@ -801,5 +800,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Filament: T0/T1/T2-Chips und Profil „Anycubic PETG“ sichtbar. Info blendet die Slot-Erklärung ein; Materialbereich zeigt Farbe `#F2754E`, Durchmesser 1,75 mm, Fluss 0,965 und Dichte 1,24. Öffnen des Farbfelds zeigt den bildschirmfüllenden Farbwähler; Android-Zurück kehrt zurück und die Farbe blieb `#F2754E`. Keine Filamentwerte gespeichert.
 - Druck: aktives Profil und ACE-/Slicer-Materialzuordnungen T0–T3 sichtbar (T0→ACE 1, T1→ACE 2, T2→ACE 3, T3→ACE 4). Farbkachel T2 öffnet ein Filament-Panel; Zurück kehrte ohne Änderung zur Druckprofilseite zurück. Nicht gedrückt: „Speichern“, „Sync“, Umordnen oder andere Aktionen mit Persistenz-/Druckerwirkung.
 - Screenshots der geöffneten/geschlossenen Oberflächen sind unter `app/build/reports/ui2-manual-audit/` abgelegt (`app-ui-expanded.png`, `app-back.png`, `printer-profiles-open.png`, `printer-search-qidi.png`, `filament-tab.png`, `filament-info.png`, `filament-color-dialog.png`, `filament-color-back.png`, `print-tab.png`, `print-after-color-back.png`, `about-app.png`, `about-app-swipe.png`). Der Test endete zurück auf der Workspace-Vorschau. Prüfung belegt ausgewählte manuelle Navigations-, Scroll- und Back-Pfade; sie ist keine Vollabnahme sämtlicher globaler Menüaktionen. Phase 5 und Phase 6 bleiben offen.
+
+## Druckprofil-Dropdown-Auswahl geprüft (Honor, 2026-10-18)
+
+- Der erste Screenshot zeigte beim Scrollen einen unmarkierten generischen Eintrag „0.16mm High Quality“. Das war nicht der aktive, druckerspezifisch geklonte Eintrag. `PrintConfigFragment` ruft beim Öffnen `ensurePrinterScopedProcess()` auf und aktiviert einen Titel mit Druckerzusatz; deshalb ist die generische Presetzeile absichtlich nicht als aktueller Datensatz markiert.
+- Neuer gezielter Geräte-Integrationstest `PrintProfileDropdownIntegrationDeviceTest`: startet mit dem Anycubic-Bundleprofil, wechselt in den echten `PrintConfigFragment`, liest den gefilterten Menü-Snapshot aus und prüft, dass genau ein kompatibler, druckerspezifischer Prozessdatensatz ausgewählt ist und sein Titel dem aktuellen `presets["print"]` entspricht. Honor PTP-N49: 1/1 bestanden, 0 übersprungen/fehlgeschlagen. Ein erster Testentwurf verglich fälschlich mit dem Titel vor dem vorgesehenen Scoped-Profil-Aufbau; die Assertion wurde auf den Zustand nach dem Fragmentwechsel korrigiert.
+- Kein Profilwert gespeichert und kein Produktcode geändert. Der zuvor als möglicher Fehler markierte Radio-Kreis ist durch den echten Profilpfad erklärt; kein UI-Defekt bestätigt. Reproduktionsbild bleibt `app/build/reports/ui2-manual-audit/profile-radio-verify.png`.
+- Es lief nur die gezielte Honor-Instrumentierung für diese Klasse; keine erneute vollständige Unit-/Honor-Suite und kein Debug-APK-Build. Das Testartefakt verwendete den `sliceTest`-Build.
 
 \n
