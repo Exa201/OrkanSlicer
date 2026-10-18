@@ -84,6 +84,52 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun sliceMenuManualActionOpensFilamentAssignmentAndCancelOrBackPreservesModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "slice-menu-filament-cancel-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val originalExtruder = model.getExtruder(0)
+            assertFalse("test fixture must start without a slice result", bed.hasSliceResult())
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.QuickSliceTitle))
+                .assertIsDisplayed().assertIsEnabled()
+            compose.onNodeWithText(activity.getString(R.string.SmartSliceTitle))
+                .assertIsDisplayed().assertIsEnabled()
+            compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+
+            compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
+            compose.onNodeWithTag("pre-slice-cancel").performClick()
+            compose.waitForIdle()
+            compose.onNodeWithTag("pre-slice-title").assertDoesNotExist()
+            assertEquals("Cancel must not alter the model's filament tool", originalExtruder, model.getExtruder(0))
+            assertFalse("Cancel must not start native slicing", bed.hasSliceResult())
+
+            compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            compose.onNodeWithTag("pre-slice-title").assertDoesNotExist()
+            assertEquals("Back must not alter the model's filament tool", originalExtruder, model.getExtruder(0))
+            assertFalse("Back must not start native slicing", bed.hasSliceResult())
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun multiPlateProjectExportWarnsAndCancelDoesNotOpenDocumentPicker() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

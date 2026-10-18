@@ -911,3 +911,9 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Vollständige gebündelte Suite auf Honor: Debug-Unit 559/559; Slice-Unit 559/559; Slice-Instrumentierung 159 eindeutige Fälle, 154 bestanden, 5 übersprungen, 0 Fehler/Errors. Fünf Skips entsprechen den nicht verfügbaren KromaCut-/Mehrfarben-Fixtures; Emulator offline. Physische TalkBack-Traversierung bleibt ungeprüft.
 - `:app:assembleDebug` nach Code-Commit `351d66fff13e469eff85bf49177a1d00ad06eba9` erfolgreich; APK `OrkanSlicer_351d66fff1.apk`, 157.233.162 Byte, SHA-256 `54B9DD7A36ADD474E221856E71C0743B886A5B82233CA9E7995B3905665E45BF`, Version 0.8.309/code 344. Auf Honor installiert und gestartet; Paket `com.codemastercody3d.orcaslicermobile`, `MainActivity` top-resumed. Geräteanzeige anschließend auf 1280×2800 px / 560 dpi / Font-Scale 1.0 zurückgestellt; Logcat-Stichprobe ohne Crash-/ANR-/OOM-Marker. Dies ist weiterhin ein Debug-Build, kein offizielles Release.
 - Der umfassende Menüaktionsaudit von Phase 5 und manuelle Accessibility-/Displaymatrix-Test von Phase 6 sind nicht abgeschlossen. Keine Änderung an Mehrplattenpersistenz, Druckerfirmware oder Druckstartpfaden.
+
+## Slice-Menü: Filamentwahl vor dem Slicing abbrechen (2026-10-18)
+
+- Neuer `InitialProjectMenuDeviceTest.sliceMenuManualActionOpensFilamentAssignmentAndCancelOrBackPreservesModel`: über die Workspace-Navigation „Slicen“ geöffnet, Testmodell geladen, „Manuell slicen“ aktiviert und die echte Pre-Slice-Filamentzuordnung angezeigt.
+- Sowohl Compose-Abbrechen als auch Android-Zurück schließen den Dialog; native Modell-Extruderzuweisung bleibt gleich und es entsteht kein Slice-Ergebnis. Es wurde weder gesliced noch gesendet oder gedruckt.
+- Gezielter Test 1/1 auf Honor bestanden; vollständige `InitialProjectMenuDeviceTest`-Klasse einschließlich des neuen Falls 13/13 bestanden. Das ist eine Teilprüfung des Slice-Menüs, nicht die Abnahme aller Slice-Ergebnisaktionen.
