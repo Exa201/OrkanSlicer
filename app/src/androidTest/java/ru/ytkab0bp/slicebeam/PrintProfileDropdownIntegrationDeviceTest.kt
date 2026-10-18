@@ -3,7 +3,9 @@ package ru.ytkab0bp.slicebeam
 import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -14,11 +16,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.config.PrinterScopedProcessProfile
 import ru.ytkab0bp.slicebeam.fragment.PrinterConfigFragment
+import ru.ytkab0bp.slicebeam.fragment.ProfileConfigValueController
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
+import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterProfileSelectionStore
 
@@ -150,6 +156,84 @@ class PrintProfileDropdownIntegrationDeviceTest {
             previousTargetSelection?.let { PrinterProfileSelectionStore.write(targetPrinter, it.process, it.filament) }
                 ?: PrinterProfileSelectionStore.write(targetPrinter, null, null)
         }
+    }
+
+    @Test
+    fun printerBedSurfaceEditIsDraftUntilSavedAndCanBeDiscardedWithBackOrReset() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printerTitle = requireNotNull(config.presets?.get("printer"))
+        val storedPrinter = requireNotNull(config.findPrinter(printerTitle))
+        val storedBedSurface = storedPrinter.get("curr_bed_type")
+        val option = requireNotNull(PrintConfigDef.getInstance().options["curr_bed_type"])
+        val optionTitle = Slic3rLocalization.getString(option.getLabel())
+        val optionValues = requireNotNull(option.enumValues)
+        val optionLabels = requireNotNull(option.enumLabels).map(Slic3rLocalization::getString)
+
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+        }
+
+        val draft = activity.runOnUiThreadAndWait {
+            val fragment = activity.navigationDelegate.getCurrentFragment() as PrinterConfigFragment
+            PrinterConfigFragment::class.java.getDeclaredMethod("getCurrentConfig")
+                .apply { isAccessible = true }
+                .invoke(fragment) as ConfigObject
+        }
+        val currentValue = requireNotNull(draft.get("curr_bed_type"))
+        val targetIndex = optionValues.indices.first { optionValues[it] != currentValue }
+        val targetValue = optionValues[targetIndex]
+        val targetLabel = optionLabels[targetIndex]
+
+        val generalCategory = Slic3rLocalization.getString("General")
+        compose.onNodeWithText(generalCategory).performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) > 0
+        }
+
+        assertEquals("The user-selected surface is reflected in the open profile draft", targetValue,
+            ProfileConfigValueController.valueFor(ConfigObject.PROFILE_LIST_PRINTER, draft, "curr_bed_type",
+                option.guiType, option.defaultValue, -1, false))
+        assertEquals("Editing a profile must not write to the stored printer preset", storedBedSurface,
+            storedPrinter.get("curr_bed_type"))
+
+        // Android Back dismisses the settings route. The uncommitted edit remains a draft, while
+        // the persisted preset continues to retain its original value.
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(timeoutMillis = 10_000) {
+            activity.navigationDelegate.getCurrentFragment() !is PrinterConfigFragment
+        }
+        assertEquals(storedBedSurface, storedPrinter.get("curr_bed_type"))
+
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+        }
+        compose.onNodeWithContentDescription(activity.getString(R.string.SettingsResetProfileAction))
+            .assertIsDisplayed().performClick()
+        compose.onNodeWithText(activity.getString(R.string.SettingsResetProfileTitle)).assertIsDisplayed()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitForIdle()
+        assertTrue("Dismissing reset must leave the edit draft pending",
+            ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) > 0)
+        assertEquals("Dismissing reset keeps the stored printer preset unchanged", storedBedSurface,
+            storedPrinter.get("curr_bed_type"))
+
+        compose.onNodeWithContentDescription(activity.getString(R.string.SettingsResetProfileAction))
+            .performClick()
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) == 0
+        }
+        assertEquals("Confirmed reset discards the draft without persisting it", storedBedSurface,
+            storedPrinter.get("curr_bed_type"))
     }
 
     private fun createInitializedActivityRule() = run {
