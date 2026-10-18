@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Fortsetzung — Druckerhost im Profil-Editor und sichere Druckvorbereitung (2026-10-18, 20:55 Ortszeit)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: kompletter Lauf 15/15 auf Honor PTP-N49 / Android 16 bestanden, 0 Skips/Fehler. Der neue `print_host`-Test bearbeitet den Stringwert im tatsächlichen Compose-Druckerprofil-Editor: Cancel und Android-Zurück verwerfen die Änderung, Apply hält sie nur im Draft, und erst bestätigtes Profil-Speichern schreibt `http://profile-edit.invalid:7125` in das isolierte Testprofil. `finally` stellt den ursprünglichen Wert wieder her. Der reservierte `.invalid`-Host wurde nicht aufgerufen.
+- Im gleichen Lauf war ein älterer Druckerprofil-Klon-/Löschtest zunächst wegen eines mehrdeutigen Textselektors rot (Profilname tauchte an zwei Semantik-Knoten auf). Der Selektor ist jetzt auf die Rolle `Button` eingeschränkt; der gesamte 15-Fall-Lauf bestand anschließend.
+- `MmuFilamentSyncDeviceTest`: Honor 15/15 bestanden; `SlicePrintPreparationComposeDeviceTest`: 3/3; `CloudManageDialogComposeDeviceTest`: 1/1; `SetupCloudProfileDeviceTest`: 1/1. Alle vier Läufe: 0 Skips/Fehler. Es wurde kein Druck gestartet und kein realer Drucker angesprochen.
+- Geräte-Nachlauf: Honor 1280×2800 px, 560 dpi (ca. 411 dp breit), Systemfont-Scale 1.0; OrkanSlicer-Produktivpaket `com.codemastercody3d.orcaslicermobile` top-resumed. Der Emulator blieb offline. Die Display-/Schriftwerte sind Messwerte der aktuellen Geräteumgebung, keine Abnahme der gesamten 320/360/400-dp-Matrix oder großer Systemschrift.
+- Nur Instrumentierungstest geändert; kein Runtime-Code, kein Debug-APK-Build. Phase 5 bleibt wegen des noch offenen vollständigen Menüaktionsinventars offen; Phase 6 wegen manueller TalkBack-Traversierung und nativer Displaykonfigurationen offen. v0.8.312 bleibt letzter Release. Nächster Schritt: restliche sichere globale Drucker-/Rinkhals-Menüaktionen aus den tatsächlichen Handlern abgleichen, danach die offene responsive/accessibility-Matrix fortsetzen.
+
 ## Fortsetzung — Dashboard-Handoff und Profilaktionsregression
 
 - `PrintProfileDropdownIntegrationDeviceTest`: kompletter Lauf 14/14 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:47:22`.

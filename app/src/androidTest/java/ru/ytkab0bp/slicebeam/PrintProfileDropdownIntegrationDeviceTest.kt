@@ -196,7 +196,9 @@ class PrintProfileDropdownIntegrationDeviceTest {
             compose.waitUntil(timeoutMillis = 15_000) {
                 activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
             }
-            compose.onNodeWithText(originalPrinter).assertIsDisplayed().performClick()
+            compose.onNode(
+                hasText(originalPrinter) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
+            ).assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsCloneProfile))
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { config.printerConfigs.size == originalCount + 1 }
@@ -224,6 +226,128 @@ class PrintProfileDropdownIntegrationDeviceTest {
             }
             ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
             assertTrue(SliceBeam.saveConfig())
+        }
+    }
+
+    @Test
+    fun printHostStringSettingCancelBackAndSaveOnlyChangeTheSelectedPrinterProfile() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val printerTitle = requireNotNull(config.presets?.get("printer"))
+        val storedPrinter = requireNotNull(config.findPrinter(printerTitle))
+        val originalHost = storedPrinter.get("print_host")
+        val option = requireNotNull(PrintConfigDef.getInstance().options["print_host"])
+        val optionTitle = Slic3rLocalization.getString(option.getLabel())
+        val requestedHost = "http://profile-edit.invalid:7125"
+        assertTrue("The fixture must allow an isolated value different from its stored host",
+            originalHost != requestedHost)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+            }
+            val draft = activity.runOnUiThreadAndWait {
+                val fragment = activity.navigationDelegate.getCurrentFragment() as PrinterConfigFragment
+                PrinterConfigFragment::class.java.getDeclaredMethod("getCurrentConfig")
+                    .apply { isAccessible = true }
+                    .invoke(fragment) as ConfigObject
+            }
+            val originalDraftHost = ProfileConfigValueController.valueFor(
+                ConfigObject.PROFILE_LIST_PRINTER,
+                draft,
+                option.key,
+                option.guiType,
+                option.defaultValue,
+                -1,
+                false,
+            ).orEmpty()
+
+            val physicalPrinterCategory = Slic3rLocalization.getString("Physical Printer")
+            val collapsed = activity.getString(R.string.ProfileGroupStateCollapsed)
+            val categories = compose.onAllNodesWithText(physicalPrinterCategory).fetchSemanticsNodes()
+            val categoryIndex = categories.indexOfFirst {
+                it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == collapsed
+            }
+            assertTrue("The Physical Printer profile category should be available", categoryIndex >= 0)
+            compose.onAllNodesWithText(physicalPrinterCategory)[categoryIndex].performClick()
+            val expanded = activity.getString(R.string.ProfileGroupStateExpanded)
+            assertTrue("The Physical Printer category should expose its expanded state",
+                compose.onAllNodesWithText(physicalPrinterCategory).fetchSemanticsNodes().any {
+                    it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == expanded
+                })
+            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
+
+            fun openPrintHostEditor() {
+                val rows = compose.onAllNodesWithText(optionTitle).fetchSemanticsNodes()
+                assertTrue("The print host profile option should be visible", rows.isNotEmpty())
+                val rowIndex = rows.indices.maxByOrNull { rows[it].boundsInRoot.top }
+                    ?: throw AssertionError("The print host row is not displayed")
+                compose.onAllNodesWithText(optionTitle)[rowIndex].performClick()
+                compose.onNode(hasSetTextAction()).assertIsDisplayed()
+            }
+
+            openPrintHostEditor()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(requestedHost)
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            compose.waitForIdle()
+            assertEquals("Cancel must leave the printer host draft unchanged", originalDraftHost,
+                ProfileConfigValueController.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINTER, draft, option.key, option.guiType,
+                    option.defaultValue, -1, false,
+                ))
+            assertEquals(0, ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER))
+            assertEquals(originalHost, storedPrinter.get("print_host"))
+
+            openPrintHostEditor()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(requestedHost)
+            InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertEquals("Android Back must discard the unconfirmed string edit", originalDraftHost,
+                ProfileConfigValueController.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINTER, draft, option.key, option.guiType,
+                    option.defaultValue, -1, false,
+                ))
+            assertEquals(0, ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER))
+            assertEquals(originalHost, storedPrinter.get("print_host"))
+
+            openPrintHostEditor()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(requestedHost)
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINTER)
+                    .containsKey(option.key)
+            }
+            assertEquals("Apply stages the host only in the profile draft", requestedHost,
+                ProfileSettingsRepository.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINTER, draft, option.key, true,
+                ))
+            assertEquals("Applying a dialog must not mutate the stored printer profile", originalHost,
+                storedPrinter.get("print_host"))
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsSave)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsSaveTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) == 0 &&
+                    storedPrinter.get("print_host") == requestedHost
+            }
+            assertEquals("Confirmed profile save persists the selected host", requestedHost,
+                storedPrinter.get("print_host"))
+            assertEquals("Editing print_host does not change the active printer profile", printerTitle,
+                config.presets?.get("printer"))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
+            if (originalHost == null) storedPrinter.values.remove("print_host")
+            else storedPrinter.put("print_host", originalHost)
+            config.presets?.put("printer", printerTitle)
+            check(SliceBeam.saveConfig()) { "Restore the isolated printer host fixture" }
         }
     }
 

@@ -1,3 +1,11 @@
+## Druckerprofil-Host-Editor und sichere Routenregression — Honor, 2026-10-18
+
+- `PrintProfileDropdownIntegrationDeviceTest`: 15/15 passed on Honor PTP-N49 / Android 16, 0 skipped/failures. The new `print_host` profile UI test verifies that Cancel and Android Back discard the text edit, Apply stages it only in the profile draft, and the confirmed profile Save persists the reserved `http://profile-edit.invalid:7125` value only to the isolated test fixture; cleanup restores the original host. No connection was made to this reserved host.
+- The first class run had one pre-existing printer clone/delete selector ambiguity because the profile title appeared on two semantics nodes. The selector was constrained to the Button role; the rerun passed 15/15.
+- `MmuFilamentSyncDeviceTest`: 15/15 passed; `SlicePrintPreparationComposeDeviceTest`: 3/3; `CloudManageDialogComposeDeviceTest`: 1/1; `SetupCloudProfileDeviceTest`: 1/1. All filtered Honor runs had zero skips/failures. No print was started and no real printer was contacted.
+- Device snapshot after testing: 1280×2800 physical pixels, 560 dpi (about 411 dp width), system font scale 1.0; production OrkanSlicer package was top-resumed. The offline emulator was skipped. This is not a full display-size/font-scale matrix and no manual TalkBack traversal was performed.
+- Test-only changes; production runtime and APK unchanged. The latest release remains debug prerelease v0.8.312; Phase 5's full menu action audit and Phase 6's remaining accessibility/display acceptance are still open.
+
 ## Drucker-Dashboard-Handoff und Profilmenü-Regression (2026-10-18, 18:47 Ortszeit)
 
 - `PrintProfileDropdownIntegrationDeviceTest`: vollständige Regression 14/14 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:47:22`.
