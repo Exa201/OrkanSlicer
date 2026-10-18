@@ -1082,6 +1082,73 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuDeleteSelectedCancelBackAndConfirmUseTheNativeSelection() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-delete-selected-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            assertEquals("the disposable selected model should be loaded", 1, readObjectCountOnGl(glView))
+            val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            val modelSlot = WorkspaceDestination.MODEL.ordinal
+            val shouldNavigate = controller.javaClass.getMethod("getSelectedDestinationSlot")
+                .invoke(controller) != modelSlot
+            val shouldExpand = !(controller.javaClass.getMethod("getToolPanelExpanded")
+                .invoke(controller) as Boolean)
+            if (shouldNavigate || shouldExpand) {
+                compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
+                    .assertIsDisplayed().performClick()
+            }
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ModelMenuObjectsShort))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(10)
+            val deleteSelected = compose.onNodeWithContentDescription(
+                activity.getString(R.string.ModelMenuDeleteSelected),
+            ).assertIsDisplayed().assertIsEnabled()
+
+            deleteSelected.performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelDeleteConfirm)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            compose.waitForIdle()
+            assertFalse("cancel should dismiss the selected-model confirmation", bed.isWorkspaceMessageDialogAttached())
+            assertEquals("cancel should preserve the selected model", 1, readObjectCountOnGl(glView))
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteSelected)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelDeleteConfirm)).assertIsDisplayed()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertFalse("Back should dismiss the selected-model confirmation", bed.isWorkspaceMessageDialogAttached())
+            assertEquals("Back should preserve the selected model", 1, readObjectCountOnGl(glView))
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteSelected)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelDeleteConfirm)).assertIsDisplayed()
+            compose.onNode(
+                hasText(activity.getString(R.string.ModelMenuDeleteSelected)) and hasClickAction(),
+            ).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            val removed = CountDownLatch(1)
+            val rendererIsEmpty = AtomicReference<Boolean>()
+            glView.queueEvent {
+                rendererIsEmpty.set(glView.renderer.model == null)
+                removed.countDown()
+            }
+            assertTrue("GL thread should confirm selected-model deletion", removed.await(10, TimeUnit.SECONDS))
+            assertTrue("confirm should delete only the selected model", requireNotNull(rendererIsEmpty.get()))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editScaleActionCancelsWithoutMutationAndAppliesOnlyAfterConfirmation() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
