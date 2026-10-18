@@ -808,4 +808,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Kein Profilwert gespeichert und kein Produktcode geändert. Der zuvor als möglicher Fehler markierte Radio-Kreis ist durch den echten Profilpfad erklärt; kein UI-Defekt bestätigt. Reproduktionsbild bleibt `app/build/reports/ui2-manual-audit/profile-radio-verify.png`.
 - Es lief nur die gezielte Honor-Instrumentierung für diese Klasse; keine erneute vollständige Unit-/Honor-Suite und kein Debug-APK-Build. Das Testartefakt verwendete den `sliceTest`-Build.
 
-\n
+## Vollständige Honor-Instrumentierung nach Profil-Dropdown-Test (2026-10-18)
+
+- Auf Honor PTP-N49 / Android 16 wurde `:app:connectedSliceTestAndroidTest` vollständig ausgeführt. Eindeutiger XML-Bericht: 158 Tests, 153 bestanden, 5 übersprungen, 0 fehlgeschlagen, 0 Errors. Gradle meldete 163 Ausführungen einschließlich Runner-Wiederholungen; die XML-Fallzahl ist der eindeutige Suite-Stand. `emulator-5554` war offline und wurde übersprungen.
+- Die fünf Skip-Fälle sind die zwei KromaCut-Fixturetests und drei privaten Mehrfarben-Fixturetests. Die KromaCut-Fälle wurden zuvor separat mit der bereitgestellten Projektdatei auf Honor 2/2 bestanden; dieser Lauf hatte die Fixture nicht im Test-Assetpfad. Die drei privaten Fixtures stehen weiterhin nicht zur Verfügung.
+- Der Lauf enthält `PrintProfileDropdownIntegrationDeviceTest`; es bestätigt damit die neue Auswahlprüfung gemeinsam mit der restlichen SliceTest-Instrumentierung. Keine Instrumentierungsfehler. Nur Test- und Dokumentationsänderungen; Produktcode und bestehende Debug-APK blieben unverändert.
+- Der Lauf ist eine Regressionstestbasis, aber keine vollständige Aktion-für-Aktion-Abnahme sämtlicher Menüs. Phase 5 und Phase 6 bleiben offen; insbesondere physische Displaymatrix und manuelle TalkBack-Traversierung fehlen weiterhin.

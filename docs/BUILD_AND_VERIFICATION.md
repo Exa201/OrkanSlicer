@@ -874,7 +874,6 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Nur die für den Test selbst angelegte `/sdcard/Download/ui2-audit-20261018-box.stl` wurde nach Größenprüfung (684 Byte) entfernt; danach wurde ihre Abwesenheit geprüft. Frische Logcat-Stichprobe ohne FATAL EXCEPTION-, ANR-, OOM- oder Fatal-Signal-Marker.
 - Manuelle Prüfung des tatsächlichen Systempicker-/Importpfads; kein automatisierter Test und keine vollständige Datei-/Menüabnahme. Kein Export, kein Netzwerk-Upload, kein Druckstart. Es wurde kein Produktcode oder APK-Inhalt geändert.
 
-\n
 ## 2026-10-18 — Manuelle globale Profil-/Einstellungsprüfung auf Honor
 
 - Gerät: Honor PTP-N49 / Android 16; 1280×2800 px bei 560 dpi (≈366×800 dp Portrait), Android `font_scale=1.0`; OrkanSlicer-Paket `com.codemastercody3d.orcaslicermobile`. UI unverändert auf 0.8.308.
@@ -883,11 +882,15 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Filament/Druck: Slot-Info, Materialdaten und Farbwahl geöffnet; Back schloss den Farbwähler und ließ `#F2754E` unverändert. Auf Druckseite waren T0–T3 sowie ACE-Zuordnung T0→ACE 1, T1→ACE 2, T2→ACE 3, T3→ACE 4 sichtbar; Back aus dem T2-Filamentpanel führte ohne Speichern zurück. „Sync“, „Speichern“, tatsächlicher Druckstart und Netzwerkaktionen nicht ausgelöst.
 - Die langen Einstellungs- und Filamentbereiche ließen sich vertikal scrollen; fixe Speichern-Aktionen blieben am unteren Rand. Screenshots: `app/build/reports/ui2-manual-audit/`. Manuelle Stichprobe, keine Vollabnahme und kein Test der Wertpersistenz. Keine Crash-/ANR-/OOM-Marker im danach geprüften Logcat-Ausschnitt.
 
-\n
 ## 2026-10-18 — Druckprofil-Auswahlmarkierung mit Integrationstest abgeglichen
 
 - Die sichtbare leere Markierung gehörte zum generischen „0.16mm High Quality“-Preset. Nach `ensurePrinterScopedProcess()` ist das eigentliche aktive Profil druckerspezifisch benannt. Der generische Listeneintrag ist deshalb nicht der aktuell aktive Datensatz.
 - `PrintProfileDropdownIntegrationDeviceTest` auf Honor PTP-N49: 1/1 bestanden. Der Test setzt das gebündelte Anycubic-Prozessprofil, navigiert zum realen PrintConfigFragment und verifiziert im kompatibilitätsgefilterten Dropdown-Snapshot genau einen ausgewählten Eintrag, dessen Titel dem aktiven printer-scoped `presets["print"]` entspricht. Ein erster Assertionsentwurf nutzte den Titel vor der vorgesehenen Profilkopie und schlug deshalb fehl; die nach Fragmentinitialisierung gelesene Auswahl ist nun korrekt verifiziert.
 - Keine Profilwerte gespeichert, kein Produktcode oder Debug-APK geändert. Nur gezielte `sliceTest`-Instrumentierung; vollständige Unit-/Honor-Suites wurden dafür nicht wiederholt. Screenshot des zuvor missverständlichen generischen Eintrags: `app/build/reports/ui2-manual-audit/profile-radio-verify.png`.
 
-\n
+## Vollständige Honor-Instrumentierung nach Profil-Dropdown-Test (2026-10-18)
+
+- Auf Honor PTP-N49 / Android 16 wurde `:app:connectedSliceTestAndroidTest` vollständig ausgeführt. Eindeutiger XML-Bericht: 158 Tests, 153 bestanden, 5 übersprungen, 0 fehlgeschlagen, 0 Errors. Gradle meldete 163 Ausführungen einschließlich Runner-Wiederholungen; die XML-Fallzahl ist der eindeutige Suite-Stand. `emulator-5554` war offline und wurde übersprungen.
+- Die fünf Skip-Fälle sind die zwei KromaCut-Fixturetests und drei privaten Mehrfarben-Fixturetests. Die KromaCut-Fälle wurden zuvor separat mit der bereitgestellten Projektdatei auf Honor 2/2 bestanden; dieser Lauf hatte die Fixture nicht im Test-Assetpfad. Die drei privaten Fixtures stehen weiterhin nicht zur Verfügung.
+- Der Lauf enthält `PrintProfileDropdownIntegrationDeviceTest`; es bestätigt damit die neue Auswahlprüfung gemeinsam mit der restlichen SliceTest-Instrumentierung. Keine Instrumentierungsfehler. Nur Test- und Dokumentationsänderungen; Produktcode und bestehende Debug-APK blieben unverändert.
+- Der Lauf ist eine Regressionstestbasis, aber keine vollständige Aktion-für-Aktion-Abnahme sämtlicher Menüs. Phase 5 und Phase 6 bleiben offen; insbesondere physische Displaymatrix und manuelle TalkBack-Traversierung fehlen weiterhin.
