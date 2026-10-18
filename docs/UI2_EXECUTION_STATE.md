@@ -1,3 +1,9 @@
+## Fortsetzung 2026-10-18 — Sichere Slice-/Druckvorbereitung
+
+- Auf Honor PTP-N49 / Android 16 bestanden `SlicePrintPreparationComposeDeviceTest` 3/3, `SmartSliceDialogsDeviceTest` 5/5 und `QuickSliceDialogDeviceTest` 3/3, alle ohne Skip/Fehler. Geprüft: Abbruch dispatcht keinen Upload, Upload läuft nur über den injizierten Callback, Filamentzuweisungs-Abbruch/Back übernimmt keine Änderung, leere ACE-Warnung hält Upload und bestätigte Druckoption getrennt, ungültige Smart-Slice-Abmessungen werden verworfen, Formularabbruch/Back startet keine Analyse, Analyseabbruch wird weitergereicht, Ergebnisdialog schließen startet kein Slicing, Quick-Slice-Validierung und Cancel/Back ohne Start.
+- Zusammen mit den vorher dokumentierten gezielten Klassen sind es nun 75 erfolgreiche Testausführungen in 15 separaten Klassenläufen dieses Durchgangs, jeweils 0 Fehler/Skips. Das sind Ausführungen, keine eindeutige Gesamtsuite; frühere Full-Suites können dieselben Fälle enthalten. Kein realer Druck gestartet.
+- Nächste konkrete Prüfung: Drucker-/Rinkhals-Workspace-Panel auf reale beziehungsweise isolierte Verbindungsaktionen testen; falls externe Verbindung erforderlich ist, diese Grenze konkret dokumentieren.
+
 ## Fortsetzung 2026-10-18 — Einstellungs-Auswahldialoge
 
 - `SettingsChoiceDialogDeviceTest` auf Honor PTP-N49 / Android 16: 6/6 bestanden (JUnit-XML-Zeitstempel im aktuellen SliceTest-Ergebnis), 0 Skips/Fehler. Geprüft: lange Auswahl mit Auswahl und Abbruch, Reset-Abbruch per Schaltfläche und Android-Zurück ohne Aufruf der destruktiven Aktion, Reset nur nach explizitem Bestätigen sowie Compose-Fehlerdialoge für nicht verfügbaren Ordnerpicker und scrollbare KromaCut-Meldung.

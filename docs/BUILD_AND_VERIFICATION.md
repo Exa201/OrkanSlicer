@@ -1008,3 +1008,7 @@ Final import-consent device check and Debug APK (2026-10-16):
 ## Einstellungs-Auswahldialoge auf Honor (2026-10-18)
 
 - `SettingsChoiceDialogDeviceTest` auf Honor PTP-N49 / Android 16: 6/6 bestanden, 0 Skips/Fehler. Getestet wurden lange Choice-Listen mit Auswahl/Abbruch, Reset-Bestätigungsdialoge (Cancel und Android-Zurück ändern keine Daten; Reset nur mit ausdrücklicher Bestätigung) sowie Compose-Fehlerdialoge einschließlich scrollbarer längerer Meldung.
+## Slice-/Druckvorbereitungsdialoge auf Honor (2026-10-18)
+
+- Honor PTP-N49 / Android 16: `SlicePrintPreparationComposeDeviceTest` 3/3, `SmartSliceDialogsDeviceTest` 5/5 und `QuickSliceDialogDeviceTest` 3/3 bestanden; keine Skips/Fehler. Die Fälle verifizieren Cancel/Back ohne Dispatch oder Analyse, Validierung ungültiger Werte, Weitergabe eines injizierten Upload-/Analyse-Cancel-Callbacks, getrennte Upload-/explizite Druckoption, Ergebnis schließen ohne Slice-Start sowie Quick-Slice-Abbruch ohne Start.
+- Es wurde kein echter Druck gestartet. Emulator offline. Runtime/APK nicht geändert.
