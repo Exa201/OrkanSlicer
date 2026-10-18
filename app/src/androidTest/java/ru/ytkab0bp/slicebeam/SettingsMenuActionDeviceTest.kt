@@ -1,7 +1,11 @@
 package ru.ytkab0bp.slicebeam
 
+import android.app.Activity
 import android.app.Application
 import android.util.SparseArray
+import android.view.View
+import android.view.ViewGroup
+import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -10,12 +14,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.atomic.AtomicReference
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.SettingsFragment
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
@@ -152,6 +159,33 @@ class SettingsMenuActionDeviceTest {
         }
     }
 
+    @Test
+    fun aboutActionOpensComposeAboutRouteAndAndroidBackReturnsToSettings() {
+        val mainActivity = compose.activity
+        mainActivity.runOnUiThread {
+            (mainActivity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
+        }
+
+        compose.onNodeWithText(mainActivity.getString(R.string.SettingsAppInformation))
+            .performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(mainActivity.getString(R.string.SettingsAbout))
+            .performScrollTo().assertIsDisplayed().performClick()
+
+        compose.waitUntil(timeoutMillis = 10_000) { resumedActivity() is SetupActivity }
+        val aboutActivity = resumedActivity() as SetupActivity
+        assertEquals(true, aboutActivity.intent.getBooleanExtra(SetupActivity.EXTRA_ABOUT, false))
+        assertTrue("About route should attach its Compose screen", containsComposeView(aboutActivity.window.decorView))
+
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(timeoutMillis = 10_000) {
+            resumedActivity() === mainActivity && mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
+        }
+        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).assertIsDisplayed()
+    }
+
     private fun createInitializedActivityRule() = run {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
@@ -188,5 +222,19 @@ class SettingsMenuActionDeviceTest {
             isAccessible = true
         }
         return (revisionField.get(bedFragment) as MutableIntState).intValue
+    }
+
+    private fun resumedActivity(): Activity? {
+        val resumed = AtomicReference<Activity?>()
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            resumed.set(ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).firstOrNull())
+        }
+        return resumed.get()
+    }
+
+    private fun containsComposeView(view: View): Boolean = when (view) {
+        is AbstractComposeView -> view.isAttachedToWindow
+        is ViewGroup -> (0 until view.childCount).any { index -> containsComposeView(view.getChildAt(index)) }
+        else -> false
     }
 }

@@ -810,6 +810,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Post-change verification: Debug unit 559/559; Slice unit 559/559; localized `ChangeLogComposeDeviceTest` 1/1; `SettingsMenuActionDeviceTest` 3/3 on Honor; `:app:assembleDebug` successful. A full Honor suite was completed immediately before this one-line global invalidation extension (166 unique / 161 pass / 5 private-fixture skips); after this extension focused settings and changelog classes were rerun.
 - Final commit `21227eb8c24c92c313d4fe84bcde714b3377a4ae` APK: `app/build/outputs/apk/debug/OrkanSlicer_21227eb8c2.apk`, 157,233,132 bytes, SHA-256 `6E314940AB6DD71C4435E42DD190852CEEC39593BE5CCC3EEFBDACC9B51AE86A`. Installed and launched on Honor PTP-N49 / Android 16 (package `com.codemastercody3d.orcaslicermobile`, version 0.8.310/code 345); `MainActivity` top-resumed and fresh 5,000-line logcat sample contained no crash/ANR/OOM/fatal-signal markers. Emulator offline.
 - The rest of Phase 5 and Phase 6 remains open; do not mark UI 2.0 complete.
+
+### Settings About route action
+
+- Added a real Honor path from Settings → App information → About. `SettingsMenuActionDeviceTest.aboutActionOpensComposeAboutRouteAndAndroidBackReturnsToSettings` verifies that the button launches `SetupActivity` with `EXTRA_ABOUT`, the About Compose root is attached, and Android Back returns to the retained SettingsFragment. Targeted class now passes 4/4 on Honor PTP-N49 / Android 16; emulator offline.
+- Test-only plus verification-state change; app/runtime code and the commit-bound 0.8.310 APK are unchanged. This verifies the About route handoff/back path, not the external update-check network action. Continue auditing Settings’ remaining accessible routes without invoking destructive reset or external purchase/update operations.
 # Continuation update — Project/Files on-device action check (2026-10-18)
 
 - Phase 4 remains complete at its accepted architecture scope; no new runtime code change was required in this pass.
