@@ -3,7 +3,8 @@
 ## 0.8.307 (alpha)
 
 - Reset model undo history after a successful import so the first subsequent edit restores the imported model instead of an empty workspace.
-- Record confirmed scale changes in undo history and cover cancel, apply, undo, redo, and tool Back on the Honor device.
+- Make Reset Scale set the committed native object scale to 100% from both Edit and the model context menu, and record it in undo history.
+- Cover cancel, apply, reset, undo, redo, and tool Back against a native model on the Honor device.
 
 ## 0.8.306 (alpha)
 

@@ -335,7 +335,29 @@ class InitialProjectMenuDeviceTest {
             }
             assertEquals("Android Back should clear the active scale tool", null,
                 workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController))
+            assertEquals("closing the scale tool should preserve the Edit destination",
+                WorkspaceDestination.EDIT.ordinal,
+                workspaceController.javaClass.getMethod("getSelectedDestinationSlot").invoke(workspaceController))
             assertEquals("closing the tool must keep the committed scale", original.x * 1.25,
+                readScaleOnGl(glView, 0).x, 0.002)
+
+            if (!(workspaceController.javaClass.getMethod("getToolPanelExpanded").invoke(workspaceController) as Boolean)) {
+                compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarNavigation))
+                    .assertIsDisplayed().performClick()
+            }
+            compose.waitForIdle()
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelContextResetScale))
+                .assertIsDisplayed().performClick()
+            compose.waitForIdle()
+            val afterReset = readScaleOnGl(glView, 0)
+            assertEquals("Reset Scale should restore the original native X scale", original.x,
+                afterReset.x, 0.002)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            assertEquals("Undo should restore the explicitly confirmed scale after reset", original.x * 1.25,
+                readScaleOnGl(glView, 0).x, 0.002)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            assertEquals("Redo should restore the reset scale", original.x,
                 readScaleOnGl(glView, 0).x, 0.002)
         } finally {
             Prefs.setScaleLinked(previousLinked)

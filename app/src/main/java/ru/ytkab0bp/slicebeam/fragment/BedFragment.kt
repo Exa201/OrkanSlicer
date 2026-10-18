@@ -665,13 +665,9 @@ ViewUtils.postOnMainThread({ updateModel()
 Toast.makeText(ctx, R.string.ModelContextResetRotationDone, Toast.LENGTH_SHORT).show() }) })
     },
     {
-        val viewport = glView
-        if (viewport != null) viewport.queueEvent({ viewport.renderer.setSelectionScale(1.0, 1.0, 1.0)
-viewport.renderer.model?.ensureOnBed(objectIndex)
-viewport.renderer.invalidateSelectionObject()
-viewport.requestRender()
-ViewUtils.postOnMainThread({ updateModel()
-Toast.makeText(ctx, R.string.ModelContextResetScaleDone, Toast.LENGTH_SHORT).show() }) })
+        resetModelScale(objectIndex) {
+            Toast.makeText(ctx, R.string.ModelContextResetScaleDone, Toast.LENGTH_SHORT).show()
+        }
     },
     {
         glView?.let { viewport -> viewport.queueEvent({ viewport.renderer.setInFlattenMode(true)
@@ -702,6 +698,26 @@ workspaceController.activatePanel(
         }
     },
 )
+}
+/** Reset the selected object's committed native scale and record the action for Undo/Redo. */
+fun resetModelScale(objectIndex: Int? = null, onReset: () -> Unit = {}) {
+    val viewport = glView ?: return
+    viewport.queueEvent {
+        val renderer = viewport.renderer
+        val index = objectIndex ?: renderer.selectedObject
+        val model = renderer.model ?: return@queueEvent
+        if (index !in 0 until model.objectsCount) return@queueEvent
+        // Native Model.scale accepts an absolute scale, not a multiplicative delta.
+        model.scale(index, 1.0, 1.0, 1.0)
+        model.ensureOnBed(index)
+        renderer.setSelectionScale(1.0, 1.0, 1.0)
+        renderer.invalidateGlModel(index)
+        viewport.requestRender()
+        ViewUtils.postOnMainThread {
+            updateModel()
+            onReset()
+        }
+    }
 }
 internal fun showWorkspaceMessageDialog(
     title: String?,

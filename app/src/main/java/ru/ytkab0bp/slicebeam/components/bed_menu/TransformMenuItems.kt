@@ -35,14 +35,8 @@ internal class TransformMenuItems(
                 }
             },
             selectionAction(R.string.ModelContextResetScale, R.drawable.arrow_up_right_corner_outline_24, availability) {
-                fragment.glView!!.queueEvent {
-                    renderer.setSelectionScale(1.0, 1.0, 1.0)
-                    renderer.invalidateSelectionObject()
-                    fragment.glView!!.requestRender()
-                    ViewUtils.postOnMainThread {
-                        fragment.updateModel()
-                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetScaleDone))
-                    }
+                fragment.resetModelScale {
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetScaleDone))
                 }
             },
             BedComposeMenuAction(R.string.ModelUndo, R.drawable.arrow_left_outline_28, {
