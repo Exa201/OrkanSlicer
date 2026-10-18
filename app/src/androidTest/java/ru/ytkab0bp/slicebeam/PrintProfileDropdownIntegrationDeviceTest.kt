@@ -1,7 +1,10 @@
 package ru.ytkab0bp.slicebeam
 
 import android.app.Application
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -10,6 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.PrinterScopedProcessProfile
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -57,6 +61,52 @@ class PrintProfileDropdownIntegrationDeviceTest {
             selectedItems.single()?.javaClass?.getMethod("getTitle")?.invoke(selectedItems.single()),
         )
         assertEquals("Inspecting the filtered list must not change the active preset", activeTitle, SliceBeam.requireConfig().presets?.get("print"))
+    }
+
+    @Test
+    fun selectingCompatibleProcessPresetThroughMenuChangesActiveSelection() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is PrintConfigFragment
+        }
+
+        val activeTitle = requireNotNull(config.presets?.get("print"))
+        val fragment = activity.navigationDelegate.getCurrentFragment() as PrintConfigFragment
+        val alternateTitle = activity.runOnUiThreadAndWait {
+            val items = PrintConfigFragment::class.java
+                .getDeclaredMethod("getItems", Boolean::class.javaPrimitiveType)
+                .apply { isAccessible = true }
+                .invoke(fragment, true) as List<*>
+            items.asSequence()
+                .mapNotNull { item -> item?.javaClass?.getMethod("getTitle")?.invoke(item) as? String }
+                .firstOrNull { it != activeTitle }
+        }
+        assertNotNull("The bundled printer fixture needs another compatible process profile", alternateTitle)
+        val target = requireNotNull(alternateTitle)
+        val printer = requireNotNull(config.presets?.get("printer"))
+        val expectedScopedTitle = PrinterScopedProcessProfile.title(target, printer)
+
+        compose.onNodeWithText(activeTitle).assertIsDisplayed().performClick()
+        compose.onNodeWithText(target).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 10_000) { config.presets?.get("print") == expectedScopedTitle }
+
+        assertEquals("Selecting a bundled menu row activates its printer-scoped copy", expectedScopedTitle, config.presets?.get("print"))
+        assertNotNull("The source preset remains available", config.findPrint(target))
+        assertNotNull("The active printer owns the selected process copy", config.findPrint(expectedScopedTitle))
+        val visibleItems = activity.runOnUiThreadAndWait {
+            PrintConfigFragment::class.java
+                .getDeclaredMethod("getItems", Boolean::class.javaPrimitiveType)
+                .apply { isAccessible = true }
+                .invoke(fragment, true) as List<*>
+        }
+        val selectedTitles = visibleItems.filter { item ->
+            item?.javaClass?.getMethod("isSelected")?.invoke(item) as? Boolean == true
+        }.mapNotNull { item -> item?.javaClass?.getMethod("getTitle")?.invoke(item) as? String }
+        assertEquals("Exactly the printer-scoped active profile is marked in the filtered list", listOf(expectedScopedTitle), selectedTitles)
     }
 
     private fun createInitializedActivityRule() = run {
