@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Fortsetzung — integrierter Prime-Tower-Profilweg
+
+- `PrintProfileDropdownIntegrationDeviceTest`: kompletter Lauf 12/12 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; JUnit-XML-Zeitstempel `2026-10-18T18:39:12`.
+- Der neue Integrationstest öffnet den Prime-Tower-Dialog aus dem echten Druckprofilmenü. Übernehmen schreibt `wipe_tower_x/y` in den Profilentwurf, ändert aber nicht den gespeicherten Prozessdatensatz. Eine zweite Eingabe mit Abbrechen erhält den bereits bestätigten Entwurf und verwirft die zweite Eingabe. Der Test setzt Entwurf, Printer-Auswahl und neu entstandene printer-scoped Profile wieder zurück.
+- Die Klasse umfasst nun reale Auswahl-, Speichern-, Entwurfs-, Klon-/Lösch- und Werkzeugaktionen für Drucker-, Prozess- und Filamentprofile. Es wurde kein Laufzeitcode geändert und kein APK gebaut.
+- Phase 5 bleibt für vollständige Hauptmenü- und Drucker-/Rinkhals-Aktionsabdeckung offen. Phase 6 bleibt wegen manueller TalkBack-Traversierung und weiterer physischer Displaykonfigurationen offen. Der Debug-Release v0.8.312 ist weiterhin der letzte APK-Nachweis.
+- Nächste Aktion: den globalen Drucker-/Rinkhals-Aktionsbestand gegen die tatsächlichen Benutzerhandler abgleichen und sichere, isolierte UI-Fälle weiter ergänzen. Keinen echten Drucker ansprechen und keinen Druck starten.
+
 ## Fortsetzung 2026-10-18 — Profilverwaltung auf Honor
 
 - `PrintProfileDropdownIntegrationDeviceTest` wurde nach Ergänzung der Klon-/Löschwege für Filament- und Prozessprofile vollständig auf Honor PTP-N49 / Android 16 ausgeführt: 11/11 bestanden, 0 Fehler, 0 übersprungen; JUnit-XML-Zeitstempel `2026-10-18T18:35:06`.

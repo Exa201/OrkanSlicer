@@ -1,3 +1,9 @@
+## Prime-Tower-Aktion aus dem Druckprofil (2026-10-18, 18:39 Ortszeit)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: vollständige Regression 12/12 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T18:39:12`.
+- Der neue Gerätefall öffnet den Prime-Tower-Dialog direkt aus dem Druckprofilmenü, übernimmt neue X/Y-Koordinaten in den Profilentwurf und prüft, dass gespeicherte Werte unverändert bleiben. Beim erneuten Öffnen verwirft Cancel die neue Eingabe und erhält den zuvor bestätigten Entwurf. Die Testbereinigung stellt isolierte Auswahl-/Profilzustände wieder her.
+- Testkompilierung meldete zunächst verkettete Compose-Testaktionen, deren erste Funktion `Unit` liefert; der Testcode wurde korrigiert. Kein Produktfehler. Keine Laufzeitcodeänderung, kein APK-Build. Emulator offline.
+
 ## Profil-Dropdown-Integration auf Honor (2026-10-18, 18:35 Ortszeit)
 
 - `PrintProfileDropdownIntegrationDeviceTest`: vollständiger Lauf 11/11 bestanden auf Honor PTP-N49 / Android 16, 0 Fehler/Errors/Skips. JUnit-XML-Zeitstempel `2026-10-18T18:35:06`; Gradle-Task `:app:connectedSliceTestAndroidTest` mit Klassenfilter.

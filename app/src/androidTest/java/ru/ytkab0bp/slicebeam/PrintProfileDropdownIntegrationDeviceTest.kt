@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -31,6 +32,7 @@ import ru.ytkab0bp.slicebeam.fragment.PrinterConfigFragment
 import ru.ytkab0bp.slicebeam.fragment.ProfileConfigValueController
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.fragment.FilamentConfigFragment
+import ru.ytkab0bp.slicebeam.fragment.PrintConfigToolsLogic
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
@@ -481,6 +483,81 @@ class PrintProfileDropdownIntegrationDeviceTest {
             ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
             storedPrinter.put("curr_bed_type", storedBedSurface)
             assertTrue("Restore the bundled printer fixture after the test", SliceBeam.saveConfig())
+        }
+    }
+
+    @Test
+    fun primeTowerToolStagesAppliedValuesAndCancelKeepsTheExistingDraft() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val presets = requireNotNull(config.presets)
+        val originalPrinter = requireNotNull(presets["printer"])
+        val originalProcess = requireNotNull(presets["print"])
+        val originalTitles = config.printConfigs.mapNotNull { it.title }.toSet()
+        val printerSelections = config.printerConfigs.mapNotNull { profile ->
+            profile.title?.let { it to PrinterProfileSelectionStore.read(it) }
+        }.toMap()
+        ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrintConfigFragment
+            }
+            val activeProcessTitle = requireNotNull(presets["print"])
+            val activeProcess = requireNotNull(config.findPrint(activeProcessTitle))
+            val originalX = activeProcess.get("wipe_tower_x")
+            val originalY = activeProcess.get("wipe_tower_y")
+            val initialPositions = PrintConfigToolsLogic.towerPositions(originalX, originalY)
+            val changedX = initialPositions.x.toMutableList().also { it[0] = "27.5" }
+            val changedY = initialPositions.y.toMutableList().also { it[0] = "42.25" }
+            val expected = requireNotNull(PrintConfigToolsLogic.serializeTowerPositions(changedX, changedY))
+
+            compose.onNodeWithText(activity.getString(R.string.PrimeTowerPositionShort))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("prime-tower-x-0").performTextClearance()
+            compose.onNodeWithTag("prime-tower-x-0").performTextInput("27.5")
+            compose.onNodeWithTag("prime-tower-y-0").performTextClearance()
+            compose.onNodeWithTag("prime-tower-y-0").performTextInput("42.25")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINT)
+                    .containsKey("wipe_tower_x")
+            }
+
+            assertEquals(expected.first, ProfileSettingsRepository.valueFor(
+                ConfigObject.PROFILE_LIST_PRINT, activeProcess, "wipe_tower_x", true,
+            ))
+            assertEquals(expected.second, ProfileSettingsRepository.valueFor(
+                ConfigObject.PROFILE_LIST_PRINT, activeProcess, "wipe_tower_y", true,
+            ))
+            assertEquals("Applying the tool edits only the profile draft", originalX, activeProcess.get("wipe_tower_x"))
+            assertEquals(originalY, activeProcess.get("wipe_tower_y"))
+
+            compose.onNodeWithText(activity.getString(R.string.PrimeTowerPositionShort))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("prime-tower-x-0").performTextClearance()
+            compose.onNodeWithTag("prime-tower-x-0").performTextInput("35")
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            compose.waitForIdle()
+            assertEquals("Cancel preserves the already applied draft value", expected.first,
+                ProfileSettingsRepository.valueFor(
+                    ConfigObject.PROFILE_LIST_PRINT, activeProcess, "wipe_tower_x", true,
+                ))
+            assertEquals("The stored profile remains unchanged until the profile Save action",
+                originalX, activeProcess.get("wipe_tower_x"))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+            config.printConfigs.removeAll { it.title !in originalTitles }
+            presets.put("printer", originalPrinter)
+            presets.put("print", originalProcess)
+            printerSelections.forEach { (title, selection) ->
+                if (selection == null) PrinterProfileSelectionStore.write(title, null, null)
+                else PrinterProfileSelectionStore.write(title, selection.process, selection.filament)
+            }
+            check(SliceBeam.saveConfig()) { "Could not restore the isolated process profile fixture" }
         }
     }
 
