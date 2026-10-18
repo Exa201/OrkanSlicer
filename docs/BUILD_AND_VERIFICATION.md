@@ -4,8 +4,9 @@
 - Das Slicing wurde lokal ausgeführt; kein Drucker-Upload und kein Druckstart. Temporäre Projekt-/Profilzustände sind testisoliert. Diese Läufe bilden keine vollständige Abnahme aller Workspace-Menüs.
 - Danach `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: je 559 Tests, 0 Fehler, 0 Errors, 0 Skips. Emulator `emulator-5554` war offline und wurde übersprungen.
 - Nach den Instrumentierungsläufen war `com.codemastercody3d.orcaslicermobile/ru.ytkab0bp.slicebeam.MainActivity` auf dem Honor top-resumed. Frische Logcat-Stichprobe von 5.000 Zeilen ohne `FATAL EXCEPTION`, ANR- oder OOM-Marker.
-- Version 0.8.311 / code 346 ist als transparenter Debug-Prüfsnapshot vorgesehen und enthält in diesem Schritt keine Laufzeitfunktionsänderung. Vor GitHub-Upload: APK-Build, Installations-/Startcheck, SHA-256 und Release-Asset noch nachweisen.
+- Version 0.8.311 / code 346 ist ein transparenter Debug-Prüfsnapshot und enthält in diesem Schritt keine Laufzeitfunktionsänderung; Build-, Installations-, Start-, Hash- und Release-Nachweise folgen direkt darunter.
 - Phase 5 bleibt offen: nicht jede Aktion der sechs Hauptmenüs und globalen Drucker-/Profilrouten wurde ausgeführt. Phase 6 bleibt offen: kein manuelles TalkBack und keine native physische Displaygrößen-/Ausrichtungsmatrix in diesem Schritt.
+- Abschlussnachweis: Debug-APK `OrkanSlicer_30c92d355d.apk` (157,232,950 Byte), SHA-256 `6CAB2746D94A18F35B0E3646E6153A1555FF83986AA051FE25D962CAE554C6C2`; Manifest-Version 0.8.311 / Code 346. APK wurde aus Code-Commit `30c92d355d7a771eaf021dd878744ebca043fdc0` gebaut, auf Honor installiert und gestartet. GitHub Debug-Prerelease: [v0.8.311](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.311), Assetzustand `uploaded`, 157,232,950 Byte, SHA-256 bestätigt durch GitHub als `sha256:6cab2746d94a18f35b0e3646e6153a1555ff83986aa051fe25d962cae554c6c2`.
 
 ## 0.8.308 — Transformationshistorie und natives Rotation-Reset (2026-10-18)
 
