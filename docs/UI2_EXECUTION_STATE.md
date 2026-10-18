@@ -1,5 +1,14 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Fortsetzung 2026-10-18 — Profilverwaltung auf Honor
+
+- `PrintProfileDropdownIntegrationDeviceTest` wurde nach Ergänzung der Klon-/Löschwege für Filament- und Prozessprofile vollständig auf Honor PTP-N49 / Android 16 ausgeführt: 11/11 bestanden, 0 Fehler, 0 übersprungen; JUnit-XML-Zeitstempel `2026-10-18T18:35:06`.
+- Die Tests prüfen echte Dropdown-Aktionen: Klonen und Löschen von Drucker-, Prozess- und Filamentprofilen, vollständige Wertkopie, Auswahl-Fallback und Filament-Slotzuordnung. Bestehende Auswahl-, Speichern-, Entwurfs-, Cancel- und Back-Fälle derselben Klasse bestanden ebenfalls. Das Profil- und Preference-Testfixture wird anschließend wiederhergestellt.
+- Beim Filamenttest bestätigte die Gerätebeobachtung, dass Löschen den aktiven Slot auf das verbliebene aktive Profil setzt. Eine zunächst angenommene leere Slotzuordnung war falsch; die Assertion wurde auf das tatsächliche Fallbackverhalten korrigiert.
+- Keine Produktivcodeänderung und kein APK-Build. Der nächste Debug-Release bleibt v0.8.312; die aktuelle Änderung ist ein UI-Integrationstest.
+- Phase 5 bleibt offen für vollständige Menü-/Drucker-/Rinkhals-Aktionsabdeckung. Phase 6 bleibt teilweise offen: manuelle TalkBack-Prüfung und weitere physische Displaykonfigurationen wurden nicht durchgeführt. Mehrplatten-Speicherung in einer einzelnen vollständigen Projektdatei bleibt separat offen.
+- Nächster konkreter Schritt: fortsetzen mit noch nicht praktisch ausgeführten globalen Drucker-/Rinkhals-Workspace-Aktionen; danach die vorhandenen Aktionsmatrizen gegen die tatsächlichen Handler abgleichen. Release erst nach Abschluss der nächsten Phase.
+
 - **Latest release:** [v0.8.312 Debug verification snapshot](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.312), published after Honor checks. APK `OrkanSlicer_19a2965b66.apk`, 157,233,039 bytes, SHA-256 `47B83326DD7C61C1B9AB133D1D2B76FA32662748D1AC64C31603C9F98EE6BBDC`, source commit `19a2965b66e9a9d1dbc8744bf2ed386593a9f311`.
 - **Release verification:** `SetupCloudProfileDeviceTest` 1/1, `CloudManageDialogComposeDeviceTest` 1/1, and `ChangeLogComposeDeviceTest` 1/1 passed on Honor. The last confirms the in-app notes display `0.8.312`. Debug APK build succeeded; installed/launched package `com.codemastercody3d.orcaslicermobile` on PTP-N49. Logcat scan showed no crash/ANR/OOM/fatal markers.
 - **Release correction:** Screenshot review caught stale in-app notes showing `0.8.311` despite manifest version `0.8.312`; `app/src/main/assets/update.json` was corrected in all three locales and the APK rebuilt before upload.

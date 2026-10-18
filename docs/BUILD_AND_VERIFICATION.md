@@ -1,3 +1,10 @@
+## Profil-Dropdown-Integration auf Honor (2026-10-18, 18:35 Ortszeit)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: vollständiger Lauf 11/11 bestanden auf Honor PTP-N49 / Android 16, 0 Fehler/Errors/Skips. JUnit-XML-Zeitstempel `2026-10-18T18:35:06`; Gradle-Task `:app:connectedSliceTestAndroidTest` mit Klassenfilter.
+- Neu abgedeckt: Filament- und Prozessprofile über das reale Dropdown klonen und löschen. Die Assertions prüfen vollständige Profilwertkopie, aktive Profiländerung, Fallback auf ein verbleibendes Profil und Filament-Slotzuordnung. Die bestehende Klasse prüft zusätzlich Druckerprofil-Klon/Löschen, Auswahl, Speichern, Entwurf sowie Cancel/Back.
+- Ein erster Filament-Delete-Test erwartete fälschlich einen leeren Palette-Slot. Das Gerät zeigte den beabsichtigten Wechsel auf das verbleibende aktive Profil; die Testassertion wurde entsprechend korrigiert. Ein erster Prozessprofil-Test verwendete vor dem Fragmentwechsel den globalen statt den tatsächlich ausgewählten druckerspezifischen Namen; der Test nutzt jetzt den echten aktiven Menüeintrag.
+- Keine Produktivcodeänderung; kein Debug-APK-Build. Der Release v0.8.312 bleibt der letzte APK-Nachweis. Emulator offline, Honor-Test erfolgreich.
+
 ## Nach v0.8.311 — zusätzliche Profil- und Generatorprüfungen (2026-10-18)
 
 - Nach Veröffentlichung des Debug-Snapshots bestanden auf Honor PTP-N49 `PrintProfileDropdownIntegrationDeviceTest` 6/6, `MakerGeneratorWorkspaceDeviceTest` 11/11, `MakerComposeDeviceTest` 2/2 und `ProfileNumericOptionDeviceTest` 3/3. Geprüft wurden printer-scoped Profil-/Drucker-/Filamentauswahl, Profilentwurf und Reset-Abbruch, Generator-/Konverteraktionen und Form-Abbruch, zugängliche Aktionen sowie numerische Profilwert-Eingabe mit Apply, Cancel, Android Back und Bereichsvalidierung.

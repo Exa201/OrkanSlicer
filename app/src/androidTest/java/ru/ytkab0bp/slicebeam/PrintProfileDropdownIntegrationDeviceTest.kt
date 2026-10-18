@@ -47,6 +47,131 @@ class PrintProfileDropdownIntegrationDeviceTest {
     val compose = createInitializedActivityRule()
 
     @Test
+    fun filamentProfileCanBeClonedAndDeletedFromTheScrolledDropdown() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val presets = requireNotNull(config.presets)
+        val originalFilament = requireNotNull(presets["filament"])
+        val originalPrinter = presets["printer"]
+        val originalProcess = presets["print"]
+        val originalCount = config.filamentConfigs.size
+        val copyTitle = activity.getString(R.string.SettingsProfileCopy, originalFilament)
+        assertNull(config.findFilament(copyTitle))
+        val preferences = requireNotNull(Prefs.getPrefs())
+        val previousSlot = SlotFilamentProfiles.selectedSlot
+        val previousSlotProfiles = preferences.getString("filament_slot_profiles", null)
+        val firstFilamentTitle = requireNotNull(config.filamentConfigs.first().title)
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(3)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is FilamentConfigFragment
+            }
+
+            compose.onNodeWithText(originalFilament).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsCloneProfile))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                config.filamentConfigs.size == originalCount + 1
+            }
+            assertEquals(originalCount + 1, config.filamentConfigs.size)
+            assertEquals(copyTitle, presets["filament"])
+            assertEquals("Cloning preserves the complete filament profile values",
+                config.findFilament(originalFilament)?.values,
+                config.findFilament(copyTitle)?.values)
+            assertEquals("Cloning assigns the active palette slot to the copy", copyTitle,
+                SlotFilamentProfiles.titleFor(SlotFilamentProfiles.selectedSlot, null))
+
+            compose.onNodeWithText(copyTitle).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsDeleteProfile))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                config.findFilament(copyTitle) == null && config.filamentConfigs.size == originalCount
+            }
+            assertEquals("Deleting the clone selects a remaining filament profile", firstFilamentTitle,
+                presets["filament"])
+            assertEquals("The active palette slot follows the fallback profile after deletion",
+                firstFilamentTitle,
+                SlotFilamentProfiles.titleFor(SlotFilamentProfiles.selectedSlot, null))
+        } finally {
+            config.findFilament(copyTitle)?.let(config.filamentConfigs::remove)
+            if (originalPrinter == null) presets.remove("printer") else presets.put("printer", originalPrinter)
+            if (originalProcess == null) presets.remove("print") else presets.put("print", originalProcess)
+            presets.put("filament", originalFilament)
+            if (previousSlotProfiles == null) {
+                preferences.edit().remove("filament_slot_profiles").commit()
+            } else {
+                preferences.edit().putString("filament_slot_profiles", previousSlotProfiles).commit()
+            }
+            SlotFilamentProfiles.select(previousSlot)
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_FILAMENT)
+            check(SliceBeam.saveConfig()) { "Could not restore the isolated filament profile fixture" }
+        }
+    }
+
+    @Test
+    fun processProfileCanBeClonedAndDeletedFromTheScrolledDropdown() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val presets = requireNotNull(config.presets)
+        val originalPrinter = presets["printer"]
+        val originalProcess = requireNotNull(presets["print"])
+        val originalFilament = presets["filament"]
+        val originalTitles = config.printConfigs.mapNotNull { it.title }.toSet()
+        var copyTitle: String? = null
+        val printerSelections = config.printerConfigs.mapNotNull { profile ->
+            profile.title?.let { it to PrinterProfileSelectionStore.read(it) }
+        }.toMap()
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrintConfigFragment
+            }
+
+            val activeProcess = requireNotNull(presets["print"])
+            val clonedTitle = activity.getString(R.string.SettingsProfileCopy, activeProcess)
+            copyTitle = clonedTitle
+            assertNull(config.findPrint(clonedTitle))
+            compose.onNodeWithText(activeProcess).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsCloneProfile))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { config.findPrint(clonedTitle) != null }
+            assertEquals(clonedTitle, presets["print"])
+            assertEquals("Cloning preserves all process profile values",
+                config.findPrint(activeProcess)?.values,
+                config.findPrint(clonedTitle)?.values)
+
+            compose.onNodeWithText(clonedTitle).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsDeleteProfile))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                config.findPrint(clonedTitle) == null
+            }
+            val selectedAfterDelete = presets["print"]
+            assertTrue("Deleting the clone selects a remaining process preset",
+                !selectedAfterDelete.isNullOrBlank() && selectedAfterDelete != clonedTitle)
+            assertNotNull("The selected process preset remains available", config.findPrint(selectedAfterDelete))
+        } finally {
+            val clonedTitle = copyTitle
+            config.printConfigs.removeAll { it.title !in originalTitles || it.title == clonedTitle }
+            if (originalPrinter == null) presets.remove("printer") else presets.put("printer", originalPrinter)
+            presets.put("print", originalProcess)
+            if (originalFilament == null) presets.remove("filament") else presets.put("filament", originalFilament)
+            printerSelections.forEach { (title, selection) ->
+                if (selection == null) PrinterProfileSelectionStore.write(title, null, null)
+                else PrinterProfileSelectionStore.write(title, selection.process, selection.filament)
+            }
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINT)
+            check(SliceBeam.saveConfig()) { "Could not restore the isolated process profile fixture" }
+        }
+    }
+
+    @Test
     fun printerProfileCanBeClonedAndDeletedFromTheScrolledDropdown() {
         val activity = compose.activity
         val config = SliceBeam.requireConfig()
