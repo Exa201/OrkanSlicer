@@ -791,4 +791,12 @@ Final import-consent device check and Debug APK (2026-10-16):
 ## 2026-10-18 — Weitere fokussierte Workspace- und Paint-Prüfungen
 
 - Honor PTP-N49 / Android 16: PaintModeComposeDeviceTest 2/2 und WorkspaceNavigationDeviceTest 1/1 bestanden. Zusammen mit den zuvor aufgeführten fokussierten Klassen sind damit 62 Einzelfälle dokumentiert, alle bestanden, ohne Skips/Fehler. Es handelt sich um gezielte Klassenläufe, nicht um eine vollständige Abnahme aller Menüaktionen.
-- PR #2 ist offen und aktuell CLEAN/mergeable auf Head 4a059a247aacb8db17b81e9cd2bc6f1d23e0fdce. Produktcode und Debug-APK wurden in diesem Fortsetzungsschritt nicht geändert; kein neuer APK-Build ist daraus abzuleiten.
+- PR #2 ist offen auf Code-Head 8037527bd89f5596e94cdf99c0db79c0616a74c8; die Mergeability wird nach dem Evidence-Dokumentationspush erneut abgefragt.
+
+## 2026-10-18 — Changelog-Korrektur, volle Honor-Suite und Debug-APK
+
+- Fehlerursache aus der vollständigen Honor-Suite: der Changelog-Asset-Text nannte noch 0.8.302, obwohl BuildConfig 0.8.303 ausweist. `update.json` wurde in de/en/ru aktualisiert; `ChangeLogComposeDeviceTest` danach 1/1 bestanden.
+- Vollständige Honor-Instrumentierung auf PTP-N49 / Android 16: XML mit 146 Testfällen, 141 bestanden, 5 übersprungen (private KromaCut/Mehrfarben-Fixtures), 0 fehlgeschlagen, 0 Errors. Gradle zeigte 151 Ausführungen durch Runner-Retries; 146 ist die XML-Testfallzahl. Emulator blieb offline.
+- Fokussierte weitere Integration: 10/10 in Touch/GL-Panel/Mehrplatten-Klassen plus 19/19 Generator-/3MF-Import-/Profil-/Einstellungsdialoge. Zusammen mit den zuvor dokumentierten 62 fokussierten Passes insgesamt 91 fokussierte Fälle, alle grün. Diese Klassenläufe sind zusätzlich zur Vollsuite aufgeführt und werden nicht zu einem unique Vollsuite-Zähler addiert.
+- Debug-Build erfolgreich: `app/build/outputs/apk/debug/OrkanSlicer_8037527bd8.apk`, 157,215,107 Byte, SHA-256 `7FA1A708F44BEB6DC09C98AF6DC5B9D032B7D4819BBC9D3098AAC78A251A98CE`, Code-Commit `8037527bd89f5596e94cdf99c0db79c0616a74c8`, Version 0.8.303/code 338. Auf Honor installiert/gestartet; `MainActivity` top-resumed; frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Signal-Treffer.
+- Debug-/Slice-JVM-Suiten waren zuletzt 556/556 je Suite und wurden nach dieser Asset-only Änderung nicht erneut ausgeführt. Die sechs Workspace-Menüs sind weiterhin nicht vollständig auf jede Aktion abgenommen; physische enge Breiten und manuelle TalkBack bleiben offen.
