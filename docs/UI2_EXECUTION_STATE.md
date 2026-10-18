@@ -1,3 +1,9 @@
+## Fortsetzung 2026-10-18 — App-Einstellungsaktionen auf Honor
+
+- Auf Honor PTP-N49 / Android 16 lief `:app:connectedSliceTestAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ru.ytkab0bp.slicebeam.SettingsMenuActionDeviceTest`: 7/7 bestanden, 0 Skips/Fehler (XML `TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel 2026-10-18T15:49:59). Abgedeckt: Live-Textskalierung und Rückstellung, Akzentfarbe samt Back/Anwenden, Theme samt Back, Drucker hinzufügen samt Back, Reset-Abbruch samt Back ohne Konfigurationsänderung, About öffnen/zurück sowie Renderer-Skalierung samt Back.
+- Danach Font-Scale 1.0 bestätigt; OrkanSlicer-Paket `com.codemastercody3d.orcaslicermobile` / `MainActivity` top-resumed. Frische 5.000-Zeilen-Logcat-Stichprobe ohne FATAL EXCEPTION-, ANR-, OOM- oder Fatal-signal-Marker. Emulator offline.
+- Test- und Dokumentationsänderungen, kein Runtime-Code oder APK. Phase 5 bleibt teilweise offen: dies verifiziert App-Einstellungen, nicht alle sechs Workspace-Hauptmenüs und globalen Profilaktionen. Nächste konkrete Aktion: weiter die realen Filament-/Druckprofil-Menüaktionen mit bestehender isolierter Instrumentierung abnehmen und danach offene Hauptmenüaktionen erfassen.
+
 ## Fortsetzung 2026-10-18 — Druckbetttyp-Dialog bei 150 %
 
 - Branch-HEAD vor diesem Nachweis: `a3acb243d24222ad1be0585507c690cd2633e85c` (`codex/rinkhals-safe-start-audit`). PR #2 ist `OPEN`, `MERGEABLE`, `CLEAN` und zeigt denselben Head.
