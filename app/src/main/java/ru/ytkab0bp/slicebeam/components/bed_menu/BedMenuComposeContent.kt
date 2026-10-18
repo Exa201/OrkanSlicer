@@ -95,6 +95,18 @@ internal object BedMenuActionTileWidthPolicy {
         actionCount <= 0 -> 72
         else -> ((screenWidthDp.coerceAtLeast(320) - 8) / actionCount.coerceIn(1, 4)).coerceIn(72, 128)
     }
+
+    /** Fits the fixed-column horizontal grid after accounting for both paddings and inter-column gaps. */
+    fun gridTileWidthDp(
+        screenWidthDp: Int,
+        columns: Int,
+        horizontalPaddingDp: Int = 4,
+        spacingDp: Int = 2,
+    ): Int {
+        val safeColumns = columns.coerceAtLeast(1)
+        val available = screenWidthDp.coerceAtLeast(320) - horizontalPaddingDp * 2 - spacingDp * (safeColumns - 1)
+        return (available / safeColumns).coerceAtLeast(72).coerceAtMost(128)
+    }
 }
 
 @Composable
@@ -106,7 +118,7 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             actions.size, portrait, widthDp, fontScale,
         ))) {
         val columns = BedMenuActionTileWidthPolicy.columnsForLayout(fontScale, widthDp)
-        val tileWidth = BedMenuActionTileWidthPolicy.widthDp(widthDp, columns).dp
+        val tileWidth = BedMenuActionTileWidthPolicy.gridTileWidthDp(widthDp, columns).dp
         LazyHorizontalGrid(
             rows = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),

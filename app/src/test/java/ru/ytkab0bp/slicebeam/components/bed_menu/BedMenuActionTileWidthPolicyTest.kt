@@ -41,6 +41,16 @@ class BedMenuActionTileWidthPolicyTest {
     }
 
     @Test
+    fun gridTilesFitViewportIncludingContentPaddingAndColumnSpacing() {
+        for ((width, columns) in listOf(320 to 3, 366 to 3, 400 to 4, 411 to 4)) {
+            val tile = BedMenuActionTileWidthPolicy.gridTileWidthDp(width, columns)
+            val used = tile * columns + 8 + 2 * (columns - 1)
+            assertTrue("$columns grid columns must fit in $width dp (used $used dp)", used <= width)
+            assertTrue("Grid tiles should remain touchable at $width dp", tile >= 72)
+        }
+    }
+
+    @Test
     fun actionMenuUsesSecondRowWhenActionsWouldBeClipped() {
         assertFalse(BedMenuActionTileWidthPolicy.usesTwoRows(3, true, 411, 1f))
         assertTrue(BedMenuActionTileWidthPolicy.usesTwoRows(5, true, 411, 1f))

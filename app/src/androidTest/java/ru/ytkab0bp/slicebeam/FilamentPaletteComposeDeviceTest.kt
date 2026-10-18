@@ -4,9 +4,11 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -28,6 +30,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -585,6 +588,66 @@ class FilamentPaletteComposeDeviceTest {
         lastAction.assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         lastAction.performClick()
         compose.runOnIdle { assertEquals(actionTitles.last(), selectedTitle) }
+    }
+
+    @Test
+    fun twoRowToolMenuVisibleTilesStayInsideResponsiveViewport() {
+        val actionTitles = listOf(
+            R.string.WorkspaceObjects,
+            R.string.ModelMenuDuplicate,
+            R.string.ModelMenuMoveToPlate,
+            R.string.ModelMenuCenterOnBed,
+            R.string.ModelMenuFillBed,
+            R.string.ModelMenuArrange,
+            R.string.ModelMenuOrientAll,
+            R.string.ModelMenuAutoOrientSelected,
+            R.string.ModelMenuFlatten,
+            R.string.ModelMenuDeleteSelected,
+            R.string.ModelMenuSelectAll,
+            R.string.ModelMenuDeleteAll,
+        )
+        var widthDp by mutableIntStateOf(320)
+        var fontScale by mutableFloatStateOf(1f)
+        compose.setContent {
+            val configuration = Configuration(LocalConfiguration.current).apply {
+                screenWidthDp = widthDp
+                screenHeightDp = 800
+            }
+            CompositionLocalProvider(
+                LocalDensity provides Density(1f, fontScale),
+                LocalConfiguration provides configuration,
+            ) {
+                BeamComposeTheme {
+                    Box(Modifier.width(widthDp.dp).height(160.dp).testTag("model-action-viewport")) {
+                        BedMenuActionsContent(
+                            actions = actionTitles.map { title ->
+                                BedComposeMenuAction(title, R.drawable.camera_mode_0_28, {})
+                            },
+                            portrait = true,
+                            multiRow = true,
+                        )
+                    }
+                }
+            }
+        }
+
+        for ((width, scale) in listOf(320 to 1f, 360 to 1f, 400 to 1f, 320 to 1.5f, 360 to 1.3f, 400 to 1.5f)) {
+            compose.runOnUiThread {
+                widthDp = width
+                fontScale = scale
+            }
+            compose.waitForIdle()
+            val viewport = compose.onNodeWithTag("model-action-viewport").fetchSemanticsNode().boundsInRoot
+            val visibleColumns = ru.ytkab0bp.slicebeam.components.bed_menu.BedMenuActionTileWidthPolicy
+                .columnsForLayout(scale, width)
+            for (index in 0 until visibleColumns * 2) {
+                val action = compose.onNodeWithContentDescription(
+                    InstrumentationRegistry.getInstrumentation().targetContext.getString(actionTitles[index]),
+                ).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                assertTrue("Action $index starts outside $width dp viewport at ${scale}x", action.left >= viewport.left)
+                assertTrue("Action $index ends outside $width dp viewport at ${scale}x", action.right <= viewport.right)
+            }
+        }
     }
 
     @Test
