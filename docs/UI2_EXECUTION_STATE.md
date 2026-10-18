@@ -1,3 +1,13 @@
+## Aktueller Fortsetzungsstand — 0.8.307 (2026-10-18)
+
+- Aktuelle Phase: Phase 5, funktionale Aktionsabnahme. Phase 4 ist anhand WorkspaceShell/RendererAdapter und der vorangegangenen Architekturprüfungen akzeptiert; Phase 5 und Phase 6 bleiben unvollständig.
+- Neu behobener Fehler: erfolgreicher Modellimport initialisiert nun den Undo-Snapshot mit dem importierten Modell auf dem GL-Thread. Vorher konnte Undo nach dem ersten Bearbeitungsschritt das leere Initialmodell wiederherstellen. Bestätigte Compose-Skalierungen werden außerdem mit `BedFragment.updateModel()` in der Undo-Historie erfasst.
+- Geräteabnahme auf Honor PTP-N49: `InitialProjectMenuDeviceTest` 7/7, darunter Laden eines Testwürfels, Abbrechen ohne Mutation, bestätigte X-Skalierung bei unverändertem Y/Z, Undo, Redo und Tool-Back. Vollständige Honor-Instrumentierung 152 eindeutige Fälle: 147 bestanden, 5 wegen privater Fixtures übersprungen, 0 Fehler/Errors. Debug- und Slice-JVM jeweils 558/558.
+- Debug-APK aus Code-Commit `4251b3620b5525c8ac4423c13486f2d2210693b4`: `app/build/outputs/apk/debug/OrkanSlicer_4251b3620b.apk`, 157.216.308 Byte, SHA-256 `B6F3EA48602248C6E23F44EC128BB5CF88107952A13FE87C52147533B693A935`, Version 0.8.307/code 342. Auf Honor installiert und gestartet; frische Logcat-Stichprobe ohne Crash/ANR/OOM/Fatal Signal. Sichtprüfung bestätigt OrkanSlicer-Workspace und zentrale Druckplatte; Emulator offline.
+- Geprüfte Aktionsgruppe in diesem Schritt: Skalierung Abbrechen/Übernehmen/Undo/Redo/Zurück. Die komplette Geräte-Suite umfasst zudem bisherige Navigation-, Kamera-, Modell-, Filament-, Werkzeug-, Slice-, Profil- und Dialogtests, ist aber keine vollständige Aktion-für-Aktion-Abnahme aller Menüeinträge.
+- Noch offen: weitere Edit-Aktionen (Position, Rotation, Reset, Cut/Split, Simplify, Variable Layer), vollständige Aktionen der übrigen Hauptmenüs und globalen Profileinstellungen, physische schmale Displaykonfigurationen, manuelle TalkBack-Traversierung. Mehrplatten-Projektspeicherung bleibt ein separates unvollständiges Feature.
+- Letzter Code-Commit: `4251b3620b5525c8ac4423c13486f2d2210693b4`. Nächster konkreter Schritt: weitere sichere native Edit-Aktionen auf Testwürfel testen und Ergebnisse nur für tatsächlich ausgeführte Aktionen in die Menü-Abnahmematrix aufnehmen; danach weitere Slicing- und globale Profileditoraktionen.
+
 ## Aktueller Fortsetzungsstand — 0.8.306 (2026-10-18)
 
 - Aktuelle Phase: Phase 5, funktionale Menü-Aktionsabnahme; Phase 4 bleibt im dokumentierten Workspace-Architekturumfang akzeptiert. Phase 5 und Phase 6 sind nicht abgeschlossen.

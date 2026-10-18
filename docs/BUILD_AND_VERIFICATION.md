@@ -1,3 +1,13 @@
+## 0.8.307 — Undo-Historie nach Import und Skalierungsaktion (2026-10-18)
+
+- Gefundener Defekt: Beim Workspace-Start wurde eine Historie für das leere Modell angelegt. Ein erfolgreicher Modellimport aktualisierte nur Druckplattenvorschauen und nicht den Modell-Snapshot der Undo-Historie. Dadurch konnte ein nachfolgendes Undo ein leeres Modell wiederherstellen. Der Import-Abschluss setzt die History nun auf dem GL-Thread anhand des importierten Modells neu.
+- Der bestätigte Compose-Skalierungsdialog veränderte die native Modelltransformation, rief danach aber `BedFragment.updateModel()` nicht auf. Diese Änderung wird jetzt als Undo-Schritt gespeichert.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 7/7 bestanden. Der neue Test lädt einen temporären STL-Würfel, prüft, dass Abbrechen keine Transformation ändert, bestätigt eine ungebundene X-Skalierung, verifiziert unveränderte Y/Z-Skalierung, führt Undo und Redo aus und schließt das Tool mit Android-Zurück. Die Undo-Assertions prüfen den tatsächlichen nativen Modellzustand über den GL-Thread.
+- Beide vollständigen JVM-Suites bestanden: Debug 558/558, Slice 558/558, 0 Fehler/Errors/Skips. Vollständige Honor-Slice-Instrumentierung: 152 eindeutige Tests, 147 bestanden, 5 wegen nicht verfügbarer privater Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors. Gradle meldete 157 Ausführungen wegen Retry-/Reporting-Wiederholungen. Der Emulator blieb offline.
+- Debug-Build erfolgreich, Version 0.8.307/code 342. APK `app/build/outputs/apk/debug/OrkanSlicer_4251b3620b.apk`, 157.216.308 Byte; SHA-256 `B6F3EA48602248C6E23F44EC128BB5CF88107952A13FE87C52147533B693A935`. Auf Honor installiert und gestartet; Paket `com.codemastercody3d.orcaslicermobile`, `MainActivity` top-resumed. Frischer Logcat-Ausschnitt ohne Crash-, ANR-, OOM- oder Fatal-Signal-Treffer.
+- Der Screenshot `app/build/reports/ui2-final-20261018/honor-main-v080307.png` bestätigt die OrkanSlicer-App, die Versionsmeldung und den Workspace mit zentraler Druckplatte. Die sechs Hauptmenüs sind weiterhin nicht vollständig Aktion für Aktion abgenommen; dies ist ein nachgewiesener Edit-/Scale-/History-Fix und kein Abschluss der UI-2.0-Migration. Phase 5 bleibt aktiv; Phase 6 bleibt teilweise offen (physische kleine Displays und manuelle TalkBack-Traversierung).
+- Code-Commit `4251b3620b5525c8ac4423c13486f2d2210693b4`. Keine Druckstarts oder Firmwareänderungen.
+
 ## 0.8.306 — Kachelgrenzen im zweireihigen Workspace-Menü (2026-10-18)
 
 - Ursache des sichtbaren Randanschnitts: Die Rasterkachelbreite zog die 4-dp-Innenränder und 2-dp-Spaltenabstände nicht ab. `gridTileWidthDp` berechnet nun die verfügbare Rasterbreite mit diesen Abständen; Einzelreihen behalten ihre bisherige Breitenlogik.
