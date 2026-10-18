@@ -133,6 +133,155 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun projectMenuImportsSelectedStlThroughTheActualResultHandler() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val inputFile = File(activity.cacheDir, "menu-import-${System.nanoTime()}.stl")
+        val cachedImport = File(SliceBeam.getModelCacheDir(), inputFile.name)
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                inputFile.outputStream().use(source::copyTo)
+            }
+            assertEquals(0, bed.currentModel?.objectsCount ?: 0)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuProject))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+
+            val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, Intent().setData(inputUri))
+            }
+            compose.waitUntil(timeoutMillis = 60_000) {
+                bed.currentModel?.objectsCount == 1
+            }
+            assertEquals("the selected STL should become the active native model", 1,
+                requireNotNull(bed.currentModel).objectsCount)
+            assertTrue("the actual result handler should copy the selected file into the model cache",
+                cachedImport.isFile && cachedImport.length() > 0L)
+        } finally {
+            launchers[requestCode] = previousLauncher
+            inputFile.delete()
+            cachedImport.delete()
+        }
+    }
+
+    @Test
+    fun projectMenuImportsMultipleSelectedStlsSequentially() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val firstFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-a.stl")
+        val secondFile = File(activity.cacheDir, "menu-multi-import-${System.nanoTime()}-b.stl")
+        val cachedFiles = listOf(
+            File(SliceBeam.getModelCacheDir(), firstFile.name),
+            File(SliceBeam.getModelCacheDir(), secondFile.name),
+        )
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        try {
+            listOf(firstFile, secondFile).forEach { file ->
+                activity.assets.open("models/xyz_cube.stl").use { source ->
+                    file.outputStream().use(source::copyTo)
+                }
+            }
+            assertEquals(0, bed.currentModel?.objectsCount ?: 0)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuProject))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            assertTrue(requireNotNull(capturedIntent.get()).getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
+
+            val firstUri = FileProvider.getUriForFile(activity, authority, firstFile)
+            val secondUri = FileProvider.getUriForFile(activity, authority, secondFile)
+            val clipData = android.content.ClipData.newUri(
+                activity.contentResolver,
+                "selected STL models",
+                firstUri,
+            ).apply { addItem(android.content.ClipData.Item(secondUri)) }
+            val resultIntent = Intent().apply { setClipData(clipData) }
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, resultIntent)
+            }
+            compose.waitUntil(timeoutMillis = 60_000) {
+                bed.currentModel?.objectsCount == 2
+            }
+            assertEquals("both selected STLs should be imported in order", 2,
+                requireNotNull(bed.currentModel).objectsCount)
+            compose.waitUntil(timeoutMillis = 10_000) { cachedFiles.none(File::exists) }
+            assertTrue("the sequential importer should remove each temporary cached STL after loading",
+                cachedFiles.none(File::exists))
+        } finally {
+            launchers[requestCode] = previousLauncher
+            firstFile.delete()
+            secondFile.delete()
+            cachedFiles.forEach(File::delete)
+        }
+    }
+
+    @Test
     fun singlePlateProjectExportWritesReloadableThreeMfForTheActiveModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

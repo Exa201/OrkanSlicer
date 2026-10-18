@@ -1,5 +1,6 @@
 ## Workspace-Profilimport — Honor, 2026-10-18
 
+- Latest focused project menu run: `InitialProjectMenuDeviceTest` 20/20 passed on Honor PTP-N49 / Android 16, 0 failures/errors/skips; XML timestamp `2026-10-18T21:29:23` UTC. In addition to the single-file picker intent, actual `ACTION_OPEN_DOCUMENT` result callbacks import one STL and two `ClipData` STL selections into the native workspace; the multi-file path imports sequentially and removes both temporary cache files. The same suite covers active-plate 3MF warning cancel/confirm, correct target filename, and picker cancellation without changing plate state.
 - JVM regression suites on the current test-only change: `:app:testDebugUnitTest` 561/561 and `:app:testSliceTestUnitTest` 561/561 passed, each 0 failures/errors/skips. XML reports were generated at `2026-10-18T21:21Z`.
 - Full `:app:connectedSliceTestAndroidTest` on Honor PTP-N49 / Android 16: JUnit aggregate `193` tests, `188` passed, `5` skipped, `0` failures/errors; timestamp `2026-10-18T21:19:34` UTC. Skips are private KromaCut/multicolor fixture cases; emulator `emulator-5554` was offline and skipped. Includes the updated 18/18 project menu suite. No runtime source changes; no APK or release created.
 - `ProfileSettingsImeDeviceTest`: 12/12 passed on Honor PTP-N49 / Android 16, 0 failures/errors/skips; JUnit XML timestamp `2026-10-18T20:47:10` UTC.

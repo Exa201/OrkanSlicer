@@ -2,9 +2,10 @@
 
 ## Vollständiger Honor-Regressionslauf — 2026-10-18
 
+- Neuester gezielter Lauf nach Erweiterung des Projektmenütests: `InitialProjectMenuDeviceTest` 20/20 bestanden auf Honor PTP-N49 / Android 16, 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T21:29:23` UTC. Ein- und Mehrfachauswahl-STL werden durch den echten Activity-Result-Handler geladen; der Mehrfachimport erfolgt sequenziell und entfernt seine temporären Cachedateien. Der Test der Mehrplattenwarnung bestätigt Dateiauswahl-Intent und unveränderten Plattenzustand bei Abbruch.
 - JVM-Suiten nach dem test-only Update: `:app:testDebugUnitTest` 561/561 und `:app:testSliceTestUnitTest` 561/561 bestanden, jeweils 0 Fehler/Errors/Skips; XML-Zeitstempel `2026-10-18T21:21Z`.
 - `:app:connectedSliceTestAndroidTest`: JUnit-Aggregat `193` Tests, `188` bestanden, `5` wegen nicht verfügbarer privater KromaCut-/Mehrfarben-Fixtures übersprungen, `0` fehlgeschlagen/Errors. XML-Zeitstempel `2026-10-18T21:19:34` UTC. Honor PTP-N49 / Android 16; Emulator offline.
-- Enthält die aktualisierte Projektmenüklasse 18/18 mit Mehrplattenwarnung, Bestätigungsrequest und Picker-Abbruch. Kein Laufzeitcode geändert, keine neue APK/Release.
+- Der vollständige Geräte-Aggregatstand 193/188+5 wurde vor den zwei zusätzlichen Projektimportfällen erstellt; die aktualisierte Einzelklasse besteht aktuell 20/20. Kein Laufzeitcode geändert, keine neue APK/Release.
 - Phase 5 ist weiterhin offen: breite Instrumentierungsabdeckung ist keine vollständige manuelle Abnahme jeder Aktion aller Menüs. Phase 6 bleibt wegen der nicht durchgeführten manuellen TalkBack-Traversierung teilweise offen. Nächster konkreter Schritt: vorhandene Testmatrizen den sechs Compose-Menüs zuordnen und verbliebene Handler ohne praktische Aktion gezielt testen.
 
 ## Profilimport über den Workspace — 2026-10-18
