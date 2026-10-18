@@ -10,6 +10,8 @@ import androidx.compose.runtime.MutableIntState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -31,6 +33,8 @@ import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.components.ColorChooserPalette
+import java.util.Locale
 
 /** Exercises an app-settings action through MainActivity's real workspace destination. */
 @RunWith(AndroidJUnit4::class)
@@ -184,6 +188,79 @@ class SettingsMenuActionDeviceTest {
             resumedActivity() === mainActivity && mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
         }
         compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).assertIsDisplayed()
+    }
+
+    @Test
+    fun addPrinterActionOpensPresetSetupAndBackPreservesTheActivePrinter() {
+        val mainActivity = compose.activity
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val activePrinter = config.presets?.get("printer")
+        mainActivity.runOnUiThread {
+            (mainActivity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
+        }
+
+        compose.onNodeWithText(mainActivity.getString(R.string.SettingsDevices))
+            .performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(mainActivity.getString(R.string.SettingsAddPrinter))
+            .performScrollTo().assertIsDisplayed().performClick()
+
+        compose.waitUntil(timeoutMillis = 10_000) { resumedActivity() is SetupActivity }
+        val setupActivity = resumedActivity() as SetupActivity
+        assertTrue("Add printer must enter the preset setup flow", setupActivity.intent.getBooleanExtra(
+            SetupActivity.EXTRA_ADD_PRINTER, false,
+        ))
+        assertTrue("Printer preset selection should be hosted by Compose", containsComposeView(setupActivity.window.decorView))
+
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(timeoutMillis = 10_000) {
+            resumedActivity() === mainActivity && mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
+        }
+        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).assertIsDisplayed()
+        assertEquals("Opening and backing out of preset selection must not switch the active printer",
+            activePrinter, config.presets?.get("printer"))
+    }
+
+    @Test
+    fun accentColorPaletteBackCancelsAndSelectingASwatchAppliesTheColor() {
+        val activity = compose.activity
+        val originalColor = Prefs.getAccentColor()
+        val selectedSwatch = ColorChooserPalette.commonColors().first { (it or -0x1000000) != originalColor }
+        val expectedColor = selectedSwatch or -0x1000000
+        val colorLabel = activity.getString(
+            R.string.ColorChooserSwatchDescription,
+            String.format(Locale.ROOT, "#%06X", selectedSwatch and 0x00FFFFFF),
+        )
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is SettingsFragment
+            }
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceColor))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.ColorChooserCommon)).assertIsDisplayed()
+
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertEquals("Back closes the color palette without changing the accent", originalColor, Prefs.getAccentColor())
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceColor))
+                .assertIsDisplayed().performClick()
+            compose.onAllNodesWithContentDescription(colorLabel).get(0)
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getAccentColor() == expectedColor }
+            assertEquals("Selecting an accessible swatch applies its opaque color", expectedColor, Prefs.getAccentColor())
+        } finally {
+            Prefs.setAccentColor(originalColor)
+            ThemesRepo.invalidate(activity)
+        }
     }
 
     private fun createInitializedActivityRule() = run {

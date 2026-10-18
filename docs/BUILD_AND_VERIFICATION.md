@@ -903,6 +903,13 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Der vollständige SliceTest-Lauf unmittelbar davor hatte 158 eindeutige Testfälle (153 bestanden, 5 fixturebedingt übersprungen, 0 Fehler/Errors); der neue Warnungstest war darin noch nicht enthalten und wurde separat sowie in der 12er-Klasse verifiziert. Kein Produktcode und keine Debug-APK wurden geändert; der Test erzeugt keine gespeicherte 3MF-Datei und startet weder Upload noch Druck.
 - Die Projektmenü-Import-/Warnungs-/Abbruchpfade sind jetzt gezielter geprüft. Die komplette Aktion-für-Aktion-Abnahme aller sechs Menüs sowie Drucker-/Profil-Änderung und Phase 6 auf physischen Displaygrößen/TalkBack bleiben offen.
 
+## App settings device interaction follow-up (2026-10-18)
+
+- `SettingsMenuActionDeviceTest` now includes the actual Settings → Printer profiles → Add printer from presets route. On Honor PTP-N49 / Android 16, it verified `SetupActivity` receives `EXTRA_ADD_PRINTER`, the Compose setup host is attached, Android Back returns to retained settings, and the active printer preset remains unchanged. No profile was added.
+- The same class opens the app accent-color palette, confirms Android Back cancels without changing the persisted color, then selects an accessible palette swatch and verifies that the chosen opaque color is applied. The test restores the original accent color in `finally` and invalidates the theme.
+- Targeted `:app:connectedSliceTestAndroidTest` for `SettingsMenuActionDeviceTest`: 6 unique tests passed, 0 skipped/failures (XML timestamp 2026-10-18 15:20:51). The emulator was offline. An initial test selector matched duplicate accessible black swatches in the common and CSS palettes; selecting the first matching node fixed the test harness issue. No product defect was observed.
+- Instrumentation test and verification documentation only; no runtime change, APK build, or JVM suite run in this step. The full menu-action audit and physical responsive/TalkBack checks remain incomplete.
+
 ## 0.8.309 — Werkzeugraster-Paging bei großer Schrift (2026-10-18)
 
 - Honor-Prüfung (PTP-N49, Android 16): Bei 320 dp / 150 % Schrift zeigte das zweireihige Bearbeitungsmenü eine teilweise angeschnittene Folgekachel ohne ausreichend klaren Hinweis. Die Kacheln reservieren jetzt den Platz des 48-dp-Paging-Buttons; dieser blättert um die sichtbare Viewportbreite. Compose hält außerdem die Semantik-/Scrollaktion für die letzte Werkzeugkachel verfügbar. Screenshots mit dem aktuellen APK: 320 dp/100 %, 320 dp/150 %, 360 dp/130 %, 400 dp/150 %; die Auflösungen wurden per temporärem `wm size`-Override auf dem Honor simuliert und sind keine nativen Displaymodi.
