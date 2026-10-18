@@ -506,6 +506,118 @@ class InitialProjectMenuDeviceTest {
         }
     }
 
+    @Test
+    fun editCutAndVariableLayerActionsOpenAndCancelWithoutChangingModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-cut-action-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val loaded = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, loaded.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(8)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformCut))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.CutApply))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled()
+            val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            assertEquals("Cut should be the active workspace tool",
+                "ru.ytkab0bp.slicebeam.components.bed_menu.TransformCutMenu",
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController))
+            assertEquals("opening Cut must not mutate the model", 1, readObjectCountOnGl(glView))
+            assertTrue("Cut preview should be visible while the tool is open", readRendererBooleanOnGl(glView, "cutPlaneVisible"))
+
+            assertTrue("Back should cancel and close the Cut tool", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 5_000) {
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == null
+            }
+            assertFalse("Back should hide the uncommitted cut preview", readRendererBooleanOnGl(glView, "cutPlaneVisible"))
+            assertEquals("cancelling Cut must preserve the object", 1, readObjectCountOnGl(glView))
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(10)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarVariableLayerHeight))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.VariableLayerTitle)).assertIsDisplayed()
+            assertTrue("Variable Layer action should activate its workspace mode", bed.isVariableLayerHeightMode)
+            compose.onNodeWithText(activity.getString(R.string.ActionDone)).assertIsDisplayed().performClick()
+            compose.waitForIdle()
+            assertFalse("Done should close Variable Layer mode", bed.isVariableLayerHeightMode)
+
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(9)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                hasSnackbarTitle(bed, R.string.MenuToolbarSplitNothing)
+            }
+            assertEquals("Split on a single connected test mesh should preserve its object", 1,
+                readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-simplify-action-test.stl")
+        try {
+            activity.assets.open("models/sphere.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val loaded = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, loaded.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val originalTriangles = readTriangleCountOnGl(glView, 0)
+            assertTrue("sphere fixture must be large enough for simplification", originalTriangles > 4)
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(7)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelSimplify))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).assertIsDisplayed().performClick()
+            assertEquals("cancelling simplify must preserve the model", originalTriangles,
+                readTriangleCountOnGl(glView, 0))
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(7)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelSimplify))
+                .performScrollTo().assertIsDisplayed().performClick()
+            val startAction = compose.onAllNodesWithText(activity.getString(R.string.ModelSimplifyStart))
+            val startNodeIndex = startAction.fetchSemanticsNodes().lastIndex
+            assertTrue("simplify confirmation button should be present", startNodeIndex >= 0)
+            startAction.get(startNodeIndex).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 30_000) {
+                readTriangleCountOnGl(glView, 0) < originalTriangles
+            }
+            val simplifiedTriangles = readTriangleCountOnGl(glView, 0)
+            assertTrue("simplify should produce a smaller native mesh", simplifiedTriangles in 4 until originalTriangles)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            assertEquals("Undo should restore the imported mesh", originalTriangles,
+                readTriangleCountOnGl(requireNotNull(bed.glView), 0))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            assertEquals("Redo should restore the simplified mesh", simplifiedTriangles,
+                readTriangleCountOnGl(requireNotNull(bed.glView), 0))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
     private fun loadSingleTestModel(bed: BedFragment, modelFile: File): Model {
         val done = CountDownLatch(1)
         val loaded = AtomicReference<Model?>()
@@ -526,11 +638,20 @@ class InitialProjectMenuDeviceTest {
     }
 
     private fun openEditMenu(activity: MainActivity) {
-        compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarNavigation))
-            .assertIsDisplayed().performClick()
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText(activity.getString(R.string.MenuToolbarMove))
-                .fetchSemanticsNodes().isNotEmpty()
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+            .apply { isAccessible = true }.get(bed)
+        val editSlot = WorkspaceDestination.EDIT.ordinal
+        val shouldNavigate = controller.javaClass.getMethod("getSelectedDestinationSlot")
+            .invoke(controller) != editSlot
+        val shouldExpand = !(controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
+        if (shouldNavigate || shouldExpand) {
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarNavigation))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == editSlot &&
+                    controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true
+            }
         }
         compose.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
     }
@@ -638,6 +759,51 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return selected object", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(selected.get())
+    }
+
+    private fun readObjectCountOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): Int {
+        val finished = CountDownLatch(1)
+        val count = AtomicReference<Int>()
+        glView.queueEvent {
+            count.set(requireNotNull(glView.renderer.model).objectsCount)
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return model object count", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(count.get())
+    }
+
+    private fun readTriangleCountOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Int {
+        val finished = CountDownLatch(1)
+        val count = AtomicReference<Int>()
+        glView.queueEvent {
+            count.set(requireNotNull(glView.renderer.model).getTriangleCount(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return native triangle count", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(count.get())
+    }
+
+    private fun readRendererBooleanOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, fieldName: String): Boolean {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Boolean>()
+        glView.queueEvent {
+            val field = glView.renderer.javaClass.getDeclaredField(fieldName).apply { isAccessible = true }
+            value.set(field.getBoolean(glView.renderer))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return renderer state $fieldName", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun hasSnackbarTitle(bed: BedFragment, titleRes: Int): Boolean {
+        val snackbarController = BedFragment::class.java.getDeclaredField("snackbarController")
+            .apply { isAccessible = true }.get(bed)
+        val entries = snackbarController.javaClass.getMethod("getEntries").invoke(snackbarController) as List<*>
+        val expectedTitle = compose.activity.getString(titleRes)
+        return entries.any { entry ->
+            val snackbar = entry?.javaClass?.getMethod("getSnackbar")?.invoke(entry)
+            snackbar?.javaClass?.getField("title")?.get(snackbar) == expectedTitle
+        }
     }
 
     private fun readVectorOnGl(
