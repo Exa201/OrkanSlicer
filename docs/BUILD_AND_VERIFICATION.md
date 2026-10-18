@@ -1119,3 +1119,8 @@ Final import-consent device check and Debug APK (2026-10-16):
 ## Printer profile save flow — Honor, 2026-10-18
 
 The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP-N49 / Android 16 (0 skipped, 0 failed; XML timestamp `2026-10-18T18:11:54`). The new integration case changed `curr_bed_type`, confirmed the Compose profile-save dialog, verified the persisted test-profile value, and restored the fixture in cleanup. This remains test-only; no runtime change or APK rebuild. Phase 5 global/menu action coverage and Phase 6 manual TalkBack/physical display acceptance remain open.
+
+
+## Printer profile dropdown clone/delete — Honor, 2026-10-18
+
+`PrintProfileDropdownIntegrationDeviceTest` passed 9/9 on Honor PTP-N49 / Android 16 (0 skipped, 0 failed; XML timestamp `2026-10-18T18:25:36`). The test scrolls to the lower dropdown actions, clones a temporary printer profile, checks copied settings, deletes the clone through the same menu and restores active and per-printer selections. The first exploratory test omitted scrolling and was a test interaction issue; the corrected test and full class passed. Test-only change; no runtime APK rebuild. Full Phase 5 action coverage and Phase 6 manual TalkBack/physical display checks remain open.

@@ -1,21 +1,25 @@
 package ru.ytkab0bp.slicebeam
 
 import android.app.Application
-import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -41,6 +45,60 @@ import ru.ytkab0bp.slicebeam.utils.PrinterProfileSelectionStore
 class PrintProfileDropdownIntegrationDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
+
+    @Test
+    fun printerProfileCanBeClonedAndDeletedFromTheScrolledDropdown() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val presets = requireNotNull(config.presets)
+        val originalPrinter = requireNotNull(presets["printer"])
+        val originalProcess = presets["print"]
+        val originalFilament = presets["filament"]
+        val originalCount = config.printerConfigs.size
+        val copyTitle = activity.getString(R.string.SettingsProfileCopy, originalPrinter)
+        assertNull(config.findPrinter(copyTitle))
+        val firstPrinterTitle = requireNotNull(config.printerConfigs.first().title)
+        val printerSelections = config.printerConfigs.mapNotNull { profile ->
+            profile.title?.let { it to PrinterProfileSelectionStore.read(it) }
+        }.toMap()
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
+            }
+            compose.onNodeWithText(originalPrinter).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsCloneProfile))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { config.printerConfigs.size == originalCount + 1 }
+            assertEquals(originalCount + 1, config.printerConfigs.size)
+            assertEquals(copyTitle, config.presets?.get("printer"))
+            assertEquals(config.findPrinter(originalPrinter)?.get("print_host"),
+                config.findPrinter(copyTitle)?.get("print_host"))
+
+            compose.onNodeWithText(copyTitle).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsDeleteProfile))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                config.findPrinter(copyTitle) == null && config.printerConfigs.size == originalCount
+            }
+            assertEquals("Deleting the clone selects a remaining printer preset", firstPrinterTitle,
+                config.presets?.get("printer"))
+        } finally {
+            config.findPrinter(copyTitle)?.let(config.printerConfigs::remove)
+            presets.put("printer", originalPrinter)
+            if (originalProcess == null) presets.remove("print") else presets.put("print", originalProcess)
+            if (originalFilament == null) presets.remove("filament") else presets.put("filament", originalFilament)
+            printerSelections.forEach { (title, selection) ->
+                if (selection == null) PrinterProfileSelectionStore.write(title, null, null)
+                else PrinterProfileSelectionStore.write(title, selection.process, selection.filament)
+            }
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_PRINTER)
+            assertTrue(SliceBeam.saveConfig())
+        }
+    }
 
     @Test
     fun activeCompatibleProcessPresetIsSelectedInFilteredMenuSnapshot() {
@@ -144,7 +202,10 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
             }
 
-            compose.onNodeWithText(previousPrinter).assertIsDisplayed().performClick()
+            compose.onNode(
+                hasText(previousPrinter) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
+            )
+                .assertIsDisplayed().performClick()
             compose.onNodeWithText(targetPrinter).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 15_000) {
                 SliceBeam.requireConfig().presets?.get("printer") == targetPrinter

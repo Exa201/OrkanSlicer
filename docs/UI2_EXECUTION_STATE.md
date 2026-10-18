@@ -1069,3 +1069,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Der neue Integrationstest ändert `curr_bed_type` im Druckerprofil, bestätigt den Compose-Speicherdialog, prüft die persistierte Einstellung und stellt danach den ursprünglichen Testfixture-Wert wieder her. Zusammen deckt die Klasse Profil-Dropdowns, Auswahl-/Back-Abbruch, Filamentwert als Entwurf sowie Druckbett-Auswahl und Speichern ab.
 - Test und Verifikationsdokumentation geändert; kein Runtime-Code und kein APK-Build. Phase 5 bleibt offen für den noch nicht vollständigen Aktionsaudit von sechs Workspace-Menüs und globalen Drucker-/Rinkhals-Aktionen. Phase 6 bleibt offen für manuelle TalkBack- und zusätzliche physische Displayprüfungen.
 - Nächster konkreter Schritt: verbleibende Drucker-/Rinkhals-Workspace-Handler mit vorhandenen isolierten Netzwerk-/UI-Testmustern abgleichen und ungeprüfte Aktionen gezielt instrumentieren.
+
+## Klonen und Löschen von Druckerprofilen — Honor (2026-10-18, 18:25 UTC)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: 9/9 bestanden auf Honor PTP-N49 / Android 16, 0 Skips/Fehler; JUnit-XML `2026-10-18T18:25:36`.
+- Der UI-Integrationstest scrollt zu den unteren Dropdown-Aktionen, erstellt eine temporäre Kopie des aktiven Druckerprofils, prüft kopierte Werte, löscht die Kopie über dasselbe Menü und stellt danach Presetauswahl und per-Drucker-Auswahlen wieder her.
+- Der erste Explorationsentwurf brachte die langen Menüaktionen nicht in den sichtbaren Scrollbereich; das war ein Testinteraktionsproblem, kein nachgewiesener Produktfehler. Die korrigierte Scroll-Interaktion und die ganze Klasse bestanden.
+- Phase 5 vollständiger Menü-Aktionsaudit und Phase 6 manuelle TalkBack-/weitere physische Displayprüfungen bleiben offen.
