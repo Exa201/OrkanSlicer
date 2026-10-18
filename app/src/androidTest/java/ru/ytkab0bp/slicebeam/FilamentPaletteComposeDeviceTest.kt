@@ -654,6 +654,9 @@ class FilamentPaletteComposeDeviceTest {
                 ).fetchSemanticsNodes()
                 assertTrue("Action $index not visible at $width dp / ${scale}x; viewport=$viewport, visible=$visibleActions",
                     actionNodes.isNotEmpty())
+                compose.onNodeWithContentDescription(
+                    InstrumentationRegistry.getInstrumentation().targetContext.getString(actionTitles[index]),
+                ).assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
                 val action = actionNodes.first().boundsInRoot
                 assertTrue("Action $index starts outside $width dp viewport at ${scale}x", action.left >= viewport.left)
                 assertTrue("Action $index overlaps the scroll hint at $width dp / ${scale}x",
@@ -662,7 +665,7 @@ class FilamentPaletteComposeDeviceTest {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
             val firstPageMaxIndex = visibleActions.maxOf { it.first }
             compose.onNodeWithContentDescription(context.getString(R.string.WorkspaceMoreTitle))
-                .assertIsDisplayed().performClick()
+                .assertIsDisplayed().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
             compose.waitForIdle()
             val afterPaging = actionTitles.mapIndexedNotNull { index, title ->
                 compose.onAllNodesWithContentDescription(context.getString(title))
