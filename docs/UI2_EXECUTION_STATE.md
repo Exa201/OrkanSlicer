@@ -21,6 +21,13 @@
 - Debug-/Slice-JVM-Suiten zuletzt 558/558 auf dem unveränderten Produktcode; hier nur Android-Testcode ausgeführt, daher kein neuer JVM-Lauf oder APK-Build. APK `OrkanSlicer_b65895454b.apk`, SHA-256 `30A5AA0186DB33683CECB10AFC36990F7543FBEC5E9F42F0002CA1CAC3ACB250` bleibt die aktuelle Produkt-APK.
 - Nächster konkreter Testschritt: sichere echte Projekt-/Datei-Route über den vorhandenen Import-/Export-Testbestand weiter abdecken, anschließend nicht getestete Drucker-/Profil-Menüaktionen inventarisieren und an isolierten Testkonfigurationen prüfen. Keine echten Uploads oder Druckstarts.
 
+### Ergänzende Datei-/Profil- und Druckeroberflächen-Prüfung
+
+- Weitere Honor-Läufe: `ProfileSettingsImeDeviceTest` 11/11 (Importfluss, Konflikte überspringen/überschreiben/abbrechen, 3MF-Einstellungswahl, Profil-Editor-Abbrüche); `PrinterWebWorkspacePanelDeviceTest` 3/3 (WebView nur bei sichtbarem Compose-Panel angehängt, Fehler-Retry/extern öffnen/Schließen, schmale Breiten und große Schrift); `ProfileExportSelectionDialogDeviceTest` 2/2 (scrollbare Kategorien, Auswahl bleibt bei Back bestehen und Back schließt ohne Export); `WorkspaceProfileStatusDeviceTest` 1/1 (langer Druckername im schmalen Layout mit großer Schrift zugänglich).
+- Zusammen mit der direkt darüber dokumentierten Auswahl sind es 47 gezielte erfolgreiche Honor-Ausführungen in diesem Fortsetzungsdurchgang, ohne Skips oder Fehlschläge. Das ist keine Anzahl aller UI-Menüaktionen und keine vollständige Menüabnahme.
+- Offener Dateipfad: Der Systempicker-Abbruch ist aus einem früheren manuellen Honor-Check nachgewiesen; ein Ende-zu-Ende-Auswahl-und-Import einer Testdatei über den echten Systempicker wurde in diesem Durchgang nicht ausgeführt. Hauptmenüs und Drucker-/Profil-Untermenüs sind weiterhin nicht vollständig Aktion für Aktion abgenommen.
+- Nächster konkreter Schritt: Projektmenü-Import mit einer isolierten temporären STL über die tatsächliche Auswahl-/Importaktion abnehmen, danach verbleibende Drucker-, Filament- und Slicing-Menüaktionen gegen ihre realen Handler prüfen. Keine Netzwerk-Upload- oder Druckstart-Aktion verwenden.
+
 ## Aktueller Fortsetzungsstand — 0.8.306 (2026-10-18)
 
 - Aktuelle Phase: Phase 5, funktionale Menü-Aktionsabnahme; Phase 4 bleibt im dokumentierten Workspace-Architekturumfang akzeptiert. Phase 5 und Phase 6 sind nicht abgeschlossen.
