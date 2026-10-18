@@ -1,3 +1,14 @@
+# UI 2.0 execution status — 2026-10-18
+
+- **Current phase:** Phase 5, functional menu/action audit in progress. Phase 6 responsive and accessibility acceptance remains incomplete.
+- **Phase 4:** Workspace architecture accepted at the verified scope: WorkspaceShell/RendererAdapter and Compose-hosted workspace/menu state are established; BedFragment retains necessary GL/renderer, Android lifecycle, and integration duties. This does not claim all non-workspace Android fallback dialogs have been removed.
+- **Current verified increment:** The supplied KromaCut 3MF ran on Honor PTP-N49 / Android 16 with KromaCutThreeMfDeviceTest 2/2 passing, no skips/failures. It checks all eight settings-import choice combinations and seven native local G-code slice scenarios, including explicit object filament reassignment.
+- **Selected focused runs:** 109 successful test executions across 22 documented class runs (107 earlier + 2 KromaCut; overlapping coverage is possible, so this is not a unique suite total). Three additional private multicolor fixtures remain unavailable.
+- **Last code commit:** 4d9bf21e9555cbce72adaf0c4291fb0d923e2c9e. No runtime source changed in the KromaCut verification; no new APK was built.
+- **Known open work:** Finish action-by-action coverage of remaining workspace/global menus and profile editors; complete available narrow-display/font/accessibility checks including manual TalkBack where possible. Full multi-plate single-file project persistence remains separately incomplete.
+- **Next concrete task:** Continue non-destructive Honor checks for the remaining global profile-editor and menu actions; record actual handler effects and Back/cancel behavior before expanding the audit.
+
+---
 - `MmuFilamentSyncDeviceTest` auf Honor PTP-N49 / Android 16: 15/15 bestanden, 0 Skips/Fehler (JUnit-XML-Zeitstempel 2026-10-18T16:09:47). Der Test nutzt HTTP-/JSON-Testantworten und echte isolierte Preferences, die in `@After` wiederhergestellt werden. Geprüft: Filamentlisten 1/4/8/16/24 mit Hardwarelimit 16, ungültige/leere Gates, physische ACE-Gate-Indizes, Schutz gegen T-Command-/Slotverschiebung, Upload-Freshness bei entleertem oder geänderten Gate, Lösch-/Refresh-Verhalten und Projekt-Auto-Sync (Dateifarben bleiben, manueller Sync ändert nur temporäre Palette).
 - Diese 15 Tests sind zusammen mit den zuvor dokumentierten 86 Testausführungen nun 101 gezielte Ausführungen über 19 Klassenläufe; in den ausgewählten Läufen keine Skips/Fehler. Frühere Vollsuite-Überschneidungen möglich. Es wurde kein echter Drucker angesprochen, kein Hardware-Slot geändert und kein Druck gestartet.
 - Letzter Gerätenachweis: Systemschrift 1.0, OrkanSlicer-`MainActivity` top-resumed, frische Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker.
@@ -789,7 +800,7 @@ Updated: 2026-10-16
 - Honor PTP-N49 / Android 16: both `FilamentPaletteComposeDeviceTest` cases passed (2/2) using `:app:connectedSliceTestAndroidTest`. Emulator remains offline. These are Compose UI tests with constrained dp/font-scale locals, not a full system font-scale or visual screenshot audit.
 - Current phase remains the open workspace/menu migration and audit. Next: migrate a top-level menu fully off its `ThemeAwareComposeView` host through the WorkspaceShell Compose route, with an interaction/lifecycle regression test; continue the remaining route and accessibility audit.
 
-## Current phase
+## Historical phase snapshot (later status entries supersede this)
 
 Phase 4 — workspace overlay migration is continuing. The model context menu and all ten identified tool routes render through the existing `WorkspaceShell`; Kromacut keeps an embedded Android WebView. `BedFragment` still retains renderer/domain integration, generic message/custom dialog hosts, Kromacut lifecycle, and Android back/inset coordination. The full UI 2.0 migration is not complete.
 
@@ -983,3 +994,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Diese beiden Läufe ergänzen den ACE-Sync-Test: Auswahlzustand und Engine-Wirkung der temporären Projektwerte wurden getrennt nachgewiesen. Es handelt sich um synthetische Projektfixtures, nicht um eine erneute Prüfung der privaten Mehrfarben-Fixture. Gesamt nun 107 fokussierte Testausführungen in 21 Klassenläufen; keine Fehler/Skips in den gefilterten Läufen, mögliche Überschneidung mit vorherigem Full-Lauf. Kein Druckstart.
 - Kein Runtime-Code geändert; Font-Scale 1.0, OrkanSlicer-`MainActivity` top-resumed, Logcat-Stichprobe ohne Crash-/ANR-/OOM-/Fatal-Marker.
 
+## KromaCut-3MF auf Honor vollständig aktiviert (2026-10-18)
+
+- Die bereitgestellte Datei kromacut-1792184183294-kromacut-2026-10-16.3mf (MD5 CD162A22DBF9F5C23D8A4BB29DEAB106) wurde in den isolierten SliceTest-External-Files-Pfad kopiert; der Dateihash auf dem Gerät stimmte überein. KromaCutThreeMfDeviceTest lief danach auf Honor PTP-N49 / Android 16 tatsächlich mit 2/2 bestanden, 0 übersprungen, 0 fehlgeschlagen (JUnit XML 2026-10-18T16:17:05, 110,769 s).
+- allImportChoiceCombinationsRemainIndependentForTheProvidedProject prüfte alle acht unabhängigen Kombinationen für Datei-Drucker-, Druck- und Filamentwerte. Bei abgewählten Profilwerten blieben eingebettete Objektfarben erhalten, eigene Materialtypen/Temperaturen und installierte Profile wurden nicht ungewollt ersetzt.
+- providedProjectSlicesWithOwnSettingsAndUniformObjectReassignment lud das echte ein-Objekt-/zwei-Material-Projekt, prüfte die importierten Werkzeugzuordnungen und erzeugte sieben native G-Code-Slices: eigene Profile, geänderte Farbpalette, Paint-Zuweisung, nur Druckeinstellungen, nur Filamenteinstellungen, beide Einstellungsgruppen sowie explizite einheitliche Objektzuweisung zu Tool 2. Der Test prüfte verwendete Tools, nichtleere G-Code-Dateien, vollständige Konfigurationsblöcke und die Übereinstimmung der angekündigten mit den tatsächlich ausgegebenen Layern. Temporäre Konfiguration wurde wiederhergestellt; keine Benutzerdatei geändert, kein Upload und kein Druckstart.
+- Damit sind 109 erfolgreiche fokussierte Testausführungen über 22 dokumentierte Klassenläufe erreicht (107 zuvor dokumentierte plus diese 2; keine deduplizierte Gesamtzahl, Überschneidungen mit Suites möglich). Ein früherer Kroma-Lauf ohne bereitgestellte Testkopie war übersprungen; dieser Nachweis ist der erfolgreiche Lauf mit der Fixture. Die drei separaten privaten Mehrfarben-Fixtures bleiben nicht verfügbar.
+- Die SliceTest-Variante wurde nur für diesen Testlauf verwendet; die installierte Produktions-App bleibt com.codemastercody3d.orcaslicermobile. Kein Runtime-Quellcode geändert, daher kein neuer Debug-APK-Build. Phase 5/6 bleiben offen; nächste Arbeit: übrige Menüaktionen und anschließend verfügbare Responsive-/Accessibility-Konfigurationen abnehmen.
