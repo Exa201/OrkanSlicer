@@ -1,12 +1,17 @@
 package ru.ytkab0bp.slicebeam
 
 import android.app.Application
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -24,6 +29,7 @@ import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.fragment.FilamentConfigFragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
+import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
 import ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles
@@ -327,6 +333,117 @@ class PrintProfileDropdownIntegrationDeviceTest {
             } ?: PrinterProfileSelectionStore.write(printer, null, null)
             ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_FILAMENT)
             check(SliceBeam.saveConfig()) { "Could not restore the isolated test printer configuration" }
+        }
+    }
+
+    @Test
+    fun filamentNumericSettingCancelBackAndApplyOnlyChangeTheProfileDraft() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val filamentTitle = requireNotNull(config.presets?.get("filament"))
+        val storedFilament = requireNotNull(config.findFilament(filamentTitle))
+        // filament_diameter is a basic numeric setting and is visible without enabling advanced filters.
+        val option = requireNotNull(PrintConfigDef.getInstance().options["filament_diameter"])
+        val optionTitle = Slic3rLocalization.getString(option.getLabel())
+        val originalStoredValue = storedFilament.get(option.key)
+
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(3)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is FilamentConfigFragment
+        }
+        val draft = activity.runOnUiThreadAndWait {
+            val fragment = activity.navigationDelegate.getCurrentFragment() as FilamentConfigFragment
+            FilamentConfigFragment::class.java.getDeclaredMethod("getCurrentConfig")
+                .apply { isAccessible = true }
+                .invoke(fragment) as ConfigObject
+        }
+        val originalValue = ProfileConfigValueController.valueFor(
+            ConfigObject.PROFILE_LIST_FILAMENT,
+            draft,
+            option.key,
+            option.guiType,
+            option.defaultValue,
+            -1,
+            false,
+        ).orEmpty()
+        val numericValue = originalValue.toDoubleOrNull()
+        assertNotNull("The bundled filament profile must provide a numeric diameter", numericValue)
+        val value = requireNotNull(numericValue)
+        val candidate = when {
+            value + 1 <= option.max -> value + 1
+            value - 1 >= option.min -> value - 1
+            else -> throw AssertionError("No nearby valid value is available for ${option.key}")
+        }
+        val changedValue = if (option.type == ConfigOptionDef.ConfigOptionType.INT) {
+            candidate.toInt().toString()
+        } else {
+            candidate.toString()
+        }
+
+        try {
+            val filamentCategory = Slic3rLocalization.getString("Filament")
+            val matchingCategoryNodes = compose.onAllNodesWithText(filamentCategory).fetchSemanticsNodes()
+            assertTrue("Filament destination and settings category should be present",
+                matchingCategoryNodes.isNotEmpty())
+            val collapsed = activity.getString(R.string.ProfileGroupStateCollapsed)
+            val settingsCategoryIndex = matchingCategoryNodes.indexOfFirst {
+                it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == collapsed
+            }
+            assertTrue("Find the collapsible Filament settings category, not the workspace destination",
+                settingsCategoryIndex >= 0)
+            compose.onAllNodesWithText(filamentCategory)[settingsCategoryIndex].performClick()
+            val expanded = activity.getString(R.string.ProfileGroupStateExpanded)
+            assertTrue("The Filament category should report its expanded state",
+                compose.onAllNodesWithText(filamentCategory).fetchSemanticsNodes().any {
+                    it.config.getOrElse(SemanticsProperties.StateDescription) { "" } == expanded
+                })
+            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
+
+            fun clickSettingRow() {
+                val matches = compose.onAllNodesWithText(optionTitle).fetchSemanticsNodes()
+                assertTrue("The visible numeric option row should be present", matches.isNotEmpty())
+                val rowIndex = matches.indices.maxByOrNull { matches[it].boundsInRoot.top }
+                    ?: throw AssertionError("The numeric option row is not displayed")
+                compose.onAllNodesWithText(optionTitle)[rowIndex].performClick()
+            }
+
+            clickSettingRow()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(changedValue)
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            compose.waitForIdle()
+            assertEquals("Cancel must leave the saved filament untouched", originalStoredValue,
+                storedFilament.get(option.key))
+            assertEquals("Cancel must not create a profile draft", 0,
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_FILAMENT))
+
+            clickSettingRow()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(changedValue)
+            InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertEquals("Android Back must discard the unconfirmed edit", 0,
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_FILAMENT))
+            assertEquals(originalStoredValue, storedFilament.get(option.key))
+
+            clickSettingRow()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(changedValue)
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_FILAMENT) > 0
+            }
+            val staged = ProfileSettingsRepository.valueFor(
+                ConfigObject.PROFILE_LIST_FILAMENT, draft, option.key, true,
+            )
+            assertEquals("Apply updates the in-memory profile draft", changedValue, staged)
+            assertEquals("Apply must not write the profile until the profile Save action is used",
+                originalStoredValue, storedFilament.get(option.key))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_FILAMENT)
         }
     }
 

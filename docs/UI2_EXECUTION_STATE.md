@@ -1055,3 +1055,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Zusammen mit den vorherigen 154 erfolgreichen fokussierten Ausführungen: 161 erfolgreiche Testausführungen über 31 Klassenläufe, nicht dedupliziert; ein separates experimentelles Filamentwert-Selector-Testing hatte einen Fehler und bleibt als ungeprüft dokumentiert.
 - Nachlauf: Systemschrift 1.0, OrkanSlicer MainActivity des Produktionspakets top-resumed, Logcat-Stichprobe ohne Crash/ANR/OOM/Fatal-Marker. Kein Runtime-Quellcode geändert; kein Debug-APK-Build.
 - Phase 5 ist durch weitere echte Projekt-/Modell-/Ansichts-/Bearbeiten-/Slicing- und App-Einstellungsaktionen stärker abgedeckt, aber der vollständige Aktionsbestand (insbesondere alle Profileditorwerte, Drucker-/Rinkhals- und ACE-Unteraktionen) ist noch nicht geschlossen. Phase 6 physische Displayprüfung/TalkBack ebenfalls offen.
+
+## Profil-Editor-Integration auf Honor (2026-10-18, 20:09 UTC)
+
+- `PrintProfileDropdownIntegrationDeviceTest`: 7/7 bestanden auf Honor PTP-N49 / Android 16; 0 Skips/Fehler. JUnit-XML: `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`.
+- Der ergänzte Test bearbeitet den numerischen Filamentwert `filament_diameter` am Testprofil: Cancel und Android-Back verwerfen den unbestätigten Dialogwert; Apply schreibt nur in den Profilentwurf, nicht in den gespeicherten Preset. Der Testentwurf wird nachher entfernt.
+- Nur Instrumentierungstest und Testdokumentation geändert; kein Runtime-Code, kein neuer APK-Build. Release bleibt der Debug-Snapshot v0.8.312.
+- Phase 5 bleibt offen: vollständige Aktionsabnahme aller Haupt- und globalen Menüs ist nicht erreicht. Phase 6 bleibt wegen manueller TalkBack-Prüfung und nativer zusätzlicher Displaykonfigurationen offen. Nächste Aufgabe: Inventar der noch nicht durch Tests abgedeckten Drucker-/Rinkhals-Workspace-Aktionen aus ihren tatsächlichen Compose-Handlern erstellen und isoliert testen.

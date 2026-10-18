@@ -1111,3 +1111,7 @@ Final import-consent device check and Debug APK (2026-10-16):
 - Abgenommen: Flush-Volumen ungültig/gültig mit Dezimalkomma, ungültige Eingabe nicht anwenden, Abbruch ohne Änderung, MMU-Sync-Fehlermeldung schließen; Profilhilfe/Favorit hinzufügen und entfernen mit restaurierten Präferenzen; langer Profil-Exportauswahldialog scrollen/Zurück und System-Back ohne Exportabschluss.
 - Diese Tests decken konkrete Dialog-/Profilaktionen ab, nicht alle globalen Profileditorwerte oder sämtliche Drucker-/Rinkhals-Menüaktionen. Keine Runtime-Änderung und kein neuer APK-Build nach v0.8.312.
 
+
+## Honor profile dropdown — 2026-10-18
+
+`PrintProfileDropdownIntegrationDeviceTest` passed 7/7 on Honor PTP-N49 / Android 16 (0 skipped, 0 failed; JUnit XML timestamp 2026-10-18T18:09:03). The added real UI test covers a numeric filament profile draft: Cancel and Android Back discard the dialog edit; Apply stages the value in the draft without mutating the stored preset. The test clears its draft afterward. Test-only change; no runtime change or APK rebuild. Phase 5 action audit and Phase 6 manual TalkBack/display acceptance remain open. The current release remains the v0.8.312 debug verification snapshot.
