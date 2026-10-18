@@ -49,6 +49,8 @@ import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.FilamentSlotSheet
 import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
+import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
@@ -134,6 +136,71 @@ class FilamentPaletteComposeDeviceTest {
                 context.getString(R.string.WorkspaceProfilesTitle),
             ).fetchSemanticsNodes().size)
         } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
+    fun workspaceProfileSheetAppliesOnlyChosenProfileGroupInsideTemporaryProject() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val app = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = app
+        Prefs.init(app)
+        val previousConfig = SliceBeam.CONFIG
+        val config = context.assets.open("orca_profiles/Anycubic.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val selectedProcess = requireNotNull(config.findPrint("0.16mm Standard"))
+        val selectedFilament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        val nextProcess = requireNotNull(config.printConfigs.firstOrNull { it.title != selectedProcess.title })
+        val nextProcessTitle = requireNotNull(nextProcess.title)
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", selectedProcess.title)
+            put("filament", selectedFilament.title)
+        }
+        val savedSelection = HashMap(config.presets!!.values)
+        SliceBeam.CONFIG = config
+        TemporaryProjectSettings.activate(
+            ThreeMfProjectSettings(
+                sourceName = "profile-sheet-ui-test",
+                process = mapOf("layer_height" to "0.24", "wall_loops" to "9"),
+                filaments = listOf(mapOf("filament_type" to "PETG", "nozzle_temperature" to "222")),
+                filamentTypes = emptyMap(),
+                printSettingsImported = true,
+                filamentSettingsImported = true,
+            ),
+        )
+
+        val dismissed = mutableStateOf(false)
+        lateinit var sheet: WorkspaceProfileSheet
+        compose.runOnUiThread { sheet = WorkspaceProfileSheet(context, null) }
+        compose.setContent {
+            BeamComposeTheme {
+                if (!dismissed.value) sheet.Content { dismissed.value = true }
+            }
+        }
+
+        try {
+            compose.onNodeWithText(requireNotNull(selectedProcess.title)).performClick()
+            compose.onNodeWithText(nextProcessTitle).performClick()
+            compose.onNodeWithText(context.getString(R.string.WorkspaceProfilesApply)).performClick()
+            compose.waitForIdle()
+
+            assertEquals(
+                "Only the process group selected in the sheet should replace the imported process values",
+                nextProcess["wall_loops"],
+                TemporaryProjectSettings.valueFor(ConfigObject.PROFILE_LIST_PRINT, "wall_loops", includeEdits = false),
+            )
+            assertEquals(
+                "The unselected filament group must keep its project-imported value",
+                "222",
+                TemporaryProjectSettings.valueFor(ConfigObject.PROFILE_LIST_FILAMENT, "nozzle_temperature", includeEdits = false),
+            )
+            assertEquals("Quick profile changes in a project must not persist profile selection", savedSelection, config.presets!!.values)
+            compose.runOnIdle { assertTrue("Applying the selected profile should close the sheet", dismissed.value) }
+        } finally {
+            TemporaryProjectSettings.clear()
             SliceBeam.CONFIG = previousConfig
         }
     }
