@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -558,7 +559,16 @@ class PrintProfileDropdownIntegrationDeviceTest {
             compose.waitUntil(timeoutMillis = 15_000) {
                 activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
             }
-            compose.onNodeWithContentDescription(activity.getString(R.string.PrinterOpenWebDescription))
+            val dashboardAction = activity.getString(R.string.PrinterOpenWebDescription)
+            // Fragment switching is asynchronous: the cached printer profile can be
+            // current before its Compose header has been recomposed. Wait for the
+            // actual action node instead of treating that intermediate frame as a
+            // product failure in the full, order-dependent device suite.
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithContentDescription(dashboardAction)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription(dashboardAction)
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { !activity.hasWindowFocus() }
 
@@ -704,6 +714,11 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 ?: PrinterProfileSelectionStore.write(previousPrinter, null, null)
             previousTargetSelection?.let { PrinterProfileSelectionStore.write(targetPrinter, it.process, it.filament) }
                 ?: PrinterProfileSelectionStore.write(targetPrinter, null, null)
+            // This is a real profile-selection action, so restore the active
+            // printer as well as its scoped selection fixtures. Otherwise later
+            // tests inherit the Anycubic profile and depend on execution order.
+            SliceBeam.requireConfig().presets?.put("printer", previousPrinter)
+            check(SliceBeam.saveConfig()) { "Could not restore the original active printer profile" }
         }
     }
 

@@ -1,5 +1,17 @@
 # UI 2.0 execution status — 2026-10-19
 
+## Aktueller Fortsetzungsstand — 2026-10-19
+
+- Phase 4 bleibt anhand der WorkspaceShell/RendererAdapter-Integration, stabiler GLView-/Back-/Werkzeugwechseltests abgeschlossen. Kein zusätzlicher Architekturumbau ist belegt oder erforderlich.
+- Phase 5 ist weiterhin aktiv: Projekt-/Modell-/Kamera-/Edit-/Slicing- und globale Profilaktionen wurden umfangreich, aber nicht jede einzelne Menüaktion vollständig abgenommen. Phase 6 ist teilweise geprüft; manuelle TalkBack-Traversierung und die vollständige physische Displaymatrix fehlen.
+- Stabilitätstest-Fix: `PrintProfileDropdownIntegrationDeviceTest` stellt nach dem Profilwechsel jetzt auch das vorher aktive Druckerprofil zurück. Dashboard-Open-Test wartet bis der asynchrone Compose-Accessibility-Knoten gerendert ist. Betroffene Klasse 18/18 auf Honor bestanden.
+- Vollständige Honor-Instrumentierung: 207 Fälle, 202 bestanden, 5 wegen nicht vorhandener privater Mehrfarben-/KromaCut-Fixtures übersprungen, 0 fehlgeschlagen; XML-Zeitstempel `2026-10-19T05:09:37`. Debug-Unit und Slice-Unit je 562/562 bestanden. Emulator offline.
+- Produktcode-Commit `1876c42e0e986cf4a236b05779cabdfe51664dfe` wurde auf Honor als OrkanSlicer `com.codemastercody3d.orcaslicermobile`, Version 0.8.316 / Code 351 gestartet. APK `OrkanSlicer_1876c42e0e.apk`, SHA-256 `5BF336C9810C6C31CC5BF9D2EE0F96AEA437362923C17058FE15E3DCA5D251A2`; Logcat-Ausschnitt ohne Crash/ANR/OOM/Fatal-Signal.
+- Der 320-dp/150-%-Schriftlayout-Fix ist physisch auf Honor sichtbar geprüft: Einspaltenkacheln mit redundantem Icon ausgeblendet, Labels „Modell laden“/„3MF sichern“ vollständig lesbar; Raster-Policy-Test 9/9. Geräte-Overrides wurden restauriert.
+- Mehrplatten-Projektpersistenz bleibt separat nicht implementiert; unvollständige Exportwarnung bleibt erforderlich. Kein Release erstellen, bis die als nächste vereinbarte Phase abzuschließende funktionale Abnahme erfolgt ist.
+- Nächster konkreter Schritt: Änderungen committen und auf denselben PR-Branch pushen; danach die verbleibenden noch nicht abgenommenen Menüaktionen und verfügbare Responsive-/Accessibility-Prüfungen fortsetzen.
+
+
 ## Phase-6-Fortsetzung: Landscape-Crash behoben und Vollregression — 2026-10-19
 
 - Echter OrkanSlicer-Crash auf dem Honor PTP-N49 bei Rückkehr von globalen App-Einstellungen zum Workspace im Querformat reproduziert. Ursache war die horizontal scrollbare Aktionszeile im `WorkspaceShell`-Header: Sie wurde im adaptiven Landscape-Layout ohne endliche Breitenbegrenzung gemessen. Der Aktionsbereich erhält jetzt ein Gewicht innerhalb der Header-Row und damit einen begrenzten verfügbaren Slot.
