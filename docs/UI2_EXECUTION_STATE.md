@@ -2,12 +2,12 @@
 
 ## ACE multicolor routing and KromaCut regression — v0.8.325
 
-- Current task implementation is verified locally; code changes are awaiting commit and GitHub publication. The supplied KromaCut 3MF remains in ignored `.codex-remote-attachments/` and must not be committed or uploaded.
+- Current task implementation is committed and published. The supplied KromaCut 3MF remains in ignored `.codex-remote-attachments/` and was not committed or uploaded.
 - Fixed logical tool → selected physical ACE gate mapping through preview/configuration, firmware `ttg_map` command translation, preflight, synchronization comparison, and G-code filament colors. Selecting an occupied gate swaps assignments; duplicate active gate use is rejected. Native slicing now reads effective configured `filament_colour` instead of the stale global palette.
 - Debug unit: 573/573; Slice unit: 573/573 (0 failures/errors/skips). Full Honor connected instrumentation: 229/229 (0 skips/failures/errors); KromaCut fixture class: 3/3, including native slice with T0→white ACE 2 and T1→blue ACE 4 and resulting G-code palette; ACE assignment UI swap test: 1/1; profile integration class: 18/18. No printer sync or physical print was performed. Emulator offline.
-- App version 0.8.325 / code 360. Final Debug APK install/start, SHA-256, GitHub commit/push, PR #2 and prerelease publication remain pending.
+- App version 0.8.325 / code 360. APK `OrkanSlicer_2b652b7e8e.apk`, 157,254,372 bytes; SHA-256 `8021A2B11CBAE13972CF7E431442157F282CBA5CA648D4984423BE8EBD6BE30D`. Installed/launched on Honor; sampled startup log has no fatal exception/ANR/OOM/fatal-signal. Code commit `2b652b7e8e53cae478659e55dff0b373b57e684d` is pushed. Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.325; asset digest matches. PR #2 remains OPEN/CLEAN, not merged.
 - Overall UI 2.0 remains in Phase 5 menu action audit; Phase 6 physical accessibility/TalkBack acceptance remains open. Full multi-plate project persistence remains a separate open feature.
-- Next: commit only reviewed source/tests/changelog/status files (exclude `.codex-remote-attachments/`), build Debug APK after commit, install/launch on Honor, publish Debug prerelease and update PR #2, then continue remaining UI 2.0 audit work.
+- Next: update PR #2 with the v0.8.325 verification results, then continue Phase 5's remaining menu-action audit and Phase 6's responsive/accessibility work. Do not claim UI 2.0 complete; manual TalkBack acceptance and multi-plate persistence remain open.
 
 ---
 
