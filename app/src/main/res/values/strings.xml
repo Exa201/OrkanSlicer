@@ -1007,6 +1007,7 @@
     <string name="AcePhysicalSlotsScrollForward">Show remaining ACE slots</string>
     <string name="AceModelColorsTitle">Model colors in slicer</string>
     <string name="AcePhysicalSlotTool">ACE %1$d · T%2$d</string>
+    <string name="AcePhysicalSlotCompactTool">%1$d · T%2$d</string>
     <string name="AcePhysicalSlotOnly">ACE %1$d</string>
     <string name="AcePhysicalSlotEmpty">Empty</string>
     <string name="AcePhysicalSlotIncomplete">Data missing</string>

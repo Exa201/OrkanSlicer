@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 @Composable
 fun AcePhysicalSlotsBar(gates: List<MmuFilamentSync.Companion.PhysicalGate>, modifier: Modifier = Modifier) {
     if (gates.isEmpty()) return
+    val largeFont = LocalDensity.current.fontScale >= 1.3f
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             stringResource(R.string.AcePhysicalSlotsTitle),
@@ -50,9 +52,15 @@ fun AcePhysicalSlotsBar(gates: List<MmuFilamentSync.Companion.PhysicalGate>, mod
                             .padding(horizontal = 6.dp, vertical = 6.dp),
                     ) {
                         Text(
-                            if (gate.printerTool >= 0) stringResource(
-                                R.string.AcePhysicalSlotTool, gate.index + 1, gate.printerTool,
-                            ) else stringResource(R.string.AcePhysicalSlotOnly, gate.index + 1),
+                            when {
+                                gate.printerTool < 0 -> stringResource(R.string.AcePhysicalSlotOnly, gate.index + 1)
+                                largeFont -> stringResource(
+                                    R.string.AcePhysicalSlotCompactTool, gate.index + 1, gate.printerTool,
+                                )
+                                else -> stringResource(
+                                    R.string.AcePhysicalSlotTool, gate.index + 1, gate.printerTool,
+                                )
+                            },
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 11.sp,
                             maxLines = 1,

@@ -1651,3 +1651,12 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - The generated test profile neutralizes a Bambu-specific start-G-code macro from the disposable bundled Anycubic PLA test profile; no production profile or user setting is changed. Emulator remains offline.
 
 
+# Release candidate verification — 0.8.324 (2026-10-19)
+
+- Fixed truncated ACE/MMU tool headings at system font scale >= 130% using a compact `slot · Ttool` label. Standard font retains the explicit ACE label. Hardware slot mapping is unchanged.
+- `FilamentPaletteComposeDeviceTest`: 20/20 on Honor PTP-N49 / Android 16, including all four gates in one row at 150% Compose font scale. Full physical screenshot at system 150% confirms labels `1 · T0` through `4 · T3`; palette, all rows, sync action, and Cancel are visible/reachable. Device was restored to font 1.0, 1280×2800 px, 560 dpi.
+- Full Debug unit suite 561/561 and Slice unit suite 561/561; zero skipped/failures/errors. Full Honor `:app:connectedSliceTestAndroidTest`: JUnit XML timestamp `2026-10-19T19:30:25`, 227 tests, 225 passed, 2 skipped, 0 failures/errors. Only the two user-provided KromaCut fixture cases were skipped; bundled three-color tests ran. `:app:assembleDebug` succeeded.
+- APK installed/launched on exact app package `com.codemastercody3d.orcaslicermobile`, Honor PTP-N49 / Android 16; `dumpsys package` confirms version 0.8.324 / code 359. Startup log sample of 6,000 lines contains no FATAL EXCEPTION, ANR, OutOfMemoryError, or fatal signal.
+- APK `app/build/outputs/apk/debug/OrkanSlicer_9ce7bf9200.apk`, 157,252,296 bytes; SHA-256 `36007609929C69B529755CAF7851373BA20311AC06C01E47864FAB2BC1E4E729` (built before final source commit; reproducible bytes depend on build environment). Screenshots and UIAutomator dump are under `app/build/outputs/apk/debug/` and are not committed.
+- No physical printer synchronization or print started. Manual TalkBack traversal remains unverified; emulator remains offline. UI 2.0 remains in progress, with Phase 5 action audit and Phase 6 accessibility acceptance open.
+

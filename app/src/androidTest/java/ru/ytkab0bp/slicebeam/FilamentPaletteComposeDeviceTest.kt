@@ -412,6 +412,37 @@ class FilamentPaletteComposeDeviceTest {
     }
 
     @Test
+    fun acePhysicalSlotToolNumbersStayReadableInFourColumnsAt150PercentTextScale() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val gates = (0 until 4).map { index ->
+            MmuFilamentSync.Companion.PhysicalGate(
+                index = index,
+                printerTool = index,
+                occupied = true,
+                filament = FilamentSlot(0xFF000000.toInt() or (index * 0x111111), "PETG"),
+            )
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
+                BeamComposeTheme { AcePhysicalSlotsBar(gates, Modifier.width(320.dp)) }
+            }
+        }
+
+        val first = compose.onNodeWithText(
+            context.getString(R.string.AcePhysicalSlotCompactTool, 1, 0),
+        ).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        for (index in 1 until 4) {
+            compose.onNodeWithText(
+                context.getString(R.string.AcePhysicalSlotCompactTool, index + 1, index),
+            ).assertIsDisplayed()
+        }
+        val fourth = compose.onNodeWithText(
+            context.getString(R.string.AcePhysicalSlotCompactTool, 4, 3),
+        ).fetchSemanticsNode().boundsInRoot
+        assertEquals("the ACE/tool labels remain in a single visible row at 150% text", first.top, fourth.top)
+    }
+
+    @Test
     fun profileColorSettingOpensComposePaletteAndCommitsTheChosenColor() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         var selectedColor: Int? = null
@@ -503,8 +534,8 @@ class FilamentPaletteComposeDeviceTest {
             }
         }
 
-        compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 1, 0)).assertIsDisplayed()
-        compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 24, 23)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotCompactTool, 1, 0)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotCompactTool, 24, 23)).assertIsDisplayed()
         compose.onNodeWithText("Synthetic PLA 23").assertIsDisplayed()
         compose.onNodeWithContentDescription(
             context.getString(R.string.AcePhysicalSlotsScrollForward),

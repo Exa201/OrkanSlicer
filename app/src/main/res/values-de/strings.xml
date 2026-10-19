@@ -991,6 +991,7 @@
     <string name="AcePhysicalSlotsScrollForward">Weitere ACE-Fächer anzeigen</string>
     <string name="AceModelColorsTitle">Modellfarben im Slicer</string>
     <string name="AcePhysicalSlotTool">ACE %1$d · T%2$d</string>
+    <string name="AcePhysicalSlotCompactTool">%1$d · T%2$d</string>
     <string name="AcePhysicalSlotOnly">ACE %1$d</string>
     <string name="AcePhysicalSlotEmpty">Leer</string>
     <string name="AcePhysicalSlotIncomplete">Daten fehlen</string>

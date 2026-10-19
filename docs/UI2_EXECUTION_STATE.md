@@ -1,5 +1,14 @@
 # Current continuation state — 2026-10-19
 
+## Latest responsive fix — version 0.8.324
+
+- Corrected the physical-gate heading at system font scales >= 1.3: use a compact localized `slot · Ttool` label under the section heading, while retaining the longer `ACE n · Ttool` form at standard font. Four gates remain in each row; ACE/hardware indices are unchanged.
+- Added `FilamentPaletteComposeDeviceTest#acePhysicalSlotToolNumbersStayReadableInFourColumnsAt150PercentTextScale`; focused palette suite passed 20/20 on Honor PTP-N49 / Android 16.
+- Full `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 561/561 each, zero failures/errors/skips. Full `:app:connectedSliceTestAndroidTest`: JUnit XML timestamp `2026-10-19T19:30:25`, 227 cases, 225 passed, 2 skipped, 0 failures/errors. The two skipped tests require the user's external KromaCut file; the bundled three-color fixture tests all ran.
+- `:app:assembleDebug` succeeded. APK `OrkanSlicer_9ce7bf9200.apk`, 157,252,296 bytes, SHA-256 `36007609929C69B529755CAF7851373BA20311AC06C01E47864FAB2BC1E4E729`. Installed package `com.codemastercody3d.orcaslicermobile` verified as 0.8.324 / code 359 on Honor. Actual palette screenshot at 150% shows `1 · T0`, `2 · T1`, `3 · T2`, and `4 · T3` readable in a single row; the device was restored to 100%, 1280×2800, 560 dpi. Fresh startup log sample: no fatal exception, ANR, OOM, or fatal signal.
+- GitHub release/PR publication for 0.8.324 is pending this code commit. Emulator remains offline. Manual TalkBack traversal and full UI 2.0 completion remain open; this label correction does not change hardware slot assignments.
+- Next: commit and push the verified version 0.8.324 changes, publish the Debug prerelease, then continue the outstanding Phase 5/6 audit.
+
 - Active objective: finish OrkanSlicer UI 2.0; Phase 5 menu-action audit remains active, then continue Phase 6 responsive/accessibility checks. Multicolor fixture priority for this cycle is implemented and verified.
 - Runtime release: v0.8.323 / code 358, runtime commit `6ceb8a977e8c`, Debug APK `OrkanSlicer_6ceb8a977e.apk`, SHA-256 `A0AF18D0D4422685CB33A99FC0D660BD4DF8A34EEF01DC052EDCFFA9FD74A9E3`, prerelease https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.323. Runtime is unchanged by following test-only commits.
 - Current test/fixture commit: `8930005aaecc13e2e74578085c22b1b590a792a9`; documentation follow-up: `abb8580e08eff08e3a78de19f4b3d3c625389d74`. PR #2 is open on `codex/rinkhals-safe-start-audit`; verification comments are posted. No merge.

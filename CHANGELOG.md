@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.324 (alpha)
+
+- At 130% system font and above, compact physical ACE labels to keep all four gate and tool numbers readable on narrow displays.
+- Add an Honor Compose regression test for four-column gate visibility and readable tool numbers at 150% font scale.
+- Filament palette instrumentation: 20/20 passed; full Honor instrumentation: 227 cases, 225 passed, 2 external-fixture skips, 0 failures/errors.
+- Debug and Slice unit suites: 561/561 each. Debug APK installed/launched on Honor PTP-N49; the actual 150% screenshot shows `1 · T0` through `4 · T3` fully visible. Startup log sample had no fatal exception, ANR, OOM, or fatal signal.
+- Debug prerelease; this is an accessibility/layout correction, not a change to printer slot mappings. Multi-plate persistence and manual TalkBack acceptance remain open.
+
 ## 0.8.323 (alpha)
 
 - Refresh the on-demand GL render and discard stale ACE preview colors when the saved filament palette changes, so edited material colors appear on the model.
