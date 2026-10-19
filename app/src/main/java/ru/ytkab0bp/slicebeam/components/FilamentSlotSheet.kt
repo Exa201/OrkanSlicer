@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,7 +72,11 @@ class FilamentSlotSheet(
                     FilamentSlotContent(
                         slot = slot,
                         canDelete = canDelete,
-                        onChanged = { listener?.onChanged(slot) },
+                        onSave = {
+                            listener?.onChanged(slot)
+                            onDismiss()
+                        },
+                        onCancel = onDismiss,
                         onDelete = {
                             listener?.onDelete()
                             onDismiss()
@@ -86,7 +93,8 @@ class FilamentSlotSheet(
 private fun FilamentSlotContent(
     slot: FilamentSlot,
     canDelete: Boolean,
-    onChanged: () -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -185,6 +193,25 @@ private fun FilamentSlotContent(
                 Text(stringResource(R.string.RemoveFilament), fontSize = 16.sp)
             }
         }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.cancel))
+            }
+            Spacer(Modifier.weight(1f))
+            Button(
+                onClick = {
+                    slot.color = color
+                    slot.type = material
+                    onSave()
+                },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("filament-slot-save"),
+            ) { Text(stringResource(R.string.FilamentSlotSave)) }
+        }
     }
 
     if (showColorPicker) {
@@ -193,8 +220,6 @@ private fun FilamentSlotContent(
             onDismiss = { showColorPicker = false },
             onColorChosen = { selectedColor ->
                 color = selectedColor
-                slot.color = selectedColor
-                onChanged()
             },
         )
     }
@@ -209,8 +234,6 @@ private fun FilamentSlotContent(
                         TextButton(
                             onClick = {
                                 material = option
-                                slot.type = option
-                                onChanged()
                                 showMaterialPicker = false
                             },
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),

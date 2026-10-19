@@ -16,7 +16,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -56,11 +55,8 @@ import kotlin.math.sqrt
 @Composable
 internal fun PrintConfigToolsBar(
     modifier: Modifier = Modifier,
-    canSyncFilaments: Boolean,
-    isSyncing: Boolean,
     onPrimeTower: () -> Unit,
     onFlushVolumes: () -> Unit,
-    onSyncFilaments: () -> Unit,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -80,15 +76,6 @@ internal fun PrintConfigToolsBar(
             description = stringResource(R.string.PrintConfigFlushVolumesHelp),
             onClick = onFlushVolumes,
         )
-        PrintToolButton(
-            modifier = Modifier.weight(1f),
-            icon = R.drawable.print_filament_sync_24,
-            label = stringResource(if (isSyncing) R.string.MmuSyncWorkingShort else R.string.MmuSyncShort),
-            description = stringResource(if (canSyncFilaments) R.string.MmuSyncDescription else R.string.PrinterWebHostMissing),
-            enabled = canSyncFilaments && !isSyncing,
-            busy = isSyncing,
-            onClick = onSyncFilaments,
-        )
     }
 }
 
@@ -98,23 +85,16 @@ private fun PrintToolButton(
     icon: Int,
     label: String,
     description: String,
-    enabled: Boolean = true,
-    busy: Boolean = false,
     onClick: () -> Unit,
 ) {
     OutlinedButton(
         onClick = onClick,
-        enabled = enabled,
         modifier = modifier.heightIn(min = 56.dp).semantics { contentDescription = "$label. $description" },
         contentPadding = PaddingValues(horizontal = 3.dp, vertical = 5.dp),
         shape = RoundedCornerShape(10.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            if (busy) {
-                CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-            } else {
-                Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(22.dp))
-            }
+            Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(22.dp))
             Text(label, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 2, textAlign = TextAlign.Center)
         }
     }
@@ -423,8 +403,6 @@ internal data class PrintConfigTowerPositions(val plateCount: Int, val x: List<S
 
 /** Profile matrix and per-plate tower logic remains independent of Android views. */
 internal object PrintConfigToolsLogic {
-    fun canSyncFilaments(printerHost: String?): Boolean = !printerHost.isNullOrBlank()
-
     fun flushMatrix(serialized: String?, slotCount: Int, maxSlots: Int): PrintConfigFlushMatrix {
         val parts = parseSerialized(serialized)
         val existingSide = if (parts.isEmpty()) 0 else ceil(sqrt(parts.size.toDouble())).toInt()

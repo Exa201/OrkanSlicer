@@ -16,10 +16,7 @@ import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
-import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.Prefs
-import ru.ytkab0bp.slicebeam.utils.ViewUtils
-import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 
 /** Process-profile screen with printer filtering, purge controls and the filament palette. */
 class PrintConfigFragment : ProfileListFragment() {
@@ -28,10 +25,7 @@ class PrintConfigFragment : ProfileListFragment() {
     private var lastUid = 0
     private var currentConfig: ConfigObject? = null
     private var toolsThemeRevision by mutableIntStateOf(0)
-    private var filamentSyncing by mutableStateOf(false)
-    private var activeMmuSyncError by mutableStateOf<String?>(null)
     private var activeToolDialog by mutableStateOf<PrintConfigToolDialogState?>(null)
-    private var syncRequestGeneration = 0
 
     override fun getProfileListType(): Int = ConfigObject.PROFILE_LIST_PRINT
 
@@ -60,9 +54,6 @@ class PrintConfigFragment : ProfileListFragment() {
     }
 
     override fun onDestroy() {
-        syncRequestGeneration++
-        filamentSyncing = false
-        activeMmuSyncError = null
         activeToolDialog = null
         super.onDestroy()
     }
@@ -120,19 +111,12 @@ class PrintConfigFragment : ProfileListFragment() {
     @androidx.compose.runtime.Composable
     override fun BelowFilamentPaletteContent(modifier: Modifier) {
         val revision = toolsThemeRevision
-        val printer = SliceBeam.CONFIG?.let { config ->
-            config.presets?.get("printer")?.let(config::findPrinter)
-        }
-        val canSync = PrintConfigToolsLogic.canSyncFilaments(printer?.get("print_host"))
         Box(modifier = modifier.fillMaxWidth()) {
             key(revision) {
                 PrintConfigToolsBar(
                     modifier = Modifier.fillMaxWidth(),
-                    canSyncFilaments = canSync,
-                    isSyncing = filamentSyncing,
                     onPrimeTower = ::showPrimeTowerPositionDialog,
                     onFlushVolumes = ::showFlushVolumesDialog,
-                    onSyncFilaments = { printer?.let(::syncMmuFilaments) },
                 )
             }
             when (val dialog = activeToolDialog) {
@@ -156,40 +140,6 @@ class PrintConfigFragment : ProfileListFragment() {
                 )
                 null -> Unit
             }
-            activeMmuSyncError?.let { detail ->
-                WorkspaceMessageDialog(
-                    title = getContext()?.getString(R.string.MmuSyncFailed),
-                    message = detail,
-                    confirmLabel = getContext()?.getString(android.R.string.ok).orEmpty(),
-                    dismissLabel = null,
-                    onDismiss = { activeMmuSyncError = null },
-                    onConfirm = { activeMmuSyncError = null },
-                )
-            }
-        }
-    }
-
-    private fun syncMmuFilaments(printer: ConfigObject) {
-        if (filamentSyncing) return
-        filamentSyncing = true
-        val requestGeneration = ++syncRequestGeneration
-        MmuFilamentSync.synchronizeAll(printer) { updated, error ->
-            ViewUtils.postOnMainThread(Runnable {
-                if (requestGeneration != syncRequestGeneration || getView() == null) return@Runnable
-                filamentSyncing = false
-                if (error != null) {
-                    activeMmuSyncError = error
-                } else {
-                    filamentPaletteController?.reload()
-                    getContext()?.let { context ->
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.MmuSyncSuccess, updated),
-                            Toast.LENGTH_LONG,
-                        ).show()
-                    }
-                }
-            })
         }
     }
 

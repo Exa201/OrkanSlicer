@@ -967,6 +967,7 @@
     <string name="ColorChooserSwatchDescription">Farbe %1$s</string>
     <string name="FilamentType">Filamenttyp</string>
     <string name="FilamentSlotColor">Farbe</string>
+    <string name="FilamentSlotSave">Filament speichern</string>
     <string name="FilamentPaletteAdd">Filamentplatz hinzufügen</string>
     <string name="WorkspaceFilamentPaletteTitle">Filamente</string>
     <string name="WorkspaceFilamentPaletteCount">%1$d Materialien</string>
@@ -989,7 +990,7 @@
     <string name="AcePhysicalSlotsTitle">ACE-Fächer am Drucker</string>
     <string name="AcePhysicalSlotsScrollForward">Weitere ACE-Fächer anzeigen</string>
     <string name="AceModelColorsTitle">Modellfarben im Slicer</string>
-    <string name="AcePhysicalSlotTool">ACE %1$d · Drucker-T%2$d</string>
+    <string name="AcePhysicalSlotTool">ACE %1$d · T%2$d</string>
     <string name="AcePhysicalSlotOnly">ACE %1$d</string>
     <string name="AcePhysicalSlotEmpty">Leer</string>
     <string name="AcePhysicalSlotIncomplete">Daten fehlen</string>

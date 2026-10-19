@@ -105,6 +105,79 @@ class FilamentPaletteComposeDeviceTest {
     }
 
     @Test
+    fun syncActionLivesInFilamentPaletteAndReportsCompletion() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        Prefs.init(context.applicationContext as SliceBeam)
+        val previousConfig = SliceBeam.CONFIG
+        val config = context.assets.open("orca_profiles/Anycubic.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        printer.put("print_host", "http://127.0.0.1:1")
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", "0.16mm Standard")
+            put("filament", "Anycubic Generic PLA")
+        }
+        SliceBeam.CONFIG = config
+        var completed: MmuFilamentSync.Callback? = null
+        var paletteChanges = 0
+        val controller = FilamentPaletteController { paletteChanges++ }
+        compose.setContent {
+            BeamComposeTheme {
+                controller.WorkspaceSheetContent(
+                    hasModel = false,
+                    sidePanel = false,
+                    onAssignModel = {},
+                    onDismiss = {},
+                    onSyncFilaments = { completed = it },
+                )
+            }
+        }
+
+        try {
+            compose.onNodeWithText(context.getString(R.string.MmuSyncButton)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(context.getString(R.string.MmuSyncWorkingShort)).assertIsDisplayed()
+            compose.runOnUiThread { requireNotNull(completed).onResult(2, null) }
+            compose.onNodeWithText(context.getString(R.string.MmuSyncSuccess, 2)).assertIsDisplayed()
+            compose.runOnIdle { assertEquals(1, paletteChanges) }
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
+    fun addingFilamentSlotRequiresAndHonorsExplicitSave() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        Prefs.init(context.applicationContext as SliceBeam)
+        val previousSlots = Prefs.getStoredFilamentSlots()
+        Prefs.setStoredFilamentSlots(listOf(FilamentSlot(0xFF123456.toInt(), "PLA")))
+        val controller = FilamentPaletteController()
+        compose.setContent {
+            BeamComposeTheme {
+                controller.WorkspaceSheetContent(
+                    hasModel = false,
+                    sidePanel = false,
+                    onAssignModel = {},
+                    onDismiss = {},
+                    onSyncFilaments = null,
+                )
+            }
+        }
+
+        try {
+            compose.onNodeWithText(context.getString(R.string.FilamentPaletteAdd)).performClick()
+            compose.onNodeWithText(context.getString(R.string.SlotFilamentConfig)).assertIsDisplayed()
+            compose.onNodeWithTag("filament-slot-save").performClick()
+            compose.onNodeWithText(context.getString(R.string.WorkspaceFilamentPaletteCount, 2)).assertIsDisplayed()
+            compose.runOnIdle { assertEquals(2, Prefs.getStoredFilamentSlots().size) }
+        } finally {
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
     fun workspaceProfileSheetRendersAndAndroidBackDismisses() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
@@ -273,13 +346,69 @@ class FilamentPaletteComposeDeviceTest {
         ).onFirst().assertIsDisplayed()
         black.assertWidthIsAtLeast(44.dp).assertHeightIsAtLeast(44.dp).performClick()
         compose.runOnIdle {
-            assertEquals(0xFF000000.toInt(), slot.color)
-            assertEquals(1, changes)
+            assertEquals("Choosing a color is a draft until confirmed", 0xFFFF0000.toInt(), slot.color)
+            assertEquals(0, changes)
         }
         compose.onNodeWithText(context.getString(R.string.SlotFilamentConfig)).assertIsDisplayed()
-        instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.onNodeWithTag("filament-slot-save").performClick()
         compose.waitForIdle()
-        compose.runOnIdle { assertTrue(dismissed) }
+        compose.runOnIdle {
+            assertEquals(0xFF000000.toInt(), slot.color)
+            assertEquals(1, changes)
+            assertTrue(dismissed)
+        }
+    }
+
+    @Test
+    fun filamentSlotEditorCancelDiscardsColorDraft() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val slot = FilamentSlot(0xFFFF0000.toInt(), "PLA")
+        var changes = 0
+        var dismissed = false
+        val sheet = FilamentSlotSheet(slot, true, object : FilamentSlotSheet.Listener {
+            override fun onChanged(slot: FilamentSlot) { changes++ }
+            override fun onDelete() = Unit
+        })
+        compose.setContent {
+            BeamComposeTheme { if (!dismissed) sheet.Content { dismissed = true } }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.FilamentSlotColor)).performClick()
+        compose.onAllNodesWithContentDescription(
+            context.getString(R.string.ColorChooserSwatchDescription, "#000000"),
+        ).onFirst().performClick()
+        compose.onNodeWithText(context.getString(android.R.string.cancel)).performClick()
+        compose.runOnIdle {
+            assertEquals("Cancel must not mutate the shared filament", 0xFFFF0000.toInt(), slot.color)
+            assertEquals(0, changes)
+            assertTrue(dismissed)
+        }
+    }
+
+    @Test
+    fun acePhysicalSlotsUseFourVisibleColumnsAndWrapFurtherGatesToRows() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val gates = (0 until 9).map { index ->
+            MmuFilamentSync.Companion.PhysicalGate(
+                index = index,
+                printerTool = index,
+                occupied = true,
+                filament = FilamentSlot(0xFF000000.toInt() or (index * 0x111111), "Material-$index"),
+            )
+        }
+        compose.setContent { BeamComposeTheme { AcePhysicalSlotsBar(gates, Modifier.width(360.dp)) } }
+
+        val first = compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 1, 0))
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val fourth = compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 4, 3))
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val fifth = compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 5, 4))
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val ninth = compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 9, 8))
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals("first four physical gates share a row", first.top, fourth.top)
+        assertTrue("gate five wraps to the next row", fifth.top > first.top)
+        assertTrue("gate nine is reachable in a third row", ninth.top > fifth.top)
     }
 
     @Test
@@ -353,7 +482,7 @@ class FilamentPaletteComposeDeviceTest {
     }
 
     @Test
-    fun longAceGateRowHasAccessibleScrollControlAndReachesLastGate() {
+    fun longAceGateListShowsLastGateWithoutHorizontalScrolling() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, 1.3f)) {
@@ -374,11 +503,12 @@ class FilamentPaletteComposeDeviceTest {
             }
         }
 
-        val scrollForward = compose.onNodeWithContentDescription(
-            context.getString(R.string.AcePhysicalSlotsScrollForward),
-        ).assertIsDisplayed()
-        scrollForward.assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
+        compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 1, 0)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotTool, 24, 23)).assertIsDisplayed()
         compose.onNodeWithText("Synthetic PLA 23").assertIsDisplayed()
+        compose.onNodeWithContentDescription(
+            context.getString(R.string.AcePhysicalSlotsScrollForward),
+        ).assertDoesNotExist()
     }
 
     @Test

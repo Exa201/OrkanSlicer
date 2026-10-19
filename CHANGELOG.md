@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.323 (alpha)
+
+- Refresh the on-demand GL render and discard stale ACE preview colors when the saved filament palette changes, so edited material colors appear on the model.
+- Move printer filament synchronization into the Filaments workspace sheet; show ACE/MMU physical gates in four-column rows without horizontal scrolling.
+- Keep filament color/type edits as drafts until Save; Cancel now discards them, and adding a palette slot also requires explicit Save.
+- Verify the supplied two-color KromaCut 3MF on Honor: independent import choices, recoloring, painting, uniform object reassignment, generated filament colors/tools/layers, and completed G-code. Focused Kroma tests: 2/2; filament UI: 19/19; MMU sync: 15/15; TwoColor project: 3/3.
+- Full Honor instrumentation: 226 tests, 0 failures, 5 fixture-dependent skips; Debug and Slice unit suites: 561/561 each. The three private three-color fixtures remain unavailable.
+- Debug prerelease; physical TalkBack acceptance and private three-color fixture testing remain open.
+
 ## 0.8.322 (alpha)
 
 - Dispatch canvas taps to the GL thread before invoking renderer/model click handlers, including cut-connector placement.

@@ -24,6 +24,7 @@
     <string name="SlotPrintConfigTooltip">Профиль печати</string>
     <string name="SlotFilamentConfig">Филамент</string>
     <string name="FilamentSlotColor">Цвет</string>
+    <string name="FilamentSlotSave">Сохранить филамент</string>
     <string name="WorkspaceFilamentPaletteTitle">Филаменты</string>
     <string name="WorkspaceFilamentPaletteCount">Материалов: %1$d</string>
     <string name="WorkspaceMoreTitle">Дополнительные инструменты</string>

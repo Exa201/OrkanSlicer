@@ -963,8 +963,16 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 PrintConfigToolsLogic.serializeFlushMatrix(matrix.side, changedCells),
             )
 
-            compose.onNodeWithText(activity.getString(R.string.FlushVolumes))
-                .assertIsDisplayed().performClick()
+            val flushVolumesLabel = activity.getString(R.string.FlushVolumes)
+            compose.waitUntil(timeoutMillis = 10_000) {
+                try {
+                    compose.onNodeWithText(flushVolumesLabel).assertIsDisplayed()
+                    true
+                } catch (_: AssertionError) {
+                    false
+                }
+            }
+            compose.onNodeWithText(flushVolumesLabel).performClick()
             compose.onNodeWithTag("flush-cell-1").performTextClearance()
             compose.onNodeWithTag("flush-cell-1").performTextInput("315")
             compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
@@ -979,8 +987,15 @@ class PrintProfileDropdownIntegrationDeviceTest {
             assertEquals("Applying the matrix updates only the profile draft",
                 originalMatrix, activeProcess.get("flush_volumes_matrix"))
 
-            compose.onNodeWithText(activity.getString(R.string.FlushVolumes))
-                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                try {
+                    compose.onNodeWithText(flushVolumesLabel).assertIsDisplayed()
+                    true
+                } catch (_: AssertionError) {
+                    false
+                }
+            }
+            compose.onNodeWithText(flushVolumesLabel).performClick()
             compose.onNodeWithTag("flush-cell-1").performTextClearance()
             compose.onNodeWithTag("flush-cell-1").performTextInput("400")
             compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()

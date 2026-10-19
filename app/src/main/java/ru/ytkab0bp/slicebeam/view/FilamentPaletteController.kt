@@ -18,8 +18,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -120,12 +122,17 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
         sidePanel: Boolean,
         onAssignModel: () -> Unit,
         onDismiss: () -> Unit,
+        onSyncFilaments: ((MmuFilamentSync.Callback) -> Unit)?,
     ) {
         val context = LocalContext.current
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
         val snapshots = remember(paletteRevision) { slots.map { PaletteSlotSnapshot(it.color, it.type) } }
         val materialCount = snapshots.count { !it.type.isNullOrBlank() }
         val printerTitle = SliceBeam.CONFIG?.presets?.get("printer").orEmpty()
+        val printer = SliceBeam.CONFIG?.findPrinter(printerTitle)
+        var isSyncing by remember(printerTitle) { mutableStateOf(false) }
+        var syncMessage by remember(printerTitle) { mutableStateOf<String?>(null) }
+        val canSync = onSyncFilaments != null && !printer?.get("print_host").isNullOrBlank()
         val selectedGates = remember(paletteRevision, printerTitle) {
             if (Prefs.isMmuSyncedPrinter(printerTitle))
                 MmuFilamentSync.getSelectedGates(printerTitle, snapshots.size) else null
@@ -162,6 +169,47 @@ class FilamentPaletteController(private val onPaletteChanged: () -> Unit = {}) {
                     onClick = onDismiss,
                     modifier = Modifier.heightIn(min = OrkanUiTokens.touchTarget),
                 ) { Text(stringResource(android.R.string.cancel)) }
+            }
+            if (canSync) {
+                OutlinedButton(
+                    onClick = {
+                        if (isSyncing) return@OutlinedButton
+                        isSyncing = true
+                        syncMessage = null
+                        onSyncFilaments?.invoke(MmuFilamentSync.Callback { updated, error ->
+                            isSyncing = false
+                            if (error == null) {
+                                reload()
+                                onPaletteChanged()
+                                syncMessage = context.getString(R.string.MmuSyncSuccess, updated)
+                            } else {
+                                syncMessage = error
+                            }
+                        })
+                    },
+                    enabled = !isSyncing,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = OrkanUiTokens.touchTarget)
+                        .semantics { contentDescription = context.getString(R.string.MmuSyncDescription) },
+                ) {
+                    if (isSyncing) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else androidx.compose.material3.Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.print_filament_sync_24),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        stringResource(if (isSyncing) R.string.MmuSyncWorkingShort else R.string.MmuSyncButton),
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+                syncMessage?.let { message ->
+                    Text(
+                        message,
+                        color = if (isSyncing) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
             if (physicalGates.isNotEmpty()) {
                 AcePhysicalSlotsBar(physicalGates)

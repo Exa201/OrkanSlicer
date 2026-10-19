@@ -8,14 +8,6 @@ import org.junit.Test
 
 class PrintConfigToolsLogicTest {
     @Test
-    fun filamentSyncRequiresAConfiguredPrinterHost() {
-        assertFalse(PrintConfigToolsLogic.canSyncFilaments(null))
-        assertFalse(PrintConfigToolsLogic.canSyncFilaments(""))
-        assertFalse(PrintConfigToolsLogic.canSyncFilaments("   "))
-        assertTrue(PrintConfigToolsLogic.canSyncFilaments("http://printer.local"))
-    }
-
-    @Test
     fun emptyFlushMatrixUsesZeroDiagonalAndStandardPurgeElsewhere() {
         val matrix = PrintConfigToolsLogic.flushMatrix(null, slotCount = 1, maxSlots = 16)
         assertEquals(2, matrix.side)

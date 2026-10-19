@@ -299,12 +299,26 @@ fun showModelColorSlots(synchronize: Boolean = false) {
 private fun showWorkspaceFilamentPalette() {
     val context = getContext() ?: return
     workspaceController.dismissActivePanel()
-    val controller = FilamentPaletteController { filamentPaletteRevision++ }
+    val controller = FilamentPaletteController(::onFilamentPaletteChanged)
     val panel = WorkspaceFilamentPaletteSheet(
         context = context,
         controller = controller,
         hasModel = currentModel?.objectsCount?.let { it > 0 } == true,
         onAssignModel = ::showModelColorSlots,
+        onSyncFilaments = { callback ->
+            val config = SliceBeam.CONFIG
+            val printer = config?.presets?.get("printer")?.let(config::findPrinter)
+            if (printer == null) {
+                callback.onResult(0, context.getString(R.string.PrinterWebHostMissing))
+            } else {
+                MmuFilamentSync.synchronizeAll(printer) { updated, error ->
+                    ViewUtils.postOnMainThread {
+                        if (destroyed || getContext() == null) return@postOnMainThread
+                        callback.onResult(updated, error)
+                    }
+                }
+            }
+        },
     )
     fun dismiss() = workspaceController.clearPanel(WorkspaceOverlayPanel.FILAMENT_PALETTE)
     workspaceController.activatePanel(
@@ -312,6 +326,20 @@ private fun showWorkspaceFilamentPalette() {
         content = { BeamComposeTheme { panel.Content(::dismiss) } },
         dismiss = {},
     )
+}
+
+/** Palette changes must explicitly schedule a frame because GLView renders on demand. */
+private fun onFilamentPaletteChanged() {
+    filamentPaletteRevision++
+    val viewport = glView ?: return
+    val model = currentModel ?: return
+    viewport.queueEvent {
+        if (viewport.renderer.model === model) {
+            // Drop the previous ACE preview snapshot so freshly saved palette colors win.
+            viewport.renderer.setAssignedSlotPreview(model, null)
+            viewport.requestRender()
+        }
+    }
 }
 private fun showWorkspaceProfileSheet(context: Context) {
     workspaceController.dismissActivePanel()

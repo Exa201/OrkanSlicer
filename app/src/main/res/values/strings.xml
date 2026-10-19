@@ -983,6 +983,7 @@
     <string name="CustomColorApply">Use color</string>
     <string name="FilamentType">Filament type</string>
     <string name="FilamentSlotColor">Color</string>
+    <string name="FilamentSlotSave">Save filament</string>
     <string name="FilamentPaletteAdd">Add filament slot</string>
     <string name="WorkspaceFilamentPaletteTitle">Filaments</string>
     <string name="WorkspaceFilamentPaletteCount">%1$d materials</string>
@@ -1005,7 +1006,7 @@
     <string name="AcePhysicalSlotsTitle">ACE slots on printer</string>
     <string name="AcePhysicalSlotsScrollForward">Show remaining ACE slots</string>
     <string name="AceModelColorsTitle">Model colors in slicer</string>
-    <string name="AcePhysicalSlotTool">ACE %1$d · printer T%2$d</string>
+    <string name="AcePhysicalSlotTool">ACE %1$d · T%2$d</string>
     <string name="AcePhysicalSlotOnly">ACE %1$d</string>
     <string name="AcePhysicalSlotEmpty">Empty</string>
     <string name="AcePhysicalSlotIncomplete">Data missing</string>

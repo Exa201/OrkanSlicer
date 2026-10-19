@@ -20,6 +20,7 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import ru.ytkab0bp.slicebeam.view.FilamentPaletteController
 import ru.ytkab0bp.slicebeam.view.FilamentPalettePolicy
+import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 
 /** Opens the shared filament palette as a phone sheet or a fixed side panel on wide windows. */
 class WorkspaceFilamentPaletteSheet(
@@ -27,6 +28,7 @@ class WorkspaceFilamentPaletteSheet(
     private val controller: FilamentPaletteController,
     private val hasModel: Boolean,
     private val onAssignModel: () -> Unit,
+    private val onSyncFilaments: ((MmuFilamentSync.Callback) -> Unit)? = null,
 ) {
     @Composable
     fun Content(onDismissed: () -> Unit) {
@@ -50,6 +52,7 @@ class WorkspaceFilamentPaletteSheet(
                         controller.WorkspaceSheetContent(
                             hasModel = hasModel,
                             sidePanel = sidePanel,
+                            onSyncFilaments = onSyncFilaments,
                             onAssignModel = {
                                 onDismissed()
                                 Handler(Looper.getMainLooper()).post { onAssignModel() }
