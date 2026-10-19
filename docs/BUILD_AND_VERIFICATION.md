@@ -1579,3 +1579,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Updated the German, English, and Russian `update.json` entries to v0.8.319 and the upload-callback fix. Focused `ChangeLogComposeDeviceTest` passed 1/1; the subsequent full Honor suite passed: XML `2026-10-19T15:33:45` UTC, 218 cases, 213 passed, 5 fixture-dependent skips, 0 failures/errors. The 5 skips were two missing KromaCut fixture copies and three private multicolor fixtures. Emulator offline.
 - Expanded the loopback upload test to verify: one upload-only request and no start during a quiet observation window; `print=true` produces a second upload followed by exactly one `/printer/print/start` request only to the loopback mock; a subsequent refused connection displays an error instead of crashing. Focused Honor test passed 1/1. No physical printer or print was involved.
 - The already-published v0.8.319 asset still contains the pre-fix JSON asset and will be replaced with a rebuilt APK from the upcoming commit; the runtime callback fix is unchanged. No new version number is needed for this asset/docs/test correction.
+
+## Final v0.8.319 asset replacement — 2026-10-19
+
+- Rebuilt Debug APK after fixing the app-consumed `update.json` and expanding the loopback device test. Current release asset is `OrkanSlicer_0.8.319.apk`, 157,235,060 bytes, SHA-256 `475B9C5B9137B7E1786D2D4A3413C27F5C546DAF371357AFD9CE96080959FAB0`.
+- Replaced the earlier same-version asset so the release now contains one APK with matching in-app release notes. GitHub verifies the uploaded asset digest. Release URL: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.319.
+- APK was installed and launched on Honor PTP-N49 / Android 16 as `com.codemastercody3d.orcaslicermobile`, version 0.8.319 / code 354; no fatal, ANR, or OOM in startup logcat. The full suite after resource correction passed 213/218 (5 fixture skips).
+- APK build source commit: `4b56f548bb771650655d492c8abc04c3735efb8a`. Release tag remains v0.8.319; PR #2 is still open. This is a Debug prerelease only.
