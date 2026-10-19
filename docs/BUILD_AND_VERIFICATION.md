@@ -1,5 +1,6 @@
 # Release v0.8.322 — GL-thread canvas tap safety (2026-10-19)
 
+- Post-publication complete `:app:connectedSliceTestAndroidTest` on Honor PTP-N49 / Android 16 passed: 221 JUnit cases, 216 passed, 5 skipped, 0 failures/errors (XML `2026-10-19T17:06:06Z`). The 5 fixture-dependent skips were two KromaCut cases and three private multicolor-project cases; the emulator was offline. The focused 38-case workspace class had already passed without skips.
 - Published GitHub Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.322. Asset `OrkanSlicer_cd4f054fe1.apk`, 157,251,362 bytes, SHA-256 `224C4243CB42A4EB0C5008BCC04A3AC46A322EB1AE29624C50100069AFBAB0FA`; GitHub asset API reports the same digest. Tag targets runtime commit `cd4f054fe10ec01e9b4613b499e885a94fe95f89`; version 0.8.322 / code 357.
 - `:app:assembleDebug` succeeded. APK installed and launched on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`; `dumpsys package` confirmed version 0.8.322 / code 357. The fresh 5,000-line startup log sample contained no FATAL EXCEPTION, ANR, OOM, or fatal-signal matches. Emulator remains offline.
 - PR #2 is open, head `cd4f054fe10ec01e9b4613b499e885a94fe95f89`, merge state `CLEAN` at verification time. No merge or print action.

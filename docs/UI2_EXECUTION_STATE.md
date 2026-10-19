@@ -5,6 +5,7 @@
 - Moved all single-tap renderer click handling in `GLView.onTouchEvent` onto the GL queue. This covers cut-connector placement and other renderer click modes, avoiding renderer/native model work on Android's UI thread.
 - Added a real Honor test for tap-to-preview then Android Back cancellation with no model mutation. Focused run passed 1/1; full `InitialProjectMenuDeviceTest` passed 38/38 on Honor PTP-N49 / Android 16.
 - Debug unit suite 562/562 and Slice unit suite 562/562 passed. Honor `InitialProjectMenuDeviceTest` 38/38, no skips/failures. Emulator offline.
+- After publication, complete Honor `:app:connectedSliceTestAndroidTest`: 221 cases, 216 passed, 5 fixture-dependent skips, 0 failures/errors (XML `2026-10-19T17:06:06Z`). Two KromaCut fixtures and three private multicolor fixtures were unavailable in this run.
 - Phase 4 complete; Phase 5 action-by-action audit remains active. Phase 6 manual TalkBack/full responsive matrix incomplete. Multi-plate persistence remains separate and open.
 - Next: continue Phase 5 source-handler/action coverage for the remaining actual global and workspace routes; then resume Phase 6 responsive/accessibility gaps. TalkBack manual traversal and full layout matrix remain unverified. Multi-plate persistence remains a separate open feature.
 
