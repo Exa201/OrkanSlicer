@@ -85,6 +85,7 @@ internal fun WorkspaceShell(
         LocalDensity.current.fontScale,
         portrait,
     )
+    val headerActionWeight = if (LocalConfiguration.current.screenWidthDp <= 320) 2f else 1.45f
     val navigationItems = WorkspaceDestination.values().map { destination ->
         val compactTitle = when (destination) {
             WorkspaceDestination.PROJECT -> ru.ytkab0bp.slicebeam.R.string.MenuFileCompact
@@ -123,11 +124,10 @@ internal fun WorkspaceShell(
                 modifier = Modifier.weight(1f).widthIn(min = 0.dp).heightIn(min = OrkanUiTokens.touchTarget),
             ) { profileStatusContent() }
             Row(
-                // A weighted slot gives the horizontal scroller a finite width in
-                // landscape, where this header is measured inside the adaptive rail
-                // layout. Without it, Compose can measure the scroll container with
-                // an infinite max width when returning from a global settings route.
-                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                // Reserve enough finite width for all four 48 dp targets at 320 dp
+                // and 360 dp phone widths. The printer card yields width first; the
+                // weighted constraint also keeps this scroller safe in landscape.
+                modifier = Modifier.weight(headerActionWeight).horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.compactGap),
             ) {
                 WorkspaceActionControl(filamentButtonContent)

@@ -166,7 +166,9 @@ internal fun WorkspaceViewCube(
     val shortLabels = descriptions.mapValues { (_, label) -> label.take(2) }
     Canvas(
         modifier = Modifier
-            .size(52.dp)
+            // Match the 48 dp action host so the drawing cannot overlap adjacent
+            // printer controls while retaining the minimum accessible target.
+            .size(48.dp)
             .testTag("workspace-view-cube")
             .semantics {
                 contentDescription = context.getString(R.string.ViewCubeDescription, rotateHint)

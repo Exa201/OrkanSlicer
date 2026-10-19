@@ -83,6 +83,16 @@ class InitialProjectMenuDeviceTest {
     fun compactViewCubeIsVisibleAccessibleAndAtLeast48Dp() {
         val cube = compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
         val node = cube.fetchSemanticsNode()
+        val printerActionDescription = listOf(
+            R.string.PrinterOpenWebDescription,
+            R.string.PrinterWebConfigureDescription,
+        ).map(compose.activity::getString).firstOrNull { description ->
+            compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
+        } ?: error("Printer header action should expose an accessibility description")
+        val printerAction = compose.onNodeWithContentDescription(printerActionDescription)
+            .assertIsDisplayed().fetchSemanticsNode()
+        val screenRight = compose.activity.window.decorView.width.toFloat()
+        assertTrue("Printer header action must remain on screen", printerAction.boundsInRoot.right <= screenRight)
         val density = compose.activity.resources.displayMetrics.density
         assertTrue("View cube must have a 48 dp touch target", node.size.width / density >= 48f)
         assertTrue("View cube must have a 48 dp touch target", node.size.height / density >= 48f)
