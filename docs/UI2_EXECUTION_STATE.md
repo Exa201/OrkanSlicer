@@ -65,6 +65,14 @@
 
 # UI 2.0 execution status — 2026-10-19
 
+## Vollsuite auf Honor nach erfolgreichem Mesh-Split — 2026-10-19
+
+- Code-HEAD: `fbd03707a6daca65f481e30ddb0aa20c26c3cb50` (Instrumentierungstest-only; Runtime unverändert). `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 212 Tests, 207 bestanden, 5 übersprungen, 0 Fehler/Errors; XML-Zeitstempel `2026-10-19T10:13:50` UTC. Zwei KromaCut-Fälle und drei private Mehrfarben-Fixtures waren im Vollsuite-Lauf nicht bereitgestellt. Emulator offline.
+- `InitialProjectMenuDeviceTest`: 34/34 bestanden, 0 Skips/Fehler, XML `2026-10-19T10:07:10` UTC. Neuer Test `editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects` erzeugt im Cache eine gültige binäre STL mit zwei getrennten Würfeln, importiert sie als ein Modell und führt Edit → Teile trennen aus. Native Ergebnisprüfung: zwei Objekte mit je 136 Dreiecken; temporäre Datei wird gelöscht. Gezielter Test ebenfalls 1/1 bestanden (`2026-10-19T10:05:00` UTC).
+- Ein erster Lauf des neuen Tests schlug nur an der fehlerhaften Testannahme fehl, dass jeder importierte Gesamtmesh-Dreieckszähler bereits pro Komponente vorliege (272 erwartet je Objekt statt 136). Die Assertion wurde auf die tatsächlich duplizierte Geometrie korrigiert; Produktverhalten war im selben Lauf bereits erfolgreich beim Erzeugen von zwei Objekten.
+- Der Testcommit `fbd0370` wurde auf den bestehenden PR-Branch gepusht. Kein Runtime-Code geändert; keine APK neu gebaut. Phase 4 abgeschlossen, Phase 5 weiterhin aktiv (vollständige Handler-/Aktionen-Abnahme nicht beendet), Phase 6 teilweise offen (manuelles TalkBack und physische alternative Displays fehlen). Mehrplatten-Projektpersistenz bleibt separat offen.
+- Nächster Schritt: weiterhin nicht einzeln abgenommene sichere Haupt-/Globalmenü-Aktionen gegen ihre Compose-Handler und Integrationstests abgleichen; keine echten Druckeraktionen ausführen.
+
 ## Verifikation nach der letzten Honor-Prüfung — 2026-10-19
 
 - Aktueller Code-HEAD: `6cd9161dd92a08d81f4c763d30fa28e59b79dcef`; Runtime-Quellen unverändert. Der Branch war beim Arbeitsbeginn bereits mit `origin/codex/rinkhals-safe-start-audit` synchronisiert; PR #2 ist offen und laut GitHub `MERGEABLE`.
