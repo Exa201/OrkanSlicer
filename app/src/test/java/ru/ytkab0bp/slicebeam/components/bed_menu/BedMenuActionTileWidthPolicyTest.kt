@@ -15,10 +15,11 @@ class BedMenuActionTileWidthPolicyTest {
     }
 
     @Test
-    fun narrowPhonesAtOneHundredFiftyPercentUseWideActionTiles() {
+    fun phoneWidthsAtOneHundredFiftyPercentUseWideActionTiles() {
         assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 320))
         assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 360))
-        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 361))
+        assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 400))
+        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 401))
         assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.3f, 320))
     }
 

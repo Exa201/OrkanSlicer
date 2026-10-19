@@ -87,10 +87,10 @@ internal data class BedComposeMenuAction(
 internal object BedMenuActionTileWidthPolicy {
     fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
         when {
-            // At the largest supported text scale on a narrow phone, two columns
-            // leave action labels visibly ellipsized. A single wide column keeps
-            // the same two-row toolbar height while making the labels readable.
-            fontScale >= 1.5f && screenWidthDp <= 360 -> 1
+            // At the largest supported text scale on phone-sized displays, two
+            // columns leave common file actions visibly ellipsized. A single wide
+            // column keeps the toolbar scrollable while making labels readable.
+            fontScale >= 1.5f && screenWidthDp <= 400 -> 1
             fontScale >= 1.3f -> 2
             fontScale >= 1.15f || screenWidthDp < 400 -> 3
             else -> 4
