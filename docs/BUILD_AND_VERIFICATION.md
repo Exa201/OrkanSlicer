@@ -1,3 +1,9 @@
+# Printer web setup route — Honor, 2026-10-19
+
+- Added `PrinterWebWorkspaceRouteDeviceTest` for the actual workspace printer-web button with the selected test printer's `print_host` empty. The test verifies the Compose setup dialog, Cancel and Android Back dismissal without leaving the workspace, and the confirm action navigating to `PrinterConfigFragment`.
+- Focused run: 1/1 passed on Honor PTP-N49 / Android 16. Complete `:app:connectedSliceTestAndroidTest`: JUnit XML timestamp `2026-10-19T11:32:22`, 214 cases, 209 passed, 5 skipped, 0 failures/errors. Two KromaCut cases and three private multicolor fixture cases were skipped because their fixtures were not available for this run. The emulator was offline.
+- No printer/network action or print start occurred. This changed instrumentation and verification documentation only; the production app and APK are unchanged, so no production APK was rebuilt.
+
 ## Kalibrierungs-Ergebnisaktion und Generatorrouten — Honor, 2026-10-19
 
 - `CalibrationWorkspaceDeviceTest`: 2/2 auf Honor PTP-N49 / Android 16 bestanden. Alle sechs unterstützten Preset-Formulare werden geöffnet und ohne Modelländerung abgebrochen. Der Ergebnis-Roundtrip erreicht den Dialog über den sichtbaren Workspace-Menüweg „Werkzeuge → Kalibrierung“; ungültiger PA-Wert `999` wird angezeigt zurückgewiesen und erzeugt keinen Draft. Gültiger PA-Messwert wird im Filamententwurf einschließlich `enable_pressure_advance=1`, VFA-Messwert im Druckprofilentwurf abgelegt. Beide gespeicherten Profilobjekte bleiben unverändert; vorher vorhandene Draft-Werte werden nach dem Test restauriert.

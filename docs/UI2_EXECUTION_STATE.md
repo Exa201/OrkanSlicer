@@ -1,3 +1,11 @@
+# Latest continuation — printer web setup route on Honor (2026-10-19)
+
+- Current branch HEAD before this test-only change: `511b37955b7eb898eda669ae88945ca246639a8e`.
+- Added `PrinterWebWorkspaceRouteDeviceTest`: exercises the real workspace button with an empty printer `print_host`; verifies dialog title/message, Cancel, Android Back, and confirm navigation to `PrinterConfigFragment`. No printer connection, network request, or print action is made.
+- Focused test passed 1/1 on Honor PTP-N49 / Android 16. Complete `:app:connectedSliceTestAndroidTest` then passed with JUnit XML `2026-10-19T11:32:22`: 214 cases, 209 passed, 5 skipped, 0 failures/errors. Two KromaCut and three private multicolor cases were skipped because their test fixtures were unavailable in this run. Emulator offline.
+- Phase 4 remains complete. Phase 5 remains active: this adds a verified printer setup route but does not close the complete handler/action matrix. Phase 6 remains partial; physical TalkBack traversal and other display/font configurations are still open. Multi-plate project persistence remains a separate open feature.
+- Next: continue the source-handler-to-test audit for global printer/profile settings, prioritizing any real user-visible route without direct action coverage. No runtime source changed; no production APK rebuild is warranted.
+
 # UI2 Fortsetzung — 2026-10-19, Profil-/Kalibrierungsaktionen
 
 ## Aktuellster Stand — vollständiger Honor-Lauf mit verfügbarer Nutzer-3MF (2026-10-19)
