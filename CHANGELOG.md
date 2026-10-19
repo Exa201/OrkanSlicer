@@ -8,6 +8,7 @@
 - Verify the supplied two-color KromaCut 3MF on Honor: independent import choices, recoloring, painting, uniform object reassignment, generated filament colors/tools/layers, and completed G-code. Focused Kroma tests: 2/2; filament UI: 19/19; MMU sync: 15/15; TwoColor project: 3/3.
 - Full Honor instrumentation: 226 tests, 0 failures, 5 fixture-dependent skips; Debug and Slice unit suites: 561/561 each. The three private three-color fixtures remain unavailable.
 - Debug prerelease; physical TalkBack acceptance and private three-color fixture testing remain open.
+- Post-release fixture follow-up: the three private-fixture cases now use a bundled deterministic three-color 3MF; all 3 pass on Honor, including native T0/T1/T2 slicing. Full Honor instrumentation now passes 224/226 with only the two externally supplied KromaCut cases skipped when that private file is not staged.
 
 ## 0.8.322 (alpha)
 

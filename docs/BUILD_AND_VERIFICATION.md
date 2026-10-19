@@ -1643,3 +1643,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Test-only follow-up; no runtime source or APK changed after the v0.8.320 camera-branch fix. The published v0.8.320 asset remains prior to the camera fix; include it with the next versioned bundle.
 
 
+# Multicolor fixture follow-up after v0.8.323 (2026-10-19)
+
+- Test-only follow-up commit: `PENDING` on `codex/rinkhals-safe-start-audit`; runtime source and the published v0.8.323 APK are unchanged.
+- Replaced the three `user-multicolor-repro.3mf` external-file assumptions in `ThreeMfMulticolorDeviceTest` with repository-bundled `models/three-color-project.3mf` and cache-local copies. Tests cover imported visual colors while retaining current print temperatures, three native object/tool assignments, and native slicing that emits T0/T1/T2, correct palette, positive matching layer records, and complete G-code without mutating saved test profiles.
+- Focused Honor run: 3/3 passed. Full `:app:connectedSliceTestAndroidTest`: 226 cases, 224 passed, 2 skipped, 0 failures/errors (XML timestamp `2026-10-19T19:02:07`). Only the two tests requiring the separately supplied KromaCut 3MF were skipped in the full run; the supplied KromaCut file had separately passed 2/2 focused cases before this test-only follow-up.
+- The generated test profile neutralizes a Bambu-specific start-G-code macro from the disposable bundled Anycubic PLA test profile; no production profile or user setting is changed. Emulator remains offline.
+

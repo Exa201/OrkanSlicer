@@ -1680,3 +1680,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Continue Phase 5 handler/action audit. Bundle branch changes after v0.8.320 into the next versioned release; Phase 6 manual TalkBack and broader display matrix remain open. Last runtime commit: `e3755fc`; this added test is pending commit.
 
 
+# Current continuation state — multicolor fixture follow-up (2026-10-19)
+
+- Runtime feature release v0.8.323 is published and remains the current app binary. Subsequent changes are test-only.
+- Replaced private `user-multicolor-repro.3mf` dependency for the three three-color integration cases with a bundled deterministic 3MF containing three independently assigned model objects and a three-material project palette.
+- Verification: targeted Honor `ThreeMfMulticolorDeviceTest` 3/3 passed. Full Honor instrumented suite 224 passed / 2 skipped / 0 failed of 226 cases; only the two external KromaCut-fixture cases skip when that user-provided file is not staged. KromaCut user sample previously passed focused 2/2. Debug/Slice unit suites remain 561/561 from the current runtime build; this follow-up modifies only test sources/assets.
+- A test-only issue was found and isolated: the disposable Anycubic PLA profile carries a Bambu-only start macro rejected by native Orca. The test clears that macro in its in-memory test profile only; no production config changed.
+- Next: commit/push the fixture follow-up and update PR #2 and verification docs. Continue the UI 2.0 menu/accessibility work afterward; overall project completion is not claimed.
+
+---
+

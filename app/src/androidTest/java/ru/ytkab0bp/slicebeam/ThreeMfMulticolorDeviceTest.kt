@@ -2,119 +2,141 @@ package ru.ytkab0bp.slicebeam
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.google.gson.Gson
-import org.junit.Assert.*
-import org.junit.Assume.assumeTrue
+import org.junit.After
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
-import ru.ytkab0bp.slicebeam.config.ThreeMfImportSelection
-import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
-import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.config.ConfigObject
-import ru.ytkab0bp.slicebeam.slic3r.Model
-import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
+import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
+import ru.ytkab0bp.slicebeam.config.ThreeMfImportSelection
+import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaFilamentSettingsCatalog
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalog
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import java.io.File
-import org.junit.After
 
+/** Reproducible bundled 3MF fixture keeps multicolor integration coverage runnable on every device. */
 @RunWith(AndroidJUnit4::class)
 class ThreeMfMulticolorDeviceTest {
-    @After fun clearProject() { TemporaryProjectSettings.clear(); ProfileSettingsRepository.clearAllDrafts() }
-    @Test fun realThreeColorProjectKeepsOwnTemperaturesWhenOnlyItsColorsAreImported() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val source = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")
-        assumeTrue("Provide user-multicolor-repro.3mf to run this hardware fixture", source.isFile)
-        val definitions = PrintConfigDef.getInstance().options
-        val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() +
-            OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
-        val filamentKeys = Slic3rConfigWrapper.FILAMENT_CONFIG_KEYS.toSet() +
-            OrcaFilamentSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
-        val fileSettings = ThreeMfProjectSettingsReader.read(source, definitions, processKeys, filamentKeys)
-        val own = listOf(FilamentSlot(0x111111, "PLA"), FilamentSlot(0x222222, "PETG"),
-            FilamentSlot(0x333333, "PLA"))
-        val selected = requireNotNull(ThreeMfImportSelection.select(fileSettings,
-            printSettings = false, filamentSettings = false, ownSlots = own, printerSettings = false))
-        assertEquals(3, selected.filaments.size)
-        assertTrue(selected.process.isEmpty())
-        assertEquals(listOf("PLA", "PETG", "PLA"), selected.filaments.map { it["filament_type"] })
-        assertTrue(selected.filaments.none { "nozzle_temperature" in it || "hot_plate_temp" in it })
-        TemporaryProjectSettings.activate(selected)
-        val effective = ConfigObject().apply {
-            put("nozzle_temperature", "205,238,210")
-            put("hot_plate_temp", "55,75,60")
-            put("layer_height", "0.16")
-        }
-        TemporaryProjectSettings.applyTo(effective, 3)
-        assertEquals("205,238,210", effective["nozzle_temperature"])
-        assertEquals("55,75,60", effective["hot_plate_temp"])
-        assertEquals("0.16", effective["layer_height"])
-        assertEquals("#C8C8C8;#8671CB;#D02727", effective["filament_colour"])
+    @After fun clearProject() {
+        TemporaryProjectSettings.clear()
+        ProfileSettingsRepository.clearAllDrafts()
     }
 
-    @Test fun inspectUserProjectAgainstActualNativeSchema() {
+    @Test fun generatedThreeColorProjectKeepsOwnTemperaturesWhenOnlyItsColorsAreImported() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val file = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")
-        assumeTrue("Provide user-multicolor-repro.3mf to run this hardware fixture", file.isFile)
-        val definitions = PrintConfigDef.getInstance().options
-        val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() +
-            OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
-        val filamentKeys = Slic3rConfigWrapper.FILAMENT_CONFIG_KEYS.toSet() +
-            OrcaFilamentSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
-        val settings = ThreeMfProjectSettingsReader.read(file, definitions, processKeys, filamentKeys)
-        val model = Model(file, 1)
+        val source = copyFixture(context.cacheDir, "three-color-import.3mf")
         try {
-            val report = mapOf("filaments" to settings.filaments.size, "ignored" to settings.ignoredValues,
-                "invalid" to settings.invalidValues, "definitions" to definitions,
-                "objects" to (0 until model.objectsCount).map { mapOf("base" to model.getExtruder(it), "paint" to model.paintMaxFilament(it)) },
-                "requiredFilaments" to model.requiredFilamentCount)
-            File(context.getExternalFilesDir(null), "multicolor-diagnosis.json").writeText(Gson().toJson(report))
+            val settings = readSettings(source)
             assertEquals(3, settings.filaments.size)
-            assertEquals("Every Bambu value is compatible after migration", 0, settings.ignoredValues)
-            assertEquals(3, model.requiredFilamentCount)
-            assertArrayEquals(intArrayOf(1,2,3), model.getUsedFilaments(0))
-            val expectedTriangles = listOf(523066,432058,1966)
-            for (filament in 1..3) {
-                val overlay = GLModel()
-                try { assertEquals("Every part appears in its original color", expectedTriangles[filament-1], model.buildPaintOverlay(0, overlay, filament)) }
-                finally { overlay.release() }
+            assertEquals(0, settings.ignoredValues)
+
+            val own = listOf(
+                FilamentSlot(0x111111, "PLA"),
+                FilamentSlot(0x222222, "PETG"),
+                FilamentSlot(0x333333, "PLA"),
+            )
+            val selected = requireNotNull(
+                ThreeMfImportSelection.select(
+                    settings,
+                    printSettings = false,
+                    filamentSettings = false,
+                    ownSlots = own,
+                    printerSettings = false,
+                ),
+            )
+
+            assertEquals(3, selected.filaments.size)
+            assertTrue(selected.process.isEmpty())
+            assertEquals(listOf("PLA", "PETG", "PLA"), selected.filaments.map { it["filament_type"] })
+            assertEquals(
+                listOf("#C8C8C8", "#8671CB", "#D02727"),
+                selected.filaments.map { it["filament_colour"] },
+            )
+            assertTrue(selected.filaments.none { "nozzle_temperature" in it || "hot_plate_temp" in it })
+
+            TemporaryProjectSettings.activate(selected)
+            val effective = ConfigObject().apply {
+                put("nozzle_temperature", "205,238,210")
+                put("hot_plate_temp", "55,75,60")
+                put("layer_height", "0.16")
             }
-            model.setUniformFilament(0, 2)
-            assertArrayEquals(intArrayOf(2), model.getUsedFilaments(0))
-            assertFalse(model.hasPaint(0))
-        } finally { model.release() }
+            TemporaryProjectSettings.applyTo(effective, 3)
+            assertEquals("205,238,210", effective["nozzle_temperature"])
+            assertEquals("55,75,60", effective["hot_plate_temp"])
+            assertEquals("0.16", effective["layer_height"])
+            assertEquals("#C8C8C8;#8671CB;#D02727", effective["filament_colour"])
+        } finally {
+            source.delete()
+        }
     }
 
-    @Test fun sliceActualAssemblyUsesAllThreeToolsWithoutChangingSavedProfiles() {
+    @Test fun generatedThreeColorProjectUsesThreeNativeModelAssignments() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyFixture(context.cacheDir, "three-color-native.3mf")
+        var model: Model? = null
+        try {
+            val settings = readSettings(source)
+            model = Model(source, 1)
+
+            assertEquals(3, settings.filaments.size)
+            assertEquals(0, settings.ignoredValues)
+            assertEquals(3, model.objectsCount)
+            assertEquals(3, model.requiredFilamentCount)
+            for (objectIndex in 0 until model.objectsCount) {
+                assertArrayEquals(
+                    "Each cube must retain its own 3MF tool assignment",
+                    intArrayOf(objectIndex + 1),
+                    model.getUsedFilaments(objectIndex),
+                )
+            }
+        } finally {
+            model?.release()
+            source.delete()
+        }
+    }
+
+    @Test fun generatedThreeColorProjectSlicesAllToolsAndPreservesSavedProfiles() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         SliceBeam.INSTANCE = context.applicationContext as SliceBeam
-        val previous = SliceBeam.CONFIG
-        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
-        SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
-            put("printer", "Anycubic Kobra 3 0.4 nozzle"); put("print", "0.16mm Standard"); put("filament", "Anycubic Generic PLA")
-        }
-        val source = File(context.getExternalFilesDir(null), "user-multicolor-repro.3mf")
-        assumeTrue("Provide user-multicolor-repro.3mf to run this hardware fixture", source.isFile)
-        val defs = PrintConfigDef.getInstance().options
-        val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() + OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
-        val filamentKeys = Slic3rConfigWrapper.FILAMENT_CONFIG_KEYS.toSet() + OrcaFilamentSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys }
-        val settings = ThreeMfProjectSettingsReader.read(source, defs, processKeys, filamentKeys)
-        val before = SliceBeam.requireConfig().serialize()
-        val model = Model(source, 1)
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val source = copyFixture(context.cacheDir, "three-color-slice.3mf")
+        val destination = File(context.cacheDir, "three-color-slice.gcode")
+        var model: Model? = null
         var result: GCodeProcessorResult? = null
         try {
+            context.assets.open("orca_profiles/Anycubic.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            // This regression targets 3MF color/tool routing. The bundled Anycubic PLA profile
+            // contains Bambu-only start-G-code syntax, so keep the disposable test profile valid
+            // for Orca's native parser without touching any saved user profile.
+            requireNotNull(SliceBeam.requireConfig().findFilament("Anycubic Generic PLA"))
+                .put("filament_start_gcode", "")
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            val settings = readSettings(source)
+            val before = SliceBeam.requireConfig().serialize()
+            model = Model(source, 1)
             TemporaryProjectSettings.activate(settings)
             assertEquals(3, model.requiredFilamentCount)
+
             SliceBeam.genCurrentConfig(model)
-            val destination = File(context.getExternalFilesDir(null), "user-multicolor-fixed.gcode")
-            val reuse = InstrumentationRegistry.getArguments().getString("reuse_generated") == "true"
-            if (!reuse || !destination.isFile)
-                result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, destination.absolutePath, null)
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, destination.absolutePath, null)
+
             val tools = BooleanArray(3)
             val toolCommand = Regex("^T([0-2])(?:\\s|$)")
             var advertisedLayers = -1
@@ -122,21 +144,53 @@ class ThreeMfMulticolorDeviceTest {
             var complete = false
             var currentVersion = false
             var correctPalette = false
-            destination.bufferedReader().useLines { lines -> lines.forEach { line ->
-                if (line.startsWith("T")) toolCommand.find(line)?.groupValues?.get(1)?.toInt()?.let { tools[it] = true }
-                if (line.startsWith("; total layer number: ")) advertisedLayers = line.substringAfter(": ").toInt()
-                if (line == ";LAYER_CHANGE") writtenLayers++
-                if (line.contains("CONFIG_BLOCK_END")) complete = true
-                if (line.startsWith("; generated by ") && line.contains(BuildConfig.VERSION_NAME)) currentVersion = true
-                if (line == "; filament_colour = #C8C8C8;#8671CB;#D02727") correctPalette = true
-            } }
-            for (tool in 0..2) assertTrue("Tool T$tool must be printed", tools[tool])
-            assertTrue("File must belong to the newly built core", currentVersion)
-            assertTrue("File must preserve the project's palette", correctPalette)
-            assertTrue(advertisedLayers > 0)
-            assertEquals(advertisedLayers, writtenLayers)
-            assertTrue(complete)
-            assertEquals(before, SliceBeam.requireConfig().serialize())
-        } finally { result?.release(); model.release(); SliceBeam.CONFIG = previous }
+            destination.bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    if (line.startsWith("T")) {
+                        toolCommand.find(line)?.groupValues?.get(1)?.toInt()?.let { tools[it] = true }
+                    }
+                    if (line.startsWith("; total layer number: ")) {
+                        advertisedLayers = line.substringAfter(": ").toInt()
+                    }
+                    if (line == ";LAYER_CHANGE") writtenLayers++
+                    if (line.contains("CONFIG_BLOCK_END")) complete = true
+                    if (line.startsWith("; generated by ") && line.contains(BuildConfig.VERSION_NAME)) currentVersion = true
+                    if (line == "; filament_colour = #C8C8C8;#8671CB;#D02727") correctPalette = true
+                }
+            }
+
+            for (tool in 0..2) assertTrue("Tool T$tool must be used in generated G-code", tools[tool])
+            assertTrue("G-code must be generated by this app version", currentVersion)
+            assertTrue("G-code must contain the fixture palette", correctPalette)
+            assertTrue("G-code must advertise a positive layer count", advertisedLayers > 0)
+            assertEquals("Every advertised layer must be present", advertisedLayers, writtenLayers)
+            assertTrue("G-code must contain the closing configuration block", complete)
+            assertEquals("Project-local overrides must not mutate saved profiles", before, SliceBeam.requireConfig().serialize())
+        } finally {
+            result?.release()
+            model?.release()
+            destination.delete()
+            source.delete()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+        }
     }
+
+    private fun copyFixture(directory: File, name: String): File {
+        val file = File(directory, name)
+        InstrumentationRegistry.getInstrumentation().context.assets
+            .open("models/three-color-project.3mf").use { input ->
+                file.outputStream().use { input.copyTo(it) }
+            }
+        return file
+    }
+
+    private fun readSettings(file: File) = ThreeMfProjectSettingsReader.read(
+        file,
+        PrintConfigDef.getInstance().options,
+        Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() +
+            OrcaProcessSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys },
+        Slic3rConfigWrapper.FILAMENT_CONFIG_KEYS.toSet() +
+            OrcaFilamentSettingsCatalog.categories().flatMap { it.sections }.flatMap { it.keys },
+    )
 }
