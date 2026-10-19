@@ -18,6 +18,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -2073,6 +2074,11 @@ class InitialProjectMenuDeviceTest {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val modelFile = File(activity.cacheDir, "menu-paint-actions-test.stl")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "UI Paint Base"),
+            FilamentSlot(0xFF3366CC.toInt(), "UI Paint Accent"),
+        ))
         try {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
@@ -2116,9 +2122,35 @@ class InitialProjectMenuDeviceTest {
                     readTriangleCountOnGl(glView, 0))
                 assertTrue("Paint tool exit should retain the renderer view", bed.glView === glView)
             }
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(14)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            }
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
+            compose.onAllNodesWithContentDescription(
+                activity.getString(R.string.FilamentPaletteSlotDescription, 2, "UI Paint Accent")
+            ).get(0).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                requireNotNull(bed.currentModel).getUsedFilaments(0).contentEquals(intArrayOf(2))
+            }
+            compose.onNodeWithText(activity.getString(R.string.ActionDone))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+            instrumentationWaitForGlIdle()
+            assertArrayEquals("the color panel base-filament action should update the native model",
+                intArrayOf(2), requireNotNull(bed.currentModel).getUsedFilaments(0))
+            assertFalse("changing the base filament should not fabricate facet paint",
+                requireNotNull(bed.currentModel).hasPaint(0))
+            assertEquals("changing the base filament must preserve mesh topology", trianglesBefore,
+                readTriangleCountOnGl(glView, 0))
         } finally {
             if (bed.isPaintMode) bed.onBackPressed()
             modelFile.delete()
+            Prefs.setStoredFilamentSlots(previousSlots)
         }
     }
 
