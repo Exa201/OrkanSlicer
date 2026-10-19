@@ -1449,3 +1449,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Commit `a0dadbed9d400df5afd015f486ff41392c2844e2`: `:app:connectedSliceTestAndroidTest` passed on Honor PTP-N49 / Android 16: 212 JUnit cases, 207 passed, 5 fixture skips, 0 failures/errors; XML `2026-10-19T10:47:59` UTC. Two KromaCut cases were skipped because their temporary fixture copy was not present in this run; both had previously passed 2/2 using the supplied user fixture. Three separate private multicolor fixtures remain unavailable. Emulator offline.
 - `:app:testDebugUnitTest` 562/562 and `:app:testSliceTestUnitTest` 562/562 passed, with 0 failures/errors/skips.
 - PR #2 is open and currently mergeable at head `a0dadbed9d400df5afd015f486ff41392c2844e2`. No production code changed, so no runtime APK rebuild was needed.
+
+## Full Honor suite with supplied KromaCut 3MF — 2026-10-19
+
+- The unchanged supplied file (SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`) was copied only to the SliceTest app's external-files sandbox on Honor PTP-N49. Both `KromaCutThreeMfDeviceTest` cases ran in the complete suite.
+- `:app:connectedSliceTestAndroidTest`: 212 JUnit cases, 209 passed, 3 skipped for separate unavailable private multicolor fixtures, 0 failures/errors; XML `2026-10-19T10:58:49` UTC. Emulator offline.
+- The temporary device copy was removed after the run; the workspace original was untouched. Debug and Slice unit suites remain 562/562 each. No production source changes and no runtime APK rebuild.

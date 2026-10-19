@@ -1484,3 +1484,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `:app:testDebugUnitTest` 562/562 und `:app:testSliceTestUnitTest` 562/562 bestanden, je 0 Fehler/Skips. Lauf erfolgreich.
 - PR #2 bleibt offen, Kopf `a0dadbed9d400df5afd015f486ff41392c2844e2`, Status `MERGEABLE`. Kein Produktcode geändert, deshalb kein Laufzeit-APK neu gebaut.
 - Phase 4 abgeschlossen. Phase 5 bleibt aktiv; die vollständige Menü-Handleraktionsmatrix ist offen. Phase 6 teilweise offen: TalkBack nicht manuell traversiert und zusätzliche physische Displaykonfigurationen fehlen. Nächster Schritt: den verbleibenden globalen Drucker-/Rinkhals-/Profilhandlerbestand gegen echte UI-Tests abgleichen und weitere sichere, bislang ungeprüfte Aktionen auf Honor abnehmen.
+
+## Vollsuite mit bereitgestellter Nutzer-3MF — Honor (2026-10-19)
+
+- Vor `:app:connectedSliceTestAndroidTest` wurde die unveränderte Nutzerdatei (SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`) ausschließlich in die External-Files-Sandbox der SliceTest-App auf Honor PTP-N49 kopiert. Die zwei `KromaCutThreeMfDeviceTest`-Fälle liefen damit in der Gesamtsuite statt zu skippen.
+- Vollständige Instrumentierung auf Code `a0dadbe`: 212 Fälle, 209 bestanden, 3 private Mehrfarben-Fixturetests übersprungen, 0 Fehler/Errors; XML `2026-10-19T10:58:49` UTC. `emulator-5554` offline.
+- Die temporäre Gerätedatei wurde nach dem Lauf entfernt; die Workspace-Originaldatei blieb unverändert. Debug- und Slice-Unit-Suites bestehen weiterhin je 562/562. Produktionsquellen nicht geändert; kein Laufzeit-APK-Neubau.
+- PR #2 bleibt offen. Phase 5 (vollständige Aktionen-/Handlerabnahme) und Phase 6 (manuelles TalkBack und weitere physische Displays) sind weiterhin unvollständig; nächste Arbeit: noch nicht abgedeckte sichere globale Drucker-/Rinkhals-/Profilaktionen aus dem Code gegen Gerätetests abgleichen.
