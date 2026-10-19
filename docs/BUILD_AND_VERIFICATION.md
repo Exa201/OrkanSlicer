@@ -1,5 +1,11 @@
 # Global Maker navigation and complete Honor regression — 2026-10-19
 
+## Navigation accessibility bounds — Honor (2026-10-19)
+
+- Extended `AdaptiveWorkspaceNavigationDeviceTest` with minimum 48 dp destination bounds under standard and 150% font scaling, selected/not-selected semantics, and activation of the final rail destination after scrolling.
+- Focused Honor instrumentation: 3 tests, 3 passed, 0 skipped/failures/errors; JUnit XML timestamp `2026-10-19T12:46:51`. This is automated Compose semantics/bounds coverage, not a manual TalkBack traversal.
+- Test/docs only; production source, version 0.8.317, and APK are unchanged.
+
 ## Final verification — 0.8.317 rail hint fix, commit `2ec3501` (2026-10-19)
 
 - Full Honor `:app:connectedSliceTestAndroidTest`: 216 XML cases, 211 passed, 5 skipped, 0 failures/errors; XML `2026-10-19T12:39:15`. Two KromaCut cases and three private multicolor cases skipped because their separate fixture files were absent. Emulator offline.

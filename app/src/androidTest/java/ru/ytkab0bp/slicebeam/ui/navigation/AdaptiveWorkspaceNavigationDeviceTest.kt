@@ -7,7 +7,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -61,6 +64,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
         WorkspaceDestination.values().forEach { destination ->
             compose.onNodeWithContentDescription(context.getString(destination.navigationTitleRes))
                 .assertIsDisplayed()
+                .assertHeightIsAtLeast(48.dp)
         }
         compose.onNodeWithContentDescription(editLabel).assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(WorkspaceDestination.EDIT.ordinal, selected.intValue) }
@@ -100,6 +104,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
         WorkspaceDestination.values().forEach { destination ->
             compose.onNodeWithContentDescription(context.getString(destination.navigationTitleRes))
                 .assertIsDisplayed()
+                .assertHeightIsAtLeast(48.dp)
         }
         compose.onNodeWithText(context.getString(R.string.MenuOptionsCompact)).assertIsDisplayed()
     }
@@ -107,6 +112,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
     @Test
     fun shortNavigationRailShowsScrollHintAndCanReachLastDestination() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val selected = mutableIntStateOf(WorkspaceDestination.PROJECT.ordinal)
         val items = WorkspaceDestination.values().map { destination ->
             WorkspaceNavigationItem(
                 slot = destination.ordinal,
@@ -122,9 +128,9 @@ class AdaptiveWorkspaceNavigationDeviceTest {
                     Box(Modifier.width(100.dp).height(180.dp)) {
                         AdaptiveWorkspaceNavigation(
                             items = items,
-                            selectedSlot = WorkspaceDestination.PROJECT.ordinal,
+                            selectedSlot = selected.intValue,
                             isBottomNavigation = false,
-                            onSelected = {},
+                            onSelected = { selected.intValue = it },
                         )
                     }
                 }
@@ -136,7 +142,14 @@ class AdaptiveWorkspaceNavigationDeviceTest {
         compose.onNodeWithContentDescription(context.getString(R.string.NavigationScrollMoreBelow))
             .assertIsDisplayed()
 
-        compose.onNodeWithContentDescription(lastLabel).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription(lastLabel)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp)
+            .assertIsNotSelected()
+            .performClick()
+        compose.onNodeWithContentDescription(lastLabel).assertIsSelected()
+        compose.runOnIdle { assertEquals(lastDestination.ordinal, selected.intValue) }
         compose.onNodeWithContentDescription(context.getString(R.string.NavigationScrollMoreAbove))
             .assertIsDisplayed()
     }

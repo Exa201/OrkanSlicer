@@ -1,5 +1,11 @@
 # Latest continuation — Maker nested navigation and complete Honor regression (2026-10-19)
 
+## Navigation accessibility assertions — Honor (2026-10-19)
+
+- `AdaptiveWorkspaceNavigationDeviceTest` now checks 48 dp minimum touch bounds for all six destinations at standard and 150% font scaling, and verifies the selected-state semantics after activating a rail destination reached by scrolling.
+- Focused Honor run: 3/3 passed, 0 skips/failures/errors; XML timestamp `2026-10-19T12:46:51`. The short-rail test also verifies the scroll hint is announced and that the last destination can be selected.
+- Instrumentation/test-only change; no product runtime source or APK changed. Manual TalkBack traversal and broader Phase 5 menu action audit remain open. Next: continue mapping remaining global printer/profile actions and their existing device coverage, then resume responsive/accessibility checks.
+
 ## Latest verified workspace rail update — 2026-10-19, commit `2ec3501`
 
 - Version 0.8.317 / code 352 adds localized scroll-edge hints to overflowing vertical rails and reserves edge space so arrows do not cover navigation icons. The 100×180 dp / 130% Compose rail test passed; physical Honor confirms the arrows remain outside the destination icons.
