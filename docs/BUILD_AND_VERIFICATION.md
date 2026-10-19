@@ -1247,3 +1247,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - The device fixture now includes an untrusted printer ID, host, Moonraker connection type, API key, and Web UI URL beside valid print/filament settings. The selected physical printer keeps its own connection settings and active preset; imported filament/process values remain available.
 - Full TemporaryProjectSettingsDeviceTest passed 3/3 on Honor PTP-N49 / Android 16 (0 skipped/failures; XML timestamp 2026-10-18T20:41:24). This includes a native slice using both imported filament temperatures. Emulator offline.
 - Instrumentation-only change; no runtime files or v0.8.314 APK changed. Broader UI 2.0 menu/action audit and manual TalkBack traversal remain open.
+
+# Honor verification — 2026-10-19 (model menu action audit)
+
+- `:app:connectedSliceTestAndroidTest`: 202 cases, 197 passed, 5 skipped due to unavailable private KromaCut/multicolor fixtures, 0 failures/errors. JUnit XML: `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, timestamp `2026-10-19T02:42:07` UTC. Offline emulator skipped.
+- `InitialProjectMenuDeviceTest`: 26/26 passed on Honor PTP-N49 / Android 16. Added actual UI/GL behavior checks for Center on Bed, Flatten mode on/off without mesh mutation, and moving an object between two workspace plates.
+- `:app:testDebugUnitTest`: 561/561; `:app:testSliceTestUnitTest`: 561/561; no failures, errors, or skips.
+- `:app:assembleDebug`: successful. APK `OrkanSlicer_60114a150c.apk`, 157,232,891 bytes, SHA-256 `CE2CB5609E428032EB3C6A774737290AF9AF7CE27D2DF4206B7322FA9C36793B`, app version `0.8.316` / code `351`. Installed with `adb install -r` and launched on Honor; `MainActivity` top-resumed. Last 5,000 logcat lines had no crash, ANR, OOM, or fatal-signal markers.
+- Test-only source changes; no production app version/release change. Phase 5 menu action audit and Phase 6 manual TalkBack traversal remain open.

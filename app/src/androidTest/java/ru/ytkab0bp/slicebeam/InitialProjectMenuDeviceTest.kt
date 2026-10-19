@@ -1038,6 +1038,156 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuCenterOnBedRunsNativeCenteringForSelectedObject() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-center-on-bed-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+
+            // Move only this disposable fixture away from the bed center before using the real menu action.
+            glView.queueEvent {
+                model.translate(0, 37.0, -23.0, 0.0)
+                glView.requestRender()
+            }
+            instrumentationWaitForGlIdle()
+            val translationBefore = readTranslationOnGl(glView, 0)
+
+            openModelMenu(activity)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ModelMenuCenterOnBedShort))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val centerAction = compose.onNodeWithText(activity.getString(R.string.ModelMenuCenterOnBedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled()
+            centerAction.performClick()
+
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val after = readTranslationOnGl(glView, 0)
+                kotlin.math.abs(after.x - translationBefore.x) > 1.0 ||
+                    kotlin.math.abs(after.y - translationBefore.y) > 1.0
+            }
+            val translationAfter = readTranslationOnGl(glView, 0)
+            assertTrue(
+                "Center on Bed must alter the selected disposable model's native placement",
+                kotlin.math.abs(translationAfter.x - translationBefore.x) > 1.0 ||
+                    kotlin.math.abs(translationAfter.y - translationBefore.y) > 1.0,
+            )
+            assertEquals("centering must not add or remove models", 1, readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun modelMenuFlattenToggleEntersAndLeavesRendererModeWithoutEditingModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-flatten-toggle-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val triangleCount = readTriangleCountOnGl(glView, 0)
+
+            openModelMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(8)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ModelMenuFlattenShort))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val flatten = compose.onNodeWithText(activity.getString(R.string.ModelMenuFlattenShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled()
+            flatten.performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                readRendererBooleanOnGl(glView, "isInFlattenMode")
+            }
+            assertTrue("Flatten action should activate the renderer's flatten interaction mode",
+                readRendererBooleanOnGl(glView, "isInFlattenMode"))
+            assertEquals("entering Flatten mode must not edit the mesh", triangleCount,
+                readTriangleCountOnGl(glView, 0))
+
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuFlattenShort))
+                .performScrollTo().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                !readRendererBooleanOnGl(glView, "isInFlattenMode")
+            }
+            assertFalse("second Flatten action should leave the renderer interaction mode",
+                readRendererBooleanOnGl(glView, "isInFlattenMode"))
+            assertEquals("leaving Flatten mode must preserve the mesh", triangleCount,
+                readTriangleCountOnGl(glView, 0))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun modelMenuMoveToPlateTransfersSelectedObjectBetweenWorkspacePlates() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-move-to-plate-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            assertEquals(1, bed.plateCount)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.plateCount == 2 && bed.currentPlateIndex == 1
+            }
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 1
+            }
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuMoveToPlateShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithText(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                bed.currentPlateIndex == 1 && readObjectCountOnGl(glView) == 1
+            }
+            assertEquals("moving the selected object should keep the workspace's two plates", 2, bed.plateCount)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 0
+            }
+            assertEquals("the moved object must no longer exist on the source plate", 0,
+                readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelMenuDeleteAllCancelAndBackPreserveTheLoadedModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -1554,6 +1704,9 @@ class InitialProjectMenuDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val controller = BedFragment::class.java.getDeclaredField("workspaceController")
             .apply { isAccessible = true }.get(bed)
+        compose.waitUntil(timeoutMillis = 5_000) {
+            !(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
+        }
         val editSlot = WorkspaceDestination.EDIT.ordinal
         val shouldNavigate = controller.javaClass.getMethod("getSelectedDestinationSlot")
             .invoke(controller) != editSlot
@@ -1563,10 +1716,33 @@ class InitialProjectMenuDeviceTest {
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == editSlot &&
-                    controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true
+                    controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true &&
+                    !(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
             }
         }
         compose.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
+    }
+
+    private fun openModelMenu(activity: MainActivity) {
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+            .apply { isAccessible = true }.get(bed)
+        compose.waitUntil(timeoutMillis = 5_000) {
+            !(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
+        }
+        val modelSlot = WorkspaceDestination.MODEL.ordinal
+        val shouldNavigate = controller.javaClass.getMethod("getSelectedDestinationSlot")
+            .invoke(controller) != modelSlot
+        val shouldExpand = !(controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
+        if (shouldNavigate || shouldExpand) {
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == modelSlot &&
+                    controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true &&
+                    !(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
+            }
+        }
     }
 
     @Test

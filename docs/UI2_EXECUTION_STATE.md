@@ -1,5 +1,14 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Phase-5-Fortsetzung: echte Modellmenüaktionen und Vollregression — 2026-10-19
+
+- Drei zusätzliche echte Honor-Compose/GL-Handler-Tests in `InitialProjectMenuDeviceTest`: Center on Bed verschiebt ein temporäres STL-Objekt nativ zur Bettmitte; Flatten aktiviert/deaktiviert den Renderer-Modus ohne Meshänderung; Move to Plate verschiebt ein temporäres Objekt zwischen zwei Workspace-Platten und verifiziert Ziel- sowie Quellbestand.
+- Die komplette `InitialProjectMenuDeviceTest`-Klasse bestand auf Honor PTP-N49 / Android 16 mit 26/26, 0 Fehlern und 0 Skips. Damit sind diese drei Aktionen zusätzlich zu den zuvor bereits abgedeckten Projekt-/Modellaktionen tatsächlich über die UI ausgeführt.
+- Vollständige `:app:connectedSliceTestAndroidTest`: 202 Testfälle, 197 bestanden, 5 private KromaCut/Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors; XML-Zeitstempel `2026-10-19T02:42:07` UTC. Gradle-Ausgabe zählte 207 Ausführungen einschließlich wiederholter/übersprungener Runnerfälle. Offline-Emulator wurde übersprungen.
+- `:app:testDebugUnitTest` 561/561 und `:app:testSliceTestUnitTest` 561/561, jeweils 0 Fehler/Errors/Skips; `:app:assembleDebug` erfolgreich. APK `OrkanSlicer_60114a150c.apk`, 157,232,891 Byte, SHA-256 `CE2CB5609E428032EB3C6A774737290AF9AF7CE27D2DF4206B7322FA9C36793B`; Paket 0.8.316 / versionCode 351. Auf Honor installiert und gestartet; `MainActivity` top-resumed. Letzte 5.000 Logcat-Zeilen ohne Crash-, ANR-, OOM- oder Fatal-Signal-Marker.
+- Der erste aggregierte 25-Testlauf schlug wegen eines versehentlich falschen Menüziels im Testhelper fehl; nach Wiederherstellung des Edit-Ziels bestand die gesamte Klasse 25/25. Der anschließend ergänzte Move-to-Plate-Test bestand einzeln und die aktualisierte Klasse danach 26/26. Kein reproduzierbarer Produktfehler.
+- Nur Instrumentierungstests geändert; Runtime-Version bleibt `0.8.316`. Phase 5 bleibt offen: weitere Handler aus den tatsächlichen Hauptmenüs und globalen Aktionen müssen noch funktional abgenommen werden. Phase 6 bleibt offen für manuelle TalkBack-Traversierung und nicht physisch simulierte Display-/Schriftkombinationen. Nächster Schritt: Aktionen der Ansicht/Kamera- und Werkzeugmenüs mit realen Zustandsassertionen gegen vorhandene Gerätetests abgleichen.
+
 ## Changelog-Versionsfehler behoben, v0.8.316 verifiziert — 2026-10-19
 
 - Die vollständige Honor-Suite hatte zuerst 1 Fehler: `ChangeLogComposeDeviceTest` fand in `app/src/main/assets/update.json` noch `0.8.314`, während `BuildConfig.VERSION_NAME` bereits `0.8.315` war. Ursache war ein nachfolgender Versionsbump ohne Aktualisierung der dreisprachigen In-App-Notizen. Kein Test wurde abgeschwächt.
