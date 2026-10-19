@@ -1285,3 +1285,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Der UI-Integrationstest scrollt zu den unteren Dropdown-Aktionen, erstellt eine temporäre Kopie des aktiven Druckerprofils, prüft kopierte Werte, löscht die Kopie über dasselbe Menü und stellt danach Presetauswahl und per-Drucker-Auswahlen wieder her.
 - Der erste Explorationsentwurf brachte die langen Menüaktionen nicht in den sichtbaren Scrollbereich; das war ein Testinteraktionsproblem, kein nachgewiesener Produktfehler. Die korrigierte Scroll-Interaktion und die ganze Klasse bestanden.
 - Phase 5 vollständiger Menü-Aktionsaudit und Phase 6 manuelle TalkBack-/weitere physische Displayprüfungen bleiben offen.
+
+## Aktueller Fortsetzungsstand nach Commit 9c03ddd (2026-10-19)
+
+- Phase 4: anhand WorkspaceShell/RendererAdapter-Integration, Rotationstest und stabiler GLView-Rückkehr weiterhin abgenommen. Der Querformat-Crash im Workspace-Header ist behoben und auf Honor reproduktionsnah geprüft.
+- Phase 5: weiterhin offen. Bereits vorhandene Projekt-/Modell-/Kamera-/Bearbeiten-/Slicing- und Einstellungen-Aktionen sind in `BUILD_AND_VERIFICATION.md` verzeichnet; der Audit sämtlicher Menüeinträge ist nicht geschlossen.
+- Phase 6: teilweise. Honor ca. 366 dp, 100 % und 150 % Systemschrift sowie simulierte Compose-Bounds geprüft; manuelle TalkBack-Traversierung und weitere physische Breiten/Ausrichtungen fehlen.
+- Build: `:app:assembleDebug` erfolgreich auf `9c03ddd6b077c67ca4b1f8fad58f677d4759ca08`; APK `OrkanSlicer_9c03ddd6b0.apk`, SHA-256 `AA11FECEDC95020522A12BCAE8291305386A99F80CF399D00A8AC476CCCD3451`. Installation und Start auf Honor erfolgreich.
+- Nächster Schritt: Phase-5-Menüaktionsmatrix gegen aktuelle Compose-Handler und bestehende Gerätetests abgleichen und eine konkrete, noch offene globale/Druckeraktion end-to-end auf isoliertem Testzustand abnehmen. Keine Release-Veröffentlichung, solange die vereinbarte nächste Phase nicht abgeschlossen ist.

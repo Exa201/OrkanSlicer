@@ -1293,3 +1293,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - `:app:testDebugUnitTest`: 561/561; `:app:testSliceTestUnitTest`: 561/561; no failures, errors, or skips.
 - `:app:assembleDebug`: successful. APK `OrkanSlicer_60114a150c.apk`, 157,232,891 bytes, SHA-256 `CE2CB5609E428032EB3C6A774737290AF9AF7CE27D2DF4206B7322FA9C36793B`, app version `0.8.316` / code `351`. Installed with `adb install -r` and launched on Honor; `MainActivity` top-resumed. Last 5,000 logcat lines had no crash, ANR, OOM, or fatal-signal markers.
 - Test-only source changes; no production app version/release change. Phase 5 menu action audit and Phase 6 manual TalkBack traversal remain open.
+
+## Debug-Build nach Landscape-Fix — 2026-10-19
+
+- Code-Commit: `9c03ddd6b077c67ca4b1f8fad58f677d4759ca08` (`Fix workspace landscape header constraints`). `:app:assembleDebug` erfolgreich.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_9c03ddd6b0.apk`, 157,232,875 Bytes; SHA-256 `AA11FECEDC95020522A12BCAE8291305386A99F80CF399D00A8AC476CCCD3451`.
+- APK mit `adb install -r` auf Honor PTP-N49 installiert und Paket `com.codemastercody3d.orcaslicermobile` gestartet. Letzter Logcat-Ausschnitt zeigte keine FATAL EXCEPTION-, ANR- oder OOM-Marker. Emulator offline.
+- Zugrunde liegende Verifikation: Debug- und Slice-Unit-Suites je 561/561; vollständige Honor-Instrumentierung 206 Fälle, 201 bestanden, 5 private Fixtures übersprungen, 0 fehlgeschlagen; gezielter Rotationstest 1/1. Der Release-/UI-2.0-Abschluss ist damit nicht erklärt: Phase 5 Menü-Aktionsaudit und Phase 6 Accessibility/Layoutrest bleiben offen.
