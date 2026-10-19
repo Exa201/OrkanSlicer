@@ -1643,3 +1643,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor `InitialProjectMenuDeviceTest`: 35/35 passed, including actual camera pose and projection matrix assertions; Debug and Slice unit tests 562/562 each; Debug build succeeded. No full suite or new APK release was run for this post-v0.8.320 follow-up.
 - Next: commit/push this camera fix and its test, continue the source-handler action matrix and remaining global menu actions. Bundle camera correction in the next versioned release after the phase audit. TalkBack and the full responsive matrix remain open; multi-plate project persistence remains separate and incomplete.
 
+# Camera rapid-switch regression — Honor PTP-N49 (2026-10-19)
+
+- New `rapidCameraPresetChangesKeepTheLatestSelection` test passed 1/1 on Honor / Android 16. It selects Top then Right in quick succession and validates the final camera pose on the GL thread after settling.
+- The prior full `InitialProjectMenuDeviceTest` class passed 35/35 with the GL-thread camera changes; combined, 36 distinct tests are green across the two runs. No production code/APK changed in this test-only follow-up.
+- Continue Phase 5 handler/action audit. Bundle branch changes after v0.8.320 into the next versioned release; Phase 6 manual TalkBack and broader display matrix remain open. Last runtime commit: `e3755fc`; this added test is pending commit.
+

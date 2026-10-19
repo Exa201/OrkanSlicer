@@ -1600,3 +1600,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - `InitialProjectMenuDeviceTest`: 35/35 passed on Honor PTP-N49 / Android 16. The camera tests now read camera pose and projection matrix through GL-queue barriers and confirm preset destinations and the actual projection matrix change.
 - Debug and Slice unit suites: 562/562 each, 0 failures/errors/skips. `:app:assembleDebug` succeeded. This source follow-up is on the branch after v0.8.320; the published v0.8.320 APK does not contain this later camera correction. Bundle this change into the next version/release after the current menu-audit phase.
 
+## Camera preset overlap regression — Honor PTP-N49 (2026-10-19)
+
+- Added `rapidCameraPresetChangesKeepTheLatestSelection`, which immediately switches from Top to Right and asserts on the GL queue that the last selected pose remains active after the animations settle.
+- Focused Honor run passed 1/1, 0 skips/failures/errors. Together with the preceding 35/35 `InitialProjectMenuDeviceTest` run against the same camera implementation, all 36 test methods in that class have passed across the two runs.
+- Test-only follow-up; no runtime source or APK changed after the v0.8.320 camera-branch fix. The published v0.8.320 asset remains prior to the camera fix; include it with the next versioned bundle.
+

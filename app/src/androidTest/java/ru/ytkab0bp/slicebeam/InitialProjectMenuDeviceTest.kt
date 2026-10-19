@@ -1208,6 +1208,52 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun rapidCameraPresetChangesKeepTheLatestSelection() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelBed = requireNotNull(glView.renderer.bed)
+        val min = requireNotNull(modelBed.getVolumeMin())
+        val max = requireNotNull(modelBed.getVolumeMax())
+        val target = CameraPresetGeometry.resolve(
+            CameraPreset.RIGHT,
+            CameraVector(min.x, min.y, min.z),
+            CameraVector(max.x, max.y, max.z),
+        )
+
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuCamera))
+            .assertIsDisplayed()
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithContentDescription(activity.getString(R.string.MenuCameraTop))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuCameraTop))
+            .assertIsDisplayed().performClick()
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(7)
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuCameraRight))
+            .performScrollTo().assertIsDisplayed().performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            val pose = readCameraPoseOnGl(glView)
+            kotlin.math.abs(pose[0] - target.origin.x) < 0.1 &&
+                kotlin.math.abs(pose[1] - target.origin.y) < 0.1 &&
+                kotlin.math.abs(pose[2] - target.origin.z) < 0.1 &&
+                kotlin.math.abs(pose[3] - target.position.x) < 0.1 &&
+                kotlin.math.abs(pose[4] - target.position.y) < 0.1 &&
+                kotlin.math.abs(pose[5] - target.position.z) < 0.1
+        }
+        SystemClock.sleep(900L)
+        val finalPose = readCameraPoseOnGl(glView)
+        assertTrue(
+            "a queued earlier preset must not replace the latest camera selection",
+            kotlin.math.abs(finalPose[3] - target.position.x) < 0.1 &&
+                kotlin.math.abs(finalPose[4] - target.position.y) < 0.1 &&
+                kotlin.math.abs(finalPose[5] - target.position.z) < 0.1,
+        )
+    }
+
+    @Test
     fun modelMenuDuplicateActionAppliesRequestedCopyCountToNativeModel() {
         val activity = compose.activity
         val context = activity
