@@ -65,6 +65,7 @@ internal fun WorkspaceShell(
     printerWebButtonContent: @Composable () -> Unit,
     modePanelContent: (@Composable () -> Unit)?,
     modePanelSize: WorkspacePanelSize?,
+    modePanelAllowsBackgroundInteraction: Boolean,
     onModePanelDismiss: () -> Unit,
     transientPanelContent: (@Composable () -> Unit)?,
     snackbarController: WorkspaceSnackbarController,
@@ -199,6 +200,7 @@ internal fun WorkspaceShell(
           WorkspaceModePanelHost(
               onDismiss = onModePanelDismiss,
               panelSize = modePanelSize,
+              allowBackgroundInteraction = modePanelAllowsBackgroundInteraction,
               content = modePanelContent,
           )
       }

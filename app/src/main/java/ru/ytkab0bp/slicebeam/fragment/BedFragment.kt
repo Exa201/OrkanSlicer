@@ -82,6 +82,8 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceOverlayPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebWorkspacePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
@@ -856,22 +858,33 @@ paintFinishPending.set(false)
 currentGlView.isPaintBrushActive = true
 currentGlView.queueEvent({ currentGlView.renderer.beginPaint(objectIndex, mode)
 currentGlView.requestRender() })
-showWorkspaceModePanel("paint-mode", ::cancelPaintMode) {
+showWorkspaceModePanel(
+    "paint-mode",
+    ::cancelPaintMode,
+    WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.Fraction(0.40f),
+        landscape = WorkspacePanelDimension.Fixed(360f),
+    ),
+) {
     PaintModePanel(
         glView = currentGlView,
         mode = mode,
-        onCommit = { finishPaintMode(commit = true) },
+        onCommit = { baseFilament -> finishPaintMode(commit = true, uniformFilament = baseFilament) },
         onCancel = { cancelPaintMode() },
     )
 }
 }
-private fun finishPaintMode(commit: Boolean) {
+private fun finishPaintMode(commit: Boolean, uniformFilament: Int? = null) {
     if (!paintFinishPending.compareAndSet(false, true)) return
     val currentGlView = glView
     exitPaintMode()
     if (currentGlView == null) return
     currentGlView.isPaintBrushActive = false
     currentGlView.queueEvent {
+        if (commit && uniformFilament != null) {
+            val objectIndex = currentGlView.renderer.paintObject
+            if (objectIndex >= 0) currentGlView.renderer.setObjectUniformFilament(objectIndex, uniformFilament)
+        }
         currentGlView.renderer.endPaint(commit)
         currentGlView.requestRender()
         ViewUtils.postOnMainThread {
@@ -942,9 +955,10 @@ showWorkspaceModePanel("emboss-mode", ::exitEmbossMode) {
 private fun showWorkspaceModePanel(
     toolId: String,
     onDismiss: () -> Unit,
+    panelSize: WorkspacePanelSize? = null,
     content: @Composable () -> Unit,
 ): Unit {
-    workspaceController.selectToolWithPanel(toolId, onDismiss, content)
+    workspaceController.selectToolWithPanel(toolId, onDismiss, content, panelSize)
 }
 private fun removeModePanelHost(toolId: String) {
     workspaceController.clearTool(toolId)
@@ -1439,6 +1453,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     },
                     modePanelContent = workspaceController.activeToolPanelContent,
                     modePanelSize = workspaceController.activeToolPanelSize,
+                    modePanelAllowsBackgroundInteraction = workspaceController.activeToolId == "paint-mode",
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },
                     transientPanelContent = workspaceController.activePanelContent,
                     snackbarController = snackbarController,

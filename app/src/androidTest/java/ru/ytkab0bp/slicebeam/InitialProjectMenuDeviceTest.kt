@@ -6,6 +6,8 @@ import android.app.Instrumentation.ActivityResult
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.view.InputDevice
+import android.view.MotionEvent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +29,9 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.geometry.Offset
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -52,6 +57,8 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.CameraVector
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -2134,19 +2141,105 @@ class InitialProjectMenuDeviceTest {
             compose.onAllNodesWithContentDescription(
                 activity.getString(R.string.FilamentPaletteSlotDescription, 2, "UI Paint Accent")
             ).get(0).assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) {
-                requireNotNull(bed.currentModel).getUsedFilaments(0).contentEquals(intArrayOf(2))
-            }
-            compose.onNodeWithText(activity.getString(R.string.ActionDone))
-                .assertIsDisplayed().performClick()
+            assertArrayEquals("a base-filament choice remains a draft until confirmed", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
             instrumentationWaitForGlIdle()
-            assertArrayEquals("the color panel base-filament action should update the native model",
-                intArrayOf(2), requireNotNull(bed.currentModel).getUsedFilaments(0))
+            assertArrayEquals(
+                "cancelling a paint session must restore the model's original base filament",
+                intArrayOf(1), readUsedFilamentsOnGl(glView, 0),
+            )
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(14)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            }
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
+            compose.onAllNodesWithContentDescription(
+                activity.getString(R.string.FilamentPaletteSlotDescription, 2, "UI Paint Accent")
+            ).get(0).assertIsDisplayed().performClick()
+            assertArrayEquals("choosing a base filament must not mutate the model before Done", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
+            compose.onNodeWithText(activity.getString(R.string.ActionDone))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+            instrumentationWaitForGlIdle()
+            assertArrayEquals("the confirmed color-panel base-filament action should update the native model",
+                intArrayOf(2), readUsedFilamentsOnGl(glView, 0))
             assertFalse("changing the base filament should not fabricate facet paint",
-                requireNotNull(bed.currentModel).hasPaint(0))
+                readModelHasPaintOnGl(glView, 0))
             assertEquals("changing the base filament must preserve mesh topology", trianglesBefore,
                 readTriangleCountOnGl(glView, 0))
+        } finally {
+            if (bed.isPaintMode) bed.onBackPressed()
+            modelFile.delete()
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
+    fun colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-paint-touch-test.stl")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "Touch Paint Base"),
+            FilamentSlot(0xFF3366CC.toInt(), "Touch Paint Accent"),
+        ))
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            assertFalse("paint touch fixture starts without facet assignments", readModelHasPaintOnGl(glView, 0))
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(14)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            }
+            compose.onAllNodesWithContentDescription(
+                activity.getString(R.string.FilamentPaletteSlotDescription, 2, "Touch Paint Accent")
+            ).get(1).assertIsDisplayed().performClick()
+
+            val point = findUncoveredPreciseSurfacePoint(glView, bed)
+            injectCanvasStroke(point.first, point.second)
+            val previewTriangles = readPaintPreviewTriangleCountOnGl(glView, 2)
+            assertTrue("an injected touch on a precise GL surface hit must create a paint preview; point=$point",
+                previewTriangles > 0)
+            assertFalse("painting remains a preview until Done", readModelHasPaintOnGl(glView, 0))
+
+            compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
+            compose.onNodeWithText(activity.getString(R.string.ActionDone))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+            compose.waitUntil(timeoutMillis = 10_000) { readModelHasPaintOnGl(glView, 0) }
+            val usedAfterPaint = readUsedFilamentsOnGl(glView, 0)
+            assertTrue("the actual canvas stroke must assign the selected second filament: ${usedAfterPaint.contentToString()}",
+                usedAfterPaint.contains(2))
+            assertTrue("the committed color brush must produce painted facets",
+                readPaintMaxFilamentOnGl(glView, 0) >= 2)
+
+            openEditMenu(activity)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelUndo))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { !readModelHasPaintOnGl(glView, 0) }
+            assertArrayEquals("Undo restores the original base filament", intArrayOf(1), readUsedFilamentsOnGl(glView, 0))
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelRedo))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { readModelHasPaintOnGl(glView, 0) }
+            assertTrue("Redo restores the committed painted filament", readUsedFilamentsOnGl(glView, 0).contains(2))
         } finally {
             if (bed.isPaintMode) bed.onBackPressed()
             modelFile.delete()
@@ -2475,6 +2568,144 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return model paint state", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(value.get())
+    }
+
+    private fun readUsedFilamentsOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): IntArray {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<IntArray>()
+        glView.queueEvent {
+            value.set(requireNotNull(glView.renderer.model).getUsedFilaments(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return used filament assignments", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun readPaintMaxFilamentOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Int {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Int>()
+        glView.queueEvent {
+            value.set(requireNotNull(glView.renderer.model).paintMaxFilament(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return maximum painted filament", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun readPaintPreviewTriangleCountOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        filament: Int,
+    ): Int {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Int>()
+        val failure = AtomicReference<Throwable?>()
+        glView.queueEvent {
+            var overlay: GLModel? = null
+            try {
+                val renderer = glView.renderer
+                val session = GLRenderer::class.java.getDeclaredField("paintSession")
+                    .apply { isAccessible = true }.get(renderer) as? PaintSession
+                if (session == null) error("Paint session ended before preview could be inspected")
+                overlay = GLModel()
+                value.set(session.buildOverlay(overlay, filament))
+            } catch (error: Throwable) {
+                failure.set(error)
+            } finally {
+                overlay?.release()
+                finished.countDown()
+            }
+        }
+        assertTrue("GL thread did not return paint preview triangles", finished.await(10, TimeUnit.SECONDS))
+        failure.get()?.let { throw AssertionError("Could not inspect active paint preview", it) }
+        return requireNotNull(value.get())
+    }
+
+    /** Finds an exact mesh hit in the visible portion of the GL view, outside the paint sheet. */
+    private fun findUncoveredPreciseSurfacePoint(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        bed: BedFragment,
+    ): Pair<Float, Float> {
+        val panelBounds = compose.onNodeWithTag("workspace-mode-panel").fetchSemanticsNode().boundsInRoot
+        val glLocation = IntArray(2)
+        val composeLocation = IntArray(2)
+        compose.runOnUiThread {
+            glView.getLocationOnScreen(glLocation)
+            requireNotNull(bed.overlayLayout).getLocationOnScreen(composeLocation)
+        }
+        val result = AtomicReference<Pair<Float, Float>?>(null)
+        val finished = CountDownLatch(1)
+        val failure = AtomicReference<Throwable?>()
+        glView.queueEvent {
+            try {
+                val renderer = glView.renderer
+                @Suppress("UNCHECKED_CAST")
+                val models = GLRenderer::class.java.getDeclaredField("glModels")
+                    .apply { isAccessible = true }.get(renderer) as ArrayList<GLModel>
+                val mesh = models.firstOrNull() ?: error("Paint mode did not initialize the selected GL mesh")
+                val hits = ArrayList<GLModel.HitResult>()
+                val renderScale = Prefs.getRenderScale()
+                val centerX = renderer.viewportWidth / 2
+                val centerY = renderer.viewportHeight / 2
+                // Search around the projected center first, where the loaded cube is framed.
+                for (radius in listOf(0, 16, 32, 48, 64, 96, 128, 176)) {
+                    val offsets = if (radius == 0) listOf(0 to 0) else buildList {
+                        for (offset in -radius..radius step 8) {
+                            add(offset to -radius)
+                            add(offset to radius)
+                            add(-radius to offset)
+                            add(radius to offset)
+                        }
+                    }
+                    for ((dx, dy) in offsets) {
+                        val x = centerX + dx
+                        val y = centerY + dy
+                        if (x !in 0 until renderer.viewportWidth || y !in 0 until renderer.viewportHeight) continue
+                        val localX = x / renderScale
+                        val localY = y / renderScale
+                        val rootX = glLocation[0] + localX - composeLocation[0]
+                        val rootY = glLocation[1] + localY - composeLocation[1]
+                        if (panelBounds.contains(Offset(rootX, rootY))) continue
+                        mesh.raycaster.raycast(renderer, hits, x.toFloat(), y.toFloat())
+                        if (hits.any { !it.approximate }) {
+                            result.set((glLocation[0] + localX) to (glLocation[1] + localY))
+                            return@queueEvent
+                        }
+                    }
+                }
+            } catch (error: Throwable) {
+                failure.set(error)
+            } finally {
+                finished.countDown()
+            }
+        }
+        assertTrue("GL thread did not locate a visible exact surface hit", finished.await(15, TimeUnit.SECONDS))
+        failure.get()?.let { throw AssertionError("Could not locate visible paint target", it) }
+        return requireNotNull(result.get()) {
+            "No precise model surface point was reachable outside the paint controls; panel bounds=$panelBounds"
+        }
+    }
+
+    private fun injectCanvasStroke(screenX: Float, screenY: Float) {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val downTime = SystemClock.uptimeMillis()
+        fun inject(action: Int, x: Float, y: Float, eventTime: Long) {
+            val event = MotionEvent.obtain(downTime, eventTime, action, x, y, 0).apply {
+                source = InputDevice.SOURCE_TOUCHSCREEN
+            }
+            try {
+                assertTrue("Android rejected a synthetic touchscreen event", automation.injectInputEvent(event, true))
+            } finally {
+                event.recycle()
+            }
+        }
+        inject(MotionEvent.ACTION_DOWN, screenX, screenY, downTime)
+        repeat(5) { step ->
+            SystemClock.sleep(24L)
+            inject(MotionEvent.ACTION_MOVE, screenX + step * 2f, screenY + step * 2f, SystemClock.uptimeMillis())
+        }
+        SystemClock.sleep(24L)
+        inject(MotionEvent.ACTION_UP, screenX + 10f, screenY + 10f, SystemClock.uptimeMillis())
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 
     private fun hasSnackbarTitle(bed: BedFragment, titleRes: Int): Boolean {

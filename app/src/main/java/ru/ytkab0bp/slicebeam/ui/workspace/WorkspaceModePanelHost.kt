@@ -31,20 +31,27 @@ import androidx.compose.ui.unit.dp
 internal fun WorkspaceModePanelHost(
     onDismiss: () -> Unit,
     panelSize: WorkspacePanelSize? = null,
+    allowBackgroundInteraction: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val dismissLabel = stringResource(android.R.string.cancel)
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val portrait = maxWidth < maxHeight
-        Box(
-            Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.28f))
-                .clickable(onClick = onDismiss)
-                .semantics {
-                    contentDescription = dismissLabel
-                    role = Role.Button
-                },
-        )
+        if (allowBackgroundInteraction) {
+            // Paint mode must receive direct touches on the GL canvas while its controls
+            // remain visible. A pointer-input scrim would swallow every brush stroke.
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.08f)))
+        } else {
+            Box(
+                Modifier.fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.28f))
+                    .clickable(onClick = onDismiss)
+                    .semantics {
+                        contentDescription = dismissLabel
+                        role = Role.Button
+                    },
+            )
+        }
         val dimension = panelSize?.let { if (portrait) it.portrait else it.landscape }
         val availableDp = if (portrait) maxHeight.value else maxWidth.value
         val requestedDp = dimension?.let { WorkspacePanelSizePolicy.resolve(it, availableDp) }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.318 (alpha)
+
+- Map GL paint hits into the native volume/instance coordinates so real canvas brush strokes produce facet previews on transformed meshes.
+- Keep base-filament changes in the color-paint panel as a draft until Done; Cancel and Android Back leave the imported 3MF assignment unchanged.
+- Verify real canvas painting, preview-before-commit, Undo/Redo, and the supplied colored KromaCut 3MF import-choice and slicing paths on Honor PTP-N49.
+- Debug prerelease; full UI menu and manual TalkBack acceptance remain in progress.
+
 ## 0.8.317 (alpha)
 
 - Show a subtle, accessible scroll hint when short landscape navigation rails contain destinations outside the viewport.

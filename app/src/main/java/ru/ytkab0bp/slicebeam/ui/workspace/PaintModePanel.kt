@@ -51,12 +51,13 @@ import ru.ytkab0bp.slicebeam.view.GLView
 internal fun PaintModePanel(
     glView: GLView,
     mode: Int,
-    onCommit: () -> Unit,
+    onCommit: (baseFilament: Int?) -> Unit,
     onCancel: () -> Unit,
 ) {
     val slots = remember { Prefs.getFilamentSlots() }
     val colorMode = mode == GLRenderer.PAINT_MODE_COLOR
     var selectedFilament by remember { mutableIntStateOf(if (colorMode && slots.size >= 2) 2 else 1) }
+    var selectedBaseFilament by remember { mutableIntStateOf(0) }
     var selectedTool by remember { mutableIntStateOf(GLRenderer.PAINT_TOOL_BRUSH) }
     var brushEnabled by remember { mutableStateOf(true) }
     var brushSphere by remember { mutableStateOf(glView.renderer.isBrushSphere) }
@@ -94,11 +95,11 @@ internal fun PaintModePanel(
             Text(stringResource(R.string.PaintBaseFilament), style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 slots.forEachIndexed { index, slot ->
-                    FilamentSwatch(slot, index + 1) {
-                        onGl {
-                            val objectIndex = glView.renderer.paintObject
-                            if (objectIndex != -1) glView.renderer.setObjectUniformFilament(objectIndex, index + 1)
-                        }
+                    FilamentSwatch(slot, index + 1, selected = selectedBaseFilament == index + 1) {
+                        selectedBaseFilament = index + 1
+                        // Keep uniform reassignment as a draft. Clearing the session selector
+                        // prevents commit from restoring stale 3MF facet assignments.
+                        onGl { glView.renderer.clearPaintDraftForUniformFilament() }
                     }
                 }
             }
@@ -170,7 +171,10 @@ internal fun PaintModePanel(
             OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                 Text(stringResource(android.R.string.cancel))
             }
-            Button(onClick = onCommit, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                Button(
+                    onClick = { onCommit(selectedBaseFilament.takeIf { it > 0 }) },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) {
                 Text(stringResource(R.string.ActionDone))
             }
         }

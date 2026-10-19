@@ -76,6 +76,8 @@ struct PaintSessionRef {
     // 0 = color (mmu segmentation), 1 = support, 2 = seam, 3 = fuzzy skin.
     int mode = 0;
     TriangleMesh mesh;
+    // GL hit points are in the transformed object mesh; the selector owns the raw first-volume mesh.
+    Slic3r::Transform3d mesh_to_world = Slic3r::Transform3d::Identity();
     AABBMesh* emesh = nullptr;
     std::unique_ptr<Slic3r::TriangleSelector> selector;
 };
@@ -2508,6 +2510,9 @@ extern "C" {
         // obj->mesh() merges all model-part volumes, but commit stores the selector into only
         // volume[0]; for multi-volume assemblies the later volume indices then cannot round-trip.
         s->mesh = obj->volumes[0]->mesh();
+        s->mesh_to_world = obj->volumes[0]->get_matrix();
+        if (!obj->instances.empty() && obj->instances.front() != nullptr)
+            s->mesh_to_world = obj->instances.front()->get_matrix() * s->mesh_to_world;
         s->selector = std::make_unique<Slic3r::TriangleSelector>(s->mesh);
         const auto& data = facets_for_mode(obj->volumes[0], mode).get_data();
         if (!data.triangles_to_split.empty())
@@ -2537,23 +2542,20 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1brush(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jdouble radius, jint filamentIdx, jdoubleArray cameraArr, jboolean sphere) {
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
-        Vec3f hit((float) h[0], (float) h[1], (float) h[2]);
+        Vec3d hit_world((double) h[0], (double) h[1], (double) h[2]);
         env->ReleaseDoubleArrayElements(hitArr, h, JNI_ABORT);
 
         jdouble* cam = env->GetDoubleArrayElements(cameraArr, JNI_FALSE);
         Vec3d camera_pos_world((double) cam[0], (double) cam[1], (double) cam[2]);
         env->ReleaseDoubleArrayElements(cameraArr, cam, JNI_ABORT);
 
-        ModelObject* obj = s->model->model.objects[s->objIdx];
-        Transform3d inst_matrix = Transform3d::Identity();
-        if (!obj->instances.empty() && obj->instances.front() != nullptr) {
-            inst_matrix = obj->instances.front()->get_matrix();
-        }
+        const Transform3d& mesh_to_world = s->mesh_to_world;
+        const Transform3d world_to_mesh = mesh_to_world.inverse();
+        const Vec3f hit = (world_to_mesh * hit_world).cast<float>();
+        // Convert camera position to the selector's raw-volume coordinate system.
+        Vec3d camera_pos_local = world_to_mesh * camera_pos_world;
 
-        // Convert camera position to local mesh space
-        Vec3d camera_pos_local = inst_matrix.inverse() * camera_pos_world;
-
-        Transform3d trafo_no_translate = inst_matrix;
+        Transform3d trafo_no_translate = mesh_to_world;
         trafo_no_translate.translation() = Vec3d::Zero();
 
         Slic3r::EnforcerBlockerType state = paint_state(filamentIdx);
@@ -2573,7 +2575,7 @@ extern "C" {
         auto cursor = TriangleSelector::SinglePointCursor::cursor_factory(
             hit, camera_pos_local.cast<float>(), (float)radius,
             sphere ? TriangleSelector::CursorType::SPHERE : TriangleSelector::CursorType::CIRCLE,
-            inst_matrix, TriangleSelector::ClippingPlane());
+            mesh_to_world, TriangleSelector::ClippingPlane());
 
         s->selector->select_patch(facetStart, std::move(cursor), state, trafo_no_translate, true);
     }
@@ -2581,8 +2583,9 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1bucket(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jint filamentIdx, jboolean propagate, jdouble angle) {
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
-        Vec3f hit((float) h[0], (float) h[1], (float) h[2]);
+        Vec3d hit_world((double) h[0], (double) h[1], (double) h[2]);
         env->ReleaseDoubleArrayElements(hitArr, h, JNI_ABORT);
+        const Vec3f hit = (s->mesh_to_world.inverse() * hit_world).cast<float>();
         // Bucket fill needs a valid starting facet; the Java raycaster only gives the hit point,
         // so find the nearest original facet to it.
         if (facetStart < 0) {

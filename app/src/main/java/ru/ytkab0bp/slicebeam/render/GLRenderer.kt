@@ -140,7 +140,7 @@ private var cutConnectorsVertexBuffer: java.nio.FloatBuffer? = null
 private var paintSession: PaintSession? = null
 var paintObject = -1
 // ---- Multi-color painting (all methods run on the GL thread) ----
- var isPaintMode:Boolean = false
+ @Volatile var isPaintMode:Boolean = false
 var paintFilament = 2 // 1-based palette index; 1 = base, so default to first painted color
 var paintTool = PAINT_TOOL_BRUSH
 var paintBrushRadius = 4.0 // mm
@@ -1486,6 +1486,12 @@ fun setObjectUniformFilament(i: Int, filament: Int) {
 if (this.model == null) return
 this.model!!.setUniformFilament(i, filament)
 invalidateCommittedOverlays(i)
+}
+/** Clear the session's imported facet draft before committing a uniform filament choice. */
+fun clearPaintDraftForUniformFilament() {
+if (paintSession == null) return
+paintSession!!.clear()
+rebuildPaintOverlays()
 }
 fun paintAt(x:Float, y:Float) {
 if (paintSession == null || paintObject < 0 || paintObject >= glModels.size) return
