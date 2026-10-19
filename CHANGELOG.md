@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.320 (alpha)
+
+- Run selected-object auto-orientation and Flatten renderer resource changes on the GL thread; refresh model state after orientation completes.
+- Verify the actual Model menu actions with 35 Honor device tests, including auto-orientation, Flatten enter/exit, arrangement, and bed fill using disposable models.
+- Debug prerelease; remaining workspace action audit and manual accessibility acceptance are still in progress.
+
 ## 0.8.319 (alpha)
 
 - Handle null HTTP headers, bodies, or errors from printer-upload callbacks without crashing the app; preserve the one-time status check after an uncertain print-start response.

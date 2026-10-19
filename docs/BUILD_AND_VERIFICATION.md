@@ -1586,3 +1586,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Replaced the earlier same-version asset so the release now contains one APK with matching in-app release notes. GitHub verifies the uploaded asset digest. Release URL: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.319.
 - APK was installed and launched on Honor PTP-N49 / Android 16 as `com.codemastercody3d.orcaslicermobile`, version 0.8.319 / code 354; no fatal, ANR, or OOM in startup logcat. The full suite after resource correction passed 213/218 (5 fixture skips).
 - APK build source commit: `4b56f548bb771650655d492c8abc04c3735efb8a`. Release tag remains v0.8.319; PR #2 is still open. This is a Debug prerelease only.
+## Debug prerelease v0.8.320 — selected-model GL thread correction (2026-10-19)
+
+- `ModelMenuItems` now queues selected-object auto-orientation and Flatten renderer-resource changes on the GL thread. Auto-orientation refreshes the workspace model on the main thread after the native edit; Flatten UI state still updates immediately while the renderer work is queued.
+- Focused `InitialProjectMenuDeviceTest`: 35/35 passed on Honor PTP-N49 / Android 16, including actual selected/all-object orientation, Flatten enter/exit, arrange, and fill-bed operations with temporary STL models. Full `:app:connectedSliceTestAndroidTest`: XML `2026-10-19T18:00:25`, 218 cases, 213 passed, 5 skipped, 0 failures/errors. Skips: two unavailable KromaCut copies and three private multicolor fixtures. Emulator offline.
+- Debug and Slice unit tests: 562/562 each, 0 failures/errors/skips. `:app:assembleDebug` succeeded. App installed and launched on Honor as package `com.codemastercody3d.orcaslicermobile`, version 0.8.320 / code 355; no fatal/ANR/OOM marker in the inspected startup logcat.
+- APK built from the tested working tree: `OrkanSlicer_a7df5ea3c1.apk`, 157,234,985 bytes, SHA-256 `138A5C5B30E60624AAF62BA62F2BB9B35C4A52535690AC7D1D022A4EE623E3FF`. The filename contains the pre-change HEAD because the build ran before the versioned change was committed; the APK contents include version 0.8.320. Release upload and post-commit source commit are pending.
+- PR #2 remains open. Phase 5 action audit continues; Phase 6 manual TalkBack and broader responsive matrix remain incomplete. No real printer was contacted and no print was started.
+

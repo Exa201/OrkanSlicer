@@ -69,18 +69,27 @@ internal class ModelMenuItems(
                 }
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuAutoOrientSelected, R.drawable.menu_orientation_auto_28, {
-                val index = renderer.selectedObject
-                if (index >= 0) {
-                    renderer.model!!.autoOrient(index)
-                    renderer.invalidateGlModel(index)
-                    fragment.glView!!.requestRender()
-                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationAutoOrientDone))
+                fragment.glView!!.queueEvent {
+                    val model = renderer.model ?: return@queueEvent
+                    val index = renderer.selectedObject
+                    if (index >= 0) {
+                        model.autoOrient(index)
+                        renderer.invalidateGlModel(index)
+                        fragment.glView!!.requestRender()
+                        ViewUtils.postOnMainThread {
+                            fragment.updateModel()
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationAutoOrientDone))
+                        }
+                    }
                 }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuFlatten, R.drawable.menu_orientation_flatten_28, {
                 flattenEnabled = !flattenEnabled
-                renderer.setInFlattenMode(flattenEnabled)
-                fragment.glView!!.requestRender()
+                val flatten = flattenEnabled
+                fragment.glView!!.queueEvent {
+                    renderer.setInFlattenMode(flatten)
+                    fragment.glView!!.requestRender()
+                }
                 onItemsChanged()
             }, selected = flattenEnabled, toggleable = true, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuDeleteSelected, R.drawable.delete_outline_android_28, { anchor ->
