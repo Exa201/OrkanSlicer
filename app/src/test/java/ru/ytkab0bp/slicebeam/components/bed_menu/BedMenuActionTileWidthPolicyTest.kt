@@ -15,6 +15,14 @@ class BedMenuActionTileWidthPolicyTest {
     }
 
     @Test
+    fun narrowPhonesAtOneHundredFiftyPercentUseWideActionTiles() {
+        assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 320))
+        assertEquals(1, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 360))
+        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.5f, 361))
+        assertEquals(2, BedMenuActionTileWidthPolicy.columnsForLayout(1.3f, 320))
+    }
+
+    @Test
     fun fourReadableActionsFitOnAnOrdinaryPhone() {
         for (width in listOf(360, 365, 411)) {
             val tile = BedMenuActionTileWidthPolicy.widthDp(width, 10)

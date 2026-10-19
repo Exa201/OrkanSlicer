@@ -87,6 +87,10 @@ internal data class BedComposeMenuAction(
 internal object BedMenuActionTileWidthPolicy {
     fun columnsForLayout(fontScale: Float, screenWidthDp: Int): Int =
         when {
+            // At the largest supported text scale on a narrow phone, two columns
+            // leave action labels visibly ellipsized. A single wide column keeps
+            // the same two-row toolbar height while making the labels readable.
+            fontScale >= 1.5f && screenWidthDp <= 360 -> 1
             fontScale >= 1.3f -> 2
             fontScale >= 1.15f || screenWidthDp < 400 -> 3
             else -> 4
@@ -151,6 +155,7 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             ) {
                 items(actions) { action ->
                     BedMenuActionTile(action, portrait = true, menuView = menuView,
+                        compactPortraitGrid = columns == 1,
                         modifier = Modifier.width(tileWidth))
                 }
             }
@@ -299,12 +304,14 @@ private fun BedMenuActionTile(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Image(
-                    painter = painterResource(action.iconRes),
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(foreground),
-                    modifier = Modifier.size(OrkanUiTokens.menuIconSize),
-                )
+                if (!compactPortraitGrid) {
+                    Image(
+                        painter = painterResource(action.iconRes),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(foreground),
+                        modifier = Modifier.size(OrkanUiTokens.menuIconSize),
+                    )
+                }
                 Text(
                     text = stringResource(compactLabel),
                     color = foreground,
