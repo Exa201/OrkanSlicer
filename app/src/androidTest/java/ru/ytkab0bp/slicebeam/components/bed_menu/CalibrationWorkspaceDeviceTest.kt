@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -94,6 +95,14 @@ class CalibrationWorkspaceDeviceTest {
             compose.onNodeWithTag("calibration-actions-list")
                 .performScrollToNode(hasTestTag("calibration-record-result"))
             compose.onNodeWithTag("calibration-record-result").performClick()
+            compose.onNodeWithTag("calibration-result-value").performTextInput("999")
+            compose.onNodeWithTag("calibration-save-result").performClick()
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.CalibrationResultInvalid))
+                .assertIsDisplayed()
+            assertEquals("An invalid measurement must not stage any additional filament setting", oldDrafts[
+                ConfigObject.PROFILE_LIST_FILAMENT
+            ], ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_FILAMENT))
+            compose.onNodeWithTag("calibration-result-value").performTextClearance()
             compose.onNodeWithTag("calibration-result-value").performTextInput("0.042")
             compose.onNodeWithTag("calibration-save-result").performClick()
 

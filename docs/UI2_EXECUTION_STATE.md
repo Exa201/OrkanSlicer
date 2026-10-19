@@ -1,5 +1,13 @@
 # UI2 Fortsetzung — 2026-10-19, Profil-/Kalibrierungsaktionen
 
+## Neueste gezielte Honor-Abnahme — 2026-10-19
+
+- Kombinierter Gerätelauf auf Honor PTP-N49 / Android 16: `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): insgesamt 27/27 bestanden, 0 Fehler, 0 Skips. JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-19T08:16:43` UTC. `emulator-5554` blieb offline.
+- Kalibrierungsprüfung enthält nun auch PA-Eingabe `999`: UI weist den Messwert zurück und erzeugt keinen zusätzlichen Profile-Draft. Gültige PA- und VFA-Ergebnisse bleiben im jeweils richtigen Entwurf; die gespeicherten Profile werden nicht geändert.
+- Druckprofilaktionen umfassen unter anderem Profilwahl/-duplikation, Drucker- und Filamententwürfe, Speichern/Abbrechen/Zurück, Prime Tower und Flush Volumes. Drucker-Dashboard öffnete den konfigurierten externen Browserhandler; es wurde kein Drucker angesprochen.
+- Lokale, noch nicht committete Änderungen: Kalibrierungstest für ungültige Eingabe und Verifikationsnachweis in `docs/BUILD_AND_VERIFICATION.md`. Der APK-Hash unten gehört unverändert zum Produktcode-Commit `e727a51`; dieser Durchgang änderte nur Instrumentierungstest und Dokumentation.
+- Nächster Schritt: diese Test-/Dokumentationsänderung auf PR #2 sichern, dann das tatsächliche Handlerinventar um die noch nicht abgenommenen Projekt-/Edit-/Slicing-Aktionen ergänzen. Phase 5 bleibt offen; Phase 6 hat noch nicht die manuelle TalkBack-Prüfung und vollständige Displaymatrix.
+
 - Aktuelle Phase: 5 (Menü-Aktionsabnahme); Phase 4 ist anhand Compose-Workspace, RendererAdapter und vorhandener Back-/Lifecycle-Tests abgeschlossen. Phase 6 teilweise offen.
 - In diesem Durchgang: alle sechs Kalibrierungs-Preset-Formulare wurden auf Honor geöffnet und abgebrochen; der Ergebnisflow wurde über Werkzeuge → Kalibrierung geöffnet. PA-Ergebnis wird korrekt als Filament-Draft samt `enable_pressure_advance=1` vorgemerkt; VFA-Wert wird im Druckprofil-Draft als `outer_wall_speed` abgelegt. Gespeicherte Profile blieben unverändert. Gezielter Kalibrierungslauf 2/2, Maker-/Generatorklasse 11/11 bestanden.
 - Regression: Debug-JVM 562/562, Slice-JVM 562/562 bestanden. Debug-Build erfolgreich, auf Honor installiert/gestartet; kein Crash-/ANR-/OOM-/Fatal-Signal im geprüften Logcat-Ausschnitt. APK `OrkanSlicer_e727a51755.apk`, 157,232,872 Bytes, SHA-256 `196B69F816960B6F71B31722CA721946954254C6B4CCC1570429970B2A7F2630`, code commit `e727a517559e4f49eca6be7e01dc16ab3e063181`; Paket `com.codemastercody3d.orcaslicermobile`, 0.8.316 / 351.
