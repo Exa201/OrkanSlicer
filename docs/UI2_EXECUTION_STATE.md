@@ -1,11 +1,12 @@
 # Current continuation state — 2026-10-19
 
-- Active objective: continue OrkanSlicer UI 2.0; multicolor fixture handling remains the highest priority.
-- Completed this cycle: palette save/cancel semantics; explicit Save for new slots; stale GL palette preview invalidation and render request; Sync moved from Print to Filaments; physical ACE/MMU slots use four-column rows; focused KromaCut two-color import/recolor/reassign/native-slice coverage.
-- Latest runtime commit: `6ceb8a977e8c` (`Fix multicolor palette refresh and filament workflow`), version 0.8.323 / code 358. Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.323. Debug APK `OrkanSlicer_6ceb8a977e.apk`, SHA-256 `A0AF18D0D4422685CB33A99FC0D660BD4DF8A34EEF01DC052EDCFFA9FD74A9E3`.
-- Verification: Debug 561/561; Slice 561/561; full Honor instrumentation 226 JUnit cases, 5 fixture-dependent skips, no failures (221 passed); focused supplied KromaCut fixture 2/2; palette 19/19; MMU sync 15/15; two-color project 3/3. Honor PTP-N49 install/start and visual Filaments sheet check succeeded; sampled log clean. Emulator offline.
-- Still open: three private three-color fixtures are unavailable; source code/test cases still need deterministic non-private fixtures. Manual printer sync was intentionally not sent to a physical printer. Manual TalkBack and full menu action audit remain incomplete. Full UI 2.0 is not complete; multi-plate project persistence remains separate and open.
-- Next concrete task: inspect the three skipped multicolor device cases and replace external/private fixture dependencies with reproducible test-generated or repository-safe fixtures, then run those actual slicing cases on Honor and verify generated G-code color/tool data.
+- Active objective: finish OrkanSlicer UI 2.0; Phase 5 menu-action audit remains active, then continue Phase 6 responsive/accessibility checks. Multicolor fixture priority for this cycle is implemented and verified.
+- Runtime release: v0.8.323 / code 358, runtime commit `6ceb8a977e8c`, Debug APK `OrkanSlicer_6ceb8a977e.apk`, SHA-256 `A0AF18D0D4422685CB33A99FC0D660BD4DF8A34EEF01DC052EDCFFA9FD74A9E3`, prerelease https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.323. Runtime is unchanged by following test-only commits.
+- Current test/fixture commit: `8930005aaecc13e2e74578085c22b1b590a792a9`; documentation follow-up: `abb8580e08eff08e3a78de19f4b3d3c625389d74`. PR #2 is open on `codex/rinkhals-safe-start-audit`; verification comments are posted. No merge.
+- Implemented: Save/Cancel draft semantics for filament color/type and new slots; GL preview cache invalidation/requestRender on saved palette change; sync action in Filaments sheet; ACE/MMU gates in 4-column rows; deterministic three-color test project replaces 3 private-fixture skips.
+- Verification: Debug 561/561, Slice 561/561; full Honor suite 226 cases, 224 passed, 2 skipped (the externally supplied KromaCut tests), 0 failures/errors. Bundled three-color class 3/3 passed on Honor, including native T0/T1/T2 slicing and G-code checks. Supplied KromaCut 2-color case separately passed focused 2/2; palette 19/19, MMU sync 15/15, two-color project 3/3. Honor PTP-N49 installed/launched v0.8.323 and visual palette check passed; emulator offline.
+- Open: full Phase 5 action-by-action audit; Phase 6 physical/TalkBack accessibility acceptance; physical printer sync was not triggered; multi-plate project persistence remains separate and incomplete. The external KromaCut tests skip in a full run unless the user's private sample is staged, although they passed focused separately.
+- Next concrete task: continue Phase 5 by enumerating actual Slicing and global printer/profile actions against existing device tests, execute uncovered safe actions on Honor, and fix any handler/state defect. Then proceed with remaining responsive/accessibility checks. Overall UI 2.0 is not complete.
 
 ---
 # Latest continuation — canvas click GL-thread dispatch (2026-10-19)
@@ -1689,5 +1690,6 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Test-fixture commit: `8930005aaecc13e2e74578085c22b1b590a792a9` (`Bundle deterministic three-color slicing fixture`). Next: push this commit and update PR #2/release notes with the 224-pass, 2-skip full Honor result, then resume remaining UI 2.0 menu/accessibility work. Overall project completion is not claimed.
 
 ---
+
 
 
