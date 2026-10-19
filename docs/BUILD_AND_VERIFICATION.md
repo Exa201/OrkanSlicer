@@ -1,3 +1,9 @@
+# Full Honor regression after profile-test synchronization — 2026-10-19
+
+- `:app:connectedSliceTestAndroidTest`: JUnit XML at `2026-10-19T14:32:56` reports 217 cases, 212 passed, 5 skipped, 0 failures/errors on Honor PTP-N49 / Android 16. The 5 skips are two KromaCut cases and three private multicolor fixtures; the provided KromaCut project was separately tested and sliced 2/2 earlier today.
+- `SettingsMenuActionDeviceTest`: 7/7 passed; `PrintProfileDropdownIntegrationDeviceTest`: 18/18 passed after its profile-button layout wait was added. Emulator `emulator-5554` remains offline.
+- This complete regression verifies the current test sources and the already-published v0.8.318 runtime. No new runtime APK was built by the test synchronization change.
+
 # Profile and app-settings menu audit — Honor PTP-N49 (2026-10-19)
 
 - `SettingsMenuActionDeviceTest`: 7/7 passed on Honor PTP-N49 / Android 16; verifies actual theme, render-scale, text-scale, accent-color, About, add-printer navigation, and reset-cancel actions.

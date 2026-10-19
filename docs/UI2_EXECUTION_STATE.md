@@ -1585,3 +1585,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `PrintProfileDropdownIntegrationDeviceTest`: 18/18 passed on Honor PTP-N49 / Android 16 after making the printer picker test wait for the profile button to be laid out. An initial class run had one timing-sensitive visibility failure at that interaction; the same case passed alone and the complete class passed after synchronization. No product defect was reproduced.
 - No production code or APK changed. Offline emulator skipped by Gradle; physical Honor was used.
 - Phase 4 remains complete. Phase 5 is still open: this verifies settings and profile interactions covered by these classes, not every action in the six workspace menus. Phase 6 is partial; no manual TalkBack traversal in this run. Next: continue mapping visible workspace handlers to real existing test actions and exercise uncovered safe actions. Keep multi-plate persistence explicitly separate and incomplete.
+
+## Full Honor regression after profile-test synchronization (2026-10-19)
+
+- `:app:connectedSliceTestAndroidTest`: 217 JUnit test cases, 212 passed, 5 skipped, 0 failures/errors; XML `2026-10-19T14:32:56`, Honor PTP-N49 / Android 16. Skips: the two user-project KromaCut fixture tests (separately run 2/2 with the provided colored 3MF earlier) and three unavailable private multicolor fixtures. Emulator remains offline.
+- Targeted settings and profile classes passed 7/7 and 18/18 respectively; current profile picker test waits for displayed layout to avoid transition timing flakiness.
+- Current published Debug prerelease v0.8.318 remains runtime code commit `e0bdaf8`; this follow-up changes test synchronization/docs only. Phase 4 complete; Phase 5 action audit in progress; Phase 6 partial (manual TalkBack and additional physical configurations outstanding). Next: continue identifying and exercising concrete untested workspace menu handlers, then do the remaining responsive/accessibility checks.
