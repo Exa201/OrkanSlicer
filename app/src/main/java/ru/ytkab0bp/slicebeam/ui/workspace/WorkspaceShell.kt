@@ -121,7 +121,11 @@ internal fun WorkspaceShell(
                 modifier = Modifier.weight(1f).widthIn(min = 0.dp).heightIn(min = OrkanUiTokens.touchTarget),
             ) { profileStatusContent() }
             Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                // A weighted slot gives the horizontal scroller a finite width in
+                // landscape, where this header is measured inside the adaptive rail
+                // layout. Without it, Compose can measure the scroll container with
+                // an infinite max width when returning from a global settings route.
+                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.compactGap),
             ) {
                 WorkspaceActionControl(filamentButtonContent)

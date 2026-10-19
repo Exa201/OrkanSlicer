@@ -1,3 +1,12 @@
+## Landscape-Workspace-Crash behoben — 2026-10-19
+
+- Produktionsfehler auf dem physischen Honor PTP-N49 / Android 16 reproduziert: Rücknavigation von globalen App-Einstellungen zum Compose-Workspace im Querformat löste `IllegalStateException: Horizontally scrollable component was measured with an infinity maximum width constraints` aus.
+- Fix in `WorkspaceShell`: horizontal scrollender Header-Aktionsbereich erhält einen gewichteten, endlichen Breiten-Slot in der Header-Row. GLView/Renderer bleiben erhalten.
+- Gezielter `MainActivityRotationDeviceTest`: 1/1 bestanden. Produktions-Debug-APK mit dem Fix installiert; Settings → Vorschau im Querformat praktisch ausgeführt und visuell geprüft, Druckplatte/GLView sichtbar, Portrait-Rückkehr geprüft.
+- `:app:testDebugUnitTest` 561/561 und `:app:testSliceTestUnitTest` 561/561 bestanden. Vollständige Honor-Instrumentierung: 206 Fälle, 201 bestanden, 5 private KromaCut-/Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors. Offline-Emulator übersprungen.
+- Profil-Dropdown-Klasse 17/17 und Profil-/IME-Klasse 12/12 nach gezielten Test-Isolationskorrekturen bestanden. Keine neuen Produktionsprobleme dabei festgestellt.
+- APK-Build, Hash und finaler Code-Commit werden nach dem Commit der Änderungen ergänzt. Kein Release erstellt; Phase 5 und die vollständige Phase-6-Accessibility-Abnahme sind noch offen.
+
 ## Honor-Regression und physische 150-%-Schriftprüfung — 2026-10-19
 
 - Vollständige `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16 abgeschlossen: JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, 206 Tests, 201 bestanden, 5 private Mehrfarben-/KromaCut-Fixtures übersprungen, 0 Fehler/Errors. Der Emulator war offline.

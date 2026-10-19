@@ -201,9 +201,9 @@ class PrintProfileDropdownIntegrationDeviceTest {
             compose.waitUntil(timeoutMillis = 15_000) {
                 activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
             }
-            compose.onNode(
+            compose.onAllNodes(
                 hasText(originalPrinter) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
-            ).assertIsDisplayed().performClick()
+            ).onFirst().assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsCloneProfile))
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { config.printerConfigs.size == originalCount + 1 }
@@ -543,8 +543,17 @@ class PrintProfileDropdownIntegrationDeviceTest {
         try {
             printer.put("print_host", "http://printer.invalid:7125")
             check(SliceBeam.saveConfig()) { "Could not prepare the isolated printer dashboard fixture" }
+            val navigation = activity.navigationDelegate as MobileNavigationDelegate
             activity.runOnUiThread {
-                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(4)
+                // The profile fragment is cached across workspace destinations. Force a
+                // leave/return so onResume rebinds its editor snapshot to this saved fixture.
+                navigation.switchToSlot(0)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                navigation.getCurrentFragment() !is PrinterConfigFragment
+            }
+            activity.runOnUiThread {
+                navigation.switchToSlot(4)
             }
             compose.waitUntil(timeoutMillis = 15_000) {
                 activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
@@ -670,10 +679,13 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
             }
 
-            compose.onNode(
+            val activePrinterButton = compose.onAllNodes(
                 hasText(previousPrinter) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
-            )
-                .assertIsDisplayed().performClick()
+            ).onFirst()
+            // The global profile status may expose a second button with the same
+            // printer title, depending on the active workspace composition. Both
+            // controls open the active printer selector; use the first visible one.
+            activePrinterButton.assertIsDisplayed().performClick()
             compose.onNodeWithText(targetPrinter).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 15_000) {
                 SliceBeam.requireConfig().presets?.get("printer") == targetPrinter
@@ -994,7 +1006,8 @@ class PrintProfileDropdownIntegrationDeviceTest {
         }
 
         val profileButtonRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
-        compose.onNode(hasText(printerBefore) and profileButtonRole).assertIsDisplayed().performClick()
+        val printerProfileButton = compose.onAllNodes(hasText(printerBefore) and profileButtonRole).onFirst()
+        printerProfileButton.assertIsDisplayed().performClick()
         compose.onAllNodesWithText(targetPrinter).onFirst().assertIsDisplayed()
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.waitForIdle()
@@ -1005,7 +1018,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
             processBefore, config.presets?.get("print"))
         assertEquals("Dismissing printer selection leaves the filament preset unchanged",
             filamentBefore, config.presets?.get("filament"))
-        compose.onNode(hasText(printerBefore) and profileButtonRole).assertIsDisplayed()
+        compose.onAllNodes(hasText(printerBefore) and profileButtonRole).onFirst().assertIsDisplayed()
     }
 
     @Test

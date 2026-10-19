@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.view.KeyEvent
+import android.view.inputmethod.InputMethodManager
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -68,6 +69,15 @@ class ProfileSettingsImeDeviceTest {
     @Test
     fun profileFiltersRemainUsableWithKeyboardVisible() {
         val activity = compose.activity
+        val inputMethodManager = activity.getSystemService(InputMethodManager::class.java)
+        activity.runOnUiThread {
+            activity.window.decorView.clearFocus()
+            inputMethodManager.hideSoftInputFromWindow(activity.window.decorView.windowToken, 0)
+        }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            ViewCompat.getRootWindowInsets(activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) != true
+        }
         activity.runOnUiThread {
             (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(2)
         }

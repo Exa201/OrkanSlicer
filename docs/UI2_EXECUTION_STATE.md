@@ -1,4 +1,13 @@
-# UI 2.0 execution status — 2026-10-18
+# UI 2.0 execution status — 2026-10-19
+
+## Phase-6-Fortsetzung: Landscape-Crash behoben und Vollregression — 2026-10-19
+
+- Echter OrkanSlicer-Crash auf dem Honor PTP-N49 bei Rückkehr von globalen App-Einstellungen zum Workspace im Querformat reproduziert. Ursache war die horizontal scrollbare Aktionszeile im `WorkspaceShell`-Header: Sie wurde im adaptiven Landscape-Layout ohne endliche Breitenbegrenzung gemessen. Der Aktionsbereich erhält jetzt ein Gewicht innerhalb der Header-Row und damit einen begrenzten verfügbaren Slot.
+- `MainActivityRotationDeviceTest` erweitert: öffnet Einstellungen in Landscape, navigiert zurück zur Workspace-Vorschau, prüft Compose-Menühost, angehängte Renderer-View und positive Inhaltsbreite, rotiert danach zurück ins Portrait. Gezielter Test bestand 1/1 auf PTP-N49 / Android 16.
+- Dieselbe Debug-APK wurde auf dem Honor installiert. Bei 1280×2800 px / 560 dpi (ca. 366 dp) und Landscape wechselte die App-Einstellungsseite zurück zur Vorschau; Druckplatte und GL-Ansicht blieben sichtbar. Frischer Logcat-Ausschnitt ohne Crash-, ANR-, OOM- oder Fatal-Signal-Marker. Systemschrift blieb 1,0; Auto-Rotation und User-Rotation wurden auf vorherige Werte 1/0 zurückgesetzt.
+- `:app:testDebugUnitTest`: 561/561 bestanden; `:app:testSliceTestUnitTest`: 561/561 bestanden. Vollständige `:app:connectedSliceTestAndroidTest` danach 206 Fälle, 201 bestanden, 5 private Mehrfarben-/KromaCut-Fixtures übersprungen, 0 Fehler/Errors. `emulator-5554` offline.
+- Während der Integration wurden zwei bestehende Gerätetest-Isolationsprobleme sichtbar: Druckerprofilselektoren waren semantisch mehrdeutig, wenn globaler Profilstatus und lokaler Editor denselben Titel zeigten; der Test wählt nun stabil den ersten sichtbaren Treffer. Der IME-Test setzt eine von vorherigen Tests verbliebene Tastatur zu Beginn zurück. Die Druckerprofilklasse bestand danach 17/17, die IME-Klasse 12/12.
+- Phase 4 bleibt anhand vorhandener Compose-/Renderer-/Lifecycle-Tests abgeschlossen. Phase 5 bleibt offen: vollständige Funktionsabnahme sämtlicher Haupt- und globaler Menüs ist weiterhin nicht belegt. Phase 6 bleibt teilweise offen: manuelle TalkBack-Traversierung ist nicht erfolgt und weitere physische Bildschirm-/Schriftkonfigurationen sind nicht alle einzeln geprüft. Mehrplatten-Projektpersistenz bleibt eine separate offene Funktion. Nächster Schritt: Änderungen committen/pushen, PR #2 aktualisieren; anschließend verbleibende sichere Menüaktionen und Accessibility-Konfigurationen fortsetzen. Kein neuer Release in diesem Durchgang.
 
 ## Phase-6-Fortsetzung: physische Honor-Prüfung bei 150 % Schrift und Regression — 2026-10-19
 

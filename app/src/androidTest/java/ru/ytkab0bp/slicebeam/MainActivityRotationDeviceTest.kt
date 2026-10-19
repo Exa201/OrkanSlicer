@@ -146,14 +146,31 @@ class MainActivityRotationDeviceTest {
                 settings,
             )
             assertTrue("The expanded app-settings section should survive landscape", 0 in expandedSettingsSections(settings))
+            scenario.onActivity { activity ->
+                // Re-entering the workspace from global settings in landscape must
+                // measure its horizontally scrolling header with finite constraints.
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(0)
+            }
+            val workspaceAfterSettings = awaitFragment(scenario, BedFragment::class.java)
+            scenario.onActivity { activity ->
+                assertSame("The workspace should reopen from app settings in landscape", workspaceAfterSettings,
+                    activity.navigationDelegate.getCurrentFragment())
+                assertFragmentAttached(workspaceAfterSettings)
+                assertMenuNavigationIsCompose(workspaceAfterSettings)
+                assertNotNull("The workspace renderer must remain attached after landscape navigation",
+                    workspaceAfterSettings.glView)
+                assertTrue("The workspace header must receive a finite laid-out width",
+                    workspaceContentWidth(workspaceAfterSettings) > 0)
+            }
             rotateAndAssertFragment(
                 scenario,
                 ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
                 originalActivity,
                 originalDelegate,
-                settings,
+                workspaceAfterSettings,
             )
-            assertTrue("The expanded app-settings section should survive portrait", 0 in expandedSettingsSections(settings))
+            assertTrue("The workspace should remain usable after returning to portrait",
+                workspaceAfterSettings.glView?.isAttachedToWindow == true)
 
             val primaryComposeRoutes = listOf(
                 1 to MakerFragment::class.java,
@@ -321,5 +338,10 @@ class MainActivityRotationDeviceTest {
             "The WorkspaceShell Compose root should stay attached",
             (workspaceRoot as ComposeView).isAttachedToWindow,
         )
+    }
+
+    private fun workspaceContentWidth(fragment: BedFragment): Int {
+        val field = BedFragment::class.java.getDeclaredField("contentView").apply { isAccessible = true }
+        return (field.get(fragment) as? View)?.width ?: 0
     }
 }
