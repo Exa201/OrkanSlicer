@@ -1023,6 +1023,12 @@ class PrintProfileDropdownIntegrationDeviceTest {
 
         val profileButtonRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
         val printerProfileButton = compose.onAllNodes(hasText(printerBefore) and profileButtonRole).onFirst()
+        // The fragment can be current before its Compose content has completed the workspace
+        // destination transition. Wait for the profile control to actually be laid out before
+        // interacting; otherwise this test flakes when it runs after heavier profile editors.
+        compose.waitUntil(timeoutMillis = 5_000) {
+            runCatching { printerProfileButton.assertIsDisplayed() }.isSuccess
+        }
         printerProfileButton.assertIsDisplayed().performClick()
         compose.onAllNodesWithText(targetPrinter).onFirst().assertIsDisplayed()
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)

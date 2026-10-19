@@ -1,3 +1,9 @@
+# Profile and app-settings menu audit — Honor PTP-N49 (2026-10-19)
+
+- `SettingsMenuActionDeviceTest`: 7/7 passed on Honor PTP-N49 / Android 16; verifies actual theme, render-scale, text-scale, accent-color, About, add-printer navigation, and reset-cancel actions.
+- `PrintProfileDropdownIntegrationDeviceTest`: first class run reported one transient visibility failure immediately after navigating to the printer profile screen. The test was synchronized to wait for the Compose profile button to be displayed. The complete class then passed 18/18 with 0 skips/failures; the isolated back-dismissal test also passed.
+- No runtime source or release APK changed. This resolves a test synchronization flake; it does not establish that every global menu action is audited. The connected run skips the offline emulator.
+
 # Native GL paint hit coordinates — release v0.8.318 (2026-10-19)
 
 - Published Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.318. APK `OrkanSlicer_e0bdaf8f90.apk`, 157,235,095 bytes, SHA-256 `0BC1D536CAE3F055A6934572C30C484E95A93781B731597D77E96A93D4AEFA58`; package `com.codemastercody3d.orcaslicermobile`, version 0.8.318 / code 353. The APK was built from runtime commit `e0bdaf8f909e3863579c8d5b1bec3f495191e815`.

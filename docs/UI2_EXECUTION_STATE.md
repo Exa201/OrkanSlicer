@@ -1578,3 +1578,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor verification: focused paint canvas test passed; `InitialProjectMenuDeviceTest` 35/35 passed; complete instrumentation 217 cases, 212 passed, 5 skipped, 0 failures/errors; the two KromaCut tests passed separately 2/2 with the provided 3MF (including actual native slicing). Debug and Slice unit suites both passed 562/562. Debug build/install/start passed on Honor; no fatal/ANR/OOM in cleared launch Logcat. Emulator offline.
 - User 3MF fixture was not modified. Its temporary test copy was stored only in the SliceTest app sandbox and removed when Android uninstalled the test variant. The original installed OrkanSlicer sandbox was not overwritten.
 - Current phase: Phase 5 (functional menu/action audit) remains in progress; Phase 4 is complete. Phase 6 is partial; physical manual TalkBack traversal remains unverified. Separate multi-plate project serialization remains open. Next concrete work: continue the remaining safe global/Slicing menu actions in the existing action matrix; do not repeat the completed UnfoldMenu migration or GL paint fix.
+
+## Honor profile/settings menu audit continuation (2026-10-19)
+
+- `SettingsMenuActionDeviceTest`: 7/7 passed on Honor PTP-N49 / Android 16.
+- `PrintProfileDropdownIntegrationDeviceTest`: 18/18 passed on Honor PTP-N49 / Android 16 after making the printer picker test wait for the profile button to be laid out. An initial class run had one timing-sensitive visibility failure at that interaction; the same case passed alone and the complete class passed after synchronization. No product defect was reproduced.
+- No production code or APK changed. Offline emulator skipped by Gradle; physical Honor was used.
+- Phase 4 remains complete. Phase 5 is still open: this verifies settings and profile interactions covered by these classes, not every action in the six workspace menus. Phase 6 is partial; no manual TalkBack traversal in this run. Next: continue mapping visible workspace handlers to real existing test actions and exercise uncovered safe actions. Keep multi-plate persistence explicitly separate and incomplete.
