@@ -856,6 +856,70 @@ class InitialProjectMenuDeviceTest {
             }
             assertEquals("selected profile settings must be imported", "0.17",
                 SliceBeam.requireConfig().findPrint(importedTitle)?.get("layer_height"))
+
+            val existingProfileName = "0.16mm Standard"
+            val existingProfile = requireNotNull(SliceBeam.requireConfig().findPrint(existingProfileName))
+            val existingLayerHeight = existingProfile["layer_height"]
+            assertTrue("the selected printer fixture should include the conflict target", existingLayerHeight != null)
+            input.writeText("[print:$existingProfileName]\nlayer_height = 0.19\n", StandardCharsets.UTF_8)
+            capturedIntent.set(null)
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+                .assertIsDisplayed().performClick()
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+
+            val conflictResult = Intent().setData(inputUri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, Activity.RESULT_OK, conflictResult)
+            }
+            val existingLabel = activity.getString(R.string.MenuFileImportProfilesExisting, existingProfileName)
+            compose.waitUntil(timeoutMillis = 15_000) {
+                compose.onAllNodesWithText(existingLabel).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(existingLabel).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfilesConflictTitle))
+                .assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfilesSkipExisting))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.MenuFileImportProfilesConflictTitle))
+                    .fetchSemanticsNodes().isEmpty()
+            }
+            assertEquals("skip existing must keep the stored process value", existingLayerHeight,
+                SliceBeam.requireConfig().findPrint(existingProfileName)?.get("layer_height"))
+
+            input.writeText("[print:$existingProfileName]\nlayer_height = 0.19\n", StandardCharsets.UTF_8)
+            capturedIntent.set(null)
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+                .assertIsDisplayed().performClick()
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+            val overwriteResult = Intent().setData(inputUri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, Activity.RESULT_OK, overwriteResult)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                compose.onAllNodesWithText(existingLabel).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfilesConflictTitle))
+                .assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfilesOverwrite))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                SliceBeam.requireConfig().findPrint(existingProfileName)?.get("layer_height") == "0.19"
+            }
+            assertEquals("overwrite must apply only after the explicit overwrite choice", "0.19",
+                SliceBeam.requireConfig().findPrint(existingProfileName)?.get("layer_height"))
         } finally {
             launchers[requestCode] = previousLauncher
             SliceBeam.CONFIG = configSnapshot
