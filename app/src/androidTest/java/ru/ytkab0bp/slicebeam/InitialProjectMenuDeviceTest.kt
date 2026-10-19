@@ -1131,6 +1131,85 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuAutoOrientActionsRunForAllObjectsAndSelectedObject() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-auto-orient-test.stl")
+        try {
+            activity.assets.open("models/pyramid.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            val duplicateDone = CountDownLatch(1)
+            glView.duplicateSelectedModel(1, Runnable { duplicateDone.countDown() })
+            assertTrue("second temporary object should finish duplicating", duplicateDone.await(15, TimeUnit.SECONDS))
+            instrumentationWaitForGlIdle()
+            assertEquals(2, readObjectCountOnGl(glView))
+
+            openModelMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(4)
+            val beforeOrientAll = model.geometryRevision
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuOrientAllShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision >= beforeOrientAll + 2 }
+            assertEquals("Orient All should process both workspace objects", beforeOrientAll + 2,
+                model.geometryRevision)
+
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val beforeOrientSelected = model.geometryRevision
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuAutoOrientSelectedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision > beforeOrientSelected }
+            assertEquals("Auto Orient Selected should process only the selected object", beforeOrientSelected + 1,
+                model.geometryRevision)
+            assertEquals("orientation actions must preserve the object count", 2, readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun modelMenuArrangeBringsOffBedObjectBackIntoWorkspace() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-arrange-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            glView.queueEvent {
+                model.translate(0, 2_000.0, 2_000.0, 0.0)
+                glView.requestRender()
+            }
+            instrumentationWaitForGlIdle()
+            val before = readTranslationOnGl(glView, 0)
+            assertTrue("test object should begin clearly outside a typical build volume",
+                before.x > 1_000.0 && before.y > 1_000.0)
+
+            openModelMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(4)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuArrangeShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val after = readTranslationOnGl(glView, 0)
+                kotlin.math.abs(after.x - before.x) > 10.0 || kotlin.math.abs(after.y - before.y) > 10.0
+            }
+            val after = readTranslationOnGl(glView, 0)
+            assertTrue("Arrange should change the off-bed XY placement",
+                kotlin.math.abs(after.x - before.x) > 10.0 || kotlin.math.abs(after.y - before.y) > 10.0)
+            assertEquals("Arrange must preserve the single temporary object", 1, readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelMenuMoveToPlateTransfersSelectedObjectBetweenWorkspacePlates() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

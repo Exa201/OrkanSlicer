@@ -1,5 +1,14 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Phase-5-Fortsetzung: weitere Modellmenüaktionen — 2026-10-19
+
+- Zusätzliche Honor-Compose/GL-Integrationstests in `InitialProjectMenuDeviceTest`: Auto Orient führt den nativen Handler für beide Objekte aus; Auto Orient Selected nur für das selektierte Objekt; Arrange holt ein absichtlich weit außerhalb des Betts platziertes Testmodell zurück in die Arbeitsfläche. Assertions prüfen Geometrie-Revision, Transformation und Objektanzahl.
+- Aktualisierte `InitialProjectMenuDeviceTest`: 28/28 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler und 0 Skips.
+- Vollständige `:app:connectedSliceTestAndroidTest`: 204 Testfälle, 199 bestanden, 5 wegen nicht vorhandener privater KromaCut-/Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors; XML-Zeitstempel `2026-10-19T02:55:41` UTC. Emulator offline.
+- Änderungen seit `dbbad28658b80b29eb2d9a20d8723b5b9152cac3` betreffen ausschließlich Instrumentierungstests. Runtime bleibt Version `0.8.316` / Code 351. Der zuvor gebaute APK-Nachweis gehört zu Code-Commit `60114a150c0a127159e204a2da0574e84c5be3b8`, nicht zu diesen zusätzlichen Tests.
+- Phase 4 bleibt durch vorherige Workspace-/Lifecycle-Tests abgenommen. Phase 5 ist weiterhin offen: es verbleiben Aktionen aus den sechs Hauptmenüs und globalen Druck-/Profilmenüs, die nicht durch diese Testklasse abgedeckt sind. Phase 6 ist offen für physische TalkBack-Traversierung sowie nicht auf dem Honor verfügbaren Display-/Schriftkonfigurationen.
+- Nächster Schritt: anhand des echten Modellmenü-Handlers die noch nicht aktionsgeprüften, sicheren Menüpunkte ermitteln; bevorzugt ohne produktive Datenänderung oder reale Druckerkommunikation.
+
 ## Phase-5-Fortsetzung: echte Modellmenüaktionen und Vollregression — 2026-10-19
 
 - Drei zusätzliche echte Honor-Compose/GL-Handler-Tests in `InitialProjectMenuDeviceTest`: Center on Bed verschiebt ein temporäres STL-Objekt nativ zur Bettmitte; Flatten aktiviert/deaktiviert den Renderer-Modus ohne Meshänderung; Move to Plate verschiebt ein temporäres Objekt zwischen zwei Workspace-Platten und verifiziert Ziel- sowie Quellbestand.

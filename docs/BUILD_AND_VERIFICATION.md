@@ -1250,6 +1250,13 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 # Honor verification — 2026-10-19 (model menu action audit)
 
+## Extended model-menu action audit — 2026-10-19
+
+- `InitialProjectMenuDeviceTest`: 28/28 passed on Honor PTP-N49 / Android 16. Added functional UI checks for Auto Orient (all objects), Auto Orient Selected, and Arrange for an off-bed disposable model; existing cases in the class also cover Center on Bed, Flatten mode toggle, and moving an object between workspace plates.
+- Full `:app:connectedSliceTestAndroidTest`: 204 cases, 199 passed, 5 skipped because private KromaCut/multicolor fixtures are unavailable, 0 failures/errors. XML timestamp `2026-10-19T02:55:41` UTC. Emulator offline.
+- Test-only changes after `dbbad28658b80b29eb2d9a20d8723b5b9152cac3`; app runtime is unchanged at `0.8.316` / versionCode 351. Existing APK identity remains the previously recorded build on code commit `60114a150c0a127159e204a2da0574e84c5be3b8`; no fresh APK was built for instrumentation-only additions.
+- Full UI action audit and manual TalkBack/display matrix remain open.
+
 - `:app:connectedSliceTestAndroidTest`: 202 cases, 197 passed, 5 skipped due to unavailable private KromaCut/multicolor fixtures, 0 failures/errors. JUnit XML: `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, timestamp `2026-10-19T02:42:07` UTC. Offline emulator skipped.
 - `InitialProjectMenuDeviceTest`: 26/26 passed on Honor PTP-N49 / Android 16. Added actual UI/GL behavior checks for Center on Bed, Flatten mode on/off without mesh mutation, and moving an object between two workspace plates.
 - `:app:testDebugUnitTest`: 561/561; `:app:testSliceTestUnitTest`: 561/561; no failures, errors, or skips.
