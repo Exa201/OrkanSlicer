@@ -1,6 +1,6 @@
 # Responsive workspace panel check — Honor PTP-N49 (2026-10-19)
 
-- Extended `WorkspaceModePanelHostDeviceTest` with a Compose matrix for portrait 320/360/400 dp configurations at font scales 100%, 130%, and 150%. For all nine combinations, the panel remains within the requested dp sizing and the final panel action is reachable by scrolling.
+- Extended `WorkspaceModePanelHostDeviceTest` with a Compose matrix for portrait 320/360/400 dp configuration values at font scales 100%, 130%, and 150%. For all nine combinations, the panel remains visible and the final panel action is reachable by scrolling. Exact fixed-size portrait and landscape bounds remain covered by separate tests.
 - Focused Honor class passed 4/4, 0 skips/failures/errors. This is a synthetic Compose layout/configuration test on the physical Honor, not a claim that the device was physically resized to each width. Existing landscape panel sizing and physical landscape visual checks remain separate.
 - This is a test-only follow-up; the v0.8.322 runtime APK/release remains unchanged. Manual TalkBack traversal remains open because no enabled TalkBack service was available during prior device checks.
 

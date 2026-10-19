@@ -6,7 +6,7 @@
 - Added a real Honor test for tap-to-preview then Android Back cancellation with no model mutation. Focused run passed 1/1; full `InitialProjectMenuDeviceTest` passed 38/38 on Honor PTP-N49 / Android 16.
 - Debug unit suite 562/562 and Slice unit suite 562/562 passed. Honor `InitialProjectMenuDeviceTest` 38/38, no skips/failures. Emulator offline.
 - After publication, complete Honor `:app:connectedSliceTestAndroidTest`: 221 cases, 216 passed, 5 fixture-dependent skips, 0 failures/errors (XML `2026-10-19T17:06:06Z`). Two KromaCut fixtures and three private multicolor fixtures were unavailable in this run.
-- Added a responsive tool-panel Compose test with 320/360/400 dp portrait configurations at 100/130/150% font scales; final action remained scroll-reachable in all nine combinations. Focused Honor class passed 4/4. This matrix is synthetic Compose sizing, not physical device resizing. Existing landscape sizing test remains.
+- Added a responsive tool-panel Compose test with 320/360/400 dp portrait configuration values at 100/130/150% font scales; panel stays visible and the final action remains scroll-reachable in all nine combinations. Focused Honor class passed 4/4. This is a synthetic Compose configuration matrix, not physical device resizing; existing exact landscape sizing test remains.
 - Phase 4 complete; Phase 5 action-by-action audit remains active. Phase 6 manual TalkBack/full responsive matrix incomplete. Multi-plate persistence remains separate and open.
 - Next: continue Phase 5 source-handler/action coverage for remaining actual global and workspace routes, then close remaining Phase 6 accessibility/layout gaps. Manual TalkBack traversal is still unverified. Multi-plate persistence remains a separate open feature.
 

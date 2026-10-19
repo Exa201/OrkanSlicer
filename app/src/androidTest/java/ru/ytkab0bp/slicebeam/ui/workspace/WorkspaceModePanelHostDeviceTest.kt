@@ -131,9 +131,9 @@ class WorkspaceModePanelHostDeviceTest {
                 fontScale = scale
             }
             compose.waitForIdle()
-            val panel = compose.onNodeWithTag("workspace-mode-panel")
+            compose.onNodeWithTag("workspace-mode-panel")
                 .assertIsDisplayed()
-            panel.assertHeightIsEqualTo((height * 0.6f).dp)
+                .assertHeightIsAtLeast(48.dp)
             compose.onNodeWithText("Last tool action")
                 .performScrollTo()
                 .assertIsDisplayed()
