@@ -1653,6 +1653,7 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 # Release candidate verification — 0.8.324 (2026-10-19)
 
+- Published as GitHub Debug prerelease [v0.8.324](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.324), asset `OrkanSlicer_6b1fb9e697.apk`; GitHub API confirms SHA-256 `792da73bf274e3a6f6e5f0ec6ba5bbc93199f7bcdd2ff8fd7296efc7a2c97570` and size 157,252,572 bytes. Tag points to code commit `6b1fb9e697fbda2e5de4b37e326ef649eb047fb1`.
 - Fixed truncated ACE/MMU tool headings at system font scale >= 130% using a compact `slot · Ttool` label. Standard font retains the explicit ACE label. Hardware slot mapping is unchanged.
 - `FilamentPaletteComposeDeviceTest`: 20/20 on Honor PTP-N49 / Android 16, including all four gates in one row at 150% Compose font scale. Full physical screenshot at system 150% confirms labels `1 · T0` through `4 · T3`; palette, all rows, sync action, and Cancel are visible/reachable. Device was restored to font 1.0, 1280×2800 px, 560 dpi.
 - Full Debug unit suite 561/561 and Slice unit suite 561/561; zero skipped/failures/errors. Full Honor `:app:connectedSliceTestAndroidTest`: JUnit XML timestamp `2026-10-19T19:30:25`, 227 tests, 225 passed, 2 skipped, 0 failures/errors. Only the two user-provided KromaCut fixture cases were skipped; bundled three-color tests ran. `:app:assembleDebug` succeeded.
