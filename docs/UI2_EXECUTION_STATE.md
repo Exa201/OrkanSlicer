@@ -1293,3 +1293,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Phase 6: teilweise. Honor ca. 366 dp, 100 % und 150 % Systemschrift sowie simulierte Compose-Bounds geprüft; manuelle TalkBack-Traversierung und weitere physische Breiten/Ausrichtungen fehlen.
 - Build: `:app:assembleDebug` erfolgreich auf `9c03ddd6b077c67ca4b1f8fad58f677d4759ca08`; APK `OrkanSlicer_9c03ddd6b0.apk`, SHA-256 `AA11FECEDC95020522A12BCAE8291305386A99F80CF399D00A8AC476CCCD3451`. Installation und Start auf Honor erfolgreich.
 - Nächster Schritt: Phase-5-Menüaktionsmatrix gegen aktuelle Compose-Handler und bestehende Gerätetests abgleichen und eine konkrete, noch offene globale/Druckeraktion end-to-end auf isoliertem Testzustand abnehmen. Keine Release-Veröffentlichung, solange die vereinbarte nächste Phase nicht abgeschlossen ist.
+
+## Filamentprofil-Speicheraktion auf Honor (2026-10-19)
+
+- Neue echte Gerätetestaktion `savingFilamentNumericDraftPersistsOnlyAfterSaveConfirmation`: Filament-`filament_diameter` wird über den Compose-Profil-Editor als Draft bearbeitet; vor bestätigtem Save bleibt das gespeicherte Preset unverändert. Erst der Save-Dialog übernimmt den Wert. `finally` setzt den ursprünglichen Fixture-Wert zurück und speichert die isolierte Konfiguration.
+- Vollständige `PrintProfileDropdownIntegrationDeviceTest`: 18/18 bestanden, 0 Skips/Fehler auf Honor PTP-N49 / Android 16; XML `2026-10-19T04:45:34`. Offline-Emulator wurde übersprungen.
+- Nur Instrumentierungstestcode geändert; kein Runtime-APK-Neubau. Phase 5 Menü-Aktionsaudit und Phase 6 manuelle TalkBack-/zusätzliche physische Displayabnahme bleiben offen. Nächster Schritt: weitere tatsächlich vorhandene, noch nicht geprüfte Handler im Workspace-Menü anhand der vorhandenen UI-Test-Fixtures abdecken, beginnend mit nicht-destruktiven Werkzeug-/Slicing-Aktionen.

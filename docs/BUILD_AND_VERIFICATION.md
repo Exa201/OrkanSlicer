@@ -1300,3 +1300,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - APK: `app/build/outputs/apk/debug/OrkanSlicer_9c03ddd6b0.apk`, 157,232,875 Bytes; SHA-256 `AA11FECEDC95020522A12BCAE8291305386A99F80CF399D00A8AC476CCCD3451`.
 - APK mit `adb install -r` auf Honor PTP-N49 installiert und Paket `com.codemastercody3d.orcaslicermobile` gestartet. Letzter Logcat-Ausschnitt zeigte keine FATAL EXCEPTION-, ANR- oder OOM-Marker. Emulator offline.
 - Zugrunde liegende Verifikation: Debug- und Slice-Unit-Suites je 561/561; vollständige Honor-Instrumentierung 206 Fälle, 201 bestanden, 5 private Fixtures übersprungen, 0 fehlgeschlagen; gezielter Rotationstest 1/1. Der Release-/UI-2.0-Abschluss ist damit nicht erklärt: Phase 5 Menü-Aktionsaudit und Phase 6 Accessibility/Layoutrest bleiben offen.
+
+## Filamentprofil speichern: Honor-End-to-End — 2026-10-19
+
+- `PrintProfileDropdownIntegrationDeviceTest.savingFilamentNumericDraftPersistsOnlyAfterSaveConfirmation`: bestand auf Honor PTP-N49 / Android 16. Der Test ändert den echten `filament_diameter`-Profilwert im Compose-Editor, prüft vor Bestätigung den unveränderten gespeicherten Presetwert, bestätigt anschließend den Profil-Speicherdialog und prüft erst dann die persistierte Änderung. Cleanup stellt den gebündelten Fixturewert wieder her und speichert die Testkonfiguration zurück.
+- Die vollständige Klasse bestand 18/18, 0 übersprungen, 0 Fehler; JUnit XML `2026-10-19T04:45:34`, Fallzeit 43,011 s. `emulator-5554` offline. Die Ausführung verwendete `:app:connectedSliceTestAndroidTest` mit gezieltem Klassenfilter.
+- Ausschließlich Instrumentierungstestcode geändert; kein Runtime-Code und kein APK-Neubau. Phase 5 bleibt offen für nicht einzeln abgenommene Workspace-/Drucker-/Rinkhals-Aktionen; Phase 6 bleibt offen für manuelles TalkBack und noch nicht physisch getestete Displaymodi. Mehrplatten-Projektpersistenz ist separat offen.

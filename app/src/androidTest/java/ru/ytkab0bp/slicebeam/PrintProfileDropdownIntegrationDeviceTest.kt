@@ -1178,6 +1178,68 @@ class PrintProfileDropdownIntegrationDeviceTest {
         }
     }
 
+    @Test
+    fun savingFilamentNumericDraftPersistsOnlyAfterSaveConfirmation() {
+        val activity = compose.activity
+        val config = SliceBeam.requireConfig()
+        val filamentTitle = requireNotNull(config.presets?.get("filament"))
+        val storedFilament = requireNotNull(config.findFilament(filamentTitle))
+        val storedDiameter = storedFilament.get("filament_diameter")
+        val option = requireNotNull(PrintConfigDef.getInstance().options["filament_diameter"])
+        val optionTitle = Slic3rLocalization.getString(option.getLabel())
+
+        try {
+            activity.runOnUiThread {
+                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(3)
+            }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is FilamentConfigFragment
+            }
+            val draft = activity.runOnUiThreadAndWait {
+                val fragment = activity.navigationDelegate.getCurrentFragment() as FilamentConfigFragment
+                FilamentConfigFragment::class.java.getDeclaredMethod("getCurrentConfig")
+                    .apply { isAccessible = true }
+                    .invoke(fragment) as ConfigObject
+            }
+            val original = requireNotNull(draft.get("filament_diameter")).toDoubleOrNull()
+            assertNotNull("The bundled filament profile must have a numeric diameter", original)
+            val candidate = if (original!! + 1 <= option.max) original + 1 else original - 1
+            val changed = if (option.type == ConfigOptionDef.ConfigOptionType.INT) {
+                candidate.toInt().toString()
+            } else {
+                candidate.toString()
+            }
+
+            ensureProfileCategoryExpanded("Filament")
+            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
+            compose.onNode(hasSetTextAction()).performTextClearance()
+            compose.onNode(hasSetTextAction()).performTextInput(changed)
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_FILAMENT) > 0
+            }
+
+            assertEquals("Editing should remain a draft until the profile Save action is confirmed",
+                storedDiameter, storedFilament.get("filament_diameter"))
+            compose.onNodeWithText(activity.getString(R.string.SettingsSave)).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsSaveTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_FILAMENT) == 0 &&
+                    storedFilament.get("filament_diameter") == changed
+            }
+
+            assertEquals("Confirmed save applies the changed filament value", changed,
+                storedFilament.get("filament_diameter"))
+            assertEquals("Saving the filament profile keeps the active preset", filamentTitle,
+                config.presets?.get("filament"))
+        } finally {
+            ProfileSettingsRepository.clearDraft(ConfigObject.PROFILE_LIST_FILAMENT)
+            storedFilament.put("filament_diameter", storedDiameter)
+            assertTrue("Restore the bundled filament fixture after the test", SliceBeam.saveConfig())
+        }
+    }
+
     private fun ensureProfileCategoryExpanded(categoryKey: String) {
         val localizedTitle = Slic3rLocalization.getString(categoryKey)
         val titles = listOf(
