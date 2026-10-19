@@ -1,3 +1,10 @@
+## Debug-Prerelease 0.8.316 — 2026-10-19
+
+- Fixes the stale in-app release-note version discovered by the complete Honor run: all three `update.json` translations now identify 0.8.316. `ChangeLogComposeDeviceTest` passed 1/1 after the fix.
+- Debug JVM tests 561/561 and Slice JVM tests 561/561 passed. Full Honor instrumentation: 199 test cases, 194 passed, 5 private fixture tests skipped, 0 failures/errors; XML timestamp `2026-10-19T02:14:48` UTC. The emulator remained offline.
+- Debug APK: `OrkanSlicer_80dffb0383.apk`, 157,232,887 bytes; SHA-256 `1FEDDA3E88A3246CFAA850F2DFAEBDF155A7EF34B42240666FF05C9E79E2BA41`; code commit `80dffb0383` (full commit is in Git history). Installed and launched on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`, version 0.8.316 / code 351. MainActivity resumed; checked logcat contained no crash, ANR, OOM, or fatal-signal markers.
+- Phase 5 menu audit and manual TalkBack traversal remain open. Release status is tracked separately below.
+
 ## Workspace-Navigation, Kalibrierung und Profilaktionen — Honor, 2026-10-19
 
 - `SliceResultWorkspaceDeviceTest`, `CalibrationWorkspaceDeviceTest` und `WorkspaceNavigationDeviceTest`: 4/4 bestanden auf Honor PTP-N49 / Android 16, 0 Fehler/Skips; XML `2026-10-19T01:46:25` UTC. Slicing-Ergebnis-/Layer-Workspaces, Back/Schließen, Upload-Fortschrittsdialog, Kalibrierungsaktionen und Projekt↔Modell-Menüwechsel abgedeckt. Kein Druckstart.

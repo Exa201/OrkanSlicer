@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Changelog-Versionsfehler behoben, v0.8.316 verifiziert — 2026-10-19
+
+- Die vollständige Honor-Suite hatte zuerst 1 Fehler: `ChangeLogComposeDeviceTest` fand in `app/src/main/assets/update.json` noch `0.8.314`, während `BuildConfig.VERSION_NAME` bereits `0.8.315` war. Ursache war ein nachfolgender Versionsbump ohne Aktualisierung der dreisprachigen In-App-Notizen. Kein Test wurde abgeschwächt.
+- Behoben durch Update von Deutsch/Englisch/Russisch auf `0.8.316`, passende Hinweise in `CHANGELOG.md`, Version `0.8.316` / Code `351`. Der Changelog-Gerätetest bestand anschließend 1/1; komplette Honor-Suite danach 199 Tests, 0 Fehler/Errors, 5 private Fixtures übersprungen, 194 bestanden; XML `2026-10-19T02:14:48` UTC. Offline-Emulator übersprungen.
+- `:app:testDebugUnitTest` 561/561 und `:app:testSliceTestUnitTest` 561/561 bestanden, jeweils 0 Fehler/Errors/Skips. `:app:assembleDebug` erfolgreich. APK `OrkanSlicer_80dffb0383.apk`, 157,232,887 Byte, SHA-256 `1FEDDA3E88A3246CFAA850F2DFAEBDF155A7EF34B42240666FF05C9E79E2BA41`, gebaut aus Code-Commit `80dffb0383...`.
+- APK auf Honor PTP-N49 / Android 16 installiert und gestartet; `MainActivity` top-resumed. Font-Scale 1.0. Logcat-Stichprobe ohne Crash/ANR/OOM/Fatal-Signal. Das geprüfte physische Display war zuvor 1280×2800 px / 560 dpi (~366 dp); zusätzliche responsive Konfigurationen sind in den separaten Compose-Simulationstests abgedeckt.
+- Release v0.8.316 noch zu publizieren. Phase 5/6 bleiben offen: vollständiger Menü-Aktionsaudit und manuelle TalkBack-Traversierung sind dadurch nicht abgeschlossen. Nächster konkreter Schritt nach dem Release: restliche nicht getestete Generator-/Modellaktionen aus den tatsächlichen Menühandlern abgleichen und sichere echte Handlerwirkungen auf dem Honor testen.
+
 ## Phase-5-Fortsetzung: Workspace- und Profilaktionen auf Honor — 2026-10-19
 
 - `SliceResultWorkspaceDeviceTest`, `CalibrationWorkspaceDeviceTest` und `WorkspaceNavigationDeviceTest` zusammen: 4/4 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Skips; XML `2026-10-19T01:46:25` UTC. Geprüft: Slicing-Ergebnis- und Layer-Panels, Back/Schließen, blockierender Upload-Fortschritt, Kalibrierungsroute sowie exklusiver Wechsel zwischen Projekt- und Modellmenü. Kein Druckstart.
