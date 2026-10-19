@@ -65,6 +65,14 @@
 
 # UI 2.0 execution status — 2026-10-19
 
+## Instrumentierung nach Split-Menütest — aktueller Stand
+
+- HEAD vor diesem Statuseintrag: `fbd03707a6daca65f481e30ddb0aa20c26c3cb50`; Android-/Runtimequellen unverändert.
+- Vollständige Honor-Suite `:app:connectedSliceTestAndroidTest`: 212 Tests, 207 bestanden, 5 übersprungen, 0 Fehler/Errors; XML `2026-10-19T10:13:50` UTC. Die fünf Fixture-Skips sind 2 KromaCut plus 3 private Mehrfarbenfälle; `emulator-5554` offline.
+- `InitialProjectMenuDeviceTest`: 34/34 bestanden, darunter der neue echte Split-Pfad mit synthetischer binärer STL (ein importiertes Modell → zwei native Objekte, je 136 Dreiecke). Gezielter Fall ebenfalls 1/1 bestanden.
+- Die Teständerung ist auf PR #2 Branch veröffentlicht (Codecommit `fbd0370`); Verifikationsdokumentation folgt separat. Kein Produktions-APK-Build, da Runtimequellen unverändert.
+- Weiterhin offen: vollständiger Handlerabgleich sämtlicher Menüaktionen; manuelle TalkBack-Traversierung und physisch alternative Displaygrößen; vollständige Mehrplatten-Projektpersistenz bleibt separat. Nächster Arbeitsblock: globale Profil-/Drucker-/Slicing-Aktionen anhand realer Handler gegen bereits vorhandene Geräteaktionen abgleichen und sichere Lücken schließen.
+
 ## Vollsuite auf Honor nach erfolgreichem Mesh-Split — 2026-10-19
 
 - Code-HEAD: `fbd03707a6daca65f481e30ddb0aa20c26c3cb50` (Instrumentierungstest-only; Runtime unverändert). `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 212 Tests, 207 bestanden, 5 übersprungen, 0 Fehler/Errors; XML-Zeitstempel `2026-10-19T10:13:50` UTC. Zwei KromaCut-Fälle und drei private Mehrfarben-Fixtures waren im Vollsuite-Lauf nicht bereitgestellt. Emulator offline.
