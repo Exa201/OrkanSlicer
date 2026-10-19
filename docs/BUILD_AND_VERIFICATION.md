@@ -1250,9 +1250,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 # Honor verification — 2026-10-19 (model menu action audit)
 
-## Project-menu profile import and conflict handling — 2026-10-19
+## Project-menu profile import, dismissal, and conflict handling — 2026-10-19
 
-- The device test starts from the real Options → Import Profiles action, captures the document picker request, returns a temporary valid `.ini` through `MainActivity`'s result handler, imports a synthetic print profile through the Compose dialog and verifies `layer_height = 0.17`. It then exercises the same real flow for an existing `0.16mm Standard` profile: Skip Existing leaves its stored value unchanged, while explicit Overwrite applies the imported `0.19` value.
+- The device test starts from the real Options → Import Profiles action, captures the document picker request, returns a temporary valid `.ini` through `MainActivity`'s result handler, and verifies Back and Cancel discard the selected profile. It then imports a synthetic print profile (`layer_height = 0.17`) and exercises conflicts for an existing `0.16mm Standard` profile: Skip Existing preserves its value; explicit Overwrite applies the imported `0.19` value.
 - The test restores the prior config object and persisted config bytes, launcher, and temporary input file in cleanup. Targeted test passed on Honor PTP-N49 / Android 16; the full `InitialProjectMenuDeviceTest` passed 30/30, 0 skips/failures.
 - The latest full connected suite before this added case was 205 cases: 200 passed, 5 private fixture skips, 0 failures/errors at XML timestamp `2026-10-19T03:05:39Z`. After this addition, the complete menu test class (30 cases) passed; the full connected suite was not rerun.
 - Test-only change; app runtime remains `0.8.316` / versionCode 351. No APK or release rebuilt. Phase 5 menu audit and Phase 6 physical TalkBack/display acceptance remain open.

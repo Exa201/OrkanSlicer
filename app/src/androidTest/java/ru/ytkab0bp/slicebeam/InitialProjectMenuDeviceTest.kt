@@ -827,29 +827,56 @@ class InitialProjectMenuDeviceTest {
         try {
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuOptions))
                 .assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
-                .assertIsDisplayed().performClick()
-            val pickerIntent = requireNotNull(capturedIntent.get())
-            assertEquals(Intent.ACTION_OPEN_DOCUMENT, pickerIntent.action)
-            assertTrue("profile must not exist before selecting the import result",
-                SliceBeam.requireConfig().findPrint(importedTitle) == null)
-
-            val result = Intent().setData(inputUri)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            activity.runOnUiThread {
-                MainActivity::class.java.getDeclaredMethod(
-                    "dispatchActivityResult", Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType, Intent::class.java,
-                ).apply { isAccessible = true }
-                    .invoke(activity, requestCode, Activity.RESULT_OK, result)
+            fun chooseImportFile() {
+                capturedIntent.set(null)
+                compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+                    .assertIsDisplayed().performClick()
+                val pickerIntent = requireNotNull(capturedIntent.get())
+                assertEquals(Intent.ACTION_OPEN_DOCUMENT, pickerIntent.action)
+                val result = Intent().setData(inputUri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                activity.runOnUiThread {
+                    MainActivity::class.java.getDeclaredMethod(
+                        "dispatchActivityResult", Int::class.javaPrimitiveType,
+                        Int::class.javaPrimitiveType, Intent::class.java,
+                    ).apply { isAccessible = true }
+                        .invoke(activity, requestCode, Activity.RESULT_OK, result)
+                }
             }
 
+            assertTrue("profile must not exist before selecting the import result",
+                SliceBeam.requireConfig().findPrint(importedTitle) == null)
+            chooseImportFile()
             compose.waitUntil(timeoutMillis = 15_000) {
                 compose.onAllNodesWithText(importedTitle).fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfilesPrints))
                 .assertIsDisplayed()
             compose.onNodeWithText(importedTitle).assertIsDisplayed()
+
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(importedTitle).fetchSemanticsNodes().isEmpty()
+            }
+            assertTrue("Android Back must cancel profile import without mutation",
+                SliceBeam.requireConfig().findPrint(importedTitle) == null)
+
+            chooseImportFile()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                compose.onAllNodesWithText(importedTitle).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(android.R.string.cancel))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(importedTitle).fetchSemanticsNodes().isEmpty()
+            }
+            assertTrue("Cancel must discard the selected profile without mutation",
+                SliceBeam.requireConfig().findPrint(importedTitle) == null)
+
+            chooseImportFile()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                compose.onAllNodesWithText(importedTitle).fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
                 SliceBeam.requireConfig().findPrint(importedTitle) != null
