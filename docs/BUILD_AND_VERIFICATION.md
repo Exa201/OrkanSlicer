@@ -1,3 +1,11 @@
+## Honor-Regression und physische 150-%-Schriftprüfung — 2026-10-19
+
+- Vollständige `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16 abgeschlossen: JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, 206 Tests, 201 bestanden, 5 private Mehrfarben-/KromaCut-Fixtures übersprungen, 0 Fehler/Errors. Der Emulator war offline.
+- Direkte visuelle Prüfung der verifizierten OrkanSlicer-App (`com.codemastercody3d.orcaslicermobile`) auf dem physischen Display 1280×2800 px / 560 dpi (ca. 366 dp). Bei Systemschrift 150 % wandert die globale Navigation in zwei Reihen; App-Einstellungen bleiben erreichbar. Eine geöffnete UI-Einstellungsgruppe scrollt vertikal, sodass der zunächst unterhalb des Viewports liegende Auflösungseintrag erreichbar wird. Font-Scale wurde auf 1,0 zurückgesetzt; physische Displaywerte blieben unverändert.
+- TalkBack ist installiert, war jedoch nicht aktiv. Der zeitweise ADB-Aktivierungsversuch band keinen Dienst; die Secure-Settings wurden zurückgestellt. Keine manuelle TalkBack-Prüfung beansprucht.
+- Nachlauf: OrkanSlicer-`MainActivity` top-resumed und letzte 5.000 Logcat-Zeilen ohne Crash-/ANR-/OOM-/Fatal-Signal-Marker. Der erste Gradle-Start ohne SDK-Pfad brach vor Testausführung ab; Wiederholung mit temporärem `ANDROID_HOME` war erfolgreich.
+- Nur Verifikationsdokumentation geändert; keine Runtimeänderung, kein neuer APK-Build und kein Release. Vollständiges Menü-Audit und restliche native responsive/TalkBack-Abnahme bleiben offen.
+
 ## Debug-Prerelease 0.8.316 — 2026-10-19
 
 - Fixes the stale in-app release-note version discovered by the complete Honor run: all three `update.json` translations now identify 0.8.316. `ChangeLogComposeDeviceTest` passed 1/1 after the fix.
