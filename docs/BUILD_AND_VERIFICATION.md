@@ -1,5 +1,13 @@
 # Global Maker navigation and complete Honor regression — 2026-10-19
 
+## Accessibility instrumentation follow-up — complete current test suite (2026-10-19)
+
+- `AdaptiveWorkspaceNavigationDeviceTest`: 3/3 passed on Honor PTP-N49 / Android 16. The six destinations meet the 48 dp height assertion at standard and 150% font scale; rail scroll reaches and selects the last destination with selected-state semantics.
+- `SettingsAccessibilityDeviceTest`: 1/1 passed. `ProfileFilterAccessibilityDeviceTest` and `ProfileEnumOptionAccessibilityDeviceTest`: 2/2 passed. These validate Compose semantics, touch bounds and reachable choices; they do not substitute for manual TalkBack speech/focus traversal.
+- Full `:app:testDebugUnitTest`: 562/562 passed. Full `:app:testSliceTestUnitTest`: 562/562 passed.
+- Full `:app:connectedSliceTestAndroidTest`: 216 JUnit cases, 211 passed, 5 skipped, 0 failures/errors; XML timestamp `2026-10-19T12:55:04`. The two KromaCut cases need the external user-provided fixture, and three multicolor cases need private fixtures. Emulator is offline.
+- Device accessibility services were checked without changing device settings: TalkBack was disabled (`accessibility_enabled=0`), so manual screen-reader traversal was not performed. This change is test/docs only; production APK/version remain 0.8.317 / code 352.
+
 ## Navigation accessibility bounds — Honor (2026-10-19)
 
 - Extended `AdaptiveWorkspaceNavigationDeviceTest` with minimum 48 dp destination bounds under standard and 150% font scaling, selected/not-selected semantics, and activation of the final rail destination after scrolling.

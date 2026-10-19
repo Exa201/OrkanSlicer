@@ -6,6 +6,13 @@
 - Focused Honor run: 3/3 passed, 0 skips/failures/errors; XML timestamp `2026-10-19T12:46:51`. The short-rail test also verifies the scroll hint is announced and that the last destination can be selected.
 - Instrumentation/test-only change; no product runtime source or APK changed. Manual TalkBack traversal and broader Phase 5 menu action audit remain open. Next: continue mapping remaining global printer/profile actions and their existing device coverage, then resume responsive/accessibility checks.
 
+## Full regression after accessibility test updates — Honor (2026-10-19)
+
+- `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 562/562 each, no failures/errors/skips.
+- Full `:app:connectedSliceTestAndroidTest`: 216 JUnit cases, 211 passed, 5 fixture-dependent skips, 0 failures/errors; XML timestamp `2026-10-19T12:55:04`. The emulator remained offline. Two KromaCut tests and three private multicolor fixture tests were skipped.
+- Added navigation assertions cover 48 dp destination bounds at standard/150% font scale, clickability after rail scroll and selected-state semantics. Settings and profile accessibility suites passed 1/1 and 2/2 respectively. Device reported TalkBack disabled, so physical screen-reader traversal remains open.
+- No production source change, APK rebuild or version bump. Phase 5 full menu action matrix and Phase 6 manual TalkBack/full display matrix remain open. Next: continue remaining safe global printer/profile action coverage; do not publish the planned release until the next phase acceptance is met.
+
 ## Latest verified workspace rail update — 2026-10-19, commit `2ec3501`
 
 - Version 0.8.317 / code 352 adds localized scroll-edge hints to overflowing vertical rails and reserves edge space so arrows do not cover navigation icons. The 100×180 dp / 130% Compose rail test passed; physical Honor confirms the arrows remain outside the destination icons.
