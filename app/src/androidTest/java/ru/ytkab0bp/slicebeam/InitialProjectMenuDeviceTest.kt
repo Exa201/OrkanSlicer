@@ -2,7 +2,9 @@ package ru.ytkab0bp.slicebeam
 
 import android.app.Application
 import android.app.Activity
+import android.app.Instrumentation.ActivityResult
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
@@ -516,6 +518,25 @@ class InitialProjectMenuDeviceTest {
                 Prefs.isPerformanceModeEnabled())
             assertTrue("result actions must not replace or release the active G-code result",
                 glView.renderer.gcodeResult === result)
+
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            val chooserMonitor = instrumentation.addMonitor(
+                IntentFilter(Intent.ACTION_CHOOSER),
+                ActivityResult(Activity.RESULT_CANCELED, Intent()),
+                true,
+            )
+            try {
+                compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceShare))
+                    .assertIsDisplayed().assertIsEnabled().performClick()
+                compose.waitUntil(timeoutMillis = 5_000) { chooserMonitor.hits > 0 }
+                assertTrue("Share should route through the Android system chooser", chooserMonitor.hits > 0)
+                assertTrue("opening Share must keep the generated G-code available", bed.hasSliceResult() &&
+                    BedFragment.tempGCodePath.isFile && BedFragment.tempGCodePath.length() > 0L)
+                assertTrue("opening Share must preserve the active rendered result",
+                    glView.renderer.gcodeResult === result)
+            } finally {
+                instrumentation.removeMonitor(chooserMonitor)
+            }
         } finally {
             Prefs.setPerformanceModeEnabled(oldPerformanceMode)
             prefs.edit().apply {

@@ -70,7 +70,7 @@ android {
             initWith debug
             resValue "string", "AppName", "OrkanSlicer Tests"
             applicationIdSuffix ".slicetest"
-            manifestPlaceholders = [fileProviderAuthority: "${defaultConfig.applicationId}.slicermore.slicetest.files"]
+            manifestPlaceholders = [fileProviderAuthority: "${defaultConfig.applicationId}.slicetest.slicermore.files"]
             matchingFallbacks = ['debug']
         }
     }

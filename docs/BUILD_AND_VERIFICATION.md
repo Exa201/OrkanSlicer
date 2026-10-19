@@ -1431,3 +1431,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - On code commit `fbd03707a6daca65f481e30ddb0aa20c26c3cb50`, `:app:connectedSliceTestAndroidTest` completed on Honor PTP-N49 / Android 16: 212 tests, 207 passed, 5 skipped, 0 failures/errors; XML timestamp `2026-10-19T10:13:50` UTC. The five skips are fixture-dependent: two KromaCut and three private multicolor tests. The offline emulator was skipped.
 - This full run includes the positive split test; the focused `InitialProjectMenuDeviceTest` run had already passed 34/34. No application runtime source changed.
+
+## G-code share action and SliceTest FileProvider authority — 2026-10-19
+
+- Extended `sliceMenuProducesResultAndExposesSafeResultActions` to invoke the real Compose Share action after native slicing. An `Instrumentation.ActivityMonitor` blocks the Android chooser, confirming the chooser route without selecting a target or sharing externally; the G-code artifact and active rendered result remain intact.
+- Initial targeted run found the SliceTest manifest authority was ordered differently from the app's `BuildConfig.APPLICATION_ID + ".slicermore.files"` lookup. Updated only the `sliceTest` manifest placeholder in `app/build.gradle` to `${defaultConfig.applicationId}.slicetest.slicermore.files`, matching the test variant's application ID and app-code suffix convention. Targeted Honor test passed 1/1 after the fix.
+- Full `:app:connectedSliceTestAndroidTest` after the fix: 212 cases, 207 passed, 5 fixture-dependent skips, 0 failures/errors; Honor PTP-N49 / Android 16; XML `2026-10-19T10:24:20` UTC. Emulator offline. No product runtime source was changed, so no Debug APK rebuild was needed.

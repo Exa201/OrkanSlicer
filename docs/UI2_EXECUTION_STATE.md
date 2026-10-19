@@ -65,6 +65,14 @@
 
 # UI 2.0 execution status — 2026-10-19
 
+## Slicing-Teilen-Aktion und FileProvider-Variant-Fix — 2026-10-19
+
+- In `sliceMenuProducesResultAndExposesSafeResultActions` wird nach dem echten nativen Slice die Compose-Aktion „Teilen“ betätigt. Ein blockierender Android-Chooser-Monitor fängt die Systemaktion ab; Test prüft, dass G-Code-Datei und Renderergebnis erhalten bleiben und keine externe Freigabe ausgelöst wird.
+- Der erste Lauf deckte einen Testvariant-Fehler auf: SliceTest registrierte `…slicermore.slicetest.files`, der App-Code sucht variantabhängig `BuildConfig.APPLICATION_ID + ".slicermore.files"` (`…slicetest.slicermore.files`). `app/build.gradle` verwendet jetzt die Codekonvention auch für `sliceTest`; der gezielte Honor-Aktionstest besteht 1/1.
+- Vollständige `:app:connectedSliceTestAndroidTest` nach der Korrektur: 212 Tests, 207 bestanden, 5 übersprungen, 0 Fehler/Errors auf Honor PTP-N49 / Android 16; XML `2026-10-19T10:24:20` UTC. Die fünf Skips sind zwei KromaCut- und drei private Mehrfarben-Fixtures; Emulator offline.
+- Geänderte Runtime? Nein. Der Gradle-Fix ist nur für den `sliceTest`-Build; der neue Code liegt in Instrumentierungstests. Kein Debug-APK-Neubau.
+- Nächster Schritt: beide Änderungen auf PR #2 pushen und danach weiterhin sichere, noch nicht abgenommene Menüaktionen bearbeiten. Phase 5 und Phase 6 bleiben offen wie oben beschrieben.
+
 ## Instrumentierung nach Split-Menütest — aktueller Stand
 
 - HEAD vor diesem Statuseintrag: `fbd03707a6daca65f481e30ddb0aa20c26c3cb50`; Android-/Runtimequellen unverändert.
