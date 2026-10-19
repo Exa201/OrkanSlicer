@@ -36,15 +36,14 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import ru.ytkab0bp.slicebeam.R
-import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
+import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import kotlin.math.round
 import kotlin.math.roundToInt
 
@@ -53,8 +52,9 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
     private val tempMin = Vec3d()
     private val tempMax = Vec3d()
     private var cutObject = -1
-    private var cutApplied = false
     private var connectorMode = false
+    @Volatile private var isAttachedToWorkspace = false
+    private val cutReady = mutableStateOf(false)
     private var zRange = TransformCutPolicy.zRange(0.0, 1.0)
     private val cutZ = mutableFloatStateOf(zRange.initial)
     private val rotationX = mutableFloatStateOf(0f)
@@ -67,57 +67,82 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
 
     init {
         fragment = bed
-        val renderer = bed.glView?.renderer
-        cutObject = renderer?.selectedObject ?: -1
-        val model = renderer?.model
-        if (cutObject >= 0 && model != null) {
-            val range = runCatching {
-                model.getBoundingBoxExact(cutObject, tempMin, tempMax)
-                TransformCutPolicy.zRange(tempMin.z, tempMax.z)
-            }.getOrNull()
-            if (range != null) {
-                zRange = range
-                cutZ.floatValue = range.initial
-            } else {
-                cutObject = -1
-            }
-        } else {
-            cutObject = -1
-        }
     }
 
     override fun onCreate() {
         super.onCreate()
-        val renderer = bed.glView?.renderer ?: return
-        renderer.showCutPlane(true)
-        renderer.setCutConnectorPlacement(false)
-        updateCutPlaneInRenderer()
-        updateConnectorSettings()
-        updateConnectorCount()
+        isAttachedToWorkspace = true
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            if (!isAttachedToWorkspace) return@queueEvent
+            val renderer = glView.renderer
+            val objectIndex = renderer.selectedObject
+            val min = Vec3d()
+            val max = Vec3d()
+            val range = runCatching {
+                val model = renderer.model ?: return@runCatching null
+                if (objectIndex < 0) return@runCatching null
+                model.getBoundingBoxExact(objectIndex, min, max)
+                TransformCutPolicy.zRange(min.z, max.z)
+            }.getOrNull()
+            ViewUtils.postOnMainThread {
+                if (!isAttachedToWorkspace) return@postOnMainThread
+                cutObject = if (range == null) -1 else objectIndex
+                if (range != null) {
+                    tempMin.set(min)
+                    tempMax.set(max)
+                    zRange = range
+                    cutZ.floatValue = range.initial
+                    cutReady.value = true
+                }
+                val z = cutZ.floatValue
+                val rotX = TransformCutPolicy.degreesToRadians(rotationX.floatValue)
+                val rotY = TransformCutPolicy.degreesToRadians(rotationY.floatValue)
+                val planeMin = Vec3d(tempMin)
+                val planeMax = Vec3d(tempMax)
+                val radius = connectorRadius.floatValue
+                val height = connectorHeight.floatValue
+                val type = connectorType.intValue
+                glView.queueEvent {
+                    if (!isAttachedToWorkspace) return@queueEvent
+                    val activeRenderer = glView.renderer
+                    activeRenderer.showCutPlane(true)
+                    activeRenderer.setCutConnectorPlacement(false)
+                    if (range != null) activeRenderer.setCutPlane(z, rotX, rotY, planeMin, planeMax)
+                    activeRenderer.setCutConnectorDefaults(radius, height, type)
+                    updateConnectorCountOnGl(activeRenderer)
+                    glView.requestRender()
+                }
+            }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        isAttachedToWorkspace = false
         connectorModeState.value = false
         connectorMode = false
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        renderer.setCutConnectorPlacement(false)
-        if (!cutApplied && cutObject >= 0) renderer.clearCutConnectorsForObject(cutObject)
-        renderer.showCutPlane(false)
-        glView.requestRender()
+        glView.queueEvent {
+            val renderer = glView.renderer
+            renderer.setCutConnectorPlacement(false)
+            if (cutObject >= 0) renderer.discardCutConnectorPreviewsForObject(cutObject)
+            renderer.showCutPlane(false)
+            glView.requestRender()
+        }
     }
 
     private fun updateCutPlaneInRenderer() {
         val glView = bed.glView ?: return
-        glView.renderer.setCutPlane(
-            cutZ.floatValue,
-            TransformCutPolicy.degreesToRadians(rotationX.floatValue),
-            TransformCutPolicy.degreesToRadians(rotationY.floatValue),
-            tempMin,
-            tempMax,
-        )
-        glView.requestRender()
+        val z = cutZ.floatValue
+        val rotX = TransformCutPolicy.degreesToRadians(rotationX.floatValue)
+        val rotY = TransformCutPolicy.degreesToRadians(rotationY.floatValue)
+        val min = Vec3d(tempMin.x, tempMin.y, tempMin.z)
+        val max = Vec3d(tempMax.x, tempMax.y, tempMax.z)
+        glView.queueEvent {
+            glView.renderer.setCutPlane(z, rotX, rotY, min, max)
+            glView.requestRender()
+        }
     }
 
     private fun updateConnectorCount() {
@@ -125,17 +150,34 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
             connectorCount.intValue = 0
             return
         }
-        connectorCount.intValue = bed.glView?.renderer?.getCutConnectorCount(cutObject) ?: 0
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            if (!isAttachedToWorkspace) return@queueEvent
+            val count = glView.renderer.getCutConnectorCount(cutObject)
+            ViewUtils.postOnMainThread {
+                if (isAttachedToWorkspace && connectorModeState.value) connectorCount.intValue = count
+            }
+        }
     }
 
     private fun updateConnectorSettings() {
         val glView = bed.glView ?: return
-        glView.renderer.setCutConnectorDefaults(
-            connectorRadius.floatValue,
-            connectorHeight.floatValue,
-            connectorType.intValue,
-        )
-        glView.requestRender()
+        val radius = connectorRadius.floatValue
+        val height = connectorHeight.floatValue
+        val type = connectorType.intValue
+        glView.queueEvent {
+            if (!isAttachedToWorkspace) return@queueEvent
+            glView.renderer.setCutConnectorDefaults(radius, height, type)
+            glView.requestRender()
+        }
+    }
+
+    private fun updateConnectorCountOnGl(renderer: ru.ytkab0bp.slicebeam.render.GLRenderer) {
+        if (cutObject < 0) return
+        val count = renderer.getCutConnectorCount(cutObject)
+        ViewUtils.postOnMainThread {
+            if (isAttachedToWorkspace) connectorCount.intValue = count
+        }
     }
 
     private fun setCutZ(value: Float) {
@@ -172,38 +214,56 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
     private fun toggleConnectorMode() {
         connectorMode = !connectorMode
         connectorModeState.value = connectorMode
-        bed.glView?.renderer?.setCutConnectorPlacement(connectorMode)
-        bed.glView?.requestRender()
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            if (!isAttachedToWorkspace) return@queueEvent
+            glView.renderer.setCutConnectorPlacement(connectorMode)
+            glView.requestRender()
+        }
     }
 
     private fun undoConnector() {
         if (cutObject < 0) return
-        bed.glView?.renderer?.removeLastCutConnectorForObject(cutObject)
-        updateConnectorCount()
-        bed.glView?.requestRender()
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            if (!isAttachedToWorkspace) return@queueEvent
+            glView.renderer.removeLastCutConnectorForObject(cutObject)
+            updateConnectorCountOnGl(glView.renderer)
+            glView.requestRender()
+        }
     }
 
     private fun clearConnectors() {
         if (cutObject < 0) return
-        bed.glView?.renderer?.clearCutConnectorsForObject(cutObject)
-        updateConnectorCount()
-        bed.glView?.requestRender()
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            if (!isAttachedToWorkspace) return@queueEvent
+            glView.renderer.clearCutConnectorsForObject(cutObject)
+            updateConnectorCountOnGl(glView.renderer)
+            glView.requestRender()
+        }
     }
 
     private fun applyCut() {
-        val renderer = bed.glView?.renderer
-        val model: Model? = renderer?.model
-        if (cutObject >= 0 && model != null) {
-            cutApplied = model.cut(
-                cutObject,
-                cutZ.floatValue.toDouble(),
-                TransformCutPolicy.degreesToRadians(rotationX.floatValue).toDouble(),
-                TransformCutPolicy.degreesToRadians(rotationY.floatValue).toDouble(),
-                true,
-                true,
-            )
-            renderer.clearAllCutConnectorPreviews()
-            bed.updateModel()
+        val glView = bed.glView
+        if (cutObject >= 0 && cutReady.value && glView != null) {
+            val objectIndex = cutObject
+            val z = cutZ.floatValue.toDouble()
+            val rotX = TransformCutPolicy.degreesToRadians(rotationX.floatValue).toDouble()
+            val rotY = TransformCutPolicy.degreesToRadians(rotationY.floatValue).toDouble()
+            glView.queueEvent {
+                if (!isAttachedToWorkspace) return@queueEvent
+                val renderer = glView.renderer
+                val model = renderer.model ?: return@queueEvent
+                renderer.commitCutConnectorsForObject(objectIndex)
+                val applied = model.cut(objectIndex, z, rotX, rotY, true, true)
+                renderer.clearAllCutConnectorPreviews()
+                ViewUtils.postOnMainThread {
+                    if (applied) bed.updateModel()
+                    if (isAttachedToWorkspace) dismiss()
+                }
+            }
+            return
         }
         dismiss()
     }
@@ -237,7 +297,7 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
             connectorType = type,
             connectorCount = count,
             connectorMode = addingConnectors,
-            canCut = cutObject >= 0 && bed.glView?.renderer?.model != null,
+            canCut = cutReady.value && cutObject >= 0,
             onZChanged = ::setCutZ,
             onRotationXChanged = ::setRotationX,
             onRotationYChanged = ::setRotationY,

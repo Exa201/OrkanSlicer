@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.321 (alpha)
+
+- Run cut-tool renderer and native model operations on the GL thread; obtain selection and model bounds there as well.
+- Stage cut connectors as previews until Apply, so Back/Cancel discards pending connector placements without deleting saved model connectors.
+- Verify the cut panel cancellation path and an actual model cut on Honor; the new device test confirms Apply produces two model objects.
+- Debug prerelease; full menu action audit and manual accessibility acceptance remain in progress.
+
 ## 0.8.320 (alpha)
 
 - Run selected-object auto-orientation and Flatten renderer resource changes on the GL thread; refresh model state after orientation completes.

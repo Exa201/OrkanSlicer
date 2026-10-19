@@ -2058,6 +2058,41 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun applyingCutRunsOnGlThreadAndSplitsTheSelectedModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-cut-apply-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, model.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(8)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformCut))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.CutApply))
+                .performScrollTo().assertIsDisplayed().performClick()
+
+            compose.waitUntil(timeoutMillis = 30_000) {
+                readObjectCountOnGl(glView) == 2 &&
+                    !readRendererBooleanOnGl(glView, "cutPlaneVisible")
+            }
+            assertEquals("applying a cut should split the model into two native objects", 2,
+                readObjectCountOnGl(glView))
+            assertFalse("the cut preview should close after applying",
+                readRendererBooleanOnGl(glView, "cutPlaneVisible"))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

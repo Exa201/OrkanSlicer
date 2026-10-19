@@ -205,15 +205,26 @@ if (this.model != null && objIdx >= 0 && objIdx < this.model!!.objectsCount)
 this.model!!.clearConnectors(objIdx)
 }
 }
+@Synchronized fun discardCutConnectorPreviewsForObject(objIdx:Int) {
+if (cutConnectorPreviews.remove(objIdx) != null) cutConnectorsDirty = true
+}
+@Synchronized fun commitCutConnectorsForObject(objIdx:Int) {
+val pending = cutConnectorPreviews.remove(objIdx) ?: return
+val activeModel = this.model
+if (activeModel == null || objIdx < 0 || objIdx >= activeModel.objectsCount) {
+cutConnectorsDirty = true
+return
+}
+for (connector in pending) {
+activeModel.addConnector(objIdx, connector.position, connector.radius, connector.height, connector.type, connector.rotX, connector.rotY)
+}
+cutConnectorsDirty = true
+}
 @Synchronized fun removeLastCutConnectorForObject(objIdx:Int) {
 val list = cutConnectorPreviews.get(objIdx)
 if (list == null || list.isEmpty()) return
 val idx = list.size - 1
 list.removeAt(idx)
-if (this.model != null && objIdx >= 0 && objIdx < this.model!!.objectsCount)
-{
-this.model!!.removeConnector(objIdx, idx)
-}
 cutConnectorsDirty = true
 }
 @Synchronized fun getCutConnectorCount(objIdx:Int):Int {
@@ -964,7 +975,6 @@ type = cutConnectorType
 if (!enabled || this.model == null || selectedObject < 0 || selectedObject >= this.model!!.objectsCount) return false
 val hit = raycastCutPlane(x, y)
 if (hit == null) return false
-this.model!!.addConnector(selectedObject, hit, radius, height, type, (cutPlaneRotX).toDouble(), (cutPlaneRotY).toDouble())
 val preview = CutConnectorPreview()
 preview.position = hit
 preview.radius = radius
