@@ -1,3 +1,11 @@
+## Honor-Komplettlauf mit Nutzer-3MF und stabilisiertem IME-Test — 2026-10-19
+
+- `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 207 Tests, 204 bestanden, 3 wegen nicht verfügbarer separater privater Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors; XML `2026-10-19T05:36:04` UTC. Emulator offline.
+- Die Nutzer-KromaCut-Datei wurde vor dem Volltest nur in die SliceTest-App-Sandbox kopiert. Beide `KromaCutThreeMfDeviceTest`-Fälle liefen im Gesamtlauf; danach wurde die temporäre Kopie entfernt. Die drei Skip-Fälle gehören zu anderen privaten Fixtures.
+- Der unmittelbar vorherige Komplettlauf hatte einen Reihenfolgefehler im IME-Profiltest gezeigt: Ziel-Fragment vorhanden, Compose-Semantics-Knoten noch nicht wieder angehängt. `ProfileSettingsImeDeviceTest` wartet jetzt auf den Suchknopf; gezielter Lauf 1/1 und anschließender Komplettlauf 204/204 ausführbare Fälle bestanden.
+- Änderungen betreffen Instrumentierungstest und Verifikationsdokumentation, nicht Produktionscode. Daher wurde keine neue APK erstellt; der zuletzt gebaute/auf Honor gestartete Produktcode bleibt Commit `49412024b37c32135210aab1f2d999262ff03aa1`.
+- Phase 5 Menü-Aktionsaudit und Phase 6 manuelle TalkBack-/vollständige physische Displayabnahme bleiben offen.
+
 ## Landscape-Workspace-Crash behoben — 2026-10-19
 
 - Produktionsfehler auf dem physischen Honor PTP-N49 / Android 16 reproduziert: Rücknavigation von globalen App-Einstellungen zum Compose-Workspace im Querformat löste `IllegalStateException: Horizontally scrollable component was measured with an infinity maximum width constraints` aus.
@@ -1327,3 +1335,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - `BedMenuActionTileWidthPolicyTest` 9/9; vollständige Debug-Unit-Suite 562/562 und Slice-Unit-Suite 562/562. `InitialProjectMenuDeviceTest#initialProjectRouteShowsFileActionsOnItsFirstOpen` auf Honor 1/1. Vollständige Honor-Instrumentierung aus demselben Verifikationsfenster: 207 Testfälle, 202 bestanden, 5 private KromaCut-/Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors.
 - Commitgebundenes Debug-APK für Code `49412024b37c32135210aab1f2d999262ff03aa1`: `app/build/outputs/apk/debug/OrkanSlicer_49412024b3.apk`, 157,232,876 Byte, SHA-256 `998A74D82A402456B96AEAFB9405F6998B5FDC2E411786D91D281F8D8056CB3F`. Installiert/gestartet auf Honor; `com.codemastercody3d.orcaslicermobile`, Version 0.8.316 / Code 351. Die letzten 5.000 Logcat-Zeilen enthalten keine Crash-/ANR-/OOM-/Fatal-Signal-Marker.
 - Phase 5 bleibt für weitere Menüaktionen offen; Phase 6 bleibt für manuelle TalkBack-Traversierung und nicht tatsächlich geprüfte physische Display-/Ausrichtungskonfigurationen offen. Kein Release wurde erstellt.
+
+## Nutzer-3MF: Importoptionen und tatsächlicher Slice auf Honor — 2026-10-19
+
+- `KromaCutThreeMfDeviceTest` wurde mit der Nutzerdatei `kromacut-1792184183294-kromacut-2026-10-16.3mf` auf Honor PTP-N49 / Android 16 ausgeführt: 2/2 bestanden, 0 übersprungen, 0 Fehler. XML-Zeitstempel `2026-10-19T05:20:53` UTC.
+- Getestet: alle 8 Importentscheidungen für Druck-/Filament-/Druckerprofile, Farb-/Profilwerterhalt, tatsächlicher nativer Slice mit eigenen und eingebetteten Einstellungen, Varianten mit geänderter Filamentpalette/Zuordnung, erzeugte G-Code-Layer und Filament-/Werkzeugbefehle. Temporäre Testkopie wurde nur in die SliceTest-App-Sandbox gelegt und danach entfernt.
+- Dies ist ein echter gerätebasierter Slice-/Importtest der bereitgestellten Fixture; er behauptet keine pauschale Kompatibilität mit allen 3MF-Dateien und keine Mehrplatten-Projektpersistenz. Produktionscode und APK unverändert.

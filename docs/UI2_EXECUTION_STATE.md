@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-19
 
+## Aktueller Fortsetzungsstand nach Honor-Volltest — 2026-10-19
+
+- Phase 4 bleibt abgeschlossen; Phase 5 Menüaktionsaudit bleibt aktiv. Phase 6 ist partiell: TalkBack-Handbedienung und zusätzliche physische Displaykonfigurationen sind weiter offen.
+- Nutzer-3MF-Import und nativer Slice wurden separat und im vollständigen Lauf mit echter Fixture geprüft: `KromaCutThreeMfDeviceTest` 2/2 bestanden. Vollständige Honor-Instrumentierung am aktuellen Testcode: 207 Tests, 204 bestanden, 3 private Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors; XML `2026-10-19T05:36:04` UTC. SliceTest-Emulator offline.
+- Der Volltest deckte eine Reihenfolgeabhängigkeit in `ProfileSettingsImeDeviceTest.profileFiltersRemainUsableWithKeyboardVisible` auf: das gecachte `PrintConfigFragment` wurde als Ziel gemeldet, bevor sein Compose-Suchknopf wieder im Semantics-Baum stand. Der Test wartet jetzt auf diesen Knoten. Gezielter Test nach der Korrektur bestanden; danach bestand die komplette Instrumentierung.
+- Die Nutzerdatei wurde nur vorübergehend in der SliceTest-App-Sandbox bereitgestellt und nach dem Test entfernt; Produktions-App-Fixture und Originaldatei wurden nicht überschrieben.
+- Kein Produktionscode geändert; vorhandene Debug-APK für Code `49412024b37c32135210aab1f2d999262ff03aa1` ist weiterhin maßgeblich. Nächster Schritt: Test-/Verifikationsnachweise committen und pushen, PR #2 aktualisieren, danach eine noch nicht praktisch abgenommene sichere Workspace-Aktion durchtesten. UI 2.0 ist nicht abgeschlossen.
+
 ## Aktueller Fortsetzungsstand — 2026-10-19
 
 - Phase 4 bleibt anhand der WorkspaceShell/RendererAdapter-Integration, stabiler GLView-/Back-/Werkzeugwechseltests abgeschlossen. Kein zusätzlicher Architekturumbau ist belegt oder erforderlich.
@@ -1326,3 +1334,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `InitialProjectMenuDeviceTest.multiPlateProjectExportWarnsAndCancelDoesNotOpenDocumentPicker` prüft nun in derselben realen Honor-Interaktion Platten hinzufügen, Auswahl wechseln und die leere zweite Platte über ihre Compose-Schließen-Schaltfläche entfernen. Danach bleiben Platte 1 aktiv und ihr temporäres Modell erhalten.
 - Gezielter Honor-Lauf: 1/1 bestanden, 0 Skips/Fehler; XML `2026-10-19T04:47:18`. Temporäres STL; Dateiauswahl nur abgefangen; kein Export und kein Druck.
 - Nur Instrumentierungstestcode; kein APK-Neubau. Die vollständige Projektpersistenz über mehrere Platten ist weiterhin nicht implementiert; Exportwarnung bleibt bestehen. Phase 5/6 bleiben offen.
+
+## Nutzer-3MF: Importoptionen und realer Slice auf Honor — 2026-10-19
+
+- Die vom Nutzer bereitgestellte `kromacut-1792184183294-kromacut-2026-10-16.3mf` (SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`) wurde für den SliceTest-Runner unter dessen eigenem App-Sandbox-Pfad bereitgestellt. Die bestehende Fixture in der Produktions-App blieb unangetastet; temporäre Testkopie nach Abschluss entfernt.
+- `KromaCutThreeMfDeviceTest`: 2/2 bestanden, 0 übersprungen, 0 Fehler auf Honor PTP-N49 / Android 16; XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, `2026-10-19T05:20:53` UTC.
+- `allImportChoiceCombinationsRemainIndependentForTheProvidedProject` prüfte alle acht Kombinationen der Druck-/Filament-/Druckerprofil-Übernahmeauswahl sowie Profilwerte/Farberhalt. `providedProjectSlicesWithOwnSettingsAndUniformObjectReassignment` lud das Projekt in die native Modelllogik, slicte reale G-Code-Ausgaben mit eingebetteten/eigenen Einstellungen und unterschiedlichen Auswahlkombinationen, verglich Filament-/Werkzeugzuordnungen und prüfte einheitliche Objektzuweisung. Beide Aktionen bestanden.
+- Der Testlauf war erfolgreich; er belegt die geprüften Abläufe für diese Fixture, nicht jede beliebige 3MF-Datei oder vollständige Mehrplatten-Projektpersistenz. Keine Produktionscodeänderung, kein neuer APK-Build.
+- Phase 5 Menüaktionsaudit und Phase 6 vollständige Display-/TalkBack-Abnahme bleiben offen. Nächster Schritt: vollständige Honor-Instrumentierung mit nun verfügbaren zwei privaten KromaCut-Fixturetests erneut ausführen und Ergebnis/übrige Fixture-Skips verifizieren.

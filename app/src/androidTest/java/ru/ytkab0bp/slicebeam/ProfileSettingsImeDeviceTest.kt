@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -87,6 +88,12 @@ class ProfileSettingsImeDeviceTest {
 
         val context = activity
         val searchToggle = context.getString(R.string.ProfileSettingsSearchAndFilter)
+        // The profile fragment is cached. `getCurrentFragment()` can already report it as the
+        // destination while its Compose tree is still being reattached after a previous test.
+        compose.waitUntil(timeoutMillis = 15_000) {
+            compose.onAllNodesWithContentDescription(searchToggle)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithContentDescription(searchToggle).assertIsDisplayed().performClick()
 
         val searchHint = context.getString(R.string.SettingsSearchHint)
