@@ -36,6 +36,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import android.os.SystemClock
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -1964,6 +1966,41 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-split-disconnected-mesh-${System.nanoTime()}.stl")
+        try {
+            writeTwoDisconnectedCubesStl(activity, modelFile)
+            val loaded = loadSingleTestModel(bed, modelFile)
+            assertEquals("the importer should keep the compound STL as one selectable model", 1,
+                loaded.objectsCount)
+            val importedTriangleCount = loaded.getTriangleCount(0)
+            assertTrue("both components should contain valid mesh triangles",
+                importedTriangleCount > 0 && importedTriangleCount % 2 == 0)
+            val trianglesPerComponent = importedTriangleCount / 2
+
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(9)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 2 }
+            assertEquals("native split should create exactly two independent model objects", 2,
+                readObjectCountOnGl(glView))
+            assertEquals("first split object should preserve its triangles", trianglesPerComponent,
+                readTriangleCountOnGl(glView, 0))
+            assertEquals("second split object should preserve its triangles", trianglesPerComponent,
+                readTriangleCountOnGl(glView, 1))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editEmbossActionEntersComposeGlModeAndBackExitsWithoutMeshMutation() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -2131,6 +2168,30 @@ class InitialProjectMenuDeviceTest {
         })
         assertTrue("temporary test model should finish loading", done.await(60, TimeUnit.SECONDS))
         return requireNotNull(loaded.get()) { "temporary model failed: ${error.get()}" }
+    }
+
+    /** Creates a standard binary STL containing two closed copies separated by 30 mm on X. */
+    private fun writeTwoDisconnectedCubesStl(activity: MainActivity, destination: File) {
+        val source = activity.assets.open("models/xyz_cube.stl").use { it.readBytes() }
+        assertTrue("bundled STL must have a binary STL header", source.size >= 84)
+        val triangleCount = ByteBuffer.wrap(source, 80, 4).order(ByteOrder.LITTLE_ENDIAN).int
+        assertTrue("bundled STL triangle count must match its binary payload", triangleCount > 0 &&
+            source.size == 84 + triangleCount * 50)
+
+        val output = ByteBuffer.allocate(84 + triangleCount * 2 * 50).order(ByteOrder.LITTLE_ENDIAN)
+        output.put(source, 0, 80)
+        output.putInt(triangleCount * 2)
+        output.put(source, 84, triangleCount * 50)
+        repeat(triangleCount) { triangleIndex ->
+            val triangleOffset = 84 + triangleIndex * 50
+            val translated = source.copyOfRange(triangleOffset, triangleOffset + 50)
+            val record = ByteBuffer.wrap(translated).order(ByteOrder.LITTLE_ENDIAN)
+            listOf(12, 24, 36).forEach { vertexXOffset ->
+                record.putFloat(vertexXOffset, record.getFloat(vertexXOffset) + 30f)
+            }
+            output.put(translated)
+        }
+        destination.writeBytes(output.array())
     }
 
     private fun openEditMenu(activity: MainActivity) {
