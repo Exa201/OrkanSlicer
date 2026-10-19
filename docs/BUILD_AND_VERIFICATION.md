@@ -1565,3 +1565,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 562/562 each, 0 failures/errors/skips. Full Honor `:app:connectedSliceTestAndroidTest`: JUnit XML `2026-10-19T15:04:18` UTC, 218 cases, 213 passed, 5 fixture-dependent skips, 0 failures/errors; two supplied-project KromaCut tests and three unavailable private multicolor fixture tests skipped in this run. The emulator remained offline.
 - Version advanced to 0.8.319 / code 354 for a new Debug prerelease. APK build/install/release verification is pending.
 - Phase 4 remains complete. Phase 5 remains active; a real upload-only route is now exercised. Phase 6 is partial and TalkBack traversal remains open. Full multi-plate project persistence is a separate open feature.
+
+### Debug prerelease v0.8.319 — build/install/GitHub verification
+
+- Debug APK: `app/build/outputs/apk/debug/OrkanSlicer_bc57087cea.apk` (157,235,079 bytes), SHA-256 `9496395A5B4D07FE332D0B29971F253E1824240F25BA43119B91F0C6C083C3F8`.
+- Built from runtime code commit `bc57087cea74a657cc4d93d19306dea3df39d286`; installed on Honor PTP-N49 / Android 16. Package `com.codemastercody3d.orcaslicermobile`, version 0.8.319 / code 354, MainActivity top-resumed. No fatal exception, ANR, or OOM in the cleared startup logcat.
+- Published as GitHub Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.319. GitHub reports asset `OrkanSlicer_bc57087cea.apk`, 157,235,079 bytes, SHA-256 matching the local APK.
+- PR #2 remains OPEN and CLEAN at runtime commit `bc57087cea74a657cc4d93d19306dea3df39d286`; no merge performed.

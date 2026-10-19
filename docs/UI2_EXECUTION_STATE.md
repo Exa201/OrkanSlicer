@@ -1606,3 +1606,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Release preparation: version is set to 0.8.319 / code 354; final Debug build and Honor install/start verification are the next concrete steps before uploading the prerelease.
 - Phase 4 complete; Phase 5 active; Phase 6 partial. Remaining: complete the whole action matrix and manual TalkBack/remaining physical-layout checks. Multi-plate project serialization remains separate and incomplete.
 - Last committed code before this work: `b49d3a83870056e120b0e6e77ca6ce1a6fcb6dbd`. Changes in this entry are not yet committed.
+
+## Release v0.8.319 verified — 2026-10-19
+
+- Runtime code commit: `bc57087cea74a657cc4d93d19306dea3df39d286`; app version 0.8.319 / code 354.
+- Debug APK `OrkanSlicer_bc57087cea.apk`, 157,235,079 bytes; SHA-256 `9496395A5B4D07FE332D0B29971F253E1824240F25BA43119B91F0C6C083C3F8`.
+- Published and remotely verified as prerelease https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.319. Installed and launched on Honor PTP-N49 / Android 16; exact package/version verified, no fatal/ANR/OOM in launch logcat.
+- PR #2 remains OPEN / CLEAN. Full UI menu audit and accessibility acceptance are not complete; do not mark UI 2.0 finished. Continue with remaining Phase 5 actions, then Phase 6 device/accessibility checks.
