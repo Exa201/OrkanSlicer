@@ -1,3 +1,11 @@
+# Latest verified build and release — v0.8.321 (2026-10-19)
+
+- Current code commit: `74b17ebcbd50ecca73d68639ada6210848b43704` on `codex/rinkhals-safe-start-audit`; PR #2 is open and reports CLEAN merge state.
+- Published Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.321. APK `OrkanSlicer_74b17ebcbd.apk`, 157,251,514 bytes; SHA-256 `3FECB623D3E34B2AA2C1499702C2EF8F120D2EDE7348A8BA9628B92315F1EB24`, matching GitHub asset digest. Version 0.8.321 / code 356. No production release or merge.
+- Cut tool now queues selected-object/bounds reads, renderer updates, connector changes, and native cut on GL. Connector placements are staged until Apply; Back drops pending previews and leaves saved connectors intact. Added Honor Apply test.
+- Verification: Debug and Slice unit suites 562/562 each; `InitialProjectMenuDeviceTest` on Honor PTP-N49 37/37, 0 skips/failures/errors. Debug APK build passed, installed/launched on Honor; version metadata confirmed and sampled startup Logcat clean. Emulator is offline.
+- Phase 4 architecture work remains complete. Phase 5 action-by-action audit remains active; Phase 6 has partial physical samples but full responsive/accessibility and manual TalkBack acceptance remain open. Multi-plate persistence remains separate and open. Continue from remaining global/workspace actions and responsive/accessibility gaps; do not treat this release as project completion.
+
 # Latest continuation — Maker nested navigation and complete Honor regression (2026-10-19)
 
 ## GitHub prerelease v0.8.317 published (2026-10-19)

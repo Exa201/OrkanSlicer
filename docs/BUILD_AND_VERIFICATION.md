@@ -1,3 +1,10 @@
+# Release v0.8.321 — Cut-tool GL thread and cancellation safety (2026-10-19)
+
+- Published Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.321. Asset `OrkanSlicer_74b17ebcbd.apk`, 157,251,514 bytes, SHA-256 `3FECB623D3E34B2AA2C1499702C2EF8F120D2EDE7348A8BA9628B92315F1EB24`; GitHub reports the matching digest. Tag targets code commit `74b17ebcbd50ecca73d68639ada6210848b43704`; app version 0.8.321 / code 356.
+- `:app:testDebugUnitTest`: 562/562; `:app:testSliceTestUnitTest`: 562/562; no skips, failures, or errors. Honor PTP-N49 / Android 16 `InitialProjectMenuDeviceTest`: 37/37, 0 skipped/failures/errors (XML `2026-10-19T16:19:51Z`). This includes the cut-panel cancel test and a real Apply cut producing two native model objects.
+- Debug APK build succeeded. Installed and launched package `com.codemastercody3d.orcaslicermobile` on Honor; version 0.8.321 / code 356. The sampled post-start logcat had no FATAL EXCEPTION, ANR, OOM, or fatal-signal matches. Emulator remains offline.
+- Cut-tool UI now reads selected model/bounds and runs renderer/native operations on GL; connector placements are staged as previews until Apply, and Back discards pending preview changes without clearing saved connectors. Phase 5 full menu audit and Phase 6 full responsive/manual TalkBack acceptance remain open; multi-plate persistence remains a separate feature.
+
 # Full Honor regression after profile-test synchronization — 2026-10-19
 
 - `:app:connectedSliceTestAndroidTest`: JUnit XML at `2026-10-19T14:32:56` reports 217 cases, 212 passed, 5 skipped, 0 failures/errors on Honor PTP-N49 / Android 16. The 5 skips are two KromaCut cases and three private multicolor fixtures; the provided KromaCut project was separately tested and sliced 2/2 earlier today.
