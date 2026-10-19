@@ -18,10 +18,12 @@ import ru.ytkab0bp.slicebeam.view.GLView
 import androidx.dynamicanimation.animation.FloatValueHolder
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
+import java.util.concurrent.atomic.AtomicInteger
 
 /** Camera controls rendered with Compose while retaining the existing renderer and camera actions. */
 open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
     private var fragment: BedFragment? = null
+    private val cameraAnimationGeneration = AtomicInteger()
 
     override fun onSetBed(fragment: BedFragment?) {
         this.fragment = fragment
@@ -65,8 +67,10 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
     private fun setOrthoProjection(enabled: Boolean) {
         Prefs.setOrthoProjectionEnabled(enabled)
         val glView = fragment?.glView ?: return
-        glView.renderer.updateProjection()
-        glView.requestRender()
+        glView.queueEvent {
+            glView.renderer.updateProjection()
+            glView.requestRender()
+        }
     }
 
     private fun selectCamera(preset: CameraPreset) {
@@ -92,49 +96,61 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
 
     private fun animateTo(toOrigin: Vec3d, toPosition: Vec3d) {
         val glView: GLView = fragment?.glView ?: return
-        val camera: Camera = glView.renderer.camera
-        val fromOrigin = Vec3d(camera.origin)
-        val fromPosition = Vec3d(camera.position)
-        val middlePoint = fromPosition.center(toPosition)
-        val zoom = camera.zoom
-
-        SpringAnimation(FloatValueHolder(0f))
-            .setMinimumVisibleChange(1 / 1000f)
-            .setSpring(SpringForce(1f).setStiffness(1000f).setDampingRatio(1f))
-            .addUpdateListener { _, value, _ ->
-                camera.zoom = ViewUtils.lerp(zoom, 1f, value)
-                camera.position.set(
-                    ViewUtils.lerpd(
-                        fromPosition.x,
-                        if (kotlin.math.abs(toPosition.x - toOrigin.x) <= 5) middlePoint.x
-                        else fromPosition.x + (toPosition.x - fromPosition.x) / 2,
-                        toPosition.x,
-                        value,
-                    ),
-                    ViewUtils.lerpd(
-                        fromPosition.y,
-                        if (kotlin.math.abs(toPosition.y - toOrigin.y) <= 5) middlePoint.y
-                        else fromPosition.y + (toPosition.y - fromPosition.y) / 2,
-                        toPosition.y,
-                        value,
-                    ),
-                    ViewUtils.lerpd(
-                        fromPosition.z,
-                        if (kotlin.math.abs(toPosition.z - toOrigin.z) <= 5) middlePoint.z
-                        else fromPosition.z + (toPosition.z - fromPosition.z) / 2,
-                        toPosition.z,
-                        value,
-                    ),
-                )
-                camera.origin.set(
-                    ViewUtils.lerpd(fromOrigin.x, toOrigin.x, value),
-                    ViewUtils.lerpd(fromOrigin.y, toOrigin.y, value),
-                    ViewUtils.lerpd(fromOrigin.z, toOrigin.z, value),
-                )
-                glView.renderer.updateProjection()
-                glView.requestRender()
+        val generation = cameraAnimationGeneration.incrementAndGet()
+        glView.queueEvent {
+            if (generation != cameraAnimationGeneration.get()) return@queueEvent
+            val camera: Camera = glView.renderer.camera
+            val fromOrigin = Vec3d(camera.origin)
+            val fromPosition = Vec3d(camera.position)
+            val zoom = camera.zoom
+            ViewUtils.postOnMainThread {
+                if (generation != cameraAnimationGeneration.get()) return@postOnMainThread
+                val middlePoint = fromPosition.center(toPosition)
+                SpringAnimation(FloatValueHolder(0f))
+                    .setMinimumVisibleChange(1 / 1000f)
+                    .setSpring(SpringForce(1f).setStiffness(1000f).setDampingRatio(1f))
+                    .addUpdateListener { _, value, _ ->
+                        if (generation == cameraAnimationGeneration.get()) {
+                            val positionX = ViewUtils.lerpd(
+                                fromPosition.x,
+                                if (kotlin.math.abs(toPosition.x - toOrigin.x) <= 5) middlePoint.x
+                                else fromPosition.x + (toPosition.x - fromPosition.x) / 2,
+                                toPosition.x,
+                                value,
+                            )
+                            val positionY = ViewUtils.lerpd(
+                                fromPosition.y,
+                                if (kotlin.math.abs(toPosition.y - toOrigin.y) <= 5) middlePoint.y
+                                else fromPosition.y + (toPosition.y - fromPosition.y) / 2,
+                                toPosition.y,
+                                value,
+                            )
+                            val positionZ = ViewUtils.lerpd(
+                                fromPosition.z,
+                                if (kotlin.math.abs(toPosition.z - toOrigin.z) <= 5) middlePoint.z
+                                else fromPosition.z + (toPosition.z - fromPosition.z) / 2,
+                                toPosition.z,
+                                value,
+                            )
+                            val originX = ViewUtils.lerpd(fromOrigin.x, toOrigin.x, value)
+                            val originY = ViewUtils.lerpd(fromOrigin.y, toOrigin.y, value)
+                            val originZ = ViewUtils.lerpd(fromOrigin.z, toOrigin.z, value)
+                            val zoomValue = ViewUtils.lerp(zoom, 1f, value)
+                            glView.queueEvent {
+                                if (generation != cameraAnimationGeneration.get()) return@queueEvent
+                                val activeCamera = glView.renderer.camera
+                                activeCamera.zoom = zoomValue
+                                activeCamera.position.set(positionX, positionY, positionZ)
+                                activeCamera.origin.set(originX, originY, originZ)
+                                activeCamera.invalidate()
+                                glView.renderer.updateProjection()
+                                glView.requestRender()
+                            }
+                        }
+                    }
+                    .start()
             }
-            .start()
+        }
     }
 }
 

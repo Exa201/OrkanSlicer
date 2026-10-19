@@ -1594,3 +1594,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Final APK from code commit `b0931f4a2dea3b5094ac63a3dd85d46f2f6d19cc`: `OrkanSlicer_b0931f4a2d.apk`, 157,234,976 bytes, SHA-256 `FD745ABA108DFBDC3617E8797CC6487F486F3651BDE02B9AE52B7F0B56B62BAE`.
 - Published as Debug prerelease https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.320; GitHub asset digest matches. PR #2 remains open. Phase 5 action audit continues; Phase 6 manual TalkBack and broader responsive matrix remain incomplete. No real printer was contacted and no print was started.
 
+## Camera menu GL-thread follow-up — working branch after v0.8.320 (2026-10-19)
+
+- `CameraMenu` no longer mutates the renderer camera or projection matrix on the UI thread. Preset selection snapshots the camera on the GL thread, animates scalar values on main, and queues each pose/projection update back to GL. A generation token drops stale frames when a second preset is selected. Orthographic projection changes are also applied on GL.
+- `InitialProjectMenuDeviceTest`: 35/35 passed on Honor PTP-N49 / Android 16. The camera tests now read camera pose and projection matrix through GL-queue barriers and confirm preset destinations and the actual projection matrix change.
+- Debug and Slice unit suites: 562/562 each, 0 failures/errors/skips. `:app:assembleDebug` succeeded. This source follow-up is on the branch after v0.8.320; the published v0.8.320 APK does not contain this later camera correction. Bundle this change into the next version/release after the current menu-audit phase.
+

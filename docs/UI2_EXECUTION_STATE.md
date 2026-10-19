@@ -1636,3 +1636,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Next: commit and push the verified v0.8.320 changes, publish its Debug prerelease, then continue the still-open Phase 5 handler matrix. Phase 6 TalkBack/manual display coverage remains open. Full multi-plate project serialization remains a separate incomplete feature.
 - Branch HEAD: `b0931f4a2dea3b5094ac63a3dd85d46f2f6d19cc`.
 
+# UI 2.0 continuation — 2026-10-19, camera actions GL-thread follow-up
+
+- Phase 5 menu/action audit remains active; Phase 4 is complete; Phase 6 remains partial. The published Debug prerelease is v0.8.320 at code commit `b0931f4`; it predates the camera fix below.
+- Fixed active Camera menu concurrency: camera presets no longer mutate `Camera` or projection data from the UI animation callback. Initial state is captured on GL, animation values are interpolated on main, and pose/projection updates are queued on GL. New preset selection invalidates older queued animation frames. The orthographic toggle also updates projection on GL.
+- Honor `InitialProjectMenuDeviceTest`: 35/35 passed, including actual camera pose and projection matrix assertions; Debug and Slice unit tests 562/562 each; Debug build succeeded. No full suite or new APK release was run for this post-v0.8.320 follow-up.
+- Next: commit/push this camera fix and its test, continue the source-handler action matrix and remaining global menu actions. Bundle camera correction in the next versioned release after the phase audit. TalkBack and the full responsive matrix remain open; multi-plate project persistence remains separate and incomplete.
+

@@ -1096,6 +1096,8 @@ class InitialProjectMenuDeviceTest {
     @Test
     fun cameraMenuActionsUpdateProjectionAndCameraControlPreference() {
         val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
         val previousProjection = Prefs.isOrthoProjectionEnabled()
         val previousControlMode = Prefs.getCameraControlMode()
         try {
@@ -1107,11 +1109,17 @@ class InitialProjectMenuDeviceTest {
                     .fetchSemanticsNodes().isNotEmpty()
             }
 
+            val projectionBefore = readProjectionMatrixOnGl(glView)
             val projectionAction = compose.onNodeWithContentDescription(
                 activity.getString(R.string.MenuCameraOrtho),
             ).assertIsDisplayed()
             projectionAction.performClick()
-            compose.waitForIdle()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                val projectionAfter = readProjectionMatrixOnGl(glView)
+                projectionAfter.indices.any { index ->
+                    kotlin.math.abs(projectionAfter[index] - projectionBefore[index]) > 1e-9
+                }
+            }
             assertEquals("camera projection tile should update the persisted preference",
                 !previousProjection, Prefs.isOrthoProjectionEnabled())
 
@@ -1134,6 +1142,10 @@ class InitialProjectMenuDeviceTest {
         } finally {
             Prefs.setOrthoProjectionEnabled(previousProjection)
             Prefs.setCameraControlMode(previousControlMode)
+            glView.queueEvent {
+                glView.renderer.updateProjection()
+                glView.requestRender()
+            }
         }
     }
 
@@ -1149,8 +1161,8 @@ class InitialProjectMenuDeviceTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        val camera = requireNotNull(bed.glView).renderer.camera
-        val modelBed = requireNotNull(bed.glView).renderer.bed!!
+        val glView = requireNotNull(bed.glView)
+        val modelBed = glView.renderer.bed!!
         val min = requireNotNull(modelBed.getVolumeMin())
         val max = requireNotNull(modelBed.getVolumeMax())
         val minVector = CameraVector(min.x, min.y, min.z)
@@ -1171,21 +1183,26 @@ class InitialProjectMenuDeviceTest {
                 .assertIsDisplayed()
                 .performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
-                kotlin.math.abs(camera.position.x - target.position.x) < 0.1 &&
-                    kotlin.math.abs(camera.position.y - target.position.y) < 0.1 &&
-                    kotlin.math.abs(camera.position.z - target.position.z) < 0.1 &&
-                    kotlin.math.abs(camera.origin.x - target.origin.x) < 0.1 &&
-                    kotlin.math.abs(camera.origin.y - target.origin.y) < 0.1 &&
-                    kotlin.math.abs(camera.origin.z - target.origin.z) < 0.1
+                val pose = readCameraPoseOnGl(glView)
+                kotlin.math.abs(pose[0] - target.origin.x) < 0.1 &&
+                    kotlin.math.abs(pose[1] - target.origin.y) < 0.1 &&
+                    kotlin.math.abs(pose[2] - target.origin.z) < 0.1 &&
+                    kotlin.math.abs(pose[3] - target.position.x) < 0.1 &&
+                    kotlin.math.abs(pose[4] - target.position.y) < 0.1 &&
+                    kotlin.math.abs(pose[5] - target.position.z) < 0.1
             }
             // Let the renderer's spring animation settle before requesting the next preset.
             SystemClock.sleep(900L)
             compose.waitForIdle()
+            val pose = readCameraPoseOnGl(glView)
             assertTrue(
                 "${activity.getString(presetLabel)} must apply its configured renderer camera pose",
-                kotlin.math.abs(camera.position.x - target.position.x) < 0.1 &&
-                    kotlin.math.abs(camera.position.y - target.position.y) < 0.1 &&
-                    kotlin.math.abs(camera.position.z - target.position.z) < 0.1,
+                kotlin.math.abs(pose[0] - target.origin.x) < 0.1 &&
+                    kotlin.math.abs(pose[1] - target.origin.y) < 0.1 &&
+                    kotlin.math.abs(pose[2] - target.origin.z) < 0.1 &&
+                    kotlin.math.abs(pose[3] - target.position.x) < 0.1 &&
+                    kotlin.math.abs(pose[4] - target.position.y) < 0.1 &&
+                    kotlin.math.abs(pose[5] - target.position.z) < 0.1,
             )
         }
     }
@@ -2545,6 +2562,32 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return renderer state $fieldName", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(value.get())
+    }
+
+    private fun readProjectionMatrixOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): DoubleArray {
+        val finished = CountDownLatch(1)
+        val matrix = AtomicReference<DoubleArray>()
+        glView.queueEvent {
+            matrix.set(glView.renderer.projectionMatrix.clone())
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return the projection matrix", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(matrix.get())
+    }
+
+    private fun readCameraPoseOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): DoubleArray {
+        val finished = CountDownLatch(1)
+        val pose = AtomicReference<DoubleArray>()
+        glView.queueEvent {
+            val camera = glView.renderer.camera
+            pose.set(doubleArrayOf(
+                camera.origin.x, camera.origin.y, camera.origin.z,
+                camera.position.x, camera.position.y, camera.position.z,
+            ))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return the camera pose", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(pose.get())
     }
 
     private fun readRendererIntOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, fieldName: String): Int {
