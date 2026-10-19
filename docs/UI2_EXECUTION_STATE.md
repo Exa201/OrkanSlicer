@@ -1,5 +1,12 @@
 # UI2 Fortsetzung — 2026-10-19, Profil-/Kalibrierungsaktionen
 
+## Neuester Fortschritt — 2026-10-19
+
+- Auf Honor PTP-N49 / Android 16 liefen 27 gezielte Tests aus `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): 27 bestanden, 0 Fehler, 0 Skips. Danach `InitialProjectMenuDeviceTest`: 30/30 bestanden, 0 Fehler/Skips. JUnit-Zeitstempel: `08:16:43Z` und `08:19:22Z`; `emulator-5554` offline.
+- Die Projektmenüklasse umfasst echte UI-Aktionen für Datei-/3MF-Flows einschließlich Multi-Plate-Exportwarnung/Cancel, Modellaktionen, Kamerapresets/Projektion, Editieren/Undo/Redo, Tool-/Profilaktionen und Slicing-Abläufe. Das ist Abdeckung der konkret in diesen Tests enthaltenen Pfade, kein vollständiges manuelles Audit aller Einträge.
+- Letzter Testnachweis wurde mit Commit `b82ae3e` auf den PR-Branch gepusht. Die beiden nachfolgenden Testläufe änderten weder Produkt- noch Testcode; ihre Ergebnisse werden hier dokumentiert.
+- Phase 4 bleibt abgeschlossen. Phase 5 bleibt aktiv, weil globale Menüs und jede verbleibende nicht abgedeckte Aktion nicht vollständig abgeglichen sind. Phase 6 bleibt teilweise offen (manuelle TalkBack-Traversierung und vollständige Display-/Orientierungsmatrix). Nächster konkreter Schritt: globale Druck-/Profil- und Druckeraktionen mit bestehenden Integrationstests gegen den Quellcode abgleichen und neue Lücken einzeln schließen.
+
 ## Neueste gezielte Honor-Abnahme — 2026-10-19
 
 - Kombinierter Gerätelauf auf Honor PTP-N49 / Android 16: `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): insgesamt 27/27 bestanden, 0 Fehler, 0 Skips. JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-19T08:16:43` UTC. `emulator-5554` blieb offline.

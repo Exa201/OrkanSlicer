@@ -7,6 +7,13 @@
 - Runtime-Ergänzung ist ausschließlich ein Compose-Testtag am Kalibrierungsmesswertfeld; keine fachliche Produktionslogik wurde geändert. Der APK-Build wurde nach dem Code-Commit ausgeführt.
 - Die Kalibrierungs- und Generatorrouten sind damit gezielt geprüft, aber Phase 5 ist nicht vollständig abgeschlossen: weitere Hauptmenü- und globale Untermenüaktionen bleiben offen. Phase 6 bleibt teilweise offen (manuelle TalkBack-Traversierung und vollständige physische Displaymatrix).
 
+## Workspace-Aktionsregression — Honor, 2026-10-19
+
+- `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18) liefen kombiniert mit 27/27 bestanden, 0 Fehler/Errors/Skips. JUnit-Zeitstempel `2026-10-19T08:16:43Z`.
+- Danach `InitialProjectMenuDeviceTest`: 30/30 bestanden, 0 Fehler/Errors/Skips auf Honor PTP-N49 / Android 16. JUnit-Zeitstempel `2026-10-19T08:19:22Z`. Deckt unter anderem reale Projekt-/Modellaktionen, Exportwarnung und Abbruch, Profilimport/-export, Kamera-Presets und Projektion, Undo/Redo-Transformationen, Modellmalen/-zuweisung und Slicing-Ergebnisaktionen ab.
+- `emulator-5554` war bei beiden Läufen offline und wurde übersprungen. Nur Android-Instrumentierungstest und Verifikationsdokumentation geändert; Produktcode und bereits gebaute APK bleiben unverändert.
+- Phase 5 ist weiterhin nicht vollständig abgenommen; diese Klassenläufe stellen Regressionsevidenz für ihre Fälle dar, keine vollständige manuelle Prüfung jedes globalen Menüpunkts. Phase 6 TalkBack-Handprüfung und vollständige physische Displaymatrix bleiben offen.
+
 ## Reale Workspace-Menünavigation auf Honor — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 wurden OrkanSlicers sechs Workspace-Ziele nacheinander tatsächlich geöffnet und ihre sichtbaren Compose-Aktionen aus dem Android-Layoutbaum gelesen. Die Aktion „Modell laden“ öffnete den System-Dateiauswahldialog; Android-Zurück führte ohne Dateiauswahl/importierte Datei zurück zum Workspace.
