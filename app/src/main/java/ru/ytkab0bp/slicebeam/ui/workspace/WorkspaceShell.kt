@@ -62,6 +62,7 @@ internal fun WorkspaceShell(
     profileStatusContent: @Composable () -> Unit,
     filamentButtonContent: @Composable () -> Unit,
     platePickerContent: @Composable () -> Unit,
+    viewCubeContent: @Composable () -> Unit,
     printerWebButtonContent: @Composable () -> Unit,
     modePanelContent: (@Composable () -> Unit)?,
     modePanelSize: WorkspacePanelSize?,
@@ -131,6 +132,7 @@ internal fun WorkspaceShell(
             ) {
                 WorkspaceActionControl(filamentButtonContent)
                 WorkspaceActionControl(platePickerContent, allowVerticalGrowth = true)
+                WorkspaceActionControl(viewCubeContent)
                 WorkspaceActionControl(printerWebButtonContent)
             }
         }

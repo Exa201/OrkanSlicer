@@ -404,6 +404,7 @@ private fun PreSliceFilamentContent(
                     selected = false,
                     modifier = Modifier
                         .clip(shape)
+                        .testTag("pre-slice-object-slot-$objectIndex")
                         .clickable(role = Role.Button) { choosingObject = objectIndex },
                     textColor = primaryColor,
                     showRadio = false,
@@ -435,7 +436,9 @@ private fun PreSliceFilamentContent(
                             label = formatSlot(slot, index),
                             color = slot.color,
                             selected = selectedSlots.getOrElse(objectIndex) { 0 } == index,
-                            modifier = Modifier.clip(shape).clickable(role = Role.RadioButton) {
+                            modifier = Modifier.clip(shape)
+                                .testTag("pre-slice-object-$objectIndex-filament-$index")
+                                .clickable(role = Role.RadioButton) {
                                 onSelectedSlotsChange(selectedSlots.toMutableList().also { it[objectIndex] = index })
                                 choosingObject = -1
                             },

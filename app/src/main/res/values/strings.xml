@@ -33,7 +33,7 @@
     <string name="PreSliceSlotHelp">Choose the assignment before slicing. T0, T1, etc. identify model filaments. With an ACE, select the corresponding physical slot.</string>
     <string name="PreSliceAllObjectsMode">Print all objects with one slot</string>
     <string name="PreSliceIndividualMode">Choose a slot for each object</string>
-    <string name="PreSliceIndividualHelp">Tap an object to change its slot. Painted areas keep their own color assignments.</string>
+    <string name="PreSliceIndividualHelp">Tap each object and choose its slot. This replaces the colors of all parts in that object too. To keep multicolor parts, choose “Keep model colors and part assignments” and map the T colors.</string>
     <string name="PreSliceSlotLabel">Slot %1$d · %2$s · %3$s → T%4$d</string>
     <string name="PreSliceObjectSlot">%1$s\nSlot %2$d · %3$s</string>
     <string name="PreSliceChooseObjectSlot">Choose a slot for this object</string>
@@ -56,7 +56,7 @@
     <string name="ProjectBooleanInherit">Automatic (printer value)</string>
     <string name="ProjectBooleanOff">Off</string>
     <string name="ProjectBooleanOn">On</string>
-    <string name="PreSliceKeepModelColorsHelp">Parts keep their 3MF filaments. Next, assign the colors used by the model to the printer slots.</string>
+    <string name="PreSliceKeepModelColorsHelp">Parts keep their 3MF filaments. Map each T color to a printer slot. If multiple objects use the same T filament, that mapping applies to all of them.</string>
     <string name="PreSliceTemperatureHeading">Temperatures used for slicing (change them in Filament):</string>
     <string name="PreSliceTemperatureRow">T%1$d: bed %2$s/%3$s °C, nozzle %4$s/%5$s °C (first/other layers)</string>
     <string name="PreSliceEditTemperatures">Temperatures</string>
@@ -162,6 +162,8 @@
     <string name="MenuProject">Project</string>
     <string name="MenuFileCompact">Project</string>
     <string name="MenuModel">Model</string>
+    <string name="ModelMenuSelectedObjectGroup">One object</string>
+    <string name="ModelMenuAllObjectsGroup">All objects</string>
     <string name="MenuModelCompact">Model</string>
     <string name="MenuPlates">Plates</string>
     <string name="PlateNumber">Plate %1$s</string>
@@ -723,6 +725,15 @@
     <string name="Project3mfExportActivePlateMessage">The current export includes plate %1$d of %2$d only. Other plates will not be included. Full multi-plate project export is not available yet.</string>
     <string name="Project3mfExportActivePlateConfirm">Export active plate</string>
     <string name="MenuCamera">Camera</string>
+    <string name="ViewCubeDescription">View cube. %1$s</string>
+    <string name="ViewCubeRotateHint">Drag the cube to rotate the camera. Tap a visible cube face to use that standard view.</string>
+    <string name="ViewCubeShowFace">Show %1$s view</string>
+    <string name="ViewCubeFront">Front</string>
+    <string name="ViewCubeBack">Back</string>
+    <string name="ViewCubeRight">Right</string>
+    <string name="ViewCubeLeft">Left</string>
+    <string name="ViewCubeTop">Top</string>
+    <string name="ViewCubeBottom">Bottom</string>
     <string name="MenuCameraIsometric">Isom. view</string>
     <string name="MenuCameraIsometricCompact">Iso</string>
     <string name="MenuCameraTop">Top view</string>

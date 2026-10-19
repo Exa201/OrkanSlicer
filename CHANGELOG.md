@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.326 (alpha)
+
+- Keep the exact effective filament palette used by each native slice result and use it in the G-code preview, so sliced models no longer revert to stale/original 3MF colors.
+- Support per-object physical filament-slot choices in the pre-slice dialog; each object can use a different logical T slot. The bundled multicolor fixture verifies model assignments, the captured slice palette, and emitted G-code tool commands.
+- Group single-object operations and whole-plate operations into separate scopes in the Model menu; move/rotate/scale, copy/fill, center, lay-flat, paint and other selected-object actions stay together.
+- Add a compact, accessible, draggable six-face view cube next to the plate selector and remove the redundant camera preset tiles from the bottom Camera menu.
+- Debug and Slice unit suites: 578/578 each. Honor PTP-N49: Model/workspace action class 41/41; direct cube tap/drag 1/1; multicolor 3MF slicing and slot assignment 4/4. Full instrumentation and final APK verification are recorded after the final build.
+
 ## 0.8.325 (alpha)
 
 - Fix ACE/MMU color assignment so a model tool uses its selected physical gate in the on-bed preview, slice configuration, firmware tool command, upload metadata, and final G-code palette. Selecting an occupied ACE gate swaps the former assignment instead of silently creating duplicate active gate mappings; the final preflight now checks the same mapping used by the upload.

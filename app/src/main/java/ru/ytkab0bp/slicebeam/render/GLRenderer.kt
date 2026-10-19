@@ -393,7 +393,8 @@ viewer!!.toggleOptionVisibility(GCodeViewer.OPTION_TYPE_SEAMS)
 }
 if (isModelMultiColor)
 {
-val pal = ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette()
+val pal = gcodeResult?.previewToolColors
+    ?: ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette()
 val rgb = IntArray(pal.size)
 for (i in pal.indices) rgb[i] = pal[i] and 0xFFFFFF
 viewer!!.setToolColors(rgb)

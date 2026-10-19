@@ -49,6 +49,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.WorkspaceComposeBedMenuHost
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.OptionsMenu
@@ -79,6 +80,8 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceProfileStatus
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCube
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
@@ -1488,6 +1491,32 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                                 onAdd = { addNewPlate() },
                             )
                         }
+                    },
+                    viewCubeContent = {
+                        WorkspaceViewCube(
+                            onFaceSelected = { face ->
+                                val preset = when (face) {
+                                    WorkspaceViewFace.FRONT -> CameraPreset.FRONT
+                                    WorkspaceViewFace.BACK -> CameraPreset.BACK
+                                    WorkspaceViewFace.RIGHT -> CameraPreset.RIGHT
+                                    WorkspaceViewFace.LEFT -> CameraPreset.LEFT
+                                    WorkspaceViewFace.TOP -> CameraPreset.TOP
+                                    WorkspaceViewFace.BOTTOM -> CameraPreset.BOTTOM
+                                }
+                                (menuMap.get(WorkspaceDestination.CAMERA.ordinal) as? CameraMenu)?.let { cameraMenu ->
+                                    // The cube lives in the persistent workspace header and can be
+                                    // used before the Camera destination has ever been opened.
+                                    cameraMenu.onSetBed(this@BedFragment)
+                                    cameraMenu.selectCameraPreset(preset)
+                                }
+                            },
+                            onCameraRotated = { x, y, z ->
+                                (menuMap.get(WorkspaceDestination.CAMERA.ordinal) as? CameraMenu)?.let { cameraMenu ->
+                                    cameraMenu.onSetBed(this@BedFragment)
+                                    cameraMenu.selectCameraDirection(x, y, z)
+                                }
+                            },
+                        )
                     },
                     printerWebButtonContent = {
                         BeamComposeTheme(themeRevision = printerWebThemeRevision) {

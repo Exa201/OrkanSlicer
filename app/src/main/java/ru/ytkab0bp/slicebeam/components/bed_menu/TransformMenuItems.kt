@@ -140,3 +140,12 @@ internal class TransformMenuItems(
         }
     }
 }
+
+/** Shared callbacks let the selected-object editor collect transforms without a second action host. */
+internal fun createTransformMenuItems(fragment: BedFragment): TransformMenuItems = TransformMenuItems(
+    fragment,
+    Consumer<View> { fragment.showWorkspaceComposeTool(OrientationPositionMenu(fragment)) },
+    Consumer<View> { fragment.showWorkspaceComposeTool(OrientationRotationMenu(fragment)) },
+    Consumer<View> { fragment.showWorkspaceComposeTool(TransformScaleMenu(fragment)) },
+    Consumer<View> { fragment.showWorkspaceComposeTool(TransformCutMenu(fragment)) },
+)

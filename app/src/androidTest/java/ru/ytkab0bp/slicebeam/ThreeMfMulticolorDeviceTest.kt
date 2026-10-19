@@ -176,6 +176,68 @@ class ThreeMfMulticolorDeviceTest {
         }
     }
 
+    @Test fun individuallyAssignedObjectsSliceWithTheirSelectedSlotsAndPalette() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val source = copyFixture(context.cacheDir, "three-color-individual-assignments.3mf")
+        val destination = File(context.cacheDir, "three-color-individual-assignments.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("orca_profiles/Anycubic.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            requireNotNull(SliceBeam.requireConfig().findFilament("Anycubic Generic PLA"))
+                .put("filament_start_gcode", "")
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            model = Model(source, 1)
+            val assignments = intArrayOf(4, 1, 2) // visible slot 4, slot 1, slot 2
+            assignments.forEachIndexed { index, oneBasedSlot -> model.setUniformFilament(index, oneBasedSlot) }
+            assertEquals(4, model.requiredFilamentCount)
+            assertArrayEquals(intArrayOf(4), model.getUsedFilaments(0))
+            assertArrayEquals(intArrayOf(1), model.getUsedFilaments(1))
+            assertArrayEquals(intArrayOf(2), model.getUsedFilaments(2))
+
+            SliceBeam.genCurrentConfig(model)
+            val configColors = configFile.useLines { lines ->
+                lines.lastOrNull { it.startsWith("filament_colour = ") }?.substringAfter("filament_colour = ")
+            }
+            val expectedPreviewColors = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.resolve(
+                configColors, model.requiredFilamentCount, ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette(),
+            )
+            result = model.slice(configFile.absolutePath, destination.absolutePath, null)
+            assertArrayEquals(
+                "G-code tool preview must retain the exact palette passed to native slicing",
+                expectedPreviewColors,
+                result.previewToolColors,
+            )
+
+            val toolsUsed = BooleanArray(4)
+            val toolCommand = Regex("^T([0-3])(?:\\s|$)")
+            destination.useLines { lines -> lines.forEach { line ->
+                toolCommand.find(line)?.groupValues?.get(1)?.toInt()?.let { toolsUsed[it] = true }
+            } }
+            assertTrue("Slot 1 must be emitted as T0", toolsUsed[0])
+            assertTrue("Slot 2 must be emitted as T1", toolsUsed[1])
+            assertFalse("Unassigned slot 3 must not be emitted", toolsUsed[2])
+            assertTrue("Slot 4 must be emitted as T3", toolsUsed[3])
+        } finally {
+            result?.release()
+            model?.release()
+            destination.delete()
+            source.delete()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+        }
+    }
+
     private fun copyFixture(directory: File, name: String): File {
         val file = File(directory, name)
         InstrumentationRegistry.getInstrumentation().context.assets

@@ -356,7 +356,11 @@ open class Model private constructor(@JvmField var pointer: Long) {
             pointer, configPath, gcodePath, nativeListener, numFilaments, colors ?: IntArray(0),
             calibMode, calibStart, calibEnd, calibStep,
         )
-        return GCodeProcessorResult(resultPointer)
+        return GCodeProcessorResult(resultPointer).also { result ->
+            // Keep the effective ACE/profile palette with the result so the tool-color
+            // preview shows the same colors that the native slicer actually received.
+            result.previewToolColors = colors?.copyOf()
+        }
     }
 
     @Throws(Slic3rRuntimeError::class)

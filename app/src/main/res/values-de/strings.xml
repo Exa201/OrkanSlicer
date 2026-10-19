@@ -30,7 +30,7 @@
     <string name="PreSliceSlotHelp">Lege die Zuordnung vor dem Slicen fest. T0, T1 usw. bezeichnen die Modellfilamente. Bei einer ACE wählst du dazu den gewünschten physischen Slot.</string>
     <string name="PreSliceAllObjectsMode">Alle Objekte mit einem Slot drucken</string>
     <string name="PreSliceIndividualMode">Slot je Objekt auswählen</string>
-    <string name="PreSliceIndividualHelp">Tippe ein Objekt an, um seinen Slot zu ändern. Bemalte Bereiche behalten ihre eigene Farbzuordnung.</string>
+    <string name="PreSliceIndividualHelp">Tippe jedes Objekt an und wähle seinen Slot. Das ersetzt auch die Farben aller Teile dieses Objekts. Für mehrfarbige Teile wähle „Farben und Teilezuordnung beibehalten“ und ordne die T-Farben zu.</string>
     <string name="PreSliceSlotLabel">Slot %1$d · %2$s · %3$s → T%4$d</string>
     <string name="PreSliceObjectSlot">%1$s\nSlot %2$d · %3$s</string>
     <string name="PreSliceChooseObjectSlot">Slot für dieses Objekt wählen</string>
@@ -53,7 +53,7 @@
     <string name="ProjectBooleanInherit">Automatisch (Druckerwert)</string>
     <string name="ProjectBooleanOff">Aus</string>
     <string name="ProjectBooleanOn">Ein</string>
-    <string name="PreSliceKeepModelColorsHelp">Die Farben und die Zuordnung der Modellteile bleiben erhalten. Bei einem Drucker mit ACE kannst du jeder Farbe einen Slot zuweisen.</string>
+    <string name="PreSliceKeepModelColorsHelp">Die Farben und Zuordnung der Modellteile bleiben erhalten. Ordne jede T-Farbe einem Druckerslot zu. Nutzen mehrere Objekte dasselbe T-Filament, gilt diese Zuordnung für alle.</string>
     <string name="PreSliceTemperatureHeading">Temperaturen für diesen Slice (änderbar im Menü Filament):</string>
     <string name="PreSliceTemperatureRow">T%1$d: Bett %2$s/%3$s °C, Düse %4$s/%5$s °C (erste/weitere Schichten)</string>
     <string name="PreSliceEditTemperatures">Temperaturen</string>
@@ -159,6 +159,8 @@
     <string name="MenuProject">Projekt</string>
     <string name="MenuFileCompact">Projekt</string>
     <string name="MenuModel">Modell</string>
+    <string name="ModelMenuSelectedObjectGroup">Ein Objekt</string>
+    <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
     <string name="MenuModelCompact">Modell</string>
     <string name="MenuPlates">Druckplatten</string>
     <string name="PlateNumber">Druckplatte %1$s</string>
@@ -713,6 +715,15 @@
     <string name="Project3mfExportActivePlateMessage">Der aktuelle Export enthält nur Druckplatte %1$d von %2$d. Andere Druckplatten werden nicht gespeichert. Ein vollständiger Mehrplatten-Projektexport ist noch nicht verfügbar.</string>
     <string name="Project3mfExportActivePlateConfirm">Aktive Platte exportieren</string>
     <string name="MenuCamera">Ansicht</string>
+    <string name="ViewCubeDescription">Ansichtswürfel. %1$s</string>
+    <string name="ViewCubeRotateHint">Ziehe den Würfel, um die Kameraperspektive zu drehen. Tippe eine sichtbare Würfelfläche für die Standardansicht an.</string>
+    <string name="ViewCubeShowFace">%1$s-Ansicht anzeigen</string>
+    <string name="ViewCubeFront">Vorderseite</string>
+    <string name="ViewCubeBack">Rückseite</string>
+    <string name="ViewCubeRight">Rechts</string>
+    <string name="ViewCubeLeft">Links</string>
+    <string name="ViewCubeTop">Oben</string>
+    <string name="ViewCubeBottom">Unten</string>
     <string name="MenuCameraIsometric">Isometrisch</string>
     <string name="MenuCameraIsometricCompact">Iso</string>
     <string name="MenuCameraTop">Oben</string>

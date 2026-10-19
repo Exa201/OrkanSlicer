@@ -779,7 +779,11 @@ class PrintProfileDropdownIntegrationDeviceTest {
         compose.waitUntil(timeoutMillis = 15_000) {
             activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
         }
-        compose.onNodeWithContentDescription(activity.getString(R.string.SettingsResetProfileAction))
+        val resetDescription = activity.getString(R.string.SettingsResetProfileAction)
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithContentDescription(resetDescription).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription(resetDescription)
             .assertIsDisplayed().performClick()
         compose.onNodeWithText(activity.getString(R.string.SettingsResetProfileTitle)).assertIsDisplayed()
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
@@ -789,7 +793,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
         assertEquals("Dismissing reset keeps the stored printer preset unchanged", storedBedSurface,
             storedPrinter.get("curr_bed_type"))
 
-        compose.onNodeWithContentDescription(activity.getString(R.string.SettingsResetProfileAction))
+        compose.onNodeWithContentDescription(resetDescription)
             .performClick()
         compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = 5_000) {

@@ -35,7 +35,6 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
         CameraMenuContent(
             portrait = portrait,
             initialOrthoEnabled = Prefs.isOrthoProjectionEnabled(),
-            onPresetSelected = ::selectCamera,
             onControlModeSelected = { showControlModeDialog(context) },
             onOrthoChanged = ::setOrthoProjection,
         )
@@ -73,7 +72,7 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
         }
     }
 
-    private fun selectCamera(preset: CameraPreset) {
+    internal fun selectCameraPreset(preset: CameraPreset) {
         val bedFragment = fragment ?: return
         val bed = bedFragment.glView?.renderer?.bed
         if (bed == null || !bed.isValid()) {
@@ -92,6 +91,23 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
             Vec3d(target.origin.x, target.origin.y, target.origin.z),
             Vec3d(target.position.x, target.position.y, target.position.z),
         )
+    }
+
+    /** Rotated view-cube drags map to a free camera direction while preserving the bed center. */
+    fun selectCameraDirection(x: Double, y: Double, z: Double) {
+        val bed = fragment?.glView?.renderer?.bed ?: return
+        if (!bed.isValid()) return
+        val min = bed.getVolumeMin() ?: return
+        val max = bed.getVolumeMax() ?: return
+        val center = Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0)
+        val length = kotlin.math.sqrt(x * x + y * y + z * z).coerceAtLeast(0.001)
+        val extent = maxOf(max.x - min.x, max.y - min.y, max.z - min.z, 10.0)
+        val distance = extent * 1.8
+        animateTo(center, Vec3d(
+            center.x + x / length * distance,
+            center.y + y / length * distance,
+            center.z + z / length * distance,
+        ))
     }
 
     private fun animateTo(toOrigin: Vec3d, toPosition: Vec3d) {
@@ -158,13 +174,11 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
 private fun CameraMenuContent(
     portrait: Boolean,
     initialOrthoEnabled: Boolean,
-    onPresetSelected: (CameraPreset) -> Unit,
     onControlModeSelected: () -> Unit,
     onOrthoChanged: (Boolean) -> Unit,
 ) {
     var orthoEnabled by remember { mutableStateOf(initialOrthoEnabled) }
     val actions = listOf(
-        BedComposeMenuAction(R.string.MenuCameraIsometric, R.drawable.camera_mode_0_28, { onPresetSelected(CameraPreset.ISOMETRIC) }),
         BedComposeMenuAction(
             R.string.MenuCameraOrtho,
             R.drawable.image_format_32,
@@ -175,12 +189,6 @@ private fun CameraMenuContent(
             selected = orthoEnabled,
             toggleable = true,
         ),
-        BedComposeMenuAction(R.string.MenuCameraTop, R.drawable.camera_mode_1_28, { onPresetSelected(CameraPreset.TOP) }),
-        BedComposeMenuAction(R.string.MenuCameraBottom, R.drawable.camera_mode_2_28, { onPresetSelected(CameraPreset.BOTTOM) }),
-        BedComposeMenuAction(R.string.MenuCameraFront, R.drawable.camera_mode_3_28, { onPresetSelected(CameraPreset.FRONT) }),
-        BedComposeMenuAction(R.string.MenuCameraBack, R.drawable.camera_mode_4_28, { onPresetSelected(CameraPreset.BACK) }),
-        BedComposeMenuAction(R.string.MenuCameraLeft, R.drawable.camera_mode_5_28, { onPresetSelected(CameraPreset.LEFT) }),
-        BedComposeMenuAction(R.string.MenuCameraRight, R.drawable.camera_mode_6_28, { onPresetSelected(CameraPreset.RIGHT) }),
         BedComposeMenuAction(
             R.string.MenuCameraControlMode,
             R.drawable.rectangle_hand_point_up_28,
