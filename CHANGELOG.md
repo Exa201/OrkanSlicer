@@ -7,7 +7,8 @@
 - Group single-object operations and whole-plate operations into separate scopes in the Model menu; move/rotate/scale, copy/fill, center, lay-flat, paint and other selected-object actions stay together.
 - Add a compact, accessible, draggable six-face view cube next to the plate selector and remove the redundant camera preset tiles from the bottom Camera menu.
 - Keep all four compact header actions visible on narrow screens; the printer/profile card now yields space before any action can be clipped.
-- Debug and Slice unit suites: 578/578 each. Honor PTP-N49: Model/workspace action class 41/41; direct cube tap/drag 1/1; multicolor 3MF slicing and slot assignment 4/4. Full instrumentation and final APK verification are recorded after the final build.
+- Debug and Slice unit suites: 578/578 each. Full Honor instrumentation: 231 passed, 3 private-fixture cases skipped, 0 failed. `InitialProjectMenuDeviceTest`: 42/42; `ThreeMfMulticolorDeviceTest`: 4/4, including per-object tool commands and the sliced preview palette.
+- Debug APK `OrkanSlicer_7bc07759f8.apk` (157,292,193 bytes), SHA-256 `AA7F0FCB9985FA27C8D0C49F079C21550DF7A476DC3CCB64F1535C371A0945C6`. Installed/launched on Honor PTP-N49 as 0.8.326 / code 361; sampled startup logcat had no fatal exception, ANR, OOM, or fatal signal. Code commit: `7bc07759f8a2b65a6edb077453356e3eac361b5e`.
 
 ## 0.8.325 (alpha)
 

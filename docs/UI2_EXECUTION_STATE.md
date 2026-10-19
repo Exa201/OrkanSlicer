@@ -1713,3 +1713,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 
 
 
+
+# UI 2.0 continuation — per-object filament, model scopes, and view cube (2026-10-20)
+
+- Current branch `codex/rinkhals-safe-start-audit`; code HEAD `7bc07759f8a2b65a6edb077453356e3eac361b5e`, pushed to origin. PR #2 remains open; no merge.
+- Per-object filament selection is preserved into the native slice result and G-code preview palette. The bundled multicolor fixture verifies separate object slot mappings, selected preview colors, and G-code tool commands (T0/T1/T3, excluding unused T2).
+- Model menu separates selected-object operations from whole-plate operations. A compact 48 dp six-face draggable view cube is next to the plate controls and the camera preset tiles were removed. Screenshot inspection found and fixed a clipped printer action by making header action width responsive; the profile card yields space first.
+- Verification: Debug and Slice unit suites 578/578 each. Honor `:app:connectedSliceTestAndroidTest`: 231 passed, 3 external/private multicolor fixture cases skipped, 0 failed. `InitialProjectMenuDeviceTest` 42/42; `ThreeMfMulticolorDeviceTest` 4/4. Debug build succeeded; APK `OrkanSlicer_7bc07759f8.apk`, 157,292,193 bytes, SHA-256 `AA7F0FCB9985FA27C8D0C49F079C21550DF7A476DC3CCB64F1535C371A0945C6`; installed/launched on Honor as 0.8.326 / code 361 with no fatal, ANR, OOM, or fatal-signal lines in sampled startup logcat.
+- Remaining UI 2.0 work: complete the broader Phase 5 menu/action matrix and Phase 6 responsive/accessibility acceptance, including manual TalkBack. Full multi-plate project persistence remains separate and incomplete. No real printer sync or print start was performed. Next: publish the verified Debug prerelease and continue the menu/accessibility work; overall UI 2.0 completion is not claimed.
+
