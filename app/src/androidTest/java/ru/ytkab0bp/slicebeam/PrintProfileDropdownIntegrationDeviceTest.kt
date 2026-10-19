@@ -561,12 +561,13 @@ class PrintProfileDropdownIntegrationDeviceTest {
             }
             val dashboardAction = activity.getString(R.string.PrinterOpenWebDescription)
             // Fragment switching is asynchronous: the cached printer profile can be
-            // current before its Compose header has been recomposed. Wait for the
-            // actual action node instead of treating that intermediate frame as a
-            // product failure in the full, order-dependent device suite.
+            // current and its semantics node can exist before Compose has laid the
+            // header out in the visible window. Wait for the actionable button to be
+            // displayed, not merely present in the semantics tree.
             compose.waitUntil(timeoutMillis = 10_000) {
-                compose.onAllNodesWithContentDescription(dashboardAction)
-                    .fetchSemanticsNodes().isNotEmpty()
+                runCatching {
+                    compose.onNodeWithContentDescription(dashboardAction).assertIsDisplayed()
+                }.isSuccess
             }
             compose.onNodeWithContentDescription(dashboardAction)
                 .assertIsDisplayed().performClick()
