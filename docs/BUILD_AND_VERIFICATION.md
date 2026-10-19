@@ -1,3 +1,12 @@
+# Native GL paint hit coordinates — release v0.8.318 (2026-10-19)
+
+- Published Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.318. APK `OrkanSlicer_e0bdaf8f90.apk`, 157,235,095 bytes, SHA-256 `0BC1D536CAE3F055A6934572C30C484E95A93781B731597D77E96A93D4AEFA58`; package `com.codemastercody3d.orcaslicermobile`, version 0.8.318 / code 353. The APK was built from runtime commit `e0bdaf8f909e3863579c8d5b1bec3f495191e815`.
+- `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 562/562 each, successful.
+- Focused `InitialProjectMenuDeviceTest`: 35/35 passed on Honor PTP-N49 / Android 16. This includes a real injected canvas brush stroke, visible facet preview before commit, commit, Undo, Redo, paint cancellation, and staged base-filament assignment.
+- Full Honor `:app:connectedSliceTestAndroidTest`: 217 JUnit cases, 212 passed, 5 private/user-fixture cases skipped, 0 failures/errors. The two KromaCut cases were then run separately with the supplied colored 3MF and passed 2/2; `providedProjectSlicesWithOwnSettingsAndUniformObjectReassignment` performed actual native slicing. Input fixture SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`.
+- `:app:assembleDebug` succeeded. APK installed and launched on Honor; `MainActivity` was top-resumed for the OrkanSlicer package. Cleared post-launch Logcat had no FATAL EXCEPTION, ANR, OOM, or fatal-signal matches. The emulator remains offline.
+- Phase 4 is complete. Phase 5's complete action-by-action menu audit remains active; Phase 6 still lacks manual TalkBack traversal and some physical display configurations. This is a Debug prerelease, not a production release.
+
 # Global Maker navigation and complete Honor regression — 2026-10-19
 
 ## GitHub prerelease — v0.8.317 (2026-10-19)
