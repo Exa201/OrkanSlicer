@@ -6,7 +6,8 @@
 - Nutzer-3MF-Import und nativer Slice wurden separat und im vollständigen Lauf mit echter Fixture geprüft: `KromaCutThreeMfDeviceTest` 2/2 bestanden. Vollständige Honor-Instrumentierung am aktuellen Testcode: 207 Tests, 204 bestanden, 3 private Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors; XML `2026-10-19T05:36:04` UTC. SliceTest-Emulator offline.
 - Der Volltest deckte eine Reihenfolgeabhängigkeit in `ProfileSettingsImeDeviceTest.profileFiltersRemainUsableWithKeyboardVisible` auf: das gecachte `PrintConfigFragment` wurde als Ziel gemeldet, bevor sein Compose-Suchknopf wieder im Semantics-Baum stand. Der Test wartet jetzt auf diesen Knoten. Gezielter Test nach der Korrektur bestanden; danach bestand die komplette Instrumentierung.
 - Die Nutzerdatei wurde nur vorübergehend in der SliceTest-App-Sandbox bereitgestellt und nach dem Test entfernt; Produktions-App-Fixture und Originaldatei wurden nicht überschrieben.
-- Kein Produktionscode geändert; vorhandene Debug-APK für Code `49412024b37c32135210aab1f2d999262ff03aa1` ist weiterhin maßgeblich. Nächster Schritt: Test-/Verifikationsnachweise committen und pushen, PR #2 aktualisieren, danach eine noch nicht praktisch abgenommene sichere Workspace-Aktion durchtesten. UI 2.0 ist nicht abgeschlossen.
+- Kein Produktionscode geändert; vorhandene Debug-APK für Code `49412024b37c32135210aab1f2d999262ff03aa1` ist weiterhin maßgeblich. Instrumentierungstestfix und 3MF-Nachweise sind mit `30ca5a1`, die reale Menü-Navigation mit `352a43e` auf den PR-Branch gepusht und in PR #2 kommentiert.
+- Nächster konkreter Schritt: die noch nicht abgenommenen Aktionen des Phase-5-Menüinventars anhand aktueller Compose-Handler gegen `InitialProjectMenuDeviceTest`, Profil-/Einstellungs- und Slicing-Gerätetests abgleichen; den nächsten sicheren Lückenfall isoliert end-to-end ergänzen. Phase 5/6 bleiben offen, UI 2.0 ist nicht abgeschlossen.
 
 ## Reale Honor-Menünavigation nach dem Instrumentierungslauf — 2026-10-19
 
