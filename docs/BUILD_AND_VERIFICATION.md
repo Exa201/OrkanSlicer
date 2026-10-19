@@ -1,3 +1,9 @@
+## Reale Workspace-Menünavigation auf Honor — 2026-10-19
+
+- Auf Honor PTP-N49 / Android 16 wurden OrkanSlicers sechs Workspace-Ziele nacheinander tatsächlich geöffnet und ihre sichtbaren Compose-Aktionen aus dem Android-Layoutbaum gelesen. Die Aktion „Modell laden“ öffnete den System-Dateiauswahldialog; Android-Zurück führte ohne Dateiauswahl/importierte Datei zurück zum Workspace.
+- Die globale Druckerroute und die Profilgruppe „Allgemein“ wurden geöffnet. Es wurde nichts gespeichert/zurückgesetzt, kein Web-/Netzwerkaufruf ausgelöst und kein Druck gestartet. Dies ist ein Navigationstest, kein vollständiger Test aller in den Menüs angezeigten Aktionen.
+- Die App war über das Paket `com.codemastercody3d.orcaslicermobile` verifiziert. SliceBeam wurde nicht verwendet.
+
 ## Honor-Komplettlauf mit Nutzer-3MF und stabilisiertem IME-Test — 2026-10-19
 
 - `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16: 207 Tests, 204 bestanden, 3 wegen nicht verfügbarer separater privater Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors; XML `2026-10-19T05:36:04` UTC. Emulator offline.

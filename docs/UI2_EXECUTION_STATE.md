@@ -8,6 +8,13 @@
 - Die Nutzerdatei wurde nur vorübergehend in der SliceTest-App-Sandbox bereitgestellt und nach dem Test entfernt; Produktions-App-Fixture und Originaldatei wurden nicht überschrieben.
 - Kein Produktionscode geändert; vorhandene Debug-APK für Code `49412024b37c32135210aab1f2d999262ff03aa1` ist weiterhin maßgeblich. Nächster Schritt: Test-/Verifikationsnachweise committen und pushen, PR #2 aktualisieren, danach eine noch nicht praktisch abgenommene sichere Workspace-Aktion durchtesten. UI 2.0 ist nicht abgeschlossen.
 
+## Reale Honor-Menünavigation nach dem Instrumentierungslauf — 2026-10-19
+
+- Auf dem top-resumed OrkanSlicer (`com.codemastercody3d.orcaslicermobile`, Honor PTP-N49 / Android 16; nicht SliceBeam) wurden alle sechs Workspace-Ziele Projekt, Modell, Ansicht, Bearbeiten, Werkzeuge und Slicen nacheinander geöffnet. Die Compose-Semantik enthielt je Ziel die sichtbaren Aktionen; Modell-/Ansicht-/Edit-/Tool-/Slice-Bezeichnungen und ausgewählte Ziele wurden anhand der Layoutbounds geprüft.
+- Die Projektaktion „Modell laden“ öffnete den Android-System-Dateiauswahldialog. Android-Zurück navigierte zuerst vom Download-Ordner zur Dateiquelle und dann zurück in den unveränderten OrkanSlicer-Workspace. Kein Dokument wurde ausgewählt/importiert.
+- Globales „Drucker“ öffnete das Druckerprofil; die Gruppe „Allgemein“ expandierte ihre profilgebundenen Einstellungen und zeigte Speichern/Zurücksetzen. Es wurde keine Profiländerung ausgelöst und kein Netzwerk-/Druckeraufruf vorgenommen. Zurück führte in den Workspace.
+- Diese Interaktion prüft reale Navigation/Erreichbarkeit, aber nicht jede angezeigte Aktion. Deren Funktionsabnahme bleibt an den bestehenden isolierten Gerätetests und der noch offenen Aktionsmatrix zu messen. Die App wurde wieder auf den Workspace mit Projektziel gesetzt.
+
 ## Aktueller Fortsetzungsstand — 2026-10-19
 
 - Phase 4 bleibt anhand der WorkspaceShell/RendererAdapter-Integration, stabiler GLView-/Back-/Werkzeugwechseltests abgeschlossen. Kein zusätzlicher Architekturumbau ist belegt oder erforderlich.
