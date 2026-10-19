@@ -1,5 +1,11 @@
 # UI2 Fortsetzung — 2026-10-19, Profil-/Kalibrierungsaktionen
 
+## Neueste gezielte Honor-Abnahme — 2026-10-19, spätere Läufe
+
+- `TemporaryProjectSettingsDeviceTest`, `SettingsAccessibilityDeviceTest`, `SettingsChoiceDialogDeviceTest`, `ProfileOptionHelpDialogDeviceTest`, `ProfileNumericOptionDeviceTest`, `ProfileFilterAccessibilityDeviceTest`, `ProfileEnumOptionAccessibilityDeviceTest`, `WorkspaceProfileStatusDeviceTest` und `WorkspaceNavigationDeviceTest`: 18/18 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips. Darin slicet ein synthetisches 3MF mit zwei Filamenten durch die native Engine; G-Code-Temperaturen/Pressure Advance werden geprüft, und drucker-/hardwaregebundene Felder werden nicht vom Projekt überschrieben.
+- Der Lauf belegt diese konkreten synthetischen Projekt-, Profil- und UI-Aktionen. Er ersetzt keinen vollständigen Quellcode-Abgleich aller globalen Handler oder die manuelle TalkBack-Prüfung.
+- Danach liefen die kombinierten 27 Kalibrierungs-/Einstellungen-/Druckprofiltests und `InitialProjectMenuDeviceTest` 30/30 erfolgreich. Nächster Schritt: vollständige SliceTest-Instrumentierung als Reihenfolgeregression nach den kombinierten Klassenläufen, dann Resultate und verbleibende Menülücken dokumentieren.
+
 ## Neuester Fortschritt — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 liefen 27 gezielte Tests aus `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): 27 bestanden, 0 Fehler, 0 Skips. Danach `InitialProjectMenuDeviceTest`: 30/30 bestanden, 0 Fehler/Skips. JUnit-Zeitstempel: `08:16:43Z` und `08:19:22Z`; `emulator-5554` offline.
