@@ -1613,3 +1613,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Debug APK `OrkanSlicer_bc57087cea.apk`, 157,235,079 bytes; SHA-256 `9496395A5B4D07FE332D0B29971F253E1824240F25BA43119B91F0C6C083C3F8`.
 - Published and remotely verified as prerelease https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.319. Installed and launched on Honor PTP-N49 / Android 16; exact package/version verified, no fatal/ANR/OOM in launch logcat.
 - PR #2 remains OPEN / CLEAN. Full UI menu audit and accessibility acceptance are not complete; do not mark UI 2.0 finished. Continue with remaining Phase 5 actions, then Phase 6 device/accessibility checks.
+
+## In-app release-note follow-up — 2026-10-19
+
+- Full suite caught stale localized release notes in `app/src/main/assets/update.json` after v0.8.319: the main source changelog was updated but this is the asset consumed by `ChangeLogDialog`.
+- Updated de/en/ru strings for v0.8.319; focused Changelog test 1/1 passed. Full Honor suite: 218 JUnit XML cases, 213 pass, 5 fixture skips, 0 failures/errors (`2026-10-19T15:33:45` UTC). Emulator offline.
+- Loopback test now asserts upload-only never calls print/start, while `print=true` contacts the start endpoint only on the local mock, then tests a refused connection. Focused test 1/1 passed; no physical printer was connected.
+- Next: rebuild/install and replace the v0.8.319 GitHub asset with the corrected embedded release notes; push this test/resource change. Keep Phase 5/6 open.

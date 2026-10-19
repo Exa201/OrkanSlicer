@@ -68,12 +68,27 @@ class SliceUploadOnlyLoopbackDeviceTest {
         val requestBodies = mutableListOf<String>()
         val serverFailure = AtomicReference<Throwable?>()
         val expectedGcodeName = AtomicReference<String>()
+        val uploadOnlyQuietPeriod = CountDownLatch(1)
+        val allowExplicitPrintStart = CountDownLatch(1)
+        val printStartReceived = CountDownLatch(1)
         val requestsHandled = CountDownLatch(1)
         val serverThread = Thread {
             try {
                 var requestIndex = 0
-                while (requestIndex < 2) {
-                    val socket = try { server.accept() } catch (_: java.net.SocketTimeoutException) { break }
+                while (requestIndex < 3) {
+                    val socket = try {
+                        server.accept()
+                    } catch (_: java.net.SocketTimeoutException) {
+                        if (requestIndex == 1) {
+                            uploadOnlyQuietPeriod.countDown()
+                            if (allowExplicitPrintStart.await(30, TimeUnit.SECONDS)) {
+                                server.soTimeout = 30_000
+                                continue
+                            }
+                        }
+                        break
+                    }
+                    var isPrintStart = false
                     socket.use {
                         it.soTimeout = 15_000
                         val input = it.getInputStream()
@@ -86,22 +101,31 @@ class SliceUploadOnlyLoopbackDeviceTest {
                             if (separator > 0) headers[line.substring(0, separator).lowercase()] = line.substring(separator + 1).trim()
                         }
                         synchronized(requestPaths) { requestPaths += requestLine }
+                        isPrintStart = requestLine.startsWith("POST /printer/print/start HTTP/")
                         val body = readHttpBody(input, headers)
                         synchronized(requestPaths) {
                             requestBodies += body.toString(StandardCharsets.ISO_8859_1)
                         }
-                        val responseBody = JSONObject().put(
-                            "result",
-                            JSONObject().put("item", JSONObject().put("root", "gcodes").put("path", expectedGcodeName.get()))
-                                .put("action", "create_file"),
-                        ).toString().toByteArray(StandardCharsets.UTF_8)
+                        val responseBody = if (isPrintStart) {
+                            JSONObject().put("result", "ok").toString().toByteArray(StandardCharsets.UTF_8)
+                        } else {
+                            JSONObject().put(
+                                "result",
+                                JSONObject().put("item", JSONObject().put("root", "gcodes").put("path", expectedGcodeName.get()))
+                                    .put("action", "create_file"),
+                            ).toString().toByteArray(StandardCharsets.UTF_8)
+                        }
                         val output = it.getOutputStream()
                         output.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${responseBody.size}\r\nConnection: close\r\n\r\n".toByteArray())
                         output.write(responseBody)
                         output.flush()
                     }
                     requestIndex++
-                    server.soTimeout = 1_500
+                    server.soTimeout = if (requestIndex == 1) 1_500 else 15_000
+                    if (isPrintStart) {
+                        printStartReceived.countDown()
+                        break
+                    }
                 }
             } catch (error: Throwable) {
                 serverFailure.set(error)
@@ -157,7 +181,7 @@ class SliceUploadOnlyLoopbackDeviceTest {
                 )
             }
             compose.waitUntil(timeoutMillis = 20_000) { !bed.isPrinterUploadProgressAttached() }
-            assertTrue("Loopback server should complete the request observation", requestsHandled.await(3, TimeUnit.SECONDS))
+            assertTrue("Mock should confirm no print-start request during upload-only", uploadOnlyQuietPeriod.await(3, TimeUnit.SECONDS))
             serverFailure.get()?.let { throw AssertionError("Loopback upload server failed", it) }
             synchronized(requestPaths) {
                 assertEquals("Upload-only should issue exactly one request and no print-start request", 1, requestPaths.size)
@@ -168,7 +192,25 @@ class SliceUploadOnlyLoopbackDeviceTest {
             }
             assertTrue("Upload-only must preserve the sliced result", bed.hasSliceResult())
 
-            // The mock server is closed after the successful request. A second upload must
+            // Only the explicit print=true controller route may call the mocked start endpoint.
+            allowExplicitPrintStart.countDown()
+            activity.runOnUiThread {
+                SliceUploadController.upload(bed, "moonraker", host, null, true, printer, intArrayOf(0))
+            }
+            compose.waitUntil(timeoutMillis = 10_000) { bed.isPrinterUploadProgressAttached() }
+            assertTrue("The mocked print-start endpoint must only be reached after explicit print=true",
+                printStartReceived.await(30, TimeUnit.SECONDS))
+            compose.waitUntil(timeoutMillis = 20_000) { !bed.isPrinterUploadProgressAttached() }
+            assertTrue("Server should finish observing the mocked print-start request",
+                requestsHandled.await(3, TimeUnit.SECONDS))
+            synchronized(requestPaths) {
+                assertEquals("Upload-only plus explicit print request should create two uploads and one start", 3, requestPaths.size)
+                assertTrue(requestPaths[0].startsWith("POST /server/files/upload HTTP/"))
+                assertTrue(requestPaths[1].startsWith("POST /server/files/upload HTTP/"))
+                assertTrue(requestPaths[2].startsWith("POST /printer/print/start HTTP/"))
+            }
+
+            // The mock server is closed after the explicit mocked start. Another upload must
             // present a failure dialog instead of crashing when the HTTP library supplies
             // null response headers for connection-refused failures.
             activity.runOnUiThread {

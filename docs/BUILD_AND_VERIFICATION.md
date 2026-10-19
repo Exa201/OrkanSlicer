@@ -1572,3 +1572,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Built from runtime code commit `bc57087cea74a657cc4d93d19306dea3df39d286`; installed on Honor PTP-N49 / Android 16. Package `com.codemastercody3d.orcaslicermobile`, version 0.8.319 / code 354, MainActivity top-resumed. No fatal exception, ANR, or OOM in the cleared startup logcat.
 - Published as GitHub Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.319. GitHub reports asset `OrkanSlicer_bc57087cea.apk`, 157,235,079 bytes, SHA-256 matching the local APK.
 - PR #2 remains OPEN and CLEAN at runtime commit `bc57087cea74a657cc4d93d19306dea3df39d286`; no merge performed.
+
+## v0.8.319 in-app changelog resource synchronization — 2026-10-19
+
+- The first full-suite run after the v0.8.319 release found one failure: `ChangeLogComposeDeviceTest` still saw the previous release title because the Compose dialog loads localized notes from `app/src/main/assets/update.json`, not `CHANGELOG.md`.
+- Updated the German, English, and Russian `update.json` entries to v0.8.319 and the upload-callback fix. Focused `ChangeLogComposeDeviceTest` passed 1/1; the subsequent full Honor suite passed: XML `2026-10-19T15:33:45` UTC, 218 cases, 213 passed, 5 fixture-dependent skips, 0 failures/errors. The 5 skips were two missing KromaCut fixture copies and three private multicolor fixtures. Emulator offline.
+- Expanded the loopback upload test to verify: one upload-only request and no start during a quiet observation window; `print=true` produces a second upload followed by exactly one `/printer/print/start` request only to the loopback mock; a subsequent refused connection displays an error instead of crashing. Focused Honor test passed 1/1. No physical printer or print was involved.
+- The already-published v0.8.319 asset still contains the pre-fix JSON asset and will be replaced with a rebuilt APK from the upcoming commit; the runtime callback fix is unchanged. No new version number is needed for this asset/docs/test correction.
