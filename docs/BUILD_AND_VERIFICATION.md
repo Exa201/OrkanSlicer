@@ -1,5 +1,11 @@
 # Global Maker navigation and complete Honor regression — 2026-10-19
 
+## GitHub prerelease — v0.8.317 (2026-10-19)
+
+- Published prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.317.
+- Uploaded Debug APK: `OrkanSlicer_2ec3501a31.apk`, 157,233,995 bytes; SHA-256 `7A6A2F12E40E850415EF7D28A614AF1D336FCF6C355BFFFDA307A3BF77C49260` (matches the GitHub asset digest).
+- The APK contains runtime code from commit `2ec3501`; tag `v0.8.317` points at branch commit `202230a`, which adds only tests/documentation beyond that runtime commit. This is a Debug prerelease and not an official production release.
+
 ## Accessibility instrumentation follow-up — complete current test suite (2026-10-19)
 
 - `AdaptiveWorkspaceNavigationDeviceTest`: 3/3 passed on Honor PTP-N49 / Android 16. The six destinations meet the 48 dp height assertion at standard and 150% font scale; rail scroll reaches and selects the last destination with selected-state semantics.

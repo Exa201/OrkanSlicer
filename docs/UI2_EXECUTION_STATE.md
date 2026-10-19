@@ -1,5 +1,12 @@
 # Latest continuation — Maker nested navigation and complete Honor regression (2026-10-19)
 
+## GitHub prerelease v0.8.317 published (2026-10-19)
+
+- Release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.317 (prerelease; Debug APK, not a production release).
+- Asset `OrkanSlicer_2ec3501a31.apk`, 157,233,995 bytes; SHA-256 `7A6A2F12E40E850415EF7D28A614AF1D336FCF6C355BFFFDA307A3BF77C49260`. GitHub reports the same asset digest.
+- Tag `v0.8.317` targets `codex/rinkhals-safe-start-audit` at commit `202230a`; application runtime code in the APK is from `2ec3501`. No runtime source changed afterward; later commits only add tests and verification documentation.
+- Phase 5 menu-action matrix and Phase 6 complete physical accessibility/display acceptance remain open; continue those tasks. No merge or actual printer start.
+
 ## Navigation accessibility assertions — Honor (2026-10-19)
 
 - `AdaptiveWorkspaceNavigationDeviceTest` now checks 48 dp minimum touch bounds for all six destinations at standard and 150% font scaling, and verifies the selected-state semantics after activating a rail destination reached by scrolling.
