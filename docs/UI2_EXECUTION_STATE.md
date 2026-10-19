@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Phase-5-Fortsetzung: Workspace- und Profilaktionen auf Honor — 2026-10-19
+
+- `SliceResultWorkspaceDeviceTest`, `CalibrationWorkspaceDeviceTest` und `WorkspaceNavigationDeviceTest` zusammen: 4/4 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Skips; XML `2026-10-19T01:46:25` UTC. Geprüft: Slicing-Ergebnis- und Layer-Panels, Back/Schließen, blockierender Upload-Fortschritt, Kalibrierungsroute sowie exklusiver Wechsel zwischen Projekt- und Modellmenü. Kein Druckstart.
+- `PrintProfileDropdownIntegrationDeviceTest`: 17/17 auf Honor bestanden, 0 Fehler/Skips; XML `2026-10-19T01:47:48` UTC. Enthalten sind Druckerhost-Typ als gespeicherter Profilwert ohne Druckerkontakt, Drucker-/Druck-/Filamentprofilwahl, Draft/Apply/Cancel/Back, API-Key-Maskierung, Prime-Tower-/Flush-Volumes-Drafts, Bettoberfläche und Klonen/Löschen synthetischer Profile.
+- Emulator `emulator-5554` wurde vom Gradle-Runner als offline übersprungen. `git diff --check` sauber. Es wurde kein Produktionscode geändert, daher kein APK- oder Release-Build.
+- Phase 4 bleibt anhand der vorher dokumentierten Architektur- und Lifecycle-Tests abgenommen; keine neuen aktiven Legacy-Hosts wurden in diesen Läufen entdeckt. Phase 5 ist weiter offen, da diese gezielten Tests keine vollständige Funktionsprüfung jeder Aktion aller sechs Hauptmenüs ersetzen. Phase 6 bleibt offen für manuelle TalkBack-Prüfung und physische Display-/Systemschriftmatrix.
+- Nächster Arbeitsschritt: restliche tatsächlich erreichbare Werkzeugmenüaktionen (insbesondere Generatoren und objektspezifische Aktionen ohne direkte UI-Testabdeckung) aus Handlern und vorhandenen Tests abgleichen; nur risikofreie Pfade praktisch auslösen.
+
 ## Slicing-Menü-Druckeraktionen abgesichert — 2026-10-19
 
 - `SlicePrintPreparationComposeDeviceTest`: 4/4 auf Honor PTP-N49 / Android 16 bestanden; JUnit XML `2026-10-18T22:27:48` UTC. Ein neuer Test prüft die tatsächlichen `SliceMenuItems.createAfterSlice`-Aktionen: Upload und Druckaktion werden für OctoPrint, Moonraker und Klipper mit getrennten Flags an einen injizierten Testcallback übergeben; unbekannte Hosttypen und leere Hosts bieten keine Druckeraktionen an. Druckerwerte werden im `finally`-Pfad restauriert. Kein Netzwerk, Upload oder Druckstart.

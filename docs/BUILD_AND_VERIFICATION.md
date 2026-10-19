@@ -1,3 +1,9 @@
+## Workspace-Navigation, Kalibrierung und Profilaktionen — Honor, 2026-10-19
+
+- `SliceResultWorkspaceDeviceTest`, `CalibrationWorkspaceDeviceTest` und `WorkspaceNavigationDeviceTest`: 4/4 bestanden auf Honor PTP-N49 / Android 16, 0 Fehler/Skips; XML `2026-10-19T01:46:25` UTC. Slicing-Ergebnis-/Layer-Workspaces, Back/Schließen, Upload-Fortschrittsdialog, Kalibrierungsaktionen und Projekt↔Modell-Menüwechsel abgedeckt. Kein Druckstart.
+- `PrintProfileDropdownIntegrationDeviceTest`: 17/17 bestanden auf Honor PTP-N49 / Android 16, 0 Fehler/Skips; XML `2026-10-19T01:47:48` UTC. Druckerhost-Typ wird als Profilwert ohne Druckerkontakt geändert; weitere Fälle decken kompatible Profilwahl, Profil-Drafts, Apply/Cancel/Back, maskierten API-Key, Prime Tower, Flush Volumes, Druckbettoberfläche und synthetisches Klonen/Löschen ab.
+- Emulator `emulator-5554` war offline. Kein Produktionscode geändert; kein neuer APK-Build. `git diff --check` erfolgreich.
+
 ## Slicing-Menü-Aktionsvertrag auf Honor — 2026-10-19
 
 - `SlicePrintPreparationComposeDeviceTest`: 4/4 bestanden auf Honor PTP-N49 / Android 16; XML `2026-10-18T22:27:48` UTC. Die zusätzliche Aktionstestabdeckung prüft die Produktions-Compose-Aktionsdefinitionen für Upload/Druck mit OctoPrint, Moonraker und Klipper. Die Handler wurden ausschließlich an einen injizierten In-Memory-Callback gerichtet; unbekannter Host und leerer Host erzeugen keine Druckeraktionen. Keine Netzwerkkommunikation, kein Upload, kein echter Druckstart. Fixturewerte werden restauriert.
