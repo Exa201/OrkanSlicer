@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.app.Application
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.result.ActivityResultLauncher
@@ -35,6 +36,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import android.os.SystemClock
 import java.io.File
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
@@ -783,6 +785,82 @@ class InitialProjectMenuDeviceTest {
                 (activity.navigationDelegate.getCurrentFragment() as BedFragment).isWorkspaceMessageDialogAttached())
         } finally {
             launchers[requestCode] = previousLauncher
+        }
+    }
+
+    @Test
+    fun toolsMenuProfileImportAppliesSelectedProfileAndRestoresFixtureState() {
+        val activity = compose.activity
+        val requestCode = MainActivity.REQUEST_CODE_IMPORT_PROFILES
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = AtomicReference<Intent?>()
+        val importedTitle = "Codex UI Import ${System.nanoTime()}"
+        val input = File(activity.cacheDir, "codex-profile-import.ini")
+        input.writeText("[print:$importedTitle]\nlayer_height = 0.17\n", StandardCharsets.UTF_8)
+
+        val originalConfig = SliceBeam.requireConfig()
+        val configSnapshot = Slic3rConfigWrapper(originalConfig.serialize().byteInputStream(StandardCharsets.UTF_8))
+        val configFile = SliceBeam.getConfigFile()
+        val persistedConfig = configFile.takeIf { it.isFile }?.readBytes()
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        val inputUri = FileProvider.getUriForFile(activity, authority, input)
+
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        try {
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuOptions))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+                .assertIsDisplayed().performClick()
+            val pickerIntent = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, pickerIntent.action)
+            assertTrue("profile must not exist before selecting the import result",
+                SliceBeam.requireConfig().findPrint(importedTitle) == null)
+
+            val result = Intent().setData(inputUri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, Activity.RESULT_OK, result)
+            }
+
+            compose.waitUntil(timeoutMillis = 15_000) {
+                compose.onAllNodesWithText(importedTitle).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfilesPrints))
+                .assertIsDisplayed()
+            compose.onNodeWithText(importedTitle).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                SliceBeam.requireConfig().findPrint(importedTitle) != null
+            }
+            assertEquals("selected profile settings must be imported", "0.17",
+                SliceBeam.requireConfig().findPrint(importedTitle)?.get("layer_height"))
+        } finally {
+            launchers[requestCode] = previousLauncher
+            SliceBeam.CONFIG = configSnapshot
+            if (persistedConfig == null) configFile.delete() else configFile.writeBytes(persistedConfig)
+            input.delete()
         }
     }
 

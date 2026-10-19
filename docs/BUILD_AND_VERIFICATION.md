@@ -1250,6 +1250,13 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 # Honor verification — 2026-10-19 (model menu action audit)
 
+## Project-menu profile import end-to-end — 2026-10-19
+
+- Added a device test that starts from the real Options → Import Profiles action, captures the document picker request, returns a temporary valid `.ini` through `MainActivity`'s result handler, selects the synthetic print profile in the Compose import dialog, and verifies `layer_height = 0.17` was applied.
+- The test restores the prior config object and persisted config bytes, launcher, and temporary input file in cleanup. Targeted test passed on Honor PTP-N49 / Android 16; the full `InitialProjectMenuDeviceTest` passed 30/30, 0 skips/failures.
+- The latest full connected suite before this added case was 205 cases: 200 passed, 5 private fixture skips, 0 failures/errors at XML timestamp `2026-10-19T03:05:39Z`. After this addition, the complete menu test class (30 cases) passed; the full connected suite was not rerun.
+- Test-only change; app runtime remains `0.8.316` / versionCode 351. No APK or release rebuilt. Phase 5 menu audit and Phase 6 physical TalkBack/display acceptance remain open.
+
 ## Full Honor suite after Fill Bed coverage — 2026-10-19
 
 - `InitialProjectMenuDeviceTest`: 29/29 passed on Honor PTP-N49 / Android 16, 0 skipped/failures. New `modelMenuFillBedCreatesCopiesWithinRendererObjectLimit` invokes the real Compose menu action with a disposable cube and checks native object count increases without exceeding the renderer's 256-object cap. The complete class passed with all model-menu cases.

@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Phase-5-Fortsetzung: Profilimport über Projektmenü — 2026-10-19
+
+- Neue Honor-Integration `toolsMenuProfileImportAppliesSelectedProfileAndRestoresFixtureState`: öffnet den realen Options-/Importprofileintrag, prüft den `ACTION_OPEN_DOCUMENT`-Pfad, liefert eine temporäre `.ini` über den Activity-Result-Handler zurück, wählt den Druckprofilwert in `ProfileConfigImportDialog` aus und prüft den tatsächlich gespeicherten Wert `layer_height = 0.17`.
+- Nach dem Test werden die vorherige `SliceBeam.CONFIG`, die auf dem isolierten Testpaket gespeicherte Konfigurationsdatei, der Activity-Result-Launcher und die temporäre Datei wiederhergestellt. Honor-Test einzeln bestanden; komplette `InitialProjectMenuDeviceTest` danach 30/30 bestanden, 0 Fehler/Skips auf PTP-N49 / Android 16.
+- Der letzte vollständige Honor-Lauf vor diesem einen Testzusatz bestand 205 Fälle: 200 bestanden, fünf private KromaCut-/Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors (`2026-10-19T03:05:39Z`). Der komplette neue Menütestlauf belegt zusätzlich alle 30 Projektmenütests; der volle 205er Lauf wurde seit dem Importtest nicht erneut gestartet.
+- Test-only Änderung; App-Runtime weiter `0.8.316` / Code 351. Kein neuer APK-Build/Release. PR #2 bleibt offen.
+- Phase 5 bleibt offen für noch nicht aktionsgeprüfte Menüeinträge; Phase 6 für manuelle TalkBack-Prüfung und nicht auf dem Honor simulierte Display-/Systemschriftkonfigurationen. Nächster Schritt: eine weitere sichere, bisher nur auf Picker-Ebene getestete Projekt-/Profilaktion end-to-end prüfen und danach Paket-Regression ausführen.
+
 ## Phase-5-Fortsetzung: Fill-Bed-Menüaktion — 2026-10-19
 
 - `InitialProjectMenuDeviceTest`: 29/29 auf Honor PTP-N49 / Android 16 bestanden, einschließlich der neuen echten `Model → Fill Bed`-Aktion. Ein einzelner Würfel aus dem App-Testasset wurde geladen; Compose-Menüaktion erzeugte Kopien im nativen Modell. Der Test verifiziert Modellzuwachs und Renderer-Grenze `<= 256` Objekte. Nur temporäre Cache-Fixture, kein Nutzermodell und keine Druckerkommunikation.
