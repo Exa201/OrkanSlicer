@@ -1,5 +1,12 @@
 # Latest continuation — Maker nested navigation and complete Honor regression (2026-10-19)
 
+## Physical Honor visual check — 400 dp / 130% font (2026-10-19)
+
+- Verified on the attached Honor PTP-N49 that the foreground app package is `com.codemastercody3d.orcaslicermobile` (OrkanSlicer), not SliceBeam. Captured the 400 dp-wide workspace, App settings, and Maker screens at 130% system font. Screenshots are in the ignored build report directory `build/reports/ui2-manual-audit/2026-10-19/` and are not committed.
+- The workspace shows all five global destinations and all six workspace destinations without a hidden navigation item; the six workspace destinations remain in two visible rows. The printer summary is compact/ellipsized. Settings and Maker remain vertically reachable and Maker headings wrap. This is a visual check only; it does not certify every action, dialog, or TalkBack traversal.
+- Restored the device to physical 1280×2800 px, 560 dpi, font scale 1.0 and confirmed the production OrkanSlicer Workspace via UIAutomator. No project/profile data or app settings were edited during this check.
+- Phase 6 now has a physical 400 dp / 130% visual sample in addition to the previously documented 320 dp / 150% sample. Landscape and manual TalkBack traversal remain open.
+
 - Based on pushed test commit `e0021d24f90ea0146ca7b1418c1c459bba3b9a09`.
 - Extended the actual global-navigation device flow with App settings → Maker → Maker Back → App settings → Android Back → last primary destination. `MobileNavigationDeviceTest` passed 1/1 on Honor PTP-N49 / Android 16.
 - Full `:app:connectedSliceTestAndroidTest` after the navigation assertion passed: JUnit XML `2026-10-19T11:56:08`, 215 cases, 210 passed, 5 skipped, 0 failures/errors. Two KromaCut cases and three private multicolor cases skipped because their fixtures were unavailable; emulator offline. This full run also includes both workspace printer-web route cases and the IME timing synchronization fix.
