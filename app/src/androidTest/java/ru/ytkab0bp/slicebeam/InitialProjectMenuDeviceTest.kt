@@ -1848,20 +1848,25 @@ class InitialProjectMenuDeviceTest {
             val rotated = readRotationOnGl(glView, 0)
             assertEquals("confirmed X rotation should reach the native model", Math.PI / 2, rotated.x, 0.002)
 
-            compose.runOnUiThread { bed.undoModelEdit() }
+            assertTrue("Back should close the rotation tool before history actions", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 5_000) {
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == null
+            }
+            openEditMenu(activity)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelUndo))
+                .performScrollTo().assertIsDisplayed().performClick()
             assertEquals("Undo should restore the original X rotation", 0.0,
                 readRotationOnGl(glView, 0).x, 0.002)
-            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelRedo))
+                .performScrollTo().assertIsDisplayed().performClick()
             assertEquals("Redo should restore the confirmed X rotation", Math.PI / 2,
                 readRotationOnGl(glView, 0).x, 0.002)
 
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             assertEquals("test object should remain selected before reset", 0, readSelectedObjectOnGl(glView))
-            assertTrue("Back should close the rotation tool before returning to Edit actions", bed.onBackPressed())
-            compose.waitUntil(timeoutMillis = 5_000) {
-                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == null
-            }
+            assertEquals("history actions should leave no active tool", null,
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController))
             if (!(workspaceController.javaClass.getMethod("getToolPanelExpanded").invoke(workspaceController) as Boolean)) {
                 compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarNavigation))
                     .assertIsDisplayed().performClick()
@@ -1884,10 +1889,12 @@ class InitialProjectMenuDeviceTest {
             assertTrue("Reset Rotation action should execute its completion callback", resetSnackbarShown)
             val afterReset = readRotationOnGl(glView, 0)
             assertEquals("Reset Rotation should clear the native model rotation", 0.0, afterReset.x, 0.002)
-            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelUndo))
+                .performScrollTo().assertIsDisplayed().performClick()
             assertEquals("Undo should restore rotation after Reset Rotation", Math.PI / 2,
                 readRotationOnGl(glView, 0).x, 0.002)
-            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelRedo))
+                .performScrollTo().assertIsDisplayed().performClick()
             assertEquals("Redo should reapply Reset Rotation", 0.0, readRotationOnGl(glView, 0).x, 0.002)
         } finally {
             modelFile.delete()

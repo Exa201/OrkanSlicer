@@ -1422,3 +1422,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Der gezielte Lauf bestand 1/1 auf Honor PTP-N49 / Android 16. Danach bestand die gesamte `InitialProjectMenuDeviceTest`-Klasse 33/33, 0 Skips/Fehler; XML-Zeitstempel `2026-10-19T09:16:10` UTC. Emulator weiterhin offline.
 - Beim ersten Lauf war die Aktion nur wegen nicht zum Grid gescrollter Kachel unerreichbar; nach Scrollen bis zur tatsächlichen letzten Edit-Aktion bestand der Test. Kein Produktfehler bestätigt; Test-Interaktion an das horizontale Raster angepasst. Startup-Changelog wird im Test bei Bedarf geschlossen.
 - Nur Android-Instrumentierungstest und Verifikationsdokumentation geändert; Produktionscode und Debug-APK unverändert. Phase 4 bleibt abgeschlossen; Phase 5 (vollständige Aktionsmatrix) und Phase 6 (manuelles TalkBack sowie weitere physische Displayvarianten) bleiben offen. Nächste konkrete Arbeit: aktuelle Workspace-Handler mit tatsächlich abgedeckten Testaktionen weiter abgleichen, dann gezielt fehlende sichere globale/Printer-Aktion auf Honor prüfen.
+
+## Edit-Menü: Undo und Redo über die sichtbaren Kacheln — Honor (2026-10-19)
+
+- `editRotationActionIsUndoableAndResetChangesNativeModel` führt Undo/Redo jetzt über die Compose-Edit-Menükacheln aus, statt die Fragmentmethoden direkt aufzurufen. Bestätigte Rotation und Reset Rotation werden am nativen Transformationszustand auf dem GL-Thread verifiziert.
+- Fokussierter Test 1/1 und vollständige `InitialProjectMenuDeviceTest` 33/33 bestanden, 0 Skips/Fehler auf Honor PTP-N49 / Android 16; JUnit-XML `2026-10-19T09:27:22` UTC. Emulator offline.
+- Nur Android-Testcode und Nachweisdokumentation geändert. Phase 5 (gesamter Aktionsbestand) und Phase 6 (manuelles TalkBack/weitere physische Displays) bleiben offen; nächste Arbeit: weitere noch ungeprüfte Aktionen aus den sechs Menü-Handlern abgleichen und sicher end-to-end testen.

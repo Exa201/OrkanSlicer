@@ -1408,3 +1408,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Targeted Honor run: 1/1 passed. Full `InitialProjectMenuDeviceTest`: 33/33 passed, 0 skipped/failures, JUnit XML timestamp `2026-10-19T09:16:10` UTC. Emulator offline.
 - Initial test attempts exposed a test-selector/scroll-range issue, not a product defect; the final test uses the tile's full accessible description and scrolls to the actual final grid item. It dismisses the startup changelog only if displayed.
 - Test-only change; no runtime source or Debug APK changed. Phase 5's complete action-by-action audit and Phase 6's manual TalkBack/remaining physical display checks remain open.
+
+## Edit menu Undo/Redo actions — Honor, 2026-10-19
+
+- Updated `editRotationActionIsUndoableAndResetChangesNativeModel` to invoke Undo and Redo from their real Compose Edit-menu tiles after a confirmed native rotation and again after Reset Rotation. The native transform is read back on the GL thread after each action.
+- The focused rotation test passed 1/1; the complete `InitialProjectMenuDeviceTest` passed 33/33 on Honor PTP-N49 / Android 16, 0 skipped/failures, XML timestamp `2026-10-19T09:27:22` UTC. Emulator offline.
+- Test-only change; production sources and Debug APK unchanged. Phase 5 action inventory and Phase 6 manual accessibility/display acceptance remain open.
