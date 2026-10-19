@@ -1443,3 +1443,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - The actual Compose Edit → Color Paint action opens the GL paint panel; selecting its base filament T2 and confirming with Done updates the native model to T2 while preserving triangle topology and not fabricating per-facet paint. Existing Back-cancel coverage for all four paint modes remains in the same test.
 - Focused test passed 1/1, then `InitialProjectMenuDeviceTest` passed 34/34 (0 skipped/failures) on Honor PTP-N49 / Android 16; JUnit timestamp `2026-10-19T10:39:33` UTC. Emulator offline.
 - An exploratory synthetic GL touch stroke did not create native facet paint and was not counted as a successful test. Native `PaintSession` facet persistence is covered by separate native round-trip tests; manual device brush-stroke acceptance remains open. Instrumentation-test/documentation only; no production APK rebuild.
+
+## Full regression after color-panel test — 2026-10-19
+
+- Commit `a0dadbed9d400df5afd015f486ff41392c2844e2`: `:app:connectedSliceTestAndroidTest` passed on Honor PTP-N49 / Android 16: 212 JUnit cases, 207 passed, 5 fixture skips, 0 failures/errors; XML `2026-10-19T10:47:59` UTC. Two KromaCut cases were skipped because their temporary fixture copy was not present in this run; both had previously passed 2/2 using the supplied user fixture. Three separate private multicolor fixtures remain unavailable. Emulator offline.
+- `:app:testDebugUnitTest` 562/562 and `:app:testSliceTestUnitTest` 562/562 passed, with 0 failures/errors/skips.
+- PR #2 is open and currently mergeable at head `a0dadbed9d400df5afd015f486ff41392c2844e2`. No production code changed, so no runtime APK rebuild was needed.

@@ -1477,3 +1477,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Fokussierter Honor-Test bestanden 1/1; anschließend vollständige `InitialProjectMenuDeviceTest` 34/34, 0 Skips/Fehler, Honor PTP-N49 / Android 16, JUnit-Zeit `2026-10-19T10:39:33` UTC. `emulator-5554` offline.
 - Eine experimentelle synthetische GL-Touchgeste änderte die native Facetten-Paint-Zuordnung nicht und wurde nicht als bestanden gewertet. Der abgeschlossene Test prüft die sichtbare Basisfilament-Aktion; die separate native `PaintSession`-Facettenpersistenz bleibt durch vorhandene Roundtriptests abgedeckt. Manueller GL-Pinselstrich über Gerätetouch bleibt offen.
 - Nur Android-Instrumentierungstest und Dokumentation geändert; kein Produktionscode und kein neues Laufzeit-APK. Phase 4 bleibt abgeschlossen; Phase 5 und 6 bleiben offen. Nächster Schritt: weitere nicht abgedeckte sichere Workspace-/globale Handler aus der Aktionsmatrix prüfen.
+
+## Vollständige Regression nach Farbpanelaktion — 2026-10-19
+
+- Auf Commit `a0dadbed9d400df5afd015f486ff41392c2844e2`: `:app:connectedSliceTestAndroidTest` auf Honor PTP-N49 / Android 16 erfolgreich; 212 JUnit-Fälle, 207 bestanden, 5 Fixture-Skips, 0 Fehler/Errors, XML `2026-10-19T10:47:59` UTC. Die zwei KromaCut-Fälle wurden mangels temporärer Kopie übersprungen, waren mit der Nutzerfixture zuvor separat 2/2 bestanden; die drei privaten Mehrfarben-Fixtures fehlen weiterhin. Emulator offline.
+- `:app:testDebugUnitTest` 562/562 und `:app:testSliceTestUnitTest` 562/562 bestanden, je 0 Fehler/Skips. Lauf erfolgreich.
+- PR #2 bleibt offen, Kopf `a0dadbed9d400df5afd015f486ff41392c2844e2`, Status `MERGEABLE`. Kein Produktcode geändert, deshalb kein Laufzeit-APK neu gebaut.
+- Phase 4 abgeschlossen. Phase 5 bleibt aktiv; die vollständige Menü-Handleraktionsmatrix ist offen. Phase 6 teilweise offen: TalkBack nicht manuell traversiert und zusätzliche physische Displaykonfigurationen fehlen. Nächster Schritt: den verbleibenden globalen Drucker-/Rinkhals-/Profilhandlerbestand gegen echte UI-Tests abgleichen und weitere sichere, bislang ungeprüfte Aktionen auf Honor abnehmen.
