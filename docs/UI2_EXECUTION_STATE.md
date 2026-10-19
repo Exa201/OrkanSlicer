@@ -19,6 +19,11 @@
 - Letzter aktueller Code-/Dokumentationscommit vor diesem Regressionseintrag: `33f15a4`; der Volltest enthielt keine Dateiänderungen. APK/Product code bleibt `e727a51` (siehe BUILD_AND_VERIFICATION.md).
 - Phase 4 abgeschlossen. Phase 5 aktiv: als nächstes sichtbare Aktionsdefinitionen der Workspace-Menüs aus dem Quellcode gegen sämtliche vorhandenen Testfälle mappen und nicht abgedeckte Handler priorisieren. Phase 6 partiell (manuelle TalkBack-/vollständige physische Layoutmatrix offen). Mehrplatten-Projektpersistenz bleibt getrennte offene Aufgabe.
 
+## Slicing-Aktionsdialoge — 2026-10-19
+
+- `SlicePrintPreparationComposeDeviceTest`, `QuickSliceDialogDeviceTest` und `SmartSliceDialogsDeviceTest`: 12/12 auf Honor PTP-N49 / Android 16 bestanden, keine Skips/Fehler. Quick/Smart-Slice-Validierung und Cancel sowie Druck-/Uploadvorbereitung und Callback-Ziel wurden geprüft; kein physischer Drucker angesprochen, kein Druck gestartet.
+- Slicing-Domain hat zusätzlich native Slice- und G-Code-Prüfungen in vorhandenen Projekt-Settings-/Workspace-Tests. Noch offen: Real-Druckerkommunikation bewusst nicht ausgelöst; weitere sichtbare Menüpunkte/Aktionspfade der vollständigen Matrix abschließend abgleichen. Nächster Schritt: die verbleibenden Edit-/Werkzeug- und Navigationseinträge gegen tatsächliche Tests matchen, danach soweit verfügbar Phase-6-Accessibility-Semantik abnehmen.
+
 ## Neueste gezielte Honor-Abnahme — 2026-10-19
 
 - Kombinierter Gerätelauf auf Honor PTP-N49 / Android 16: `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): insgesamt 27/27 bestanden, 0 Fehler, 0 Skips. JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-19T08:16:43` UTC. `emulator-5554` blieb offline.

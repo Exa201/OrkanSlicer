@@ -26,6 +26,11 @@
 - Der Lauf erfolgte nach den gezielten Projekt-/Menü-, Profil-, Kalibrierungs- und Accessibility-Klassen. Die Teständerung betrifft ausschließlich Instrumentierung; der zuletzt gebaute Produktcode/APK bleibt unverändert und gehört zu `e727a51`.
 - Phase 5 ist weiterhin offen, weil nicht alle tatsächlichen Menüaktionen gegen eine vollständige Handler-Matrix funktional abgenommen sind. Phase 6 bleibt teilweise offen: TalkBack manuell nicht geprüft, nicht alle Display-/Schriftkonfigurationen physisch verfügbar.
 
+## Slicing-Vorbereitung und Quick/Smart Slice — Honor, 2026-10-19
+
+- `SlicePrintPreparationComposeDeviceTest`, `QuickSliceDialogDeviceTest` und `SmartSliceDialogsDeviceTest`: 12/12 bestanden, 0 Fehler/Errors/Skips auf Honor PTP-N49 / Android 16. Das prüft Formularvalidierung, Abbruch, vorbereitete Druck-/Upload-Routen und die Callback-Auswahl ohne echten Druckerzugriff bzw. Druckstart.
+- Die Slicing-Menütests `InitialProjectMenuDeviceTest` und die synthetischen `TemporaryProjectSettingsDeviceTest`-Slices bleiben zusätzliche, getrennte Nachweise. Externe Drucker-/Upload-Aktionen wurden nicht gegen einen realen Drucker ausgeführt.
+
 ## Reale Workspace-Menünavigation auf Honor — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 wurden OrkanSlicers sechs Workspace-Ziele nacheinander tatsächlich geöffnet und ihre sichtbaren Compose-Aktionen aus dem Android-Layoutbaum gelesen. Die Aktion „Modell laden“ öffnete den System-Dateiauswahldialog; Android-Zurück führte ohne Dateiauswahl/importierte Datei zurück zum Workspace.
