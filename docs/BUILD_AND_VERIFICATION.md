@@ -1250,6 +1250,13 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 # Honor verification — 2026-10-19 (model menu action audit)
 
+## Full Honor suite after Fill Bed coverage — 2026-10-19
+
+- `InitialProjectMenuDeviceTest`: 29/29 passed on Honor PTP-N49 / Android 16, 0 skipped/failures. New `modelMenuFillBedCreatesCopiesWithinRendererObjectLimit` invokes the real Compose menu action with a disposable cube and checks native object count increases without exceeding the renderer's 256-object cap. The complete class passed with all model-menu cases.
+- Full `:app:connectedSliceTestAndroidTest`: 205 cases, 200 passed, 5 skipped because private KromaCut/multicolor fixtures are unavailable, 0 failures/errors; XML timestamp `2026-10-19T03:05:39` UTC. Emulator offline.
+- Instrumentation-only change; runtime remains version `0.8.316` / versionCode 351. No APK was rebuilt because no production source changed. Previously documented APK hash is from its recorded production commit, not this test commit.
+- The action audit remains incomplete for other main/global menu entries, and physical TalkBack traversal is still open.
+
 ## Extended model-menu action audit — 2026-10-19
 
 - `InitialProjectMenuDeviceTest`: 28/28 passed on Honor PTP-N49 / Android 16. Added functional UI checks for Auto Orient (all objects), Auto Orient Selected, and Arrange for an off-bed disposable model; existing cases in the class also cover Center on Bed, Flatten mode toggle, and moving an object between workspace plates.

@@ -1,5 +1,13 @@
 # UI 2.0 execution status — 2026-10-18
 
+## Phase-5-Fortsetzung: Fill-Bed-Menüaktion — 2026-10-19
+
+- `InitialProjectMenuDeviceTest`: 29/29 auf Honor PTP-N49 / Android 16 bestanden, einschließlich der neuen echten `Model → Fill Bed`-Aktion. Ein einzelner Würfel aus dem App-Testasset wurde geladen; Compose-Menüaktion erzeugte Kopien im nativen Modell. Der Test verifiziert Modellzuwachs und Renderer-Grenze `<= 256` Objekte. Nur temporäre Cache-Fixture, kein Nutzermodell und keine Druckerkommunikation.
+- Vollständige `:app:connectedSliceTestAndroidTest`: 205 Testfälle, 200 bestanden, 5 private KromaCut-/Mehrfarben-Fixtures übersprungen, 0 Fehler/Errors; JUnit XML `2026-10-19T03:05:39` UTC. Emulator offline.
+- Zusammen mit den vorher hinzugefügten Modellaktionen deckt die Testklasse echte UI-Handler für Center on Bed, Flatten an/aus, Auto Orient, Auto Orient Selected, Arrange, Fill Bed und Move to Plate ab; die vollständige Klasse bestand mit allen Tests.
+- Test-only Änderung nach Commit `8d1a725`; Runtime bleibt `0.8.316` / Code 351. Kein neuer APK-Build oder Release für Instrumentierungscode. Phase 5 bleibt offen für die übrigen Aktionen der Haupt- und globalen Menüs; Phase 6 bleibt offen für die manuelle TalkBack-/physische Layoutabnahme.
+- Nächste konkrete Aufgabe: verbleibende sichere Werkzeug-/Profilaktionen anhand der Menühandler und vorhandenen Testklassen abgleichen; keine destruktiven Tests mit produktiven Profilen oder echter Druckerkommunikation.
+
 ## Phase-5-Fortsetzung: weitere Modellmenüaktionen — 2026-10-19
 
 - Zusätzliche Honor-Compose/GL-Integrationstests in `InitialProjectMenuDeviceTest`: Auto Orient führt den nativen Handler für beide Objekte aus; Auto Orient Selected nur für das selektierte Objekt; Arrange holt ein absichtlich weit außerhalb des Betts platziertes Testmodell zurück in die Arbeitsfläche. Assertions prüfen Geometrie-Revision, Transformation und Objektanzahl.

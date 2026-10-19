@@ -1210,6 +1210,34 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuFillBedCreatesCopiesWithinRendererObjectLimit() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-fill-bed-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(4)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) > 1 }
+            val resultingCount = readObjectCountOnGl(glView)
+            assertTrue("Fill Bed should add at least one copy of the disposable test model", resultingCount > 1)
+            assertTrue("Fill Bed must respect the renderer's hard object cap", resultingCount <= 256)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelMenuMoveToPlateTransfersSelectedObjectBetweenWorkspacePlates() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
