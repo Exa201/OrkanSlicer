@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.316 (alpha)
+
+- Correct the translated in-app release-note header so it matches the installed app version; this mismatch was found by the complete Honor instrumentation run.
+- Verify workspace navigation, slicing result panels, calibration routes, profile edits, and GL tool-panel layouts on Honor.
+- Refresh the debug prerelease after the complete instrumentation suite passes; manual TalkBack traversal remains open.
+
 ## 0.8.315 (alpha)
 
 - Extend the real Compose Model-menu device audit: duplicate a requested number of copies, select all native objects, and exercise Delete Selected/Delete All through Cancel, Android Back, and confirmation.
