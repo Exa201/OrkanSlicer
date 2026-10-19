@@ -8,6 +8,7 @@
 - Add a compact, accessible, draggable six-face view cube next to the plate selector and remove the redundant camera preset tiles from the bottom Camera menu.
 - Keep all four compact header actions visible on narrow screens; the printer/profile card now yields space before any action can be clipped.
 - Debug and Slice unit suites: 578/578 each. Full Honor instrumentation: 231 passed, 3 private-fixture cases skipped, 0 failed. `InitialProjectMenuDeviceTest`: 42/42; `ThreeMfMulticolorDeviceTest`: 4/4, including per-object tool commands and the sliced preview palette.
+- The 48 dp view cube and printer header action bounds also passed on Honor with a temporary 320 dp width override; the physical display configuration was restored afterward.
 - Debug APK `OrkanSlicer_7bc07759f8.apk` (157,292,193 bytes), SHA-256 `AA7F0FCB9985FA27C8D0C49F079C21550DF7A476DC3CCB64F1535C371A0945C6`. Installed/launched on Honor PTP-N49 as 0.8.326 / code 361; sampled startup logcat had no fatal exception, ANR, OOM, or fatal signal. Code commit: `7bc07759f8a2b65a6edb077453356e3eac361b5e`.
 - Published as a Debug prerelease: [v0.8.326](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.326). The uploaded APK digest matches the local build. PR #2 remains open; no merge.
 
