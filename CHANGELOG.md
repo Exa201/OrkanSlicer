@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.319 (alpha)
+
+- Handle null HTTP headers, bodies, or errors from printer-upload callbacks without crashing the app; preserve the one-time status check after an uncertain print-start response.
+- Add a real Honor end-to-end test that slices a disposable STL, uploads G-code only to a loopback Moonraker mock, verifies no print-start request, and confirms a refused connection is shown as an error instead of crashing.
+- Verify Debug and Slice unit suites (562/562 each) and the full Honor instrumentation suite (213 passed, 5 fixture-dependent skips, 0 failures).
+- Debug prerelease; full UI menu and manual TalkBack acceptance remain in progress.
+
 ## 0.8.318 (alpha)
 
 - Map GL paint hits into the native volume/instance coordinates so real canvas brush strokes produce facet previews on transformed meshes.

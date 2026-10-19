@@ -281,9 +281,9 @@ object SliceUploadController {
 
                 override fun onFailure(
                     statusCode: Int,
-                    headers: Array<Header>,
-                    responseBody: ByteArray,
-                    error: Throwable,
+                    headers: Array<Header>?,
+                    responseBody: ByteArray?,
+                    error: Throwable?,
                 ) {
                     showUploadFailure(fragment, statusCode, responseBody, error, progress)
                 }
@@ -400,13 +400,16 @@ object SliceUploadController {
 
                             override fun onFailure(
                                 code: Int,
-                                responseHeaders: Array<Header>,
-                                body: ByteArray,
-                                error: Throwable,
+                                responseHeaders: Array<Header>?,
+                                body: ByteArray?,
+                                error: Throwable?,
                             ) {
-                                checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                checkUncertainPrintStart(fragment, host, responseHeaders ?: headers, acknowledgement.path, progress,
                                     "Die Antwort auf den Druckstart war unklar${if (code > 0) " (HTTP $code)" else ""}: " +
-                                        PrinterResponseInspector.printStartFailureDetail(body, error.localizedMessage ?: error.toString()))
+                                        PrinterResponseInspector.printStartFailureDetail(
+                                            body,
+                                            error?.localizedMessage ?: error?.toString(),
+                                        ))
                             }
                         },
                     )
@@ -422,9 +425,9 @@ object SliceUploadController {
 
                 override fun onFailure(
                     statusCode: Int,
-                    responseHeaders: Array<Header>,
-                    responseBody: ByteArray,
-                    error: Throwable,
+                    responseHeaders: Array<Header>?,
+                    responseBody: ByteArray?,
+                    error: Throwable?,
                 ) {
                     showUploadFailure(fragment, statusCode, responseBody, error, progress)
                 }
@@ -504,8 +507,8 @@ object SliceUploadController {
                         }
                     }
 
-                    override fun onFailure(code: Int, responseHeaders: Array<Header>, body: ByteArray, error: Throwable) {
-                        val detail = error.localizedMessage?.takeIf { it.isNotBlank() } ?: "HTTP $code"
+                    override fun onFailure(code: Int, responseHeaders: Array<Header>?, body: ByteArray?, error: Throwable?) {
+                        val detail = error?.localizedMessage?.takeIf { it.isNotBlank() } ?: "HTTP $code"
                         showUploadFailure(fragment, code, body,
                             IOException("$reason Die Statusabfrage ist fehlgeschlagen ($detail). Es wurde kein weiterer Startbefehl gesendet; prüfe den Drucker, bevor du erneut startest."),
                             progress, printStartAttempt = true)

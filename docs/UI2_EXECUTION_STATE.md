@@ -1598,3 +1598,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Project menu labels were readable; `3MF sichern` was correctly disabled without a model. Accessibility hierarchy contained all six workspace destinations in two rows, each 120×74.6 dp. Edit/Tools two-row action grids scrolled through their final actions with the visible `Weitere Werkzeuge` arrow; the large work surface stayed visible.
 - Tools `Profile exportieren` was clipped at the edge before scrolling and fully visible after one arrow action, so it remained discoverable/reachable. Screen captures and hierarchy are in ignored `build/reports/ui2-manual-audit/2026-10-19/`.
 - Restored device to physical 1280×2800, 560 dpi, system font scale 1.0; OrkanSlicer remains foreground. This is a focused visual/layout check only; TalkBack traversal and other configurations remain unverified. Phase 5 action audit is not fully closed; Phase 6 remains partial.
+
+## 2026-10-19 — upload controller regression
+
+- Current code work: null-safe HTTP failure callbacks in `SliceUploadController`; added `SliceUploadOnlyLoopbackDeviceTest` for actual slicing, upload-only success to a loopback Moonraker server, absence of a print-start request, and connection-refused failure handling.
+- Verified: focused Honor device test 1/1; Debug unit 562/562; Slice unit 562/562; full Honor instrumentation XML at `2026-10-19T15:04:18` UTC reports 218 cases, 213 passed, 5 fixture skips, 0 failures/errors. Emulator offline. No actual printer contacted and no print started.
+- Release preparation: version is set to 0.8.319 / code 354; final Debug build and Honor install/start verification are the next concrete steps before uploading the prerelease.
+- Phase 4 complete; Phase 5 active; Phase 6 partial. Remaining: complete the whole action matrix and manual TalkBack/remaining physical-layout checks. Multi-plate project serialization remains separate and incomplete.
+- Last committed code before this work: `b49d3a83870056e120b0e6e77ca6ce1a6fcb6dbd`. Changes in this entry are not yet committed.
