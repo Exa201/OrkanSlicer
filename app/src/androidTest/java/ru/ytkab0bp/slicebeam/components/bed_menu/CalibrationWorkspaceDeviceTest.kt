@@ -41,13 +41,16 @@ class CalibrationWorkspaceDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
 
         compose.onNodeWithTag("calibration-dialog-title").assertIsDisplayed()
-        val firstPreset = CalibrationPresets.supported().first()
-        val fullActionDescription = activity.getString(firstPreset.titleRes) + ". " +
-            activity.getString(firstPreset.descriptionRes)
-        compose.onNodeWithContentDescription(fullActionDescription).assertIsDisplayed()
-        compose.onNodeWithTag("calibration-preset-${CalibrationPresets.PA_LINE}").performClick()
-        compose.onNodeWithTag("calibration-prepare").assertIsDisplayed()
-        compose.onNodeWithTag("calibration-dialog-back").performClick()
+        CalibrationPresets.supported().forEach { preset ->
+            val fullActionDescription = activity.getString(preset.titleRes) + ". " +
+                activity.getString(preset.descriptionRes)
+            compose.onNodeWithTag("calibration-actions-list")
+                .performScrollToNode(hasTestTag("calibration-preset-${preset.mode}"))
+            compose.onNodeWithContentDescription(fullActionDescription).assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(preset.titleRes)).assertIsDisplayed()
+            compose.onNodeWithTag("calibration-prepare").assertIsDisplayed()
+            compose.onNodeWithTag("calibration-dialog-back").performClick()
+        }
 
         compose.onNodeWithTag("calibration-actions-list").performScrollToNode(hasTestTag("calibration-record-result"))
         compose.onNodeWithTag("calibration-record-result").performClick()
