@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -77,7 +78,15 @@ class CalibrationWorkspaceDeviceTest {
         val oldProcessOuterWallSpeed = process.get("outer_wall_speed")
 
         try {
-            activity.runOnUiThread { showCalibrationWorkspace(bed) }
+            compose.onNodeWithContentDescription(activity.getString(ru.ytkab0bp.slicebeam.R.string.MenuOptions))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithContentDescription(
+                    activity.getString(ru.ytkab0bp.slicebeam.R.string.MenuFileCalibrations),
+                ).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription(activity.getString(ru.ytkab0bp.slicebeam.R.string.MenuFileCalibrations))
+                .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
             compose.onNodeWithTag("calibration-actions-list")
                 .performScrollToNode(hasTestTag("calibration-record-result"))
