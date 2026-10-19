@@ -1,3 +1,9 @@
+# Global Maker navigation and complete Honor regression — 2026-10-19
+
+- Extended the `MobileNavigationDeviceTest` flow through the real App settings → Maker → Maker Back route; verifies the settings screen is restored and global Android Back returns to the last primary destination. Focused Honor test passed 1/1.
+- Full `:app:connectedSliceTestAndroidTest` after that change: 215 JUnit cases, 210 passed, 5 skipped, 0 failures/errors; XML timestamp `2026-10-19T11:56:08`. The two KromaCut and three private multicolor tests skipped because their fixture files were unavailable; Honor PTP-N49 / Android 16, emulator offline.
+- Suite includes the printer web route and WebView lifecycle tests plus the profile-filter synchronization fix. These are instrumentation/test-documentation changes only; production code and APK unchanged.
+
 # Honor printer-web panel lifecycle and full regression — 2026-10-19
 
 - `PrinterWebWorkspaceRouteDeviceTest`: 2/2 passed on Honor PTP-N49 / Android 16. It checks the missing-host dialog's Cancel/Back/setup route and the configured workspace WebView against a temporary loopback HTTP server; Android Back destroys and detaches the WebView. No printer or external network endpoint was contacted, and no print was started.

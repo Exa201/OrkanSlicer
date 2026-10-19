@@ -1,3 +1,11 @@
+# Latest continuation — Maker nested navigation and complete Honor regression (2026-10-19)
+
+- Based on pushed test commit `e0021d24f90ea0146ca7b1418c1c459bba3b9a09`.
+- Extended the actual global-navigation device flow with App settings → Maker → Maker Back → App settings → Android Back → last primary destination. `MobileNavigationDeviceTest` passed 1/1 on Honor PTP-N49 / Android 16.
+- Full `:app:connectedSliceTestAndroidTest` after the navigation assertion passed: JUnit XML `2026-10-19T11:56:08`, 215 cases, 210 passed, 5 skipped, 0 failures/errors. Two KromaCut cases and three private multicolor cases skipped because their fixtures were unavailable; emulator offline. This full run also includes both workspace printer-web route cases and the IME timing synchronization fix.
+- Phase 4 is complete. Phase 5 remains active: additional global routes are now exercised, but the full action-to-handler matrix is not yet closed. Phase 6 remains partial; physical TalkBack traversal and full display/font matrix remain open. Multi-plate project persistence is separate and remains open.
+- No runtime source changed; no production APK rebuild. Next: identify any remaining global settings/profile routes whose action is not executed by existing tests, then continue the remaining responsive/accessibility acceptance.
+
 # Latest continuation — printer web panel lifecycle and Honor suite (2026-10-19)
 
 - Test changes are based on branch commit `42ef01bcd5ee8eda98c71809f526837c5fb29073`.

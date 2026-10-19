@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -15,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.fragment.FilamentConfigFragment
+import ru.ytkab0bp.slicebeam.fragment.MakerFragment
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigFragment
 import ru.ytkab0bp.slicebeam.fragment.PrinterConfigFragment
 import ru.ytkab0bp.slicebeam.fragment.SettingsFragment
@@ -44,6 +46,17 @@ class MobileNavigationDeviceTest {
         openDestination(context.getString(R.string.NavigationFilament), FilamentConfigFragment::class.java)
         openDestination(context.getString(R.string.SlotPrinterConfig), PrinterConfigFragment::class.java)
         openDestination(context.getString(R.string.NavigationApp), SettingsFragment::class.java)
+
+        compose.onNodeWithText(context.getString(R.string.SettingsAppMakerTitle)).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            activity.navigationDelegate.getCurrentFragment() is MakerFragment
+        }
+        compose.onNodeWithText(context.getString(R.string.MakerTitle)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.MakerBack)).assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            activity.navigationDelegate.getCurrentFragment() is SettingsFragment
+        }
+        compose.onNodeWithText(context.getString(R.string.SettingsAppMakerTitle)).assertIsDisplayed()
 
         compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
         compose.waitUntil(timeoutMillis = 10_000) {
