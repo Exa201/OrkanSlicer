@@ -4,6 +4,13 @@
 - `SettingsMenuActionDeviceTest`: 7/7 passed; `PrintProfileDropdownIntegrationDeviceTest`: 18/18 passed after its profile-button layout wait was added. Emulator `emulator-5554` remains offline.
 - This complete regression verifies the current test sources and the already-published v0.8.318 runtime. No new runtime APK was built by the test synchronization change.
 
+## Physical 360 dp / 150% workspace check — Honor PTP-N49 (2026-10-19)
+
+- Confirmed foreground package `com.codemastercody3d.orcaslicermobile`, version 0.8.318. Temporary device window size `1260×2800 px` at `560 dpi` (360 dp wide), Android system font scale `1.5`, portrait.
+- Project menu showed readable `Modell laden` / `3MF sichern` labels (save correctly disabled with no model). All six workspace destinations were present in the hierarchy in two rows; each navigation item occupied 420×261 px (120×74.6 dp), above the 48 dp target.
+- Edit and Tools menus used the two-row horizontal action grid. The visible `Weitere Werkzeuge` control advanced the grid; repeated use reached the final Edit action `Messen`. Tools profile-export moved from a clipped edge item to a fully readable tile after one scroll-hint action. The work surface remained visible.
+- Screenshots and UI hierarchy dumps are retained under ignored `build/reports/ui2-manual-audit/2026-10-19/`. Restored device to physical `1280×2800`, `560 dpi`, font scale `1.0`, with OrkanSlicer foreground. This was a focused portrait check; it is not manual TalkBack verification or full accessibility acceptance.
+
 # Profile and app-settings menu audit — Honor PTP-N49 (2026-10-19)
 
 - `SettingsMenuActionDeviceTest`: 7/7 passed on Honor PTP-N49 / Android 16; verifies actual theme, render-scale, text-scale, accent-color, About, add-printer navigation, and reset-cancel actions.

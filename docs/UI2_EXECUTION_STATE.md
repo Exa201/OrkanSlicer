@@ -1591,3 +1591,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `:app:connectedSliceTestAndroidTest`: 217 JUnit test cases, 212 passed, 5 skipped, 0 failures/errors; XML `2026-10-19T14:32:56`, Honor PTP-N49 / Android 16. Skips: the two user-project KromaCut fixture tests (separately run 2/2 with the provided colored 3MF earlier) and three unavailable private multicolor fixtures. Emulator remains offline.
 - Targeted settings and profile classes passed 7/7 and 18/18 respectively; current profile picker test waits for displayed layout to avoid transition timing flakiness.
 - Current published Debug prerelease v0.8.318 remains runtime code commit `e0bdaf8`; this follow-up changes test synchronization/docs only. Phase 4 complete; Phase 5 action audit in progress; Phase 6 partial (manual TalkBack and additional physical configurations outstanding). Next: continue identifying and exercising concrete untested workspace menu handlers, then do the remaining responsive/accessibility checks.
+
+## Physical 360 dp / 150% workspace check (2026-10-19)
+
+- Honor PTP-N49, verified foreground OrkanSlicer package/version 0.8.318. Portrait was temporarily set to 1260×2800 px at 560 dpi (=360 dp), Android font scale 1.5.
+- Project menu labels were readable; `3MF sichern` was correctly disabled without a model. Accessibility hierarchy contained all six workspace destinations in two rows, each 120×74.6 dp. Edit/Tools two-row action grids scrolled through their final actions with the visible `Weitere Werkzeuge` arrow; the large work surface stayed visible.
+- Tools `Profile exportieren` was clipped at the edge before scrolling and fully visible after one arrow action, so it remained discoverable/reachable. Screen captures and hierarchy are in ignored `build/reports/ui2-manual-audit/2026-10-19/`.
+- Restored device to physical 1280×2800, 560 dpi, system font scale 1.0; OrkanSlicer remains foreground. This is a focused visual/layout check only; TalkBack traversal and other configurations remain unverified. Phase 5 action audit is not fully closed; Phase 6 remains partial.
