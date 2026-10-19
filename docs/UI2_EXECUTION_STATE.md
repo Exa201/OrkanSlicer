@@ -1,5 +1,14 @@
 # UI2 Fortsetzung — 2026-10-19, Profil-/Kalibrierungsaktionen
 
+## Aktuellster Stand — vollständiger Honor-Lauf mit verfügbarer Nutzer-3MF (2026-10-19)
+
+- Branch-HEAD vor dieser Dokumentationsaktualisierung: `c4707051f6ddc0e5815b5a36a7f84e1d4b08745d`; Produktcode bleibt identisch zu `e727a517559e4f49eca6be7e01dc16ab3e063181`.
+- Vollständige `:app:connectedSliceTestAndroidTest`-Suite auf Honor PTP-N49 / Android 16: JUnit-XML enthält 208 Testfälle, 205 bestanden, 3 übersprungen, 0 Fehler/Errors. Beide KromaCut-Tests liefen mit der bereitgestellten Datei; die drei Tests mit einer separaten privaten Mehrfarben-Fixture wurden übersprungen. Emulator offline.
+- Phase-5-Testlücke geschlossen: `editEmbossActionEntersComposeGlModeAndBackExitsWithoutMeshMutation` ruft den realen Compose-Menühandler „Bearbeiten → Prägen“ auf, prüft GL-Modus, Workspace-Toolzustand, Zurück-Navigation, Mesh-Unverändertheit und Erhalt der GLView. Der Einzelfall und danach die gesamte `InitialProjectMenuDeviceTest`-Klasse bestanden; Klassen-XML: 31/31, 0 Skips/Fehler.
+- Fixture-Hash auf Gerät und Original identisch (`9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`). Temporäre SliceTest-Kopie wurde entfernt. Produktions-App und Benutzerprojektdateien wurden nicht verändert.
+- Debug-/Slice-Unit-Suites bleiben zuletzt mit je 562/562 auf dem unveränderten Produktcode nachgewiesen. Kein neuer Produktions-APK-Build: seit `e727a51` gibt es keine Änderung unter `app/src/main`.
+- Phase 4 abgeschlossen. Phase 5 weiterhin aktiv; nächste konkrete Arbeit ist die handlerbasierte Aktionsmatrix mit den vorhandenen Testfällen abzugleichen und noch nicht abgedeckte sichere Menüaktionen zu ergänzen, insbesondere verbleibende Drucker-/Rinkhals- und Profilaktionen. Phase 6 teilweise abgeschlossen; physische Display-Simulationen sind dokumentiert, TalkBack-Traversierung ist noch offen (Service ist installiert, aber derzeit nicht aktiviert). Mehrplatten-Projektspeicherung bleibt separat offen.
+
 ## Neueste gezielte Honor-Abnahme — 2026-10-19, spätere Läufe
 
 - `TemporaryProjectSettingsDeviceTest`, `SettingsAccessibilityDeviceTest`, `SettingsChoiceDialogDeviceTest`, `ProfileOptionHelpDialogDeviceTest`, `ProfileNumericOptionDeviceTest`, `ProfileFilterAccessibilityDeviceTest`, `ProfileEnumOptionAccessibilityDeviceTest`, `WorkspaceProfileStatusDeviceTest` und `WorkspaceNavigationDeviceTest`: 18/18 auf Honor PTP-N49 / Android 16 bestanden, 0 Fehler/Errors/Skips. Darin slicet ein synthetisches 3MF mit zwei Filamenten durch die native Engine; G-Code-Temperaturen/Pressure Advance werden geprüft, und drucker-/hardwaregebundene Felder werden nicht vom Projekt überschrieben.

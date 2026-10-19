@@ -1921,6 +1921,53 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun editEmbossActionEntersComposeGlModeAndBackExitsWithoutMeshMutation() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-emboss-action-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val loaded = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, loaded.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val trianglesBefore = readTriangleCountOnGl(glView, 0)
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(15)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarEmboss))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.EmbossTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.EmbossInstruction)).assertIsDisplayed()
+
+            val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            assertEquals("Emboss should be the active workspace tool", "emboss-mode",
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController))
+            assertTrue("Opening the menu action should activate renderer emboss mode",
+                readRendererBooleanOnGl(glView, "isInEmbossMode"))
+            assertEquals("Entering emboss mode must not mutate the mesh", trianglesBefore,
+                readTriangleCountOnGl(glView, 0))
+
+            assertTrue("Android Back should close the active emboss tool", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 5_000) {
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == null
+            }
+            assertFalse("Back must leave renderer emboss mode", readRendererBooleanOnGl(glView, "isInEmbossMode"))
+            assertFalse("Back must clear the active emboss tool", bed.isEmbossMode)
+            assertEquals("Cancelling the emboss panel must preserve the mesh", trianglesBefore,
+                readTriangleCountOnGl(glView, 0))
+            assertTrue("Closing the tool must retain the existing GLView", bed.glView === glView)
+        } finally {
+            if (bed.isEmbossMode) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
