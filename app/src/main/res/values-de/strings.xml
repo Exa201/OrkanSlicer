@@ -1002,7 +1002,7 @@
     <string name="MmuAssignmentSyncFailed">Die ACE-Fächer konnten nicht geprüft werden. Verbinde den Drucker und synchronisiere die Filamentliste vor dem Slicen dieses Mehrfarbmodells.</string>
     <string name="MmuAssignmentNoLoadedSlots">Die ACE meldet keine geladenen Filamente. Lege Filament ein und synchronisiere erneut.</string>
     <string name="MmuAssignmentUnavailable">Modellfarbe T%1$d ist keinem belegten, erreichbaren ACE-Fach zugeordnet. Wähle einen anderen Slot, bevor du den G-Code sendest.</string>
-    <string name="MmuDirectSlotUnavailable">G-Code-Werkzeug T%1$d ist fest ACE-Slot %2$d zugeordnet. Belege genau diesen Slot und prüfe die Drucker-Zuordnung, bevor du sendest; ein anderer Slot wird nicht eingesetzt.</string>
+    <string name="MmuDirectSlotUnavailable">Das gewählte ACE-Fach %2$d für G-Code-Werkzeug T%1$d ist nicht geladen oder über die Drucker-Werkzeugzuordnung nicht erreichbar. Lade das gewählte Fach und synchronisiere den Drucker erneut.</string>
     <string name="MmuAssignmentEdit">Farbe ACE-Fach zuordnen · zum Ändern antippen</string>
     <string name="QuickSliceTitle">Schnell slicen</string>
     <string name="QuickSliceHelp">Wähle Drucker, Material und eine Qualitätsstufe. Die Werte werden vor dem Slicen geprüft.</string>
@@ -1367,6 +1367,11 @@
         <item quantity="one">Dieser G-Code verwendet %1$d Farbe, aber die ACE-Zuordnung ist unvollständig. Wähle für jede Farbe einen Slot aus und slice erneut.</item>
         <item quantity="other">Dieser G-Code verwendet %1$d Farben, aber die ACE-Zuordnung ist unvollständig. Wähle für jede Farbe einen Slot aus und slice erneut.</item>
     </plurals>
+    <plurals name="MmuAssignmentSharedAceGate">
+        <item quantity="one">G-Code-Werkzeug T%1$d teilt sich ein ACE-Fach mit einer anderen aktiven Farbe. Weise jeder Farbe ein eigenes geladenes ACE-Fach zu und slice erneut.</item>
+        <item quantity="other">G-Code-Werkzeug T%1$d teilt sich ein ACE-Fach mit einer anderen aktiven Farbe. Weise jeder Farbe ein eigenes geladenes ACE-Fach zu und slice erneut.</item>
+    </plurals>
+    <string name="MmuAssignmentDuplicateGateError">Jede unterschiedliche Modellfarbe braucht ein eigenes geladenes ACE-Fach. Ändere die Zuordnung vor dem Slicen.</string>
     <string name="CalibrationPressureAdvanceShort">Druckvorlauf</string>
     <string name="MenuActionAutoOrientShort">Ausrichten</string>
     <string name="MenuActionSimplifyShort">Vereinfachen</string>

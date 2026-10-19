@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.MmuGateAssignmentPolicy
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.util.Locale
 
@@ -57,11 +59,12 @@ object MmuFilamentAssignments {
             val slot = MmuFilamentSync.gateSlot(printerTitle, gate)
             MmuColorAssignmentPolicy.Slot(gate, slot?.color, slot?.type)
         }
-        return IntArray(toolCount) { tool ->
+        val suggested = IntArray(toolCount) { tool ->
             existing?.getOrNull(tool)?.takeIf { it in loadedGates }
                 ?: MmuColorAssignmentPolicy.suggest(palette.getOrNull(tool)?.color, palette.getOrNull(tool)?.type,
                     MmuFilamentSync.defaultGateForTool(printerTitle, tool).takeIf { it >= 0 } ?: tool, options)
         }
+        return MmuGateAssignmentPolicy.normalize(suggested, loadedGates)
     }
 
     internal fun hasMaterialMismatch(printerTitle: String, mapping: List<Int>, usedTools: List<Int>): Boolean {
@@ -91,6 +94,7 @@ internal fun MmuAssignmentContent(
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val rowShape = RoundedCornerShape(12.dp)
     var choosingTool by remember { mutableIntStateOf(-1) }
+    val tools = usedTools?.filter { it in 0 until toolCount } ?: (0 until toolCount).toList()
 
     Column(
         modifier = Modifier
@@ -110,7 +114,6 @@ internal fun MmuAssignmentContent(
         if (MmuFilamentSync.getSnapshot(printerTitle) == null) Text(
             stringResource(R.string.ModelColorSlotsUnverified), color = secondary, fontSize = 13.sp,
         )
-        val tools = usedTools?.filter { it in 0 until toolCount } ?: (0 until toolCount).toList()
         tools.forEach { tool ->
             val slot = palette.getOrNull(tool)
             val material = slot?.type?.takeIf(String::isNotBlank) ?: stringResource(R.string.FilamentType)
@@ -121,6 +124,7 @@ internal fun MmuAssignmentContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag("mmu-assignment-tool-$tool")
                     .clip(rowShape)
                     .clickable(role = Role.Button) { choosingTool = tool }
                     .padding(horizontal = 10.dp, vertical = 12.dp),
@@ -165,9 +169,11 @@ internal fun MmuAssignmentContent(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .testTag("mmu-assignment-gate-$gate")
                                 .clip(rowShape)
                                 .clickable(role = Role.RadioButton) {
-                                    onMappingChange(mapping.toMutableList().also { it[tool] = gate })
+                                    onMappingChange(MmuGateAssignmentPolicy
+                                        .selectGate(mapping.toIntArray(), tool, gate, loadedGates).toList())
                                     choosingTool = -1
                                 }
                                 .padding(horizontal = 8.dp, vertical = 4.dp),

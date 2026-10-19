@@ -578,12 +578,18 @@ object SliceUploadController {
             usedTools,
             loadedGates,
             IntArray(logicalToolCount) { tool -> MmuFilamentSync.defaultGateForTool(printerTitle, tool) },
+            MmuFilamentSync.getSelectedGates(printerTitle, logicalToolCount),
         )
         val unavailableTool = routing.unavailableTool
         if (unavailableTool != null) {
             showPreparationFailure(fragment, SliceBeam.requireInstance().getString(
-                R.string.MmuDirectSlotUnavailable, unavailableTool, unavailableTool + 1,
+                R.string.MmuDirectSlotUnavailable, unavailableTool,
+                (routing.gates.getOrNull(unavailableTool) ?: unavailableTool) + 1,
             ))
+            return null
+        }
+        if (routing.sharedGateTool != null) {
+            showAnycubicMappingError(fragment, R.plurals.MmuAssignmentSharedAceGate, routing.sharedGateTool + 1)
             return null
         }
         val gates = routing.gates

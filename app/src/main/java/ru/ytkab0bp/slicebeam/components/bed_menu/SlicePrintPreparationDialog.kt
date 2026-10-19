@@ -41,7 +41,8 @@ import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
 
 internal sealed interface PrintPreparationWarning {
-    data class UnavailableTool(val tool: Int) : PrintPreparationWarning
+    data class UnavailableTool(val tool: Int, val gate: Int) : PrintPreparationWarning
+    data class SharedAceGate(val tool: Int) : PrintPreparationWarning
     data class MaterialMismatch(val tool: Int, val source: String, val slot: Int, val loaded: String) : PrintPreparationWarning
     data class EmptyAceSlots(val slots: List<Int>) : PrintPreparationWarning
 }
@@ -85,15 +86,23 @@ object SlicePrintPreparationDialog {
                     activeTools,
                     MmuFilamentSync.loadedGates(title),
                     IntArray(gcodeToolCount) { tool -> MmuFilamentSync.defaultGateForTool(title, tool) },
+                    MmuFilamentSync.getSelectedGates(title, gcodeToolCount),
                 )
                 val invalidTool = routing.unavailableTool
                 if (invalidTool != null) {
-                    return PrintPreparationWarning.UnavailableTool(invalidTool)
+                    return PrintPreparationWarning.UnavailableTool(invalidTool, routing.gates[invalidTool])
                 }
+                routing.sharedGateTool?.let { return PrintPreparationWarning.SharedAceGate(it) }
             }
             if (print && isAnycubicKobra(targetPrinter)) {
                 val title = targetPrinter.title.orEmpty()
-                val mismatch = firstMaterialMismatch(targetPrinter.title.orEmpty(), activeTools, sourceFilamentTypes)
+                val selectedGates = MmuFilamentSync.getSelectedGates(title, gcodeToolCount)
+                val mapping = AnycubicAceRoutingPolicy.resolve(
+                    gcodeToolCount, activeTools, MmuFilamentSync.loadedGates(title),
+                    IntArray(gcodeToolCount) { tool -> MmuFilamentSync.defaultGateForTool(title, tool) },
+                    selectedGates,
+                )
+                val mismatch = firstMaterialMismatch(title, activeTools, sourceFilamentTypes, mapping.gates)
                 if (mismatch != null) {
                     return PrintPreparationWarning.MaterialMismatch(
                         mismatch.first, mismatch.second, mismatch.third, mismatch.fourth,
@@ -101,7 +110,7 @@ object SlicePrintPreparationDialog {
                 }
                 val emptyAceSlots = SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
                     activeTools,
-                    gcodeToolCount,
+                    mapping.gates,
                     MmuFilamentSync.loadedGates(title),
                 )
                 if (emptyAceSlots.isNotEmpty()) {
@@ -169,10 +178,11 @@ object SlicePrintPreparationDialog {
                                         val third: Int, val fourth: String)
 
     private fun firstMaterialMismatch(printerTitle: String,
-                                      activeTools: IntArray, sourceFilamentTypes: List<String>): MaterialMismatch? {
+                                      activeTools: IntArray, sourceFilamentTypes: List<String>,
+                                      selectedGates: IntArray): MaterialMismatch? {
         for (tool in activeTools) {
             val source = sourceFilamentTypes.getOrNull(tool)?.trim().orEmpty()
-            val gate = tool
+            val gate = selectedGates.getOrNull(tool) ?: continue
             val actual = MmuFilamentSync.gateSlot(printerTitle, gate)?.type?.trim().orEmpty()
             if (!SlicePreparationTools.materialMatchesSlicedFile(source, actual)) {
                 return MaterialMismatch(tool, source.ifBlank { "?" }, gate + 1, actual.ifBlank { "?" })
@@ -182,13 +192,13 @@ object SlicePrintPreparationDialog {
     }
 
     internal fun formatToolMapping(context: Context, printerTitle: String,
-                                   firstToolUse: IntArray): String {
+                                   firstToolUse: IntArray, selectedGates: IntArray? = null): String {
         return buildString {
             append(context.getString(R.string.PrintPrepareToolOrder,
                 firstToolUse.joinToString(" → ") { tool -> "T$tool" }))
             firstToolUse.forEach { tool ->
                 append("\nT").append(tool).append(" → ")
-                    .append(MmuFilamentSync.gateLabel(printerTitle, tool))
+                    .append(MmuFilamentSync.gateLabel(printerTitle, selectedGates?.getOrNull(tool) ?: tool))
             }
         }
     }
@@ -214,17 +224,15 @@ private fun PrintPreparationDialog(
     var resliceRequired by remember(initialPrinter.title) { mutableStateOf(false) }
     var warning by remember { mutableStateOf<PrintPreparationWarning?>(null) }
     val context = LocalContext.current
-    val mappingSummary = remember(context, printer.title) {
-        SlicePrintPreparationDialog.formatToolMapping(
-            context,
-            printer.title.orEmpty(),
-            firstToolUse,
-        )
-    }
-    val emptyAceSlots = remember(printer.title) {
+    val selectedGates = MmuFilamentSync.getSelectedGates(printer.title.orEmpty(), gcodeToolCount)
+        ?: IntArray(gcodeToolCount) { tool -> MmuFilamentSync.defaultGateForTool(printer.title.orEmpty(), tool) }
+    val mappingSummary = SlicePrintPreparationDialog.formatToolMapping(
+        context, printer.title.orEmpty(), firstToolUse, selectedGates,
+    )
+    val emptyAceSlots = remember(printer.title, selectedGates.contentHashCode()) {
         SlicePreparationTools.emptyAceSlotsBeforeUsedGate(
             activeTools,
-            gcodeToolCount,
+            selectedGates,
             MmuFilamentSync.loadedGates(printer.title.orEmpty()),
         )
     }
@@ -295,14 +303,18 @@ internal fun PrintPreparationWarningDialog(
     onUploadOnly: () -> Unit,
     onFirmwareChecked: () -> Unit,
 ) {
-    val title = when (warning) {
+            val title = when (warning) {
         is PrintPreparationWarning.UnavailableTool -> R.string.MmuAssignmentTitle
+        is PrintPreparationWarning.SharedAceGate -> R.string.MmuAssignmentTitle
         is PrintPreparationWarning.MaterialMismatch -> R.string.PrintPrepareMaterialMismatchTitle
         is PrintPreparationWarning.EmptyAceSlots -> R.string.PrintPrepareAceGapTitle
     }
     val message = when (warning) {
         is PrintPreparationWarning.UnavailableTool -> stringResource(
-            R.string.MmuDirectSlotUnavailable, warning.tool, warning.tool + 1,
+            R.string.MmuDirectSlotUnavailable, warning.tool, warning.gate + 1,
+        )
+        is PrintPreparationWarning.SharedAceGate -> stringResource(
+            R.plurals.MmuAssignmentSharedAceGate, warning.tool + 1, warning.tool + 1,
         )
         is PrintPreparationWarning.MaterialMismatch -> stringResource(
             R.string.PrintPrepareMaterialMismatch, warning.tool, warning.source, warning.slot, warning.loaded,
@@ -318,12 +330,14 @@ internal fun PrintPreparationWarningDialog(
         confirmButton = {
             val label = when (warning) {
                 is PrintPreparationWarning.UnavailableTool -> android.R.string.ok
+                is PrintPreparationWarning.SharedAceGate -> android.R.string.ok
                 is PrintPreparationWarning.MaterialMismatch -> R.string.PrintPrepareUploadOnly
                 is PrintPreparationWarning.EmptyAceSlots -> R.string.PrintPrepareAceGapFirmwareChecked
             }
             TextButton(
                 onClick = when (warning) {
                     is PrintPreparationWarning.UnavailableTool -> onAcknowledge
+                    is PrintPreparationWarning.SharedAceGate -> onAcknowledge
                     is PrintPreparationWarning.MaterialMismatch -> onUploadOnly
                     is PrintPreparationWarning.EmptyAceSlots -> onFirmwareChecked
                 },
@@ -335,6 +349,7 @@ internal fun PrintPreparationWarningDialog(
         },
         dismissButton = when (warning) {
             is PrintPreparationWarning.UnavailableTool -> null
+            is PrintPreparationWarning.SharedAceGate -> null
             is PrintPreparationWarning.MaterialMismatch -> {
                 { TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(android.R.string.cancel))

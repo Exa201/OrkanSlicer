@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.graphics.Color
 import android.content.Intent
 import android.util.Log
 import android.util.AtomicFile
@@ -36,6 +37,8 @@ import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.MmuGateAssignmentPolicy
 import ru.ytkab0bp.slicebeam.utils.PrinterProfileSelectionStore
 import java.io.File
 import java.io.FileOutputStream
@@ -447,6 +450,7 @@ open class SliceBeam : Application() {
                 singleObject.put("filament_type", types.toString())
             }
             TemporaryProjectSettings.applyTo(singleObject, activeFilamentCount)
+            applyAssignedAceColors(singleObject, printer, activeFilamentCount)
             if (TemporaryProjectSettings.active && TemporaryProjectSettings.prefersOwnFilamentTemperatures) {
                 ru.ytkab0bp.slicebeam.config.SlotFilamentProfiles.applyOwnFilamentSettingsTo(
                     singleObject, current,
@@ -455,6 +459,31 @@ open class SliceBeam : Application() {
             }
             ru.ytkab0bp.slicebeam.config.SliceTemperatureNormalizer.fillMissingBedSurfaceTemperatures(singleObject)
             return singleObject
+        }
+
+        /** The slicer preview must use the same selected physical filament colors as ACE routing. */
+        private fun applyAssignedAceColors(target: ConfigObject, printer: ConfigObject, activeFilamentCount: Int) {
+            val title = printer.title.orEmpty()
+            if (title.isBlank() || MmuFilamentSync.getSnapshot(title) == null) return
+            val count = if (activeFilamentCount > 0) activeFilamentCount.coerceIn(1, 16)
+                else Prefs.getFilamentSlots().size.coerceIn(1, 16)
+            val selected = MmuFilamentSync.getSelectedGates(title, count)
+            val toolToGate = IntArray(count) { MmuFilamentSync.defaultGateForTool(title, it) }
+            val gates = selected ?: toolToGate
+            val physicalColors = gates.indices.mapNotNull { index ->
+                val gate = gates[index]
+                MmuFilamentSync.gateSlot(title, gate)?.let { gate to it.color }
+            }.toMap()
+            if (physicalColors.isEmpty()) return
+            val source = ru.ytkab0bp.slicebeam.config.ProfileStringVectorCodec
+                .parse(target["filament_colour"].orEmpty())
+                ?.mapNotNull { raw -> runCatching { Color.parseColor(raw.trim()) }.getOrNull() }
+                .orEmpty()
+            val baseColors = source.ifEmpty { Prefs.getFilamentSlots().map { it.color } }
+            val mappedColors = MmuGateAssignmentPolicy.colorsForGates(baseColors, gates, physicalColors, count)
+            target.put("filament_colour", ru.ytkab0bp.slicebeam.config.ProfileStringVectorCodec.serialize(
+                mappedColors.map { color -> String.format(Locale.ROOT, "#%06X", color and 0xFFFFFF) },
+            ))
         }
 
         @JvmStatic

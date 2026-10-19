@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import android.app.Application
 import android.view.View
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -18,9 +19,11 @@ import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
+import ru.ytkab0bp.slicebeam.components.MmuAssignmentContent
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -30,6 +33,41 @@ import java.util.concurrent.atomic.AtomicReference
 class SlicePrintPreparationComposeDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
+
+    @Test
+    fun selectingAnOccupiedAceGateSwapsTheVisibleToolAssignments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val mapping = mutableStateOf(listOf(0, 1, 2, 3))
+        val palette = listOf(
+            FilamentSlot(0xFF212721.toInt(), "PETG"),
+            FilamentSlot(0xFFFFFFFF.toInt(), "PETG"),
+            FilamentSlot(0xFF00BA4B.toInt(), "PETG"),
+            FilamentSlot(0xFF0047BB.toInt(), "PLA"),
+        )
+        activity.runOnUiThread {
+            bed.showWorkspaceComposeDialog {
+                MmuAssignmentContent(
+                    printerTitle = "synthetic ACE mapping test",
+                    toolCount = 4,
+                    loadedGates = intArrayOf(0, 1, 2, 3),
+                    palette = palette,
+                    mapping = mapping.value,
+                    showHelp = false,
+                    onMappingChange = { mapping.value = it },
+                )
+            }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+
+        compose.onNodeWithTag("mmu-assignment-tool-1").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("mmu-assignment-gate-3").assertIsDisplayed().performClick()
+        compose.runOnIdle {
+            assertEquals("Choosing ACE 4 for T1 moves T3 to T1's former ACE 2 slot",
+                listOf(0, 3, 2, 1), mapping.value)
+        }
+        compose.onNodeWithTag("mmu-assignment-tool-0").assertIsDisplayed()
+    }
 
     @Test
     fun preparationCancelDoesNotDispatchAndUploadOnlyUsesInjectedAction() {

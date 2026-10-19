@@ -1018,7 +1018,7 @@
     <string name="MmuAssignmentSyncFailed">ACE slots could not be checked. Connect to the printer and synchronize the filament list before slicing this multicolor model.</string>
     <string name="MmuAssignmentNoLoadedSlots">The ACE reports no loaded filament slots. Load filament and synchronize again.</string>
     <string name="MmuAssignmentUnavailable">Model color T%1$d is not assigned to a loaded, routable ACE slot. Choose another slot before sending the G-code.</string>
-    <string name="MmuDirectSlotUnavailable">G-code tool T%1$d is fixed to ACE slot %2$d. Load that exact slot and keep the printer tool map aligned before sending; another slot will not be substituted.</string>
+    <string name="MmuDirectSlotUnavailable">The selected ACE gate %2$d for G-code tool T%1$d is not loaded or is not reachable through the printer tool map. Load the selected slot and synchronize the printer again.</string>
     <string name="MmuAssignmentEdit">Color to ACE slot mapping · tap to edit</string>
     <string name="QuickSliceTitle">Quick Slice</string>
     <string name="QuickSliceHelp">Choose a printer, material and a simple quality preset. Values are checked before slicing.</string>
@@ -1206,6 +1206,8 @@
     <plurals name="ModelSimplifyDone"><item quantity="one">Simplified from %1$d to %2$d triangle.</item><item quantity="other">Simplified from %1$d to %2$d triangles.</item></plurals>
     <plurals name="SettingsCloudManageFeatureAIGeneratorDescription"><item quantity="one">%1$d model from photo per month</item><item quantity="other">%1$d models from photo per month</item></plurals>
     <plurals name="MmuAssignmentToolMismatch"><item quantity="one">This G-code uses %1$d color, but the ACE assignment is incomplete. Select a slot for every color and slice again.</item><item quantity="other">This G-code uses %1$d colors, but the ACE assignment is incomplete. Select a slot for every color and slice again.</item></plurals>
+    <plurals name="MmuAssignmentSharedAceGate"><item quantity="one">G-code tool T%1$d shares an ACE gate with another active color. Assign a different loaded ACE gate to each color and slice again.</item><item quantity="other">G-code tool T%1$d shares an ACE gate with another active color. Assign a different loaded ACE gate to each color and slice again.</item></plurals>
+    <string name="MmuAssignmentDuplicateGateError">Each distinct model color must use a different loaded ACE gate. Change the assignments before slicing.</string>
     <string name="PrinterProfileLoading">Loading printer profile…</string>
     <string name="PrinterProfileLoaded">Printer profile loaded.</string>
     <string name="CalibrationPressureAdvanceReady">Pressure Advance test is ready. Open the Slice tab to continue.</string>

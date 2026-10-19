@@ -96,6 +96,15 @@ internal object SlicePreparationTools {
         return (0 until highest).filter { gate -> gate !in loaded }.map { gate -> gate + 1 }.toIntArray()
     }
 
+    /** Finds physical empty gates before the highest gate actually assigned to a used slicer tool. */
+    fun emptyAceSlotsBeforeUsedGate(activeTools: IntArray, selectedGates: IntArray?, loadedGates: IntArray): IntArray {
+        if (loadedGates.isEmpty() || selectedGates == null) return IntArray(0)
+        val usedGates = activeTools.map { selectedGates.getOrNull(it) ?: return IntArray(0) }
+        val highest = usedGates.maxOrNull() ?: return IntArray(0)
+        val loaded = loadedGates.toSet()
+        return (0 until highest).filter { gate -> gate !in loaded }.map { it + 1 }.toIntArray()
+    }
+
     /** A previously selected gate can become empty or lose its firmware tool mapping after a new sync. */
     fun firstUnavailableAceTool(activeTools: IntArray, selectedGates: IntArray?, routableGates: IntArray): Int? =
         activeTools.firstOrNull { tool ->

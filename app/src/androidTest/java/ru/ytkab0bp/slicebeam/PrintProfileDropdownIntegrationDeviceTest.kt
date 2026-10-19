@@ -690,13 +690,12 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 activity.navigationDelegate.getCurrentFragment() is PrinterConfigFragment
             }
 
-            val activePrinterButton = compose.onAllNodes(
-                hasText(previousPrinter) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
-            ).onFirst()
-            // The global profile status may expose a second button with the same
-            // printer title, depending on the active workspace composition. Both
-            // controls open the active printer selector; use the first visible one.
-            activePrinterButton.assertIsDisplayed().performClick()
+            // Target the profile list's own dropdown, not the similarly labeled global
+            // workspace profile-status button behind this screen.
+            compose.onNodeWithTag("profile-dropdown").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                runCatching { compose.onNodeWithText(targetPrinter).assertIsDisplayed() }.isSuccess
+            }
             compose.onNodeWithText(targetPrinter).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 15_000) {
                 SliceBeam.requireConfig().presets?.get("printer") == targetPrinter

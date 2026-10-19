@@ -231,11 +231,22 @@ private var preparedFilamentModel: Model? = null
 private var preparedFilamentObjectCount = -1
 private var preparedFilamentPrinter = ""
 private var preparedFilamentPalette = ""
+private var preparedFilamentGateMapping = ""
 private var preparedFilamentSettingsRevision = -1L
 private var preparedFilamentConfigUid = -1
 
 private fun filamentPaletteSignature(): String = Prefs.getFilamentSlots().joinToString("|") {
     "${it.color}:${it.type.orEmpty()}"
+}
+
+private fun filamentGateMappingSignature(): String {
+    val config = SliceBeam.CONFIG ?: return ""
+    val printer = config.presets?.get("printer")?.let(config::findPrinter)
+    val title = printer?.title ?: config.presets?.get("printer").orEmpty()
+    val count = maxOf(Prefs.getFilamentSlots().size, currentModel?.requiredFilamentCount ?: 1).coerceAtLeast(1)
+    val gates = MmuFilamentSync.getSelectedGates(title, count)
+        ?: IntArray(count) { MmuFilamentSync.defaultGateForTool(title, it) }
+    return gates.joinToString(",")
 }
 
 /** Apply one assignment from the shared model/pre-slice dialog and refresh the model preview. */
@@ -246,7 +257,9 @@ private fun applyFilamentAssignment(model: Model, selectedSlots: IntArray, after
         selectedSlots.forEachIndexed { index, slot ->
             if (slot >= 0) viewport.renderer.setObjectUniformFilament(index, slot + 1)
         }
-        val printerTitle = SliceBeam.CONFIG?.presets?.get("printer").orEmpty()
+        val config = SliceBeam.CONFIG
+        val printerTitle = config?.presets?.get("printer")?.let(config::findPrinter)?.title
+            ?: config?.presets?.get("printer").orEmpty()
         val colors = Prefs.getFilamentPalette()
         val gates = MmuFilamentSync.getSelectedGates(printerTitle,
             maxOf(colors.size, model.requiredFilamentCount))
@@ -263,6 +276,7 @@ private fun applyFilamentAssignment(model: Model, selectedSlots: IntArray, after
             preparedFilamentObjectCount = model.objectsCount
             preparedFilamentPrinter = printerTitle
             preparedFilamentPalette = filamentPaletteSignature()
+            preparedFilamentGateMapping = filamentGateMappingSignature()
             preparedFilamentSettingsRevision = TemporaryProjectSettings.sliceRevision
             preparedFilamentConfigUid = SliceBeam.CONFIG_UID
             after()
@@ -370,6 +384,7 @@ if (preparedFilamentModel === activeModel &&
     preparedFilamentObjectCount == activeModel.objectsCount &&
     preparedFilamentPrinter == SliceBeam.CONFIG?.presets?.get("printer").orEmpty() &&
     preparedFilamentPalette == filamentPaletteSignature() &&
+    preparedFilamentGateMapping == filamentGateMappingSignature() &&
     preparedFilamentSettingsRevision == TemporaryProjectSettings.sliceRevision &&
     preparedFilamentConfigUid == SliceBeam.CONFIG_UID) {
     runSlice(activeModel, onSuccess)

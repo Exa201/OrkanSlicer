@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam.slic3r
 
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -333,9 +334,18 @@ open class Model private constructor(@JvmField var pointer: Long) {
         // Declare enough filament slots for object assignments and painted facets so native
         // slicing emits all required multi-material tool changes.
         val numFilaments = requiredFilamentCount
-        val palette = Prefs.getFilamentPalette()
         val colors = if (numFilaments > 1) {
-            IntArray(numFilaments) { i -> palette[minOf(i, palette.size - 1)] and 0xFFFFFF }
+            val configColors = runCatching {
+                File(configPath).useLines { lines ->
+                    lines.lastOrNull { it.startsWith("filament_colour = ") }
+                        ?.substringAfter("filament_colour = ")
+                }
+            }.getOrNull()
+            SliceFilamentColorResolver.resolve(
+                configColors,
+                numFilaments,
+                Prefs.getFilamentPalette(),
+            )
         } else {
             null
         }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.325 (alpha)
+
+- Fix ACE/MMU color assignment so a model tool uses its selected physical gate in the on-bed preview, slice configuration, firmware tool command, upload metadata, and final G-code palette. Selecting an occupied ACE gate swaps the former assignment instead of silently creating duplicate active gate mappings; the final preflight now checks the same mapping used by the upload.
+- Fix native slicing overriding configured 3MF/ACE filament colors with the stale global palette. The native slicer now receives the effective `filament_colour` from the generated slice config, with safe fallback colors only for missing entries.
+- Verify the supplied private KromaCut 3MF on Honor PTP-N49: all 3 fixture tests passed, including slicing with T0 mapped to white ACE 2 and T1 to blue ACE 4; both tools and the selected palette were present in generated G-code. No printer connection or print start was performed.
+- Debug and Slice unit suites: 573/573 each, no failures, errors, or skips. Full Honor `:app:connectedSliceTestAndroidTest`: 229/229 passed, including the supplied KromaCut fixture (0 skipped/failures/errors). `PrintProfileDropdownIntegrationDeviceTest`: 18/18 and the occupied-gate assignment Compose test: 1/1 passed. Debug APK installation/start and GitHub prerelease verification are recorded after publication below.
+
 ## 0.8.324 (alpha)
 
 - At 130% system font and above, compact physical ACE labels to keep all four gate and tool numbers readable on narrow displays.

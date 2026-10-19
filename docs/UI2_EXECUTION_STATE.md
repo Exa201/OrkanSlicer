@@ -1,5 +1,16 @@
 # Current continuation state — 2026-10-19
 
+## ACE multicolor routing and KromaCut regression — v0.8.325
+
+- Current task implementation is verified locally; code changes are awaiting commit and GitHub publication. The supplied KromaCut 3MF remains in ignored `.codex-remote-attachments/` and must not be committed or uploaded.
+- Fixed logical tool → selected physical ACE gate mapping through preview/configuration, firmware `ttg_map` command translation, preflight, synchronization comparison, and G-code filament colors. Selecting an occupied gate swaps assignments; duplicate active gate use is rejected. Native slicing now reads effective configured `filament_colour` instead of the stale global palette.
+- Debug unit: 573/573; Slice unit: 573/573 (0 failures/errors/skips). Full Honor connected instrumentation: 229/229 (0 skips/failures/errors); KromaCut fixture class: 3/3, including native slice with T0→white ACE 2 and T1→blue ACE 4 and resulting G-code palette; ACE assignment UI swap test: 1/1; profile integration class: 18/18. No printer sync or physical print was performed. Emulator offline.
+- App version 0.8.325 / code 360. Final Debug APK install/start, SHA-256, GitHub commit/push, PR #2 and prerelease publication remain pending.
+- Overall UI 2.0 remains in Phase 5 menu action audit; Phase 6 physical accessibility/TalkBack acceptance remains open. Full multi-plate project persistence remains a separate open feature.
+- Next: commit only reviewed source/tests/changelog/status files (exclude `.codex-remote-attachments/`), build Debug APK after commit, install/launch on Honor, publish Debug prerelease and update PR #2, then continue remaining UI 2.0 audit work.
+
+---
+
 ## Latest responsive fix — version 0.8.324
 
 - Corrected the physical-gate heading at system font scales >= 1.3: use a compact localized `slot · Ttool` label under the section heading, while retaining the longer `ACE n · Ttool` form at standard font. Four gates remain in each row; ACE/hardware indices are unchanged.

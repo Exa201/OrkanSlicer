@@ -2,6 +2,8 @@ package ru.ytkab0bp.slicebeam
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
@@ -23,6 +25,7 @@ import ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalog
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Vec3d
+import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
 import java.io.File
 import java.util.UUID
 import java.util.zip.ZipFile
@@ -199,6 +202,79 @@ class KromaCutThreeMfDeviceTest {
         }
     }
 
+    @Test fun selectedBlueAndWhiteAceGatesAreUsedByTheRealKromaCutSlice() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val source = sourceFile()
+        assumeTrue("Push the supplied KromaCut 3MF to the app external files test directory", source.isFile)
+
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        Prefs.init(context.applicationContext as SliceBeam)
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val snapshotKeys = listOf("mmu_snapshot_printer", "mmu_snapshot")
+        val oldSnapshot = snapshotKeys.associateWith { prefs.getString(it, null) }
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val model = Model(source, 1)
+        val outputs = ArrayList<File>()
+        try {
+            context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            val printer = requireNotNull(SliceBeam.requireConfig().findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+            val title = printer.title.orEmpty()
+            val fakeMmu = JSONObject().put(
+                "result", JSONObject().put(
+                    "status", JSONObject().put(
+                        "mmu", JSONObject()
+                            .put("enabled", true)
+                            .put("ttg_map", JSONArray(listOf(0, 1, 2, 3)))
+                            .put("gate_status", JSONArray(listOf(1, 1, 1, 1)))
+                            .put("gate_material", JSONArray(listOf("PETG", "PETG", "PETG", "PLA")))
+                            .put("gate_color", JSONArray(listOf("212721", "FFFFFF", "00BA4B", "0047BB"))),
+                    ),
+                ),
+            )
+            prefs.edit().putString("mmu_snapshot_printer", title)
+                .putString("mmu_snapshot", fakeMmu.toString()).commit()
+
+            val fileSettings = projectSettings(source)
+            assertEquals(2, fileSettings.filaments.size)
+            val importedColors = requireNotNull(ThreeMfImportSelection.select(
+                fileSettings, false, false, Prefs.getStoredFilamentSlots(), false,
+            ))
+            TemporaryProjectSettings.activate(importedColors)
+            val originalMaterialValues = SliceBeam.buildCurrentConfigObject(model.requiredFilamentCount)["filament_type"]
+            // Exact mapping from the reported device flow: source T0 -> white ACE2, T1 -> blue ACE4.
+            MmuFilamentSync.setSelectedGates(title, intArrayOf(1, 3))
+            val mappedConfig = SliceBeam.buildCurrentConfigObject(model.requiredFilamentCount)
+            assertEquals("#FFFFFF;#0047BB", mappedConfig["filament_colour"])
+            assertEquals("gate color routing must not change slicer material/profile values",
+                originalMaterialValues, mappedConfig["filament_type"])
+
+            sliceAndVerify(model, mappedConfig, "selected-blue-white-ace-gates")?.let(outputs::add)
+            val gcode = requireNotNull(outputs.singleOrNull())
+            val body = gcode.readText()
+            assertTrue("slicer must retain both material tools in the real G-code", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(body))
+            assertTrue("slicer must retain both material tools in the real G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(body))
+            assertTrue("slicer G-code preview palette must show the selected white and blue gates",
+                body.contains("; filament_colour = #FFFFFF;#0047BB"))
+        } finally {
+            model.release()
+            outputs.forEach { it.delete() }
+            TemporaryProjectSettings.clear()
+            val editor = prefs.edit()
+            oldSnapshot.forEach { (key, value) -> if (value == null) editor.remove(key) else editor.putString(key, value) }
+            editor.commit()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+        }
+    }
+
     private fun sliceAndVerify(model: Model, config: ConfigObject, label: String): File? {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         SliceBeam.genCurrentConfig(model)
@@ -221,9 +297,10 @@ class KromaCutThreeMfDeviceTest {
             assertTrue("G-code configuration block must be complete", content.contains("CONFIG_BLOCK_END"))
             assertTrue("G-code must identify this slicer build", content.contains("; generated by ") && content.contains(BuildConfig.VERSION_NAME))
             config["filament_colour"]?.let { palette ->
-                assertTrue(
-                    "G-code must use the selected/imported palette, not stale 3MF overrides: $palette",
-                    content.contains("; filament_colour = $palette"),
+                val emittedPalette = Regex("(?m)^; filament_colour = (.*)$").find(content)?.groupValues?.get(1)
+                assertEquals(
+                    "G-code must use the selected/imported palette, not stale 3MF overrides",
+                    palette, emittedPalette,
                 )
             }
             return output

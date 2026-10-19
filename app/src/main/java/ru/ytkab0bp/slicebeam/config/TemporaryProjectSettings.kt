@@ -275,7 +275,12 @@ object TemporaryProjectSettings {
     }
 
     @Synchronized fun selectedGates(printer: String, count: Int): IntArray? = gateChoices[printer]?.takeIf { it.size >= count }?.copyOf(count)
-    @Synchronized fun setSelectedGates(printer: String, gates: IntArray) { gateChoices[printer] = gates.copyOf() }
+    @Synchronized fun setSelectedGates(printer: String, gates: IntArray) {
+        val previous = gateChoices[printer]
+        if (previous?.contentEquals(gates) == true) return
+        gateChoices[printer] = gates.copyOf()
+        if (active) changed()
+    }
     @Synchronized fun removeSelectedGate(index: Int) {
         gateChoices.keys.toList().forEach { printer ->
             gateChoices[printer] = gateChoices.getValue(printer).filterIndexed { tool, _ -> tool != index }.toIntArray()
