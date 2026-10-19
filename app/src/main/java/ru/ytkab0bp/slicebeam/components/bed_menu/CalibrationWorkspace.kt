@@ -433,7 +433,7 @@ private fun CalibrationResultContent(onSave: (Int, String) -> Boolean) {
         CalibrationNumberField(stringResource(R.string.CalibrationMeasuredValue), value, {
             value = it
             invalid = false
-        })
+        }, testTag = "calibration-result-value")
         if (invalid) Text(stringResource(R.string.CalibrationResultInvalid), color = MaterialTheme.colorScheme.error)
         TextButton(
             onClick = { if (!onSave(mode, value)) invalid = true },
@@ -452,7 +452,12 @@ private fun calibrationTitle(mode: Int): Int = when (mode) {
 }
 
 @Composable
-private fun CalibrationNumberField(label: String, value: String, onValueChange: (String) -> Unit) {
+private fun CalibrationNumberField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    testTag: String? = null,
+) {
     OutlinedTextField(
         value = value,
         onValueChange = { candidate ->
@@ -461,7 +466,7 @@ private fun CalibrationNumberField(label: String, value: String, onValueChange: 
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().then(testTag?.let(Modifier::testTag) ?: Modifier),
     )
 }
 

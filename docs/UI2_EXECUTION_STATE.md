@@ -1,3 +1,13 @@
+# UI2 Fortsetzung — 2026-10-19, Profil-/Kalibrierungsaktionen
+
+- Aktuelle Phase: 5 (Menü-Aktionsabnahme); Phase 4 ist anhand Compose-Workspace, RendererAdapter und vorhandener Back-/Lifecycle-Tests abgeschlossen. Phase 6 teilweise offen.
+- In diesem Durchgang: tatsächlicher Kalibrierungs-Ergebnisflow auf Honor geprüft. PA-Ergebnis wird korrekt als Filament-Draft samt `enable_pressure_advance=1` vorgemerkt; VFA-Wert wird im Druckprofil-Draft als `outer_wall_speed` abgelegt. Gespeicherte Profile blieben unverändert. Gezielter Kalibrierungslauf 2/2, Maker-/Generatorklasse 11/11 bestanden.
+- Regression: Debug-JVM 562/562, Slice-JVM 562/562 bestanden. Debug-Build erfolgreich, auf Honor installiert/gestartet; kein Crash-/ANR-/OOM-/Fatal-Signal im geprüften Logcat-Ausschnitt. Paket `com.codemastercody3d.orcaslicermobile`, 0.8.316 / 351.
+- Geändert: Testtag für Kalibrierungs-Ergebniswert sowie gerätebasierter Test für Ergebniszuordnung, Draft-Schutz und Zustandsrestaurierung.
+- Noch offen: vollständige Aktion-für-Aktion-Prüfung aller sechs Workspace-Menüs und globaler Untermenüs; Phase 6 TalkBack-Handprüfung und vollständige physische Display-/Schriftmatrix. Multi-Platten-Projektpersistenz bleibt separate, nicht implementierte Aufgabe.
+- Nächste konkrete Aufgabe: weiter mit sicheren, noch nicht abgenommenen Druck-/Filamentprofil-Untermenüaktionen und ihren Apply/Cancel/Back-Zuständen; danach tatsächliche Menüaktionsmatrix aktualisieren. Kein Release, solange Phase 5/6 unvollständig sind.
+- Branch bleibt `codex/rinkhals-safe-start-audit`; PR #2 offen. Der commit-gebundene Build/Hash wird nach Commit ergänzt.
+
 # UI 2.0 execution status — 2026-10-19
 
 ## Aktueller Fortsetzungsstand nach Honor-Volltest — 2026-10-19

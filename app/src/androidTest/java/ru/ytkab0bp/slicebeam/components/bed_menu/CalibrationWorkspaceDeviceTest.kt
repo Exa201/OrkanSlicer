@@ -6,18 +6,22 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
@@ -58,6 +62,69 @@ class CalibrationWorkspaceDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
         assertFalse("Closing calibration selection must not finish the app", activity.isFinishing)
         assertEquals("Opening/canceling the configuration must not set a calibration", 0, SliceBeam.PENDING_CALIB_MODE)
+    }
+
+    @Test
+    fun recordingCalibrationResultsStagesValuesForTheCorrectProfileWithoutSavingProfiles() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val config = SliceBeam.requireConfig()
+        val filament = requireNotNull(config.findFilament(config.presets?.get("filament")))
+        val process = requireNotNull(config.findPrint(config.presets?.get("print")))
+        val profileTypes = listOf(ConfigObject.PROFILE_LIST_FILAMENT, ConfigObject.PROFILE_LIST_PRINT)
+        val oldDrafts = profileTypes.associateWith(ProfileSettingsRepository::pendingEntries)
+        val oldFilamentPressureAdvance = filament.get("pressure_advance")
+        val oldProcessOuterWallSpeed = process.get("outer_wall_speed")
+
+        try {
+            activity.runOnUiThread { showCalibrationWorkspace(bed) }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithTag("calibration-actions-list")
+                .performScrollToNode(hasTestTag("calibration-record-result"))
+            compose.onNodeWithTag("calibration-record-result").performClick()
+            compose.onNodeWithTag("calibration-result-value").performTextInput("0.042")
+            compose.onNodeWithTag("calibration-save-result").performClick()
+
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_FILAMENT)["pressure_advance"] == "0.042"
+            }
+            assertEquals("A positive PA result should enable PA in the staged filament draft", "1",
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_FILAMENT)["enable_pressure_advance"])
+            assertEquals("Recording a result must stage, not directly mutate, the saved filament", oldFilamentPressureAdvance,
+                filament.get("pressure_advance"))
+
+            compose.onNodeWithTag("calibration-actions-list")
+                .performScrollToNode(hasTestTag("calibration-record-result"))
+            compose.onNodeWithTag("calibration-record-result").performClick()
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.CalibrationPressureAdvanceShort))
+                .performClick()
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.CalibrationVfaTower))
+                .performClick()
+            compose.onNodeWithTag("calibration-result-value").performTextInput("130")
+            compose.onNodeWithTag("calibration-save-result").performClick()
+
+            compose.waitUntil(timeoutMillis = 5_000) {
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINT)["outer_wall_speed"] == "130.0"
+            }
+            assertEquals("The VFA result belongs to the print-process draft", "130.0",
+                ProfileSettingsRepository.pendingEntries(ConfigObject.PROFILE_LIST_PRINT)["outer_wall_speed"])
+            assertEquals("Recording VFA must not directly mutate the saved process", oldProcessOuterWallSpeed,
+                process.get("outer_wall_speed"))
+            assertTrue("The calibration workspace should remain open after staging a result",
+                bed.isWorkspaceMessageDialogAttached())
+        } finally {
+            profileTypes.forEach { profileType ->
+                ProfileSettingsRepository.clearDraft(profileType)
+                oldDrafts[profileType].orEmpty().takeIf { it.isNotEmpty() }?.let {
+                    ProfileSettingsRepository.setPendingValues(profileType, it)
+                }
+            }
+            SliceBeam.PENDING_CALIB_MODE = 0
+            SliceBeam.PENDING_CALIB_START = 0.0
+            SliceBeam.PENDING_CALIB_END = 0.0
+            SliceBeam.PENDING_CALIB_STEP = 0.0
+            if (bed.isWorkspaceMessageDialogAttached()) activity.onBackPressedDispatcher.onBackPressed()
+        }
     }
 
     private fun createInitializedActivityRule() = run {

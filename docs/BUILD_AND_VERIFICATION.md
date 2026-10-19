@@ -1,3 +1,11 @@
+## Kalibrierungs-Ergebnisaktion und Generatorrouten — Honor, 2026-10-19
+
+- `CalibrationWorkspaceDeviceTest`: 2/2 auf Honor PTP-N49 / Android 16 bestanden. Der neue UI-Test erfasst PA-Messwert → Filament-Entwurf einschließlich Aktivierung von Pressure Advance sowie VFA-Messwert → Druckprofil-Entwurf. Beide gespeicherten Profilobjekte bleiben unverändert; vorher vorhandene Draft-Werte werden nach dem Test restauriert.
+- `MakerGeneratorWorkspaceDeviceTest`: 11/11 auf demselben Honor bestanden; Generator-Formulare, Abbruch/Zurück und Converter-Dialoge durchlaufen. Keine externe Generierung gestartet.
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: je 562/562 bestanden, null Fehler/Errors/Skips. `:app:assembleDebug` erfolgreich; Paket `com.codemastercody3d.orcaslicermobile`, Version 0.8.316 / Code 351. APK wurde auf Honor installiert und `MainActivity` gestartet; 4.000 zuletzt gespeicherte Logcat-Einträge enthielten keinen FATAL EXCEPTION-, ANR-, OOM- oder Fatal-signal-Treffer.
+- Runtime-Ergänzung ist ausschließlich ein Compose-Testtag am Kalibrierungsmesswertfeld; keine fachliche Produktionslogik wurde geändert. Der Status dieses Builds entspricht noch dem vorangegangenen HEAD, da der Arbeitsstand beim Build nicht committet war; nach dem Commit wird ein commit-gebundener APK-Nachweis erstellt.
+- Die Kalibrierungs- und Generatorrouten sind damit gezielt geprüft, aber Phase 5 ist nicht vollständig abgeschlossen: weitere Hauptmenü- und globale Untermenüaktionen bleiben offen. Phase 6 bleibt teilweise offen (manuelle TalkBack-Traversierung und vollständige physische Displaymatrix).
+
 ## Reale Workspace-Menünavigation auf Honor — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 wurden OrkanSlicers sechs Workspace-Ziele nacheinander tatsächlich geöffnet und ihre sichtbaren Compose-Aktionen aus dem Android-Layoutbaum gelesen. Die Aktion „Modell laden“ öffnete den System-Dateiauswahldialog; Android-Zurück führte ohne Dateiauswahl/importierte Datei zurück zum Workspace.
