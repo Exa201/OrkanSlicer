@@ -20,6 +20,12 @@
 - Die isolierte 3MF-Projekteinstellungstestklasse sliced ein synthetisches Mehrfilament-Modell tatsächlich mit Orca/Slic3r-Engine und prüft G-Code-Werte für Temperatur/Pressure Advance sowie Projekt-vs.-Drucker-Felder; Testdaten und Profildatei werden in der SliceTest-Sandbox verwaltet. Die UI-Tests decken Wahl-/Numerikdialoge, Cancel/Back, Favoriten/Filter, Profilhilfe, Statusbeschriftung und Workspace-Navigation ab.
 - Keine Produktcodeänderung; dies ist ein gezielter Android-Instrumentierungslauf. Manuelle TalkBack-Bedienung ist damit nicht nachgewiesen.
 
+## Vollständige Honor-Instrumentierungsregression — 2026-10-19
+
+- `:app:connectedSliceTestAndroidTest`: JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-19T08:28:07Z`: 208 Fälle, 203 bestanden, 5 übersprungen, 0 Fehler/Errors. Die fünf Skips sind zwei projektbezogene KromaCut-Tests und drei private Mehrfarben-Fixtures, die in der lokalen Testumgebung fehlen. `emulator-5554` offline; Honor PTP-N49 / Android 16 führte die verfügbaren Tests aus.
+- Der Lauf erfolgte nach den gezielten Projekt-/Menü-, Profil-, Kalibrierungs- und Accessibility-Klassen. Die Teständerung betrifft ausschließlich Instrumentierung; der zuletzt gebaute Produktcode/APK bleibt unverändert und gehört zu `e727a51`.
+- Phase 5 ist weiterhin offen, weil nicht alle tatsächlichen Menüaktionen gegen eine vollständige Handler-Matrix funktional abgenommen sind. Phase 6 bleibt teilweise offen: TalkBack manuell nicht geprüft, nicht alle Display-/Schriftkonfigurationen physisch verfügbar.
+
 ## Reale Workspace-Menünavigation auf Honor — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 wurden OrkanSlicers sechs Workspace-Ziele nacheinander tatsächlich geöffnet und ihre sichtbaren Compose-Aktionen aus dem Android-Layoutbaum gelesen. Die Aktion „Modell laden“ öffnete den System-Dateiauswahldialog; Android-Zurück führte ohne Dateiauswahl/importierte Datei zurück zum Workspace.

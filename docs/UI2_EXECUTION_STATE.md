@@ -13,6 +13,12 @@
 - Letzter Testnachweis wurde mit Commit `b82ae3e` auf den PR-Branch gepusht. Die beiden nachfolgenden Testläufe änderten weder Produkt- noch Testcode; ihre Ergebnisse werden hier dokumentiert.
 - Phase 4 bleibt abgeschlossen. Phase 5 bleibt aktiv, weil globale Menüs und jede verbleibende nicht abgedeckte Aktion nicht vollständig abgeglichen sind. Phase 6 bleibt teilweise offen (manuelle TalkBack-Traversierung und vollständige Display-/Orientierungsmatrix). Nächster konkreter Schritt: globale Druck-/Profil- und Druckeraktionen mit bestehenden Integrationstests gegen den Quellcode abgleichen und neue Lücken einzeln schließen.
 
+## Vollständige Honor-Regression — 2026-10-19
+
+- `:app:connectedSliceTestAndroidTest` erfolgreich auf Honor PTP-N49 / Android 16: 208 JUnit-Fälle, 203 bestanden, 5 übersprungen, 0 Fehler/Errors; XML-Zeitstempel `2026-10-19T08:28:07Z`. Fünf ausgelassene private Testfixtures fehlen lokal (zwei KromaCut, drei Mehrfarben). Emulator offline.
+- Letzter aktueller Code-/Dokumentationscommit vor diesem Regressionseintrag: `33f15a4`; der Volltest enthielt keine Dateiänderungen. APK/Product code bleibt `e727a51` (siehe BUILD_AND_VERIFICATION.md).
+- Phase 4 abgeschlossen. Phase 5 aktiv: als nächstes sichtbare Aktionsdefinitionen der Workspace-Menüs aus dem Quellcode gegen sämtliche vorhandenen Testfälle mappen und nicht abgedeckte Handler priorisieren. Phase 6 partiell (manuelle TalkBack-/vollständige physische Layoutmatrix offen). Mehrplatten-Projektpersistenz bleibt getrennte offene Aufgabe.
+
 ## Neueste gezielte Honor-Abnahme — 2026-10-19
 
 - Kombinierter Gerätelauf auf Honor PTP-N49 / Android 16: `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): insgesamt 27/27 bestanden, 0 Fehler, 0 Skips. JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-19T08:16:43` UTC. `emulator-5554` blieb offline.
