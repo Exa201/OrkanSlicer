@@ -11,6 +11,15 @@
 - Mehrplatten-Projektpersistenz bleibt separat nicht implementiert; unvollständige Exportwarnung bleibt erforderlich. Kein Release erstellen, bis die als nächste vereinbarte Phase abzuschließende funktionale Abnahme erfolgt ist.
 - Nächster konkreter Schritt: Änderungen committen und auf denselben PR-Branch pushen; danach die verbleibenden noch nicht abgenommenen Menüaktionen und verfügbare Responsive-/Accessibility-Prüfungen fortsetzen.
 
+## Phase-6 Responsive-Nachprüfung: Projektaktionen bei 400 dp/150 % — 2026-10-19
+
+- Physische visuelle Honor-Prüfung mit temporär auf 400 dp simulierter Breite und 150 % Schrift deckte abgeschnittene Beschriftungen in den zwei Dateimenü-Kacheln auf („Modell la…“, „3MF sich…“). Bei 360 dp/130 % waren beide Labels lesbar; die 320-dp/150-%-Korrektur blieb ebenfalls lesbar.
+- Ursache: Die adaptive Policy verwendete bei 400 dp/150 % noch zwei Spalten. Sie verwendet bei Schriftfaktor mindestens 1,5 bis einschließlich 400 dp nun eine breite Spalte mit zwei Reihen. Die Tests prüfen jetzt den Randwert 400 dp (eine Spalte) und 401 dp (zwei Spalten).
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` jeweils 562/562 bestanden; `BedMenuActionTileWidthPolicyTest` 9/9. Gezielter Honor-Test `InitialProjectMenuDeviceTest#initialProjectRouteShowsFileActionsOnItsFirstOpen` 1/1 bestanden.
+- Die geöffnete Projektoberfläche nach der Änderung wurde auf Honor bei 400 dp/150 % visuell geprüft: beide Aktionen vollständig lesbar, alle sechs Workspace-Ziele sichtbar, Druckplatte weiter zentral. Bereits bei 360 dp/130 % und 320 dp/150 % geprüfte Darstellungen bleiben dokumentiert. Display-Override/Font-Scale danach auf 1280×2800, 560 dpi und 1,0 zurückgesetzt.
+- Commitgebundener Debug-Build für Code `49412024b37c32135210aab1f2d999262ff03aa1`: `OrkanSlicer_49412024b3.apk`, 157,232,876 Bytes, SHA-256 `998A74D82A402456B96AEAFB9405F6998B5FDC2E411786D91D281F8D8056CB3F`. Auf Honor installiert/gestartet; Paket `com.codemastercody3d.orcaslicermobile`, Version 0.8.316 / Code 351. Letzte 5.000 Logcat-Zeilen ohne Crash-, ANR-, OOM- oder Fatal-Signal-Treffer.
+- Phase 5 (vollständige Aktion-für-Aktion-Abnahme) und Phase 6 (manuelle TalkBack-Traversierung sowie alle physischen Größen/Ausrichtungen) sind nicht abgeschlossen. Die vollständige Mehrplatten-Projektpersistenz bleibt getrennt offen.
+
 
 ## Phase-6-Fortsetzung: Landscape-Crash behoben und Vollregression — 2026-10-19
 
