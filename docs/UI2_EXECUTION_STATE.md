@@ -65,6 +65,16 @@
 
 # UI 2.0 execution status — 2026-10-19
 
+## Verifikation nach der letzten Honor-Prüfung — 2026-10-19
+
+- Aktueller Code-HEAD: `6cd9161dd92a08d81f4c763d30fa28e59b79dcef`; Runtime-Quellen unverändert. Der Branch war beim Arbeitsbeginn bereits mit `origin/codex/rinkhals-safe-start-audit` synchronisiert; PR #2 ist offen und laut GitHub `MERGEABLE`.
+- `SlicePrintPreparationComposeDeviceTest`: 4/4 auf Honor PTP-N49 / Android 16 bestanden. Geprüft wurden Abbruch/Zurück bei Vorbereitungszuweisung, Upload-Callback und getrennte Upload-/Print-Callback-Auswahl. Druckerkommunikation und tatsächlicher Druckstart wurden nicht ausgeführt. Emulator offline.
+- `SettingsAccessibilityDeviceTest`: 1/1 auf Honor bestanden; derselbe Test durchläuft Compose-Konfigurationen 320/360/400 dp im Hochformat und 640×320 dp im Querformat, jeweils mit 100/130/150 % Schrift, und prüft erreichbare 48-dp-Abschnittsaktionen samt Expand/Collapse-Semantik.
+- `AdaptiveWorkspaceNavigationDeviceTest`, `ProfileFilterAccessibilityDeviceTest`, `ProfileEnumOptionAccessibilityDeviceTest` und `WorkspaceProfileStatusDeviceTest`: zusammen 8/8 auf Honor bestanden. Geprüft wurden adaptive Navigation, große Beschriftungen, zugängliche Auswahl-/Filterzustände, Scrollen und kompakter Druckerstatus.
+- Zusammen in diesem Nachweis: 16/16 gezielte Gerätetests bestanden, 0 Skips/Fehler (4 Slice-Vorbereitung + 1 Settings-Accessibility + 8 adaptive Navigation/Panel + je 1 Profilfilter, Enum-Auswahl und Workspace-Profilstatus). Diese Läufe prüfen Compose-Layout-/Semantikzustände auf dem Honor, sie ersetzen weder eine manuelle TalkBack-Traversierung noch echte physische Displays aller angegebenen Größen. Der aktuelle Testlauf änderte keinen App-/Testquellcode; daher wurde keine APK neu gebaut.
+- Phase 4 bleibt abgeschlossen; Phase 5 bleibt aktiv, weil noch nicht jede Aktion aller Haupt- und globalen Menüs einzeln gegen Handler und Resultat abgenommen ist. Phase 6 bleibt teilweise offen: keine manuelle TalkBack-Navigation und keine physisch unterschiedlichen Displaypanels. Multi-Platten-Projektpersistenz bleibt eine separate offene Funktion.
+- Nächster Schritt: vorhandene Action-Tests mit Slice-/globalen Menühandlern weiter abgleichen, fehlende sichere Benutzeraktionen gezielt auf dem Honor prüfen und danach die vollständige Instrumentierung erneut ausführen.
+
 ## Aktueller Fortsetzungsstand nach Honor-Volltest — 2026-10-19
 
 - Phase 4 bleibt abgeschlossen; Phase 5 Menüaktionsaudit bleibt aktiv. Phase 6 ist partiell: TalkBack-Handbedienung und zusätzliche physische Displaykonfigurationen sind weiter offen.
