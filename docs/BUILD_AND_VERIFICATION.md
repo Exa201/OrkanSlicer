@@ -1,3 +1,9 @@
+# Responsive workspace panel check — Honor PTP-N49 (2026-10-19)
+
+- Extended `WorkspaceModePanelHostDeviceTest` with a Compose matrix for portrait 320/360/400 dp configurations at font scales 100%, 130%, and 150%. For all nine combinations, the panel remains within the requested dp sizing and the final panel action is reachable by scrolling.
+- Focused Honor class passed 4/4, 0 skips/failures/errors. This is a synthetic Compose layout/configuration test on the physical Honor, not a claim that the device was physically resized to each width. Existing landscape panel sizing and physical landscape visual checks remain separate.
+- This is a test-only follow-up; the v0.8.322 runtime APK/release remains unchanged. Manual TalkBack traversal remains open because no enabled TalkBack service was available during prior device checks.
+
 # Release v0.8.322 — GL-thread canvas tap safety (2026-10-19)
 
 - Post-publication complete `:app:connectedSliceTestAndroidTest` on Honor PTP-N49 / Android 16 passed: 221 JUnit cases, 216 passed, 5 skipped, 0 failures/errors (XML `2026-10-19T17:06:06Z`). The 5 fixture-dependent skips were two KromaCut cases and three private multicolor-project cases; the emulator was offline. The focused 38-case workspace class had already passed without skips.
