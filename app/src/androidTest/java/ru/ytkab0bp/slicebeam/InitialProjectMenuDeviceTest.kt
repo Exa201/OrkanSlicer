@@ -1762,6 +1762,41 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun editMeasureMenuActionOpensComposeModeAndAndroidBackClosesIt() {
+        val activity = compose.activity
+        dismissStartupChangelogIfVisible(activity)
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
+            .apply { isAccessible = true }.get(bed)
+
+        assertFalse("measurement mode should start disabled", glView.renderer.isInMeasureMode)
+        openEditMenu(activity)
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(15)
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMeasure))
+            .assertIsDisplayed()
+            .performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == "measure-mode" &&
+                compose.onAllNodesWithText(activity.getString(R.string.MeasureTitle))
+                    .fetchSemanticsNodes().isNotEmpty() && glView.renderer.isInMeasureMode
+        }
+        compose.onNodeWithText(activity.getString(R.string.MeasureDistance)).assertIsDisplayed()
+        assertSame("opening a GL tool must retain the workspace renderer view", glView, bed.glView)
+
+        activity.onBackPressedDispatcher.onBackPressed()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == null &&
+                !glView.renderer.isInMeasureMode
+        }
+        assertEquals("Back should leave the user in the Edit destination", WorkspaceDestination.EDIT.ordinal,
+            workspaceController.javaClass.getMethod("getSelectedDestinationSlot").invoke(workspaceController))
+        assertSame("closing the tool must retain GLView", glView, bed.glView)
+        compose.onNodeWithText(activity.getString(R.string.MeasureTitle)).assertDoesNotExist()
+    }
+
+    @Test
     fun editRotationActionIsUndoableAndResetChangesNativeModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -2112,6 +2147,18 @@ class InitialProjectMenuDeviceTest {
             }
         }
         compose.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
+    }
+
+    private fun dismissStartupChangelogIfVisible(activity: MainActivity) {
+        if (compose.onAllNodesWithText(activity.getString(R.string.Changelog))
+                .fetchSemanticsNodes().isNotEmpty()
+        ) {
+            compose.onNodeWithText(activity.getString(R.string.ChangelogOK)).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.Changelog))
+                    .fetchSemanticsNodes().isEmpty()
+            }
+        }
     }
 
     private fun openModelMenu(activity: MainActivity) {
