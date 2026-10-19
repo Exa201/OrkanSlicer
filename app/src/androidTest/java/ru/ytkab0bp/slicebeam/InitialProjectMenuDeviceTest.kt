@@ -47,6 +47,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.CameraVector
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
@@ -1968,6 +1969,60 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun editPaintActionsOpenTheirGlModesAndBackCancelsWithoutMeshMutation() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-paint-actions-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, model.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val trianglesBefore = readTriangleCountOnGl(glView, 0)
+            assertFalse("The fixture starts without paint overrides", readModelHasPaintOnGl(glView, 0))
+
+            val paintActions = listOf(
+                Triple(R.string.MenuToolbarSupportPaint, GLRenderer.PAINT_MODE_SUPPORT, 11),
+                Triple(R.string.MenuToolbarSeamPaint, GLRenderer.PAINT_MODE_SEAM, 12),
+                Triple(R.string.MenuToolbarFuzzyPaint, GLRenderer.PAINT_MODE_FUZZY, 13),
+                Triple(R.string.MenuToolbarColorPaint, GLRenderer.PAINT_MODE_COLOR, 14),
+            )
+            paintActions.forEach { (labelRes, expectedMode, menuIndex) ->
+                openEditMenu(activity)
+                compose.onNode(hasScrollToIndexAction()).performScrollToIndex(menuIndex)
+                compose.onNodeWithContentDescription(activity.getString(labelRes))
+                    .performScrollTo().assertIsDisplayed().performClick()
+                compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+                }
+                assertEquals("The selected menu action must activate its matching GL paint mode",
+                    expectedMode, readRendererIntOnGl(glView, "paintModeKind"))
+                assertFalse("Opening or cancelling paint must not add model paint",
+                    readModelHasPaintOnGl(glView, 0))
+
+                assertTrue("Android Back should cancel the active paint tool", bed.onBackPressed())
+                compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !readRendererBooleanOnGl(glView, "isPaintMode")
+                }
+                assertFalse("Cancellation should preserve the original unpainted mesh",
+                    readModelHasPaintOnGl(glView, 0))
+                assertEquals("Cancellation should preserve mesh topology", trianglesBefore,
+                    readTriangleCountOnGl(glView, 0))
+                assertTrue("Paint tool exit should retain the renderer view", bed.glView === glView)
+            }
+        } finally {
+            if (bed.isPaintMode) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -2228,6 +2283,29 @@ class InitialProjectMenuDeviceTest {
             finished.countDown()
         }
         assertTrue("GL thread did not return renderer state $fieldName", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun readRendererIntOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, fieldName: String): Int {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Int>()
+        glView.queueEvent {
+            val field = glView.renderer.javaClass.getDeclaredField(fieldName).apply { isAccessible = true }
+            value.set(field.getInt(glView.renderer))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return renderer state $fieldName", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun readModelHasPaintOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Boolean {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Boolean>()
+        glView.queueEvent {
+            value.set(requireNotNull(glView.renderer.model).hasPaint(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return model paint state", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(value.get())
     }
 
