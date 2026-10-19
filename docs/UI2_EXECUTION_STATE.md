@@ -6,6 +6,13 @@
 - Der Lauf belegt diese konkreten synthetischen Projekt-, Profil- und UI-Aktionen. Er ersetzt keinen vollständigen Quellcode-Abgleich aller globalen Handler oder die manuelle TalkBack-Prüfung.
 - Danach liefen die kombinierten 27 Kalibrierungs-/Einstellungen-/Druckprofiltests und `InitialProjectMenuDeviceTest` 30/30 erfolgreich. Nächster Schritt: vollständige SliceTest-Instrumentierung als Reihenfolgeregression nach den kombinierten Klassenläufen, dann Resultate und verbleibende Menülücken dokumentieren.
 
+## Unit-Regressionsstatus nach KromaCut — 2026-10-19
+
+- `:app:testDebugUnitTest` 562/562 bestanden, `:app:testSliceTestUnitTest` 562/562 bestanden, jeweils 0 Fehler/Skips. Die Nutzer-KromaCut-Datei ergab zusätzlich 2/2 erfolgreich auf Honor; Testkopie entfernt, Original unverändert.
+- Produktquellen seit `e727a51` sind unverändert; deshalb gehört der vorhandene APK-Hash weiterhin zu dieser Runtime und es wurde kein unnötiger neuer APK-Build ausgeführt.
+- Der vollständige Honorlauf bei fehlenden Fixtures bleibt 208 total / 203 bestanden / 5 private-fixture-skips; die zwei KromaCut-Fälle wurden separat mit der verfügbaren Nutzerdatei bestanden. Drei unabhängige Mehrfarben-Fixtures fehlen weiter.
+- Phase 5 ist weiterhin nicht vollständig, weil der gesamte Quellcode-Handlerbestand noch nicht abschließend als 1:1 Menüaktionsmatrix abgehakt wurde; Phase 6 manuelles TalkBack und komplette Displaymatrix offen. Nächster konkreter Schritt: Menü-Handler und Testfälle je Aktion abschließend zuordnen; alle Aktionen, die absichtlich keinen echten Drucker/Cloud-Service ansprechen dürfen, als sicher nicht ausgeführt ausweisen.
+
 ## Neuester Fortschritt — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 liefen 27 gezielte Tests aus `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): 27 bestanden, 0 Fehler, 0 Skips. Danach `InitialProjectMenuDeviceTest`: 30/30 bestanden, 0 Fehler/Skips. JUnit-Zeitstempel: `08:16:43Z` und `08:19:22Z`; `emulator-5554` offline.

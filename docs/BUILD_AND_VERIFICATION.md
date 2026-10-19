@@ -37,6 +37,12 @@
 - Importwahltest prüfte alle acht Kombinationen der drei unabhängigen Importoptionen Druckprofil/Filamentprofil/Druckerprofil. Der echte native Slice-Test prüfte Projektwerte aus, nur Druck-, nur Filamentwerte und beide, unveränderte eigene Druckwerte, geänderte Palette, Paint-Änderung und einheitliche Objektzuweisung; G-Code-Werkzeuge/Palette/Layers sowie unveränderte gespeicherte Profile wurden geprüft.
 - Damit wurden die zuvor im Volltest wegen fehlender Fixture übersprungenen zwei KromaCut-Fälle für diese konkrete Nutzerdatei nachgeholt. Die drei separaten privaten 3-Farben-Fixtures sind weiterhin nicht verfügbar. Keine Druckerkommunikation und kein Druckstart.
 
+## Unit-Test-Regression nach Aktionsabnahme — 2026-10-19
+
+- `:app:testDebugUnitTest`: 562/562 bestanden, 0 Fehler/Errors/Skips.
+- `:app:testSliceTestUnitTest`: 562/562 bestanden, 0 Fehler/Errors/Skips.
+- Produktquellen sind gegenüber APK-Commit `e727a51` unverändert (`git diff e727a51 -- app/src/main` leer); der bereits dokumentierte Debug-APK-Hash bleibt für diese Runtime maßgeblich. In diesem Schritt wurde kein neuer APK-Build erstellt.
+
 ## Reale Workspace-Menünavigation auf Honor — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 wurden OrkanSlicers sechs Workspace-Ziele nacheinander tatsächlich geöffnet und ihre sichtbaren Compose-Aktionen aus dem Android-Layoutbaum gelesen. Die Aktion „Modell laden“ öffnete den System-Dateiauswahldialog; Android-Zurück führte ohne Dateiauswahl/importierte Datei zurück zum Workspace.
