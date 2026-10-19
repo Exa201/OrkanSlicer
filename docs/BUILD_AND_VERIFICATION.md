@@ -31,6 +31,12 @@
 - `SlicePrintPreparationComposeDeviceTest`, `QuickSliceDialogDeviceTest` und `SmartSliceDialogsDeviceTest`: 12/12 bestanden, 0 Fehler/Errors/Skips auf Honor PTP-N49 / Android 16. Das prüft Formularvalidierung, Abbruch, vorbereitete Druck-/Upload-Routen und die Callback-Auswahl ohne echten Druckerzugriff bzw. Druckstart.
 - Die Slicing-Menütests `InitialProjectMenuDeviceTest` und die synthetischen `TemporaryProjectSettingsDeviceTest`-Slices bleiben zusätzliche, getrennte Nachweise. Externe Drucker-/Upload-Aktionen wurden nicht gegen einen realen Drucker ausgeführt.
 
+## Nutzer-KromaCut-3MF: Importwahl, Umfärben, Paint und Slicing — Honor, 2026-10-19
+
+- Die bereitgestellte Datei `kromacut-1792184183294-kromacut-2026-10-16.3mf` (SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`) wurde unverändert als `kromacut-user-sample.3mf` in die isolierte SliceTest-App-Sandbox kopiert. Danach `KromaCutThreeMfDeviceTest`: 2/2 bestanden, 0 Fehler/Errors/Skips auf Honor PTP-N49 / Android 16; XML `2026-10-19T08:33:54Z`. Die temporäre Testkopie wurde nachher entfernt; Original blieb unverändert.
+- Importwahltest prüfte alle acht Kombinationen der drei unabhängigen Importoptionen Druckprofil/Filamentprofil/Druckerprofil. Der echte native Slice-Test prüfte Projektwerte aus, nur Druck-, nur Filamentwerte und beide, unveränderte eigene Druckwerte, geänderte Palette, Paint-Änderung und einheitliche Objektzuweisung; G-Code-Werkzeuge/Palette/Layers sowie unveränderte gespeicherte Profile wurden geprüft.
+- Damit wurden die zuvor im Volltest wegen fehlender Fixture übersprungenen zwei KromaCut-Fälle für diese konkrete Nutzerdatei nachgeholt. Die drei separaten privaten 3-Farben-Fixtures sind weiterhin nicht verfügbar. Keine Druckerkommunikation und kein Druckstart.
+
 ## Reale Workspace-Menünavigation auf Honor — 2026-10-19
 
 - Auf Honor PTP-N49 / Android 16 wurden OrkanSlicers sechs Workspace-Ziele nacheinander tatsächlich geöffnet und ihre sichtbaren Compose-Aktionen aus dem Android-Layoutbaum gelesen. Die Aktion „Modell laden“ öffnete den System-Dateiauswahldialog; Android-Zurück führte ohne Dateiauswahl/importierte Datei zurück zum Workspace.

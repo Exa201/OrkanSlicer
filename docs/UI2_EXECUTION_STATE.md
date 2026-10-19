@@ -24,6 +24,13 @@
 - `SlicePrintPreparationComposeDeviceTest`, `QuickSliceDialogDeviceTest` und `SmartSliceDialogsDeviceTest`: 12/12 auf Honor PTP-N49 / Android 16 bestanden, keine Skips/Fehler. Quick/Smart-Slice-Validierung und Cancel sowie Druck-/Uploadvorbereitung und Callback-Ziel wurden geprüft; kein physischer Drucker angesprochen, kein Druck gestartet.
 - Slicing-Domain hat zusätzlich native Slice- und G-Code-Prüfungen in vorhandenen Projekt-Settings-/Workspace-Tests. Noch offen: Real-Druckerkommunikation bewusst nicht ausgelöst; weitere sichtbare Menüpunkte/Aktionspfade der vollständigen Matrix abschließend abgleichen. Nächster Schritt: die verbleibenden Edit-/Werkzeug- und Navigationseinträge gegen tatsächliche Tests matchen, danach soweit verfügbar Phase-6-Accessibility-Semantik abnehmen.
 
+## Nutzer-KromaCut-Fixture wieder aktiviert — 2026-10-19
+
+- Die vom Nutzer bereitgestellte Datei war im lokalen Attachment vorhanden; SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`. Nur-Lese-Original; temporär ins externe Dateienverzeichnis des SliceTest-Pakets `com.codemastercody3d.orcaslicermobile.slicetest` kopiert und nach dem Lauf entfernt.
+- `KromaCutThreeMfDeviceTest`: 2/2 bestanden auf Honor PTP-N49 / Android 16, 0 Skips/Fehler, XML `2026-10-19T08:33:54Z`. Geprüft wurden alle 2×2×2 Importwahlkombinationen und mehrere echte Slicer-Läufe mit eigener/ausgewählter Prozess-/Filamentkonfiguration, Farbänderung, Paint, uniformer Extruderzuweisung und gespeicherten Profilen.
+- Dies ergänzt den vorherigen Suite-Nachweis: die zwei KromaCut-Fälle sind für das konkrete Nutzerfixture jetzt tatsächlich bestanden; nur drei separate private Mehrfarben-Fixtures bleiben unzugänglich. Keine echte Druckerausgabe/kein Druckstart.
+- Nächster Schritt bleibt die systematische Verfolgung nicht abgenommener Workspace-/Global-Menüaktionen sowie verfügbare Accessibility-Prüfungen; der komplette UI-2.0-Abschluss ist weiter offen.
+
 ## Neueste gezielte Honor-Abnahme — 2026-10-19
 
 - Kombinierter Gerätelauf auf Honor PTP-N49 / Android 16: `CalibrationWorkspaceDeviceTest` (2), `SettingsMenuActionDeviceTest` (7) und `PrintProfileDropdownIntegrationDeviceTest` (18): insgesamt 27/27 bestanden, 0 Fehler, 0 Skips. JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, Zeitstempel `2026-10-19T08:16:43` UTC. `emulator-5554` blieb offline.
