@@ -1,3 +1,13 @@
+# Current continuation state — 2026-10-19
+
+- Active objective: continue OrkanSlicer UI 2.0; multicolor fixture handling remains the highest priority.
+- Completed this cycle: palette save/cancel semantics; explicit Save for new slots; stale GL palette preview invalidation and render request; Sync moved from Print to Filaments; physical ACE/MMU slots use four-column rows; focused KromaCut two-color import/recolor/reassign/native-slice coverage.
+- Latest runtime commit: `6ceb8a977e8c` (`Fix multicolor palette refresh and filament workflow`), version 0.8.323 / code 358. Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.323. Debug APK `OrkanSlicer_6ceb8a977e.apk`, SHA-256 `A0AF18D0D4422685CB33A99FC0D660BD4DF8A34EEF01DC052EDCFFA9FD74A9E3`.
+- Verification: Debug 561/561; Slice 561/561; full Honor instrumentation 226 JUnit cases, 5 fixture-dependent skips, no failures (221 passed); focused supplied KromaCut fixture 2/2; palette 19/19; MMU sync 15/15; two-color project 3/3. Honor PTP-N49 install/start and visual Filaments sheet check succeeded; sampled log clean. Emulator offline.
+- Still open: three private three-color fixtures are unavailable; source code/test cases still need deterministic non-private fixtures. Manual printer sync was intentionally not sent to a physical printer. Manual TalkBack and full menu action audit remain incomplete. Full UI 2.0 is not complete; multi-plate project persistence remains separate and open.
+- Next concrete task: inspect the three skipped multicolor device cases and replace external/private fixture dependencies with reproducible test-generated or repository-safe fixtures, then run those actual slicing cases on Honor and verify generated G-code color/tool data.
+
+---
 # Latest continuation — canvas click GL-thread dispatch (2026-10-19)
 
 - Code commit: `cd4f054fe10ec01e9b4613b499e885a94fe95f89` on `codex/rinkhals-safe-start-audit`; pushed to origin.
@@ -1668,4 +1678,5 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - New `rapidCameraPresetChangesKeepTheLatestSelection` test passed 1/1 on Honor / Android 16. It selects Top then Right in quick succession and validates the final camera pose on the GL thread after settling.
 - The prior full `InitialProjectMenuDeviceTest` class passed 35/35 with the GL-thread camera changes; combined, 36 distinct tests are green across the two runs. No production code/APK changed in this test-only follow-up.
 - Continue Phase 5 handler/action audit. Bundle branch changes after v0.8.320 into the next versioned release; Phase 6 manual TalkBack and broader display matrix remain open. Last runtime commit: `e3755fc`; this added test is pending commit.
+
 

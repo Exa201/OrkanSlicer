@@ -1,3 +1,13 @@
+# Release v0.8.323 — filament palette and multicolor verification (2026-10-19)
+
+- Runtime commit: `6ceb8a977e8c` (`6ceb8a977e8c...`); branch `codex/rinkhals-safe-start-audit`; PR #2 remains open.
+- Debug APK: `OrkanSlicer_6ceb8a977e.apk` (157,252,339 bytes), SHA-256 `A0AF18D0D4422685CB33A99FC0D660BD4DF8A34EEF01DC052EDCFFA9FD74A9E3`.
+- Published prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.323. GitHub asset API digest and size match local file; prerelease is marked as Debug, not production.
+- App version 0.8.323 / code 358 built, installed, and launched on Honor PTP-N49 (Android 16), package `com.codemastercody3d.orcaslicermobile`. Visual screenshot confirmed Sync in the Filaments sheet and four fully readable physical ACE gates in one row. Startup log sample: no FATAL EXCEPTION, ANR, OutOfMemoryError, or fatal signal.
+- Debug unit suite 561/561 and Slice unit suite 561/561, no failures/errors/skips. Full Honor instrumentation report: 226 JUnit cases, 5 fixture-dependent skips, 0 failures/errors (221 passed). Focused Honor: supplied KromaCut two-color fixture 2/2, filament palette 19/19, MMU sync 15/15, two-color project 3/3. These focused counts may overlap the full run.
+- KromaCut checks exercised import option combinations, palette recoloring/painting, uniform object reassignment clearing imported per-part paint, actual native slicing, emitted filament colors/tool selection, layer data, and complete generated G-code. This does not certify physical printing or external G-code compatibility.
+- Three private three-color fixtures are still unavailable and their corresponding full-suite cases were skipped. Physical printer synchronization was not triggered during this verification; sync UI behavior was tested with instrumented/fake callback tests. Manual TalkBack remains unverified.
+- Feature changes: palette edits persist only with Save; Cancel discards; added slots require Save; palette saves clear stale assigned-slot preview on GL thread and request a render; printer sync moved into workspace Filaments; ACE/MMU gates render in rows of four; removed the duplicate Sync action from Print menu.
 # Responsive workspace panel check — Honor PTP-N49 (2026-10-19)
 
 - Extended `WorkspaceModePanelHostDeviceTest` with a Compose matrix for portrait 320/360/400 dp configuration values at font scales 100%, 130%, and 150%. For all nine combinations, the panel remains visible and the final panel action is reachable by scrolling. Exact fixed-size portrait and landscape bounds remain covered by separate tests.
@@ -1631,4 +1641,5 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Added `rapidCameraPresetChangesKeepTheLatestSelection`, which immediately switches from Top to Right and asserts on the GL queue that the last selected pose remains active after the animations settle.
 - Focused Honor run passed 1/1, 0 skips/failures/errors. Together with the preceding 35/35 `InitialProjectMenuDeviceTest` run against the same camera implementation, all 36 test methods in that class have passed across the two runs.
 - Test-only follow-up; no runtime source or APK changed after the v0.8.320 camera-branch fix. The published v0.8.320 asset remains prior to the camera fix; include it with the next versioned bundle.
+
 
