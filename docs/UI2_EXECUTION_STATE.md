@@ -1632,7 +1632,7 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Current activity: Phase 5 menu/action audit. Phase 4 remains verified complete; Phase 6 is partial. No full UI 2.0 completion claim.
 - Fixed two live Model menu actions: selected-object Auto Orient now reads/mutates the native model and invalidates renderer meshes on the GL queue, then refreshes model UI on main; Flatten renderer resources are created/released on the GL queue.
 - Honor `InitialProjectMenuDeviceTest`: 35/35 pass, no skips/failures. Full Honor instrumentation: 218 XML cases, 213 passed, 5 skipped, 0 failures/errors at `2026-10-19T18:00:25` (two missing KromaCut file copies; three private multicolor fixtures). Debug and Slice unit suites: 562/562 each. Debug build succeeds; v0.8.320 / code 355 installed/launched on Honor with clean checked startup logcat.
-- Release `v0.8.319` remains the currently published APK pending commit and publish of this new v0.8.320 build. PR #2 is open.
+- Version `0.8.320` / code `355` is now published as a Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.320. APK `OrkanSlicer_b0931f4a2d.apk`, SHA-256 `FD745ABA108DFBDC3617E8797CC6487F486F3651BDE02B9AE52B7F0B56B62BAE`. PR #2 remains open; code commit `b0931f4a2dea3b5094ac63a3dd85d46f2f6d19cc` is pushed.
 - Next: commit and push the verified v0.8.320 changes, publish its Debug prerelease, then continue the still-open Phase 5 handler matrix. Phase 6 TalkBack/manual display coverage remains open. Full multi-plate project serialization remains a separate incomplete feature.
-- Last branch HEAD before this change: `a7df5ea3c10df4b1467cccdf0c4e3ebdbf8c19a2`.
+- Branch HEAD: `b0931f4a2dea3b5094ac63a3dd85d46f2f6d19cc`.
 
