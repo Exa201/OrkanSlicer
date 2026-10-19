@@ -1299,3 +1299,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Neue echte Gerätetestaktion `savingFilamentNumericDraftPersistsOnlyAfterSaveConfirmation`: Filament-`filament_diameter` wird über den Compose-Profil-Editor als Draft bearbeitet; vor bestätigtem Save bleibt das gespeicherte Preset unverändert. Erst der Save-Dialog übernimmt den Wert. `finally` setzt den ursprünglichen Fixture-Wert zurück und speichert die isolierte Konfiguration.
 - Vollständige `PrintProfileDropdownIntegrationDeviceTest`: 18/18 bestanden, 0 Skips/Fehler auf Honor PTP-N49 / Android 16; XML `2026-10-19T04:45:34`. Offline-Emulator wurde übersprungen.
 - Nur Instrumentierungstestcode geändert; kein Runtime-APK-Neubau. Phase 5 Menü-Aktionsaudit und Phase 6 manuelle TalkBack-/zusätzliche physische Displayabnahme bleiben offen. Nächster Schritt: weitere tatsächlich vorhandene, noch nicht geprüfte Handler im Workspace-Menü anhand der vorhandenen UI-Test-Fixtures abdecken, beginnend mit nicht-destruktiven Werkzeug-/Slicing-Aktionen.
+
+## Leere Druckplatte über den Workspace-Picker entfernen — 2026-10-19
+
+- `InitialProjectMenuDeviceTest.multiPlateProjectExportWarnsAndCancelDoesNotOpenDocumentPicker` prüft nun in derselben realen Honor-Interaktion Platten hinzufügen, Auswahl wechseln und die leere zweite Platte über ihre Compose-Schließen-Schaltfläche entfernen. Danach bleiben Platte 1 aktiv und ihr temporäres Modell erhalten.
+- Gezielter Honor-Lauf: 1/1 bestanden, 0 Skips/Fehler; XML `2026-10-19T04:47:18`. Temporäres STL; Dateiauswahl nur abgefangen; kein Export und kein Druck.
+- Nur Instrumentierungstestcode; kein APK-Neubau. Die vollständige Projektpersistenz über mehrere Platten ist weiterhin nicht implementiert; Exportwarnung bleibt bestehen. Phase 5/6 bleiben offen.

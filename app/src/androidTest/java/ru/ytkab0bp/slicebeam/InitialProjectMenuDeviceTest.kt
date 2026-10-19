@@ -712,6 +712,19 @@ class InitialProjectMenuDeviceTest {
             assertFalse("cancelling the document picker must not create an export file", output.exists())
             assertEquals("the confirmed export is limited to the selected plate", 2, bed.plateCount)
             assertEquals("the confirmed export must not switch the selected plate", 0, bed.currentPlateIndex)
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlateCloseDescription,
+                    activity.getString(R.string.PlateNumber, "2")),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.plateCount == 1 && bed.currentPlateIndex == 0
+            }
+            assertEquals("closing the empty second plate must retain the model on the first plate",
+                1, bed.currentModel?.objectsCount)
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed()
         } finally {
             launchers[requestCode] = previousLauncher
             output.delete()
