@@ -1,5 +1,12 @@
 # Global Maker navigation and complete Honor regression — 2026-10-19
 
+## Version 0.8.317 short landscape rail scroll hints — 2026-10-19
+
+- Added localized and accessible edge hints for overflowing vertical workspace/global navigation rails; the hint direction follows the current scroll position.
+- `AdaptiveWorkspaceNavigationDeviceTest`: 3/3 passed on Honor PTP-N49 / Android 16 at XML timestamp `2026-10-19T12:08:28`. Includes a Compose 100×180 dp rail at 130% text scale; after scrolling, the last workspace destination is visible and the upper-scroll hint is exposed.
+- `SmartSliceDialogsDeviceTest`: 5/5 passed on Honor PTP-N49 / Android 16 at `2026-10-19T12:04:55`.
+- App version metadata: 0.8.317 / code 352; `CHANGELOG.md` and localized in-app notes updated. Full unit suites and versioned Debug APK build are still running at the time of this entry.
+
 ## Physical 400 dp / 130% visual check — Honor PTP-N49 (2026-10-19)
 
 - Confirmed the foreground package by ADB/UIAutomator as `com.codemastercody3d.orcaslicermobile` before capturing: these are OrkanSlicer screens, not SliceBeam. Captured workspace, App settings, and Maker at a temporary 1400×2800 px window with 560 dpi (400 dp wide) and system font scale 1.3. Images are retained under the ignored `build/reports/ui2-manual-audit/2026-10-19/` directory, not in the release or source tree.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.317 (alpha)
+
+- Show a subtle, accessible scroll hint when short landscape navigation rails contain destinations outside the viewport.
+- Add a large-text short-rail Compose test that verifies the hint and reaches the last workspace destination by scrolling.
+- Verify the landscape rail behavior and Smart Slice dialog cancel/validation behavior on Honor PTP-N49.
+- Debug APK/release publication is pending the broader phase acceptance; manual TalkBack traversal remains open.
+
 ## 0.8.316 (alpha)
 
 - Correct the translated in-app release-note header so it matches the installed app version; this mismatch was found by the complete Honor instrumentation run.

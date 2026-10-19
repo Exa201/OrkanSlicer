@@ -1402,4 +1402,6 @@
     <string name="WorkspaceFilamentButtonDescription">Modellfilamentfarben, %1$d Slots</string>
     <string name="WorkspaceToolsOpen">Werkzeugmenü geöffnet</string>
     <string name="WorkspaceToolsClosed">Werkzeugmenü geschlossen</string>
+    <string name="NavigationScrollMoreBelow">Weitere Navigationspunkte unten</string>
+    <string name="NavigationScrollMoreAbove">Weitere Navigationspunkte oben</string>
 </resources>

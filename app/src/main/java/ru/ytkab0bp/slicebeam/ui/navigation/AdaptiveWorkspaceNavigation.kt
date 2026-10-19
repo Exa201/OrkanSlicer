@@ -2,9 +2,11 @@ package ru.ytkab0bp.slicebeam.ui.navigation
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -15,17 +17,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.res.painterResource
-import ru.ytkab0bp.slicebeam.R
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 data class WorkspaceNavigationItem(
@@ -80,18 +86,62 @@ fun AdaptiveWorkspaceNavigation(
                 }
             }
         } else {
-            Column(
+            val railScrollState = rememberScrollState()
+            Box(
                 Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale).dp)
                     .heightIn(max = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp)
-                    .fillMaxHeight().verticalScroll(rememberScrollState()).selectableGroup(),
+                    .fillMaxHeight()
+                    .testTag("adaptive-navigation-rail"),
             ) {
-                items.forEach { item ->
-                    Destination(item, item.slot == selectedSlot, Modifier.fillMaxWidth(), onSelected,
-                        compactRail = true, panelOpen = true, panelOpenDescription = panelOpenDescription,
-                        panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
-                        showPanelToggleIndicator = false)
+                Column(Modifier.fillMaxSize().verticalScroll(railScrollState).selectableGroup()) {
+                    items.forEach { item ->
+                        Destination(item, item.slot == selectedSlot, Modifier.fillMaxWidth(), onSelected,
+                            compactRail = true, panelOpen = true, panelOpenDescription = panelOpenDescription,
+                            panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
+                            showPanelToggleIndicator = false)
+                    }
+                }
+                if (railScrollState.canScrollForward) {
+                    RailScrollHint(
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        description = stringResource(R.string.NavigationScrollMoreBelow),
+                        rotation = 0f,
+                    )
+                }
+                if (railScrollState.canScrollBackward) {
+                    RailScrollHint(
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        description = stringResource(R.string.NavigationScrollMoreAbove),
+                        rotation = 180f,
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RailScrollHint(modifier: Modifier, description: String, rotation: Float) {
+    Box(
+        modifier.fillMaxWidth().height(34.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = if (rotation == 0f) {
+                        listOf(Color.Transparent, MaterialTheme.colorScheme.surface)
+                    } else {
+                        listOf(MaterialTheme.colorScheme.surface, Color.Transparent)
+                    },
+                ),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
+            Icon(
+                painter = painterResource(R.drawable.dropdown_24),
+                contentDescription = description,
+                modifier = Modifier.padding(4.dp).size(18.dp).rotate(rotation),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

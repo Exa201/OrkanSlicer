@@ -1,5 +1,13 @@
 # Latest continuation — Maker nested navigation and complete Honor regression (2026-10-19)
 
+## Version 0.8.317 — discoverable short landscape rails (2026-10-19)
+
+- Added accessible gradient/arrow hints at the top or bottom of vertically overflowing navigation rails. The shared `AdaptiveWorkspaceNavigation` serves the workspace and global navigation; the hint only appears in the direction where more destinations exist.
+- Added translations for English, German, and Russian and a Compose device test for a 100×180 dp rail at 130% font. It confirms the lower-scroll hint and reaches the final Slicing destination after scrolling.
+- Focused Honor `AdaptiveWorkspaceNavigationDeviceTest`: 3/3 passed, 0 skips/failures, XML `2026-10-19T12:08:28`. Focused `SmartSliceDialogsDeviceTest`: 5/5 passed, XML `2026-10-19T12:04:55`.
+- Bumped app metadata to 0.8.317 / versionCode 352 and synchronized `CHANGELOG.md` plus in-app `update.json`.
+- Full Debug/Slice unit suites and the versioned Debug APK build are running; do not treat them as passed until their completion is recorded. Phase 5/6 remain open; no release has been published.
+
 ## Physical Honor visual check — 400 dp / 130% font (2026-10-19)
 
 - Verified on the attached Honor PTP-N49 that the foreground app package is `com.codemastercody3d.orcaslicermobile` (OrkanSlicer), not SliceBeam. Captured the 400 dp-wide workspace, App settings, and Maker screens at 130% system font. Screenshots are in the ignored build report directory `build/reports/ui2-manual-audit/2026-10-19/` and are not committed.

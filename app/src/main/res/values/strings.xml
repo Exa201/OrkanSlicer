@@ -21,6 +21,8 @@
     <string name="SlotAppSettings">Settings</string>
     <string name="SlotAppSettingsTooltip">App settings</string>
     <string name="NavigationApp">App</string>
+    <string name="NavigationScrollMoreBelow">More navigation items below</string>
+    <string name="NavigationScrollMoreAbove">More navigation items above</string>
     <string name="SlotMaker">Maker</string>
     <string name="SlotMakerTooltip">Converters, Kromacut and generators</string>
     <string name="SettingsAppMakerTitle">Open Maker</string>

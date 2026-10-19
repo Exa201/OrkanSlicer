@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.316 – Debug-Prerelease\n\n• Die In-App-Changelogansicht zeigt jetzt dieselbe Versionsnummer wie die installierte App.\n• Workspace-Menüs, Profilaktionen und GL-Werkzeugpanels wurden auf dem Honor weiter funktional geprüft.",
-  "en": "OrkanSlicer 0.8.316 – Debug prerelease\n\n• The in-app release notes now show the same version as the installed app.\n• Workspace menus, profile actions, and GL tool panels received further functional checks on Honor.",
-  "ru": "OrkanSlicer 0.8.316 – отладочная предварительная сборка\n\n• В заметках о выпуске приложения теперь отображается та же версия, что и у установленного приложения.\n• На устройстве Honor дополнительно проверены меню рабочего пространства, действия профилей и панели GL-инструментов."
+  "de": "OrkanSlicer 0.8.317 – Debug-Prerelease\n\n• Scrollhinweise zeigen in kurzen Querformat-Navigationsleisten weitere Menüpunkte an.\n• Große Schrift und das Erreichen des letzten Workspace-Menüpunkts wurden auf dem Honor geprüft.",
+  "en": "OrkanSlicer 0.8.317 – Debug prerelease\n\n• Scroll hints reveal additional destinations in short landscape navigation rails.\n• Large text and access to the final workspace destination were checked on Honor.",
+  "ru": "OrkanSlicer 0.8.317 – отладочная предварительная сборка\n\n• Подсказки прокрутки показывают дополнительные пункты в коротких навигационных панелях альбомной ориентации.\n• На устройстве Honor проверены крупный текст и доступ к последнему пункту рабочего пространства."
 }

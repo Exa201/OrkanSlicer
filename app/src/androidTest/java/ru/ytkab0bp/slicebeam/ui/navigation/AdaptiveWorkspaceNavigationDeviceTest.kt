@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableIntStateOf
@@ -10,7 +11,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
@@ -100,5 +104,46 @@ class AdaptiveWorkspaceNavigationDeviceTest {
                 .assertIsDisplayed()
         }
         compose.onNodeWithText(context.getString(R.string.MenuOptionsCompact)).assertIsDisplayed()
+    }
+
+    @Test
+    fun shortNavigationRailShowsScrollHintAndCanReachLastDestination() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val items = WorkspaceDestination.values().map { destination ->
+            WorkspaceNavigationItem(
+                slot = destination.ordinal,
+                label = context.getString(destination.navigationTitleRes),
+                icon = destination.iconRes,
+                accessibilityLabel = context.getString(destination.navigationTitleRes),
+            )
+        }
+
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1.3f)) {
+                BeamComposeTheme {
+                    Box(Modifier.width(100.dp).height(180.dp)) {
+                        AdaptiveWorkspaceNavigation(
+                            items = items,
+                            selectedSlot = WorkspaceDestination.PROJECT.ordinal,
+                            isBottomNavigation = false,
+                            onSelected = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val lastDestination = WorkspaceDestination.SLICE
+        val lastLabel = context.getString(lastDestination.navigationTitleRes)
+        compose.onNodeWithContentDescription(context.getString(R.string.NavigationScrollMoreBelow))
+            .assertIsDisplayed()
+
+        repeat(8) {
+            compose.onNodeWithTag("adaptive-navigation-rail").performTouchInput { swipeUp() }
+        }
+
+        compose.onNodeWithContentDescription(lastLabel).assertIsDisplayed()
+        compose.onNodeWithContentDescription(context.getString(R.string.NavigationScrollMoreAbove))
+            .assertIsDisplayed()
     }
 }
