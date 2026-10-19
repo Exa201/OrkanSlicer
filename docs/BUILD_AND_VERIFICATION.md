@@ -1,3 +1,10 @@
+# Honor printer-web panel lifecycle and full regression — 2026-10-19
+
+- `PrinterWebWorkspaceRouteDeviceTest`: 2/2 passed on Honor PTP-N49 / Android 16. It checks the missing-host dialog's Cancel/Back/setup route and the configured workspace WebView against a temporary loopback HTTP server; Android Back destroys and detaches the WebView. No printer or external network endpoint was contacted, and no print was started.
+- The first complete suite run found one timing race in `ProfileSettingsImeDeviceTest`: the test clicked after finding a semantics node but before it was displayed. Updated the test to wait for visible semantics. The focused IME class passed 12/12.
+- Final `:app:connectedSliceTestAndroidTest`: 215 JUnit cases, 210 passed, 5 skipped, 0 failures/errors; XML timestamp `2026-10-19T11:47:58`. Two KromaCut tests and three private multicolor tests skipped because their fixtures were unavailable. Honor PTP-N49 / Android 16; emulator offline.
+- Changes are instrumentation-test and documentation only. Production runtime/APK unchanged; no production APK was rebuilt.
+
 # Printer web setup route — Honor, 2026-10-19
 
 - Added `PrinterWebWorkspaceRouteDeviceTest` for the actual workspace printer-web button with the selected test printer's `print_host` empty. The test verifies the Compose setup dialog, Cancel and Android Back dismissal without leaving the workspace, and the confirm action navigating to `PrinterConfigFragment`.

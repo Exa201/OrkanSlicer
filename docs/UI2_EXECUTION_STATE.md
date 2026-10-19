@@ -1,3 +1,12 @@
+# Latest continuation — printer web panel lifecycle and Honor suite (2026-10-19)
+
+- Test changes are based on branch commit `42ef01bcd5ee8eda98c71809f526837c5fb29073`.
+- `PrinterWebWorkspaceRouteDeviceTest` now checks both missing-host routing (Cancel, Android Back, setup destination) and a configured-host loopback route: the actual workspace WebView requests a local test dashboard and Back detaches/destroys the view. Focused class passed 2/2 on Honor PTP-N49 / Android 16; it made no external network request, contacted no printer, and did not start a print.
+- A full Honor run exposed a timing race in `ProfileSettingsImeDeviceTest`: it waited for the filter semantics node to exist, then asserted visibility before the transition completed. The test now waits for `assertIsDisplayed()` to succeed. Focused class passed 12/12.
+- The final complete `:app:connectedSliceTestAndroidTest` passed: JUnit XML `2026-10-19T11:47:58`, 215 cases, 210 passed, 5 fixture-dependent skips, 0 failures/errors. Two KromaCut tests and three private multicolor tests skipped because the corresponding files were absent for this run; `emulator-5554` offline. An earlier full run had the IME visibility race above; the final run after the synchronization fix was clean.
+- Phase 4 remains complete. Phase 5 remains active; the tested printer-web paths do not close the complete global/workspace action matrix. Phase 6 remains partial (physical TalkBack traversal and full physical display/font matrix remain open). Multi-plate project persistence remains a separate open feature.
+- No production source changed; no production APK rebuild. Next: document this result, push the test-only update to PR #2, then continue the remaining source-handler/test audit.
+
 # Latest continuation — printer web setup route on Honor (2026-10-19)
 
 - Current branch HEAD before this test-only change: `511b37955b7eb898eda669ae88945ca246639a8e`.

@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -91,8 +90,7 @@ class ProfileSettingsImeDeviceTest {
         // The profile fragment is cached. `getCurrentFragment()` can already report it as the
         // destination while its Compose tree is still being reattached after a previous test.
         compose.waitUntil(timeoutMillis = 15_000) {
-            compose.onAllNodesWithContentDescription(searchToggle)
-                .fetchSemanticsNodes().isNotEmpty()
+            runCatching { compose.onNodeWithContentDescription(searchToggle).assertIsDisplayed() }.isSuccess
         }
         compose.onNodeWithContentDescription(searchToggle).assertIsDisplayed().performClick()
 
