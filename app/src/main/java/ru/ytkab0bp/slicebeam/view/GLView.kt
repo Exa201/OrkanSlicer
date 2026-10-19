@@ -469,9 +469,10 @@ val dispatchTap = tapGestureGate.finish(
 )
 if (dispatchTap)
 {
-if (renderer.onClick(e.getX() * Prefs.getRenderScale(), e.getY() * Prefs.getRenderScale()))
-{
-requestRender()
+val x = e.getX() * Prefs.getRenderScale()
+val y = e.getY() * Prefs.getRenderScale()
+queueEvent {
+if (renderer.onClick(x, y)) requestRender()
 }
 }
 lastX = e.getX(0)

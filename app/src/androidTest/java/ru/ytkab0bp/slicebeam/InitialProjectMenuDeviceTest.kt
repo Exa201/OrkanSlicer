@@ -2093,6 +2093,55 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun cutConnectorTapCreatesDiscardablePreviewWithoutMutatingModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-cut-connector-cancel-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val loaded = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, loaded.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openEditMenu(activity)
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(8)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformCut))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                runCatching {
+                    compose.onNodeWithText(activity.getString(R.string.CutApply)).assertIsEnabled()
+                }.isSuccess
+            }
+            compose.onNodeWithText(activity.getString(R.string.CutAddConnector))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readRendererBooleanOnGl(glView, "cutConnectorPlacement")
+            }
+
+            tapGlViewCenter(glView)
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readCutConnectorCountOnGl(glView, 0) == 1
+            }
+            assertEquals("placing a cut connector should only create a preview", 1,
+                readObjectCountOnGl(glView))
+
+            assertTrue("Back should close the cut tool", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 10_000) {
+                !readRendererBooleanOnGl(glView, "cutPlaneVisible") &&
+                    readCutConnectorCountOnGl(glView, 0) == 0
+            }
+            assertEquals("cancelling the connector preview must preserve the model", 1,
+                readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -2620,6 +2669,34 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return model object count", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(count.get())
+    }
+
+    private fun readCutConnectorCountOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Int {
+        val finished = CountDownLatch(1)
+        val count = AtomicReference<Int>()
+        glView.queueEvent {
+            count.set(glView.renderer.getCutConnectorCount(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return cut connector count", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(count.get())
+    }
+
+    private fun tapGlViewCenter(glView: ru.ytkab0bp.slicebeam.view.GLView) {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            val downTime = SystemClock.uptimeMillis()
+            val x = glView.width / 2f
+            val y = glView.height / 2f
+            val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0)
+            val up = MotionEvent.obtain(downTime, downTime + 80L, MotionEvent.ACTION_UP, x, y, 0)
+            try {
+                glView.dispatchTouchEvent(down)
+                glView.dispatchTouchEvent(up)
+            } finally {
+                down.recycle()
+                up.recycle()
+            }
+        }
     }
 
     private fun readTriangleCountOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Int {

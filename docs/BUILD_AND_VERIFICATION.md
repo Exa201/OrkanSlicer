@@ -1,3 +1,12 @@
+# Release v0.8.322 — GL-thread canvas tap safety (2026-10-19)
+
+- Canvas tap callbacks now snapshot scaled coordinates and dispatch `GLRenderer.onClick()` through `GLSurfaceView.queueEvent`, keeping tap-driven renderer/native model access on the GL thread.
+- Added Honor `InitialProjectMenuDeviceTest#cutConnectorTapCreatesDiscardablePreviewWithoutMutatingModel`: a real canvas tap stages one connector preview, Android Back discards it, and the native model remains one object.
+- Focused test passed 1/1; complete `InitialProjectMenuDeviceTest` passed 38/38 on Honor PTP-N49 / Android 16, 0 skipped/failures/errors. Offline emulator skipped.
+- `:app:testDebugUnitTest` 562/562 and `:app:testSliceTestUnitTest` 562/562 passed, no skips/failures/errors. One first invocation failed only because `ANDROID_HOME` was unset; rerun with the configured SDK path passed.
+- Version 0.8.322 / code 357 is being built for Debug prerelease publication. Installation, startup/logcat, APK hash and GitHub asset verification are pending; update this record after the build and upload.
+- Phase 4 remains complete. Phase 5 full action audit and Phase 6 manual TalkBack/full responsive acceptance remain open. Multi-plate persistence remains a separate open feature.
+
 # Release v0.8.321 — Cut-tool GL thread and cancellation safety (2026-10-19)
 
 - Published Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.321. Asset `OrkanSlicer_74b17ebcbd.apk`, 157,251,514 bytes, SHA-256 `3FECB623D3E34B2AA2C1499702C2EF8F120D2EDE7348A8BA9628B92315F1EB24`; GitHub reports the matching digest. Tag targets code commit `74b17ebcbd50ecca73d68639ada6210848b43704`; app version 0.8.321 / code 356.

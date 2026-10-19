@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.322 (alpha)
+
+- Dispatch canvas taps to the GL thread before invoking renderer/model click handlers, including cut-connector placement.
+- Add a real Honor interaction test: place a cut-connector preview, press Android Back, and confirm the model remains unchanged and the preview is discarded.
+- Verify the focused Honor workspace class (38/38), Debug unit tests (562/562), and Slice unit tests (562/562); no failures or skips.
+- Debug prerelease; full menu-action audit, manual TalkBack acceptance, and multi-plate project persistence remain open.
+
 ## 0.8.321 (alpha)
 
 - Run cut-tool renderer and native model operations on the GL thread; obtain selection and model bounds there as well.
