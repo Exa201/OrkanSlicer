@@ -11,10 +11,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
@@ -138,11 +136,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
         compose.onNodeWithContentDescription(context.getString(R.string.NavigationScrollMoreBelow))
             .assertIsDisplayed()
 
-        repeat(8) {
-            compose.onNodeWithTag("adaptive-navigation-rail").performTouchInput { swipeUp() }
-        }
-
-        compose.onNodeWithContentDescription(lastLabel).assertIsDisplayed()
+        compose.onNodeWithContentDescription(lastLabel).performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription(context.getString(R.string.NavigationScrollMoreAbove))
             .assertIsDisplayed()
     }

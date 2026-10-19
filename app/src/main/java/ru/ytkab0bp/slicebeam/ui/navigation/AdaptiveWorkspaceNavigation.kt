@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -90,10 +89,17 @@ fun AdaptiveWorkspaceNavigation(
             Box(
                 Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale).dp)
                     .heightIn(max = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp)
-                    .fillMaxHeight()
-                    .testTag("adaptive-navigation-rail"),
+                    .fillMaxHeight(),
             ) {
-                Column(Modifier.fillMaxSize().verticalScroll(railScrollState).selectableGroup()) {
+                Column(
+                    Modifier.fillMaxSize()
+                        .padding(
+                            top = if (railScrollState.canScrollBackward) 34.dp else 0.dp,
+                            bottom = if (railScrollState.maxValue > 0) 34.dp else 0.dp,
+                        )
+                        .verticalScroll(railScrollState)
+                        .selectableGroup(),
+                ) {
                     items.forEach { item ->
                         Destination(item, item.slot == selectedSlot, Modifier.fillMaxWidth(), onSelected,
                             compactRail = true, panelOpen = true, panelOpenDescription = panelOpenDescription,
