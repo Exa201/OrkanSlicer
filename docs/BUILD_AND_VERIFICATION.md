@@ -1,5 +1,13 @@
 # Global Maker navigation and complete Honor regression — 2026-10-19
 
+## Final verification — 0.8.317 rail hint fix, commit `2ec3501` (2026-10-19)
+
+- Full Honor `:app:connectedSliceTestAndroidTest`: 216 XML cases, 211 passed, 5 skipped, 0 failures/errors; XML `2026-10-19T12:39:15`. Two KromaCut cases and three private multicolor cases skipped because their separate fixture files were absent. Emulator offline.
+- `:app:testDebugUnitTest` 562/562 and `:app:testSliceTestUnitTest` 562/562; 0 skipped/failures/errors. `:app:assembleDebug` succeeded.
+- Installed and launched production application package `com.codemastercody3d.orcaslicermobile` on Honor PTP-N49 / Android 16. Package metadata verified as version 0.8.317 / code 352. Physical landscape check used 2800×1280 px at 560 dpi (800×366 dp), system font 1.3. After scrolling, `Slicen` and `App` became reachable; tapping `Slicen` showed Schnell slicen / Smart-Experte / Manuell slicen. The hints occupy reserved rail space and do not cover the visible destination icons. Returned workspace to Projekt and restored 1280×2800 px, 560 dpi, font 1.0.
+- Recent 1,200-line logcat tail contained no `FATAL EXCEPTION`, `ANR in`, or `OutOfMemoryError` matches.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_2ec3501a31.apk`, 157,233,995 bytes, SHA-256 `7A6A2F12E40E850415EF7D28A614AF1D336FCF6C355BFFFDA307A3BF77C49260`. Debug APK only; no GitHub Release published.
+
 ## Version 0.8.317 short landscape rail scroll hints — 2026-10-19
 
 - Added localized and accessible edge hints for overflowing vertical workspace/global navigation rails; the hint direction follows the current scroll position.

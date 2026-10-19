@@ -1,12 +1,21 @@
 # Latest continuation — Maker nested navigation and complete Honor regression (2026-10-19)
 
+## Latest verified workspace rail update — 2026-10-19, commit `2ec3501`
+
+- Version 0.8.317 / code 352 adds localized scroll-edge hints to overflowing vertical rails and reserves edge space so arrows do not cover navigation icons. The 100×180 dp / 130% Compose rail test passed; physical Honor confirms the arrows remain outside the destination icons.
+- Physical Honor PTP-N49, production package `com.codemastercody3d.orcaslicermobile`: installed and launched Debug 0.8.317. At 800×366 dp landscape / 130% font, scrolling exposed `Slicen` and `App`; tapping `Slicen` opened `Schnell slicen`, `Smart-Experte`, and `Manuell slicen`. Workspace was returned to Projekt. Device restored to 1280×2800 px / 560 dpi, font 1.0.
+- Full Honor `:app:connectedSliceTestAndroidTest`: XML timestamp `2026-10-19T12:39:15`, 216 test cases, 211 passed, 5 fixture skips, 0 failures/errors. Skips: two KromaCut tests (fixture absent in this run) and three private multicolor fixture tests. Emulator remains offline.
+- `:app:testDebugUnitTest` 562/562 and `:app:testSliceTestUnitTest` 562/562 passed, 0 skipped/failures/errors. `:app:assembleDebug` succeeded.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_2ec3501a31.apk`, 157,233,995 bytes, SHA-256 `7A6A2F12E40E850415EF7D28A614AF1D336FCF6C355BFFFDA307A3BF77C49260`. Installed version verified as 0.8.317 / code 352. The last 1,200 logcat lines contained no fatal exception, ANR, or OOM match.
+- Phase 4 remains complete; Phase 5 action matrix and Phase 6 full accessibility/display matrix remain open. No GitHub Release was published; next: continue the remaining real global/workspace action audit and TalkBack availability/accessibility checks.
+
 ## Version 0.8.317 — discoverable short landscape rails (2026-10-19)
 
 - Added accessible gradient/arrow hints at the top or bottom of vertically overflowing navigation rails. The shared `AdaptiveWorkspaceNavigation` serves the workspace and global navigation; the hint only appears in the direction where more destinations exist.
 - Added translations for English, German, and Russian and a Compose device test for a 100×180 dp rail at 130% font. It confirms the lower-scroll hint and reaches the final Slicing destination after scrolling.
 - Focused Honor `AdaptiveWorkspaceNavigationDeviceTest`: 3/3 passed, 0 skips/failures, XML `2026-10-19T12:08:28`. Focused `SmartSliceDialogsDeviceTest`: 5/5 passed, XML `2026-10-19T12:04:55`.
 - Bumped app metadata to 0.8.317 / versionCode 352 and synchronized `CHANGELOG.md` plus in-app `update.json`.
-- Full Debug/Slice unit suites and the versioned Debug APK build are running; do not treat them as passed until their completion is recorded. Phase 5/6 remain open; no release has been published.
+- Superseded by the latest verified section above: Debug/Slice unit suites and the versioned Debug APK build have completed. Phase 5/6 remain open; no release has been published.
 
 ## Physical Honor visual check — 400 dp / 130% font (2026-10-19)
 
