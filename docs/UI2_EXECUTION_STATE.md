@@ -1,11 +1,12 @@
 # Latest continuation — canvas click GL-thread dispatch (2026-10-19)
 
-- Current base commit before this change: `5f9497c5794d909ae007a40649d8369ee4b27c4d` (on `codex/rinkhals-safe-start-audit`).
+- Code commit: `cd4f054fe10ec01e9b4613b499e885a94fe95f89` on `codex/rinkhals-safe-start-audit`; pushed to origin.
+- Published Debug prerelease v0.8.322: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.322. Asset `OrkanSlicer_cd4f054fe1.apk`, 157,251,362 bytes; SHA-256 `224C4243CB42A4EB0C5008BCC04A3AC46A322EB1AE29624C50100069AFBAB0FA`, confirmed against GitHub asset API. Honor PTP-N49 installed/launched version 0.8.322 / code 357; sampled startup log clean. PR #2 open, merge state `CLEAN` at last check.
 - Moved all single-tap renderer click handling in `GLView.onTouchEvent` onto the GL queue. This covers cut-connector placement and other renderer click modes, avoiding renderer/native model work on Android's UI thread.
 - Added a real Honor test for tap-to-preview then Android Back cancellation with no model mutation. Focused run passed 1/1; full `InitialProjectMenuDeviceTest` passed 38/38 on Honor PTP-N49 / Android 16.
-- Debug unit suite 562/562 and Slice unit suite 562/562 passed. Emulator offline. Version bumped to 0.8.322 / code 357; Debug APK build/upload still pending.
+- Debug unit suite 562/562 and Slice unit suite 562/562 passed. Honor `InitialProjectMenuDeviceTest` 38/38, no skips/failures. Emulator offline.
 - Phase 4 complete; Phase 5 action-by-action audit remains active. Phase 6 manual TalkBack/full responsive matrix incomplete. Multi-plate persistence remains separate and open.
-- Next: build Debug APK for 0.8.322, install and launch on the attached Honor, inspect startup Logcat, calculate SHA-256, commit and push runtime/docs changes, publish GitHub Debug prerelease, update PR #2, then continue the remaining audited UI work.
+- Next: continue Phase 5 source-handler/action coverage for the remaining actual global and workspace routes; then resume Phase 6 responsive/accessibility gaps. TalkBack manual traversal and full layout matrix remain unverified. Multi-plate persistence remains a separate open feature.
 
 # Latest verified build and release — v0.8.321 (2026-10-19)
 

@@ -1,5 +1,8 @@
 # Release v0.8.322 — GL-thread canvas tap safety (2026-10-19)
 
+- Published GitHub Debug prerelease: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.322. Asset `OrkanSlicer_cd4f054fe1.apk`, 157,251,362 bytes, SHA-256 `224C4243CB42A4EB0C5008BCC04A3AC46A322EB1AE29624C50100069AFBAB0FA`; GitHub asset API reports the same digest. Tag targets runtime commit `cd4f054fe10ec01e9b4613b499e885a94fe95f89`; version 0.8.322 / code 357.
+- `:app:assembleDebug` succeeded. APK installed and launched on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`; `dumpsys package` confirmed version 0.8.322 / code 357. The fresh 5,000-line startup log sample contained no FATAL EXCEPTION, ANR, OOM, or fatal-signal matches. Emulator remains offline.
+- PR #2 is open, head `cd4f054fe10ec01e9b4613b499e885a94fe95f89`, merge state `CLEAN` at verification time. No merge or print action.
 - Canvas tap callbacks now snapshot scaled coordinates and dispatch `GLRenderer.onClick()` through `GLSurfaceView.queueEvent`, keeping tap-driven renderer/native model access on the GL thread.
 - Added Honor `InitialProjectMenuDeviceTest#cutConnectorTapCreatesDiscardablePreviewWithoutMutatingModel`: a real canvas tap stages one connector preview, Android Back discards it, and the native model remains one object.
 - Focused test passed 1/1; complete `InitialProjectMenuDeviceTest` passed 38/38 on Honor PTP-N49 / Android 16, 0 skipped/failures/errors. Offline emulator skipped.
