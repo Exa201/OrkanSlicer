@@ -1,3 +1,14 @@
+# Current continuation state — 2026-10-20 (large-text settings and workspace actions)
+
+- Code base before this test-only follow-up: `a77073cb5130043dd5ade018896428f6a57f2599`; app runtime/version is unchanged (`0.8.330`, code 365). No new APK or release was created because only instrumentation tests changed.
+- Test harness fix: settings and workspace action fixtures now suppress the startup changelog before launching `MainActivity`, leaving changelog UI covered by its dedicated test. Settings actions explicitly scroll to off-screen rows before asserting and tapping; returning from Setup waits for the settings content to be composed and scrolls the heading into view. Removed an ineffective empty setup hook and abandoned an unnecessary UiAutomator dependency.
+- Honor PTP-N49 / Android 16 at 320 dp × 700 dp, 560 dpi, system text 150%: `SettingsMenuActionDeviceTest` passed 7/7 and `InitialProjectMenuDeviceTest` passed 42/42. These runs include actual interaction with scrollable settings and workspace menu actions. The initial unadjusted settings run failed 5/7 because tests assumed lower settings rows were already visible; after correcting the test interaction to scroll, all 7 passed. No production UI defect was reproduced.
+- Restored Honor to physical 1280×2800 px, 560 dpi, font scale 1.0, automatic rotation. Emulator remains offline.
+- Unit tests: Debug 582/582 and Slice 582/582, zero failures/errors/skips. Full Honor `:app:connectedSliceTestAndroidTest`: 235 cases, 232 passed, 3 skipped private KromaCut fixture tests, zero failures/errors. JUnit XML: `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`.
+- PR #2 remains OPEN on `codex/rinkhals-safe-start-audit`; latest GitHub check reported mergeable. Phase 5 menu/action audit and Phase 6 responsive/accessibility work remain active; manual TalkBack traversal and multi-plate project persistence remain open. The UI 2.0 project is not complete. Next: publish the instrumentation/test-fixture changes and continue the remaining safe global-menu actions and accessibility acceptance.
+
+---
+
 # Current continuation state — 2026-10-20 (responsive workspace-menu paging)
 
 - Code commit: `a77073cb5130043dd5ade018896428f6a57f2599` on `codex/rinkhals-safe-start-audit`; pushed to the existing branch. PR #2 remains open; no merge or release was made.

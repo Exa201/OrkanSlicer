@@ -47,7 +47,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertArrayEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -88,11 +87,6 @@ class InitialProjectMenuDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
     private var lastDeviceTapDiagnostic = "not tapped"
-
-    @Before
-    fun dismissStartupDialogBeforeWorkspaceActionTests() {
-        dismissStartupChangelogIfVisible(compose.activity)
-    }
 
     @Test
     fun compactViewCubeIsVisibleAccessibleAndAtLeast48Dp() {
@@ -2100,7 +2094,6 @@ class InitialProjectMenuDeviceTest {
     @Test
     fun editMeasureMenuActionOpensComposeModeAndAndroidBackClosesIt() {
         val activity = compose.activity
-        dismissStartupChangelogIfVisible(activity)
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
         val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
@@ -2996,18 +2989,6 @@ class InitialProjectMenuDeviceTest {
         if (compactPortrait) scrollMenuToIndex(1)
     }
 
-    private fun dismissStartupChangelogIfVisible(activity: MainActivity) {
-        if (compose.onAllNodesWithText(activity.getString(R.string.Changelog))
-                .fetchSemanticsNodes().isNotEmpty()
-        ) {
-            compose.onNodeWithText(activity.getString(R.string.ChangelogOK)).assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithText(activity.getString(R.string.Changelog))
-                    .fetchSemanticsNodes().isEmpty()
-            }
-        }
-    }
-
     private fun openModelMenu(activity: MainActivity) {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val controller = BedFragment::class.java.getDeclaredField("workspaceController")
@@ -3666,6 +3647,7 @@ class InitialProjectMenuDeviceTest {
             ?.putBoolean("converter_storage_first_prompt", true)
             ?.commit()
         Prefs.setLastCommit()
+        SliceBeam.hasUpdateInfo = false
         SliceBeam.clearLiveDiffs()
 
         val config = context.assets.open("orca_profiles/Anycubic.ini").use(::Slic3rConfigWrapper)

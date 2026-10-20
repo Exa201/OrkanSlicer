@@ -50,17 +50,12 @@ class SettingsMenuActionDeviceTest {
         val targetLabel = "${(targetScale * 100).toInt()}%"
 
         try {
-            activity.runOnUiThread {
-                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
-            }
-            compose.waitUntil(timeoutMillis = 15_000) {
-                activity.navigationDelegate.getCurrentFragment() is SettingsFragment
-            }
+            navigateToSettings(activity)
 
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceResolutionScale))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { Prefs.getRenderScale() == targetScale }
             assertEquals("Selecting a scale applies the selected app preference", targetScale, Prefs.getRenderScale(), 0f)
@@ -86,15 +81,10 @@ class SettingsMenuActionDeviceTest {
         val targetLabel = activity.getString(targetTheme.title)
 
         try {
-            activity.runOnUiThread {
-                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
-            }
-            compose.waitUntil(timeoutMillis = 15_000) {
-                activity.navigationDelegate.getCurrentFragment() is SettingsFragment
-            }
+            navigateToSettings(activity)
 
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
@@ -125,14 +115,9 @@ class SettingsMenuActionDeviceTest {
         val targetLabel = "${(targetScale * 100).toInt()}%"
 
         try {
-            activity.runOnUiThread {
-                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
-            }
-            compose.waitUntil(timeoutMillis = 15_000) {
-                activity.navigationDelegate.getCurrentFragment() is SettingsFragment
-            }
+            navigateToSettings(activity)
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
 
             val workspaceRevisionBefore = workspaceThemeRevision(activity)
             val heading = compose.onNodeWithText(activity.getString(R.string.SlotAppSettings))
@@ -140,7 +125,7 @@ class SettingsMenuActionDeviceTest {
             val beforeHeight = heading.fetchSemanticsNode().size.height
 
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTextSize))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { Prefs.getUiTextScale() == targetScale }
             compose.waitForIdle()
@@ -166,12 +151,7 @@ class SettingsMenuActionDeviceTest {
     @Test
     fun aboutActionOpensComposeAboutRouteAndAndroidBackReturnsToSettings() {
         val mainActivity = compose.activity
-        mainActivity.runOnUiThread {
-            (mainActivity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
-        }
-        compose.waitUntil(timeoutMillis = 15_000) {
-            mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
-        }
+        navigateToSettings(mainActivity)
 
         compose.onNodeWithText(mainActivity.getString(R.string.SettingsAppInformation))
             .performScrollTo().assertIsDisplayed().performClick()
@@ -187,7 +167,8 @@ class SettingsMenuActionDeviceTest {
         compose.waitUntil(timeoutMillis = 10_000) {
             resumedActivity() === mainActivity && mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
         }
-        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).assertIsDisplayed()
+        waitForSettingsContent(mainActivity)
+        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -195,12 +176,7 @@ class SettingsMenuActionDeviceTest {
         val mainActivity = compose.activity
         val config = requireNotNull(SliceBeam.CONFIG)
         val activePrinter = config.presets?.get("printer")
-        mainActivity.runOnUiThread {
-            (mainActivity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
-        }
-        compose.waitUntil(timeoutMillis = 15_000) {
-            mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
-        }
+        navigateToSettings(mainActivity)
 
         compose.onNodeWithText(mainActivity.getString(R.string.SettingsDevices))
             .performScrollTo().assertIsDisplayed().performClick()
@@ -218,7 +194,8 @@ class SettingsMenuActionDeviceTest {
         compose.waitUntil(timeoutMillis = 10_000) {
             resumedActivity() === mainActivity && mainActivity.navigationDelegate.getCurrentFragment() is SettingsFragment
         }
-        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).assertIsDisplayed()
+        waitForSettingsContent(mainActivity)
+        compose.onNodeWithText(mainActivity.getString(R.string.SlotAppSettings)).performScrollTo().assertIsDisplayed()
         assertEquals("Opening and backing out of preset selection must not switch the active printer",
             activePrinter, config.presets?.get("printer"))
     }
@@ -230,12 +207,7 @@ class SettingsMenuActionDeviceTest {
         val originalPrinter = config.presets?.get("printer")
         val originalProcess = config.presets?.get("print")
         val originalFilament = config.presets?.get("filament")
-        activity.runOnUiThread {
-            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
-        }
-        compose.waitUntil(timeoutMillis = 15_000) {
-            activity.navigationDelegate.getCurrentFragment() is SettingsFragment
-        }
+        navigateToSettings(activity)
 
         fun openResetConfirmation() {
             compose.onNodeWithText(activity.getString(R.string.SettingsResetToDefault))
@@ -258,7 +230,7 @@ class SettingsMenuActionDeviceTest {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.waitForIdle()
         assertConfigurationUnchanged()
-        compose.onNodeWithText(activity.getString(R.string.SlotAppSettings)).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(R.string.SlotAppSettings)).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -273,14 +245,9 @@ class SettingsMenuActionDeviceTest {
         )
 
         try {
-            activity.runOnUiThread {
-                (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
-            }
-            compose.waitUntil(timeoutMillis = 15_000) {
-                activity.navigationDelegate.getCurrentFragment() is SettingsFragment
-            }
+            navigateToSettings(activity)
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceColor))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.ColorChooserCommon)).assertIsDisplayed()
@@ -301,6 +268,21 @@ class SettingsMenuActionDeviceTest {
         }
     }
 
+    private fun navigateToSettings(activity: MainActivity) {
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(5)
+        }
+        waitForSettingsContent(activity)
+    }
+
+    private fun waitForSettingsContent(activity: MainActivity) {
+        val label = activity.getString(R.string.SettingsInterface)
+        compose.waitUntil(timeoutMillis = 15_000) {
+            activity.navigationDelegate.getCurrentFragment() is SettingsFragment &&
+                compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
     private fun createInitializedActivityRule() = run {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
@@ -311,6 +293,7 @@ class SettingsMenuActionDeviceTest {
             ?.putBoolean("converter_storage_first_prompt", true)
             ?.commit()
         Prefs.setLastCommit()
+        SliceBeam.hasUpdateInfo = false
         SliceBeam.clearLiveDiffs()
 
         val config = context.assets.open("orca_profiles/Anycubic.ini").use(::Slic3rConfigWrapper)
