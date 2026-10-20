@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -53,6 +54,7 @@ fun AdaptiveWorkspaceNavigation(
     panelClosedDescription: String = "Tools closed",
     announcePanelState: Boolean = false,
     showPanelToggleIndicator: Boolean = false,
+    railTestTag: String? = null,
     onSelected: (Int) -> Unit,
 ) {
     val fontScale = LocalDensity.current.fontScale
@@ -93,6 +95,7 @@ fun AdaptiveWorkspaceNavigation(
             ) {
                 Column(
                     Modifier.fillMaxSize()
+                        .then(railTestTag?.let { Modifier.testTag(it) } ?: Modifier)
                         .padding(
                             top = if (railScrollState.canScrollBackward) 34.dp else 0.dp,
                             bottom = if (railScrollState.maxValue > 0) 34.dp else 0.dp,

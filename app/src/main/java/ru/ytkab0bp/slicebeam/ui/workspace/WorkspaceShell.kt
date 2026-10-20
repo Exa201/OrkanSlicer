@@ -180,6 +180,7 @@ internal fun WorkspaceShell(
                 panelClosedDescription = stringResource(ru.ytkab0bp.slicebeam.R.string.WorkspaceToolsClosed),
                 announcePanelState = true,
                 showPanelToggleIndicator = false,
+                railTestTag = "workspace-navigation-rail",
                 onSelected = onNavigationSelected,
             )
             Spacer(Modifier.width(1.dp).fillMaxHeight().background(background.copy(alpha = 0.35f)))

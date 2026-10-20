@@ -480,8 +480,13 @@ class InitialProjectMenuDeviceTest {
             val originalExtruder = model.getExtruder(0)
             assertFalse("test fixture must start without a slice result", bed.hasSliceResult())
 
+            if (!usesCompactPortraitLayout(activity)) {
+                // The landscape rail is a vertically scrolling Column (not a LazyColumn);
+                // performScrollTo() cannot reliably bring its last child into view.
+                compose.onNodeWithTag("workspace-navigation-rail")
+                    .performTouchInput { swipeUp() }
+            }
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice))
-                .apply { if (!usesCompactPortraitLayout(activity)) performScrollTo() }
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
