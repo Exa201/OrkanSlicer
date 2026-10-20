@@ -7,7 +7,7 @@
 - Exercise canvas paint touch through the GL view in tests without creating a competing UiAutomation connection.
 - Update the localized in-app release notes for 0.8.330; the first full Honor run caught the stale 0.8.329 title and the focused regression test plus full rerun passed.
 - Verify `InitialProjectMenuDeviceTest` 42/42 on Honor PTP-N49 / Android 16 in true 800×366 dp landscape; synthetic filament palette lists 1/4/8/16/24 remain selectable across 320 dp/100%, 360 dp/130%, and 400 dp/150% test layouts.
-- With the user-provided KromaCut 3MF staged only in the SliceTest app's external-files sandbox, all 3 KromaCut tests passed: every 3MF import-choice combination, object reassignment, actual slice output, blue/white ACE gate selection, and matching G-code palette/tools/layers. The temporary device copy was removed.
+- With the user-provided KromaCut 3MF staged only in the SliceTest app's external-files sandbox, all 3 KromaCut tests passed: every 3MF import-choice combination, object reassignment, actual slice output, blue/white ACE gate selection, matching G-code palette/tools/layers, and the 3D preview color array matching native slice input. The temporary device copy was removed.
 - Debug and Slice unit suites passed 579/579 each; full Honor instrumentation passed 232/235 with three private KromaCut fixtures skipped and zero failures/errors; `:app:assembleDebug` succeeded. The 0.8.330 APK installed and launched on Honor PTP-N49 / Android 16 as code 365; the sampled startup log contained no fatal exception, ANR, OOM, or fatal signal. No printer sync or print was performed. UI 2.0 and manual TalkBack acceptance remain incomplete.
 
 ## 0.8.329 (alpha)

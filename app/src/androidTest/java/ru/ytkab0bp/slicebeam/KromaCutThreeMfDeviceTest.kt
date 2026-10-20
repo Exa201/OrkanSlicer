@@ -26,6 +26,7 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver
 import java.io.File
 import java.util.UUID
 import java.util.zip.ZipFile
@@ -285,6 +286,16 @@ class KromaCutThreeMfDeviceTest {
         var result: GCodeProcessorResult? = null
         try {
             result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            // The 3D G-code viewer renders from this result palette, so verify the preview
+            // uses the exact colors passed into native slicing for this slice.
+            val expectedPreviewPalette = SliceFilamentColorResolver.resolve(
+                config["filament_colour"], model.requiredFilamentCount, Prefs.getFilamentPalette(),
+            )
+            assertArrayEquals(
+                "the 3D G-code preview must render with the same effective colors native slicing received",
+                expectedPreviewPalette,
+                result.previewToolColors,
+            )
             assertTrue("slice should produce a non-empty G-code file", output.isFile && output.length() > 0)
             val content = output.readText()
             val used = model.getUsedFilaments(0).map { it - 1 }.toSet()
