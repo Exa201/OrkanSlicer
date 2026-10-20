@@ -33,6 +33,7 @@ class AdaptiveNavigationPolicyTest {
         assertFalse(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 3))
         assertTrue(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 5))
         assertEquals(146, AdaptiveNavigationPolicy.navigationBarHeightDp(1.3f, 6))
+        assertEquals(168, AdaptiveNavigationPolicy.navigationBarHeightDp(1.5f, 6))
         assertEquals(56, AdaptiveNavigationPolicy.navigationBarHeightDp(1f, 6))
     }
 

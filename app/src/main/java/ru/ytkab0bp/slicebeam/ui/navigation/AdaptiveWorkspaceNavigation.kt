@@ -62,11 +62,12 @@ fun AdaptiveWorkspaceNavigation(
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.surface) {
         if (isBottomNavigation) {
             if (twoRowBottomNavigation) {
-                Column(Modifier.fillMaxWidth().selectableGroup()) {
+                Column(Modifier.fillMaxSize().selectableGroup()) {
                     items.chunked(3).forEach { rowItems ->
-                        Row(Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth().weight(1f)) {
                             rowItems.forEach { item ->
-                                Destination(item, item.slot == selectedSlot, Modifier.weight(1f), onSelected,
+                                Destination(item, item.slot == selectedSlot,
+                                    Modifier.weight(1f).fillMaxHeight(), onSelected,
                                     bottomLabel = item.compactLabel ?: item.label,
                                     panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
                                     panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,

@@ -26,6 +26,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
     private var portrait = false
     private var bottomNavigation = false
     private var compactNavigationLabels = false
+    private var navigationFontScale = 1f
     private var root: FrameLayout? = null
     private var rootLayout: LinearLayout? = null
     private var navigationView: ComposeView? = null
@@ -63,6 +64,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             portrait,
         )
         compactNavigationLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
+        navigationFontScale = configuration.fontScale
         selectedNavigationSlot = MobileNavigationPolicy.selectedDestination(currentSlot)
         rootLayout = navigationLayout
         navigationLayout.orientation = if (bottomNavigation) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
@@ -72,7 +74,10 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             navigationView = bottomBar
             navigationLayout.addView(bottomBar, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewUtils.dp(AdaptiveNavigationPolicy.navigationBarHeightDp(
+                    configuration.fontScale,
+                    MobileNavigationPolicy.destinations().size,
+                )),
             ))
         }
 
@@ -123,11 +128,10 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             setContent {
                 key(navigationThemeRevision) {
                     BeamComposeTheme {
+                        // Keep the visible labels compact when the two-row large-text layout is
+                        // active. Full localized names remain in accessibility semantics.
                         val compactLabels = AdaptiveNavigationPolicy.usesCompactLabels(
                             LocalDensity.current.fontScale,
-                        ) && !AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(
-                            LocalDensity.current.fontScale,
-                            MobileNavigationPolicy.destinations().size,
                         )
                         val items = MobileNavigationPolicy.destinations().map { slot ->
                             val fullTitle = getSlotNavigationTitle(slot)
@@ -173,7 +177,8 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             portrait,
         )
         val useCompactLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
-        if (useBottomNavigation == bottomNavigation && useCompactLabels == compactNavigationLabels) return
+        val fontScaleChanged = configuration.fontScale != navigationFontScale
+        if (useBottomNavigation == bottomNavigation && useCompactLabels == compactNavigationLabels && !fontScaleChanged) return
         val layout = rootLayout ?: return
         val navigation = navigationView ?: return
         val ctx = context ?: return
@@ -183,6 +188,7 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
         layout.removeView(navigation)
         bottomNavigation = useBottomNavigation
         compactNavigationLabels = useCompactLabels
+        navigationFontScale = configuration.fontScale
         layout.orientation = if (bottomNavigation) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
         val replacement = createNavigationHost(ctx)
         navigationView = replacement
@@ -190,7 +196,10 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
         if (bottomNavigation) {
             layout.addView(replacement, 0, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewUtils.dp(AdaptiveNavigationPolicy.navigationBarHeightDp(
+                    configuration.fontScale,
+                    MobileNavigationPolicy.destinations().size,
+                )),
             ))
             content?.layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,

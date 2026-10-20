@@ -25,6 +25,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -85,6 +86,7 @@ import java.util.concurrent.atomic.AtomicReference
 class InitialProjectMenuDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
+    private var lastDeviceTapDiagnostic = "not tapped"
 
     @Test
     fun compactViewCubeIsVisibleAccessibleAndAtLeast48Dp() {
@@ -430,7 +432,25 @@ class InitialProjectMenuDeviceTest {
                     false
                 }
             }
-            exportAction.performClick()
+            assertSame(activity, bed.getContext())
+            assertSame(bed, activity.navigationDelegate.getCurrentFragment())
+            tapSemanticsNodeOnDevice(exportAction)
+            try {
+                compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            } catch (error: Throwable) {
+                val actionBounds = exportAction.fetchSemanticsNode().boundsInRoot
+                val actionWindowBounds = exportAction.fetchSemanticsNode().boundsInWindow
+                val panelNode = compose.onNodeWithTag("workspace-menu-panel").fetchSemanticsNode()
+                val panelBounds = panelNode.boundsInRoot
+                val panelWindowBounds = panelNode.boundsInWindow
+                val rootBounds = compose.onAllNodes(isRoot()).fetchSemanticsNodes().map { it.boundsInRoot }
+                throw AssertionError(
+                    "Export click did not launch picker; action=$actionBounds " +
+                        "windowAction=$actionWindowBounds panel=$panelBounds windowPanel=$panelWindowBounds " +
+                        "root=$rootBounds deviceTap=$lastDeviceTapDiagnostic",
+                    error,
+                )
+            }
 
             val cancelledRequest = requireNotNull(capturedIntent.get())
             assertEquals(Intent.ACTION_CREATE_DOCUMENT, cancelledRequest.action)
@@ -834,8 +854,9 @@ class InitialProjectMenuDeviceTest {
                     .fetchSemanticsNodes().isNotEmpty()
             }
             revealMenuAction(activity, R.string.MenuFileExport3mf)
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileExport3mf))
-                .assertIsDisplayed().assertIsEnabled().performTouchInput { click() }
+            val exportAction = compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileExport3mf))
+            exportAction.assertIsDisplayed().assertIsEnabled()
+            tapSemanticsNodeOnDevice(exportAction)
             compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
 
             compose.onNodeWithText(activity.getString(R.string.Project3mfExportActivePlateTitle))
@@ -1513,10 +1534,12 @@ class InitialProjectMenuDeviceTest {
             val glView = requireNotNull(bed.glView)
             glView.selectModel(0, Runnable {})
 
-            // Move only this disposable fixture away from the bed center before using the real menu action.
+            // Move only this disposable fixture to a point clearly away from common printer bed
+            // centers before using the real menu action. The previous +73/-41 offset happened
+            // to land exactly at the Kobra 3 bed center, making the test pass/fail depend on
+            // fixture placement instead of the Center on Bed action.
             glView.queueEvent {
-                // Keep the fixture visibly away from the configured printer bed centre.
-                model.translate(0, 73.0, -41.0, 0.0)
+                model.translate(0, 40.0, 30.0, 0.0)
                 glView.requestRender()
             }
             instrumentationWaitForGlIdle()
@@ -1528,9 +1551,10 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithText(activity.getString(R.string.ModelMenuCenterOnBedShort))
                     .fetchSemanticsNodes().isNotEmpty()
             }
-            val centerAction = compose.onNodeWithText(activity.getString(R.string.ModelMenuCenterOnBedShort))
-                .performScrollTo().assertIsDisplayed().assertIsEnabled()
-            centerAction.performClick()
+            val centerAction = compose.onNodeWithContentDescription(
+                activity.getString(R.string.ModelMenuCenterOnBed),
+            )
+            centerAction.assertIsEnabled().performClick()
 
             val centered = runCatching {
                 compose.waitUntil(timeoutMillis = 10_000) {
@@ -1539,14 +1563,16 @@ class InitialProjectMenuDeviceTest {
                         kotlin.math.abs(after.y - translationBefore.y) > 1.0
                 }
             }.isSuccess
+            val translationAfter = readTranslationOnGl(glView, 0)
             assertTrue(
-                "Center on Bed did not update native placement; before=$translationBefore, " +
-                    "after=${readTranslationOnGl(glView, 0)}, selected=${readSelectedObjectOnGl(glView)}, " +
+                "Center on Bed did not update native placement; " +
+                    "before=(${translationBefore.x},${translationBefore.y},${translationBefore.z}), " +
+                    "after=(${translationAfter.x},${translationAfter.y},${translationAfter.z}), " +
+                    "selected=${readSelectedObjectOnGl(glView)}, " +
                     "selectionCount=${readSelectedObjectsCountOnGl(glView)}, " +
                     "bounds=${readBoundsOnGl(glView, 0)}",
                 centered,
             )
-            val translationAfter = readTranslationOnGl(glView, 0)
             assertTrue(
                 "Center on Bed must alter the selected disposable model's native placement",
                 kotlin.math.abs(translationAfter.x - translationBefore.x) > 1.0 ||
@@ -2684,6 +2710,11 @@ class InitialProjectMenuDeviceTest {
     }
 
     private fun loadSingleTestModel(bed: BedFragment, modelFile: File): Model {
+        val testGlView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 10_000) {
+            testGlView.isAttachedToWindow && testGlView.width > 0 && testGlView.height > 0 &&
+                testGlView.renderer.bed != null
+        }
         val done = CountDownLatch(1)
         val loaded = AtomicReference<Model?>()
         val error = AtomicReference<Exception?>()
@@ -2744,24 +2775,33 @@ class InitialProjectMenuDeviceTest {
                 .fetchSemanticsNodes().firstOrNull()
             val panel = compose.onAllNodesWithTag("workspace-menu-panel")
                 .fetchSemanticsNodes().firstOrNull()
+            val visiblePanelRight = panel?.boundsInWindow?.right?.minus(
+                52f * activity.resources.displayMetrics.density,
+            ) ?: Float.NEGATIVE_INFINITY
             if (action != null && panel != null &&
-                action.boundsInRoot.left >= panel.boundsInRoot.left &&
-                action.boundsInRoot.top >= panel.boundsInRoot.top &&
-                action.boundsInRoot.right <= panel.boundsInRoot.right &&
-                action.boundsInRoot.bottom <= panel.boundsInRoot.bottom
+                action.boundsInWindow.left >= panel.boundsInWindow.left &&
+                action.boundsInWindow.top >= panel.boundsInWindow.top &&
+                // The paging affordance overlays the panel's final 48 dp plus its 4 dp gap.
+                // A not-yet-visible action can otherwise appear inside panel bounds while
+                // actually sitting underneath that arrow.
+                action.boundsInWindow.right <= visiblePanelRight &&
+                action.boundsInWindow.bottom <= panel.boundsInWindow.bottom
             ) return
             val grid = compose.onNodeWithTag("workspace-menu-actions-grid")
-            val gridWidth = grid.fetchSemanticsNode().size.width.toFloat()
-            grid
-                .performTouchInput {
-                    // A full-width fling can jump across a single tool tile in a two-row grid.
-                    // Small repeated swipes match the visible user paging affordance and ensure
-                    // every action gets a chance to enter the viewport.
-                    swipeLeft(
-                        startX = gridWidth * 0.65f,
-                        endX = gridWidth * 0.35f,
-                    )
+            val pageDescription = activity.getString(R.string.WorkspaceMoreTitle)
+            if (compose.onAllNodesWithContentDescription(pageDescription)
+                    .fetchSemanticsNodes().isNotEmpty()
+            ) {
+                // Use the same page-sized accessible control exposed to users. Small synthetic
+                // swipes can stop inside a large-font tile and leave the target clipped behind
+                // the fixed paging affordance.
+                compose.onNodeWithContentDescription(pageDescription).performClick()
+            } else {
+                val gridWidth = grid.fetchSemanticsNode().size.width.toFloat()
+                grid.performTouchInput {
+                    swipeLeft(startX = gridWidth * 0.65f, endX = gridWidth * 0.35f)
                 }
+            }
             compose.waitForIdle()
         }
         val action = compose.onAllNodesWithContentDescription(title)
@@ -2776,10 +2816,33 @@ class InitialProjectMenuDeviceTest {
         }
         throw AssertionError(
             "Menu action '$title' did not become fully visible inside its panel; " +
-                "action=${action?.boundsInRoot}, panel=${panel?.boundsInRoot}, " +
+                "action=${action?.boundsInWindow}, panel=${panel?.boundsInWindow}, " +
                 "grid=${compose.onAllNodesWithTag("workspace-menu-actions-grid").fetchSemanticsNodes().size}, " +
                 "visible descriptions=$descriptions",
         )
+    }
+
+    /** Injects a screen-coordinate tap so integration tests cover the real window hit path. */
+    private fun tapSemanticsNodeOnDevice(node: androidx.compose.ui.test.SemanticsNodeInteraction) {
+        val boundsInWindow = node.fetchSemanticsNode().boundsInWindow
+        val decorLocation = IntArray(2)
+        compose.activity.window.decorView.getLocationOnScreen(decorLocation)
+        val x = decorLocation[0] + boundsInWindow.center.x
+        val y = decorLocation[1] + boundsInWindow.center.y
+        lastDeviceTapDiagnostic = "window=$boundsInWindow decor=${decorLocation.toList()} screen=($x,$y) " +
+            "click=${node.fetchSemanticsNode().config.contains(SemanticsActions.OnClick)}"
+        val downTime = SystemClock.uptimeMillis()
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0)
+        val up = MotionEvent.obtain(downTime, downTime + 80, MotionEvent.ACTION_UP, x, y, 0)
+        try {
+            check(automation.injectInputEvent(down, true)) { "Device rejected ACTION_DOWN at ($x, $y)" }
+            check(automation.injectInputEvent(up, true)) { "Device rejected ACTION_UP at ($x, $y)" }
+        } finally {
+            down.recycle()
+            up.recycle()
+        }
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 
     private fun openWorkspaceMenu(
