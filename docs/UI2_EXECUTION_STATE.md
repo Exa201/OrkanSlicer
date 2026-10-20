@@ -1905,6 +1905,7 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - APK: `OrkanSlicer_8743ca0460.apk`, 157,294,391 bytes, SHA-256 `208DA7EA4D5E4C9519372EEA4705D63C4DB9DE73CF61E8A7A39D5E08A3FFC579`, package version 0.8.330 / code 365.
 - Full Honor instrumentation stopped after progress stalled near 47/235. The partial report listed three failures. The Emboss selector issue is resolved by the focused 5/5 class. Open focused cases: profile-sheet process-option selection (`0.06mm Standard` missing from the test-visible tree) and the last image-format target option (not found after opening the selector). No full-suite result is claimed.
 - Next: diagnose those two dropdown routes through actual device interaction and determine whether the options are clipped/hidden or test semantics miss the popup; then continue Phase 5/6 menu/accessibility acceptance. Manual TalkBack traversal and full multi-plate project persistence remain open. Do not create a release or mark project completion from this checkpoint.
+- Added focused Honor verification: `ThreeMfMulticolorDeviceTest` 4/4, 0 skipped/failures/errors. Color-only 3MF import retained current temperatures; three-color model-to-tool assignment and per-object slot selection produced the expected native slice palette/G-code tools; saved profiles remained unchanged. This did not run the separate private KromaCut fixture class. Regular OrkanSlicer was restored foreground at 1280×2800 / 560 dpi / font 1.0 / auto-rotation.
 
 # UI 2.0 continuation — 2026-10-20 (flush validation feedback)
 
