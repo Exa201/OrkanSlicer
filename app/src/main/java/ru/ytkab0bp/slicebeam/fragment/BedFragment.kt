@@ -1900,6 +1900,10 @@ private fun onModelImportCommitted() {
     // without restoring the empty workspace snapshot captured during fragment setup.
     resetModelHistory()
     updatePlateIndicator()
+    // Menu action enablement (for example Project → Export 3MF) is derived from
+    // the renderer model. Notify the visible Compose menu after the GL-thread
+    // import commit so an initially open menu cannot retain its empty-state actions.
+    SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent())
 }
 /** Reuse the native model bounds to draw tiny XY footprints; never render a second 3D scene. */
 private fun refreshPlateThumbnails() {

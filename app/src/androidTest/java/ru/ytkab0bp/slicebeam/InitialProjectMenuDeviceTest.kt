@@ -421,8 +421,16 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithText(activity.getString(R.string.MenuFileExport3mf))
                     .fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf))
-                .assertIsEnabled().performClick()
+            val exportAction = compose.onNodeWithText(activity.getString(R.string.MenuFileExport3mf))
+            compose.waitUntil(timeoutMillis = 5_000) {
+                try {
+                    exportAction.assertIsEnabled()
+                    true
+                } catch (_: AssertionError) {
+                    false
+                }
+            }
+            exportAction.performClick()
 
             val cancelledRequest = requireNotNull(capturedIntent.get())
             assertEquals(Intent.ACTION_CREATE_DOCUMENT, cancelledRequest.action)
@@ -542,8 +550,13 @@ class InitialProjectMenuDeviceTest {
             val model = loadSingleTestModel(bed, modelFile)
             assertFalse("the fixture must start unsliced", bed.hasSliceResult())
 
+            if (!usesCompactPortraitLayout(activity)) {
+                // The workspace rail is a regular scrolling Column in landscape;
+                // swipe it to reveal the last destination before invoking slicing.
+                compose.onNodeWithTag("workspace-navigation-rail")
+                    .performTouchInput { swipeUp() }
+            }
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice))
-                .apply { if (!usesCompactPortraitLayout(activity)) performScrollTo() }
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
@@ -698,8 +711,11 @@ class InitialProjectMenuDeviceTest {
                 modelFile.outputStream().use(source::copyTo)
             }
             loadSingleTestModel(bed, modelFile)
+            if (!usesCompactPortraitLayout(activity)) {
+                compose.onNodeWithTag("workspace-navigation-rail")
+                    .performTouchInput { swipeUp() }
+            }
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlice))
-                .apply { if (!usesCompactPortraitLayout(activity)) performScrollTo() }
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
@@ -2520,7 +2536,7 @@ class InitialProjectMenuDeviceTest {
             ).get(1).assertIsDisplayed().performClick()
 
             val point = findUncoveredPreciseSurfacePoint(glView, bed)
-            injectCanvasStroke(point.first, point.second)
+            injectCanvasStroke(glView, point.first, point.second)
             val previewTriangles = readPaintPreviewTriangleCountOnGl(glView, 2)
             assertTrue("an injected touch on a precise GL surface hit must create a paint preview; point=$point",
                 previewTriangles > 0)
@@ -3204,26 +3220,37 @@ class InitialProjectMenuDeviceTest {
         }
     }
 
-    private fun injectCanvasStroke(screenX: Float, screenY: Float) {
-        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+    private fun injectCanvasStroke(glView: ru.ytkab0bp.slicebeam.view.GLView, screenX: Float, screenY: Float) {
+        val canvasLocation = IntArray(2)
+        glView.getLocationOnScreen(canvasLocation)
+        assertTrue("paint test point must be inside the GL canvas",
+            screenX >= canvasLocation[0] && screenX < canvasLocation[0] + glView.width &&
+                screenY >= canvasLocation[1] && screenY < canvasLocation[1] + glView.height)
         val downTime = SystemClock.uptimeMillis()
-        fun inject(action: Int, x: Float, y: Float, eventTime: Long) {
-            val event = MotionEvent.obtain(downTime, eventTime, action, x, y, 0).apply {
+        fun inject(action: Int, deltaX: Float, deltaY: Float, eventTime: Long) {
+            val event = MotionEvent.obtain(
+                downTime, eventTime, action,
+                screenX - canvasLocation[0] + deltaX,
+                screenY - canvasLocation[1] + deltaY,
+                0,
+            ).apply {
                 source = InputDevice.SOURCE_TOUCHSCREEN
             }
             try {
-                assertTrue("Android rejected a synthetic touchscreen event", automation.injectInputEvent(event, true))
+                var handled = false
+                compose.runOnUiThread { handled = glView.dispatchTouchEvent(event) }
+                assertTrue("the GL canvas rejected a touch event at the selected surface point", handled)
             } finally {
                 event.recycle()
             }
         }
-        inject(MotionEvent.ACTION_DOWN, screenX, screenY, downTime)
+        inject(MotionEvent.ACTION_DOWN, 0f, 0f, downTime)
         repeat(5) { step ->
             SystemClock.sleep(24L)
-            inject(MotionEvent.ACTION_MOVE, screenX + step * 2f, screenY + step * 2f, SystemClock.uptimeMillis())
+            inject(MotionEvent.ACTION_MOVE, step * 2f, step * 2f, SystemClock.uptimeMillis())
         }
         SystemClock.sleep(24L)
-        inject(MotionEvent.ACTION_UP, screenX + 10f, screenY + 10f, SystemClock.uptimeMillis())
+        inject(MotionEvent.ACTION_UP, 10f, 10f, SystemClock.uptimeMillis())
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 
