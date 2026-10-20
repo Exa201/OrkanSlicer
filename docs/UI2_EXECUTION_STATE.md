@@ -1,3 +1,15 @@
+# Current continuation state — 2026-10-20 (v0.8.328)
+
+## Responsive ViewCube label correction
+
+- Runtime commit: `d2b6a57d7a573617137ea1fa670f6d6ef92e7753` on `codex/rinkhals-safe-start-audit`; version 0.8.328 / code 363. Replaced font-scaled two-letter face text with localized, single-letter direction marks drawn at a fixed compact physical size; full localized face names remain exposed to accessibility semantics. Existing face hit-target geometry and camera actions are unchanged.
+- Honor PTP-N49 / Android 16: installed package verified at 0.8.328 / code 363. Visual screenshot at 320 dp portrait and 150% font (`build/reports/ui2-visual/orkanslicer-328-320dp-150-clean.png`) shows all six face labels distinct and readable. Device restored to 1280×2800 px / 560 dpi / fontScale 1.0. Startup log sample had no FATAL EXCEPTION, ANR, OOM, or fatal signal.
+- Tests on the Honor: `WorkspaceViewCubeGeometryTest` passed; actual camera face selection and drag rotation test passed; full `InitialProjectMenuDeviceTest` passed 42/42 at standard display/font settings, with 0 skips/failures. Debug and Slice unit suites each passed 578/578 with 0 failures/errors/skips. `:app:assembleDebug` succeeded.
+- A previous exploratory run of that 42-test class at 320 dp / 150% completed 33 tests and failed 9. Those failures concern other menu/dialog actions not becoming visible or composed under the compressed setup; they are not counted as a responsive pass. The targeted ViewCube assertions passed at the stress setting. Full 320dp/150% menu acceptance and manual TalkBack traversal remain open.
+- APK: `OrkanSlicer_d2b6a57d7a.apk`, 157,294,272 bytes; SHA-256 `1EC39F5D7AB6085048B919062843A1CFFDB0C439B2BCB29568EE95D3BA6B5818`. No production project/profile data was changed, no printer was contacted, and no print was started. Emulator `emulator-5554` remains offline.
+- The 0.8.328 Debug prerelease is to be published on the existing GitHub repository; PR #2 remains the active PR and no merge is authorized. Phase 5 menu-action audit is still active; Phase 6 responsive/accessibility is partial; multi-plate project persistence remains separately open. Next: publish this verified Debug build, then continue audit of the remaining long-list/global menu actions and responsive failure cases. Do not mark UI 2.0 complete.
+
+---
 # Current continuation state — 2026-10-20 (v0.8.327)
 
 ## Anycubic PLA profile slice fix and per-object assignment verification
