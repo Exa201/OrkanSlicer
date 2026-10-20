@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -43,7 +44,7 @@ class ImageFormatPairDialogDeviceTest {
         compose.onNodeWithTag("image-source-format").assertIsDisplayed()
         compose.onNodeWithTag("image-source-format").performClick()
         compose.onNodeWithText(context.resources.getStringArray(R.array.ConverterSources)[1]).performClick()
-        compose.onNodeWithTag("image-target-format").performClick()
+        compose.onNodeWithTag("image-target-format").performScrollTo().performClick()
         compose.onNodeWithText(context.resources.getStringArray(R.array.ConverterTargets)[4]).performClick()
         compose.onNodeWithText(context.getString(R.string.ConverterChooseSourceFile)).performClick()
 

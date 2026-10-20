@@ -21,7 +21,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.semantics.SemanticsActions
@@ -271,8 +273,9 @@ class FilamentPaletteComposeDeviceTest {
         }
 
         try {
-            compose.onNodeWithText(requireNotNull(selectedProcess.title)).performClick()
-            compose.onNodeWithText(nextProcessTitle).performClick()
+            compose.onNodeWithText(requireNotNull(selectedProcess.title)).performScrollTo().performClick()
+            compose.onNodeWithTag("slice-choice-search").performTextInput(nextProcessTitle)
+            compose.onAllNodesWithText(nextProcessTitle).onLast().performClick()
             compose.onNodeWithText(context.getString(R.string.WorkspaceProfilesApply)).performClick()
             compose.waitForIdle()
 
@@ -294,8 +297,9 @@ class FilamentPaletteComposeDeviceTest {
                 currentSheet.value = WorkspaceProfileSheet(context, null)
             }
             compose.waitForIdle()
-            compose.onNodeWithText(requireNotNull(selectedFilament.title)).performClick()
-            compose.onNodeWithText(nextFilamentTitle).performClick()
+            compose.onNodeWithText(requireNotNull(selectedFilament.title)).performScrollTo().performClick()
+            compose.onNodeWithTag("slice-choice-search").performTextInput(nextFilamentTitle)
+            compose.onAllNodesWithText(nextFilamentTitle).onLast().performClick()
             compose.onNodeWithText(context.getString(R.string.WorkspaceProfilesApply)).performClick()
             compose.waitForIdle()
 
