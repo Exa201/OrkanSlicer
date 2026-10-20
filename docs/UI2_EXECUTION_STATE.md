@@ -1,3 +1,18 @@
+# Current continuation state — 2026-10-20 (320 dp / 150% responsive follow-up)
+
+- Code commit: `91bf59b39e20823f8de1bb93e38d73d37c8e1fb1` on `codex/rinkhals-safe-start-audit`; PR #2 is still open. The code is committed locally; the PR push is pending. No release was created.
+- Responsive navigation changes are in the working tree: large-font bottom navigation has an explicit height recalculated when the font scale changes, and the two-row Compose destinations divide that height evenly. Unit coverage now includes the 150% height policy.
+- Honor PTP-N49 at configuration `screenWidthDp=320`, `screenHeightDp=700`, density 560 dpi, font scale 1.5: `AdaptiveWorkspaceNavigationDeviceTest` passed 3/3 and `MobileNavigationDeviceTest` passed 1/1. Screenshot inspection showed the two-row destinations and central plate remain visible. The targeted single-plate and multi-plate project export/cancel tests passed at this configuration in the preceding working-tree run.
+- Debug Unit and Slice Unit: 582/582 each, 0 failures, 0 skipped. `git diff --check` passed. `:app:assembleDebug` succeeded after commit. APK: `OrkanSlicer_91bf59b39e.apk`, 157,294,400 bytes, SHA-256 `5172207B364D66B13D83C279C0F29792F9F5211EC9517B12C93DD974DB4EB5B8`.
+- Honor PTP-N49 accepted installation and launch of that APK (package version 0.8.330 / code 365). The app had `MainActivity` focused on the prior build; installation/start commands succeeded for this APK. No printer sync or print was performed.
+- The complete `InitialProjectMenuDeviceTest` at 320 dp / 150% completed 42 tests with 9 failures, 0 skips before the latest paging-helper adjustment. Failures included model/edit controls, two slice flows, and paint-control visibility. After the adjustment, the focused Center on Bed test still fails at 320 dp / 150% with the native translation unchanged; at standard font it passed. The full menu suite has not been rerun after the helper adjustment. Responsive/action acceptance is open; this is not a release candidate.
+- The export investigation found a test helper issue: its prior visibility check counted the panel's fixed right-side paging control as available action area. The helper now pages using the accessible next-page control and reserves that area. Targeted single-plate and multi-plate export/cancel checks, adaptive workspace navigation (3/3), and global navigation/back (1/1) passed at 320 dp / 150% in the current work sequence.
+- Honor was restored to physical 1280×2800 px / 560 dpi / font scale 1.0; automatic rotation should be verified. Emulator remains offline. No printer sync, firmware change, or print start occurred.
+- Current phase: Phase 6 responsive/accessibility verification, while Phase 5 action audit remains active. Next concrete work: isolate and fix the 320 dp / 150% action-panel visibility and click paths; rerun the nine failing menu actions and complete project-menu suite at that configuration, then repeat Debug/Slice suites and build.
+- Multi-plate project persistence and full menu/action acceptance remain open. Do not claim UI 2.0 completion or publish a release from this checkpoint.
+
+---
+
 # Current continuation state — 2026-10-20 (workspace overlays, menu and full Honor regression)
 
 - **Latest release / continuation update (2026-10-20):** Published GitHub debug prerelease `v0.8.330` at runtime commit `da102619a858beb10874cdddd83bf436bb7248bd`; APK `OrkanSlicer_da102619a8.apk` (157,294,389 bytes; SHA-256 `B130B5338008BE85FE1E82CD3C3EB36D3D17198A9BB7C7E53ED67498D300F46D`). Release URL: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.330. PR #2 remains open; GitHub reports mergeable; no merge occurred.
