@@ -909,7 +909,11 @@ showWorkspaceModePanel(
     "paint-mode",
     ::cancelPaintMode,
     WorkspacePanelSize(
-        portrait = WorkspacePanelDimension.Fraction(0.40f),
+        // Large system text makes the scrollable paint sheet taller in pixel terms.
+        // Keep the GL canvas centre reachable for brush strokes on compact phones.
+        portrait = WorkspacePanelDimension.Fraction(
+            if (ctx.resources.configuration.fontScale >= 1.3f) 0.30f else 0.40f,
+        ),
         // Paint controls dock on the workspace's left edge in landscape. This keeps
         // direct GL gestures on the build-plate center unobstructed.
         landscape = WorkspacePanelDimension.Fixed(280f),
@@ -1433,6 +1437,9 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         currentMenuSlot == WorkspaceDestination.EDIT.ordinal ||
                         currentMenuSlot == WorkspaceDestination.CAMERA.ordinal ||
                         currentMenuSlot == WorkspaceDestination.TOOLS.ordinal,
+                    toolPanelAdditionalChromeDp = if (currentMenuSlot == WorkspaceDestination.MODEL.ordinal) {
+                        if (ctx.resources.configuration.fontScale >= 1.3f) 72 else 56
+                    } else 0,
                     navigationItemCount = WorkspaceDestination.values().size,
                     menuWidthDp = WorkspaceShellLayoutPolicy.menuPanelWidthDp(
                         ctx.resources.configuration.screenWidthDp,

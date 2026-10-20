@@ -22,6 +22,12 @@ class WorkspaceToolPanelPolicyTest {
     }
 
     @Test
+    fun menuHeightIncludesExtraChromeBeforeScrollableActions() {
+        assertEquals(196, WorkspaceToolPanelPolicy.menuHeightDp(true, 1f, additionalChromeDp = 56))
+        assertEquals(248, WorkspaceToolPanelPolicy.menuHeightDp(true, 1.5f, additionalChromeDp = 72))
+    }
+
+    @Test
     fun landscapeSidePanelDoesNotReservePortraitBottomSpace() {
         assertEquals(0, WorkspaceToolPanelPolicy.reservedHeightDp(false, false, 124))
     }

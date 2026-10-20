@@ -1,3 +1,14 @@
+# Current continuation state — 2026-10-20 (workspace overlays, menu and full Honor regression)
+
+- Base HEAD before this work: `18454f029da5c0aa64e6b09bd57d82d7fe167343` on `codex/rinkhals-safe-start-audit`; version 0.8.330 / code 365. Phase 4 remains verified complete. Phase 5 menu/action audit remains active; Phase 6 responsive/accessibility work is partial. The UI 2.0 project is not complete.
+- Responsive workspace changes in the current working tree: portrait renderer now remains full-viewport with the expanded Compose action menu drawn as a bounded overlay; model-menu chrome is included in panel sizing; larger-text message dialogs have a capped, scrollable body; cut panel bounds are reduced for short viewports. No GL renderer or native engine changes.
+- Tests against this working tree: Debug Unit 582/582 passed; Slice Unit 582/582 passed; `InitialProjectMenuDeviceTest` 42/42 on Honor; `AdaptiveWorkspaceNavigationDeviceTest` 3/3; `SettingsAccessibilityDeviceTest` 1/1; `FilamentPaletteComposeDeviceTest` 20/20; `MultiPlateProjectDeviceTest` 4/4; `WorkspaceToolOverlayDeviceTest` 1/1; `SettingsMenuActionDeviceTest` 7/7. Full `:app:connectedSliceTestAndroidTest` JUnit XML: 235 tests, 232 passed, 3 skipped, 0 failed/errors. The three skipped tests require the external private KromaCut fixture; fixture-backed focused results are recorded in the preceding entry.
+- `:app:assembleDebug` succeeded. Working-tree APK: `OrkanSlicer_18454f029d.apk`, 157,294,387 bytes, SHA-256 `D6B533D05945D5202F3BB17BE7BF26A7C2245B22531CBB065C2B22C23D5415C3`. Installed and launched on Honor PTP-N49 / Android 16, package `com.codemastercody3d.orcaslicermobile`, version 0.8.330 / code 365. Workspace screenshot visually checked; last sampled Logcat had no crash, ANR, OOM, or fatal signal. APK filename identifies base HEAD; a commit-specific APK must be rebuilt after committing these edits.
+- Honor was restored to 1280×2800 px / 560 dpi / font scale 1.0 / automatic rotation. Emulator remains offline. No printer sync, firmware change, or print start occurred.
+- Open: broader Phase 5 action matrix is not complete; physical/manual TalkBack traversal and full display/font matrix are not complete; multi-plate project persistence remains a separate feature. Next: review/commit the verified responsive/menu changes on the existing branch, rebuild an APK tied to the resulting code commit, then continue untested menu/action and accessibility coverage. Do not publish a new release or mark UI 2.0 complete from this checkpoint.
+
+---
+
 # Current continuation state — 2026-10-20 (v0.8.330 project-menu refresh)
 
 - Current phase: Phase 5 menu/action audit; Phase 4 architecture acceptance remains complete. The next concrete step is extending the action audit beyond the current Honor suite and addressing remaining accessibility review. Phase 6 is partial; TalkBack manual traversal remains open. Full multi-plate project persistence remains a separate open feature.

@@ -312,7 +312,7 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
     }
 
     internal override fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize(
-        portrait = WorkspacePanelDimension.ClampedFraction(1f / 3f, minDp = 240f, maxDp = 300f),
+        portrait = WorkspacePanelDimension.ClampedFraction(1f / 3f, minDp = 180f, maxDp = 280f),
         landscape = WorkspacePanelDimension.ClampedFraction(0.42f, maxDp = 360f),
     )
 

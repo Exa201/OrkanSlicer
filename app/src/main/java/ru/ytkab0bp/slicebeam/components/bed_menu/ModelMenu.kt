@@ -68,6 +68,7 @@ class ModelMenu : ListBedMenu() {
                 if (selectedScope.intValue == 0) selectedActions else allActions,
                 portrait,
                 multiRow = true,
+                modifier = Modifier.weight(1f),
             )
         }
     }

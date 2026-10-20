@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -47,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShellLayoutPolicy
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -121,7 +123,12 @@ internal object BedMenuActionTileWidthPolicy {
 }
 
 @Composable
-internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait: Boolean, multiRow: Boolean = false) {
+internal fun BedMenuActionsContent(
+    actions: List<BedComposeMenuAction>,
+    portrait: Boolean,
+    multiRow: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
     val menuView = LocalView.current
     val widthDp = LocalConfiguration.current.screenWidthDp
     val fontScale = LocalDensity.current.fontScale
@@ -129,12 +136,15 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             actions.size, portrait, widthDp, fontScale,
         ))) {
         val columns = BedMenuActionTileWidthPolicy.columnsForLayout(fontScale, widthDp)
-        val rows = 2
         val scrollHintWidth = OrkanUiTokens.touchTarget
         val scrollHintEndGap = 4.dp
         val scrollHintDescription = stringResource(R.string.WorkspaceMoreTitle)
         val coroutineScope = rememberCoroutineScope()
-        BoxWithConstraints(Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier.fillMaxSize()) {
+            val rows = WorkspaceShellLayoutPolicy.portraitMenuRows(
+                availableHeightDp = maxHeight.value.toInt(),
+                fontScale = fontScale,
+            )
             val scrollPagePx = with(LocalDensity.current) {
                 (maxWidth - scrollHintWidth - scrollHintEndGap).toPx()
             }
@@ -149,7 +159,7 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             LazyHorizontalGrid(
                 rows = GridCells.Fixed(rows),
                 state = gridState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().testTag("workspace-menu-actions-grid"),
                 contentPadding = PaddingValues(start = 4.dp, end = scrollHintWidth + scrollHintEndGap),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
@@ -188,7 +198,7 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
         ).dp
         val tileHeight = if (fontScale >= 1.3f) 82.dp else OrkanUiTokens.menuTileHeight
         LazyRow(
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize().testTag("workspace-menu-actions-grid"),
             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -207,7 +217,7 @@ internal fun BedMenuActionsContent(actions: List<BedComposeMenuAction>, portrait
             // A horizontal Android parent can temporarily measure MATCH_PARENT children
             // with an unbounded height while the navigation layout is being rebuilt.
             // Give the scroll container a finite outer cap before applying verticalScroll.
-            modifier = Modifier
+            modifier = modifier
                 .heightIn(max = LocalConfiguration.current.screenHeightDp.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
@@ -293,7 +303,10 @@ private fun BedMenuActionTile(
         Modifier.clickable(enabled = action.enabled, role = Role.Button) { action.onClick(menuView) }
     }
     Surface(
-        modifier = modifier.padding(3.dp).semantics { contentDescription = fullTitle }.then(interaction),
+        modifier = modifier
+            .padding(3.dp)
+            .semantics { contentDescription = fullTitle }
+            .then(interaction),
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         color = background,
         contentColor = foreground,

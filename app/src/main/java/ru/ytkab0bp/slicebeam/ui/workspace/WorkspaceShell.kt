@@ -10,6 +10,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.runtime.Composable
@@ -33,6 +37,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import androidx.compose.material3.MaterialTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
@@ -49,6 +54,7 @@ internal fun WorkspaceShell(
     portrait: Boolean,
     toolPanelExpanded: Boolean,
     toolPanelNeedsTwoRows: Boolean,
+    toolPanelAdditionalChromeDp: Int = 0,
     navigationItemCount: Int,
     menuWidthDp: Int,
     rendererView: View,
@@ -74,6 +80,7 @@ internal fun WorkspaceShell(
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
         toolPanelNeedsTwoRows,
         LocalDensity.current.fontScale,
+        toolPanelAdditionalChromeDp,
     )
     val navigationHeightDp = AdaptiveNavigationPolicy.navigationBarHeightDp(
         LocalDensity.current.fontScale,
@@ -143,17 +150,32 @@ internal fun WorkspaceShell(
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().heightIn(min = 0.dp)) { projectSettingsContent() }
             header(Modifier)
-            AndroidView(
-                factory = { rendererView },
-                modifier = Modifier.fillMaxWidth().weight(1f).heightIn(min = 0.dp),
-            )
-            if (toolPanelExpanded) {
-                WorkspaceMenuHost(
-                    slot = activeMenuSlot,
-                    composeContentForSlot = menuComposeContentForSlot,
-                    modifier = Modifier.fillMaxWidth().height(toolPanelHeightDp.coerceAtLeast(0).dp),
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                AndroidView(
+                    factory = { rendererView },
+                    modifier = Modifier.fillMaxSize(),
                 )
-                Spacer(Modifier.fillMaxWidth().height(1.dp).background(background.copy(alpha = 0.35f)))
+                // Once a GL-bound mode owns the interaction, keep the workspace
+                // action grid out of the canvas hit area. It returns with the mode
+                // panel when the tool closes.
+                if (toolPanelExpanded && modePanelContent == null) {
+                    val overlayHeightDp = WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(
+                        viewportHeightDp = maxHeight.value.toInt(),
+                        preferredHeightDp = toolPanelHeightDp,
+                        fontScale = LocalDensity.current.fontScale,
+                    )
+                    WorkspaceMenuHost(
+                        slot = activeMenuSlot,
+                        composeContentForSlot = menuComposeContentForSlot,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(overlayHeightDp.dp)
+                            .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+                            .testTag("workspace-menu-panel"),
+                    )
+                }
             }
             AdaptiveWorkspaceNavigation(
                 modifier = Modifier.fillMaxWidth().height(navigationHeightDp.dp),
@@ -264,6 +286,29 @@ internal fun WorkspaceActionControl(
 
 /** Measurable policy for the portion of a compact workspace reserved for the actual build plate. */
 internal object WorkspaceShellLayoutPolicy {
+    /** Keeps the renderer at full viewport size while fitting the expanded action menu over it. */
+    @JvmStatic
+    fun portraitMenuOverlayHeightDp(viewportHeightDp: Int, preferredHeightDp: Int, fontScale: Float): Int {
+        val viewport = viewportHeightDp.coerceAtLeast(0)
+        if (viewport == 0) return 0
+        // The action host needs enough height for its chrome plus at least two
+        // accessible rows at large text. The renderer still occupies the full
+        // viewport behind this overlay, so reserving only 55% clipped actions.
+        val maxOverlay = (viewport * 0.80f).toInt().coerceIn(1, viewport)
+        val preferred = preferredHeightDp.coerceAtLeast(0)
+        if (preferred <= maxOverlay) return preferred
+        val twoRowMinimum = if (fontScale >= 1.3f) 152 else 112
+        if (maxOverlay >= twoRowMinimum) return maxOverlay
+        // If two rows no longer fit, retain one touch-friendly row. Its actions
+        // remain horizontally scrollable and the full GL view continues behind it.
+        val compactRow = if (fontScale >= 1.3f) 88 else 64
+        return minOf(maxOverlay, compactRow)
+    }
+
+    @JvmStatic
+    fun portraitMenuRows(availableHeightDp: Int, fontScale: Float): Int =
+        if (availableHeightDp < if (fontScale >= 1.3f) 152 else 112) 1 else 2
+
     /** Reserve a usable action menu while leaving most wide-window space to the renderer. */
     @JvmStatic
     fun menuPanelWidthDp(availableWidthDp: Int, fontScale: Float): Int {

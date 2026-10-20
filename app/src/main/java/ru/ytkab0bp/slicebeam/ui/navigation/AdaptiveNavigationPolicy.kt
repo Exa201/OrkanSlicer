@@ -65,9 +65,13 @@ object WorkspaceToolPanelPolicy {
     const val LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP = 160
 
     @JvmStatic
-    fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float): Int {
-        if (!needsTwoRows) return if (fontScale >= 1.3f) 88 else COMPACT_MENU_HEIGHT_DP
-        return if (fontScale >= 1.3f) 176 else if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
+    fun menuHeightDp(needsTwoRows: Boolean, fontScale: Float, additionalChromeDp: Int = 0): Int {
+        val base = if (!needsTwoRows) {
+            if (fontScale >= 1.3f) 88 else COMPACT_MENU_HEIGHT_DP
+        } else {
+            if (fontScale >= 1.3f) 176 else if (fontScale >= 1.15f) LARGE_TEXT_TWO_ROW_MENU_HEIGHT_DP else TWO_ROW_MENU_HEIGHT_DP
+        }
+        return base + additionalChromeDp.coerceAtLeast(0)
     }
 
     @JvmStatic

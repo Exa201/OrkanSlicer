@@ -60,4 +60,20 @@ class WorkspaceShellLayoutPolicyTest {
             WorkspaceShellLayoutPolicy.plateViewportHeightDp(-1, -1, -1, -1, -1, true),
         )
     }
+
+    @Test
+    fun compactPortraitMenuOverlaysTheRendererAndFallsBackToOneScrollableRow() {
+        assertEquals(160, WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(200, 176, 1.5f))
+        assertEquals(2, WorkspaceShellLayoutPolicy.portraitMenuRows(160, 1.5f))
+        assertEquals(80, WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(100, 176, 1.5f))
+        assertEquals(1, WorkspaceShellLayoutPolicy.portraitMenuRows(80, 1.5f))
+        assertEquals(140, WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(320, 140, 1f))
+        assertEquals(2, WorkspaceShellLayoutPolicy.portraitMenuRows(140, 1f))
+    }
+
+    @Test
+    fun portraitMenuNeverConsumesMoreThanItsRendererViewport() {
+        assertEquals(0, WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(0, 176, 1.5f))
+        assertEquals(40, WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(50, 176, 1.5f))
+    }
 }
