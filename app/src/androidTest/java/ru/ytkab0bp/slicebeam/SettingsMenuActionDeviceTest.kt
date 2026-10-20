@@ -56,7 +56,8 @@ class SettingsMenuActionDeviceTest {
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceResolutionScale))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetLabel, substring = true)
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { Prefs.getRenderScale() == targetScale }
             assertEquals("Selecting a scale applies the selected app preference", targetScale, Prefs.getRenderScale(), 0f)
 
@@ -87,7 +88,7 @@ class SettingsMenuActionDeviceTest {
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTheme))
                 .assertIsDisplayed().performClick()
-            compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetLabel).performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { Prefs.getThemeMode() == targetTheme }
             assertEquals(targetTheme, Prefs.getThemeMode())
 
@@ -126,7 +127,8 @@ class SettingsMenuActionDeviceTest {
 
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTextSize))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
+            compose.onNodeWithText(targetLabel, substring = true)
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { Prefs.getUiTextScale() == targetScale }
             compose.waitForIdle()
 
