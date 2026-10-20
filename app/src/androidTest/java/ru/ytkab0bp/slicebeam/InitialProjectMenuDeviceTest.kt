@@ -20,6 +20,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -484,8 +485,14 @@ class InitialProjectMenuDeviceTest {
                 .assertIsDisplayed().assertIsEnabled()
             compose.onNodeWithText(activity.getString(R.string.SmartSliceTitle))
                 .assertIsDisplayed().assertIsEnabled()
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(2)
+            compose.waitForIdle()
             compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
                 .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("pre-slice-title").fetchSemanticsNodes().isNotEmpty()
+            }
 
             compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
             compose.onNodeWithTag("pre-slice-cancel").performClick()
@@ -495,7 +502,8 @@ class InitialProjectMenuDeviceTest {
             assertFalse("Cancel must not start native slicing", bed.hasSliceResult())
 
             compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
             compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
@@ -529,8 +537,14 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
                     .fetchSemanticsNodes().isNotEmpty()
             }
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(2)
+            compose.waitForIdle()
             compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
                 .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("pre-slice-title").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
             compose.onNodeWithTag("pre-slice-confirm").performClick()
 
@@ -558,6 +572,8 @@ class InitialProjectMenuDeviceTest {
             )
 
             // Slicing refreshes the same Slice menu from pre-slice actions to result actions.
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
+            compose.waitForIdle()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceInfo))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithTag("slice-info-title").assertIsDisplayed()
@@ -587,6 +603,8 @@ class InitialProjectMenuDeviceTest {
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
 
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(4)
+            compose.waitForIdle()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuSlicePerformance))
                 .assertIsDisplayed().performClick()
             assertEquals("performance result action must toggle the preference", !oldPerformanceMode,
@@ -605,6 +623,8 @@ class InitialProjectMenuDeviceTest {
                 true,
             )
             try {
+                compose.onNode(hasScrollToIndexAction()).performScrollToIndex(3)
+                compose.waitForIdle()
                 compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceShare))
                     .assertIsDisplayed().assertIsEnabled().performClick()
                 compose.waitUntil(timeoutMillis = 5_000) { chooserMonitor.hits > 0 }
@@ -672,8 +692,14 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithText(activity.getString(R.string.MenuSliceCurrentSettings))
                     .fetchSemanticsNodes().isNotEmpty()
             }
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(2)
+            compose.waitForIdle()
             compose.onNodeWithText(activity.getString(R.string.MenuSliceCurrentSettings))
                 .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("pre-slice-confirm").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("pre-slice-confirm").performClick()
 
             val mismatchContinue = compose.onAllNodesWithText(
@@ -842,10 +868,10 @@ class InitialProjectMenuDeviceTest {
             .assertIsDisplayed()
             .performClick()
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfiles))
+            compose.onAllNodesWithContentDescription(activity.getString(R.string.MenuFileExportProfiles))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfiles))
+        compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileExportProfiles))
             .assertIsDisplayed()
             .performClick()
         compose.waitUntil(timeoutMillis = 5_000) {
@@ -883,11 +909,11 @@ class InitialProjectMenuDeviceTest {
                 .assertIsDisplayed()
                 .performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithText(activity.getString(R.string.MenuFileImportProfiles))
+                compose.onAllNodesWithContentDescription(activity.getString(R.string.MenuFileImportProfiles))
                     .fetchSemanticsNodes().isNotEmpty()
             }
 
-            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileImportProfiles))
                 .assertIsDisplayed()
                 .performClick()
             val request = requireNotNull(capturedIntent.get())
@@ -896,7 +922,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue(request.categories?.contains(Intent.CATEGORY_OPENABLE) == true)
             assertFalse(request.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
             assertTrue(request.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)?.contains("text/plain") == true)
-            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles)).assertIsDisplayed()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileImportProfiles)).assertIsDisplayed()
             assertFalse("opening the picker must not show an import dialog before a result is selected",
                 (activity.navigationDelegate.getCurrentFragment() as BedFragment).isWorkspaceMessageDialogAttached())
         } finally {
@@ -945,7 +971,7 @@ class InitialProjectMenuDeviceTest {
                 .assertIsDisplayed().performClick()
             fun chooseImportFile() {
                 capturedIntent.set(null)
-                compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+                compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileImportProfiles))
                     .assertIsDisplayed().performClick()
                 val pickerIntent = requireNotNull(capturedIntent.get())
                 assertEquals(Intent.ACTION_OPEN_DOCUMENT, pickerIntent.action)
@@ -1006,7 +1032,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue("the selected printer fixture should include the conflict target", existingLayerHeight != null)
             input.writeText("[print:$existingProfileName]\nlayer_height = 0.19\n", StandardCharsets.UTF_8)
             capturedIntent.set(null)
-            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileImportProfiles))
                 .assertIsDisplayed().performClick()
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
 
@@ -1038,7 +1064,7 @@ class InitialProjectMenuDeviceTest {
 
             input.writeText("[print:$existingProfileName]\nlayer_height = 0.19\n", StandardCharsets.UTF_8)
             capturedIntent.set(null)
-            compose.onNodeWithText(activity.getString(R.string.MenuFileImportProfiles))
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileImportProfiles))
                 .assertIsDisplayed().performClick()
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
             val overwriteResult = Intent().setData(inputUri)
@@ -1108,10 +1134,10 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuOptions))
                 .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfiles))
+                compose.onAllNodesWithContentDescription(activity.getString(R.string.MenuFileExportProfiles))
                     .fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithText(activity.getString(R.string.MenuFileExportProfiles)).performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileExportProfiles)).performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfilesPrints))
                     .fetchSemanticsNodes().isNotEmpty()
@@ -1121,10 +1147,12 @@ class InitialProjectMenuDeviceTest {
                 compose.onNodeWithText(activity.getString(R.string.IntroNext)).performClick()
                 compose.waitForIdle()
             }
-            val exportLabels = compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfiles))
-            assertEquals("the open export dialog and workspace action should both have semantics", 2,
-                exportLabels.fetchSemanticsNodes().size)
-            exportLabels[1].performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileExportProfiles))
+                .assertIsDisplayed()
+            val exportDialogActions = compose.onAllNodesWithText(activity.getString(R.string.MenuFileExportProfiles))
+            val exportDialogActionIndex = exportDialogActions.fetchSemanticsNodes().lastIndex
+            assertTrue("the profile export dialog should expose its final action", exportDialogActionIndex >= 0)
+            exportDialogActions.get(exportDialogActionIndex).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 capturedIntent.get() != null
             }
@@ -1553,8 +1581,9 @@ class InitialProjectMenuDeviceTest {
             selectSingleObjectScope()
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(5)
             val beforeOrientSelected = model.geometryRevision
-            compose.onNodeWithText(activity.getString(R.string.ModelMenuAutoOrientSelectedShort))
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuAutoOrientSelected))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision > beforeOrientSelected }
             assertEquals("Auto Orient Selected should process only the selected object", beforeOrientSelected + 1,
@@ -2826,7 +2855,11 @@ class InitialProjectMenuDeviceTest {
                 PreSliceFilamentDialog.Callback { selectedSlots.set(it) },
             )
             compose.onNodeWithTag("pre-slice-title").assertIsDisplayed()
-            compose.onNodeWithText(activity.getString(R.string.PreSliceIndividualMode)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.PreSliceIndividualMode))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("pre-slice-object-slot-0").fetchSemanticsNodes().isNotEmpty()
+            }
 
             // Object 1 -> slot 4/T3, object 2 -> slot 2/T1.
             compose.onNodeWithTag("pre-slice-object-slot-0").performScrollTo().performClick()
