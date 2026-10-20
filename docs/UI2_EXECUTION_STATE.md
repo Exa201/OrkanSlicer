@@ -1,3 +1,15 @@
+# Current continuation state — 2026-10-20 (v0.8.330 project-menu refresh)
+
+- Current phase: Phase 5 menu/action audit; Phase 4 architecture acceptance remains complete. The next concrete step is extending the action audit beyond the current Honor suite and addressing remaining accessibility review. Phase 6 is partial; TalkBack manual traversal remains open. Full multi-plate project persistence remains a separate open feature.
+- Runtime commit `6a1748da93991f6747bdacbe35beadf1bb24b28a`, version 0.8.330 / code 365: model import commit now fires `ObjectsListChangedEvent` after history and plate indicator updates. This invalidates visible Compose menu state, so Project → “3MF sichern” is enabled immediately when a model is imported while the Project menu remains open. A Honor regression test verifies the action becomes enabled and launches the document-create flow.
+- Fixed the app's actual localized changelog asset `app/src/main/assets/update.json` for 0.8.330 after the first full Honor run exposed that the dialog still showed 0.8.329. `ChangeLogComposeDeviceTest` passed 1/1 after this correction.
+- Fixed two slicing tests to reveal the Slicen route with an actual rail swipe in landscape; replaced synthetic `UiAutomation` touch injection in the paint test with direct MotionEvent dispatch through the real GLView.
+- Honor `InitialProjectMenuDeviceTest` passed 42/42 in true 800×366 dp landscape, including slicing/G-code result/export and the active-model Project export action. Full `:app:connectedSliceTestAndroidTest` completed 235 tests: 232 passed and the three private KromaCut fixture cases were skipped; 0 failures/errors. This is the rerun after the changelog asset fix. Debug unit and Slice unit suites each passed 579/579; `:app:assembleDebug` succeeded.
+- APK built from commit `6a1748da93991f6747bdacbe35beadf1bb24b28a`: `OrkanSlicer_6a1748da93.apk`, 157,294,395 bytes, SHA-256 `8775607C2BB385010D48A84975216FEF7243B02AAE9DEF88D432F05E1F3D5443`. Installed and launched on Honor PTP-N49 / Android 16; the exact package `com.codemastercody3d.orcaslicermobile` reports 0.8.330 / code 365 and MainActivity is top-resumed. Startup sample had no fatal exception, ANR, OOM, or fatal signal.
+- No printer sync or print was performed. Device emulator remains offline. Restore state: Honor at 1280×2800 px / 560 dpi / font scale 1.0, automatic rotation enabled, OrkanSlicer foreground. PR #2 is open; push/status update pending. Do not mark UI 2.0 complete.
+
+---
+
 # Current continuation state — 2026-10-20 (confirmed landscape navigation and tool checks)
 
 - The previously published Debug prerelease remains v0.8.329; no new APK or release was created in this test-focused continuation. The prior release’s landscape layout fixes are visually confirmed on the Honor in a real 800×366 dp landscape configuration (`wm size 1280x2800`, rotation locked to 90°; `dumpsys` reported `w800dp h366dp land`).

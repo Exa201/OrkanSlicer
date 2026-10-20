@@ -1661,3 +1661,13 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - APK `app/build/outputs/apk/debug/OrkanSlicer_6b1fb9e697.apk`, 157,252,572 bytes; SHA-256 `792DA73BF274E3A6F6E5F0EC6BA5BBC93199F7BCDD2FF8FD7296EFC7A2C97570`. Screenshots and UIAutomator dump are under `app/build/outputs/apk/debug/` and are not committed.
 - No physical printer synchronization or print started. Manual TalkBack traversal remains unverified; emulator remains offline. UI 2.0 remains in progress, with Phase 5 action audit and Phase 6 accessibility acceptance open.
 
+
+# Debug build and Honor verification — 0.8.330 (2026-10-20)
+
+- Code commit: `6a1748da93991f6747bdacbe35beadf1bb24b28a`; branch `codex/rinkhals-safe-start-audit`; version 0.8.330 / code 365.
+- Debug and Slice unit suites each passed 579/579 with 0 failures/errors/skips. Full Honor `:app:connectedSliceTestAndroidTest` JUnit XML timestamp `2026-10-20T05:16:19`: 235 cases, 232 passed, 3 skipped, 0 failures/errors. The skipped cases are the three private KromaCut 3MF fixture scenarios. The suite was rerun after updating the app-consumed `update.json`; the focused release-notes test also passed 1/1.
+- `InitialProjectMenuDeviceTest`: 42/42 passed in true landscape at 800×366 dp. It verifies navigation to Slicing, actual slice/G-code result/export flow, and Project → 3MF export becoming enabled after importing a model while the Project menu remains open.
+- `:app:assembleDebug` succeeded. APK: `app/build/outputs/apk/debug/OrkanSlicer_6a1748da93.apk`, 157,294,395 bytes; SHA-256 `8775607C2BB385010D48A84975216FEF7243B02AAE9DEF88D432F05E1F3D5443`.
+- Installed and launched on Honor PTP-N49 / Android 16; package `com.codemastercody3d.orcaslicermobile`, version 0.8.330 / code 365; `MainActivity` top-resumed. Sampled startup Logcat contained no FATAL EXCEPTION, ANR, OutOfMemoryError, or fatal signal. Emulator `emulator-5554` remained offline.
+- A first full-suite attempt exposed stale in-app release notes still labeled 0.8.329 after the version bump. Updated localized `app/src/main/assets/update.json`; focused test and complete rerun passed (with only the three fixture skips). No printer was synchronized and no print was started. UI 2.0 remains incomplete; manual TalkBack review and the broader menu audit remain open.
+
