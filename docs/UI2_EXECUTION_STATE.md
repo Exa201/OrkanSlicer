@@ -1,3 +1,16 @@
+# Current continuation state — 2026-10-20
+
+## Honor verification — per-object filament assignment and profile Back/reset stability
+
+- Current branch: `codex/rinkhals-safe-start-audit`; starting code HEAD: `d1151d5cac71c7319aede3f440c0426e4392067a`. Product source/version unchanged in this continuation.
+- Extended `InitialProjectMenuDeviceTest#modelObjectsMenuAssignmentOverridesImportedThreeMfMaterial` to assign two separate objects through the actual Model → Objects → Assign Filament UI to different app slots, and verify the native model reports object 1 on T2 and object 2 on T3 while preserving the other object's assignment at each step. The test then slices that same model and verifies the emitted G-code uses T2 and T3 and that its declared filament color palette equals the selected four-slot palette. The bundled Anycubic start macro is omitted from the disposable test config because the native engine rejects its profile-specific conditional syntax; this test verifies model/tool/color routing and does not verify printer start scripts or start a print. Test fixture/config/preferences are restored in `finally`.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 42/42 passed; `PrintProfileDropdownIntegrationDeviceTest` 18/18 passed; full connected instrumentation XML at `2026-10-20T00:00:17`: 234 cases, 231 passed, 3 private/external KromaCut fixture cases skipped, 0 failures/errors. Emulator remains offline. A full-suite run initially exposed one intermittent profile-editor Back wait; the test now dispatches Activity Back on main for the route dismissal, retains a real Back key event for the platform Compose dialog, and waits for the dialog control to recompose. Isolated and full-class reruns passed.
+- Debug and Slice unit suites each: 578/578, zero failures/errors/skips. `git diff --check` passed. A first redundant Gradle attempt lacked `ANDROID_HOME`; rerun with the already-installed SDK path succeeded. SDK emits an XML schema version warning only.
+- Pending files: the two Android instrumentation test sources and this status note. No production source or APK changed, so no version bump/release is warranted. The test-only change is ready to commit/push to the existing branch and report on PR #2.
+- Remaining: Phase 5 full menu action audit and Phase 6 manual TalkBack/additional physical layout acceptance remain open; three private/external KromaCut tests were not exercised in this full run. The project remains incomplete; multi-plate project persistence is separate and open. Next: publish the verified test-only changes, then continue remaining safe menu action coverage and accessibility checks.
+
+---
+
 # Current continuation state — 2026-10-19
 
 ## ACE multicolor routing and KromaCut regression — v0.8.325

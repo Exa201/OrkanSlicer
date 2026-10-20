@@ -61,10 +61,12 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCubeGeometry
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
+import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -2675,8 +2677,20 @@ class InitialProjectMenuDeviceTest {
             FilamentSlot(0xFFCC3333.toInt(), "UI Test PLA"),
             FilamentSlot(0xFF3366CC.toInt(), "UI Test PETG"),
             FilamentSlot(0xFF33AA66.toInt(), "UI Test ABS"),
+            FilamentSlot(0xFFFFCC22.toInt(), "UI Test TPU"),
         )
         Prefs.setStoredFilamentSlots(testSlots)
+        SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
+        Prefs.init(activity.applicationContext as SliceBeam)
+        TemporaryProjectSettings.clear()
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val snapshotKeys = listOf("mmu_snapshot_printer", "mmu_snapshot")
+        val previousSnapshots = snapshotKeys.associateWith { prefs.getString(it, null) }
+        val output = File(activity.cacheDir, "menu-multi-object-filament-${System.nanoTime()}.gcode")
+        var sliceResult: GCodeProcessorResult? = null
         try {
             val loadedLatch = CountDownLatch(1)
             var loaded: Model? = null
@@ -2700,23 +2714,76 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.ModelMenuObjectsShort)).assertIsDisplayed().performClick()
             compose.onAllNodesWithText(activity.getString(R.string.ObjectActionAssignFilamentShort))[0]
                 .assertIsDisplayed().performClick()
-            val targetLabel = activity.getString(
-                R.string.ModelContextFilamentSlot,
-                2,
-                "UI Test ABS",
-                String.format(java.util.Locale.ROOT, "#%06X", testSlots[2].color and 0xFFFFFF),
-            )
-            compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 10_000) {
-                bed.currentModel?.getUsedFilaments(0)?.contentEquals(intArrayOf(3)) == true
+            fun assignObject(index: Int, slot: Int) {
+                openModelMenu(activity)
+                compose.onNodeWithText(activity.getString(R.string.ModelMenuObjectsShort))
+                    .assertIsDisplayed().performClick()
+                compose.onAllNodesWithText(activity.getString(R.string.ObjectActionAssignFilamentShort))[index]
+                    .assertIsDisplayed().performClick()
+                val targetLabel = activity.getString(
+                    R.string.ModelContextFilamentSlot,
+                    slot,
+                    testSlots[slot].type,
+                    String.format(java.util.Locale.ROOT, "#%06X", testSlots[slot].color and 0xFFFFFF),
+                )
+                compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    bed.currentModel?.getUsedFilaments(index)?.contentEquals(intArrayOf(slot + 1)) == true
+                }
             }
-            assertArrayEquals("explicit Model-menu T2 assignment replaces imported 3MF T0",
-                intArrayOf(3), requireNotNull(bed.currentModel).getUsedFilaments(0))
-            assertArrayEquals("unselected second object keeps its imported T1 assignment",
+
+            // Assign different own slots through the real object-list UI, one object at a time.
+            assignObject(index = 0, slot = 2)
+            assertArrayEquals("assigning object 1 must leave object 2 on its imported tool",
                 intArrayOf(2), requireNotNull(bed.currentModel).getUsedFilaments(1))
+            assignObject(index = 1, slot = 3)
+            val assignedModel = requireNotNull(bed.currentModel)
+            assertArrayEquals("object 1 should use own T2", intArrayOf(3), assignedModel.getUsedFilaments(0))
+            assertArrayEquals("object 2 should independently use own T3", intArrayOf(4), assignedModel.getUsedFilaments(1))
             assertFalse("uniform reassignment removes old per-volume paint overrides",
-                requireNotNull(bed.currentModel).hasPaint(0))
+                assignedModel.hasPaint(0))
+
+            // Slice the same renderer model and check both the G-code tools and its declared palette.
+            activity.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            val editor = prefs.edit()
+            snapshotKeys.forEach(editor::remove)
+            editor.commit()
+            SliceBeam.genCurrentConfig(assignedModel)
+            val expectedPalette = testSlots.take(4).joinToString(";") {
+                String.format(java.util.Locale.ROOT, "#%06X", it.color and 0xFFFFFF)
+            }
+            val generatedConfig = configFile.readText()
+            assertTrue("slice config must use the current four-slot palette",
+                Regex("(?m)^filament_colour = ${Regex.escape(expectedPalette)}$").containsMatchIn(generatedConfig))
+            // Keep this test focused on model/tool/color routing. The bundled Anycubic filament
+            // profile has a custom start script that this native engine build rejects; no printer
+            // start script is needed to verify the generated object tools or preview palette.
+            configFile.writeText(generatedConfig.lineSequence()
+                .filterNot { it.startsWith("filament_start_gcode = ") }
+                .joinToString("\n"))
+            sliceResult = assignedModel.slice(configFile.absolutePath, output.absolutePath, null)
+            assertTrue("the multicolor object slice should create non-empty G-code", output.isFile && output.length() > 0)
+            val gcode = output.readText()
+            val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
+                .map { it.groupValues[1].toInt() }.toSet()
+            assertTrue("G-code must emit object 1's assigned T2, tools=$emittedTools", 2 in emittedTools)
+            assertTrue("G-code must emit object 2's assigned T3, tools=$emittedTools", 3 in emittedTools)
+            assertTrue("G-code preview palette must match the four selected slot colors",
+                Regex("(?m)^; filament_colour = ${Regex.escape(expectedPalette)}$").containsMatchIn(gcode))
         } finally {
+            sliceResult?.release()
+            output.delete()
+            val editor = prefs.edit()
+            previousSnapshots.forEach { (key, value) -> if (value == null) editor.remove(key) else editor.putString(key, value) }
+            editor.commit()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            TemporaryProjectSettings.clear()
             Prefs.setStoredFilamentSlots(previousSlots)
             file.delete()
         }

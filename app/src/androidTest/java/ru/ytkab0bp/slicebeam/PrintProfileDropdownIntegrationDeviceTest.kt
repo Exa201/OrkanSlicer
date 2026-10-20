@@ -767,7 +767,9 @@ class PrintProfileDropdownIntegrationDeviceTest {
 
         // Android Back dismisses the settings route. The uncommitted edit remains a draft, while
         // the persisted preset continues to retain its original value.
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            activity.onBackPressedDispatcher.onBackPressed()
+        }
         compose.waitUntil(timeoutMillis = 10_000) {
             activity.navigationDelegate.getCurrentFragment() !is PrinterConfigFragment
         }
@@ -786,6 +788,8 @@ class PrintProfileDropdownIntegrationDeviceTest {
         compose.onNodeWithContentDescription(resetDescription)
             .assertIsDisplayed().performClick()
         compose.onNodeWithText(activity.getString(R.string.SettingsResetProfileTitle)).assertIsDisplayed()
+        // Compose AlertDialog owns a separate platform dialog window, so exercise its real
+        // Android Back dismissal instead of invoking the activity dispatcher directly.
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.waitForIdle()
         assertTrue("Dismissing reset must leave the edit draft pending",
@@ -793,6 +797,9 @@ class PrintProfileDropdownIntegrationDeviceTest {
         assertEquals("Dismissing reset keeps the stored printer preset unchanged", storedBedSurface,
             storedPrinter.get("curr_bed_type"))
 
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithContentDescription(resetDescription).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithContentDescription(resetDescription)
             .performClick()
         compose.onNodeWithText(activity.getString(android.R.string.ok)).assertIsDisplayed().performClick()
