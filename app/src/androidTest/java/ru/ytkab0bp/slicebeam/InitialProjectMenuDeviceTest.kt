@@ -3004,7 +3004,13 @@ class InitialProjectMenuDeviceTest {
             !(controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
         if (needsSelection || needsExpansion) {
             val destinationNode = compose.onNodeWithContentDescription(activity.getString(labelRes))
-            if (!compactPortrait) destinationNode.performScrollTo()
+            val destinationVisible = runCatching {
+                destinationNode.assertIsDisplayed()
+                true
+            }.getOrDefault(false)
+            if (!compactPortrait && !destinationVisible) {
+                destinationNode.performScrollTo()
+            }
             destinationNode.assertIsDisplayed().performClick()
         }
         compose.waitUntil(timeoutMillis = 5_000) {

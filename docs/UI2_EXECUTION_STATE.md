@@ -1923,3 +1923,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - No product defect was demonstrated in these two cases. Do not count prior selector failures as runtime failures or these focused passes as full-suite acceptance.
 - Phase 5 menu/action audit and Phase 6 responsive/accessibility acceptance remain open. Manual TalkBack, the abnormal landscape slice-menu instrumentation case, remaining menu actions, and complete multi-plate persistence remain open. No printer sync, firmware change, or print start occurred.
 - Next: review test diff, commit and push the selector corrections with this verification note, then continue Phase 5/6 acceptance from the remaining unverified menu/action cases. UI 2.0 is not complete.
+
+# UI 2.0 continuation — 2026-10-21 (landscape slice-menu test unblocked)
+
+- Current pushed base: `a3e04002ec485bea63bb92982a055f34984db022`. This follow-up changes only the `InitialProjectMenuDeviceTest` selector helper and verification docs; no runtime source changed.
+- Root cause: after the test explicitly swiped the regular landscape navigation rail to reveal Slice, `openWorkspaceMenu` still called `performScrollTo()` for the already-visible destination. That redundant bring-into-view request hung the Compose test runner. The helper now checks visibility and scrolls only when needed.
+- Honor PTP-N49 / Android 16: the targeted landscape Cancel/Back test passed 1/1 after the fix; the complete `InitialProjectMenuDeviceTest` then passed 42/42 in actual Activity landscape with 0 skips/failures/errors. This resolves the previously recorded incomplete landscape class for this current test source.
+- After teardown, regular OrkanSlicer `MainActivity` was top-resumed, auto-rotation remained enabled, user rotation was 0, and sampled Logcat had no fatal exception/ANR/OOM/fatal signal. Emulator remains offline.
+- No Debug/Slice unit suite, full instrumentation suite, APK, release, or merge occurred in this test-only follow-up. Phase 5/6 and manual TalkBack remain incomplete; full multi-plate project persistence is separate and still incomplete. No printer sync, firmware change, or print start occurred.
+- Next: commit/push the verified test-helper correction and continue the uncovered Phase 5/6 action matrix. Do not claim the full connected suite from this class-only result.
