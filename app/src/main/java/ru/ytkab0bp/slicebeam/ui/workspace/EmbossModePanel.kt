@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import ru.ytkab0bp.slicebeam.R
@@ -81,7 +82,10 @@ internal fun EmbossModePanel(controller: EmbossModeController, onExit: () -> Uni
                 label = { Text(stringResource(R.string.EmbossEngrave)) },
             )
         }
-        Button(onClick = onExit, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Button(
+            onClick = onExit,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("emboss-done"),
+        ) {
             Text(stringResource(R.string.ActionDone))
         }
     }
