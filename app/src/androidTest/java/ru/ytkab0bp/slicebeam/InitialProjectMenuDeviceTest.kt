@@ -5,6 +5,8 @@ import android.app.Activity
 import android.app.Instrumentation.ActivityResult
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.view.InputDevice
 import android.view.MotionEvent
@@ -48,6 +50,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertArrayEquals
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -88,6 +92,47 @@ class InitialProjectMenuDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
     private var lastDeviceTapDiagnostic = "not tapped"
+    private var previousRequestedOrientation: Int? = null
+
+    /** Allows a true Activity configuration change for the full menu class on real devices. */
+    @Before
+    fun applyRequestedWorkspaceTestOrientation() {
+        val requested = InstrumentationRegistry.getArguments().getString("ui2.testOrientation")
+        val target = when (requested?.lowercase()) {
+            "landscape" -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            "portrait" -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            else -> return
+        }
+        val activity = compose.activity
+        previousRequestedOrientation = activity.requestedOrientation
+        activity.runOnUiThread { activity.requestedOrientation = target }
+        val expected = if (target == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+            Configuration.ORIENTATION_LANDSCAPE
+        } else {
+            Configuration.ORIENTATION_PORTRAIT
+        }
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.activity.resources.configuration.orientation == expected
+        }
+    }
+
+    @After
+    fun restoreRequestedWorkspaceTestOrientation() {
+        val previous = previousRequestedOrientation ?: return
+        previousRequestedOrientation = null
+        val activity = compose.activity
+        activity.runOnUiThread { activity.requestedOrientation = previous }
+        val expected = when (previous) {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE -> Configuration.ORIENTATION_LANDSCAPE
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT -> Configuration.ORIENTATION_PORTRAIT
+            else -> null
+        }
+        if (expected != null) {
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.activity.resources.configuration.orientation == expected
+            }
+        }
+    }
 
     @Test
     fun compactViewCubeIsVisibleAccessibleAndAtLeast48Dp() {
