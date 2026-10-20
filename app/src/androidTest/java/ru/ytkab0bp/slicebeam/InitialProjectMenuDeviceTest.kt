@@ -2903,10 +2903,10 @@ class InitialProjectMenuDeviceTest {
 
             // Object 1 -> slot 4/T3, object 2 -> slot 2/T1.
             compose.onNodeWithTag("pre-slice-object-slot-0").performScrollTo().performClick()
-            compose.onNodeWithTag("pre-slice-object-0-filament-3").performClick()
+            compose.onNodeWithTag("pre-slice-object-0-filament-3").performScrollTo().performClick()
             compose.waitForIdle()
             compose.onNodeWithTag("pre-slice-object-slot-1").performScrollTo().performClick()
-            compose.onNodeWithTag("pre-slice-object-1-filament-1").performClick()
+            compose.onNodeWithTag("pre-slice-object-1-filament-1").performScrollTo().performClick()
             compose.onNodeWithTag("pre-slice-confirm").performClick()
             assertArrayEquals("first object maps to slot 4", intArrayOf(3, 1), selectedSlots.get())
             assertArrayEquals("choosing assignments is staged until the user confirms the slice",
