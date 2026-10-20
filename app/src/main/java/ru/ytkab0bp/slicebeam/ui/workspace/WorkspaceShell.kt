@@ -263,6 +263,18 @@ internal fun WorkspaceActionControl(
 
 /** Measurable policy for the portion of a compact workspace reserved for the actual build plate. */
 internal object WorkspaceShellLayoutPolicy {
+    /** Reserve a usable action menu while leaving most wide-window space to the renderer. */
+    @JvmStatic
+    fun menuPanelWidthDp(availableWidthDp: Int, fontScale: Float): Int {
+        val minimum = if (fontScale >= 1.3f) 224 else 200
+        val maximum = if (fontScale >= 1.3f) 320 else 280
+        val preferred = (availableWidthDp.coerceAtLeast(0) * 0.32f).toInt().coerceIn(minimum, maximum)
+        val rendererMinimum = 280
+        val widthLimited = availableWidthDp -
+            AdaptiveNavigationPolicy.navigationRailWidthDp(fontScale) - rendererMinimum
+        return minOf(preferred, widthLimited.coerceAtLeast(minimum))
+    }
+
     /** availableHeightDp is the content height after the activity's system-bar insets. */
     @JvmStatic
     fun plateViewportHeightDp(

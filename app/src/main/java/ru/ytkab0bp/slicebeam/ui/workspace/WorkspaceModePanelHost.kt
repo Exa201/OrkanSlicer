@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -35,7 +36,12 @@ internal fun WorkspaceModePanelHost(
     content: @Composable () -> Unit,
 ) {
     val dismissLabel = stringResource(android.R.string.cancel)
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.coerceAtLeast(1)
+    // BedFragment's legacy Android parent can briefly measure MATCH_PARENT children
+    // with an unbounded height while the workspace changes modes. Cap this overlay at
+    // the window's configured height before fillMaxSize so vertically scrolling tool
+    // editors never receive infinite constraints during that transition.
+    BoxWithConstraints(Modifier.heightIn(max = screenHeightDp.dp).fillMaxSize()) {
         val portrait = maxWidth < maxHeight
         if (allowBackgroundInteraction) {
             // Paint mode must receive direct touches on the GL canvas while its controls
@@ -63,7 +69,7 @@ internal fun WorkspaceModePanelHost(
                     else Modifier.heightIn(max = maxHeight * 0.82f),
                 )
         } else {
-            Modifier.align(Alignment.CenterEnd)
+            Modifier.align(if (allowBackgroundInteraction) Alignment.CenterStart else Alignment.CenterEnd)
                 .then(
                     if (requestedDp != null) Modifier.width(requestedDp.dp)
                     else Modifier.widthIn(max = 420.dp),
@@ -72,8 +78,11 @@ internal fun WorkspaceModePanelHost(
         }
         Surface(
             modifier = panelModifier.testTag("workspace-mode-panel"),
-            shape = if (portrait) RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                else RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp),
+            shape = when {
+                portrait -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                allowBackgroundInteraction -> RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
+                else -> RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
+            },
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 8.dp,
         ) {

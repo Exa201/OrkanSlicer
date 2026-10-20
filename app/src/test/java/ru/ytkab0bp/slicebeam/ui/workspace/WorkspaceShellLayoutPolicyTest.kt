@@ -5,6 +5,14 @@ import org.junit.Test
 
 class WorkspaceShellLayoutPolicyTest {
     @Test
+    fun landscapeMenuWidthPreservesReadableActionsAndRendererSpace() {
+        assertEquals(256, WorkspaceShellLayoutPolicy.menuPanelWidthDp(800, 1f))
+        assertEquals(200, WorkspaceShellLayoutPolicy.menuPanelWidthDp(600, 1f))
+        assertEquals(256, WorkspaceShellLayoutPolicy.menuPanelWidthDp(800, 1.5f))
+        assertEquals(320, WorkspaceShellLayoutPolicy.menuPanelWidthDp(1400, 1.5f))
+    }
+
+    @Test
     fun collapsedPanelKeepsViewportAndFixedControlsVisible() {
         assertEquals(
             640,

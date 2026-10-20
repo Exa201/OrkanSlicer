@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.329 (alpha)
+
+- Fix the landscape workspace action menu being compressed to icon slivers; allocate a readable responsive width while reserving room for the renderer.
+- Keep the build-plate center directly touchable during landscape color painting by docking the paint controls to the left, and cap mode-panel height when Android briefly measures the workspace with unbounded height.
+- Honor PTP-N49 verification: workspace menu actions 42/42 and mode-panel host tests 5/5; Debug and Slice unit suites 579/579 each. The full landscape slicing action did not complete reliably and remains an open verification item; no printer was contacted and no print was started.
+
 ## 0.8.328 (alpha)
 
 - Fix view cube face-label collisions on narrow phones at enlarged system text sizes: compact, localized direction letters remain visually bounded while the full localized face names stay available as accessibility actions.

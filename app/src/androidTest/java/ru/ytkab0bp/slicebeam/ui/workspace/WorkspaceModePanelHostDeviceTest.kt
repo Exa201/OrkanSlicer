@@ -82,6 +82,44 @@ class WorkspaceModePanelHostDeviceTest {
     }
 
     @Test
+    fun landscapeToolPanelCapsHeightWhenAndroidParentMeasuresUnbounded() {
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalConfiguration provides Configuration().apply {
+                    screenWidthDp = 720
+                    screenHeightDp = 360
+                },
+            ) {
+                MaterialTheme {
+                    Column(
+                        Modifier.requiredSize(720.dp, 360.dp)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        WorkspaceModePanelHost(
+                            onDismiss = {},
+                            panelSize = WorkspacePanelSize(
+                                portrait = WorkspacePanelDimension.Fixed(300f),
+                                landscape = WorkspacePanelDimension.Fixed(300f),
+                            ),
+                        ) {
+                            Column(
+                                Modifier.fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                            ) {
+                                repeat(12) { Text("Cut setting $it") }
+                                Text("Cut apply action", Modifier.testTag("cut-apply-action"))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("workspace-mode-panel").assertIsDisplayed()
+        compose.onNodeWithTag("cut-apply-action").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun portraitToolPanelKeepsItsLastActionScrollableAtSmallWidthsAndLargeText() {
         var widthDp by mutableIntStateOf(320)
         var heightDp by mutableIntStateOf(640)

@@ -80,6 +80,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceProfileStatus
 import ru.ytkab0bp.slicebeam.ui.workspace.PrinterWebOpenButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceFilamentButton
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShell
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShellLayoutPolicy
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCube
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
@@ -909,7 +910,9 @@ showWorkspaceModePanel(
     ::cancelPaintMode,
     WorkspacePanelSize(
         portrait = WorkspacePanelDimension.Fraction(0.40f),
-        landscape = WorkspacePanelDimension.Fixed(360f),
+        // Paint controls dock on the workspace's left edge in landscape. This keeps
+        // direct GL gestures on the build-plate center unobstructed.
+        landscape = WorkspacePanelDimension.Fixed(280f),
     ),
 ) {
     PaintModePanel(
@@ -1431,7 +1434,10 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         currentMenuSlot == WorkspaceDestination.CAMERA.ordinal ||
                         currentMenuSlot == WorkspaceDestination.TOOLS.ordinal,
                     navigationItemCount = WorkspaceDestination.values().size,
-                    menuWidthDp = MENU_SIZE_DP,
+                    menuWidthDp = WorkspaceShellLayoutPolicy.menuPanelWidthDp(
+                        ctx.resources.configuration.screenWidthDp,
+                        ctx.resources.configuration.fontScale,
+                    ),
                     rendererView = rendererAdapter!!,
                     selectedNavigationSlot = workspaceController.selectedDestinationSlot,
                     toolsExpanded = menuToolsExpanded,
@@ -2320,7 +2326,6 @@ R.plurals.MenuToolbarSplitDone, count, count))) }) })
 }
 companion object {
 private val DEBUG_VIEWER = false
-private val MENU_SIZE_DP = 96
 private fun usesCompactPortraitLayout(context:Context):Boolean {
 val configuration = context.getResources().getConfiguration()
 return AdaptiveNavigationPolicy.usesCompactPortraitLayout(

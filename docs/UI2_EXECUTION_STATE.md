@@ -1,3 +1,13 @@
+# Current continuation state — 2026-10-20 (landscape workspace and GL touch follow-up)
+
+- Phase 5 action audit remains active; Phase 6 responsive/accessibility checks remain partial. Phase 4 architecture remains verified complete. Multi-plate project persistence and manual TalkBack traversal remain open.
+- Runtime changes staged for v0.8.329 / code 364: landscape menu width now scales with available space and font size instead of using the former 96 dp panel; paint-mode controls dock left in landscape so canvas gestures reach the center of the build plate; mode-panel overlays cap height against the window when Android parents pass unbounded height. No renderer recreation or native slicer changes.
+- Tests on current sources: Debug unit 579/579 and Slice unit 579/579; Honor `WorkspaceModePanelHostDeviceTest` 5/5; Honor `InitialProjectMenuDeviceTest` 42/42 in portrait after correcting a test helper that attempted `performScrollTo()` on the fixed bottom navigation. Targeted landscape cut-panel and real color-paint canvas/undo tests passed in the preceding targeted run. Full landscape slicing/action suite remains incomplete: a prior run stalled, and the current landscape menu scroll behavior has not yet been re-run end-to-end. Emulator remains offline.
+- Honor PTP-N49 was restored to its native 1280×2800 px / 560 dpi, automatic rotation and 100% font scale. No printer sync or print start was performed.
+- Current Git base before this pending release update: `ff567ed0fc0f1fc415397126f0a1cba98b9b4580`. Pending runtime/test/version/changelog changes are not yet committed. Next: build v0.8.329 Debug, install/launch the OrkanSlicer package on Honor, inspect startup logcat and APK digest, then commit/push and update PR #2; do not mark overall UI 2.0 complete.
+
+---
+
 # Current continuation state — 2026-10-20 (v0.8.328, responsive test follow-up)
 
 ## ViewCube large-text fix and 320 dp workspace action verification
