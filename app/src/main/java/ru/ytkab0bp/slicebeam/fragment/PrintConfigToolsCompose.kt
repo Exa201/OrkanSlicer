@@ -36,7 +36,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -176,13 +178,6 @@ internal fun FlushVolumesEditor(
                 }
             }
         }
-        if (error) {
-            Text(
-                stringResource(R.string.PrintConfigFlushVolumesInvalid),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
     }
 }
 
@@ -196,7 +191,21 @@ internal fun FlushVolumesDialog(
     val error = remember(matrix) { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.FlushVolumes)) },
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.FlushVolumes))
+                if (error.value) {
+                    Text(
+                        text = stringResource(R.string.PrintConfigFlushVolumesInvalid),
+                        modifier = Modifier
+                            .testTag("flush-error")
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        },
         text = {
             FlushVolumesEditor(
                 matrix = matrix,

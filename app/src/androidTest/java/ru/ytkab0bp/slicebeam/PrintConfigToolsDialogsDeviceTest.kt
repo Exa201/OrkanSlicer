@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,16 +33,18 @@ class PrintConfigToolsDialogsDeviceTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         var applied: String? = null
         var dismissed = false
+        val largerMatrix = PrintConfigFlushMatrix(6, List(36) { if (it == 0) "0" else "280" })
         compose.setContent {
             BeamComposeTheme {
-                FlushVolumesDialog(matrix(), onDismiss = { dismissed = true }, onApply = { applied = it })
+                FlushVolumesDialog(largerMatrix, onDismiss = { dismissed = true }, onApply = { applied = it })
             }
         }
 
-        compose.onNodeWithTag("flush-cell-1").performTextClearance()
-        compose.onNodeWithTag("flush-cell-1").performTextInput("-1")
+        compose.onNodeWithTag("flush-cell-30").performScrollTo().performTextClearance()
+        compose.onNodeWithTag("flush-cell-30").performTextInput("-1")
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
         compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
+        compose.onNodeWithTag("flush-error").assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.PrintConfigFlushVolumesInvalid)).assertIsDisplayed()
         assertEquals(null, applied)
 
