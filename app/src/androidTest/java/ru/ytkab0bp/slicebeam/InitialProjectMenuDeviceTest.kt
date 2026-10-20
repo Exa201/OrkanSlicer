@@ -30,6 +30,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
@@ -2621,7 +2622,7 @@ class InitialProjectMenuDeviceTest {
             openSelectedObjectMenu(activity)
             scrollMenuToIndex(20)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
-                .assertIsDisplayed().performClick()
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
             }
@@ -2832,8 +2833,11 @@ class InitialProjectMenuDeviceTest {
 
     /** Uses the visible horizontal action paging, matching how users reach off-screen menu tiles. */
     private fun revealMenuAction(activity: MainActivity, titleRes: Int) {
-        if (!usesCompactPortraitLayout(activity)) return
         val title = activity.getString(titleRes)
+        if (!usesCompactPortraitLayout(activity)) {
+            compose.onNodeWithContentDescription(title).performScrollTo().assertIsDisplayed()
+            return
+        }
         repeat(24) {
             val action = compose.onAllNodesWithContentDescription(title)
                 .fetchSemanticsNodes().firstOrNull()
@@ -2954,8 +2958,9 @@ class InitialProjectMenuDeviceTest {
         val needsExpansion = compactPortrait &&
             !(controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
         if (needsSelection || needsExpansion) {
-            compose.onNodeWithContentDescription(activity.getString(labelRes))
-                .assertIsDisplayed().performClick()
+            val destinationNode = compose.onNodeWithContentDescription(activity.getString(labelRes))
+            if (!compactPortrait) destinationNode.performScrollTo()
+            destinationNode.assertIsDisplayed().performClick()
         }
         compose.waitUntil(timeoutMillis = 5_000) {
             controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == destinationSlot &&
@@ -2978,8 +2983,11 @@ class InitialProjectMenuDeviceTest {
         val compactPortrait = usesCompactPortraitLayout(activity)
         val shouldExpand = compactPortrait && !(controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
         if (shouldNavigate || shouldExpand) {
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarNavigation))
-                .assertIsDisplayed().performClick()
+            val destinationNode = compose.onNodeWithContentDescription(
+                activity.getString(R.string.MenuToolbarNavigation),
+            )
+            if (!compactPortrait) destinationNode.performScrollTo()
+            destinationNode.assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == editSlot &&
                     (!compactPortrait || controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true) &&
@@ -3002,8 +3010,9 @@ class InitialProjectMenuDeviceTest {
         val compactPortrait = usesCompactPortraitLayout(activity)
         val shouldExpand = compactPortrait && !(controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) as Boolean)
         if (shouldNavigate || shouldExpand) {
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
-                .assertIsDisplayed().performClick()
+            val destinationNode = compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
+            if (!compactPortrait) destinationNode.performScrollTo()
+            destinationNode.assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == modelSlot &&
                     (!compactPortrait || controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true) &&
@@ -3082,10 +3091,6 @@ class InitialProjectMenuDeviceTest {
             assertEquals("color fixture load failure: $loadFailure", 2, requireNotNull(loaded).objectsCount)
             assertTrue("fixture begins with imported tool 1", loaded!!.getUsedFilaments(0).contentEquals(intArrayOf(1)))
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel)).performClick()
-            compose.onNodeWithText(activity.getString(R.string.ModelMenuObjectsShort)).assertIsDisplayed().performClick()
-            compose.onAllNodesWithText(activity.getString(R.string.ObjectActionAssignFilamentShort))[0]
-                .assertIsDisplayed().performClick()
             fun assignObject(index: Int, slot: Int) {
                 openModelMenu(activity)
                 compose.onNodeWithText(activity.getString(R.string.ModelMenuObjectsShort))
@@ -3098,6 +3103,8 @@ class InitialProjectMenuDeviceTest {
                     testSlots[slot].type,
                     String.format(java.util.Locale.ROOT, "#%06X", testSlots[slot].color and 0xFFFFFF),
                 )
+                compose.onNodeWithTag("model-choice-dialog-options")
+                    .performScrollToNode(hasText(targetLabel))
                 compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
                 compose.waitUntil(timeoutMillis = 10_000) {
                     bed.currentModel?.getUsedFilaments(index)?.contentEquals(intArrayOf(slot + 1)) == true

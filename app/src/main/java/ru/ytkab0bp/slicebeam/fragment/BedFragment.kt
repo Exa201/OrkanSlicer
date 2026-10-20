@@ -652,6 +652,9 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
         panelSize = panelSize,
     )
 }
+internal fun setWorkspaceToolAllowsBackgroundInteraction(toolId: String, allowed: Boolean) {
+    workspaceController.setToolAllowsBackgroundInteraction(toolId, allowed)
+}
 private fun showModelContextMenu(objectIndex:Int) {
 val ctx = getContext()
 if (ctx == null || glView == null || objectIndex == -1) return
@@ -1538,7 +1541,8 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     },
                     modePanelContent = workspaceController.activeToolPanelContent,
                     modePanelSize = workspaceController.activeToolPanelSize,
-                    modePanelAllowsBackgroundInteraction = workspaceController.activeToolId == "paint-mode",
+                    modePanelAllowsBackgroundInteraction = workspaceController.activeToolAllowsBackgroundInteraction ||
+                        workspaceController.activeToolId == "paint-mode",
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },
                     transientPanelContent = workspaceController.activePanelContent,
                     snackbarController = snackbarController,

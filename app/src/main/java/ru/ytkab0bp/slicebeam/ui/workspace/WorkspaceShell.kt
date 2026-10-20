@@ -209,7 +209,8 @@ internal fun WorkspaceShell(
             WorkspaceMenuHost(
                 slot = activeMenuSlot,
                 composeContentForSlot = menuComposeContentForSlot,
-                modifier = Modifier.width(menuWidthDp.dp).fillMaxHeight(),
+                modifier = Modifier.width(menuWidthDp.dp).fillMaxHeight()
+                    .testTag("workspace-menu-panel"),
             )
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 Box(Modifier.fillMaxWidth().heightIn(min = 0.dp)) { projectSettingsContent() }

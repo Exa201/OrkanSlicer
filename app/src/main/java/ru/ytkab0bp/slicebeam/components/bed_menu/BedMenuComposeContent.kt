@@ -232,7 +232,8 @@ internal fun BedMenuActionsContent(
                 .heightIn(max = LocalConfiguration.current.screenHeightDp.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp)
+                .testTag("workspace-menu-actions-grid"),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {

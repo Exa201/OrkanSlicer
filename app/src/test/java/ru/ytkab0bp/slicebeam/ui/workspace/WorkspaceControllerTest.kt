@@ -33,6 +33,35 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    fun backgroundInteractionIsScopedToTheActiveToolAndResetOnReplacementOrDismissal() {
+        val controller = WorkspaceController()
+        controller.selectTool("transform.cut") { controller.clearTool("transform.cut") }
+
+        controller.setToolAllowsBackgroundInteraction("transform.cut", true)
+        assertTrue(controller.activeToolAllowsBackgroundInteraction)
+        controller.setToolAllowsBackgroundInteraction("stale-tool", false)
+        assertTrue("stale tool callbacks must not change active interaction policy",
+            controller.activeToolAllowsBackgroundInteraction)
+
+        controller.selectTool("transform.scale") { controller.clearTool("transform.scale") }
+        assertEquals("transform.scale", controller.activeToolId)
+        assertFalse("replacement tools must start with background interaction disabled",
+            controller.activeToolAllowsBackgroundInteraction)
+        controller.setToolAllowsBackgroundInteraction("transform.scale", true)
+        assertTrue(controller.activeToolAllowsBackgroundInteraction)
+
+        controller.clearTool("transform.scale")
+        assertFalse("clearing the active tool must restore the default interaction policy",
+            controller.activeToolAllowsBackgroundInteraction)
+
+        controller.selectTool("transform.cut") { controller.clearTool("transform.cut") }
+        controller.setToolAllowsBackgroundInteraction("transform.cut", true)
+        assertTrue(controller.navigateToDestination(WorkspaceDestination.MODEL.ordinal))
+        assertFalse("navigation must reset background interaction even if a tool callback is delayed",
+            controller.activeToolAllowsBackgroundInteraction)
+    }
+
+    @Test
     fun ownsNavigationAndPanelStateTogether() {
         val controller = WorkspaceController()
         assertEquals(WorkspaceDestination.PROJECT.ordinal, controller.selectedDestinationSlot)

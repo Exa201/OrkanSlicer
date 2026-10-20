@@ -122,6 +122,7 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
         isAttachedToWorkspace = false
         connectorModeState.value = false
         connectorMode = false
+        bed.setWorkspaceToolAllowsBackgroundInteraction(javaClass.name, false)
         val glView = bed.glView ?: return
         glView.queueEvent {
             val renderer = glView.renderer
@@ -214,6 +215,7 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
     private fun toggleConnectorMode() {
         connectorMode = !connectorMode
         connectorModeState.value = connectorMode
+        bed.setWorkspaceToolAllowsBackgroundInteraction(javaClass.name, connectorMode)
         val glView = bed.glView ?: return
         glView.queueEvent {
             if (!isAttachedToWorkspace) return@queueEvent
