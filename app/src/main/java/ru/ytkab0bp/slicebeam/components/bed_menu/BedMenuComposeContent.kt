@@ -145,46 +145,57 @@ internal fun BedMenuActionsContent(
                 availableHeightDp = maxHeight.value.toInt(),
                 fontScale = fontScale,
             )
+            val reservePagingSlot = actions.size > rows * columns
+            val pagingSlotWidth = if (reservePagingSlot) scrollHintWidth + scrollHintEndGap else 0.dp
+            val gridWidth = maxWidth - pagingSlotWidth
             val scrollPagePx = with(LocalDensity.current) {
-                (maxWidth - scrollHintWidth - scrollHintEndGap).toPx()
+                gridWidth.toPx()
             }
             val tileWidth = BedMenuActionTileWidthPolicy.gridTileWidthDp(
-                screenWidthDp = maxWidth.value.toInt(),
+                screenWidthDp = gridWidth.value.toInt(),
                 columns = columns,
                 horizontalPaddingDp = 4,
                 spacingDp = 2,
-                reservedEndDp = scrollHintWidth.value.toInt() + scrollHintEndGap.value.toInt(),
+                reservedEndDp = 4,
             ).dp
             val gridState = rememberLazyGridState()
-            LazyHorizontalGrid(
-                rows = GridCells.Fixed(rows),
-                state = gridState,
-                modifier = Modifier.fillMaxSize().testTag("workspace-menu-actions-grid"),
-                contentPadding = PaddingValues(start = 4.dp, end = scrollHintWidth + scrollHintEndGap),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                items(actions) { action ->
-                    BedMenuActionTile(action, portrait = true, menuView = menuView,
-                        compactPortraitGrid = columns == 1,
-                        modifier = Modifier.width(tileWidth))
-                }
-            }
-            if (gridState.canScrollForward) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = scrollHintEndGap)
-                        .size(scrollHintWidth)
-                        .semantics { contentDescription = scrollHintDescription }
-                        .clickable(role = Role.Button) {
-                            coroutineScope.launch { gridState.animateScrollBy(scrollPagePx) }
-                        },
-                    shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                LazyHorizontalGrid(
+                    rows = GridCells.Fixed(rows),
+                    state = gridState,
+                    modifier = Modifier.weight(1f).fillMaxHeight().testTag("workspace-menu-actions-grid"),
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("›", fontSize = 32.sp, lineHeight = 32.sp)
+                    // Slice menus replace their whole action set after slicing. Stable action
+                    // identity prevents LazyHorizontalGrid from reusing an old pre-slice tile
+                    // (and its click handler) for a result action at the same index.
+                    items(actions, key = { action -> action.titleRes }) { action ->
+                        BedMenuActionTile(action, portrait = true, menuView = menuView,
+                            compactPortraitGrid = columns == 1,
+                            modifier = Modifier.width(tileWidth))
+                    }
+                }
+                if (reservePagingSlot) {
+                    if (gridState.canScrollForward) {
+                        Surface(
+                            modifier = Modifier
+                                .padding(end = scrollHintEndGap)
+                                .size(scrollHintWidth)
+                                .semantics { contentDescription = scrollHintDescription }
+                                .clickable(role = Role.Button) {
+                                    coroutineScope.launch { gridState.animateScrollBy(scrollPagePx) }
+                                },
+                            shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("›", fontSize = 32.sp, lineHeight = 32.sp)
+                            }
+                        }
+                    } else {
+                        Spacer(Modifier.width(pagingSlotWidth))
                     }
                 }
             }

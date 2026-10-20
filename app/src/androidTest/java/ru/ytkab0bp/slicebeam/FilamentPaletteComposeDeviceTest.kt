@@ -901,10 +901,17 @@ class FilamentPaletteComposeDeviceTest {
             }
         }
 
-        for (title in actionTitles) {
+        // At 320 dp and 150% text, the toolbar deliberately uses one wide column.
+        // Short menus can therefore still page when they have more than two actions.
+        for (title in actionTitles.take(2)) {
             val action = compose.onNodeWithContentDescription(context.getString(title)).assertIsDisplayed()
             action.assertWidthIsAtLeast(120.dp).assertHeightIsAtLeast(48.dp)
         }
+        compose.onNodeWithContentDescription(context.getString(R.string.WorkspaceMoreTitle))
+            .assertIsDisplayed().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription(context.getString(actionTitles.last()))
+            .assertIsDisplayed().assertWidthIsAtLeast(120.dp).assertHeightIsAtLeast(48.dp)
         compose.onNodeWithText(context.getString(R.string.MenuFileImportProfilesCompact)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.MenuFileExportProfilesCompact)).assertIsDisplayed()
     }
