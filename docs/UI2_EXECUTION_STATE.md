@@ -1855,3 +1855,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Remaining UI 2.0 work: complete the broader Phase 5 menu/action matrix and Phase 6 responsive/accessibility acceptance, including manual TalkBack. Full multi-plate project persistence remains separate and incomplete. No real printer sync or print start was performed. Next: continue the menu/accessibility work; overall UI 2.0 completion is not claimed.
 - Responsive follow-up: `compactViewCubeIsVisibleAccessibleAndAtLeast48Dp` also passed on Honor with a temporary 320 dp width override. Physical display size/density were restored to 1280×2800 / 560 dpi after the check.
 
+# Current continuation state — 2026-10-20 (large-text profile settings)
+
+- Current code base before this follow-up: `026c62ddf3d6fd73f8a5c3af8dc025ab7621c1b0`; branch `codex/rinkhals-safe-start-audit`, PR #2 open. App version remains 0.8.330 / code 365.
+- Large-text Honor checks exposed fragile instrumentation scrolling in printer profile LazyColumn rows and string-edit dialogs. The visible controls were present; tests queried off-screen rows or failed to account for a keyboard-reduced landscape viewport.
+- Added stable Compose test tags for the profile options list and keyed rows; updated device tests to scroll by option key, bring text editors into view, and dismiss the landscape IME before using the password reveal control. No visual or domain behavior was changed.
+- Honor PTP-N49 / Android 16: the complete `PrintProfileDropdownIntegrationDeviceTest` passed 18/18 with 0 skips/failures/errors in all three configurations: 320 dp × 700 dp / 150%, 400 dp × 700 dp / 130%, and landscape 800 dp × 366 dp / 130%. Debug unit 582/582 and Slice unit 582/582 passed, 0 skips/failures/errors.
+- Honor restored to physical 1280×2800 px / 560 dpi, font scale 1.0, automatic rotation enabled. Emulator remains offline. No printer sync, firmware change, or print start occurred. No APK or release was built because this is a testability/semantics-only follow-up.
+- Phase 5 menu/action audit and Phase 6 responsive/accessibility acceptance remain active; manual TalkBack traversal and multi-plate project persistence remain open. Next: publish the verified update to the existing branch/PR, then continue remaining global menu actions and accessibility checks. UI 2.0 is not complete.
+
+# Current continuation state — 2026-10-20 (large-text settings and workspace actions)

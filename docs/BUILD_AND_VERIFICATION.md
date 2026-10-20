@@ -1671,3 +1671,12 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Installed and launched on Honor PTP-N49 / Android 16; package `com.codemastercody3d.orcaslicermobile`, version 0.8.330 / code 365; `MainActivity` top-resumed. Sampled startup Logcat contained no FATAL EXCEPTION, ANR, OutOfMemoryError, or fatal signal. Emulator `emulator-5554` remained offline.
 - A first full-suite attempt exposed stale in-app release notes still labeled 0.8.329 after the version bump. Updated localized `app/src/main/assets/update.json`; focused test and complete rerun passed (with only the three fixture skips). No printer was synchronized and no print was started. UI 2.0 remains incomplete; manual TalkBack review and the broader menu audit remain open.
 
+# Honor printer-profile UI checks — 2026-10-20
+
+- At Honor PTP-N49 / Android 16, window 320 dp × 700 dp, 560 dpi, and 150% system text, the full `PrintProfileDropdownIntegrationDeviceTest` passed 18/18 with 0 skips/failures/errors (JUnit XML `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, timestamp `2026-10-20T18:53:32`). Coverage includes printer host type/address/API key and bed-surface editing with cancel, Android Back, draft isolation, and confirmed save flows.
+- The same full class passed 18/18 on Honor at 400 dp × 700 dp / 130% system text and 800 dp × 366 dp landscape / 130%, each with 0 skips/failures/errors. In landscape, the API-key test now dismisses the IME before exercising the reveal/hide control; numeric settings navigate using the tagged virtualized row.
+- The initial large-text attempts exposed instrumentation selectors that did not scroll the settings LazyColumn to virtualized rows or scroll string-dialog content to its editor. The controls were present; no production interaction defect was reproduced. Added stable semantics test tags to the profile settings list and option rows, and updated the UI tests to scroll by option key and bring the dialog editor into view.
+- `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 582/582 each, 0 failures/errors/skips. No APK was built because there was no user-visible or domain behavior change. Honor restored to physical 1280×2800 px, 560 dpi, font scale 1.0, automatic rotation. Emulator offline.
+- PR #2 remains open; no release or merge was made. Phase 5 menu audit and Phase 6 accessibility checks remain incomplete; manual TalkBack and multi-plate persistence remain open.
+
+# Release v0.8.323 — filament palette and multicolor verification (2026-10-19)

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -272,15 +273,15 @@ class PrintProfileDropdownIntegrationDeviceTest {
             ).orEmpty()
 
             ensureProfileCategoryExpanded("Physical Printer")
-            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
+            scrollToProfileSetting(option.key, optionTitle)
 
             fun openPrintHostEditor() {
-                val rows = compose.onAllNodesWithText(optionTitle).fetchSemanticsNodes()
+                val rows = compose.onAllNodesWithText(optionTitle, substring = true).fetchSemanticsNodes()
                 assertTrue("The print host profile option should be visible", rows.isNotEmpty())
                 val rowIndex = rows.indices.maxByOrNull { rows[it].boundsInRoot.top }
                     ?: throw AssertionError("The print host row is not displayed")
-                compose.onAllNodesWithText(optionTitle)[rowIndex].performClick()
-                compose.onNode(hasSetTextAction()).assertIsDisplayed()
+                compose.onAllNodesWithText(optionTitle, substring = true)[rowIndex].performClick()
+                scrollToDialogTextEditor()
             }
 
             openPrintHostEditor()
@@ -373,7 +374,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
                     .invoke(fragment) as ConfigObject
             }
             ensureProfileCategoryExpanded("Physical Printer")
-            compose.onNodeWithText(hostTypeTitle).performScrollTo().assertIsDisplayed()
+            scrollToProfileSetting(hostTypeOption.key, hostTypeTitle)
 
             val rows = compose.onAllNodesWithText(hostTypeTitle).fetchSemanticsNodes()
             assertTrue("The host type setting should be visible", rows.isNotEmpty())
@@ -443,17 +444,17 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 option.defaultValue, -1, false,
             )
             ensureProfileCategoryExpanded("Physical Printer")
-            compose.onNodeWithText("••••••").performScrollTo().assertIsDisplayed()
+            scrollToProfileSetting(option.key, optionTitle)
             assertTrue("The saved API key must not be exposed in the profile row",
                 compose.onAllNodesWithText(syntheticStoredApiKey).fetchSemanticsNodes().isEmpty())
-            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
 
             fun openApiKeyEditor() {
-                val rows = compose.onAllNodesWithText(optionTitle).fetchSemanticsNodes()
+                val rows = compose.onAllNodesWithText(optionTitle, substring = true).fetchSemanticsNodes()
                 assertTrue("The printer API key profile option should be visible", rows.isNotEmpty())
                 val rowIndex = rows.indices.maxByOrNull { rows[it].boundsInRoot.top }
                     ?: throw AssertionError("The printer API key row is not displayed")
-                compose.onAllNodesWithText(optionTitle)[rowIndex].performClick()
+                compose.onAllNodesWithText(optionTitle, substring = true)[rowIndex].performClick()
+                scrollToDialogTextEditor()
                 compose.onNodeWithText(activity.getString(R.string.ProfileStringInputLabel)).assertIsDisplayed()
             }
 
@@ -466,6 +467,11 @@ class PrintProfileDropdownIntegrationDeviceTest {
             compose.onNodeWithText(showPasswordLabel, useUnmergedTree = true).assertIsDisplayed()
             compose.onNode(hasSetTextAction()).performTextClearance()
             compose.onNode(hasSetTextAction()).performTextInput(syntheticApiKey)
+            // Landscape leaves little height once the IME is open. Dismiss it before
+            // exercising the trailing visibility action so the dialog can expose it.
+            InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
             compose.onNodeWithText(showPasswordLabel, useUnmergedTree = true).performClick()
             compose.onNodeWithText(hidePasswordLabel, useUnmergedTree = true).assertIsDisplayed()
             compose.onNodeWithText(syntheticApiKey).assertIsDisplayed()
@@ -753,7 +759,8 @@ class PrintProfileDropdownIntegrationDeviceTest {
         val targetLabel = optionLabels[targetIndex]
 
         ensureProfileCategoryExpanded("General")
-        compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
+        scrollToProfileSetting(option.key, optionTitle)
+        compose.onNodeWithText(optionTitle).assertIsDisplayed().performClick()
         compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = 5_000) {
             ProfileSettingsRepository.pendingCountFor(ConfigObject.PROFILE_LIST_PRINTER) > 0
@@ -842,7 +849,8 @@ class PrintProfileDropdownIntegrationDeviceTest {
             val targetLabel = optionLabels[targetIndex]
 
             ensureProfileCategoryExpanded("General")
-            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
+            scrollToProfileSetting(option.key, optionTitle)
+            compose.onNodeWithText(optionTitle).assertIsDisplayed().performClick()
             compose.onNodeWithText(targetLabel).assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsSave)).assertIsDisplayed().performClick()
             compose.onNodeWithText(activity.getString(R.string.SettingsSaveTitle)).assertIsDisplayed()
@@ -1177,7 +1185,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
 
         try {
             ensureProfileCategoryExpanded("Filament")
-            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed()
+            scrollToProfileSetting(option.key, optionTitle)
 
             fun clickSettingRow() {
                 val matches = compose.onAllNodesWithText(optionTitle).fetchSemanticsNodes()
@@ -1185,6 +1193,7 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 val rowIndex = matches.indices.maxByOrNull { matches[it].boundsInRoot.top }
                     ?: throw AssertionError("The numeric option row is not displayed")
                 compose.onAllNodesWithText(optionTitle)[rowIndex].performClick()
+                scrollToDialogTextEditor()
             }
 
             clickSettingRow()
@@ -1258,7 +1267,9 @@ class PrintProfileDropdownIntegrationDeviceTest {
             }
 
             ensureProfileCategoryExpanded("Filament")
-            compose.onNodeWithText(optionTitle).performScrollTo().assertIsDisplayed().performClick()
+            scrollToProfileSetting(option.key, optionTitle)
+            compose.onNodeWithText(optionTitle).assertIsDisplayed().performClick()
+            scrollToDialogTextEditor()
             compose.onNode(hasSetTextAction()).performTextClearance()
             compose.onNode(hasSetTextAction()).performTextInput(changed)
             compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
@@ -1335,6 +1346,16 @@ class PrintProfileDropdownIntegrationDeviceTest {
                 }
             }
         }
+    }
+
+    private fun scrollToProfileSetting(optionKey: String, title: String) {
+        compose.onNodeWithTag("profile-settings-options-list")
+            .performScrollToNode(hasTestTag("profile-option-key-$optionKey"))
+        compose.onNodeWithText(title, substring = true).assertIsDisplayed()
+    }
+
+    private fun scrollToDialogTextEditor() {
+        compose.onNode(hasSetTextAction()).performScrollTo().assertIsDisplayed()
     }
 
     private fun createInitializedActivityRule() = run {
