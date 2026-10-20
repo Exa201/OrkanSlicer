@@ -1932,3 +1932,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - After teardown, regular OrkanSlicer `MainActivity` was top-resumed, auto-rotation remained enabled, user rotation was 0, and sampled Logcat had no fatal exception/ANR/OOM/fatal signal. Emulator remains offline.
 - No Debug/Slice unit suite, full instrumentation suite, APK, release, or merge occurred in this test-only follow-up. Phase 5/6 and manual TalkBack remain incomplete; full multi-plate project persistence is separate and still incomplete. No printer sync, firmware change, or print start occurred.
 - Next: commit/push the verified test-helper correction and continue the uncovered Phase 5/6 action matrix. Do not claim the full connected suite from this class-only result.
+
+# UI 2.0 continuation — 2026-10-21 (full Honor instrumentation green)
+
+- Current code commit: `5f9a17f`; branch `codex/rinkhals-safe-start-audit`, pushed. PR #2 remains open; no merge/release.
+- The complete `:app:connectedSliceTestAndroidTest` Gradle task completed successfully on Honor PTP-N49 / Android 16. JUnit XML reports 235 total test cases: 232 passed, 3 skipped because the private KromaCut 3MF fixture is unavailable, 0 failures, 0 errors. UTP's final console line said 238 finished; rely on the JUnit XML total of 235.
+- Verified focused coverage: true-landscape `InitialProjectMenuDeviceTest` 42/42, `FilamentPaletteComposeDeviceTest` 20/20, `ImageFormatPairDialogDeviceTest` 2/2. Fixes only changed UI test selectors/scroll handling; no production code changed.
+- Post-run: regular OrkanSlicer `MainActivity` top-resumed; auto-rotation=1, user_rotation=0; sampled Logcat had no fatal/ANR/OOM/fatal-signal entries. Emulator remains offline.
+- No Debug/Slice unit suites or APK were built in this follow-up. The latest runtime APK/release remains the prior 0.8.330 Debug prerelease; this test-only commit does not change it.
+- Phase 5 menu/action and Phase 6 responsive/accessibility acceptance remain active; manual TalkBack traversal and full multi-plate save/reload remain incomplete. Next: continue uncovered route/action checks and accessibility acceptance, not repeat the completed UnfoldMenu/WorkspaceShell migration. No printer synchronization, firmware change, or print start occurred.

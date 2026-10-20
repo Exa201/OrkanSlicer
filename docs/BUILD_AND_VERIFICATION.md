@@ -1740,3 +1740,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - On Honor PTP-N49 / Android 16, `InitialProjectMenuDeviceTest` passed as a complete class in actual Activity landscape: 42/42, 0 failures, 0 errors, 0 skipped. The formerly stalled `sliceMenuManualActionOpensFilamentAssignmentAndCancelOrBackPreservesModel` case is included. It verifies both Cancel and Android Back preserve the model tool assignment and do not start slicing.
 - The test teardown returned to regular OrkanSlicer `MainActivity`; Honor remained at auto-rotation enabled and user rotation 0. Sampled Logcat contained no fatal exception, ANR, OOM, or fatal signal. Emulator remains offline and was skipped.
 - This is focused landscape UI coverage. No full instrumentation suite, unit suite, APK build, or release was run. Phase 5/6 acceptance and multi-plate project persistence remain open.
+
+## Full Honor instrumentation recovery — 2026-10-21
+
+- After correcting the profile/image picker selectors and the redundant landscape navigation scroll, the complete `:app:connectedSliceTestAndroidTest` task completed successfully on Honor PTP-N49 / Android 16.
+- JUnit XML: 235 cases total, 232 passed, 3 skipped, 0 failures, 0 errors. The three skipped cases are the private KromaCut 3MF fixture tests. UTP printed “Finished 238 tests,” but JUnit XML reports the authoritative suite total of 235 including the three skips.
+- Included focused classes now pass: `InitialProjectMenuDeviceTest` true landscape 42/42; `FilamentPaletteComposeDeviceTest` 20/20; `ImageFormatPairDialogDeviceTest` 2/2. No focused failure from the earlier scroll/search selectors remains.
+- Honor returned to the regular OrkanSlicer app with auto-rotation enabled and user rotation 0. Sampled Logcat had no fatal exception, ANR, OOM, or fatal signal. Emulator was offline and skipped.
+- This follow-up changes test harnesses/docs only; no runtime APK was built and no release was created. Debug/Slice unit suites were not rerun in this follow-up. UI 2.0 Phase 5/6 and complete multi-plate project persistence remain open.
