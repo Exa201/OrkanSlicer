@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.328 (alpha)
+
+- Fix view cube face-label collisions on narrow phones at enlarged system text sizes: compact, localized direction letters remain visually bounded while the full localized face names stay available as accessibility actions.
+- Verify the view cube camera-face selection and drag rotation on Honor PTP-N49; the face remains a minimum 48 dp accessible target.
+
 ## 0.8.327 (alpha)
 
 - Fix slicing with the bundled Anycubic Generic PLA profile: remove the commented fan-control macro block that the embedded native parser incorrectly treated as executable custom G-code. It contained no active machine commands.

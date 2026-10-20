@@ -27,7 +27,6 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import kotlin.math.cos
 import kotlin.math.sin
@@ -147,6 +146,12 @@ internal fun WorkspaceViewCube(
     val left = stringResource(R.string.ViewCubeLeft)
     val top = stringResource(R.string.ViewCubeTop)
     val bottom = stringResource(R.string.ViewCubeBottom)
+    val frontShort = stringResource(R.string.ViewCubeFrontShort)
+    val backShort = stringResource(R.string.ViewCubeBackShort)
+    val rightShort = stringResource(R.string.ViewCubeRightShort)
+    val leftShort = stringResource(R.string.ViewCubeLeftShort)
+    val topShort = stringResource(R.string.ViewCubeTopShort)
+    val bottomShort = stringResource(R.string.ViewCubeBottomShort)
     val rotateHint = stringResource(R.string.ViewCubeRotateHint)
     val faceColors = listOf(
         MaterialTheme.colorScheme.primaryContainer,
@@ -163,7 +168,14 @@ internal fun WorkspaceViewCube(
         WorkspaceViewFace.TOP to top,
         WorkspaceViewFace.BOTTOM to bottom,
     )
-    val shortLabels = descriptions.mapValues { (_, label) -> label.take(2) }
+    val shortLabels = mapOf(
+        WorkspaceViewFace.FRONT to frontShort,
+        WorkspaceViewFace.BACK to backShort,
+        WorkspaceViewFace.RIGHT to rightShort,
+        WorkspaceViewFace.LEFT to leftShort,
+        WorkspaceViewFace.TOP to topShort,
+        WorkspaceViewFace.BOTTOM to bottomShort,
+    )
     Canvas(
         modifier = Modifier
             // Match the 48 dp action host so the drawing cannot overlap adjacent
@@ -214,7 +226,10 @@ internal fun WorkspaceViewCube(
             val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = labelColor.toArgb()
                 textAlign = Paint.Align.CENTER
-                textSize = with(density) { 9.sp.toPx() }
+                // The face letters are decorative, compact orientation marks. Keep their
+                // physical size bounded so system font scaling cannot make neighbouring
+                // faces overlap; the full face names remain available to accessibility.
+                textSize = with(density) { 9.dp.toPx() }
                 typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
             }
             val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

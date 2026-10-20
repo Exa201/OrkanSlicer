@@ -734,6 +734,12 @@
     <string name="ViewCubeLeft">Left</string>
     <string name="ViewCubeTop">Top</string>
     <string name="ViewCubeBottom">Bottom</string>
+    <string name="ViewCubeFrontShort">F</string>
+    <string name="ViewCubeBackShort">B</string>
+    <string name="ViewCubeRightShort">R</string>
+    <string name="ViewCubeLeftShort">L</string>
+    <string name="ViewCubeTopShort">T</string>
+    <string name="ViewCubeBottomShort">D</string>
     <string name="MenuCameraIsometric">Isom. view</string>
     <string name="MenuCameraIsometricCompact">Iso</string>
     <string name="MenuCameraTop">Top view</string>
