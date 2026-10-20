@@ -2760,12 +2760,9 @@ class InitialProjectMenuDeviceTest {
             val generatedConfig = configFile.readText()
             assertTrue("slice config must use the current four-slot palette",
                 Regex("(?m)^filament_colour = ${Regex.escape(expectedPalette)}$").containsMatchIn(generatedConfig))
-            // Keep this test focused on model/tool/color routing. The bundled Anycubic filament
-            // profile has a custom start script that this native engine build rejects; no printer
-            // start script is needed to verify the generated object tools or preview palette.
-            configFile.writeText(generatedConfig.lineSequence()
-                .filterNot { it.startsWith("filament_start_gcode = ") }
-                .joinToString("\n"))
+            assertFalse("bundled Anycubic Generic PLA start G-code must not contain unsupported, commented placeholders",
+                generatedConfig.contains("filament_start_gcode = ") &&
+                    Regex("(?m)^filament_start_gcode = .*\\{if").containsMatchIn(generatedConfig))
             sliceResult = assignedModel.slice(configFile.absolutePath, output.absolutePath, null)
             assertTrue("the multicolor object slice should create non-empty G-code", output.isFile && output.length() > 0)
             val gcode = output.readText()

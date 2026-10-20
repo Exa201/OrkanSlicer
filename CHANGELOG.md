@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.327 (alpha)
+
+- Fix slicing with the bundled Anycubic Generic PLA profile: remove the commented fan-control macro block that the embedded native parser incorrectly treated as executable custom G-code. It contained no active machine commands.
+- Extend Honor UI coverage to assign two different objects to separate filament slots, slice the same native model, and verify the selected G-code palette and emitted tools.
+- Verify the full Honor instrumentation: 231 passed, 3 external/private KromaCut fixture cases skipped, 0 failures/errors; Debug and Slice unit suites: 578/578 each. The app was not connected to a printer and no print was started.
+- Debug APK and SHA-256 are recorded in the execution status after the final build.
+
 ## 0.8.326 (alpha)
 
 - Keep the exact effective filament palette used by each native slice result and use it in the G-code preview, so sliced models no longer revert to stale/original 3MF colors.
