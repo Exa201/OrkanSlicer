@@ -157,6 +157,11 @@ queueEvent({ renderer.selectAllObjects()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
+fun selectModels(objectIndices: IntArray, onComplete: Runnable? = null) {
+queueEvent({ renderer.setSelectedObjects(objectIndices)
+requestRender()
+ViewUtils.postOnMainThread({ onComplete?.run() }) })
+}
 fun combineSelectedObjectsAsParts(onComplete:(Int)->Unit) {
 queueEvent({
     val result = renderer.combineSelectedObjectsAsParts()

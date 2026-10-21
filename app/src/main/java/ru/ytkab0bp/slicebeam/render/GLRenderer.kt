@@ -510,6 +510,28 @@ return true
 fun isSelected(i:Int):Boolean {
 return selectedObjects.contains(i)
 }
+/** Replace the active selection with a validated group from the object list. */
+ fun setSelectedObjects(indices: IntArray): Boolean {
+    val activeModel = model ?: return false
+    val normalized = indices.toSortedSet()
+    if (normalized.size != indices.size || normalized.any { it !in 0 until activeModel.objectsCount }) return false
+    val primary = selectedObject.takeIf { it in normalized } ?: normalized.firstOrNull() ?: -1
+    if (selectedObject == primary && selectedObjects == normalized) return false
+    selectedObject = primary
+    selectedObjects.clear()
+    selectedObjects.addAll(normalized)
+    selZ = 0.0
+    selY = selZ
+    selX = selY
+    selRotZ = 0.0
+    selRotY = selRotZ
+    selRotX = selRotY
+    selScaleZ = 1.0
+    selScaleY = selScaleZ
+    selScaleX = selScaleY
+    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+    return true
+ }
 /** Clear object-specific controls before replacing the active build-plate model. */
 fun clearSelectionForPlateSwitch() {
 val selection = ObjectTapSelectionPolicy.clearForPlateSwitch(selectedObject, selectedObjects)

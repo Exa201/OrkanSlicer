@@ -160,6 +160,9 @@
     <string name="MenuFileCompact">Projekt</string>
     <string name="MenuModel">Modell</string>
     <string name="ModelMenuSelectedObjectGroup">Ein Objekt</string>
+    <string name="ModelMenuSelectGroup">Gruppe auswählen</string>
+    <string name="ModelMenuCancelGroupSelection">Gruppenauswahl beenden</string>
+    <string name="ModelMenuApplySelection">Auswahl verwenden (%1$d)</string>
     <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
     <string name="ModelMenuBoolean">Boolesche Funktion</string>
     <string name="ModelBooleanHelp">Wähle mindestens zwei Objekte. Das aktuell ausgewählte Objekt ist die Basis; die übrigen ausgewählten Objekte werden der Reihe nach angewendet. Abziehen entfernt sie, Schnittmenge behält die gemeinsame Überlappung. Das Ergebnis übernimmt das Filament des Basisobjekts.</string>

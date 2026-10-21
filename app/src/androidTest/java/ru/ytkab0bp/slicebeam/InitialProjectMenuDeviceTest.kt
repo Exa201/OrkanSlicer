@@ -274,6 +274,126 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun objectListCanSelectAndPlaceAGroupOnAnotherModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-group-placement-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            val width = AtomicReference<Double>()
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val model = requireNotNull(renderer.model)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                width.set(max.x - min.x)
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                model.translate(1, requireNotNull(width.get()) * 1.5, 0.0, 0.0)
+                model.translate(2, requireNotNull(width.get()) * 3.0, requireNotNull(width.get()) * 2.0, 0.0)
+                renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("group-placement objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.WorkspaceObjects)
+            compose.onNodeWithContentDescription(activity.getString(R.string.WorkspaceObjects))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-objects-group-selection-toggle")
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-object-row-1").performClick()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("model-objects-selection-confirm").fetchSemanticsNodes().isEmpty()
+            }
+            val selectionAfterBack = AtomicReference<IntArray>()
+            val backSelectionReady = CountDownLatch(1)
+            glView.queueEvent {
+                selectionAfterBack.set(glView.renderer.selectedObjectIndices())
+                backSelectionReady.countDown()
+            }
+            assertTrue("cancelled group selection should be readable on GL", backSelectionReady.await(10, TimeUnit.SECONDS))
+            assertArrayEquals("Android Back discards the staged group selection", intArrayOf(0),
+                requireNotNull(selectionAfterBack.get()))
+
+            openModelMenu(activity)
+            revealMenuAction(activity, R.string.WorkspaceObjects)
+            compose.onNodeWithContentDescription(activity.getString(R.string.WorkspaceObjects))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-objects-group-selection-toggle")
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-object-row-1").performClick()
+            compose.onNodeWithTag("model-objects-selection-confirm").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.selectedObjectsCount == 2 }
+            val selectedIndices = AtomicReference<IntArray>()
+            val selectionReady = CountDownLatch(1)
+            glView.queueEvent {
+                selectedIndices.set(glView.renderer.selectedObjectIndices())
+                selectionReady.countDown()
+            }
+            assertTrue("selected group should be readable on the GL thread", selectionReady.await(10, TimeUnit.SECONDS))
+            assertArrayEquals("the object list should select only the two chosen models",
+                intArrayOf(0, 1), requireNotNull(selectedIndices.get()))
+
+            val before = AtomicReference<List<DoubleArray>>()
+            val boundsReady = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                before.set((0..2).map { index ->
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(index, min, max)
+                    doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                })
+                boundsReady.countDown()
+            }
+            assertTrue("pre-placement bounds should be collected on the GL thread", boundsReady.await(10, TimeUnit.SECONDS))
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceOnObject)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnObject))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
+
+            val after = AtomicReference<List<DoubleArray>>()
+            val afterReady = CountDownLatch(1)
+            glView.queueEvent {
+                val model = glView.renderer.model
+                if (model != null && model.objectsCount == 3) {
+                    after.set((0..2).map { index ->
+                        val min = Vec3d(); val max = Vec3d()
+                        model.getBoundingBoxExact(index, min, max)
+                        doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                    })
+                }
+                afterReady.countDown()
+            }
+            assertTrue("post-placement bounds should be collected on the GL thread", afterReady.await(15, TimeUnit.SECONDS))
+            val original = requireNotNull(before.get())
+            val placed = requireNotNull(after.get())
+            val originalSpacing = original[1][0] - original[0][0]
+            val placedSpacing = placed[1][0] - placed[0][0]
+            assertEquals("group placement preserves internal X spacing", originalSpacing,
+                placedSpacing, 0.02)
+            assertEquals("each selected object rests on the target object's top", placed[2][5], placed[0][2], 0.02)
+            assertEquals("the second selected object rests on the target object's top", placed[2][5], placed[1][2], 0.02)
+            assertArrayEquals("the unselected target remains in place", original[2], placed[2], 0.02)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun initialProjectRouteShowsFileActionsOnItsFirstOpen() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

@@ -44,7 +44,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
         }
 
         val context = view.context
-        val selected = fragment.glView?.renderer?.selectedObject ?: -1
+        val renderer = fragment.glView?.renderer
         val filamentSlots = Prefs.getFilamentSlots()
         val rows = (0 until count).map { index ->
             val name = model?.getObjectName(index)
@@ -56,7 +56,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                 tool = tool,
                 material = slot?.type?.takeIf(String::isNotBlank) ?: context.getString(R.string.FilamentType),
                 color = slot?.color ?: 0xFF888888.toInt(),
-                selected = index == selected,
+                selected = renderer?.isSelected(index) == true,
                 assignEnabled = filamentSlots.isNotEmpty(),
             )
         }
@@ -76,6 +76,10 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                 onAssign = { index ->
                     dismiss()
                     showObjectFilamentSlotDialog(view, index)
+                },
+                onApplySelection = { indices ->
+                    dismiss()
+                    fragment.glView?.selectModels(indices) { fragment.updateModel() }
                 },
             )
         }
