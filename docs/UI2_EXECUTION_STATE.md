@@ -1,9 +1,10 @@
-# KromaCut Xiaomi black-screen follow-up — 2026-10-21
+# KromaCut black-screen follow-up — 2026-10-21
 
-- Starting commit: `ff57f121e5c410a1fa6d7e6210fe44451c2b3cf0`, app 0.8.332. The screenshot shows KromaCut chrome but a black editor area. Existing instrumentation checked React text but not WebGL availability.
-- Code update: explicitly hardware-composite the embedded WebView; probe WebGL2 (required by bundled Three.js r163+); show a localized diagnostic if WebGL2 creation fails; surface WebGL/shader console errors. Extend `WorkspaceNavigationDeviceTest` to require WebGL2.
-- Verification: `:app:assembleDebug` and `:app:compileSliceTestAndroidTestKotlin` succeeded. Honor PTP-N49 ran `WorkspaceNavigationDeviceTest` 1/1; its KromaCut route and WebGL2 assertion passed. ADB also lists an offline emulator. No Xiaomi test is available. Gradle requires `ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk` in this environment.
-- The Xiaomi issue is not yet proven fixed. Code diagnostics are pushed in `99e6ae9f8b8ec312550a261e6fa28c5fea5e9fb4`. Next: deliver the 0.8.333 debug prerelease as a diagnostic candidate and run it on the Xiaomi while inspecting WebView console/logcat. Do not call this Xiaomi-verified until then.
+- Root cause confirmed on Honor PTP-N49 / Android 16: the `GLSurfaceView` Surface overlaps and obscures the Compose-hosted WebView, while the KromaCut DOM itself loads. Separately, KromaCut's `100dvh` rule produced a zero-height document root.
+- Runtime fix: keep the existing GLView/model, temporarily set the GL surface `GONE` only while KromaCut is open, then restore visibility and request a frame on dismissal. Reopening the GL surface invokes its existing surface recreation path; Honor test confirmed the native model object is retained and the renderer bed becomes available again.
+- Keep explicit measured-pixel WebView root sizing and normal WebView compositor. Honor screenshot captured during the test showed KromaCut 2D/3D controls, adjustment sidebar, image tool row and image canvas. Final focused Honor `WorkspaceNavigationDeviceTest`: 1/1 passed, including visible WebView layout, WebGL2 availability, Back dismissal, GL visibility/model restoration, and renderer surface readiness.
+- Current candidate version: 0.8.335 / code 370. Xiaomi is not connected and remains unverified. Do not state the user's Xiaomi issue is confirmed fixed until their phone is tested. Emulator remains offline.
+- Next: assemble/install the regular debug APK, visually inspect KromaCut and return navigation, run startup/logcat smoke checks, then update branch/PR and provide a candidate APK/release with the Xiaomi limitation stated.
 
 ---
 

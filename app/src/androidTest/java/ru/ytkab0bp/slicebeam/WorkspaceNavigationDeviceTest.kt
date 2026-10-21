@@ -210,9 +210,13 @@ class WorkspaceNavigationDeviceTest {
         val webTitle = arrayOfNulls<String>(1)
         val webRenderState = arrayOfNulls<String>(1)
         val editorView = arrayOfNulls<android.webkit.WebView>(1)
+        val rendererModelBefore = arrayOfNulls<Any>(1)
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
             launchedMenu = create(bed)
+            if (expectedType == KromacutEditorMenu::class.java) {
+                rendererModelBefore[0] = bed.glView?.renderer?.model
+            }
             bed.showWorkspaceComposeTool(requireNotNull(launchedMenu))
         }
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -236,14 +240,23 @@ class WorkspaceNavigationDeviceTest {
             assertTrue("${expectedType.simpleName} Compose lifecycle should be active", WorkspaceComposeToolRoute::class.java
                 .getDeclaredField("workspaceCompositionVisible").apply { isAccessible = true }.getBoolean(menu))
             if (expectedType == KromacutEditorMenu::class.java) {
-                val webView = findViews(requireNotNull(bed.overlayLayout))
-                    .filterIsInstance<WebView>()
-                    .firstOrNull { it.isAttachedToWindow }
+                val webView = KromacutEditorMenu::class.java.getDeclaredField("webView")
+                    .apply { isAccessible = true }.get(requireNotNull(launchedMenu)) as? WebView
+                    ?: findViews(requireNotNull(bed.overlayLayout))
+                        .filterIsInstance<WebView>()
+                        .firstOrNull { it.isAttachedToWindow }
                 assertTrue("Kromacut should embed its editor WebView in the Compose workspace", webView != null)
                 val editor = requireNotNull(webView)
                 assertTrue("Kromacut editor must keep file access disabled", editor.settings.allowFileAccess.not())
                 assertTrue("Kromacut editor must keep JavaScript enabled for its bundled editor", editor.settings.javaScriptEnabled)
+                assertEquals(
+                    "Kromacut WebGL must use WebView's normal compositor rather than a forced hardware texture layer",
+                    android.view.View.LAYER_TYPE_NONE,
+                    editor.layerType,
+                )
+                assertTrue("Kromacut's WebView must remain hardware-accelerated", editor.isHardwareAccelerated)
                 assertTrue("Kromacut must load the bundled 4.2 editor app route", editor.url.orEmpty().endsWith("/en/app/"))
+                assertEquals("Kromacut must temporarily remove the overlapping GL surface", android.view.View.GONE, bed.glView?.visibility)
                 editorView[0] = editor
             }
         }
@@ -259,7 +272,7 @@ class WorkspaceNavigationDeviceTest {
                     editor.evaluateJavascript("document.title") {
                         webTitle[0] = it
                     }
-                    editor.evaluateJavascript("({rootChildren:document.querySelector('#root')?.children.length||0,rootHtml:document.querySelector('#root')?.innerHTML.slice(0,300)||'',visibleText:(document.querySelector('#root')?.innerText||'').trim().length,canvasCount:document.querySelectorAll('canvas').length,webgl2Available:window.__orcaWebGL2Available===true,bodyHtmlLength:document.body?.innerHTML.length||0,readyState:document.readyState,scripts:[...document.scripts].map(s=>s.src+' attr='+s.getAttribute('src')+' type='+s.type).join('|'),base:document.baseURI,href:location.href,resources:performance.getEntriesByType('resource').map(r=>r.name+' status='+r.responseStatus).slice(-15).join('|')})") {
+                    editor.evaluateJavascript("(()=>{const root=document.querySelector('#root'),rect=e=>{const b=e?.getBoundingClientRect();return b?{x:b.x,y:b.y,width:b.width,height:b.height}:null},style=e=>e?{height:getComputedStyle(e).height,minHeight:getComputedStyle(e).minHeight,display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility,opacity:getComputedStyle(e).opacity,color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor,overflow:getComputedStyle(e).overflow,inline:e.getAttribute('style')}:null,canvases=[...document.querySelectorAll('canvas')].map(c=>{const g=c.getContext('webgl2');return{width:c.width,height:c.height,rect:rect(c),display:getComputedStyle(c).display,visibility:getComputedStyle(c).visibility,contextLost:g?.isContextLost()??null,glError:g?.getError()??null,renderer:g?.getParameter(g.RENDERER)??null}}),htmlRect=rect(document.documentElement),bodyRect=rect(document.body),rootRect=rect(root),appRect=rect(root?.firstElementChild),asideRect=rect(root?.querySelector('aside')),canvasVisible=canvases.some(c=>c.rect?.width>0&&c.rect?.height>0);return{viewport:{window:[innerWidth,innerHeight],document:[document.documentElement.clientWidth,document.documentElement.clientHeight],root:rootRect,rootFirstChild:appRect,body:bodyRect},computed:{html:style(document.documentElement),body:style(document.body),root:style(root),app:style(root?.firstElementChild)},layoutHasHeight:(htmlRect?.height||0)>0&&(bodyRect?.height||0)>0&&(rootRect?.height||0)>0&&(appRect?.height||0)>0,visibleEditorArea:(asideRect?.height||0)>0&&canvasVisible,aside:asideRect,rootChildren:root?.children.length||0,visibleText:(root?.innerText||'').trim().length,canvasCount:canvases.length,canvases,webgl2Available:window.__orcaWebGL2Available===true,bodyHtmlLength:document.body?.innerHTML.length||0,readyState:document.readyState,href:location.href}})()") {
                         webRenderState[0] = it
                         ready.countDown()
                     }
@@ -271,6 +284,7 @@ class WorkspaceNavigationDeviceTest {
                 .find(webRenderState[0].orEmpty())?.groupValues?.get(1)?.toIntOrNull() ?: 0
             val visibleTextLength = Regex("\\\"visibleText\\\":([0-9]+)")
                 .find(webRenderState[0].orEmpty())?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            android.util.Log.i("KromacutDeviceTest", "KromaCut rendered-page diagnostics: ${webRenderState[0]}")
             assertTrue("Kromacut page title was not rendered: ${webTitle[0]}", webTitle[0].orEmpty().contains("Kromacut"))
             assertTrue("Kromacut page loaded without rendering its React interface (diagnostic title ${webTitle[0]}): ${webRenderState[0]}",
                 rootChildren > 0 && visibleTextLength > 0)
@@ -278,12 +292,32 @@ class WorkspaceNavigationDeviceTest {
                 "Kromacut's Three.js renderer requires WebGL2; this device reports no WebGL2 context: ${webRenderState[0]}",
                 webRenderState[0].orEmpty().contains("\"webgl2Available\":true"),
             )
+            assertTrue(
+                "Kromacut's embedded document must have a nonzero layout viewport: ${webRenderState[0]}",
+                webRenderState[0].orEmpty().contains("\"layoutHasHeight\":true"),
+            )
+            assertTrue(
+                "Kromacut's image/sidebar area must have measurable visible layout: ${webRenderState[0]}",
+                webRenderState[0].orEmpty().contains("\"visibleEditorArea\":true"),
+            )
         }
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
             assertTrue("Android back should close ${expectedType.simpleName}", bed.onBackPressed())
         }
         instrumentation.waitForIdleSync()
+        if (expectedType == KromacutEditorMenu::class.java) {
+            var rendererReady = false
+            val rendererDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (SystemClock.uptimeMillis() < rendererDeadline && !rendererReady) {
+                scenario.onActivity { activity ->
+                    val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+                    rendererReady = bed.glView?.renderer?.bed != null
+                }
+                if (!rendererReady) SystemClock.sleep(50L)
+            }
+            assertTrue("GL renderer should recreate its surface after KromaCut closes", rendererReady)
+        }
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
             val controller = BedFragment::class.java.getDeclaredField("workspaceController")
@@ -292,6 +326,11 @@ class WorkspaceNavigationDeviceTest {
                 controller.javaClass.getMethod("getActiveToolId").invoke(controller))
             assertNull("${expectedType.simpleName} dismissal should clear its exclusive workspace panel",
                 controller.javaClass.getMethod("getActivePanel").invoke(controller))
+            if (expectedType == KromacutEditorMenu::class.java) {
+                assertEquals("Renderer visibility must be restored after KromaCut closes", android.view.View.VISIBLE, bed.glView?.visibility)
+                assertSame("Closing KromaCut must retain the native model", rendererModelBefore[0], bed.glView?.renderer?.model)
+                bed.glView?.requestRender()
+            }
         }
     }
 

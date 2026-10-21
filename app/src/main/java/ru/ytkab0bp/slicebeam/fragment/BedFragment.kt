@@ -43,6 +43,7 @@ import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.components.SliceProgressDialog
 import ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
+import ru.ytkab0bp.slicebeam.components.KromacutEditorMenu
 import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
 import ru.ytkab0bp.slicebeam.components.WorkspaceProfileSheet
 import ru.ytkab0bp.slicebeam.components.bed_menu.BedMenu
@@ -115,6 +116,7 @@ var overlayLayout: FrameLayout? = null
 private val snackbarController = WorkspaceSnackbarController()
 var glView: GLView? = null
 private var rendererAdapter: RendererAdapter? = null
+private var rendererVisibilityBeforeKromacut: Int? = null
 private var workspaceThemeRevision by mutableIntStateOf(0)
 private val workspaceController = WorkspaceController()
 private var activeSliceProgressDialog by mutableStateOf<SliceProgressDialog?>(null)
@@ -658,10 +660,30 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
     val routeContent = menu.createWorkspaceContent(portrait, this) ?: return
     val toolId = menu.javaClass.name
     val panelSize = menu.workspacePanelSize()
-    menu.setWorkspaceDismiss { workspaceController.clearTool(toolId) }
-    menu.setOnDismiss {
-        if (menu.isAttached()) return@setOnDismiss
+    val renderer = glView
+    val hideRendererForWebEditor = menu is KromacutEditorMenu
+    var rendererRestored = false
+    fun restoreRenderer() {
+        if (!hideRendererForWebEditor || rendererRestored) return
+        rendererRestored = true
+        val previousVisibility = rendererVisibilityBeforeKromacut ?: View.VISIBLE
+        rendererVisibilityBeforeKromacut = null
+        renderer?.visibility = previousVisibility
+        if (previousVisibility == View.VISIBLE) renderer?.requestRender()
+    }
+    // GLSurfaceView owns a separate Surface. On device GPUs that surface can be composed
+    // above the Compose/WebView tool sheet and black out the editor even though its DOM
+    // and CSS report visible controls. Hide only for this full-screen web editor; keep
+    // the same GLView and native model instance, then restore it when the route closes.
+    menu.setWorkspaceDismiss {
         workspaceController.clearTool(toolId)
+        restoreRenderer()
+    }
+    menu.setOnDismiss {
+        if (!menu.isAttached()) {
+            workspaceController.clearTool(toolId)
+            restoreRenderer()
+        }
     }
     workspaceController.selectToolWithPanel(
         toolId = toolId,
@@ -669,6 +691,12 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
         panelContent = { menu.WorkspaceContent(routeContent) },
         panelSize = panelSize,
     )
+    if (hideRendererForWebEditor) {
+        if (rendererVisibilityBeforeKromacut == null) {
+            rendererVisibilityBeforeKromacut = renderer?.visibility ?: View.VISIBLE
+        }
+        renderer?.visibility = View.GONE
+    }
 }
 internal fun setWorkspaceToolAllowsBackgroundInteraction(toolId: String, allowed: Boolean) {
     workspaceController.setToolAllowsBackgroundInteraction(toolId, allowed)

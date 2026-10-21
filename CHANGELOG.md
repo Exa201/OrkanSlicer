@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.335 (alpha)
+
+- Fix KromaCut's black editor by hiding the existing GL `SurfaceView` only while the full-screen WebView editor is open. Honor diagnostics showed the GL surface overlapped the WebView; hiding it exposed the complete KromaCut controls and image canvas. Restore the same GLView when the editor closes and request a fresh frame; the native model object remains intact.
+- Set the bundled page's root heights from the measured WebView pixel viewport because its `100dvh` CSS rule computed to zero on Honor despite a nonzero viewport.
+- Extend Honor instrumentation to require a visible sidebar/canvas layout and verify Android Back restores GL visibility and the same native model. A live Honor screenshot showed the KromaCut controls and image canvas after the fix. Xiaomi-specific confirmation remains open.
+
 ## 0.8.333 (alpha)
 
 - Force hardware compositing for the embedded KromaCut WebView and detect missing WebGL 2, which the bundled Three.js renderer requires.

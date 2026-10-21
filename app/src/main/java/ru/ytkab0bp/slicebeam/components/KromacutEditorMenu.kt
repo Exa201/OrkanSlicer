@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
-import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.ConsoleMessage
 import android.webkit.ValueCallback
@@ -119,9 +118,10 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
     private fun createEditor(ctx: Context): WebView {
         return WebView(ctx).apply {
             setBackgroundColor(0xFF101115.toInt())
-            // KromaCut's Three.js canvas depends on hardware-composited WebGL.
-            // Vendor WebViews can otherwise leave it black inside the Compose overlay.
-            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+            // Keep WebView's own compositor instead of forcing an offscreen hardware
+            // texture layer. Some vendor WebViews can render their HTML chrome but leave
+            // the nested WebGL canvas black when the whole view is forced into a layer.
+            // The Activity remains hardware-accelerated (the manifest default).
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
@@ -154,6 +154,11 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                         .replace(
                             "<head>",
                             "<head><base href=\"https://appassets.androidplatform.net/assets/kromacut-editor/\">" +
+                                // The bundled page's 100dvh rule resolves to zero on the
+                                // affected Android WebView. Set actual pixel heights from
+                                // the WebView viewport; percentage heights cannot resolve
+                                // while the document root itself has no definite height.
+                                "<script>(function(){function size(){var h=window.innerHeight||document.documentElement.clientHeight;if(!h)return;[document.documentElement,document.body,document.getElementById('root')].forEach(function(e){if(e){e.style.setProperty('height',h+'px','important');e.style.setProperty('min-height',h+'px','important')}});var r=document.getElementById('root');if(r&&r.firstElementChild){r.firstElementChild.style.setProperty('height',h+'px','important');r.firstElementChild.style.setProperty('min-height',h+'px','important')}}window.addEventListener('resize',size);window.addEventListener('orientationchange',function(){setTimeout(size,100)});new MutationObserver(size).observe(document.documentElement,{childList:true,subtree:true});document.addEventListener('DOMContentLoaded',size);size()})();</script>" +
                                 // WebView's Vite lazy import for the editor entry can remain
                                 // unresolved when the app route is served from AssetLoader.
                                 // Preloading this exact local chunk makes the same module
