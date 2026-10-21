@@ -53,3 +53,18 @@ Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since
 - Increased that test's state-settle timeout from 10 to 30 seconds; the containing class again passed 8/8. A second full connected-suite run is in progress. No production code changed as part of this test stability adjustment.
 - The second full run reproduced the timeout at WebView attachment (the next 10-second condition), while the active KromaCut tool/GL state had passed. Increased WebView attachment and post-Back renderer-restoration waits to 30 seconds. This is synchronization-only; full-suite rerun remains required.
 - The third full run still timed out waiting for WebView attachment at 30 seconds, while the route tool/GL state was successful. Since `WorkspaceNavigationDeviceTest` separately verifies attached WebView, rendered React UI, WebGL2/layout, and renderer/model restoration, removed this duplicate WebView scan from the Settings navigation test. The Settings test retains assertions for the Settings→Maker handler, active tool, GL visibility, Back, and renderer/model identity. Full connected-suite rerun is required.
+
+## Final integrated Honor run — 2026-10-21
+
+- `:app:connectedSliceTestAndroidTest` completed on Honor PTP-N49 / Android 16: 241 cases total, 238 passed, 3 skipped, 0 failures/errors. The skipped cases depend on the three private KromaCut 3MF fixtures. XML timestamp: `2026-10-21T12:58:09`. The previously timed-out Settings→Maker route passed in this run; actual WebView render/WebGL checks remain independently covered by `WorkspaceNavigationDeviceTest`.
+- Maker generator class passed 14/14, including actual Text Tag, Cable Grommet, and Phone Stand generation, production binary STL validation, and cache discard. No save picker was opened or external file written.
+- Debug JVM and Slice JVM: 588/588 each, 0 skipped/failures/errors. Migration audit passed. Sampled Honor Logcat had no fatal/ANR/OOM/fatal-signal matches. Emulator remains offline.
+- Phase 5 and Phase 6 are not complete: other Maker output/save paths, exhaustive action matrix reconciliation, manual TalkBack, and full responsive matrix remain open. Runtime app source/version unchanged; no APK/release was generated.
+
+## Private user fixture staged — full Honor suite (2026-10-21)
+
+- Staged the user's color 3MF only under SliceTest app external files. SHA-256 verified on device against the local attachment: `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`.
+- Focused `KromaCutThreeMfDeviceTest`: 3/3 passed with the fixture. This exercises preserving project settings vs own settings, reassignment across import choices, and an actual blue/white gate slice plus the generated G-code palette.
+- Full `:app:connectedSliceTestAndroidTest` run on Honor (without reinstalling the fixture-bearing test package): XML timestamp `2026-10-21T13:12:19`, 241/241 passed, 0 skipped, 0 failed/errors. The three KromaCut 3MF tests are all PASS in this run; this replaces the earlier full-suite record with three missing-fixture skips for this latest run.
+- Sampled device Logcat after run: no fatal exception, ANR, OOM, or fatal-signal matches. Emulator offline.
+- No application source/runtime version changed; no APK/release generated. The attached 3MF is private test input and must not be checked in. Remaining work includes the full action audit and Phase 6 responsive/physical accessibility verification.
