@@ -1,5 +1,13 @@
 # Fortsetzungsstatus — 2026-10-21 (0.8.331)
 
+## Release 0.8.332 und Anschlussstand — 2026-10-21
+
+- Code-Commit `5f761e3e4473cf71f569d290eebfbfe36b65081b` auf `codex/rinkhals-safe-start-audit`; PR #2 bleibt OPEN und MERGEABLE. Release [v0.8.332](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.332) ist als Debug-Prerelease veröffentlicht.
+- Finale APK: `app/build/outputs/apk/debug/OrkanSlicer_5f761e3e44.apk`, Version 0.8.332 / Code 367, 239,125,475 Bytes, SHA-256 `2A58EEDE08E90785F15B54CC3DBF7762208C68ED4C42C070A9F2A2B37418EFC9`. GitHub-Assetdigest stimmt überein; das ältere, commitfalsch benannte Asset wurde nach erfolgreichem Upload entfernt.
+- `:app:assembleDebug` erfolgreich; Debug-Unit 586/586 und Slice-Unit 586/586 bestanden (je 0 Fehler/Überspringungen). Honor: vollständiger Workspace-Menütest 42/42; responsive Fokusprüfungen bei 320 dp / 150 %, 400 dp / 130 % sowie 800×366 dp Querformat / 130 % bestanden. Das Honor wurde beim Versuch, die finale commit-genaue APK erneut zu installieren, getrennt; daher blieb die vorherige gleichversionierte 0.8.332-Installation bestehen. Der separate Changelog-Gerätetest ist nicht ausgeführt; Emulator offline.
+- PR #2 wurde mit Release- und Testergebnissen aktualisiert. Kein Druckstart oder Firmwareeingriff. UI-2.0-Vorhaben bleibt offen: vollständige Menü-/Accessibility-Abnahme, manuelle TalkBack-Prüfung und Mehrplatten-Projektpersistenz.
+- Nächster konkreter Schritt: globale Drucker-/Filament-/Profilmenüs mit echten Auswahl-, Änderungs-, Speichern-, Abbrechen- und Back-Aktionen weiter prüfen; danach die fehlenden Responsive-/TalkBack-Fälle fortsetzen.
+
 ## Fortsetzung 2026-10-21 — responsive Menüaktionen bei 320 dp / 150 %
 
 - Ausgangs-HEAD: `458a2e9163d098dc03526300f8aac67ea9aa5e6c`. Geändert wurden ausschließlich Instrumentierungstests, keine App-Laufzeitdateien oder Versionen.
