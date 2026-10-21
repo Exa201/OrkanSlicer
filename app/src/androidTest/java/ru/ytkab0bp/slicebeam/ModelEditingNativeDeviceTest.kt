@@ -121,6 +121,61 @@ class ModelEditingNativeDeviceTest {
         expectedVolumeFactor = 0.5,
     )
 
+    @Test fun nativeBooleanUnionKeepsDisjointClosedSolidsAsOneModelObject() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-disjoint-union.stl")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val sourceVolume = model.getObjectVolume(0)
+            model.addObject(model, 0)
+            model.translate(1, (max.x - min.x) * 1.5, 0.0, 0.0)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+
+            assertEquals(0, result)
+            assertEquals(1, model.objectsCount)
+            assertEquals(2.0, model.getObjectVolume(result) / sourceVolume, 0.02)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals((max.y - min.y), resultMax.y - resultMin.y, 0.02)
+            assertEquals((max.z - min.z), resultMax.z - resultMin.z, 0.02)
+            assertEquals((max.x - min.x) * 2.5, resultMax.x - resultMin.x, 0.02)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun nativeBooleanDifferenceKeepsAnEnclosedCavityAndExpectedSolidVolume() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-contained-difference.stl")
+        val model = Model(modelFile)
+        try {
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            val sourceVolume = model.getObjectVolume(0)
+            model.addObject(model, 0)
+            model.scale(1, 0.5, 0.5, 0.5)
+            val toolMin = Vec3d(); val toolMax = Vec3d()
+            model.getBoundingBoxExact(1, toolMin, toolMax)
+            model.translate(
+                1,
+                (targetMin.x + targetMax.x - toolMin.x - toolMax.x) / 2.0,
+                (targetMin.y + targetMax.y - toolMin.y - toolMax.y) / 2.0,
+                (targetMin.z + targetMax.z - toolMin.z - toolMax.z) / 2.0,
+            )
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.DIFFERENCE)
+
+            assertEquals(0, result)
+            assertEquals(1, model.objectsCount)
+            assertEquals(0.875, model.getObjectVolume(result) / sourceVolume, 0.02)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun booleanDialogOffersUnionDifferenceAndIntersectionAsSeparateActions() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         var selected: BooleanOperation? = null

@@ -1452,6 +1452,11 @@ extern "C" {
             }
             ModelObject* replacement = ref->model.add_object(resultName.c_str(), sourcePath.c_str(), std::move(targetMesh));
             if (replacement == nullptr || replacement->volumes.empty()) return -5;
+            // targetMesh is already in world coordinates (ModelObject::mesh applies
+            // each source instance). A replacement ModelObject created by add_object
+            // has no instances, so add an identity instance to keep it visible and
+            // make its bounds/slicing state valid after the two source objects go away.
+            replacement->add_instance();
             replacement->config.assign_config(target->config);
             replacement->printable = printable;
             replacement->volumes.front()->config.set("extruder", targetExtruder);
