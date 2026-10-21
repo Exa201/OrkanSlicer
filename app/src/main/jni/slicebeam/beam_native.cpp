@@ -1428,25 +1428,58 @@ extern "C" {
             TriangleMesh resultMesh = target->mesh();
             if (!valid_operand(resultMesh)) return -3;
             const double baseVolume = std::fabs(resultMesh.volume());
-            for (size_t n = 1; n < indices.size(); ++n) {
-                ModelObject* tool = ref->model.objects[indices[n]];
+            auto applyBoolean = [operation](auto& result, auto& tool) {
+                switch (operation) {
+                    case 0: MeshBoolean::cgal::plus(result, tool); break;
+                    case 1: MeshBoolean::cgal::minus(result, tool); break;
+                    case 2: MeshBoolean::cgal::intersect(result, tool); break;
+                }
+            };
+            auto validateStep = [&](TriangleMesh& stepMesh) {
+                if (stepMesh.empty() || stepMesh.stats().open_edges != 0 ||
+                    !std::isfinite(stepMesh.volume()) || std::fabs(stepMesh.volume()) <= 1e-9f)
+                    return false;
+                const double stepVolume = std::fabs(stepMesh.volume());
+                if (operation == 1 && stepVolume >= baseVolume - std::max(1e-5, baseVolume * 1e-6))
+                    return false; // Do not silently accept a sequence that did not cut its target.
+                return true;
+            };
+            if (indices.size() == 2) {
+                // Keep the common single-operation path on EPIC for its lower cost.
+                auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
+                if (!resultCgal) return -3;
+                ModelObject* tool = ref->model.objects[indices[1]];
                 if (tool == nullptr || tool->instances.size() != 1 || tool->instances.front() == nullptr) return -2;
                 TriangleMesh toolMesh = tool->mesh();
                 if (!valid_operand(toolMesh)) return -3;
-                switch (operation) {
-                    case 0: MeshBoolean::cgal::plus(resultMesh, toolMesh); break;
-                    case 1: MeshBoolean::cgal::minus(resultMesh, toolMesh); break;
-                    case 2: MeshBoolean::cgal::intersect(resultMesh, toolMesh); break;
+                auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
+                if (!toolCgal) return -3;
+                applyBoolean(*resultCgal, *toolCgal);
+                if (MeshBoolean::cgal::empty(*resultCgal) ||
+                    !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
+                    MeshBoolean::cgal::does_self_intersect(*resultCgal)) return -4;
+                resultMesh = MeshBoolean::cgal::cgal_to_triangle_mesh(*resultCgal);
+                if (!validateStep(resultMesh)) return operation == 1 ? -7 : -4;
+            } else {
+                // Keep intermediate multi-operand results in CGAL instead of
+                // round-tripping through the slicer's float mesh after every step.
+                auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
+                if (!resultCgal) return -3;
+                for (size_t n = 1; n < indices.size(); ++n) {
+                    ModelObject* tool = ref->model.objects[indices[n]];
+                    if (tool == nullptr || tool->instances.size() != 1 || tool->instances.front() == nullptr) return -2;
+                    TriangleMesh toolMesh = tool->mesh();
+                    if (!valid_operand(toolMesh)) return -3;
+                    auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
+                    if (!toolCgal) return -3;
+                    applyBoolean(*resultCgal, *toolCgal);
+                    if (MeshBoolean::cgal::empty(*resultCgal) ||
+                        !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
+                        MeshBoolean::cgal::does_self_intersect(*resultCgal)) return -4;
+                    TriangleMesh stepMesh = MeshBoolean::cgal::cgal_to_triangle_mesh(*resultCgal);
+                    if (!validateStep(stepMesh)) return operation == 1 ? -7 : -4;
                 }
-                if (resultMesh.empty() || resultMesh.stats().open_edges != 0 ||
-                    !std::isfinite(resultMesh.volume()) || std::fabs(resultMesh.volume()) <= 1e-9f)
-                    return -4;
-                const double stepVolume = std::fabs(resultMesh.volume());
-                if (operation == 1 && stepVolume >= baseVolume - std::max(1e-5, baseVolume * 1e-6))
-                    return -7; // Do not silently accept a sequence that did not cut its target.
-                auto stepCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
-                if (!stepCgal || !MeshBoolean::cgal::does_bound_a_volume(*stepCgal) ||
-                    MeshBoolean::cgal::does_self_intersect(*stepCgal)) return -4;
+                resultMesh = MeshBoolean::cgal::cgal_to_triangle_mesh(*resultCgal);
             }
 
             // Boolean output is one solid, so it takes the target object's profile and

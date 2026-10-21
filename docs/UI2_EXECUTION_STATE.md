@@ -68,6 +68,16 @@
 - Final JVM regression against unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`: Debug Unit 588/588 and Slice Unit 588/588; 0 failures, skips, or errors in each suite.
 - Honor state after the action checks: PTP-N49 / Android 16, 1280x2800 px, 560 dpi, system font scale 1.0. A 10,000-line Logcat sample contained no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` matches. The offline emulator remains unavailable.
 - New current-pass direct action evidence: `InitialProjectMenuDeviceTest` 42/42; profile/global checks 46/46 across the focused settings/profile runs; dialog/generator/calibration checks 23/23; filament/MMU/slicing checks 42/42. These sets overlap the full Honor suite and are not additive. The full Honor suite remains 237 cases: 234 passed, 3 private-fixture skips, 0 failures/errors.
+
+---
+
+# Prime tower visibility and native CSG regression checkpoint — 2026-10-21
+
+- The requested tower position preview and `Freien Platz finden` action were already implemented on this branch in `e54fa8ed` and included in the current HEAD. They show the active bed, model bounding boxes, tower footprint, X/Y coordinates, and whether the current footprint is clear, overlapping, or outside the bed. Auto-placement searches the active bed bounds and model boxes; its coordinate changes remain a draft until the user confirms the dialog.
+- Fresh verification on Honor PTP-N49 / Android 16: `PrimeTowerKeyboardDeviceTest` 3/3 passed, covering preview/action visibility with the numeric keyboard open, automatic placement, explicit Apply, and multi-plate coordinates. Focused `PrimeTowerDragLogicTest` and `PrintConfigToolsLogicTest` JVM run passed.
+- Continued the native Boolean regression work: CSG sequence results now stay in CGAL between operands, with raw-result validity checks before conversion back to the slicer mesh. Added a deterministic 20 mm cube fixture and a three-solid coplanar-face intersection regression. Focused case passed; full `ModelEditingNativeDeviceTest` passed 17/17 on Honor.
+- Debug Unit and Slice Unit suites each passed 603/603, with 0 failures, errors, or skips. The targeted device build also compiled the current ARM64 native library successfully.
+- Next: finish reviewing the native CSG patch, build the final debug app if needed for this code change, then commit and push the verified model regression. No Release was created in this pass.
 - No app source changed and no app defect reproduced in these tests. Runtime release remains 0.8.337; no APK was rebuilt for this docs/test-only checkpoint.
 - Phase 5 is still active until each current visible workspace/global action is reconciled to a handler and an action-level test (mark actual printer-send/print actions as safety-excluded rather than invoking them). Phase 6 is partial: automated responsive matrix tests pass, but manual physical TalkBack is unavailable because Android reports no enabled accessibility service. Next: continue the source-derived action matrix, then re-run focused cases for any uncovered safe routes; when physical TalkBack becomes available, complete the manual traversal.
 

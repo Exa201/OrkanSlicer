@@ -23,6 +23,8 @@ import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
@@ -279,6 +281,35 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun nativeBooleanIntersectionHandlesThreeSolidsWithCoplanarFaces() {
+        val modelFile = createCubeFixture("boolean-coplanar-three-object-intersection.stl", 20f)
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, width * 0.2, 0.0, 0.0)
+            model.translate(2, -width * 0.2, 0.0, 0.0)
+
+            val result = model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.INTERSECTION)
+
+            assertEquals("three-body intersection with shared coplanar faces should succeed", 0, result)
+            assertEquals(1, model.objectsCount)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals(width * 0.6, resultMax.x - resultMin.x, 0.02)
+            assertEquals(width, resultMax.y - resultMin.y, 0.02)
+            assertEquals(width, resultMax.z - resultMin.z, 0.02)
+            assertEquals("coplanar three-solid overlap should have exact 0.6 cube volume", 0.6,
+                model.getObjectVolume(result) / (width * width * width), 0.002)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun failedMultiObjectBooleanLeavesEveryInputUntouched() {
         val modelFile = copyAsset("models/xyz_cube.stl", "boolean-three-object-failure.stl")
         val model = Model(modelFile)
@@ -432,5 +463,33 @@ class ModelEditingNativeDeviceTest {
         return File(context.cacheDir, name).also { file ->
             context.assets.open(asset).use { input -> file.outputStream().use(input::copyTo) }
         }
+    }
+
+    private fun createCubeFixture(name: String, side: Float): File {
+        val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        val vertices = arrayOf(
+            floatArrayOf(0f, 0f, 0f), floatArrayOf(side, 0f, 0f),
+            floatArrayOf(side, side, 0f), floatArrayOf(0f, side, 0f),
+            floatArrayOf(0f, 0f, side), floatArrayOf(side, 0f, side),
+            floatArrayOf(side, side, side), floatArrayOf(0f, side, side),
+        )
+        val triangles = arrayOf(
+            intArrayOf(0, 2, 1), intArrayOf(0, 3, 2),
+            intArrayOf(4, 5, 6), intArrayOf(4, 6, 7),
+            intArrayOf(0, 1, 5), intArrayOf(0, 5, 4),
+            intArrayOf(3, 7, 6), intArrayOf(3, 6, 2),
+            intArrayOf(0, 4, 7), intArrayOf(0, 7, 3),
+            intArrayOf(1, 2, 6), intArrayOf(1, 6, 5),
+        )
+        val stl = ByteBuffer.allocate(84 + triangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
+        stl.position(80)
+        stl.putInt(triangles.size)
+        triangles.forEach { triangle ->
+            repeat(3) { stl.putFloat(0f) }
+            triangle.forEach { vertex -> vertices[vertex].forEach { stl.putFloat(it) } }
+            stl.putShort(0)
+        }
+        file.writeBytes(stl.array())
+        return file
     }
 }
