@@ -6,20 +6,78 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 import java.io.FileOutputStream
 
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun disjointBooleanUnionKeepsItsInstanceBoundsAndProducesGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        val previousConfig = SliceBeam.CONFIG
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val modelFile = File(context.cacheDir, "boolean-disjoint-slice.stl")
+        val gcodeFile = File(context.cacheDir, "boolean-disjoint-slice.gcode")
+        var model: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            context.assets.open("models/xyz_cube.stl").use { input -> modelFile.outputStream().use(input::copyTo) }
+            model = Model(modelFile)
+            val initialMin = Vec3d(); val initialMax = Vec3d()
+            model.getBoundingBoxExact(0, initialMin, initialMax)
+            model.addObject(model, 0)
+            model.translate(1, (initialMax.x - initialMin.x) * 1.5, 0.0, 0.0)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+            assertEquals("Boolean union should leave one valid model object", 0, result)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals((initialMax.x - initialMin.x) * 2.5, resultMax.x - resultMin.x, 0.02)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("Native slicer should emit G-code for the disjoint Boolean result", gcode.isNotBlank())
+            assertTrue("G-code should include at least one deposited move", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            Log.i("NativeSliceDeviceTest", "PASS disjoint Boolean G-code bytes=${gcodeFile.length()}")
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            modelFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
     @Test
     fun bundledKobraProfileSlicesBoxLocally() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
