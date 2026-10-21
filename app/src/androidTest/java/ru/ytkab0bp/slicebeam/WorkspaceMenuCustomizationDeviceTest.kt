@@ -161,13 +161,14 @@ class WorkspaceMenuCustomizationDeviceTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val fontScale = mutableFloatStateOf(1f)
         val portrait = mutableStateOf(true)
+        val widthDp = mutableIntStateOf(360)
         val changedOrtho = mutableStateOf<Boolean?>(null)
         compose.setContent {
             val baseDensity = LocalDensity.current.density
             CompositionLocalProvider(LocalDensity provides Density(baseDensity, fontScale.floatValue)) {
                 BeamComposeTheme {
-                    Box(Modifier.width(360.dp)) {
-                        key(fontScale.floatValue, portrait.value) {
+                    Box(Modifier.width(widthDp.intValue.dp)) {
+                        key(fontScale.floatValue, portrait.value, widthDp.intValue) {
                             CameraMenuContent(
                                 portrait = portrait.value,
                                 initialOrthoEnabled = true,
@@ -180,28 +181,31 @@ class WorkspaceMenuCustomizationDeviceTest {
             }
         }
 
-        listOf(1f, 1.3f, 1.5f).forEach { scale ->
-            listOf(true, false).forEach { isPortrait ->
-                compose.runOnIdle {
-                    fontScale.floatValue = scale
-                    portrait.value = isPortrait
+        listOf(320, 360, 400).forEach { width ->
+            listOf(1f, 1.3f, 1.5f).forEach { scale ->
+                listOf(true, false).forEach { isPortrait ->
+                    compose.runOnIdle {
+                        widthDp.intValue = width
+                        fontScale.floatValue = scale
+                        portrait.value = isPortrait
+                    }
+                    compose.waitForIdle()
+                    compose.onNodeWithTag("menu-customize-view").assertIsDisplayed()
+                    if (isPortrait) {
+                        compose.onNodeWithContentDescription(context.getString(R.string.MenuCustomize)).assertIsDisplayed()
+                    } else {
+                        compose.onNodeWithText(context.getString(R.string.MenuCustomize)).assertIsDisplayed()
+                    }
+                    compose.onNodeWithTag("menu-customize-view").performClick()
+                    compose.onNodeWithTag("menu-customize-list-view").assertIsDisplayed()
+                    compose.onNodeWithTag("menu-customize-visible-view-${context.resources.getResourceEntryName(R.string.MenuCameraControlMode)}")
+                        .assertIsDisplayed()
+                    compose.onNodeWithText(context.getString(AndroidR.string.cancel)).performClick()
+                    compose.onNodeWithTag("workspace-menu-action-${R.string.MenuCameraOrtho}").assertIsDisplayed()
+                    compose.onNodeWithContentDescription(context.getString(R.string.MenuCameraOrtho)).assertIsDisplayed()
+                    compose.onNodeWithTag("workspace-menu-action-${R.string.MenuCameraOrtho}").performClick()
+                    compose.runOnIdle { assertEquals(false, changedOrtho.value) }
                 }
-                compose.waitForIdle()
-                compose.onNodeWithTag("menu-customize-view").assertIsDisplayed()
-                if (isPortrait) {
-                    compose.onNodeWithContentDescription(context.getString(R.string.MenuCustomize)).assertIsDisplayed()
-                } else {
-                    compose.onNodeWithText(context.getString(R.string.MenuCustomize)).assertIsDisplayed()
-                }
-                compose.onNodeWithTag("menu-customize-view").performClick()
-                compose.onNodeWithTag("menu-customize-list-view").assertIsDisplayed()
-                compose.onNodeWithTag("menu-customize-visible-view-${context.resources.getResourceEntryName(R.string.MenuCameraControlMode)}")
-                    .assertIsDisplayed()
-                compose.onNodeWithText(context.getString(AndroidR.string.cancel)).performClick()
-                compose.onNodeWithTag("workspace-menu-action-${R.string.MenuCameraOrtho}").assertIsDisplayed()
-                compose.onNodeWithContentDescription(context.getString(R.string.MenuCameraOrtho)).assertIsDisplayed()
-                compose.onNodeWithTag("workspace-menu-action-${R.string.MenuCameraOrtho}").performClick()
-                compose.runOnIdle { assertEquals(false, changedOrtho.value) }
             }
         }
     }

@@ -2230,3 +2230,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `git diff --check` passed. This is instrumentation coverage only; no production code changed and no APK/full unit suite was rebuilt for this test-only update. Emulator remains offline; manual physical TalkBack traversal and other menu layouts at large font remain open.
 - Phase 5 remains active pending complete source-to-handler reconciliation. Phase 6 is partial; camera menu now has portrait/landscape and 100/130/150% simulated Compose font-scale coverage.
 - Next: inspect uncovered visible global and workspace actions against existing device tests, add focused action-level cases where a safe gap exists, then continue responsive checks for other high-impact panels.
+
+## Responsive camera-menu width matrix (2026-10-21)
+
+- Expanded the large-text camera-menu action test to exercise 320, 360, and 400 dp host widths at each 100%, 130%, and 150% font scale in portrait and landscape (18 configuration combinations). Each checks the customization entry, opens/cancels the editor, confirms the orthographic action remains visible and accessible, then invokes it and verifies the callback reports the expected state.
+- Honor PTP-N49 / Android 16: `WorkspaceMenuCustomizationDeviceTest` passed 4/4, 0 skipped/failures/errors (XML timestamp `2026-10-21T15:14:53`). No app defect was reproduced. Emulator remains offline; this test uses simulated Compose font scale and host width, not system-level font settings or physical landscape rotation.
+- Test-only instrumentation change; `git diff --check` passed. No APK or JVM unit suite was rebuilt. Phase 5 action matrix and manual TalkBack traversal remain incomplete.
+- Next: continue the source-to-handler reconciliation of remaining workspace/global actions; verify which have existing action-level device coverage before adding more tests.
