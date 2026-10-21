@@ -29,12 +29,18 @@ class AdaptiveNavigationPolicyTest {
     }
 
     @Test
-    fun largeTextUsesTwoNavigationRowsWhenLabelsNeedRoom() {
-        assertFalse(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 3))
-        assertTrue(AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(1.3f, 5))
-        assertEquals(146, AdaptiveNavigationPolicy.navigationBarHeightDp(1.3f, 6))
-        assertEquals(168, AdaptiveNavigationPolicy.navigationBarHeightDp(1.5f, 6))
+    fun bottomNavigationAlwaysRemainsOneRowAndKeepsStableHeight() {
+        assertEquals(56, AdaptiveNavigationPolicy.navigationBarHeightDp(1.3f, 6))
+        assertEquals(56, AdaptiveNavigationPolicy.navigationBarHeightDp(1.5f, 6))
         assertEquals(56, AdaptiveNavigationPolicy.navigationBarHeightDp(1f, 6))
+    }
+
+    @Test
+    fun compactLabelsAreUsedAtPhoneWidthsAndLargeTextScales() {
+        assertTrue(AdaptiveNavigationPolicy.usesCompactBottomLabels(320, 1f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactBottomLabels(400, 1f))
+        assertTrue(AdaptiveNavigationPolicy.usesCompactBottomLabels(480, 1.5f))
+        assertFalse(AdaptiveNavigationPolicy.usesCompactBottomLabels(480, 1f))
     }
 
     @Test

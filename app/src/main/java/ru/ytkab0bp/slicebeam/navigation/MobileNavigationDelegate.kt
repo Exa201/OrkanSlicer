@@ -63,7 +63,10 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             configuration.screenWidthDp,
             portrait,
         )
-        compactNavigationLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
+        compactNavigationLabels = AdaptiveNavigationPolicy.usesCompactBottomLabels(
+            configuration.screenWidthDp,
+            configuration.fontScale,
+        )
         navigationFontScale = configuration.fontScale
         selectedNavigationSlot = MobileNavigationPolicy.selectedDestination(currentSlot)
         rootLayout = navigationLayout
@@ -128,9 +131,10 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             setContent {
                 key(navigationThemeRevision) {
                     BeamComposeTheme {
-                        // Keep the visible labels compact when the two-row large-text layout is
-                        // active. Full localized names remain in accessibility semantics.
-                        val compactLabels = AdaptiveNavigationPolicy.usesCompactLabels(
+                        // Compact phone labels keep all destinations visible in the single row;
+                        // full localized names remain in accessibility semantics.
+                        val compactLabels = AdaptiveNavigationPolicy.usesCompactBottomLabels(
+                            ctx.resources.configuration.screenWidthDp,
                             LocalDensity.current.fontScale,
                         )
                         val items = MobileNavigationPolicy.destinations().map { slot ->
@@ -176,7 +180,10 @@ class MobileNavigationDelegate : DelegateSlotImpl() {
             configuration.screenWidthDp,
             portrait,
         )
-        val useCompactLabels = AdaptiveNavigationPolicy.usesCompactLabels(configuration.fontScale)
+        val useCompactLabels = AdaptiveNavigationPolicy.usesCompactBottomLabels(
+            configuration.screenWidthDp,
+            configuration.fontScale,
+        )
         val fontScaleChanged = configuration.fontScale != navigationFontScale
         if (useBottomNavigation == bottomNavigation && useCompactLabels == compactNavigationLabels && !fontScaleChanged) return
         val layout = rootLayout ?: return

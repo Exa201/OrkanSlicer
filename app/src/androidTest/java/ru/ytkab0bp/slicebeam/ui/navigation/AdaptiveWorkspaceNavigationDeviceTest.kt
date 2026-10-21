@@ -72,7 +72,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
     }
 
     @Test
-    fun largeTextUsesTwoRowsWithoutLosingDestinationAccessibilityLabels() {
+    fun largeTextKeepsAllDestinationsOnOneStableRowAndPreservesAccessibilityLabels() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val items = WorkspaceDestination.visibleNavigationDestinations.map { destination ->
             WorkspaceNavigationItem(
@@ -90,7 +90,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
                 BeamComposeTheme {
-                    Box(Modifier.width(320.dp)) {
+                    Box(Modifier.width(320.dp).height(56.dp)) {
                         AdaptiveWorkspaceNavigation(
                             items = items,
                             selectedSlot = WorkspaceDestination.PROJECT.ordinal,
@@ -102,10 +102,15 @@ class AdaptiveWorkspaceNavigationDeviceTest {
             }
         }
 
-        WorkspaceDestination.visibleNavigationDestinations.forEach { destination ->
+        val destinationNodes = WorkspaceDestination.visibleNavigationDestinations.map { destination ->
             compose.onNodeWithContentDescription(context.getString(destination.navigationTitleRes))
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(48.dp)
+        }
+        val firstTop = destinationNodes.first().fetchSemanticsNode().boundsInRoot.top
+        destinationNodes.drop(1).forEach { node ->
+            assertEquals("navigation items must share one row", firstTop,
+                node.fetchSemanticsNode().boundsInRoot.top, 0.5f)
         }
         compose.onNodeWithText(context.getString(R.string.MenuOptionsCompact)).assertIsDisplayed()
     }

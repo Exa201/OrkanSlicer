@@ -1,7 +1,5 @@
 package ru.ytkab0bp.slicebeam.ui.navigation
 
-import kotlin.math.ceil
-
 /** Chooses compact bottom navigation or an expanded rail from the current app-window width. */
 object AdaptiveNavigationPolicy {
     const val EXPANDED_WIDTH_DP = 600
@@ -14,27 +12,19 @@ object AdaptiveNavigationPolicy {
     @JvmStatic
     fun usesCompactLabels(fontScale: Float): Boolean = fontScale >= COMPACT_LABEL_FONT_SCALE
 
-    /** Shortens visible labels when six bottom destinations would wrap in a phone-width window. */
+    /** Shortens labels before destinations wrap in a phone-width window. */
     @JvmStatic
     fun usesCompactBottomLabels(windowWidthDp: Int, fontScale: Float): Boolean =
         usesCompactLabels(fontScale) || (windowWidthDp in 1 until COMPACT_BOTTOM_LABEL_WIDTH_DP)
 
-    /** Compact visible labels remain necessary in two-row navigation when a word cannot wrap. */
+    /** Compact labels keep each destination legible in a single row on phones. */
     @JvmStatic
     fun usesCompactWorkspaceLabels(windowWidthDp: Int, fontScale: Float, isPortrait: Boolean): Boolean =
         !isPortrait || usesCompactBottomLabels(windowWidthDp, fontScale)
 
     @JvmStatic
-    fun usesTwoRowBottomNavigation(fontScale: Float, itemCount: Int): Boolean =
-        usesCompactLabels(fontScale) && itemCount > 3
-
-    @JvmStatic
-    fun navigationBarHeightDp(fontScale: Float, itemCount: Int): Int =
-        if (usesTwoRowBottomNavigation(fontScale, itemCount)) {
-            (NAVIGATION_BAR_HEIGHT_DP * fontScale.coerceAtLeast(1f)).let { ceil(it).toInt() } * 2
-        } else {
-            NAVIGATION_BAR_HEIGHT_DP
-        }
+    @Suppress("UNUSED_PARAMETER")
+    fun navigationBarHeightDp(fontScale: Float, itemCount: Int): Int = NAVIGATION_BAR_HEIGHT_DP
 
     /** Wider rail space preserves system text scaling and readable destination names. */
     @JvmStatic

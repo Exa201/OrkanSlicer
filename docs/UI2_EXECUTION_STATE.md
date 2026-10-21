@@ -8,6 +8,14 @@
 
 ---
 
+# Single-row navigation checkpoint — 2026-10-21
+
+- Fixed the global top navigation and workspace bottom navigation to remain in one row at large text scales. Phone-width global navigation now switches to compact localized labels before layout pressure causes wrapping; visible nav labels stay one line with stable 56 dp bar height while full destination names remain available to accessibility semantics.
+- Verification: `AdaptiveNavigationPolicyTest` and `WorkspaceShellLayoutPolicyTest` passed; `AdaptiveWorkspaceNavigationDeviceTest` passed 3/3 on Honor PTP-N49, including a 320 dp / 150% font-scale check that confirms every workspace destination shares the same row. Debug build succeeded and was installed/launched on Honor. Screenshot at 360 dp / 100% shows both bars in one row; large-font layout was covered by the Compose device test.
+- The Xiaomi is not connected, so direct Xiaomi visual verification remains open. Next: continue the active UI 2.0 menu/accessibility audit; retain the single-row behavior across future navigation changes.
+
+---
+
 # Active feature checkpoint — model editing tools (2026-10-21)
 
 - Branch: `codex/rinkhals-safe-start-audit`; code base before this change: `43aa0a61795fc94aef1343d14b3b525364586d08`.

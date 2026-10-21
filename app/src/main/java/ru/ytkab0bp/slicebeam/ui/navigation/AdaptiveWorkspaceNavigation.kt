@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
@@ -56,34 +58,15 @@ fun AdaptiveWorkspaceNavigation(
     railTestTag: String? = null,
     onSelected: (Int) -> Unit,
 ) {
-    val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
-    val twoRowBottomNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(fontScale, items.size)
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.surface) {
         if (isBottomNavigation) {
-            if (twoRowBottomNavigation) {
-                Column(Modifier.fillMaxSize().selectableGroup()) {
-                    items.chunked(3).forEach { rowItems ->
-                        Row(Modifier.fillMaxWidth().weight(1f)) {
-                            rowItems.forEach { item ->
-                                Destination(item, item.slot == selectedSlot,
-                                    Modifier.weight(1f).fillMaxHeight(), onSelected,
-                                    bottomLabel = item.compactLabel ?: item.label,
-                                    panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
-                                    panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
-                                    showPanelToggleIndicator = showPanelToggleIndicator)
-                            }
-                        }
-                    }
-                }
-            } else {
-                Row(Modifier.fillMaxWidth().selectableGroup()) {
-                    items.forEach { item ->
-                        Destination(item, item.slot == selectedSlot, Modifier.weight(1f), onSelected,
-                            bottomLabel = item.compactLabel ?: item.label,
-                            panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
-                            panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
-                            showPanelToggleIndicator = showPanelToggleIndicator)
-                    }
+            Row(Modifier.fillMaxWidth().fillMaxHeight().selectableGroup()) {
+                items.forEach { item ->
+                    Destination(item, item.slot == selectedSlot, Modifier.weight(1f).fillMaxHeight(), onSelected,
+                        bottomLabel = item.compactLabel ?: item.label,
+                        panelOpen = toolsExpanded, panelOpenDescription = panelOpenDescription,
+                        panelClosedDescription = panelClosedDescription, announcePanelState = announcePanelState,
+                        showPanelToggleIndicator = showPanelToggleIndicator)
                 }
             }
         } else {
@@ -169,6 +152,10 @@ private fun Destination(
     announcePanelState: Boolean,
     showPanelToggleIndicator: Boolean,
 ) {
+    // Navigation keeps a one-line label and stable row height at large text scales.
+    // The full localized name remains in the selectable's accessibility semantics.
+    val displayFontScale = LocalDensity.current.fontScale.coerceAtLeast(0.1f)
+    val navigationLabelSize = (14f / displayFontScale).sp
     Column(
         modifier.heightIn(min = AdaptiveNavigationPolicy.NAVIGATION_BAR_HEIGHT_DP.dp)
             .selectable(selected = selected, role = Role.Tab,
@@ -207,9 +194,9 @@ private fun Destination(
         }
         Text(
             if (compactRail) item.compactLabel ?: item.label else bottomLabel,
-            maxLines = 2,
-            softWrap = true, overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center, fontSize = OrkanUiTokens.navigationLabelSize,
+            maxLines = 1,
+            softWrap = false, overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center, fontSize = navigationLabelSize,
             modifier = Modifier.fillMaxWidth(),
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
