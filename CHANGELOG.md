@@ -6,7 +6,7 @@
 - Separate app text zoom from workspace layout decisions so changing the app font size keeps the viewport and control geometry anchored. Android's system accessibility font scale still drives responsive layout accommodations.
 - Replace the numeric text-size choices with an accessible slider, live workspace-style preview, Standard reset, Apply, Cancel, and Android Back behavior.
 - Honor PTP-N49 / Android 16: `SettingsMenuActionDeviceTest` 8/8 passed (including slider preview/apply/cancel/Back and unchanged viewport bounds); `SettingsAccessibilityDeviceTest` 1/1 passed across 320/360/400 dp, portrait/landscape and simulated 100/130/150% system font scales. Debug and Slice unit suites: 588/588 each.
-- Debug APK `OrkanSlicer_da183234ed.apk` (239,148,120 bytes), SHA-256 `44221FF7A13C1FA426A12DA23925F8218ECEB3E276A2308CE20F83E1CBEED356`. Installed/launched on Honor PTP-N49 / Android 16 as 0.8.338 / code 373; sampled 1,200 Logcat lines had no fatal exception, package ANR, OOM or fatal-signal match. Emulator is offline. Xiaomi-specific verification and manual TalkBack traversal remain open.
+- Code commit `79862bc7d835f69bc813b8c8fbbd0c68065fb65b`. Debug APK `OrkanSlicer_79862bc7d8.apk` (239,148,108 bytes), SHA-256 `7969467783344B03DA2BBBED711C55C25AF88CF15C2B07FA40A958A4924DE9CE`. Installed/launched on Honor PTP-N49 / Android 16 as 0.8.338 / code 373; sampled 1,200 Logcat lines had no fatal exception, package ANR, OOM or fatal-signal match. Emulator is offline. Xiaomi-specific verification and manual TalkBack traversal remain open.
 
 ## 0.8.337
 
