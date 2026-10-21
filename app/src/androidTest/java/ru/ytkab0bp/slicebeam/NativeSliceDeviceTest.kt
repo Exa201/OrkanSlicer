@@ -24,6 +24,55 @@ import java.io.FileOutputStream
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun importedSvgSolidProducesExtrusionGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        val previousConfig = SliceBeam.CONFIG
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        config.presets = ConfigObject("presets").apply {
+            put("printer", requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle")).title)
+            put("print", requireNotNull(config.findPrint("0.16mm Standard")).title)
+            put("filament", requireNotNull(config.findFilament("Anycubic Generic PLA")).title)
+        }
+
+        val svgFile = File(context.cacheDir, "native-svg-slice-test.svg")
+        val gcodeFile = File(context.cacheDir, "native-svg-slice-test.gcode")
+        var model: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            svgFile.writeText(
+                """<svg xmlns="http://www.w3.org/2000/svg" width="24mm" height="18mm" viewBox="0 0 24 18">
+                    <path id="frame" fill="#202020" d="M1 1 H23 V17 H1 Z M7 6 H17 V12 H7 Z"/>
+                </svg>""".trimIndent(),
+            )
+            model = Model(svgFile)
+            assertEquals("SVG import must expose printable mesh geometry", 1, model.objectsCount)
+            assertTrue(model.getTriangleCount(0) > 0)
+            assertTrue(model.getObjectVolume(0) > 0.0)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("Imported SVG should produce non-empty G-code", gcode.isNotBlank())
+            assertTrue("Imported SVG should produce deposited toolpaths", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            Log.i("NativeSliceDeviceTest", "PASS SVG G-code bytes=${gcodeFile.length()}")
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            svgFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun disjointBooleanUnionKeepsItsInstanceBoundsAndProducesGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application

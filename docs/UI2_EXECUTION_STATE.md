@@ -2409,3 +2409,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Prime tower positioning is already in the branch from `e54fa8ed`: bed/model/tower preview, overlap/out-of-bounds feedback, and `Freien Platz finden`. Fresh Honor `PrimeTowerKeyboardDeviceTest` passed 3/3 on the current code before this commit; no tower source changed in `d9de8a00`.
 - Current branch: `codex/rinkhals-safe-start-audit`; implementation commit: `d9de8a00`. User attachment directory `.codex-remote-attachments/` remains untracked and excluded.
 - Next: continue verified model-editing work and the Phase 5/6 menu/accessibility audit. This checkpoint did not create a new APK or Release; the Xiaomi itself is not connected for visual verification.
+
+# Native model editing and SVG slicing coverage — 2026-10-22
+
+- Added an Android native-model regression that imports an SVG shape with an interior cutout and verifies the result is non-empty, has positive solid volume, and has 3D bounds. Added a native slicing regression for the same controlled SVG fixture; it verifies deposited G-code moves, not only successful file loading.
+- Honor PTP-N49 / Android 16: combined `ModelEditingNativeDeviceTest` and `NativeSliceDeviceTest` run completed 24/24 with no skips, failures, or errors. This exercises standalone text, group combination/placement, Boolean union/difference/intersection safety, SVG solid import, and actual extrusion G-code. The separate menu drag-and-drop run passed 4/4 immediately before this modeling pass.
+- No production implementation changed in this pass; these tests characterize existing native SVG support and lock in end-to-end slice behavior. `git diff --check` passed. Emulator remains offline; no Xiaomi validation was available.
+- Next: review multi-volume/multi-color grouping through slicing and add a regression ensuring per-volume extruder assignments survive Boolean and combine workflows, then continue safe model-editing actions. Do not stage `.codex-remote-attachments/`.

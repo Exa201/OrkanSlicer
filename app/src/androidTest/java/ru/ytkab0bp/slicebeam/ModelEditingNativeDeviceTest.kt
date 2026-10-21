@@ -147,6 +147,32 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun svgImportCreatesStandalonePrintableGeometry() {
+        val svgFile = File(
+            InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
+            "model-editing-printable-shape.svg",
+        )
+        svgFile.writeText(
+            """<svg xmlns="http://www.w3.org/2000/svg" width="24mm" height="18mm" viewBox="0 0 24 18">
+                <path id="frame" fill="#202020" d="M1 1 H23 V17 H1 Z M7 6 H17 V12 H7 Z"/>
+            </svg>""".trimIndent(),
+        )
+        val model = Model(svgFile)
+        try {
+            assertEquals("SVG import should create one printable object", 1, model.objectsCount)
+            assertTrue("SVG import should create a non-empty triangle mesh", model.getTriangleCount(0) > 0)
+            assertTrue("SVG import should create a closed solid with positive volume", model.getObjectVolume(0) > 0.0)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            assertTrue("imported SVG should have a printable width", max.x - min.x > 1.0)
+            assertTrue("imported SVG should have a printable height", max.y - min.y > 1.0)
+            assertTrue("imported SVG should be extruded into a 3D body", max.z - min.z > 1.0)
+        } finally {
+            model.release()
+            svgFile.delete()
+        }
+    }
+
     @Test fun nativeBooleanUnionCreatesOneClosedObjectWithCombinedVolume() = assertBooleanResult(
         BooleanOperation.UNION,
         expectedVolumeFactor = 1.5,
