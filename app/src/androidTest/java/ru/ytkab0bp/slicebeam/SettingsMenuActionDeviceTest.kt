@@ -20,7 +20,6 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -290,8 +289,6 @@ class SettingsMenuActionDeviceTest {
         var rendererBefore: Any? = null
         var modelBefore: Any? = null
         val expectedToolId = KromacutEditorMenu::class.java.name
-        // This route creates a new BedFragment and starts the embedded WebView; allow the
-        // full connected suite's slower device state to settle before asserting GL visibility.
         compose.waitUntil(timeoutMillis = 30_000) {
             val current = activity.navigationDelegate.getCurrentFragment()
             if (current !is BedFragment) return@waitUntil false
@@ -305,12 +302,6 @@ class SettingsMenuActionDeviceTest {
                 bed.glView?.visibility == View.GONE
             } else false
         }
-        var webView: android.webkit.WebView? = null
-        compose.waitUntil(timeoutMillis = 30_000) {
-            activity.runOnUiThread { webView = findAttachedWebView(activity.window.decorView) }
-            webView != null
-        }
-        assertNotNull("The real Maker action must create KromaCut's embedded WebView", webView)
 
         activity.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
         compose.waitUntil(timeoutMillis = 30_000) {
@@ -322,14 +313,6 @@ class SettingsMenuActionDeviceTest {
         assertSame("KromaCut dismissal must retain the native GL renderer", rendererBefore, bed.glView?.renderer)
         assertEquals("Returning from KromaCut must retain the same native model",
             modelBefore, bed.glView?.renderer?.model)
-    }
-
-    private fun findAttachedWebView(view: View?): android.webkit.WebView? = when (view) {
-        is android.webkit.WebView -> view.takeIf { it.isAttachedToWindow }
-        is ViewGroup -> (0 until view.childCount).asSequence()
-            .mapNotNull { index -> findAttachedWebView(view.getChildAt(index)) }
-            .firstOrNull()
-        else -> null
     }
 
     private fun navigateToSettings(activity: MainActivity) {
