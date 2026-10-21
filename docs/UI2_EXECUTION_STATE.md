@@ -1,5 +1,13 @@
 # Fortsetzungsstatus — 2026-10-21 (0.8.331)
 
+## Fortsetzung 2026-10-21 — responsive Menüaktionen bei 320 dp / 150 %
+
+- Ausgangs-HEAD: `458a2e9163d098dc03526300f8aac67ea9aa5e6c`. Geändert wurden ausschließlich Instrumentierungstests, keine App-Laufzeitdateien oder Versionen.
+- `InitialProjectMenuDeviceTest` wurde für die Menüaktionen Undo und Move an die reale Paging-Bedienung angepasst. Der vorherige Test suchte Aktionen nach einer festen Lazy-Grid-Indexposition; bei 320 dp / 150 % war die Aktion noch nicht sichtbar. Der Test benutzt nun `revealMenuAction`, das den zugänglichen „Mehr“-Seitenknopf wie ein Nutzer betätigt. Der ViewCube-Test schließt bei Bedarf zuerst den Start-Changelogdialog.
+- Honor PTP-N49, Android 16, 320 dp × 700 dp, Schrift 150 %: `modelMenuSeparatesSelectedObjectAndWholePlateActions` bestanden (1/1); `compactViewCubeIsVisibleAccessibleAndAtLeast48Dp` bestanden (1/1). Die physische Gerätekonfiguration wurde anschließend auf 1280×2800 px, 560 dpi, Schrift 100 % und automatische Drehung zurückgesetzt. Emulator bleibt offline.
+- Diese gezielten Ergebnisse belegen die geprüften Aktionen, nicht den vollständigen Menü-Stresslauf bei 320 dp / großer Schrift. Vollständige Responsive-/Accessibility-Abnahme, manuelle TalkBack-Prüfung und Mehrplatten-Projektpersistenz bleiben offen. Kein Druckstart oder Druckerkontakt.
+- Nächster Schritt: Änderungen an Testharness und Statusdatei gemeinsam sichern; anschließend mit weiteren realen Menüaktionen und Responsive-Konfigurationen fortfahren.
+
 - Arbeitsbranch `codex/rinkhals-safe-start-audit`; Ausgangs-HEAD `9dd9121d2bc1994711953c253cd6348080312b12`; aktueller Branch-HEAD `0fb4b5b234482aabbf3b20080ce3bf706bf99026` (nur Instrumentierungstest seit APK-Code-Commit geändert). Diese Arbeitsgruppe enthält KromaCut 4.2.0, ACE-Mehrfachzuordnungen, G-Code/Preview-Routing, Objektzuweisung, editierbare Menüs und Kamera-Menüverlagerung.
 - Verifikation: Debug-Unit 586/586 und Slice-Unit 586/586 bestanden. Vollständige Honor-`connectedSliceTestAndroidTest`: 237 Tests, 0 Fehler, 0 übersprungen. Echte KromaCut-3MF-Fixture auf Honor: 3/3 bestanden. Menü-/Layout- und ACE-Mehrfachslot-Gerätetests bestanden; Menüanpassung nach Compose-Remount auf Honor 1/1 mit wiederhergestellter Reihenfolge und Sichtbarkeit geprüft. Emulator bleibt offline.
 - KromaCut-Black-Screen-Ursache: WebView lud den Lazy-App-Chunk nach dem HTML-Einstieg nicht; lokales Module-Preload behebt das. Honor-Test bestätigt sichtbare React-Oberfläche.

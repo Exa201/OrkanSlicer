@@ -136,6 +136,25 @@ class InitialProjectMenuDeviceTest {
 
     @Test
     fun compactViewCubeIsVisibleAccessibleAndAtLeast48Dp() {
+        // A fresh debug install can show the in-app changelog above the workspace.
+        // Dismiss it so this checks the header at the requested display size.
+        val changelogTitle = compose.activity.getString(R.string.Changelog)
+        val changelogOk = compose.activity.getString(R.string.ChangelogOK)
+        fun cubeIsDisplayed(): Boolean = try {
+            compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
+            true
+        } catch (_: AssertionError) {
+            false
+        }
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isNotEmpty() || cubeIsDisplayed()
+        }
+        if (compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText(changelogOk).performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithText(changelogTitle).fetchSemanticsNodes().isEmpty() && cubeIsDisplayed()
+            }
+        }
         val cube = compose.onNodeWithTag("workspace-view-cube").assertIsDisplayed()
         val node = cube.fetchSemanticsNode()
         val printerActionDescription = listOf(
@@ -188,10 +207,12 @@ class InitialProjectMenuDeviceTest {
                 .assertDoesNotExist()
 
             openEditMenu(activity)
+            revealMenuAction(activity, R.string.ModelUndo)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelUndo))
-                .performScrollTo().assertIsDisplayed()
+                .assertIsDisplayed()
+            revealMenuAction(activity, R.string.MenuToolbarMove)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
-                .performScrollTo().assertIsDisplayed().assertIsEnabled()
+                .assertIsDisplayed().assertIsEnabled()
         } finally {
             modelFile.delete()
         }
