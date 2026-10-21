@@ -316,6 +316,8 @@ private fun BedMenuActionTile(
         R.string.ModelMenuOrientAll -> R.string.ModelMenuOrientAllShort
         R.string.ModelMenuAutoOrientSelected -> R.string.ModelMenuAutoOrientSelectedShort
         R.string.ModelMenuFlatten -> R.string.ModelMenuFlattenShort
+        R.string.ModelMenuPlaceOnObject -> R.string.ModelMenuPlaceOnObjectShort
+        R.string.ModelMenuCombineSelected -> R.string.ModelMenuCombineSelectedShort
         R.string.ModelMenuDeleteSelected -> R.string.ModelMenuDeleteSelectedShort
         R.string.ModelMenuSelectAll -> R.string.ModelMenuSelectAllShort
         R.string.ModelMenuDeleteAll -> R.string.ModelMenuDeleteAllShort

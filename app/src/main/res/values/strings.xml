@@ -164,6 +164,13 @@
     <string name="MenuModel">Model</string>
     <string name="ModelMenuSelectedObjectGroup">One object</string>
     <string name="ModelMenuAllObjectsGroup">All objects</string>
+    <string name="ModelMenuPlaceOnObject">Place on top of another object</string>
+    <string name="ModelMenuPlaceOnObjectShort">Place on top</string>
+    <string name="ModelMenuCombineSelected">Combine selected as parts</string>
+    <string name="ModelMenuCombineSelectedShort">Combine parts</string>
+    <string name="ModelMenuCombineWarning">Selected objects will become one multipart object. Their separate volume materials are preserved; this is not a boolean union.</string>
+    <string name="ModelMenuCombineDone">Objects combined as multipart object</string>
+    <string name="ModelMenuCombineUnsupported">Select at least two single-instance objects to combine.</string>
     <string name="MenuModelCompact">Model</string>
     <string name="MenuPlates">Plates</string>
     <string name="PlateNumber">Plate %1$s</string>
@@ -1126,6 +1133,8 @@
     <string name="EmbossOperation">Operation:</string>
     <string name="EmbossRaise">Raise</string>
     <string name="EmbossEngrave">Engrave</string>
+    <string name="TextModelCreateSeparate">Create a separate 3D text object</string>
+    <string name="TextModelCreated">Separate text object created</string>
     <string name="SelectObjectFirst">Select an object first.</string>
     <string name="EmbossSuccess">Text added successfully.</string>
     <string name="EmbossFailed">Could not add text: %1$s</string>

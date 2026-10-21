@@ -6,6 +6,9 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.utils.Vec3d
+import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
 internal class ModelMenuItems(
@@ -18,6 +21,8 @@ internal class ModelMenuItems(
         val renderer = fragment.glView!!.renderer
         val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
         val objectActions = FileMenuObjectActions(fragment)
+        val model = renderer.model
+        val selectedCount = renderer.selectedObjectsCount
         return listOf(
             BedComposeMenuAction(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28, {
                 objectActions.showObjectsDialog(it)
@@ -34,6 +39,27 @@ internal class ModelMenuItems(
                     Toast.makeText(anchor.context, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show()
                 }
             }, enabled = availability.hasSelectedObject),
+            BedComposeMenuAction(R.string.ModelMenuPlaceOnObject, R.drawable.view_in_ar_24, { anchor ->
+                showPlaceOnObjectDialog(anchor)
+            }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > 1),
+            BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
+                val glView = fragment.glView ?: return@BedComposeMenuAction
+                fragment.showWorkspaceMessageDialog(
+                    anchor.context.getString(R.string.ModelMenuCombineSelected),
+                    anchor.context.getString(R.string.ModelMenuCombineWarning),
+                    anchor.context.getString(R.string.ModelMenuCombineSelected),
+                    anchor.context.getString(android.R.string.cancel),
+                ) {
+                    glView.combineSelectedObjectsAsParts { result ->
+                        if (result >= 0) {
+                            fragment.updateModel()
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineDone))
+                        } else {
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+                        }
+                    }
+                }
+            }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.picture_stack_outline_28, { anchor ->
                 fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
                     fragment.updateModel()
@@ -116,5 +142,44 @@ internal class ModelMenuItems(
 
     fun resetFlattenMode() {
         flattenEnabled = false
+    }
+
+    private fun showPlaceOnObjectDialog(anchor: android.view.View) {
+        val glView = fragment.glView ?: return
+        val model = glView.renderer.model ?: return
+        val moving = glView.renderer.selectedObject
+        if (moving !in 0 until model.objectsCount) return
+        val targetIndices = (0 until model.objectsCount).filter { it != moving }
+        val choices = targetIndices.map { index ->
+            model.getObjectName(index) ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1)
+        }
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = anchor.context.getString(R.string.ModelMenuPlaceOnObject),
+                cancelLabel = anchor.context.getString(android.R.string.cancel),
+                choices = choices,
+                onDismiss = dismiss,
+                onSelect = { choice ->
+                    dismiss()
+                    val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
+                    glView.queueEvent {
+                        val current = glView.renderer.model ?: return@queueEvent
+                        if (moving !in 0 until current.objectsCount || target !in 0 until current.objectsCount) return@queueEvent
+                        fun bounds(index: Int): ObjectBounds3D {
+                            val min = Vec3d()
+                            val max = Vec3d()
+                            current.getBoundingBoxExact(index, min, max)
+                            return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+                        }
+                        val delta = ObjectPlacement.onTop(bounds(moving), bounds(target), clearanceMm = 0.0)
+                        if (delta == null) return@queueEvent
+                        current.translate(moving, delta.x, delta.y, delta.z)
+                        glView.renderer.invalidateGlModel(moving)
+                        glView.requestRender()
+                        ViewUtils.postOnMainThread { fragment.updateModel() }
+                    }
+                },
+            )
+        }
     }
 }

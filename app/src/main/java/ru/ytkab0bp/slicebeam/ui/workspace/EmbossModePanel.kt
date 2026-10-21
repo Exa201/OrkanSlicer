@@ -37,8 +37,9 @@ internal fun EmbossModePanel(controller: EmbossModeController, onExit: () -> Uni
     var size by remember { mutableStateOf(initialSize) }
     var depth by remember { mutableStateOf(initialDepth) }
     var addMode by remember { mutableStateOf(true) }
+    var standaloneMode by remember { mutableStateOf(false) }
 
-    fun sync() = controller.update(text, size, depth, addMode)
+    fun sync() = controller.update(text, size, depth, addMode, standaloneMode)
     DisposableEffect(controller) {
         controller.start()
         onDispose { controller.stop() }
@@ -69,18 +70,26 @@ internal fun EmbossModePanel(controller: EmbossModeController, onExit: () -> Uni
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(stringResource(R.string.EmbossOperation), style = MaterialTheme.typography.labelLarge)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = addMode,
-                onClick = { addMode = true; sync() },
-                label = { Text(stringResource(R.string.EmbossRaise)) },
-            )
+        FilterChip(
+            selected = standaloneMode,
+            onClick = { standaloneMode = !standaloneMode; sync() },
+            label = { Text(stringResource(R.string.TextModelCreateSeparate)) },
+            modifier = Modifier.testTag("emboss-standalone-mode"),
+        )
+        if (!standaloneMode) {
+            Text(stringResource(R.string.EmbossOperation), style = MaterialTheme.typography.labelLarge)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = addMode,
+                    onClick = { addMode = true; sync() },
+                    label = { Text(stringResource(R.string.EmbossRaise)) },
+                )
             FilterChip(
                 selected = !addMode,
                 onClick = { addMode = false; sync() },
                 label = { Text(stringResource(R.string.EmbossEngrave)) },
             )
+            }
         }
         Button(
             onClick = onExit,

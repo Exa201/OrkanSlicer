@@ -157,6 +157,13 @@ queueEvent({ renderer.selectAllObjects()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
+fun combineSelectedObjectsAsParts(onComplete:(Int)->Unit) {
+queueEvent({
+    val result = renderer.combineSelectedObjectsAsParts()
+    requestRender()
+    ViewUtils.postOnMainThread { onComplete(result) }
+})
+}
 fun centerSelectedOnBed(onComplete:Runnable) {
 queueEvent({ renderer.centerSelectionOnBed()
 requestRender()

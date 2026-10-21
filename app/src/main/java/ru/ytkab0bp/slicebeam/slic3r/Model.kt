@@ -287,6 +287,30 @@ open class Model private constructor(@JvmField var pointer: Long) {
         resetBoundingBox()
     }
 
+    /** Creates an independent printable text object oriented onto a picked surface. */
+    open fun createTextObject(
+        fontPath: String,
+        text: String,
+        size: Float,
+        depth: Float,
+        position: Vec3d,
+        normal: Vec3d,
+    ): Int {
+        val index = Native.model_create_text_object(
+            pointer, fontPath, text, size, depth,
+            position.x, position.y, position.z, normal.x, normal.y, normal.z,
+        )
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    /** Combines selected single-instance objects into a multipart object while preserving volume materials. */
+    open fun combineObjectsAsParts(objectIndices: IntArray): Int {
+        val index = Native.model_combine_objects_as_parts(pointer, objectIndices)
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
     /** True if object i has any committed multi-color painting. */
     open fun hasPaint(i: Int): Boolean = Native.model_has_paint(pointer, i)
 

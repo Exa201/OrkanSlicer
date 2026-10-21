@@ -12,11 +12,13 @@ import java.io.File
 internal class EmbossModeController(
     private val context: Context,
     private val glView: GLView,
+    private val onModelChanged: () -> Unit = {},
 ) {
     private var text: String = context.getString(R.string.AppName)
     private var size: Float = context.getString(R.string.EmbossDefaultFontSize).toFloatOrNull() ?: 10f
     private var depth: Float = context.getString(R.string.EmbossDefaultDepth).toFloatOrNull() ?: 1f
     private var addMode: Boolean = true
+    private var standaloneMode: Boolean = false
     private var fontFilePath: String? = null
     private val eventBridge = EmbossModeEventBridge(::onSurfaceClicked)
 
@@ -28,16 +30,17 @@ internal class EmbossModeController(
         SliceBeam.EVENT_BUS.unregisterListener(eventBridge)
     }
 
-    fun update(text: String, size: String, depth: String, addMode: Boolean) {
+    fun update(text: String, size: String, depth: String, addMode: Boolean, standaloneMode: Boolean = false) {
         this.text = text
         this.size = size.replace(',', '.').toFloatOrNull() ?: 10f
         this.depth = depth.replace(',', '.').toFloatOrNull() ?: 1f
         this.addMode = addMode
+        this.standaloneMode = standaloneMode
     }
 
     private fun onSurfaceClicked(event: EmbossSurfaceClickedEvent) {
         val selectedObject = glView.renderer.selectedObject
-        if (selectedObject == -1) {
+        if (!standaloneMode && selectedObject == -1) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.SelectObjectFirst))
             return
         }
@@ -50,21 +53,29 @@ internal class EmbossModeController(
         val safeSize = size
         val safeDepth = depth
         val operationType = if (addMode) 0 else 1
+        val createSeparateObject = standaloneMode
         glView.queueEvent {
             try {
-                glView.renderer.model!!.embossText(
-                    selectedObject,
-                    fontPath,
-                    safeText,
-                    safeSize,
-                    safeDepth,
-                    operationType,
-                    event.position,
-                    event.normal,
-                )
-                glView.renderer.invalidateGlModel(selectedObject)
+                val model = glView.renderer.model ?: return@queueEvent
+                val affectedObject = if (createSeparateObject) {
+                    model.createTextObject(fontPath, safeText, safeSize, safeDepth, event.position, event.normal)
+                        .also { if (it < 0) throw IllegalStateException("Text model could not be created") }
+                } else {
+                    model.embossText(
+                        selectedObject, fontPath, safeText, safeSize, safeDepth, operationType,
+                        event.position, event.normal,
+                    )
+                    selectedObject
+                }
+                glView.renderer.invalidateGlModel(affectedObject)
+                if (createSeparateObject) glView.renderer.setSelectedObject(affectedObject)
                 glView.requestRender()
-                ViewUtils.postOnMainThread { SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossSuccess)) }
+                ViewUtils.postOnMainThread {
+                    onModelChanged()
+                    SliceBeam.EVENT_BUS.fireEvent(
+                        NeedSnackbarEvent(if (createSeparateObject) R.string.TextModelCreated else R.string.EmbossSuccess),
+                    )
+                }
             } catch (error: Exception) {
                 ViewUtils.postOnMainThread {
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossFailed, error.message))

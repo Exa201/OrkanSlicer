@@ -180,6 +180,21 @@ val selectedObjectsCount:Int
 get() {
 return selectedObjects.size
 }
+/** Returns a stable snapshot of the current multi-selection. Must be called on the GL thread. */
+fun selectedObjectIndices(): IntArray = selectedObjects.sorted().toIntArray()
+
+/** Replaces the selected models by one multipart object, retaining each source volume's material. */
+fun combineSelectedObjectsAsParts(): Int {
+    val source = model ?: return -1
+    val indices = selectedObjectIndices()
+    if (indices.size < 2) return -1
+    val combined = source.combineObjectsAsParts(indices)
+    if (combined < 0) return combined
+    resetGlModels()
+    setSelectedObject(combined)
+    return combined
+}
+
 private var paintModeKind = PAINT_MODE_COLOR
 private class CutConnectorPreview {
 internal lateinit var position:Vec3d

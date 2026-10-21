@@ -1,3 +1,13 @@
+# Active feature checkpoint — model editing tools (2026-10-21)
+
+- Branch: `codex/rinkhals-safe-start-audit`; code base before this change: `43aa0a61795fc94aef1343d14b3b525364586d08`.
+- Implemented: combine selected models as multipart geometry while retaining world placement and per-volume extruder; place one selected object centered on another object's top plane; create independent printable text geometry on a picked surface. Grouping does not merge meshes; Boolean operations are still not implemented because the native prototype failed its geometry assertion and the alternative crashed instrumentation.
+- Honor PTP-N49 focused instrumentation passed: native model editing 3/3 and standalone emboss Compose mode 1/1. Last final build after version update: `:app:assembleDebug :app:testDebugUnitTest :app:testSliceTestUnitTest` successful; Debug Unit 594/594, Slice Unit 594/594, no skips/failures/errors.
+- Debug APK: `app/build/outputs/apk/debug/OrkanSlicer_43aa0a6179.apk`, 239,192,711 bytes, SHA-256 `D15515A715CBFA6DA1299939D6FBC3DB322DCF40ABD3D17F5D8C8EA26B73A818`. Version 0.8.342 / code 377. This is not an official release.
+- Current UI execution continues in Phases 5/6. Remaining work includes safe Boolean geometry (must not ship until native result checks pass), the broader action-level menu audit, physical TalkBack, and Xiaomi verification. Next: commit and publish this verified debug artifact to the existing GitHub PR/release channel, then continue with another verified modeling feature group.
+
+---
+
 # Phase 5/6 continuation checkpoint — migration guard restored (2026-10-21)
 
 - Branch HEAD at start: `40f9eac6b6295e6539abad8416e9991f75067bf1`; active app version remains 0.8.337 / code 372. No runtime behavior changed in this pass.
@@ -2287,3 +2297,14 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Published GitHub Debug prerelease `v0.8.341` for Xiaomi testing: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.341. GitHub asset SHA and size match the local APK. No Xiaomi device result yet; no JVM or instrumentation tests were run for this change.
 - PR #2 is open and GitHub reports mergeable. Branch head at release upload: `3b435c61ee085aad04df21d70455848e3c270f39`. Next: get the APK installed/tested on Xiaomi, especially direct drag across menu items; continue the remaining Phase 5 action reconciliation and Phase 6 responsive/accessibility work.
 
+# Feature-work checkpoint — model editing (2026-10-21)
+
+- Current workspace branch: `codex/rinkhals-safe-start-audit`; starting HEAD `43aa0a61795fc94aef1343d14b3b525364586d08`.
+- Implemented in the working tree: (1) combine selected single-instance objects as multipart while preserving world placement and each volume's effective filament, (2) place one selected object centered on another object's top bounding plane, and (3) generate standalone printable text geometry on a picked model surface.
+- Verification on Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest` 3/3 passed (multipart/material/placement/text native mesh checks); `GlModePanelsComposeDeviceTest#embossPanelCanSwitchToStandaloneTextObjectMode` 1/1 passed. Emulator remains offline.
+- Debug JVM 594/594 and Slice JVM 594/594 passed, 0 failures/errors/skips. `assembleDebug` passed for version 0.8.341/code 376 before the version/changelog edit below; rebuild is still required.
+- Boolean union/difference/intersection were prototyped but not retained: on overlapping boxes X=0..20 and X=10..30 the difference result incorrectly kept width 20; the alternative MCUT path crashed the instrumented process. Keep Boolean operations out of the UI until corrected and verified with mesh/topology tests.
+- Version/changelog now updated in the working tree to 0.8.342/code 377. Next: rebuild to verify metadata/resources, inspect exact diff, then commit/push only the passing multipart, placement, and standalone-text work to PR #2. Boolean modeling and conforming text remain open research/feature work.
+- User attachment directory `.codex-remote-attachments/` is untracked user data and must not be staged.
+
+# Phase 5/6 continuation checkpoint — migration guard restored (2026-10-21)

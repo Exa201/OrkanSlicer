@@ -228,7 +228,7 @@ class WorkspaceMenuCustomizationDeviceTest {
         source.performTouchInput {
             down(center)
             advanceEventTime(600)
-            moveTo(targetCenter - sourceBounds.topLeft, durationMillis = 500)
+            moveTo(targetCenter - sourceBounds.topLeft, delayMillis = 500)
             up()
         }
     }

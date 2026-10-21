@@ -1211,6 +1211,58 @@ extern "C" {
         return false;
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create_1text_1object(
+        JNIEnv* env, jclass, jlong ptr, jstring fontPath, jstring textStr, jfloat size, jfloat depth,
+        jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz) {
+        try {
+            ModelRef* model = (ModelRef*) (intptr_t) ptr;
+            if (model == nullptr || size <= 0.f || depth <= 0.f) return -1;
+            const char* font_chars = env->GetStringUTFChars(fontPath, JNI_FALSE);
+            std::string font_path(font_chars);
+            env->ReleaseStringUTFChars(fontPath, font_chars);
+            const char* text_chars = env->GetStringUTFChars(textStr, JNI_FALSE);
+            std::string text(text_chars);
+            env->ReleaseStringUTFChars(textStr, text_chars);
+            if (text.empty()) return -1;
+
+            std::unique_ptr<Emboss::FontFile> font = Emboss::create_font_file(font_path.c_str());
+            if (!font) throw std::runtime_error("Failed to load font file");
+            Emboss::FontFileWithCache cached(std::move(font));
+            FontProp font_prop(size);
+            HealedExPolygons shapes = Emboss::text2shapes(cached, text.c_str(), font_prop);
+            if (shapes.expolygons.empty()) throw std::runtime_error("Generated text shape is empty");
+            const double scale = Emboss::get_text_shape_scale(font_prop, *cached.font_file);
+            auto project_z = std::make_unique<Emboss::ProjectZ>((double) depth / scale);
+            Emboss::ProjectScale project(std::move(project_z), scale);
+            indexed_triangle_set its = Emboss::polygons2model(shapes.expolygons, project);
+            if (its.indices.empty()) throw std::runtime_error("Text produced no geometry");
+
+            // Keep Z in [0, depth] and center only XY so the standalone solid rests on the picked surface.
+            BoundingBoxf3 bb = bounding_box(its);
+            its_translate(its, Vec3f((float) -bb.center().x(), (float) -bb.center().y(), 0.f));
+            Vec3d normal(nx, ny, nz);
+            if (normal.norm() < 1e-9) normal = Vec3d::UnitZ(); else normal.normalize();
+            const Transform3d surface = Emboss::create_transformation_onto_surface(Vec3d(px, py, pz), normal);
+            TriangleMesh mesh(std::move(its));
+            mesh.transform(surface, true);
+
+            ModelObject* object = model->model.add_object();
+            object->name = text;
+            ModelVolume* volume = object->add_volume(std::move(mesh), ModelVolumeType::MODEL_PART, false);
+            if (volume == nullptr) {
+                model->model.delete_object((int) model->model.objects.size() - 1);
+                return -1;
+            }
+            volume->name = text;
+            object->add_instance();
+            object->invalidate_bounding_box();
+            return (jint) model->model.objects.size() - 1;
+        } catch (const std::exception& e) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+            return -1;
+        }
+    }
+
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1emboss_1text(
         JNIEnv* env, jclass, jlong ptr, jint i, jstring fontPath, jstring textStr, jfloat size, jfloat depth, jint type,
         jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz) {
@@ -1284,6 +1336,58 @@ extern "C" {
             obj->invalidate_bounding_box();
         } catch (const std::exception& e) {
             env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+        }
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1combine_1objects_1as_1parts(
+        JNIEnv* env, jclass, jlong ptr, jintArray indices_arr) {
+        try {
+            ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+            if (ref == nullptr || indices_arr == nullptr) return -1;
+            const jsize count = env->GetArrayLength(indices_arr);
+            if (count < 2) return -1;
+            jint* raw = env->GetIntArrayElements(indices_arr, JNI_FALSE);
+            std::vector<int> indices(raw, raw + count);
+            env->ReleaseIntArrayElements(indices_arr, raw, JNI_ABORT);
+            std::sort(indices.begin(), indices.end());
+            if (std::adjacent_find(indices.begin(), indices.end()) != indices.end()) return -1;
+            for (int index : indices)
+                if (index < 0 || index >= (int) ref->model.objects.size()) return -1;
+
+            const int target_index = indices.front();
+            ModelObject* target = ref->model.objects[target_index];
+            if (target->instances.size() != 1 || target->instances.front() == nullptr) return -2;
+            const Transform3d target_world = target->instances.front()->get_matrix();
+            const Transform3d world_to_target = target_world.inverse();
+            // Validate the entire operation before mutating the destination object.
+            for (size_t n = 1; n < indices.size(); ++n) {
+                ModelObject* source = ref->model.objects[indices[n]];
+                if (source->instances.size() != 1 || source->instances.front() == nullptr) return -2;
+            }
+            for (size_t n = 1; n < indices.size(); ++n) {
+                ModelObject* source = ref->model.objects[indices[n]];
+                if (source->instances.size() != 1 || source->instances.front() == nullptr) return -2;
+                const Transform3d source_world = source->instances.front()->get_matrix();
+                for (const ModelVolume* volume : source->volumes) {
+                    ModelVolume* copied = target->add_volume(*volume);
+                    // The parent object changes during grouping; pin the source's effective tool
+                    // on its copied volume so it does not inherit the target object's tool.
+                    if (volume->is_model_part())
+                        copied->config.set("extruder", std::max(1, volume->extruder_id()));
+                    copied->set_transformation(Geometry::Transformation(
+                        world_to_target * source_world * volume->get_matrix()));
+                    copied->source.object_idx = target_index;
+                    copied->source.volume_idx = (int) target->volumes.size() - 1;
+                }
+            }
+            target->name += " + " + std::to_string(indices.size() - 1);
+            target->invalidate_bounding_box();
+            for (auto it = indices.rbegin(); it != indices.rend(); ++it)
+                if (*it != target_index) ref->model.delete_object(*it);
+            return target_index;
+        } catch (const std::exception& e) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+            return -3;
         }
     }
 

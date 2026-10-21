@@ -1075,7 +1075,7 @@ val selected = currentGlView.renderer.selectedObject
 if (selected >= 0 && !requirePreciseSurfaceModel(selected)) return
 currentGlView.queueEvent({ currentGlView.renderer.isInEmbossMode = true
 currentGlView.requestRender() })
-embossModeController = EmbossModeController(ctx, currentGlView)
+embossModeController = EmbossModeController(ctx, currentGlView, ::updateModel)
 showWorkspaceModePanel("emboss-mode", ::exitEmbossMode) {
     EmbossModePanel(requireNotNull(embossModeController), ::exitEmbossMode)
 }

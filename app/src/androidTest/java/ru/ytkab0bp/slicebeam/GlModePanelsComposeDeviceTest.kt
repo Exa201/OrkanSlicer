@@ -126,6 +126,19 @@ class GlModePanelsComposeDeviceTest {
     }
 
     @Test
+    fun embossPanelCanSwitchToStandaloneTextObjectMode() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lateinit var controller: EmbossModeController
+        compose.runOnUiThread { controller = EmbossModeController(context, GLView(context)) }
+        compose.setContent { BeamComposeTheme { EmbossModePanel(controller) {} } }
+
+        compose.onNodeWithTag("emboss-standalone-mode").assertIsDisplayed().performClick()
+        compose.onNodeWithText(context.getString(R.string.EmbossRaise)).assertIsNotDisplayed()
+        compose.onNodeWithText(context.getString(R.string.EmbossEngrave)).assertIsNotDisplayed()
+        compose.onNodeWithTag("emboss-standalone-mode").assertIsDisplayed()
+    }
+
+    @Test
     fun measurePanelShowsReadoutsInsideTheComposeWorkspacePanel() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         lateinit var glView: GLView
