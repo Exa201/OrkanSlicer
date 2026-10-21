@@ -25,13 +25,35 @@ internal object PrimeTowerDragLogic {
         towerWidth: Double,
         towerDepth: Double,
     ): Boolean {
+        if (!isPositionWithinBed(map, x, y, towerWidth, towerDepth)) return false
+        return overlappingObstacleCount(map, x, y, towerWidth, towerDepth) == 0
+    }
+
+    fun isPositionWithinBed(
+        map: PrimeTowerPlacementMap,
+        x: Double,
+        y: Double,
+        towerWidth: Double,
+        towerDepth: Double,
+    ): Boolean {
         if (!x.isFinite() || !y.isFinite() || !towerWidth.isFinite() || !towerDepth.isFinite()) return false
+        if (towerWidth <= 0.0 || towerDepth <= 0.0) return false
         if (x < map.bedMinX || y < map.bedMinY ||
             x + towerWidth > map.bedMaxX || y + towerDepth > map.bedMaxY
         ) return false
-        if (map.bedBoundary.size >= 3 && !footprintInsideBoundary(map, x, y, towerWidth, towerDepth)) return false
+        return map.bedBoundary.size < 3 || footprintInsideBoundary(map, x, y, towerWidth, towerDepth)
+    }
+
+    fun overlappingObstacleCount(
+        map: PrimeTowerPlacementMap,
+        x: Double,
+        y: Double,
+        towerWidth: Double,
+        towerDepth: Double,
+    ): Int {
+        if (!x.isFinite() || !y.isFinite() || !towerWidth.isFinite() || !towerDepth.isFinite()) return map.obstacles.size
         val gap = 3.0
-        return map.obstacles.none { obstacle ->
+        return map.obstacles.count { obstacle ->
             x < obstacle.maxX + gap && x + towerWidth > obstacle.minX - gap &&
                 y < obstacle.maxY + gap && y + towerDepth > obstacle.minY - gap
         }
@@ -55,17 +77,50 @@ internal object PrimeTowerDragLogic {
         val maxY = map.bedMaxY - towerDepth - inset
         if (maxX < minX || maxY < minY) return null
 
-        val step = 5.0
+        val bedArea = (map.bedMaxX - map.bedMinX) * (map.bedMaxY - map.bedMinY)
+        val step = maxOf(5.0, kotlin.math.sqrt(bedArea.coerceAtLeast(1.0) / 40_000.0))
+        var best: PrimeTowerDragPosition? = null
+        var bestClearance = Double.NEGATIVE_INFINITY
+        var bestCenterDistance = Double.POSITIVE_INFINITY
+        val centerX = (map.bedMinX + map.bedMaxX) / 2.0
+        val centerY = (map.bedMinY + map.bedMaxY) / 2.0
         var y = minY
         while (y <= maxY + 0.0001) {
             var x = minX
             while (x <= maxX + 0.0001) {
-                if (isPositionFree(map, x, y, towerWidth, towerDepth)) return PrimeTowerDragPosition(x, y)
+                if (isPositionFree(map, x, y, towerWidth, towerDepth)) {
+                    // Prefer the broadest open area instead of always placing at the
+                    // first free point near the bed origin. That makes the suggested
+                    // location easier to inspect and less likely to crowd a model.
+                    val clearanceFromBed = minOf(
+                        x - map.bedMinX,
+                        y - map.bedMinY,
+                        map.bedMaxX - (x + towerWidth),
+                        map.bedMaxY - (y + towerDepth),
+                    )
+                    val clearanceFromModels = map.obstacles.minOfOrNull { obstacle ->
+                        val dx = maxOf(obstacle.minX - (x + towerWidth), x - obstacle.maxX, 0.0)
+                        val dy = maxOf(obstacle.minY - (y + towerDepth), y - obstacle.maxY, 0.0)
+                        kotlin.math.hypot(dx, dy)
+                    } ?: Double.POSITIVE_INFINITY
+                    val clearance = minOf(clearanceFromBed, clearanceFromModels)
+                    val candidateCenterDistance = kotlin.math.hypot(
+                        x + towerWidth / 2.0 - centerX,
+                        y + towerDepth / 2.0 - centerY,
+                    )
+                    if (clearance > bestClearance + 1e-6 ||
+                        (kotlin.math.abs(clearance - bestClearance) <= 1e-6 && candidateCenterDistance < bestCenterDistance)
+                    ) {
+                        best = PrimeTowerDragPosition(x, y)
+                        bestClearance = clearance
+                        bestCenterDistance = candidateCenterDistance
+                    }
+                }
                 x += step
             }
             y += step
         }
-        return null
+        return best
     }
 
     /** Parses the standard Orca/Slic3r `bed_shape` value (for example `0x0,220x0,...`). */

@@ -19,6 +19,25 @@ class PrimeTowerDragLogicTest {
         assertEquals(true, PrimeTowerDragLogic.isPositionFree(map, position.x, position.y, 35.0, 35.0))
         assertEquals(true, position.x >= 0.0 && position.y >= 0.0)
         assertEquals(true, position.x + 35.0 <= 200.0 && position.y + 35.0 <= 200.0)
+        // The suggestion should move away from the first free grid point at the
+        // origin and use a more open area that is easier to inspect on the plate.
+        assertEquals(true, position.x > 70.0 && position.y > 70.0)
+    }
+
+    @Test
+    fun placementStatusSeparatesModelOverlapFromOutsideBed() {
+        val map = PrimeTowerPlacementMap(
+            bedMinX = 0.0,
+            bedMinY = 0.0,
+            bedMaxX = 100.0,
+            bedMaxY = 100.0,
+            obstacles = listOf(PrimeTowerObstacle(20.0, 20.0, 60.0, 60.0)),
+        )
+
+        assertEquals(true, PrimeTowerDragLogic.isPositionWithinBed(map, 25.0, 25.0, 20.0, 20.0))
+        assertEquals(1, PrimeTowerDragLogic.overlappingObstacleCount(map, 25.0, 25.0, 20.0, 20.0))
+        assertEquals(false, PrimeTowerDragLogic.isPositionWithinBed(map, 90.0, 90.0, 20.0, 20.0))
+        assertEquals(0, PrimeTowerDragLogic.overlappingObstacleCount(map, 90.0, 90.0, 20.0, 20.0))
     }
 
     @Test

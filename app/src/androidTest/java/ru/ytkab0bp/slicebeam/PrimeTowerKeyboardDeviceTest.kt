@@ -16,6 +16,7 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigToolsLogic
 import ru.ytkab0bp.slicebeam.fragment.PrimeTowerPositionDialog
 import ru.ytkab0bp.slicebeam.render.PrimeTowerObstacle
+import ru.ytkab0bp.slicebeam.render.PrimeTowerDragLogic
 import ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 
@@ -108,13 +109,19 @@ class PrimeTowerKeyboardDeviceTest {
         }
 
         compose.onNodeWithTag("prime-tower-bed-preview").assertIsDisplayed()
-        compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.PrimeTowerPositionBlocked))
+        compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.PrimeTowerPositionOverlapsModels, 1))
             .assertIsDisplayed()
         compose.onNodeWithTag("prime-tower-auto-place").assertIsDisplayed().performClick()
         compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.PrimeTowerPositionFree))
             .assertIsDisplayed()
         compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(android.R.string.ok)).performClick()
 
-        compose.runOnIdle { assertEquals("77" to "2", applied) }
+        val expected = requireNotNull(PrimeTowerDragLogic.findFreePosition(map, 35.0, 35.0))
+        compose.runOnIdle {
+            assertEquals(
+                PrintConfigToolsLogic.formatCoordinate(expected.x) to PrintConfigToolsLogic.formatCoordinate(expected.y),
+                applied,
+            )
+        }
     }
 }

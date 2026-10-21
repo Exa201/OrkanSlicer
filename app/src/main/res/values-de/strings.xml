@@ -993,6 +993,11 @@
     <string name="PrimeTowerBedPreview">Druckplattenvorschau · Modelle und Reinigungsturm</string>
     <string name="PrimeTowerPositionFree">Position ist frei</string>
     <string name="PrimeTowerPositionBlocked">Reinigungsturm überschneidet ein Modell oder liegt außerhalb der Platte</string>
+    <string name="PrimeTowerPositionOutsideBed">Reinigungsturm liegt außerhalb der Druckfläche</string>
+    <string name="PrimeTowerPositionOverlapsModels">Reinigungsturm überschneidet %1$d Modell(e)</string>
+    <string name="PrimeTowerBedPreviewDescription">Druckplattenvorschau. Turmposition X %1$s mm, Y %2$s mm. %3$s. %4$d Modell(e) angezeigt.</string>
+    <string name="PrimeTowerPreviewModels">Modelle (Umriss)</string>
+    <string name="PrimeTowerPreviewTower">Reinigungsturm</string>
     <string name="PrimeTowerPositionCoordinates">X %1$.1f mm · Y %2$.1f mm</string>
     <string name="PrimeTowerFindFreePlace">Freien Platz finden</string>
     <string name="PrimeTowerNoFreePlace">Kein freier Platz für den Reinigungsturm gefunden.</string>

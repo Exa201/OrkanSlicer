@@ -38,7 +38,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.painterResource
@@ -256,6 +258,9 @@ internal fun PrimeTowerPositionEditor(
     onYChanged: (Int, String) -> Unit,
 ) {
     val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
+    val suggestedPosition = remember(placementMap, towerWidth, towerDepth) {
+        placementMap?.let { PrimeTowerDragLogic.findFreePosition(it, towerWidth, towerDepth) }
+    }
     val helpText = if (helpTextResource == R.string.PrimeTowerPositionTapHelp) {
         stringResource(helpTextResource, plateNumberOffset + 1)
     } else {
@@ -281,7 +286,7 @@ internal fun PrimeTowerPositionEditor(
                 towerWidth = towerWidth,
                 towerDepth = towerDepth,
             )
-            val suggested = PrimeTowerDragLogic.findFreePosition(placementMap, towerWidth, towerDepth)
+            val suggested = suggestedPosition
             if (suggested != null) {
                 OutlinedButton(
                     onClick = {
@@ -423,9 +428,21 @@ private fun PrimeTowerPlacementPreview(
     towerWidth: Double,
     towerDepth: Double,
 ) {
-    val free = PrimeTowerDragLogic.isPositionFree(map, x, y, towerWidth, towerDepth)
-    val status = stringResource(if (free) R.string.PrimeTowerPositionFree else R.string.PrimeTowerPositionBlocked)
-    val previewDescription = stringResource(R.string.PrimeTowerBedPreview) + ". " + status
+    val withinBed = PrimeTowerDragLogic.isPositionWithinBed(map, x, y, towerWidth, towerDepth)
+    val overlaps = PrimeTowerDragLogic.overlappingObstacleCount(map, x, y, towerWidth, towerDepth)
+    val free = withinBed && overlaps == 0
+    val status = when {
+        free -> stringResource(R.string.PrimeTowerPositionFree)
+        !withinBed -> stringResource(R.string.PrimeTowerPositionOutsideBed)
+        else -> stringResource(R.string.PrimeTowerPositionOverlapsModels, overlaps)
+    }
+    val previewDescription = stringResource(
+        R.string.PrimeTowerBedPreviewDescription,
+        String.format(Locale.getDefault(), "%.1f", x),
+        String.format(Locale.getDefault(), "%.1f", y),
+        status,
+        map.obstacles.size,
+    )
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.PrimeTowerBedPreview), style = MaterialTheme.typography.labelLarge)
         Text(
@@ -450,28 +467,59 @@ private fun PrimeTowerPlacementPreview(
                 inset + bedWidth.toFloat() * scale,
                 inset + bedDepth.toFloat() * scale,
             )
-            drawRoundRect(
-                color = Color(0xFFE4E1E8),
-                topLeft = Offset(bedRect.left, bedRect.top),
-                size = Size(bedRect.width, bedRect.height),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()),
+            fun bedOffset(point: ru.ytkab0bp.slicebeam.render.PrimeTowerPoint) = Offset(
+                inset + ((point.x - map.bedMinX) * scale).toFloat(),
+                inset + ((point.y - map.bedMinY) * scale).toFloat(),
             )
-            drawRoundRect(
-                color = Color(0xFF77727D),
-                topLeft = Offset(bedRect.left, bedRect.top),
-                size = Size(bedRect.width, bedRect.height),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()),
-                style = Stroke(1.dp.toPx()),
-            )
+            val bedPath = Path().apply {
+                if (map.bedBoundary.size >= 3) {
+                    moveTo(bedOffset(map.bedBoundary.first()).x, bedOffset(map.bedBoundary.first()).y)
+                    map.bedBoundary.drop(1).forEach { point ->
+                        val offset = bedOffset(point)
+                        lineTo(offset.x, offset.y)
+                    }
+                    close()
+                } else {
+                    addRoundRect(
+                        androidx.compose.ui.geometry.RoundRect(
+                            bedRect,
+                            androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()),
+                        ),
+                    )
+                }
+            }
+            drawPath(bedPath, color = Color(0xFFE4E1E8))
+            clipPath(bedPath) {
+                val gridStep = 20.0
+                var gridX = kotlin.math.ceil(map.bedMinX / gridStep) * gridStep
+                while (gridX < map.bedMaxX) {
+                    val gx = inset + ((gridX - map.bedMinX) * scale).toFloat()
+                    drawLine(Color(0x3377727D), Offset(gx, bedRect.top), Offset(gx, bedRect.bottom), 1.dp.toPx())
+                    gridX += gridStep
+                }
+                var gridY = kotlin.math.ceil(map.bedMinY / gridStep) * gridStep
+                while (gridY < map.bedMaxY) {
+                    val gy = inset + ((gridY - map.bedMinY) * scale).toFloat()
+                    drawLine(Color(0x3377727D), Offset(bedRect.left, gy), Offset(bedRect.right, gy), 1.dp.toPx())
+                    gridY += gridStep
+                }
+            }
+            drawPath(bedPath, color = Color(0xFF77727D), style = Stroke(1.5.dp.toPx()))
             map.obstacles.forEach { obstacle ->
                 val left = inset + ((obstacle.minX - map.bedMinX) * scale).toFloat()
                 val top = inset + ((obstacle.minY - map.bedMinY) * scale).toFloat()
                 val right = inset + ((obstacle.maxX - map.bedMinX) * scale).toFloat()
                 val bottom = inset + ((obstacle.maxY - map.bedMinY) * scale).toFloat()
                 drawRect(
-                    color = Color(0xFF77727D),
+                    color = Color(0x553F51B5),
                     topLeft = Offset(left, top),
                     size = Size((right - left).coerceAtLeast(1f), (bottom - top).coerceAtLeast(1f)),
+                )
+                drawRect(
+                    color = Color(0xFF3949AB),
+                    topLeft = Offset(left, top),
+                    size = Size((right - left).coerceAtLeast(1f), (bottom - top).coerceAtLeast(1f)),
+                    style = Stroke(1.5.dp.toPx()),
                 )
             }
             val towerLeft = inset + ((x - map.bedMinX) * scale).toFloat()
@@ -481,6 +529,18 @@ private fun PrimeTowerPlacementPreview(
                 topLeft = Offset(towerLeft, towerTop),
                 size = Size((towerWidth * scale).toFloat(), (towerDepth * scale).toFloat()),
             )
+            drawRect(
+                color = Color(0xFF202124),
+                topLeft = Offset(towerLeft, towerTop),
+                size = Size((towerWidth * scale).toFloat(), (towerDepth * scale).toFloat()),
+                style = Stroke(2.dp.toPx()),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("■", color = Color(0xFF3949AB), style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.PrimeTowerPreviewModels), style = MaterialTheme.typography.labelSmall)
+            Text("■", color = if (free) Color(0xFF00A884) else Color(0xFFD34B45), style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.PrimeTowerPreviewTower), style = MaterialTheme.typography.labelSmall)
         }
         Text(
             text = stringResource(R.string.PrimeTowerPositionCoordinates, x, y) + " · " + status,

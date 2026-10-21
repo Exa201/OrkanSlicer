@@ -1012,6 +1012,11 @@
     <string name="PrimeTowerBedPreview">Bed preview · models and purge tower</string>
     <string name="PrimeTowerPositionFree">Position is clear</string>
     <string name="PrimeTowerPositionBlocked">Purge tower overlaps a model or is outside the bed</string>
+    <string name="PrimeTowerPositionOutsideBed">Purge tower is outside the printable bed</string>
+    <string name="PrimeTowerPositionOverlapsModels">Purge tower overlaps %1$d model(s)</string>
+    <string name="PrimeTowerBedPreviewDescription">Bed preview. Tower position X %1$s mm, Y %2$s mm. %3$s. %4$d model(s) shown.</string>
+    <string name="PrimeTowerPreviewModels">Models (outline)</string>
+    <string name="PrimeTowerPreviewTower">Purge tower</string>
     <string name="PrimeTowerPositionCoordinates">X %1$.1f mm · Y %2$.1f mm</string>
     <string name="PrimeTowerFindFreePlace">Find free position</string>
     <string name="PrimeTowerNoFreePlace">No free position for the purge tower was found.</string>
