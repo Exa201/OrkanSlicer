@@ -1,3 +1,10 @@
+# Phase 5 global profile action follow-up — Honor (2026-10-21)
+
+- On the unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`, additional global/profile action instrumentation passed on Honor PTP-N49 / Android 16: `PrintProfileDropdownIntegrationDeviceTest` 18/18, `ProfileNumericOptionDeviceTest` 3/3, `ProfileSettingsImeDeviceTest` 12/12, and `PrinterWebWorkspacePanelDeviceTest` 3/3. Together with the earlier focused accessibility/settings run, these tests exercised 46 individual cases (1 + 1 + 1 + 7 + 18 + 3 + 12 + 3), all passed. No printer connection/sync or print was initiated; printer-web panels used test routes/fakes.
+- These targeted tests deepen the global profile/settings audit but do not make the full six-menu action inventory exhaustive. Phase 5 remains active. Phase 6 remains partial: automated responsive/accessibility checks passed, but physical TalkBack traversal is still unavailable (`enabled_accessibility_services=null`).
+- Next: continue covering global dialogs/profile flows that lack action-level tests, then reconcile all six workspace menus against current source handlers. Keep the regular 0.8.337 APK unchanged because this was instrumentation-only verification.
+
+---
 # Phase 5/6 continuation — Honor verification (2026-10-21)
 
 - Verified repository HEAD before this test-only checkpoint: `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a` on `codex/rinkhals-safe-start-audit`. No application source, version, APK, or runtime behavior was changed in this step.
@@ -2012,3 +2019,4 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - The 2.14 MB user 3MF was copied only to the SliceTest app's isolated external-files directory; its on-device hash matched the local file. The temporary device copy was deleted after verification. The normal OrkanSlicer MainActivity is top-resumed; sampled Logcat had no fatal exception, ANR, OOM, or fatal-signal entries.
 - Full Debug and Slice JVM unit suites then passed: 583/583 each, zero skipped/failures/errors. No product source or APK changed in this test-only follow-up, so no new release was built. No printer synchronization, firmware change, or print start occurred.
 - Phase 5 action audit and Phase 6 responsive/accessibility acceptance remain active; manual TalkBack traversal, remaining unverified menu actions, and full multi-plate project persistence remain open. The exact KromaCut issue is verified against the tested native slice/G-code path; UI 2.0 is not complete. Next: continue remaining actual menu-action and accessibility checks, then build/publish only after production changes are ready.
+

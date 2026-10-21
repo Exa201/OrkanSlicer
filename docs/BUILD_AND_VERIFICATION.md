@@ -1,3 +1,7 @@
+# UI 2.0 global profile action follow-up — 2026-10-21
+
+- Additional current-code Honor instrumentation passed: `PrintProfileDropdownIntegrationDeviceTest` 18/18, `ProfileNumericOptionDeviceTest` 3/3, `ProfileSettingsImeDeviceTest` 12/12, `PrinterWebWorkspacePanelDeviceTest` 3/3. Combined with the prior focused responsive/settings set (10 cases), 46 targeted cases passed across both checkpoints; these are a subset of the full 237-case suite and must not be added to that suite count.
+- Tests ran against runtime HEAD `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a` (documentation commits only since). No live printer sync, firmware operation, or print start occurred. Full menu action audit and physical TalkBack remain open.
 # UI 2.0 phase 5/6 Honor checkpoint — 2026-10-21
 
 - Code under test: `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`; no application source changed during this checkpoint.
