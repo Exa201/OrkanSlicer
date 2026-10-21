@@ -20,6 +20,8 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -28,6 +30,8 @@ import java.util.concurrent.atomic.AtomicReference
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.SettingsFragment
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.fragment.MakerFragment
+import ru.ytkab0bp.slicebeam.components.KromacutEditorMenu
 import ru.ytkab0bp.slicebeam.navigation.NavigationDelegate
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
@@ -268,6 +272,62 @@ class SettingsMenuActionDeviceTest {
             Prefs.setAccentColor(originalColor)
             ThemesRepo.invalidate(activity)
         }
+    }
+
+    @Test
+    fun makerSettingsRouteOpensKromacutAndBackRestoresWorkspaceRenderer() {
+        val activity = compose.activity
+        navigateToSettings(activity)
+        compose.onNodeWithText(activity.getString(R.string.SettingsAppMakerTitle))
+            .performScrollTo().assertIsDisplayed().performClick()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            activity.navigationDelegate.getCurrentFragment() is MakerFragment
+        }
+        compose.onNodeWithText(activity.getString(R.string.MakerKromacut))
+            .performScrollTo().assertIsDisplayed().performClick()
+
+        lateinit var bed: BedFragment
+        var rendererBefore: Any? = null
+        var modelBefore: Any? = null
+        val expectedToolId = KromacutEditorMenu::class.java.name
+        compose.waitUntil(timeoutMillis = 10_000) {
+            val current = activity.navigationDelegate.getCurrentFragment()
+            if (current !is BedFragment) return@waitUntil false
+            bed = current
+            val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            val activeToolId = controller.javaClass.getMethod("getActiveToolId").invoke(controller) as? String
+            if (activeToolId == expectedToolId) {
+                rendererBefore = bed.glView?.renderer
+                modelBefore = bed.glView?.renderer?.model
+                bed.glView?.visibility == View.GONE
+            } else false
+        }
+        var webView: android.webkit.WebView? = null
+        compose.waitUntil(timeoutMillis = 10_000) {
+            activity.runOnUiThread { webView = findAttachedWebView(activity.window.decorView) }
+            webView != null
+        }
+        assertNotNull("The real Maker action must create KromaCut's embedded WebView", webView)
+
+        activity.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitUntil(timeoutMillis = 10_000) {
+            val controller = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            controller.javaClass.getMethod("getActiveToolId").invoke(controller) == null &&
+                bed.glView?.visibility == View.VISIBLE
+        }
+        assertSame("KromaCut dismissal must retain the native GL renderer", rendererBefore, bed.glView?.renderer)
+        assertEquals("Returning from KromaCut must retain the same native model",
+            modelBefore, bed.glView?.renderer?.model)
+    }
+
+    private fun findAttachedWebView(view: View?): android.webkit.WebView? = when (view) {
+        is android.webkit.WebView -> view.takeIf { it.isAttachedToWindow }
+        is ViewGroup -> (0 until view.childCount).asSequence()
+            .mapNotNull { index -> findAttachedWebView(view.getChildAt(index)) }
+            .firstOrNull()
+        else -> null
     }
 
     private fun navigateToSettings(activity: MainActivity) {

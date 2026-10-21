@@ -4,6 +4,7 @@
 - Removed `ConverterMenu.kt` after verifying no production entry point referenced it; active KromaCut/Maker path remains. No runtime feature or version change, and no APK build was needed.
 - Fresh `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 588/588 each, no failures/errors/skips. Focused Honor `MakerGeneratorWorkspaceDeviceTest` after the deletion: 11 finished, 0 skipped/failed. Not a new full instrumentation run.
 - Honor `WorkspaceNavigationDeviceTest`: 1/1 passed on PTP-N49 / Android 16, including KromaCut workspace route and GL restoration checks; emulator remained offline.
+- Added actual Settings → Maker → KromaCut route coverage; the full Honor `SettingsMenuActionDeviceTest` class passed 8/8, then the strengthened KromaCut/renderer-retention test passed standalone 1/1. No printer was contacted.
 - App runtime is unchanged at 0.8.337 / versionCode 372. Phase 5 action-by-action menu reconciliation and Phase 6 manual TalkBack remain open.
 
 ---
