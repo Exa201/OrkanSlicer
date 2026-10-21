@@ -35,7 +35,7 @@ internal fun WorkspaceMessageDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = onConfirm, modifier = Modifier.heightIn(min = 48.dp)) {
+            TextButton(onClick = onConfirm, modifier = Modifier.heightIn(min = 48.dp).testTag("workspace-message-confirm")) {
                 Text(confirmLabel)
             }
         },

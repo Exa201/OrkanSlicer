@@ -394,6 +394,67 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-group-combine-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val model = requireNotNull(renderer.model)
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                model.setUniformFilament(2, 3)
+                renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("multipart test objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.WorkspaceObjects)
+            compose.onNodeWithContentDescription(activity.getString(R.string.WorkspaceObjects))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-objects-group-selection-toggle").performClick()
+            compose.onNodeWithTag("model-object-row-1").performClick()
+            compose.onNodeWithTag("model-object-row-2").performClick()
+            compose.onNodeWithTag("model-objects-selection-confirm").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.selectedObjectsCount == 3 }
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuCombineSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("workspace-message-confirm").assertIsDisplayed().performClick()
+
+            compose.waitUntil(timeoutMillis = 15_000) { bed.currentModel?.objectsCount == 1 }
+            val combinedFilaments = AtomicReference<IntArray>()
+            val combinedReady = CountDownLatch(1)
+            glView.queueEvent {
+                combinedFilaments.set(requireNotNull(glView.renderer.model).getUsedFilaments(0))
+                combinedReady.countDown()
+            }
+            assertTrue("combined part filaments should be read on the GL thread", combinedReady.await(10, TimeUnit.SECONDS))
+            assertArrayEquals("combining the selected group preserves all three source materials",
+                intArrayOf(1, 2, 3), requireNotNull(combinedFilaments.get()))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun initialProjectRouteShowsFileActionsOnItsFirstOpen() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
