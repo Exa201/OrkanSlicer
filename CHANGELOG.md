@@ -776,5 +776,5 @@ This fork includes the earlier OrcaMobile/SliceBeam Kotlin UI migration, model a
 ### Verifikation (2026-10-21)
 
 - Debug- und Slice-Unit-Suiten: 586/586 bestanden. Vollständige Honor-Instrumentierung: 237 Tests, keine Fehler oder Überspringungen; KromaCut-Fixture separat 3/3 bestanden.
-- APK-Metadaten und Hash werden nach dem finalen Commit aktualisiert.
+- Finaler Code-Commit `ba7c1b85ee33a909a7857fca42ad6a18ce735b3a`; Debug-APK `app/build/outputs/apk/debug/OrkanSlicer_ba7c1b85ee.apk` (239,126,049 Bytes, SHA-256 `90964E8769D99BE1FD1B7A41086250AE338CFAB143298E45881B915D20E5042A`). Auf Honor PTP-N49 installiert und gestartet.
 
