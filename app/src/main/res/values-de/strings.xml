@@ -260,6 +260,8 @@
     <string name="ObjectActionHide">Schließen</string>
     <string name="MenuFileKromacut">Farbbild erstellen</string>
     <string name="KromacutEditorClose">Zurück zu OrkanSlicer</string>
+    <string name="KromacutWebGlUnavailable">Die KromaCut-3D-Vorschau benötigt WebGL 2. Diese Android-WebView konnte keinen WebGL-2-Grafikkontext erstellen. Aktualisiere Android System WebView und die Systemsoftware des Telefons und starte OrkanSlicer neu. Bleibt die Ansicht schwarz, sende uns bitte dein Telefonmodell und die Version von Android System WebView.</string>
+    <string name="KromacutWebGlProbeFailed">KromaCut konnte den 3D-Grafikkontext nicht prüfen: %1$s</string>
     <string name="ImageToStlMenu">Bild in 3D-Modell umwandeln</string>
     <string name="ConverterMenu">Konverter</string>
     <string name="ConverterPickImage">Bild auswählen und umwandeln</string>

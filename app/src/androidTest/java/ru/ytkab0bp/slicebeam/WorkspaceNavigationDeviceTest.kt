@@ -259,7 +259,7 @@ class WorkspaceNavigationDeviceTest {
                     editor.evaluateJavascript("document.title") {
                         webTitle[0] = it
                     }
-                    editor.evaluateJavascript("({rootChildren:document.querySelector('#root')?.children.length||0,rootHtml:document.querySelector('#root')?.innerHTML.slice(0,300)||'',visibleText:(document.querySelector('#root')?.innerText||'').trim().length,canvasCount:document.querySelectorAll('canvas').length,bodyHtmlLength:document.body?.innerHTML.length||0,readyState:document.readyState,scripts:[...document.scripts].map(s=>s.src+' attr='+s.getAttribute('src')+' type='+s.type).join('|'),base:document.baseURI,href:location.href,resources:performance.getEntriesByType('resource').map(r=>r.name+' status='+r.responseStatus).slice(-15).join('|')})") {
+                    editor.evaluateJavascript("({rootChildren:document.querySelector('#root')?.children.length||0,rootHtml:document.querySelector('#root')?.innerHTML.slice(0,300)||'',visibleText:(document.querySelector('#root')?.innerText||'').trim().length,canvasCount:document.querySelectorAll('canvas').length,webgl2Available:window.__orcaWebGL2Available===true,bodyHtmlLength:document.body?.innerHTML.length||0,readyState:document.readyState,scripts:[...document.scripts].map(s=>s.src+' attr='+s.getAttribute('src')+' type='+s.type).join('|'),base:document.baseURI,href:location.href,resources:performance.getEntriesByType('resource').map(r=>r.name+' status='+r.responseStatus).slice(-15).join('|')})") {
                         webRenderState[0] = it
                         ready.countDown()
                     }
@@ -274,6 +274,10 @@ class WorkspaceNavigationDeviceTest {
             assertTrue("Kromacut page title was not rendered: ${webTitle[0]}", webTitle[0].orEmpty().contains("Kromacut"))
             assertTrue("Kromacut page loaded without rendering its React interface (diagnostic title ${webTitle[0]}): ${webRenderState[0]}",
                 rootChildren > 0 && visibleTextLength > 0)
+            assertTrue(
+                "Kromacut's Three.js renderer requires WebGL2; this device reports no WebGL2 context: ${webRenderState[0]}",
+                webRenderState[0].orEmpty().contains("\"webgl2Available\":true"),
+            )
         }
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

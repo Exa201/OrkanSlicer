@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
+import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.ConsoleMessage
 import android.webkit.ValueCallback
@@ -106,9 +107,21 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
         }
     }
 
+    private fun showRendererError(detail: String) {
+        ViewUtils.postOnMainThread {
+            val context = fragment?.getContext() ?: return@postOnMainThread
+            if (fragment?.getView() != null) {
+                activeError = context.getString(R.string.KromacutWebGlProbeFailed, detail)
+            }
+        }
+    }
+
     private fun createEditor(ctx: Context): WebView {
         return WebView(ctx).apply {
             setBackgroundColor(0xFF101115.toInt())
+            // KromaCut's Three.js canvas depends on hardware-composited WebGL.
+            // Vendor WebViews can otherwise leave it black inside the Compose overlay.
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
@@ -122,6 +135,11 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                 .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(ctx))
                 .build()
             webViewClient = object : WebViewClientCompat() {
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+                view.evaluateJavascript("if(window.__orcaWebGL2Available===false)window.OrcaMobile.reportRendererIssue(window.__orcaWebGL2ProbeError?('webgl2-probe-failed:'+window.__orcaWebGL2ProbeError):'webgl2-unavailable')", null)
+            }
+
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest,
@@ -141,7 +159,7 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                                 // Preloading this exact local chunk makes the same module
                                 // available to React.lazy without making any network request.
                                 "<link rel=\"modulepreload\" href=\"https://appassets.androidplatform.net/assets/kromacut-editor/assets/App-QLOjXI_l.js\">" +
-                                "<script>window.addEventListener('error',e=>window.OrcaMobile.reportError(String(e.message)+' '+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>window.OrcaMobile.reportError('Unhandled rejection: '+String(e.reason)));</script>",
+                                "<script>window.addEventListener('error',e=>window.OrcaMobile.reportError(String(e.message)+' '+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>window.OrcaMobile.reportError('Unhandled rejection: '+String(e.reason)));try{const c=document.createElement('canvas'),g=c.getContext('webgl2');window.__orcaWebGL2Available=!!g;if(g){const x=g.getExtension('WEBGL_lose_context');if(x)x.loseContext()}}catch(e){window.__orcaWebGL2Available=false;window.__orcaWebGL2ProbeError=String(e)}</script>",
                         )
                     return WebResourceResponse("text/html", "UTF-8", ByteArrayInputStream(html.toByteArray(Charsets.UTF_8)))
                 }
@@ -177,7 +195,13 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
             webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(message: ConsoleMessage): Boolean {
                     if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
-                        Log.e("KromacutWebView", "${message.message()} (${message.sourceId()}:${message.lineNumber()})")
+                        val detail = "${message.message()} (${message.sourceId()}:${message.lineNumber()})"
+                        Log.e("KromacutWebView", detail)
+                        if (detail.contains("webgl", ignoreCase = true) ||
+                            detail.contains("shader", ignoreCase = true) ||
+                            detail.contains("context creation", ignoreCase = true)) {
+                            showRendererError(detail)
+                        }
                     }
                     return true
                 }
@@ -293,7 +317,32 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
     private inner class DownloadBridge {
         @JavascriptInterface
         fun reportError(message: String?) {
-            Log.e("KromacutWebView", "JavaScript failure: ${message ?: "unknown"}")
+            val detail = message ?: "unknown"
+            Log.e("KromacutWebView", "JavaScript failure: $detail")
+            if (detail.contains("webgl", ignoreCase = true) ||
+                detail.contains("shader", ignoreCase = true) ||
+                detail.contains("context creation", ignoreCase = true)) {
+                ViewUtils.postOnMainThread {
+                    val context = fragment?.getContext()
+                    if (context != null && fragment?.getView() != null) {
+                        activeError = context.getString(R.string.KromacutWebGlProbeFailed, detail)
+                    }
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun reportRendererIssue(code: String?) {
+            Log.e("KromacutWebView", "Renderer capability issue: $code")
+            when {
+                code?.startsWith("webgl2-unavailable") == true -> {
+                    ViewUtils.postOnMainThread {
+                        val context = fragment?.getContext() ?: return@postOnMainThread
+                        if (fragment?.getView() != null) activeError = context.getString(R.string.KromacutWebGlUnavailable)
+                    }
+                }
+                code?.startsWith("webgl2-probe-failed") == true -> showRendererError(code.substringAfter(':'))
+            }
         }
 
         @JavascriptInterface
