@@ -1,11 +1,11 @@
 # Fortsetzungsstatus — 2026-10-21 (0.8.331)
 
-- Arbeitsbranch `codex/rinkhals-safe-start-audit`; Ausgangs-HEAD `9dd9121d2bc1994711953c253cd6348080312b12`. Diese Arbeitsgruppe enthält KromaCut 4.2.0, ACE-Mehrfachzuordnungen, G-Code/Preview-Routing, Objektzuweisung, editierbare Menüs und Kamera-Menüverlagerung.
-- Verifikation: Debug-Unit 586/586 und Slice-Unit 586/586 bestanden. Vollständige Honor-`connectedSliceTestAndroidTest`: 237 Tests, 0 Fehler, 0 übersprungen. Echte KromaCut-3MF-Fixture auf Honor: 3/3 bestanden. Menü/Layout-, Menüanpassungs- und ACE-Mehrfachslot-Gerätetests bestanden. Emulator bleibt offline.
+- Arbeitsbranch `codex/rinkhals-safe-start-audit`; Ausgangs-HEAD `9dd9121d2bc1994711953c253cd6348080312b12`; aktueller Branch-HEAD `0fb4b5b234482aabbf3b20080ce3bf706bf99026` (nur Instrumentierungstest seit APK-Code-Commit geändert). Diese Arbeitsgruppe enthält KromaCut 4.2.0, ACE-Mehrfachzuordnungen, G-Code/Preview-Routing, Objektzuweisung, editierbare Menüs und Kamera-Menüverlagerung.
+- Verifikation: Debug-Unit 586/586 und Slice-Unit 586/586 bestanden. Vollständige Honor-`connectedSliceTestAndroidTest`: 237 Tests, 0 Fehler, 0 übersprungen. Echte KromaCut-3MF-Fixture auf Honor: 3/3 bestanden. Menü-/Layout- und ACE-Mehrfachslot-Gerätetests bestanden; Menüanpassung nach Compose-Remount auf Honor 1/1 mit wiederhergestellter Reihenfolge und Sichtbarkeit geprüft. Emulator bleibt offline.
 - KromaCut-Black-Screen-Ursache: WebView lud den Lazy-App-Chunk nach dem HTML-Einstieg nicht; lokales Module-Preload behebt das. Honor-Test bestätigt sichtbare React-Oberfläche.
 - Finaler Debug-Build für Code-Commit `ba7c1b85ee33a909a7857fca42ad6a18ce735b3a`: `app/build/outputs/apk/debug/OrkanSlicer_ba7c1b85ee.apk`, 239,126,049 Bytes, SHA-256 `90964E8769D99BE1FD1B7A41086250AE338CFAB143298E45881B915D20E5042A`. Auf Honor PTP-N49 installiert und als `com.codemastercody3d.orcaslicermobile` gestartet; keine Fatal-/ANR-/OOM-Marker in der geprüften Logcat-Stichprobe.
-- Aktuelle bekannte Grenzen: vollständige UI-2.0-Menü-/Accessibility-Abnahme und Mehrplatten-Projektpersistenz bleiben offen. Release 0.8.331 noch zu erstellen; PR #2 offen und vor dem Push mergeable. Kein Druck gestartet und keine Firmware geändert.
-- Nächster Schritt: veröffentlichbare APK nach finalem Commit erstellen, auf Honor starten und Release/PR aktualisieren; anschließend verbleibende Menü-, Accessibility- und Mehrplattenarbeiten fortsetzen.
+- Aktuelle bekannte Grenzen: vollständige UI-2.0-Menü-/Accessibility-Abnahme und Mehrplatten-Projektpersistenz bleiben offen. Release 0.8.331 veröffentlicht; PR #2 aktualisiert, offen und mergeable. Kein Druck gestartet und keine Firmware geändert.
+- Nächster Schritt: verbleibende Menüaktionen und Responsive-/Accessibility-Konfigurationen weiter funktional abnehmen; danach Mehrplattenpersistenz separat bearbeiten.
 
 ---
 # Current continuation state — 2026-10-20 (large-text settings and workspace actions)
