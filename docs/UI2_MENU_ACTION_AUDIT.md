@@ -51,3 +51,4 @@ Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since
 
 - The first 241-case full Honor run after these additions had 3 skipped private-fixture KromaCut cases and one Compose timeout in the unrelated Settings → Maker → KromaCut navigation regression. That navigation test passed standalone 1/1 and its containing class 8/8 immediately afterward.
 - Increased that test's state-settle timeout from 10 to 30 seconds; the containing class again passed 8/8. A second full connected-suite run is in progress. No production code changed as part of this test stability adjustment.
+- The second full run reproduced the timeout at WebView attachment (the next 10-second condition), while the active KromaCut tool/GL state had passed. Increased WebView attachment and post-Back renderer-restoration waits to 30 seconds. This is synchronization-only; full-suite rerun remains required.

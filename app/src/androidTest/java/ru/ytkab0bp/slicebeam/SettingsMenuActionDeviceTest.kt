@@ -306,14 +306,14 @@ class SettingsMenuActionDeviceTest {
             } else false
         }
         var webView: android.webkit.WebView? = null
-        compose.waitUntil(timeoutMillis = 10_000) {
+        compose.waitUntil(timeoutMillis = 30_000) {
             activity.runOnUiThread { webView = findAttachedWebView(activity.window.decorView) }
             webView != null
         }
         assertNotNull("The real Maker action must create KromaCut's embedded WebView", webView)
 
         activity.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
-        compose.waitUntil(timeoutMillis = 10_000) {
+        compose.waitUntil(timeoutMillis = 30_000) {
             val controller = BedFragment::class.java.getDeclaredField("workspaceController")
                 .apply { isAccessible = true }.get(bed)
             controller.javaClass.getMethod("getActiveToolId").invoke(controller) == null &&
