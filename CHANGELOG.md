@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.333 (alpha)
+
+- Force hardware compositing for the embedded KromaCut WebView and detect missing WebGL 2, which the bundled Three.js renderer requires.
+- Surface WebGL and shader initialization errors in a localized diagnostic instead of leaving a silent black editor.
+- Extend the KromaCut device test to assert WebGL 2 availability. Xiaomi behavior still needs confirmation on the affected device; this debug prerelease is a diagnostic candidate, not a verified Xiaomi fix.
+
 ## 0.8.332 (alpha)
 
 - Expand Honor device verification for the selected-object/whole-plate Edit menu and the view cube at 320 dp / 150% text, 400 dp / 130% text, and 800×366 dp landscape / 130% text.

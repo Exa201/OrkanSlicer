@@ -2,8 +2,8 @@
 
 - Starting commit: `ff57f121e5c410a1fa6d7e6210fe44451c2b3cf0`, app 0.8.332. The screenshot shows KromaCut chrome but a black editor area. Existing instrumentation checked React text but not WebGL availability.
 - Code update: explicitly hardware-composite the embedded WebView; probe WebGL2 (required by bundled Three.js r163+); show a localized diagnostic if WebGL2 creation fails; surface WebGL/shader console errors. Extend `WorkspaceNavigationDeviceTest` to require WebGL2.
-- Verification: `:app:assembleDebug` and `:app:compileSliceTestAndroidTestKotlin` succeeded. ADB lists only `emulator-5554 offline`; no Honor or Xiaomi is connected, so no device result is claimed. Gradle requires `ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk` in this environment.
-- The Xiaomi issue is not yet proven fixed. Next: commit/push on the existing branch, rebuild with the resulting commit id, and run the KromaCut workspace device test on a connected Xiaomi (or Honor for regression) while inspecting WebView console/logcat. Do not call this Xiaomi-verified until then.
+- Verification: `:app:assembleDebug` and `:app:compileSliceTestAndroidTestKotlin` succeeded. Honor PTP-N49 ran `WorkspaceNavigationDeviceTest` 1/1; its KromaCut route and WebGL2 assertion passed. ADB also lists an offline emulator. No Xiaomi test is available. Gradle requires `ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk` in this environment.
+- The Xiaomi issue is not yet proven fixed. Code diagnostics are pushed in `99e6ae9f8b8ec312550a261e6fa28c5fea5e9fb4`. Next: deliver the 0.8.333 debug prerelease as a diagnostic candidate and run it on the Xiaomi while inspecting WebView console/logcat. Do not call this Xiaomi-verified until then.
 
 ---
 
