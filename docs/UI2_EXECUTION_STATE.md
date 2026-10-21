@@ -1,3 +1,14 @@
+# Phase 5/6 continuation checkpoint — migration guard restored (2026-10-21)
+
+- Branch HEAD at start: `40f9eac6b6295e6539abad8416e9991f75067bf1`; active app version remains 0.8.337 / code 372. No runtime behavior changed in this pass.
+- Removed the unused `components/bed_menu/ConverterMenu.kt`: repository-wide production search found no construction or call sites. Active KromaCut remains `KromacutEditorMenu` / Maker route.
+- Repaired `scripts/check_kotlin_ui_migration.py`, which was failing against obsolete host/component assumptions. It now checks the active workspace dialogs, slice and camera routes, current KromaCut asset path, current cloud/changelog/progress/color/filament/MMU components, and the required GL/WebView `AndroidView` bridges. Result: passed; 381 production Kotlin sources and 135 Kotlin unit-test sources checked, with AndroidView limited to the renderer and the two WebViews.
+- Verification after cleanup: Debug JVM 588/588 and Slice JVM 588/588, each 0 failed/errors/skips. Honor `MakerGeneratorWorkspaceDeviceTest`: 11 finished, 0 skipped/failed (focused run after removing the dead host). These do not represent a new full Honor-suite run. Emulator remains offline.
+- Phase 4 remains complete by prior renderer/workspace and lifecycle evidence. Phase 5 continues: action-by-action source/test reconciliation is still not exhaustive. Phase 6 remains partial: physical TalkBack traversal is unavailable; automated responsive matrix has prior passing evidence.
+- Next: finish reconciling current `FileMenu`, `ModelMenuItems`, `CameraMenu`, `TransformMenuItems`, `OptionsMenu`/Maker, and `SliceMenuItems` actions against actual device test methods; add tests only for uncovered safe actions. Do not issue a printer send/print, firmware change, merge, or release.
+
+---
+
 # Phase 5/6 regression checkpoint — Honor + JVM (2026-10-21)
 
 - Final JVM regression against unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`: Debug Unit 588/588 and Slice Unit 588/588; 0 failures, skips, or errors in each suite.
