@@ -2161,3 +2161,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: focused `kromacutWebGlCreationFailureShowsDismissibleWorkspaceError` passed 1/1. It drives the real JavaScript bridge callback, verifies the actual error detail plus provider/device metadata are visible, confirms dismissal keeps KromaCut open, then verifies Back closes it.
 - This is the first test of the new metadata path. The change is not yet committed/pushed. Xiaomi remains unavailable for direct reproduction; no APK/release made.
 - Next: inspect/test the current metadata diff, commit/push if clean, then continue the active Phase 5 menu/action audit. Xiaomi proof still requires Xiaomi hardware or its returned diagnostic dialog.
+# Maker generator success-path follow-up — 2026-10-21
+
+- Current code HEAD before this test-only change: `559c4f53` (`feat: include device details in KromaCut renderer errors`); app runtime/version unchanged.
+- Added Honor instrumentation for Utility Box generation from default parameters. It waits for the shared generated-output UI, confirms one non-empty binary STL was produced in app cache, then discards it and confirms that exact temporary file is removed while the workspace remains active.
+- Honor PTP-N49 / Android 16 result: `MakerGeneratorWorkspaceDeviceTest` 18 tests, 18 passed, 0 skipped/failures/errors; XML timestamp `2026-10-21T14:14:44`. The test exercises a production generator and its real UI output flow; no external save or printer operation occurred. Emulator remains offline.
+- Phase 5 action reconciliation is still open. Remaining Maker generation routes do not all have generated-output success/save coverage; broader menu actions are not fully reconciled. Phase 6 physical TalkBack and Xiaomi-specific KromaCut verification also remain unavailable.
+- Next: commit/push this focused generator test and its evidence, then continue action-level coverage for the next safe Maker output path. Do not change runtime version or claim Xiaomi rendering fixed from Honor evidence.
+
