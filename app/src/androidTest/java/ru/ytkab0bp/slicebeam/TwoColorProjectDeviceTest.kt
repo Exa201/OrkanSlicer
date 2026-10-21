@@ -16,8 +16,10 @@ import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaFilamentSettingsCatalog
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalog
+import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.io.File
 
 /** A generated 3MF fixture keeps this import regression runnable without a user's model. */
@@ -54,10 +56,13 @@ class TwoColorProjectDeviceTest {
         val previousConfig = SliceBeam.CONFIG
         val source = File(context.cacheDir, "two-color-paint-source.3mf")
         val exported = File(context.cacheDir, "two-color-painted-roundtrip.3mf")
+        val gcodeFile = File(context.cacheDir, "two-color-painted-roundtrip.gcode")
         val configFile = SliceBeam.getCurrentConfigFile()
         val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
         var original: Model? = null
         var restored: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        Prefs.init(context.applicationContext as android.app.Application)
         context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
         SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
             put("printer", "Anycubic Kobra 3 0.4 nozzle")
@@ -104,7 +109,23 @@ class TwoColorProjectDeviceTest {
                 paintedObjects.isNotEmpty(),
             )
             assertArrayEquals(usedFilaments, restored.getUsedFilaments(0))
+
+            // Isolate the painted object so T1 in the generated G-code can only come from
+            // its restored facet assignments, not from the fixture's separate T1 object.
+            restored.deleteObject(1)
+            assertEquals(1, restored.objectsCount)
+            assertArrayEquals(intArrayOf(1, 2), restored.getUsedFilaments(0))
+            SliceBeam.genCurrentConfig(restored)
+            sliceResult = restored.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath,
+                gcodeFile.absolutePath,
+                null,
+            )
+            val gcode = gcodeFile.readText()
+            assertTrue("the reloaded painted facets must emit a T1 tool change", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the painted project should still produce extrusion moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
         } finally {
+            sliceResult?.release()
             restored?.release()
             original?.release()
             SliceBeam.CONFIG = previousConfig
@@ -112,6 +133,7 @@ class TwoColorProjectDeviceTest {
             else configFile.writeBytes(previousConfigFile)
             source.delete()
             exported.delete()
+            gcodeFile.delete()
         }
     }
 

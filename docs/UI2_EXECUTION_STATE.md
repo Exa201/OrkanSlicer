@@ -2423,3 +2423,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: complete `NativeSliceDeviceTest` passed 9/9, including these assignment cases, standalone text extrusion, Boolean G-code, SVG G-code, and profile temperature delivery. No production code changed in this test group; no app APK or release was produced.
 - Current code branch is `codex/rinkhals-safe-start-audit`. Xiaomi remains unavailable for direct device validation. `git diff --check` passed before this checkpoint.
 - Next: verify per-volume material assignments across painted facets and saved/reloaded 3MF projects, then keep progressing through distinct multi-object model editing functions. Do not stage `.codex-remote-attachments/`.
+
+# Painted-facet 3MF round-trip reaches G-code — 2026-10-22
+
+- Extended `TwoColorProjectDeviceTest#paintedFilamentAssignmentsSurviveThreeMfExportAndImport`: after committing a controlled T1 paint band, export and reload the 3MF, remove the fixture's separate T1 object, then slice the remaining painted object. The test requires both restored used-filament states `[1, 2]` and an emitted T1 change plus deposited moves, isolating paint as the source of the second tool.
+- Honor PTP-N49 / Android 16: all 3 `TwoColorProjectDeviceTest` cases passed (0 skipped/failures/errors), including this paint-export-import-slice path, explicit object reassignment, and temporary profile import without persisting project values. `git diff --check` passed. Test-only change; no production APK/release.
+- This provides runtime evidence for facet assignment persistence through native G-code. Next: retain this regression while continuing the three core modeling workflows—safe multipart joining, placement, and native Boolean results—and test their undo/redo and save/reload behavior where supported. Xiaomi validation remains unavailable.
