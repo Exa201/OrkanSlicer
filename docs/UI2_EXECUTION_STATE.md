@@ -2401,3 +2401,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Code commit: `e55c731fb820e1f795ee0e44c809e2ba150c23a2` (pushed to the existing branch/PR).
 - `:app:assembleDebug` succeeded. APK: `app/build/outputs/apk/debug/OrkanSlicer_e55c731fb8.apk`, 239,241,800 bytes, SHA-256 `97964492A98E87441DF6D4F51B7C9513A1E351FD6B25E5E79F293B86C7D6B127`. Installed on Honor PTP-N49; launch intent was sent; sampled Logcat showed no crash/ANR/OOM markers. No release created.
 - Next: continue the ongoing model-editing and UI 2.0 action-coverage objective; emulator and manual TalkBack are still unavailable. Do not stage `.codex-remote-attachments/`.
+
+# Selected-group placement checkpoint — 2026-10-21
+
+- Commit `d9de8a00` extends the Model menu so selected groups can be duplicated with their per-object filament assignments intact and dropped to the bed with a shared Z offset. The group drop action is correctly listed under the selected-object/group scope. Existing group centering and placement-on-object remain available.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` was 45/45 clean in the full run; the new group workflow initially exposed a test-only bounds-array indexing mistake, then passed in a focused rerun (1/1). Together, all 46 current cases passed. The workflow verifies duplication, filament IDs, group centering, group drop height and untouched unselected copies. `ObjectPlacementTest` passed 6/6 in both Debug and Slice JVM variants.
+- Prime tower positioning is already in the branch from `e54fa8ed`: bed/model/tower preview, overlap/out-of-bounds feedback, and `Freien Platz finden`. Fresh Honor `PrimeTowerKeyboardDeviceTest` passed 3/3 on the current code before this commit; no tower source changed in `d9de8a00`.
+- Current branch: `codex/rinkhals-safe-start-audit`; implementation commit: `d9de8a00`. User attachment directory `.codex-remote-attachments/` remains untracked and excluded.
+- Next: continue verified model-editing work and the Phase 5/6 menu/accessibility audit. This checkpoint did not create a new APK or Release; the Xiaomi itself is not connected for visual verification.
