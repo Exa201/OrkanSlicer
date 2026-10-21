@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.341 (debug prerelease)
+
+- Reorder bottom workspace menu actions directly: long-press an action and drag it to its new position. The menu customization button remains available for hiding, showing, or resetting actions.
+- Keep reorder available to accessibility services through move-up and move-down custom actions. Update the existing menu customization device test for drag reordering.
+- Kotlin debug compilation succeeded. Device interaction tests have not yet been run; Xiaomi confirmation is pending.
+
 ## 0.8.340 (debug)
 
 - Keep the build plate visible while inspecting sliced layers: layer controls are docked outside the renderer viewport in portrait and landscape.

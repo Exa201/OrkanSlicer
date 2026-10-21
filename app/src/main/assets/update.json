@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.340\n\n• Nach dem Slicen liegen die Schichtenregler jetzt unter dem 3D-Ansichtsbereich statt über der Druckplatte. So bleibt die Druckplatte beim Einstellen sichtbar.\n• Android-Zurück und die Schließen-Schaltfläche schließen das Bedienfeld und übernehmen weiterhin den ausgewählten Schichtenbereich.",
-  "en": "OrkanSlicer 0.8.340\n\n• After slicing, the layer controls are now placed below the 3D viewport instead of covering the build plate, so the plate remains visible while adjusting the layer range.\n• Android Back and the close button dismiss the panel while preserving the selected layer range.",
-  "ru": "OrkanSlicer 0.8.340\n\n• После нарезки элементы управления слоями теперь расположены под областью 3D-просмотра, а не поверх стола. Стол остаётся видимым при выборе диапазона слоёв.\n• Кнопка закрытия и системная кнопка «Назад» закрывают панель и сохраняют выбранный диапазон слоёв."
+  "de": "OrkanSlicer 0.8.341\n\n• Sortiere Aktionen in den unteren Menüs direkt: Halte einen Menüpunkt gedrückt und ziehe ihn an die gewünschte Position.\n• Über „Menü anpassen“ kannst du weiterhin Punkte ausblenden, wieder einblenden oder die Standardreihenfolge wiederherstellen.",
+  "en": "OrkanSlicer 0.8.341\n\n• Reorder actions in the bottom menus directly: long-press an item and drag it to the desired position.\n• Use Customize menu to hide, show, or reset actions.",
+  "ru": "OrkanSlicer 0.8.341\n\n• Изменяйте порядок пунктов в нижних меню: нажмите и удерживайте пункт, затем перетащите его на нужное место.\n• В разделе «Настроить меню» по-прежнему можно скрывать, показывать пункты и сбрасывать их порядок."
 }
