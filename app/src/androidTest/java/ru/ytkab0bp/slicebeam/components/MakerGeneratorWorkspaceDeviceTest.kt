@@ -686,7 +686,6 @@ class MakerGeneratorWorkspaceDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
         compose.onNodeWithTag("generator-dialog-title").assertIsDisplayed()
         compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterConvertSave))
-            .performScrollTo()
             .performClick()
         compose.waitUntil(timeoutMillis = 60_000) {
             bed.isWorkspaceMessageDialogAttached() &&

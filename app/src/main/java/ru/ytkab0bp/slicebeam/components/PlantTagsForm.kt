@@ -86,47 +86,50 @@ internal fun PlantTagsFormContent(
 ) {
     val maxHeight = LocalConfiguration.current.screenHeightDp.dp * .68f
     Column(
-        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).padding(horizontal = 18.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(stringResource(R.string.PlantTagsDescription), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedTextField(
-            value = values.names,
-            onValueChange = { onValuesChanged(values.copy(names = it.take(240))) },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.PlantTagsNames)) },
-            minLines = 4,
-            maxLines = 7,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            shape = MaterialTheme.shapes.medium,
-        )
-        GeneratorDimensionField(R.string.PlantTagsWidth, values.width) {
-            onValuesChanged(values.copy(width = it))
+        Column(
+            modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(stringResource(R.string.PlantTagsDescription), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = values.names,
+                onValueChange = { onValuesChanged(values.copy(names = it.take(240))) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.PlantTagsNames)) },
+                minLines = 4,
+                maxLines = 7,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                shape = MaterialTheme.shapes.medium,
+            )
+            GeneratorDimensionField(R.string.PlantTagsWidth, values.width) {
+                onValuesChanged(values.copy(width = it))
+            }
+            GeneratorDimensionField(R.string.PlantTagsHeight, values.height) {
+                onValuesChanged(values.copy(height = it))
+            }
+            GeneratorDimensionField(R.string.PlantTagsFont, values.font) {
+                onValuesChanged(values.copy(font = it))
+            }
+            GeneratorDimensionField(R.string.PlantTagsBase, values.base) {
+                onValuesChanged(values.copy(base = it))
+            }
+            GeneratorDimensionField(R.string.PlantTagsRaised, values.raised) {
+                onValuesChanged(values.copy(raised = it))
+            }
+            GeneratorDimensionField(R.string.PlantTagsHole, values.hole) {
+                onValuesChanged(values.copy(hole = it))
+            }
+            GeneratorDimensionField(R.string.PlantTagsGap, values.gap) {
+                onValuesChanged(values.copy(gap = it))
+            }
+            if (errorMessage != null) Text(
+                stringResource(errorMessage), color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
-        GeneratorDimensionField(R.string.PlantTagsHeight, values.height) {
-            onValuesChanged(values.copy(height = it))
-        }
-        GeneratorDimensionField(R.string.PlantTagsFont, values.font) {
-            onValuesChanged(values.copy(font = it))
-        }
-        GeneratorDimensionField(R.string.PlantTagsBase, values.base) {
-            onValuesChanged(values.copy(base = it))
-        }
-        GeneratorDimensionField(R.string.PlantTagsRaised, values.raised) {
-            onValuesChanged(values.copy(raised = it))
-        }
-        GeneratorDimensionField(R.string.PlantTagsHole, values.hole) {
-            onValuesChanged(values.copy(hole = it))
-        }
-        GeneratorDimensionField(R.string.PlantTagsGap, values.gap) {
-            onValuesChanged(values.copy(gap = it))
-        }
-        if (errorMessage != null) Text(
-            stringResource(errorMessage), color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
-        )
         Button(onClick = { onGenerate(values) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
             Text(stringResource(R.string.ConverterConvertSave), fontSize = 16.sp)
         }

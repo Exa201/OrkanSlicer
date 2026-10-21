@@ -2179,10 +2179,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 
 # Plant Tags responsive generator correction — 2026-10-21
 
-- Current production ancestor: `505fab9f`; this checkpoint contains the local, not-yet-committed Plant Tags UI fix and action test.
-- Actual issue found: `PlantTagsFormContent` had parameter fields inside a vertical scroll container, but the Generate action was outside it. Compose instrumentation confirmed the button had no scroll-semantics parent, so on constrained dialog heights it could be inaccessible. Moved the full form, including the action, into one bounded vertical scroll area.
-- Added an action-level device test that scrolls to Generate, creates the default four-label batch, waits for the shared generated-output dialog, and verifies the production STL validator accepted a non-empty binary STL before discarding exactly that cache artifact.
-- Honor PTP-N49 / Android 16: `MakerGeneratorWorkspaceDeviceTest` 21/21 passed, 0 skipped/failures/errors; XML timestamp `2026-10-21T14:35:42`. Migration audit passed (381 production Kotlin sources, 135 Kotlin unit-test files). Emulator remains offline.
+- Corrected the initial layout hypothesis: lack of a scroll parent alone did not prove the pinned Generate action was unreachable. Restored the original Plant Tags layout and changed the test to tap the visible action directly; that unmodified layout successfully generated the default four-label batch.
+- Added an action-level device test that uses the visible Generate action, waits for the shared generated-output dialog, and verifies the production STL validator accepted a non-empty binary STL before discarding exactly that cache artifact.
+- Honor PTP-N49 / Android 16: `MakerGeneratorWorkspaceDeviceTest` 21/21 passed, 0 skipped/failures/errors against the restored layout; XML timestamp `2026-10-21T14:40:02`. Migration audit passed earlier in this test pass (381 production Kotlin sources, 135 Kotlin unit-test files). Emulator remains offline.
 - Phase 5 remains open: not all Maker generator success/save paths and global/workspace menu actions are action-tested. Phase 6 remains partial: manual TalkBack and Xiaomi-specific KromaCut rendering remain unverified.
-- Next: commit/push the Plant Tags responsive fix and test, then proceed with the next uncovered safe generator/output route. No external save, printer operation, or print start.
+- Next: commit/push the Plant Tags action-level generator test and corrected evidence, then proceed with the next uncovered safe generator/output route. No production layout change, external save, printer operation, or print start.
 
