@@ -79,6 +79,61 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun standalonePrintableTextProducesExtrusionGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        val previousConfig = SliceBeam.CONFIG
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val fontFile = File(context.cacheDir, "standalone-text-slice-font.ttf")
+        val gcodeFile = File(context.cacheDir, "standalone-text-slice.gcode")
+        var model: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            context.assets.open("font/roboto_medium.ttf").use { input -> fontFile.outputStream().use(input::copyTo) }
+            model = Model()
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "ORKAN",
+                18f,
+                1.2f,
+                Vec3d(90.0, 90.0, 0.0),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals(0, textIndex)
+            assertTrue("standalone text should contain printable triangles", model.getTriangleCount(textIndex) > 0)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("native slicer should emit G-code for standalone text", gcode.isNotBlank())
+            assertTrue("text G-code should contain deposited moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            Log.i("NativeSliceDeviceTest", "PASS standalone text G-code bytes=${gcodeFile.length()}")
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            fontFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun bundledKobraProfileSlicesBoxLocally() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application

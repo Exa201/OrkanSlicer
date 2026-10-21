@@ -42,7 +42,7 @@ internal class ModelMenuItems(
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuPlaceOnObject, R.drawable.view_in_ar_24, { anchor ->
                 showPlaceOnObjectDialog(anchor)
-            }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > 1),
+            }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > selectedCount),
             BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
                 val glView = fragment.glView ?: return@BedComposeMenuAction
                 fragment.showWorkspaceMessageDialog(
@@ -63,7 +63,7 @@ internal class ModelMenuItems(
             }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuBoolean, R.drawable.square_stack_up_outline_28, { anchor ->
                 showBooleanDialog(anchor)
-            }, enabled = selectedCount == 2),
+            }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.picture_stack_outline_28, { anchor ->
                 fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
                     fragment.updateModel()
@@ -151,9 +151,10 @@ internal class ModelMenuItems(
     private fun showPlaceOnObjectDialog(anchor: android.view.View) {
         val glView = fragment.glView ?: return
         val model = glView.renderer.model ?: return
-        val moving = glView.renderer.selectedObject
-        if (moving !in 0 until model.objectsCount) return
-        val targetIndices = (0 until model.objectsCount).filter { it != moving }
+        val movingIndices = glView.renderer.selectedObjectIndices()
+            .filter { it in 0 until model.objectsCount }
+        if (movingIndices.isEmpty()) return
+        val targetIndices = (0 until model.objectsCount).filter { it !in movingIndices }
         val choices = targetIndices.map { index ->
             model.getObjectName(index) ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1)
         }
@@ -168,17 +169,20 @@ internal class ModelMenuItems(
                     val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
                     glView.queueEvent {
                         val current = glView.renderer.model ?: return@queueEvent
-                        if (moving !in 0 until current.objectsCount || target !in 0 until current.objectsCount) return@queueEvent
+                        if (target !in 0 until current.objectsCount || movingIndices.any { it !in 0 until current.objectsCount }) return@queueEvent
                         fun bounds(index: Int): ObjectBounds3D {
                             val min = Vec3d()
                             val max = Vec3d()
                             current.getBoundingBoxExact(index, min, max)
                             return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
                         }
-                        val delta = ObjectPlacement.onTop(bounds(moving), bounds(target), clearanceMm = 0.0)
+                        val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return@queueEvent
+                        val delta = ObjectPlacement.onTop(movingBounds, bounds(target), clearanceMm = 0.0)
                         if (delta == null) return@queueEvent
-                        current.translate(moving, delta.x, delta.y, delta.z)
-                        glView.renderer.invalidateGlModel(moving)
+                        movingIndices.forEach { index ->
+                            current.translate(index, delta.x, delta.y, delta.z)
+                            glView.renderer.invalidateGlModel(index)
+                        }
                         glView.requestRender()
                         ViewUtils.postOnMainThread { fragment.updateModel() }
                     }
@@ -192,13 +196,14 @@ internal class ModelMenuItems(
         val renderer = glView.renderer
         val model = renderer.model ?: return
         val selected = renderer.selectedObjectIndices()
-        if (selected.size != 2) return
+        if (selected.size < 2) return
         val targetIndex = renderer.selectedObject.takeIf { it in selected } ?: selected[0]
-        val toolIndex = selected.first { it != targetIndex }
+        val orderedIndices = intArrayOf(targetIndex) + selected.filter { it != targetIndex }
+        val toolIndices = orderedIndices.drop(1)
         val targetName = model.getObjectName(targetIndex)
             ?: anchor.context.getString(R.string.MenuFileObjectNumber, targetIndex + 1)
-        val toolName = model.getObjectName(toolIndex)
-            ?: anchor.context.getString(R.string.MenuFileObjectNumber, toolIndex + 1)
+        val toolNames = toolIndices.map { index -> model.getObjectName(index)
+            ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1) }
 
         fragment.showWorkspaceComposeDialog { dismiss ->
             ModelBooleanDialog(
@@ -208,7 +213,7 @@ internal class ModelMenuItems(
                     glView.queueEvent {
                         val currentRenderer = glView.renderer
                         val currentModel = currentRenderer.model ?: return@queueEvent
-                        val result = currentModel.booleanObjects(targetIndex, toolIndex, operation)
+                        val result = currentModel.booleanObjects(orderedIndices, operation)
                         if (result >= 0) {
                             currentRenderer.resetGlModels()
                             currentRenderer.setSelectedObject(result)
@@ -220,7 +225,7 @@ internal class ModelMenuItems(
                         } else {
                             ViewUtils.postOnMainThread {
                                 SliceBeam.EVENT_BUS.fireEvent(
-                                    NeedSnackbarEvent(R.string.ModelBooleanFailed, targetName, toolName),
+                                    NeedSnackbarEvent(R.string.ModelBooleanFailed, targetName, toolNames.joinToString()),
                                 )
                             }
                         }

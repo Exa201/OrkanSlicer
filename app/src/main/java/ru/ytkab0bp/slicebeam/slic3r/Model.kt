@@ -312,14 +312,19 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     /**
-     * Applies a validated Orca/CGAL solid operation to two single-instance objects.
-     * Returns the replacement object's index, or a negative status without changing inputs.
+     * Applies a validated Orca/CGAL solid operation to the selected single-instance objects.
+     * The first index is the target; remaining objects are applied in order. Returns the
+     * replacement object's index, or a negative status without changing inputs.
      */
-    open fun booleanObjects(targetIndex: Int, toolIndex: Int, operation: BooleanOperation): Int {
-        val index = Native.model_boolean_objects(pointer, targetIndex, toolIndex, operation.nativeValue)
+    open fun booleanObjects(objectIndices: IntArray, operation: BooleanOperation): Int {
+        if (objectIndices.size < 2) return -1
+        val index = Native.model_boolean_objects(pointer, objectIndices, operation.nativeValue)
         if (index >= 0) resetBoundingBox()
         return index
     }
+
+    open fun booleanObjects(targetIndex: Int, toolIndex: Int, operation: BooleanOperation): Int =
+        booleanObjects(intArrayOf(targetIndex, toolIndex), operation)
 
     /** Absolute mesh volume in mm³ for one object, including its instance transform. */
     open fun getObjectVolume(i: Int): Double = Native.model_get_object_volume(pointer, i)

@@ -2356,3 +2356,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - User attachment directory `.codex-remote-attachments/` is untracked user data and must not be staged.
 
 # Phase 5/6 continuation checkpoint — migration guard restored (2026-10-21)
+
+# Model editing follow-up — multi-object workflows (2026-10-21)
+
+- Current phase: model-editing feature work alongside UI 2.0 Phases 5/6. Runtime change in progress on `codex/rinkhals-safe-start-audit` from `d689ca4d`.
+- Boolean operations now accept 2+ selected single-instance solids. The active object is the base; remaining selections are processed in stable order. All CSG results are validated before source objects are removed, so failed multi-operand operations preserve inputs. Added an Honor test for the actual three-object workspace-menu union.
+- “Auf Objekt platzieren” now treats multiple selected objects as one bounding group, excludes selected objects from target choices, applies one shared translation on the GL thread, and preserves internal spacing. Added group-bounds and native placement coverage.
+- Added a device slice test proving independently generated printable text produces extrusion G-code. The existing Boolean slice regression also remains green.
+- Verification on Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest` 14/14; actual three-object Boolean menu action 1/1; `NativeSliceDeviceTest` 5/5. Debug and Slice JVM suites 603/603 each, no failures/errors/skips. ARM64 CMake and debug APK build succeeded; app installed/launched on Honor. Emulator remains offline.
+- Next: rebuild APK after committing to bind artifact filename to code SHA, then commit/push tested changes and continue model editing with sequential multi-object difference/intersection and placement UX coverage. Do not stage `.codex-remote-attachments/`.

@@ -79,6 +79,45 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun placingSelectedObjectGroupOnAnotherKeepsGroupSpacingAndTouchesSurface() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "place-group-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 30.0, -10.0, 8.0)
+            model.translate(2, 65.0, 12.0, 14.0)
+            fun bounds(index: Int): ObjectBounds3D {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val firstBefore = bounds(1)
+            val secondBefore = bounds(2)
+            val movingGroup = requireNotNull(ObjectPlacement.enclosing(listOf(firstBefore, secondBefore)))
+            val target = bounds(0)
+            val delta = requireNotNull(ObjectPlacement.onTop(movingGroup, target))
+
+            model.translate(1, delta.x, delta.y, delta.z)
+            model.translate(2, delta.x, delta.y, delta.z)
+
+            val firstAfter = bounds(1)
+            val secondAfter = bounds(2)
+            val placedGroup = requireNotNull(ObjectPlacement.enclosing(listOf(firstAfter, secondAfter)))
+            assertEquals((target.minX + target.maxX) / 2.0, (placedGroup.minX + placedGroup.maxX) / 2.0, 0.001)
+            assertEquals((target.minY + target.maxY) / 2.0, (placedGroup.minY + placedGroup.maxY) / 2.0, 0.001)
+            assertEquals(target.maxZ, placedGroup.minZ, 0.001)
+            assertEquals(
+                (secondBefore.minX + secondBefore.maxX) / 2.0 - (firstBefore.minX + firstBefore.maxX) / 2.0,
+                (secondAfter.minX + secondAfter.maxX) / 2.0 - (firstAfter.minX + firstAfter.maxX) / 2.0,
+                0.001,
+            )
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun standaloneTextCreatesIndependentPrintableMeshAtPickedSurface() {
         val modelFile = copyAsset("models/xyz_cube.stl", "text-base-cube.stl")
         val fontFile = copyAsset("font/roboto_medium.ttf", "text-model-font.ttf")
@@ -141,6 +180,53 @@ class ModelEditingNativeDeviceTest {
             assertEquals((max.y - min.y), resultMax.y - resultMin.y, 0.02)
             assertEquals((max.z - min.z), resultMax.z - resultMin.z, 0.02)
             assertEquals((max.x - min.x) * 2.5, resultMax.x - resultMin.x, 0.02)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun nativeBooleanUnionSupportsThreeSelectedObjectsAndPreservesWorldBounds() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-three-object-union.stl")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, width * 0.5, 0.0, 0.0)
+            model.translate(2, -width * 0.5, 0.0, 0.0)
+
+            val result = model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.UNION)
+
+            assertEquals("the output should replace all three source solids", 0, result)
+            assertEquals(1, model.objectsCount)
+            assertEquals(2.0, model.getObjectVolume(result) / sourceVolume, 0.03)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals(width * 2.0, resultMax.x - resultMin.x, 0.02)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun failedMultiObjectBooleanLeavesEveryInputUntouched() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-three-object-failure.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 10.0, 0.0, 0.0)
+            model.translate(2, 40.0, 0.0, 0.0)
+            val volumes = (0 until model.objectsCount).map(model::getObjectVolume)
+
+            assertTrue(model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.INTERSECTION) < 0)
+
+            assertEquals(3, model.objectsCount)
+            volumes.forEachIndexed { index, volume -> assertEquals(volume, model.getObjectVolume(index), 0.01) }
         } finally {
             model.release()
             modelFile.delete()
@@ -227,6 +313,7 @@ class ModelEditingNativeDeviceTest {
             val secondVolume = model.getObjectVolume(1)
             assertTrue(model.booleanObjects(0, 1, BooleanOperation.DIFFERENCE) < 0)
             assertTrue(model.booleanObjects(0, 1, BooleanOperation.INTERSECTION) < 0)
+            assertTrue(model.booleanObjects(intArrayOf(0, 1, 1), BooleanOperation.UNION) < 0)
             assertEquals(2, model.objectsCount)
             assertEquals(firstVolume, model.getObjectVolume(0), 0.01)
             assertEquals(secondVolume, model.getObjectVolume(1), 0.01)

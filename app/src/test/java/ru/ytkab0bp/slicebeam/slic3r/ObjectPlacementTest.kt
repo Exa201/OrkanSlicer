@@ -27,6 +27,29 @@ class ObjectPlacementTest {
         assertEquals(5.25, delta.z, 0.0)
     }
 
+    @Test fun groupBoundsAllowSeveralSelectedObjectsToBePlacedTogether() {
+        val group = requireNotNull(ObjectPlacement.enclosing(listOf(
+            ObjectBounds3D(-8.0, 2.0, 1.0, -2.0, 8.0, 4.0),
+            ObjectBounds3D(3.0, -4.0, 0.0, 9.0, 5.0, 6.0),
+        )))
+        assertEquals(-8.0, group.minX, 0.0)
+        assertEquals(-4.0, group.minY, 0.0)
+        assertEquals(0.0, group.minZ, 0.0)
+        assertEquals(9.0, group.maxX, 0.0)
+        assertEquals(8.0, group.maxY, 0.0)
+        assertEquals(6.0, group.maxZ, 0.0)
+
+        val delta = requireNotNull(ObjectPlacement.onTop(group, ObjectBounds3D(10.0, 20.0, 0.0, 18.0, 26.0, 4.0)))
+        assertEquals(13.5, delta.x, 0.0)
+        assertEquals(21.0, delta.y, 0.0)
+        assertEquals(4.0, delta.z, 0.0)
+    }
+
+    @Test fun enclosingRejectsEmptyOrInvalidObjectSets() {
+        assertNull(ObjectPlacement.enclosing(emptyList()))
+        assertNull(ObjectPlacement.enclosing(listOf(ObjectBounds3D(0.0, 0.0, 0.0, Double.NaN, 1.0, 1.0))))
+    }
+
     @Test fun rejectsInvalidBoundsAndNegativeClearance() {
         val valid = ObjectBounds3D(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
         assertNull(ObjectPlacement.onTop(valid.copy(maxZ = -1.0), valid))

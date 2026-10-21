@@ -2,6 +2,7 @@
 #include <typeinfo>
 #include <set>
 #include <algorithm>
+#include <unordered_set>
 #include <memory>
 
 #include <thread>
@@ -1395,21 +1396,26 @@ extern "C" {
     // Boolean operations work on transformed copies and only replace source objects after
     // CGAL reports a valid, closed solid. This avoids mutating project state on failed CSG.
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1boolean_1objects(
-        JNIEnv* env, jclass, jlong ptr, jint targetIndex, jint toolIndex, jint operation) {
+        JNIEnv* env, jclass, jlong ptr, jintArray indices_arr, jint operation) {
         try {
             ModelRef* ref = (ModelRef*) (intptr_t) ptr;
-            if (ref == nullptr || targetIndex < 0 || toolIndex < 0 || targetIndex == toolIndex ||
-                targetIndex >= (int) ref->model.objects.size() || toolIndex >= (int) ref->model.objects.size() ||
-                operation < 0 || operation > 2) return -1;
+            if (ref == nullptr || indices_arr == nullptr || operation < 0 || operation > 2) return -1;
+            const jsize count = env->GetArrayLength(indices_arr);
+            if (count < 2) return -1;
+            jint* raw = env->GetIntArrayElements(indices_arr, JNI_FALSE);
+            if (raw == nullptr) return -1;
+            std::vector<int> indices(raw, raw + count);
+            env->ReleaseIntArrayElements(indices_arr, raw, JNI_ABORT);
+            std::unordered_set<int> uniqueIndices;
+            for (int index : indices) {
+                if (index < 0 || index >= (int) ref->model.objects.size() || !uniqueIndices.insert(index).second)
+                    return -1;
+            }
 
-            ModelObject* target = ref->model.objects[targetIndex];
-            ModelObject* tool = ref->model.objects[toolIndex];
-            if (target == nullptr || tool == nullptr || target->instances.size() != 1 ||
-                tool->instances.size() != 1 || target->instances.front() == nullptr ||
-                tool->instances.front() == nullptr) return -2;
+            ModelObject* target = ref->model.objects[indices.front()];
+            if (target == nullptr || target->instances.size() != 1 || target->instances.front() == nullptr)
+                return -2;
 
-            TriangleMesh targetMesh = target->mesh();
-            TriangleMesh toolMesh = tool->mesh();
             auto valid_operand = [](const TriangleMesh& mesh) {
                 if (mesh.empty() || mesh.stats().open_edges != 0 ||
                     !std::isfinite(mesh.stats().volume) || std::fabs(mesh.stats().volume) <= 1e-9f)
@@ -1419,24 +1425,29 @@ extern "C" {
                     MeshBoolean::cgal::does_bound_a_volume(*cgal) &&
                     !MeshBoolean::cgal::does_self_intersect(*cgal);
             };
-            if (!valid_operand(targetMesh) || !valid_operand(toolMesh)) return -3;
-
-            const double baseVolume = std::fabs(targetMesh.volume());
-
-            switch (operation) {
-                case 0: MeshBoolean::cgal::plus(targetMesh, toolMesh); break;
-                case 1: MeshBoolean::cgal::minus(targetMesh, toolMesh); break;
-                case 2: MeshBoolean::cgal::intersect(targetMesh, toolMesh); break;
+            TriangleMesh resultMesh = target->mesh();
+            if (!valid_operand(resultMesh)) return -3;
+            const double baseVolume = std::fabs(resultMesh.volume());
+            for (size_t n = 1; n < indices.size(); ++n) {
+                ModelObject* tool = ref->model.objects[indices[n]];
+                if (tool == nullptr || tool->instances.size() != 1 || tool->instances.front() == nullptr) return -2;
+                TriangleMesh toolMesh = tool->mesh();
+                if (!valid_operand(toolMesh)) return -3;
+                switch (operation) {
+                    case 0: MeshBoolean::cgal::plus(resultMesh, toolMesh); break;
+                    case 1: MeshBoolean::cgal::minus(resultMesh, toolMesh); break;
+                    case 2: MeshBoolean::cgal::intersect(resultMesh, toolMesh); break;
+                }
+                if (resultMesh.empty() || resultMesh.stats().open_edges != 0 ||
+                    !std::isfinite(resultMesh.volume()) || std::fabs(resultMesh.volume()) <= 1e-9f)
+                    return -4;
+                const double stepVolume = std::fabs(resultMesh.volume());
+                if (operation == 1 && stepVolume >= baseVolume - std::max(1e-5, baseVolume * 1e-6))
+                    return -7; // Do not silently accept a sequence that did not cut its target.
+                auto stepCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
+                if (!stepCgal || !MeshBoolean::cgal::does_bound_a_volume(*stepCgal) ||
+                    MeshBoolean::cgal::does_self_intersect(*stepCgal)) return -4;
             }
-            if (targetMesh.empty() || targetMesh.stats().open_edges != 0 ||
-                !std::isfinite(targetMesh.volume()) || std::fabs(targetMesh.volume()) <= 1e-9f)
-                return -4;
-            const double resultVolume = std::fabs(targetMesh.volume());
-            if (operation == 1 && resultVolume >= baseVolume - std::max(1e-5, baseVolume * 1e-6))
-                return -7; // A non-overlapping cutter must not silently delete its source object.
-            auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(targetMesh);
-            if (!resultCgal || !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
-                MeshBoolean::cgal::does_self_intersect(*resultCgal)) return -4;
 
             // Boolean output is one solid, so it takes the target object's profile and
             // material assignment. Preserve its world-space geometry as the new object.
@@ -1450,9 +1461,9 @@ extern "C" {
                     break;
                 }
             }
-            ModelObject* replacement = ref->model.add_object(resultName.c_str(), sourcePath.c_str(), std::move(targetMesh));
+            ModelObject* replacement = ref->model.add_object(resultName.c_str(), sourcePath.c_str(), std::move(resultMesh));
             if (replacement == nullptr || replacement->volumes.empty()) return -5;
-            // targetMesh is already in world coordinates (ModelObject::mesh applies
+            // resultMesh is already in world coordinates (ModelObject::mesh applies
             // each source instance). A replacement ModelObject created by add_object
             // has no instances, so add an identity instance to keep it visible and
             // make its bounds/slicing state valid after the two source objects go away.
@@ -1462,10 +1473,8 @@ extern "C" {
             replacement->volumes.front()->config.set("extruder", targetExtruder);
             replacement->volumes.front()->source.object_idx = (int) ref->model.objects.size() - 1;
 
-            const int firstRemoved = std::min(targetIndex, toolIndex);
-            const int secondRemoved = std::max(targetIndex, toolIndex);
-            ref->model.delete_object((size_t) secondRemoved);
-            ref->model.delete_object((size_t) firstRemoved);
+            std::sort(indices.begin(), indices.end(), std::greater<int>());
+            for (int index : indices) ref->model.delete_object((size_t) index);
             return (jint) ref->model.objects.size() - 1;
         } catch (const std::exception& e) {
             __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean", "Boolean operation failed without replacing inputs: %s", e.what());

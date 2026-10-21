@@ -219,6 +219,61 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuBooleanUnionRunsForAllThreeSelectedObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-three-boolean-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            val width = AtomicReference<Double>()
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                width.set(max.x - min.x)
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                model.translate(1, requireNotNull(width.get()) * 0.5, 0.0, 0.0)
+                model.translate(2, requireNotNull(width.get()), 0.0, 0.0)
+                glView.renderer.selectAllObjects()
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("test objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuBoolean)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelBooleanUnion)).performClick()
+
+            compose.waitUntil(timeoutMillis = 30_000) { bed.currentModel?.objectsCount == 1 }
+            val widthAfter = AtomicReference<Double>()
+            val checked = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                widthAfter.set(max.x - min.x)
+                checked.countDown()
+            }
+            assertTrue("Boolean result bounds should be readable on the GL thread", checked.await(10, TimeUnit.SECONDS))
+            assertEquals("UI should union all selected solids, not just two", 2.0 * requireNotNull(width.get()),
+                requireNotNull(widthAfter.get()), 0.03)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun initialProjectRouteShowsFileActionsOnItsFirstOpen() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

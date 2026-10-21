@@ -180,7 +180,7 @@ class Native {
     external fun model_combine_objects_as_parts(ptr: Long, objectIndices: IntArray): Int
     /** op: 0=union, 1=target minus tool, 2=intersection. Negative values mean no mutation was applied. */
     @JvmStatic
-    external fun model_boolean_objects(ptr: Long, targetIndex: Int, toolIndex: Int, op: Int): Int
+    external fun model_boolean_objects(ptr: Long, objectIndices: IntArray, op: Int): Int
     @JvmStatic
     external fun model_get_object_volume(ptr: Long, objectIndex: Int): Double
     @JvmStatic
