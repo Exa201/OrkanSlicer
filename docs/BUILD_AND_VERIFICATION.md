@@ -1,3 +1,7 @@
+# Global dialogs, generators and calibration — Honor (2026-10-21)
+
+- Passed on Honor PTP-N49 / Android 16 against unchanged runtime code: `PrintConfigToolsDialogsDeviceTest` 3/3, `MakerGeneratorWorkspaceDeviceTest` 11/11, `CalibrationWorkspaceDeviceTest` 2/2, `SettingsChoiceDialogDeviceTest` 6/6, `ProfileOptionHelpDialogDeviceTest` 1/1. No live printer operation or print start occurred.
+- Covered tests found no regressions. This does not close the exhaustive action inventory (Phase 5) or manual TalkBack (Phase 6).
 # Honor workspace action sweep — 2026-10-21
 
 - `InitialProjectMenuDeviceTest`: 42/42 passed on Honor PTP-N49 / Android 16. This covers actual project/file, model, view/camera, edit/tool, and slicing interactions. No print start was performed.

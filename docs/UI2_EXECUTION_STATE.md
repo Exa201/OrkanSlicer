@@ -1,3 +1,11 @@
+# Workspace dialogs, generators and calibration follow-up — Honor (2026-10-21)
+
+- Additional action-level tests passed against the unchanged runtime `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`: `PrintConfigToolsDialogsDeviceTest` 3/3, `MakerGeneratorWorkspaceDeviceTest` 11/11, `CalibrationWorkspaceDeviceTest` 2/2, `SettingsChoiceDialogDeviceTest` 6/6, and `ProfileOptionHelpDialogDeviceTest` 1/1. The test filters use the instrumentation suite's controlled app state; no printer was contacted and no print was started.
+- The workspace action class is also freshly verified 42/42; focused profile/settings tests 46/46 and full Honor suite 234 passed / 3 private-fixture skips / 0 failures remain the broader evidence recorded above. These overlapping test runs must not be added together.
+- No product defect was reproduced in these covered paths. Phase 5 still needs a final source-to-handler reconciliation of every currently visible menu action; targeted tests are broad but are not a proof that every menu item is covered. Phase 6 still lacks manual physical TalkBack traversal.
+- Next step: audit the current menu entry definitions against these test names, record explicit covered/uncovered actions, then add tests or fix only proven gaps. No APK/release is appropriate for this test/documentation-only work.
+
+---
 # Workspace action sweep — Honor (2026-10-21)
 
 - `InitialProjectMenuDeviceTest` passed 42/42 on Honor PTP-N49 / Android 16 against runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`. The class exercises the six workspace destinations with real interactions across file/project import/export and warnings, model and plate operations, camera presets/view cube, transform/undo/redo, GL tools and cancellation, slicing, preview, and generated output. No print start was issued; tests use fixtures/test data.
