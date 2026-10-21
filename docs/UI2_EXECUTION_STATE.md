@@ -2211,3 +2211,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - The earlier action test needed explicit scrolling to the object rows in the bounded dialog; that matched the existing scrollable UI and was not a product defect. Xiaomi KromaCut rendering remains unresolved/unverified; full Phase 5 menu audit and Phase 6 accessibility remain open.
 - Next: commit/push these tests and continue checking remaining high-impact project actions. Avoid stating the user's Xiaomi rendering issue is fixed without that device's result.
 
+# Camera menu customization integration — 2026-10-21
+
+- Phase 5 audit found that the shared menu editor was connected to project, model, edit, tools, and slicing actions, but `CameraMenuContent` still rendered its actions directly with `BedMenuActionsContent`; the view/camera menu alone could not hide or reorder its own actions.
+- Wired camera actions to the existing `CustomizableBedMenuActionsContent` under the stable `view` key. Existing camera and projection handlers remain unchanged.
+- Honor PTP-N49 / Android 16: `WorkspaceMenuCustomizationDeviceTest` passed 2/2, 0 skipped/failures/errors (JUnit XML timestamp `2026-10-21T15:02:07`). The new integration case hides Orthographic Projection, moves Camera Control Mode, verifies the resulting visible actions and saved preference state, and restores prior preferences in cleanup.
+- This is a focused correction to a real menu customization gap. It does not complete the full menu action audit; global menus and remaining action flows still need reconciliation. No renderer/camera action was invoked by this test.
+- Next: commit/push this camera menu wiring and keep auditing actual action entry points. Xiaomi KromaCut and manual TalkBack remain unverified.
+

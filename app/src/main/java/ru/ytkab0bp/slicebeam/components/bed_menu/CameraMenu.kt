@@ -171,7 +171,7 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
 }
 
 @Composable
-private fun CameraMenuContent(
+internal fun CameraMenuContent(
     portrait: Boolean,
     initialOrthoEnabled: Boolean,
     onControlModeSelected: () -> Unit,
@@ -196,5 +196,5 @@ private fun CameraMenuContent(
             sectionBreakBefore = true,
         ),
     )
-    BedMenuActionsContent(actions, portrait, multiRow = true)
+    CustomizableBedMenuActionsContent("view", actions, portrait, multiRow = true)
 }
