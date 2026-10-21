@@ -29,6 +29,22 @@ class PrintConfigToolsDialogsDeviceTest {
     private fun matrix() = PrintConfigFlushMatrix(2, listOf("0", "280", "280", "0"))
 
     @Test
+    fun fourByFourFlushMatrixShowsEveryCellWithoutHorizontalScrolling() {
+        val values = List(16) { index -> if (index / 4 == index % 4) "0" else "280" }
+        compose.setContent {
+            BeamComposeTheme {
+                FlushVolumesDialog(PrintConfigFlushMatrix(4, values), onDismiss = {}, onApply = {})
+            }
+        }
+
+        // Check every cell without calling scrollTo: the complete common 4-slot matrix must fit at once.
+        repeat(16) { index -> compose.onNodeWithTag("flush-cell-$index").assertIsDisplayed() }
+        val matrixBounds = compose.onNodeWithTag("flush-matrix").fetchSemanticsNode().boundsInRoot
+        val lastColumnBounds = compose.onNodeWithTag("flush-cell-3").fetchSemanticsNode().boundsInRoot
+        assertTrue("last flush column stays inside the table", lastColumnBounds.right <= matrixBounds.right + 1f)
+    }
+
+    @Test
     fun invalidFlushVolumeIsRejectedAndCancelDoesNotApply() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         var applied: String? = null

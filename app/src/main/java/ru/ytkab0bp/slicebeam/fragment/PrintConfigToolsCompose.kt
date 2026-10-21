@@ -1,11 +1,11 @@
 package ru.ytkab0bp.slicebeam.fragment
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -124,56 +124,59 @@ internal fun FlushVolumesEditor(
             fontSize = 16.sp,
             lineHeight = 22.sp,
         )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
+        val rowHeaderWidth = 36.dp
+        Column(
+            modifier = Modifier.fillMaxWidth().testTag("flush-matrix"),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.PrintConfigFlushAxis),
+                    modifier = Modifier.width(rowHeaderWidth).padding(end = 2.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                )
+                repeat(matrix.side) { column ->
                     Text(
-                        stringResource(R.string.PrintConfigFlushAxis),
-                        modifier = Modifier.width(78.dp).padding(4.dp),
+                        text = (column + 1).toString(),
+                        modifier = Modifier.weight(1f).padding(horizontal = 2.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            repeat(matrix.side) { row ->
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = (row + 1).toString(),
+                        modifier = Modifier.width(rowHeaderWidth),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Start,
                     )
                     repeat(matrix.side) { column ->
-                        Text(
-                            text = (column + 1).toString(),
-                            modifier = Modifier.width(CELL_WIDTH).padding(4.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 14.sp,
+                        val index = row * matrix.side + column
+                        val label = stringResource(R.string.PrintConfigFlushCell, row + 1, column + 1)
+                        OutlinedTextField(
+                            value = cells.getOrElse(index) { "0" },
+                            onValueChange = { onCellChanged(index, it) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .padding(horizontal = 2.dp, vertical = 1.dp)
+                                .testTag("flush-cell-$index")
+                                .semantics { contentDescription = label },
+                            singleLine = true,
+                            isError = error,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Next,
+                            ),
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                            shape = RoundedCornerShape(8.dp),
                         )
-                    }
-                }
-                repeat(matrix.side) { row ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = (row + 1).toString(),
-                            modifier = Modifier.width(78.dp).padding(4.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 14.sp,
-                        )
-                        repeat(matrix.side) { column ->
-                            val index = row * matrix.side + column
-                            val label = stringResource(R.string.PrintConfigFlushCell, row + 1, column + 1)
-                            OutlinedTextField(
-                                value = cells.getOrElse(index) { "0" },
-                                onValueChange = { onCellChanged(index, it) },
-                                modifier = Modifier
-                                    .width(CELL_WIDTH)
-                                    .padding(horizontal = 2.dp, vertical = 3.dp)
-                                    .testTag("flush-cell-$index")
-                                    .semantics { contentDescription = label },
-                                singleLine = true,
-                                isError = error,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Next,
-                                ),
-                                textStyle = MaterialTheme.typography.bodyMedium,
-                                shape = RoundedCornerShape(8.dp),
-                            )
-                        }
                     }
                 }
             }
@@ -479,5 +482,3 @@ internal object PrintConfigToolsLogic {
     private const val FLUSH_DEFAULT = 280f
     private val SERIALIZED_NUMBERS = Regex("[,;]")
 }
-
-private val CELL_WIDTH = 88.dp
