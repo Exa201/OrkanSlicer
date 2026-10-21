@@ -3,6 +3,8 @@ package ru.ytkab0bp.slicebeam.fragment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,7 +13,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,6 +44,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -129,63 +136,94 @@ internal fun FlushVolumesEditor(
             fontSize = 16.sp,
             lineHeight = 22.sp,
         )
-        val rowHeaderWidth = 36.dp
-        Column(
-            modifier = Modifier.fillMaxWidth().testTag("flush-matrix"),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(R.string.PrintConfigFlushAxis),
-                    modifier = Modifier.width(rowHeaderWidth).padding(end = 2.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    lineHeight = 14.sp,
-                )
-                repeat(matrix.side) { column ->
-                    Text(
-                        text = (column + 1).toString(),
-                        modifier = Modifier.weight(1f).padding(horizontal = 2.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-            repeat(matrix.side) { row ->
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val rowHeaderWidth = 32.dp
+            val minCellWidth = 56.dp
+            val tableWidth = if (matrix.side <= 4) maxWidth
+            else maxOf(maxWidth, rowHeaderWidth + minCellWidth * matrix.side)
+            Column(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .width(tableWidth)
+                    .testTag("flush-matrix"),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = (row + 1).toString(),
-                        modifier = Modifier.width(rowHeaderWidth),
+                        stringResource(R.string.PrintConfigFlushAxis),
+                        modifier = Modifier.width(rowHeaderWidth).padding(end = 2.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Start,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
                     )
                     repeat(matrix.side) { column ->
-                        val index = row * matrix.side + column
-                        val label = stringResource(R.string.PrintConfigFlushCell, row + 1, column + 1)
-                        OutlinedTextField(
-                            value = cells.getOrElse(index) { "0" },
-                            onValueChange = { onCellChanged(index, it) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .padding(horizontal = 2.dp, vertical = 1.dp)
-                                .testTag("flush-cell-$index")
-                                .semantics { contentDescription = label },
-                            singleLine = true,
-                            isError = error,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Decimal,
-                                imeAction = ImeAction.Next,
-                            ),
-                            textStyle = MaterialTheme.typography.bodyMedium,
-                            shape = RoundedCornerShape(8.dp),
+                        Text(
+                            text = (column + 1).toString(),
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
                         )
+                    }
+                }
+                repeat(matrix.side) { row ->
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = (row + 1).toString(),
+                            modifier = Modifier.width(rowHeaderWidth),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Start,
+                        )
+                        repeat(matrix.side) { column ->
+                            val index = row * matrix.side + column
+                            val label = stringResource(R.string.PrintConfigFlushCell, row + 1, column + 1)
+                            FlushVolumeCell(
+                                value = cells.getOrElse(index) { "0" },
+                                isError = error,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 1.dp, vertical = 1.dp),
+                                tag = "flush-cell-$index",
+                                label = label,
+                                onValueChange = { onCellChanged(index, it) },
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FlushVolumeCell(
+    value: String,
+    isError: Boolean,
+    modifier: Modifier = Modifier,
+    tag: String,
+    label: String,
+    onValueChange: (String) -> Unit,
+) {
+    val shape = RoundedCornerShape(8.dp)
+    val borderColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+    Box(
+        modifier = modifier
+            .height(42.dp)
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, borderColor, shape)
+            .padding(horizontal = 5.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth().testTag(tag).semantics { contentDescription = label },
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, textAlign = TextAlign.Center),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+        )
     }
 }
 
