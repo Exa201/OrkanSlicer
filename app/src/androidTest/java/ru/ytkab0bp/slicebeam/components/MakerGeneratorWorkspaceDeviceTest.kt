@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam.components
 import android.app.Application
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Base64
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,6 +20,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
@@ -81,6 +85,46 @@ class MakerGeneratorWorkspaceDeviceTest {
         compose.onNodeWithText("Converter test error").assertIsDisplayed()
         compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+    }
+
+    @Test
+    fun kromacutGeneratedStlUsesValidatedWorkspaceOutputAndCanBeDiscarded() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val menu = KromacutEditorMenu()
+        activity.runOnUiThread { bed.showWorkspaceComposeTool(menu) }
+        compose.waitUntil(timeoutMillis = 5_000) { menu.isAttached() }
+
+        val bridgeClass = KromacutEditorMenu::class.java.declaredClasses
+            .single { it.simpleName == "DownloadBridge" }
+        val bridge = bridgeClass.getDeclaredConstructor(KromacutEditorMenu::class.java)
+            .apply { isAccessible = true }
+            .newInstance(menu)
+        val before = activity.cacheDir.listFiles().orEmpty().mapTo(hashSetOf()) { it.name }
+        val encodedStl = Base64.encodeToString(validTetrahedronStl(), Base64.NO_WRAP)
+        activity.runOnUiThread {
+            bridgeClass.getDeclaredMethod("beginDownload", String::class.java)
+                .apply { isAccessible = true }.invoke(bridge, "../../kromacut-roundtrip.stl")
+            bridgeClass.getDeclaredMethod("writeData", String::class.java)
+                .apply { isAccessible = true }.invoke(bridge, encodedStl)
+            bridgeClass.getDeclaredMethod("finishDownload")
+                .apply { isAccessible = true }.invoke(bridge)
+        }
+
+        compose.waitUntil(timeoutMillis = 10_000) { bed.isWorkspaceMessageDialogAttached() }
+        val generated = activity.cacheDir.listFiles().orEmpty()
+            .filter { it.name !in before && it.name.startsWith("kromacut-") && it.name.endsWith("-kromacut-roundtrip.stl") }
+            .singleOrNull()
+        assertTrue("KromaCut must hand the generated file to the shared output dialog", generated?.isFile == true)
+        assertEquals("The bridge must decode the complete binary STL payload", validTetrahedronStl().size.toLong(), generated!!.length())
+        compose.onNodeWithText(generated.name, substring = true).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputCancel))
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertFalse("Discard must delete only KromaCut's temporary output", generated.exists())
+
+        activity.runOnUiThread { bed.onBackPressed() }
+        compose.waitUntil(timeoutMillis = 5_000) { !menu.isAttached() }
     }
 
     @Test
@@ -451,5 +495,25 @@ class MakerGeneratorWorkspaceDeviceTest {
         }
         SliceBeam.CONFIG = config
         createAndroidComposeRule<MainActivity>()
+    }
+
+    private fun validTetrahedronStl(): ByteArray {
+        val triangles = listOf(
+            floatArrayOf(0f, 0f, 0f, 10f, 0f, 0f, 0f, 10f, 0f),
+            floatArrayOf(0f, 0f, 0f, 0f, 10f, 0f, 0f, 0f, 10f),
+            floatArrayOf(0f, 0f, 0f, 0f, 0f, 10f, 10f, 0f, 0f),
+            floatArrayOf(10f, 0f, 0f, 0f, 0f, 10f, 0f, 10f, 0f),
+        )
+        val bytes = ByteArrayOutputStream(84 + triangles.size * 50)
+        bytes.write(ByteArray(80))
+        bytes.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(triangles.size).array())
+        triangles.forEach { triangle ->
+            val facet = ByteBuffer.allocate(50).order(ByteOrder.LITTLE_ENDIAN)
+            repeat(3) { facet.putFloat(0f) }
+            triangle.forEach(facet::putFloat)
+            facet.putShort(0)
+            bytes.write(facet.array())
+        }
+        return bytes.toByteArray()
     }
 }
