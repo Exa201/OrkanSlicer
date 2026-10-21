@@ -2169,3 +2169,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Phase 5 action reconciliation is still open. Remaining Maker generation routes do not all have generated-output success/save coverage; broader menu actions are not fully reconciled. Phase 6 physical TalkBack and Xiaomi-specific KromaCut verification also remain unavailable.
 - Next: commit/push this focused generator test and its evidence, then continue action-level coverage for the next safe Maker output path. Do not change runtime version or claim Xiaomi rendering fixed from Honor evidence.
 
+# Maker generator UI success paths — 2026-10-21
+
+- Current app code HEAD remains `505fab9f` plus this test-only change; app runtime/version is unchanged.
+- Added real generate → validated output → discard coverage for the Fastener generator, Cable Clip, and Utility Box. The Fastener test explicitly scrolls its form to the Generate button, which lives below the initially visible area. The first test attempt without scrolling did not activate the off-screen control; this was a test interaction gap, not a production failure.
+- Honor PTP-N49 / Android 16: complete `MakerGeneratorWorkspaceDeviceTest` passed 20/20, 0 skipped/failures/errors. XML timestamp `2026-10-21T14:30:57`. The three new generator flows wrote valid binary STL files into app cache and discarded only those files. No external save, printer contact, or print start. Emulator remains offline.
+- Phase 5 remains open: action-by-action reconciliation across all six workspace menus and global destinations is incomplete; many Maker generators still lack generate/save end-to-end coverage. Phase 6 remains partial: automated display tests exist, but physical TalkBack traversal and Xiaomi KromaCut diagnosis remain unverified.
+- Next: commit and push this test-only expansion; continue source-mapped action coverage and use a Xiaomi diagnostic dialog/log when that device is available. Do not claim all generator save pickers or Xiaomi rendering are verified.
+
