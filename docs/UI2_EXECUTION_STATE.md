@@ -1,3 +1,12 @@
+# Phase 5/6 regression checkpoint — Honor + JVM (2026-10-21)
+
+- Final JVM regression against unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`: Debug Unit 588/588 and Slice Unit 588/588; 0 failures, skips, or errors in each suite.
+- Honor state after the action checks: PTP-N49 / Android 16, 1280x2800 px, 560 dpi, system font scale 1.0. A 10,000-line Logcat sample contained no `FATAL EXCEPTION`, `ANR in`, `OutOfMemoryError`, or `Fatal signal` matches. The offline emulator remains unavailable.
+- New current-pass direct action evidence: `InitialProjectMenuDeviceTest` 42/42; profile/global checks 46/46 across the focused settings/profile runs; dialog/generator/calibration checks 23/23; filament/MMU/slicing checks 42/42. These sets overlap the full Honor suite and are not additive. The full Honor suite remains 237 cases: 234 passed, 3 private-fixture skips, 0 failures/errors.
+- No app source changed and no app defect reproduced in these tests. Runtime release remains 0.8.337; no APK was rebuilt for this docs/test-only checkpoint.
+- Phase 5 is still active until each current visible workspace/global action is reconciled to a handler and an action-level test (mark actual printer-send/print actions as safety-excluded rather than invoking them). Phase 6 is partial: automated responsive matrix tests pass, but manual physical TalkBack is unavailable because Android reports no enabled accessibility service. Next: continue the source-derived action matrix, then re-run focused cases for any uncovered safe routes; when physical TalkBack becomes available, complete the manual traversal.
+
+---
 # Filament and slicing action follow-up — Honor (2026-10-21)
 
 - On runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`, focused Honor instrumentation passed: `FilamentPaletteComposeDeviceTest` 20/20, `MmuFilamentSyncDeviceTest` 15/15, `SlicePrintPreparationComposeDeviceTest` 5/5, `SliceResultWorkspaceDeviceTest` 2/2. MMU synchronization was exercised through test doubles, not a live printer. Slice preparation/output UI tests do not start a physical print.

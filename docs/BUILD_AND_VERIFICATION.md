@@ -1,3 +1,8 @@
+# JVM regression closure for current UI 2.0 audit — 2026-10-21
+
+- `:app:testDebugUnitTest`: 588/588 passed; `:app:testSliceTestUnitTest`: 588/588 passed; no failures, skips, or errors.
+- Honor PTP-N49 restored to 1280x2800 px / 560 dpi / system font 1.0. Sampled 10,000 log lines with no FATAL EXCEPTION, ANR, OOM, or fatal signal. Emulator offline.
+- Runtime code remains `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`; this checkpoint changes documentation only. Full UI 2.0 action reconciliation and manual TalkBack remain open.
 # Filament and slicing action follow-up — Honor (2026-10-21)
 
 - `FilamentPaletteComposeDeviceTest` 20/20, `MmuFilamentSyncDeviceTest` 15/15, `SlicePrintPreparationComposeDeviceTest` 5/5, and `SliceResultWorkspaceDeviceTest` 2/2 passed on Honor PTP-N49 / Android 16 against unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`.
