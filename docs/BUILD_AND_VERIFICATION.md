@@ -1855,3 +1855,12 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Honor PTP-N49 / Android 16: expanded `WorkspaceMenuCustomizationDeviceTest` passed 4/4, 0 skipped/failures/errors (XML timestamp `2026-10-21T15:12:27`). Camera menu customization and orthographic action were exercised at simulated Compose font scales 100%, 130%, and 150% in portrait and landscape at 360 dp. Emulator remains offline. This is test-only; no APK or full JVM suite was rebuilt for this addition.
 - Follow-up Honor PTP-N49 / Android 16: the same 4-test class passed 4/4 (XML timestamp `2026-10-21T15:14:53`) after expanding the camera-menu check to 320/360/400 dp host widths × 100/130/150% simulated font scale × portrait/landscape. Customization open/cancel and the orthographic callback were exercised in all 18 combinations. No APK or JVM unit suite was rebuilt for this instrumentation-only update.
 - Focused Honor PTP-N49 / Android 16 accessibility runs passed: `ProfileEnumOptionAccessibilityDeviceTest` 1/1, `SettingsAccessibilityDeviceTest` 1/1, and `ProfileFilterAccessibilityDeviceTest` 1/1. The current XML report for the last run (`ProfileFilterAccessibilityDeviceTest`) is timestamped `2026-10-21T15:17:47`; the earlier per-run XML was overwritten by Gradle's connected-test output. These are not a full instrumentation pass. No APK or JVM suites were rebuilt.
+# Build and verification update — slice layer panel docking (2026-10-21)
+
+- Code/test commit: `83337820fdbc6efa587ad315b6766b1e23d8e551`.
+- Debug build: `:app:assembleDebug` succeeded. APK: `OrkanSlicer_83337820fd.apk`, version 0.8.339 / versionCode 374, 239,148,095 bytes, SHA-256 `79C41412E7BEA523E7E6F6D11609D4730074ED21A13DF6DEFBFB7E54B085AF55`.
+- JVM suites on the tested tree: Debug 591/591 and Slice 591/591; zero failures, errors, or skipped tests.
+- Honor PTP-N49 / Android 16: `SliceResultWorkspaceDeviceTest` 2/2 and `InitialProjectMenuDeviceTest#sliceMenuProducesResultAndExposesSafeResultActions` 1/1. The tests verify separate renderer/panel bounds, close and Back handling, plus a real native slice followed by selecting a layer block. Full Honor instrumentation was not rerun; emulator remained offline.
+- The exact commit-named APK was installed and launched. Android reported `MainActivity` resumed. A sampled 12,000-line startup Logcat had no matches for fatal exception, package ANR, OOM, or fatal signal.
+- No printer was contacted and no print was started. PR #2 was open and mergeable before this commit; final pushed-branch/PR state is recorded after publication.
+
