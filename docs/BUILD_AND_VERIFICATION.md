@@ -1,3 +1,11 @@
+# Xiaomi menu-drag test APK — 2026-10-21
+
+- `:app:assembleDebug --no-daemon` succeeded for version 0.8.341 / versionCode 376 from code commit `3b435c61ee085aad04df21d70455848e3c270f39`.
+- APK: `OrkanSlicer_3b435c61ee.apk`, 239,165,472 bytes, SHA-256 `DDA8775F8C608A63AC30B1BB41588C8FB3F6BE34C8D1B5BDBE2355DD22844C5D`. The GitHub asset reports the same size and SHA-256.
+- Published as a GitHub Debug prerelease for Xiaomi testing: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.341. This build contains direct long-press drag reordering for bottom workspace menus; the customization button remains for hide/show/reset.
+- No unit or instrumentation tests were run for this build, and no Xiaomi installation/device result is available yet. The earlier production Kotlin compile passed before the version metadata bump; `assembleDebug` compiled the current production sources. No merge or printer operation occurred.
+- PR #2 remains open and GitHub reports it mergeable; branch head at upload is `3b435c61ee085aad04df21d70455848e3c270f39`.
+
 # Automatic workspace sizing and text zoom — 2026-10-21
 
 - Workspace layout remains based on Android window dimensions in dp and the adaptive Compose policies; app text zoom no longer drives workspace geometry breakpoints. Android system accessibility font scale remains an input to responsive accommodations. The manual 3D render-scale setting was removed; old `render_scale` overrides are cleared and GL rendering uses `DevicePerformancePolicy`.

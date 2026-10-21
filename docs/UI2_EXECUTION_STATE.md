@@ -2280,3 +2280,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Debug APK `OrkanSlicer_f0b3ec9cf7.apk` built successfully, 239,148,100 bytes, SHA-256 `45CF5C597E3A2A772FC350CCECA89C08F3817951CDA2179443C9758DB908AB46`; installed and launched, Android reports MainActivity resumed at 0.8.340 / code 375. Sampled startup logcat has no fatal exception, ANR, OOM or fatal signal.
 - Current phase: Phase 6 responsive UI/accessibility, in progress; Phase 5 action audit is also open. Next: continue the source-derived action audit and responsive tests. Manual TalkBack, Xiaomi KromaCut device confirmation and complete multi-plate project persistence remain open. No release or printer operation.
 
+# Workspace menu drag-reorder Xiaomi build — 2026-10-21
+
+- Implemented direct long-press drag reordering for bottom workspace menu actions. The existing customization button remains for visibility toggles and reset; reorder arrows were removed from its list. TalkBack custom actions provide move-up/move-down alternatives. Existing menu customization instrumentation source was adapted to exercise the drag interaction, but instrumentation was not run.
+- `:app:assembleDebug --no-daemon` succeeded for 0.8.341 / code 376 from runtime commit `3b435c61ee085aad04df21d70455848e3c270f39`. APK `OrkanSlicer_3b435c61ee.apk`, 239,165,472 bytes; SHA-256 `DDA8775F8C608A63AC30B1BB41588C8FB3F6BE34C8D1B5BDBE2355DD22844C5D`.
+- Published GitHub Debug prerelease `v0.8.341` for Xiaomi testing: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.341. GitHub asset SHA and size match the local APK. No Xiaomi device result yet; no JVM or instrumentation tests were run for this change.
+- PR #2 is open and GitHub reports mergeable. Branch head at release upload: `3b435c61ee085aad04df21d70455848e3c270f39`. Next: get the APK installed/tested on Xiaomi, especially direct drag across menu items; continue the remaining Phase 5 action reconciliation and Phase 6 responsive/accessibility work.
+
