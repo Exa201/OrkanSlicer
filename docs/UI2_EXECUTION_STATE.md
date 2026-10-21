@@ -1,3 +1,10 @@
+# KromaCut save permission recovery — 2026-10-21
+
+- Code fix committed as `adf62115` (`Recover KromaCut saves from revoked folder access`), version 0.8.337 / code 372. A stale SAF folder grant is cleared when provider access fails and the generated file is handed to Android's `ACTION_CREATE_DOCUMENT` picker; the app no longer reports a conversion failure for this permission case. Folders are only persisted when the picker result grants write access.
+- Tests: Debug JVM 588/588 and Slice JVM 588/588 passed, including two new SAF permission-policy tests. `:app:assembleDebug` passed. APK `OrkanSlicer_adf62115df.apk`, 239,127,028 bytes, SHA-256 `E4BC4A10D82EDD489C56A48D5E3FCB1E7CAF8664F105F4BB24A1479D4AC35EB9`.
+- Installed version 0.8.337 / code 372 on Honor PTP-N49 / Android 16 and launched successfully; fresh startup Logcat sample had no FATAL EXCEPTION, ANR, OutOfMemoryError, or fatal signal. The KromaCut save-and-pick interaction itself was not exercised on the device; the Xiaomi that showed the error is not attached, so the original report remains to be confirmed there.
+- PR #2 remains open and CLEAN. Continue with release upload and the remaining UI 2.0 menu/accessibility work. No printer action or firmware change was performed.
+
 # KromaCut black-screen follow-up — 2026-10-21
 
 - Follow-up build 0.8.336 / versionCode 371: corrected the bundled in-app release notes in German, English, and Russian. Code commit `2389564e47ac874eb0d683fdda71e910bae9083b`; APK `OrkanSlicer_2389564e47.apk`, 239,127,261 bytes, SHA-256 `1F1A21D836527063320C2B4CDB8F1EB151696FE01EF0A756B150AC38533FDB83`.

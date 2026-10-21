@@ -1,3 +1,11 @@
+# OrkanSlicer 0.8.337 — KromaCut save permission recovery (2026-10-21)
+
+- Runtime commit: `adf62115` (`Recover KromaCut saves from revoked folder access`); branch `codex/rinkhals-safe-start-audit`; PR #2.
+- The app clears a saved Android Storage Access Framework folder when its persisted provider grant is revoked and falls back to Android's normal Save As picker. A selected converter folder is persisted only if the result includes write access.
+- Debug unit tests: 588/588 passed. Slice unit tests: 588/588 passed. Two new permission-policy tests cover write-grant validation and nested `SecurityException` recognition. `:app:assembleDebug` succeeded.
+- Debug APK: `OrkanSlicer_adf62115df.apk`, 239,127,028 bytes, SHA-256 `E4BC4A10D82EDD489C56A48D5E3FCB1E7CAF8664F105F4BB24A1479D4AC35EB9`.
+- Installed and launched on Honor PTP-N49 / Android 16; fresh Logcat smoke sample had no FATAL EXCEPTION, ANR, OutOfMemoryError, or fatal signal. End-to-end KromaCut file generation plus SAF save was not exercised on-device, and the Xiaomi report remains unverified because that device is unavailable. No print or printer sync was initiated.
+
 # Release v0.8.323 — filament palette and multicolor verification (2026-10-19)
 
 - Runtime commit: `6ceb8a977e8c` (`6ceb8a977e8c...`); branch `codex/rinkhals-safe-start-audit`; PR #2 remains open.
