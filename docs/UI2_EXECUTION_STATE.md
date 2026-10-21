@@ -11,6 +11,15 @@
 
 ---
 
+# Responsive workspace text-zoom follow-up — 2026-10-21
+
+- Runtime commit `eca4f3c8daefdc3d359dad58f1784c53a6bfe178` fixes a reproduced layout jump: the profile header and active 3MF settings banner grew at larger app text zoom and shifted the visible plate viewport. Both now reserve geometry for the maximum app zoom from Android's system font scale; the long 3MF banner scrolls within its reserved area.
+- Honor PTP-N49 / Android 16: text-scale viewport test passed 1/1 with an active 3MF banner; responsive banner test passed 1/1 for 27 Compose configurations. Debug and Slice JVM suites passed 590/590 each. Debug APK built, installed, and launched: `OrkanSlicer_eca4f3c8da.apk`, SHA-256 `45D9F6AD3AABD78B01D95CEE57DC0F01E338B7A9820FA3C5804EF8D869087B69`. Full Honor suite was not rerun; emulator remains offline.
+- Current UI 2.0 work remains in Phase 5/6: reconcile the remaining visible menu actions and complete physical TalkBack when available. Xiaomi-specific display verification remains open.
+- Next concrete action: push the code commit and this evidence to PR #2, then continue the existing action audit; do not merge or create a release unless the user separately requests one.
+
+---
+
 # Phase 5/6 regression checkpoint — Honor + JVM (2026-10-21)
 
 - Final JVM regression against unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`: Debug Unit 588/588 and Slice Unit 588/588; 0 failures, skips, or errors in each suite.

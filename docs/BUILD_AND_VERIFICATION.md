@@ -35,6 +35,15 @@
 
 - `InitialProjectMenuDeviceTest`: 42/42 passed on Honor PTP-N49 / Android 16. This covers actual project/file, model, view/camera, edit/tool, and slicing interactions. No print start was performed.
 - Results apply to runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`; current branch head contains documentation-only commits thereafter. Phase 5's full visible-action inventory remains open; Phase 6 manual TalkBack remains unavailable.
+
+# Stable workspace geometry for app text zoom — Honor PTP-N49 (2026-10-21)
+
+- A strengthened device assertion exposed that the profile header and the active temporary 3MF banner changed height when the app text slider was applied. Their variable wrapping moved the build-plate viewport. The profile header now reserves space for the maximum app zoom based on system accessibility scale; the active 3MF banner uses the same reservation rule and scrolls internally if its text needs more room.
+- `SettingsMenuActionDeviceTest#textScaleSelectionUpdatesTheLiveSettingsLayoutAndCanBeRestored`: passed 1/1 on Honor PTP-N49 / Android 16, with an active synthetic 3MF banner. It checks the visible renderer bounds before/after Apply and after Android Back, along with Apply/Cancel/Reset and live text growth.
+- `TemporaryProjectSettingsBarLayoutDeviceTest`: passed 1/1 on Honor across 27 combinations (320/360/400 dp; system scales 100/130/150%; app zoom 90/100/150%). `SettingsAccessibilityDeviceTest`: 1/1 passed for its 12 synthetic configurations. These are Compose configuration tests, not physical screen resizing or manual TalkBack traversal.
+- `:app:testDebugUnitTest`: 590/590; `:app:testSliceTestUnitTest`: 590/590; 0 failures/errors/skips. `:app:assembleDebug`: successful.
+- Runtime commit `eca4f3c8daefdc3d359dad58f1784c53a6bfe178`, version 0.8.338 / code 373. APK `OrkanSlicer_eca4f3c8da.apk`, 239,148,111 bytes, SHA-256 `45D9F6AD3AABD78B01D95CEE57DC0F01E338B7A9820FA3C5804EF8D869087B69`. Installed/launched on Honor; 1,200 sampled log lines contained no fatal exception, package ANR, OOM, or fatal-signal match. Emulator remains offline.
+- This is a focused verification, not a new full Honor instrumentation-suite run. Xiaomi-specific rendering and manual TalkBack traversal remain open.
 # UI 2.0 global profile action follow-up — 2026-10-21
 
 - Additional current-code Honor instrumentation passed: `PrintProfileDropdownIntegrationDeviceTest` 18/18, `ProfileNumericOptionDeviceTest` 3/3, `ProfileSettingsImeDeviceTest` 12/12, `PrinterWebWorkspacePanelDeviceTest` 3/3. Combined with the prior focused responsive/settings set (10 cases), 46 targeted cases passed across both checkpoints; these are a subset of the full 237-case suite and must not be added to that suite count.
