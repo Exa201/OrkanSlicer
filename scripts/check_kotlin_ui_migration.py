@@ -773,8 +773,9 @@ def main() -> None:
     ):
         if contract not in responsive_menu_source:
             raise AssertionError(f"Shared responsive Compose menu is missing {contract}")
-    if "BedMenuActionsContent(actions, portrait, multiRow = true)" not in (JAVA / "components/bed_menu/CameraMenu.kt").read_text(encoding="utf-8"):
-        raise AssertionError("Camera menu no longer uses the shared responsive Compose action layout")
+    camera_menu_actions = (JAVA / "components/bed_menu/CameraMenu.kt").read_text(encoding="utf-8")
+    if 'CustomizableBedMenuActionsContent("view", actions, portrait, multiRow = true)' not in camera_menu_actions:
+        raise AssertionError("Camera menu must use the shared customizable responsive Compose action layout")
 
     converter_progress = (JAVA / "components/ConverterProgressDialog.kt").read_text(encoding="utf-8")
     progress_model = (JAVA / "components/ConverterProgressModel.kt").read_text(encoding="utf-8")
@@ -1569,7 +1570,7 @@ def main() -> None:
         "CameraMenuContent(", "CameraPresetGeometry.resolve(", "ModelChoiceDialog(", "Prefs.setCameraControlMode(which)",
         "Prefs.setOrthoProjectionEnabled(enabled)", "renderer.updateProjection()", "requestRender()",
         "R.string.MenuCameraControlMode", "R.string.MenuCameraOrtho",
-        "BedMenuActionsContent(actions, portrait, multiRow = true)",
+        'CustomizableBedMenuActionsContent("view", actions, portrait, multiRow = true)',
     )
     missing_camera = [item for item in camera_contracts if item not in camera_menu_source]
     if missing_camera:

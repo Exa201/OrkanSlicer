@@ -2219,3 +2219,5 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - This is a focused correction to a real menu customization gap. It does not complete the full menu action audit; global menus and remaining action flows still need reconciliation. No renderer/camera action was invoked by this test.
 - Next: commit/push this camera menu wiring and keep auditing actual action entry points. Xiaomi KromaCut and manual TalkBack remain unverified.
 
+- Follow-up: the static Kotlin UI migration audit initially failed because its source contract still required the former direct action host. Updated the audit to require the new keyed shared customization host; rerun passed with 381 production and 135 unit-test Kotlin sources.
+
