@@ -6,9 +6,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -22,11 +26,13 @@ import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.components.MmuAssignmentContent
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import java.io.File
 
 /** Exercises the real workspace pre-send confirmation without issuing network or printer actions. */
 @RunWith(AndroidJUnit4::class)
@@ -186,6 +192,55 @@ class SlicePrintPreparationComposeDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
         assertNull("Workspace Back must not commit a filament assignment", selected.get())
         assertFalse(activity.isFinishing)
+    }
+
+    @Test
+    fun twoObjectsCanBeAssignedToTheSameWhiteFilamentSlot() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val previousSlots = Prefs.getFilamentSlots()
+        val slots = listOf(
+            FilamentSlot(0xFF212721.toInt(), "PETG"),
+            FilamentSlot(0xFFFFFFFF.toInt(), "PLA"),
+            FilamentSlot(0xFFFFFFFF.toInt(), "PLA"),
+        )
+        val source = File(activity.cacheDir, "pre-slice-shared-white.3mf")
+        InstrumentationRegistry.getInstrumentation().context.assets
+            .open("models/three-color-project.3mf").use { input -> source.outputStream().use(input::copyTo) }
+        var model: Model? = null
+        try {
+            Prefs.setFilamentSlots(slots)
+            model = Model(source, 1)
+            val selected = AtomicReference<IntArray?>()
+            activity.runOnUiThread {
+                PreSliceFilamentDialog.show(
+                    fragment = bed,
+                    model = model,
+                    callback = PreSliceFilamentDialog.Callback { selected.set(it) },
+                    positiveLabel = R.string.ModelColorSlotsApply,
+                    titleLabel = R.string.ModelColorSlotsAction,
+                )
+            }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithText(activity.getString(R.string.PreSliceIndividualMode)).performClick()
+
+            compose.onNodeWithTag("pre-slice-object-slot-0").performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("pre-slice-object-0-filament-1").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("pre-slice-object-slot-1").performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("pre-slice-object-1-filament-1").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("pre-slice-confirm").performClick()
+
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertArrayEquals(
+                "Two independently selected objects may reuse the same white filament slot",
+                intArrayOf(1, 1, 2),
+                requireNotNull(selected.get()),
+            )
+        } finally {
+            model?.release()
+            source.delete()
+            Prefs.setFilamentSlots(previousSlots)
+        }
     }
 
     @Test

@@ -238,6 +238,64 @@ class ThreeMfMulticolorDeviceTest {
         }
     }
 
+    @Test fun separateObjectsAssignedToOneSharedWhiteSlotSliceOnlyThatTool() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val previousSlots = ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentSlots()
+        val source = copyFixture(context.cacheDir, "three-color-shared-white.3mf")
+        val destination = File(context.cacheDir, "three-color-shared-white.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("orca_profiles/Anycubic.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            requireNotNull(SliceBeam.requireConfig().findFilament("Anycubic Generic PLA"))
+                .put("filament_start_gcode", "")
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            ru.ytkab0bp.slicebeam.utils.Prefs.setFilamentSlots(listOf(
+                FilamentSlot(0xFF212721.toInt(), "PETG"),
+                FilamentSlot(0xFFFFFFFF.toInt(), "PLA"),
+                FilamentSlot(0xFFFFFFFF.toInt(), "PLA"),
+            ))
+            model = Model(source, 1)
+            assertEquals(3, model.objectsCount)
+            for (objectIndex in 0 until model.objectsCount) model.setUniformFilament(objectIndex, 2)
+            assertEquals(2, model.requiredFilamentCount)
+            for (objectIndex in 0 until model.objectsCount) {
+                assertArrayEquals("Object $objectIndex must use shared slicer slot 2", intArrayOf(2), model.getUsedFilaments(objectIndex))
+            }
+
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(configFile.absolutePath, destination.absolutePath, null)
+            val toolsUsed = BooleanArray(4)
+            val toolCommand = Regex("^T([0-3])(?:\\s|$)")
+            destination.useLines { lines -> lines.forEach { line ->
+                toolCommand.find(line)?.groupValues?.get(1)?.toInt()?.let { toolsUsed[it] = true }
+            } }
+            assertTrue("Shared slot 2 must map to G-code tool T1", toolsUsed[1])
+            assertFalse("Slot 1 must not appear after every object is remapped to slot 2", toolsUsed[0])
+            assertFalse("Slot 3 must not appear after every object is remapped to slot 2", toolsUsed[2])
+            assertFalse("Slot 4 must not appear after every object is remapped to slot 2", toolsUsed[3])
+            assertTrue("Slicing must produce a non-empty G-code file", destination.length() > 0L)
+        } finally {
+            result?.release()
+            model?.release()
+            destination.delete()
+            source.delete()
+            ru.ytkab0bp.slicebeam.utils.Prefs.setFilamentSlots(previousSlots)
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+        }
+    }
+
     private fun copyFixture(directory: File, name: String): File {
         val file = File(directory, name)
         InstrumentationRegistry.getInstrumentation().context.assets
