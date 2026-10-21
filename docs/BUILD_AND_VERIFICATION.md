@@ -1819,3 +1819,8 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - `MakerGeneratorWorkspaceDeviceTest` passed 17/17 on Honor PTP-N49 / Android 16. New test drives the real Android bridge callback for WebGL2 context creation failure, verifies the localized error dialog includes failure detail, dismisses it, and confirms the KromaCut route remains active until Back.
 - The dedicated actual-3D-renderer test passed 1/1; Debug and Slice JVM suites passed 588/588 each on runtime commit `4246239e`. This verifies the Honor path and the error UI, not Xiaomi rendering recovery. Xiaomi validation is still open. No APK/release.
+
+## KromaCut device/WebView diagnostic details — 2026-10-21
+
+- Renderer errors now include manufacturer/model, Android release/API level, and the current WebView provider package/version so a black-render report contains actionable device data.
+- Honor PTP-N49 / Android 16 focused failure-dialog test passed 1/1. It checked the actual bridge error, diagnostic details, dismissal, and KromaCut route state. Xiaomi not available; no direct device reproduction, APK, or release.

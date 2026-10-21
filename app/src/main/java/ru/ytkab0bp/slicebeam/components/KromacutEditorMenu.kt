@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
@@ -183,9 +184,24 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
         ViewUtils.postOnMainThread {
             val context = fragment?.getContext() ?: return@postOnMainThread
             if (fragment?.getView() != null) {
-                activeError = context.getString(R.string.KromacutWebGlCreationFailed, detail)
+                activeError = context.getString(R.string.KromacutWebGlCreationFailed, detail) +
+                    "\n\n" + webGlDeviceDetails(context)
             }
         }
+    }
+
+    private fun webGlDeviceDetails(context: Context): String {
+        val provider = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" }
+        } else null
+        return context.getString(
+            R.string.KromacutWebGlDeviceDetails,
+            Build.MANUFACTURER,
+            Build.MODEL,
+            Build.VERSION.RELEASE,
+            Build.VERSION.SDK_INT,
+            provider ?: context.getString(R.string.KromacutWebViewUnknown),
+        )
     }
 
     private fun createEditor(ctx: Context): WebView {
@@ -411,7 +427,10 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                 code?.startsWith("webgl2-unavailable") == true -> {
                     ViewUtils.postOnMainThread {
                         val context = fragment?.getContext() ?: return@postOnMainThread
-                        if (fragment?.getView() != null) activeError = context.getString(R.string.KromacutWebGlUnavailable)
+                        if (fragment?.getView() != null) {
+                            activeError = context.getString(R.string.KromacutWebGlUnavailable) +
+                                "\n\n" + webGlDeviceDetails(context)
+                        }
                     }
                 }
                 code?.startsWith("webgl2-creation-failed") == true -> showRendererError(code.substringAfter(':'))

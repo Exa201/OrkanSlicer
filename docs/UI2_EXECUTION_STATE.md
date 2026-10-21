@@ -2154,3 +2154,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Added a device test that invokes the actual `DownloadBridge.reportRendererIssue("webgl2-creation-failed:…")` path, confirms the localized context-creation error dialog and diagnostic detail are visible, dismisses it, and verifies KromaCut stays open until Android Back is pressed.
 - Honor PTP-N49 / Android 16: complete `MakerGeneratorWorkspaceDeviceTest` passed 17/17, 0 skipped/failures/errors. The previous dedicated 3D-renderer test passed 1/1; Debug and Slice JVM suites each passed 588/588 on production commit `4246239e`.
 - This verifies actionable failure reporting, not renderer recovery on Xiaomi. No Xiaomi is connected. No APK/release produced. Next: commit/push the fallback regression test and its results; then continue Phase 5 action reconciliation and seek Xiaomi-specific diagnostics.
+
+## KromaCut failure report includes device/WebView identity — 2026-10-21
+
+- Renderer failure and context-loss dialogs now append manufacturer/model, Android release/API, and current Android WebView provider package/version. This turns the message itself into useful Xiaomi evidence without requiring the user to find system settings. Older Android releases report the WebView provider as unavailable.
+- Honor PTP-N49 / Android 16: focused `kromacutWebGlCreationFailureShowsDismissibleWorkspaceError` passed 1/1. It drives the real JavaScript bridge callback, verifies the actual error detail plus provider/device metadata are visible, confirms dismissal keeps KromaCut open, then verifies Back closes it.
+- This is the first test of the new metadata path. The change is not yet committed/pushed. Xiaomi remains unavailable for direct reproduction; no APK/release made.
+- Next: inspect/test the current metadata diff, commit/push if clean, then continue the active Phase 5 menu/action audit. Xiaomi proof still requires Xiaomi hardware or its returned diagnostic dialog.

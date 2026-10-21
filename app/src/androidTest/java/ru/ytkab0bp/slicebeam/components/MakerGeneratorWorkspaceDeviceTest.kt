@@ -235,8 +235,20 @@ class MakerGeneratorWorkspaceDeviceTest {
             ru.ytkab0bp.slicebeam.R.string.KromacutWebGlCreationFailed,
             "synthetic test failure",
         )
+        val provider = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.webkit.WebView.getCurrentWebViewPackage()?.let { "${it.packageName} ${it.versionName}" }
+        } else null
+        val deviceDetails = activity.getString(
+            ru.ytkab0bp.slicebeam.R.string.KromacutWebGlDeviceDetails,
+            android.os.Build.MANUFACTURER,
+            android.os.Build.MODEL,
+            android.os.Build.VERSION.RELEASE,
+            android.os.Build.VERSION.SDK_INT,
+            provider ?: activity.getString(ru.ytkab0bp.slicebeam.R.string.KromacutWebViewUnknown),
+        )
         compose.onNodeWithTag("kromacut-error-message").assertIsDisplayed()
-        compose.onNodeWithText(message).assertIsDisplayed()
+        compose.onNodeWithText(message, substring = true).assertIsDisplayed()
+        compose.onNodeWithText(deviceDetails, substring = true).assertIsDisplayed()
         compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
         compose.waitUntil(timeoutMillis = 5_000) {
             compose.onAllNodesWithTag("kromacut-error-message").fetchSemanticsNodes().isEmpty()
