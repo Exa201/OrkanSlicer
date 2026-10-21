@@ -5,6 +5,7 @@
 - The orphan `components/bed_menu/ConverterMenu.kt` was removed after confirming there are no production references. The supported KromaCut/Maker route is untouched.
 - `scripts/check_kotlin_ui_migration.py` now passes against the live source architecture. Its prior failures were stale static contracts (removed `UnfoldMenu` wrappers, consolidated Compose dialogs, renamed KromaCut asset entry, and required GL/WebView bridges), not reproduced app defects.
 - Fresh local JVM run after removal: Debug 588/588 and Slice 588/588, no failures/errors/skips. Focused Honor Maker generator run after removal: 11 tests finished, none skipped or failed. No new full-suite or APK build was performed.
+- Honor `WorkspaceNavigationDeviceTest` passed 1/1, including route lifecycle checks for KromaCut WebGL and GL renderer restoration. The test suite ran on PTP-N49 / Android 16; emulator unavailable.
 - The six-menu map below remains a source-to-test audit with uncovered action-level gaps; passing the migration checker does not close Phase 5.
 
 Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since `adf62115`, 0.8.337 / versionCode 372). This matrix maps the active route definitions to the strongest existing action-level test evidence; a test of a dialog or callback is not represented as a full real-printer or release workflow.
