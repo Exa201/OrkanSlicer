@@ -1,3 +1,13 @@
+# Phase 5/6 continuation — Honor verification (2026-10-21)
+
+- Verified repository HEAD before this test-only checkpoint: `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a` on `codex/rinkhals-safe-start-audit`. No application source, version, APK, or runtime behavior was changed in this step.
+- Phase 5 regression/action evidence on Honor PTP-N49 / Android 16: full `:app:connectedSliceTestAndroidTest` completed 237 cases: 234 passed, 3 skipped, 0 failed, 0 errors. The three skips require private multicolor KromaCut fixtures; the offline emulator was skipped by Gradle. This run confirms automated action coverage already in the suite; it is not a claim that every menu action in the product has been manually exercised.
+- Focused Phase 6 runs all succeeded: `SettingsAccessibilityDeviceTest` 1/1, `ProfileFilterAccessibilityDeviceTest` 1/1, `ProfileEnumOptionAccessibilityDeviceTest` 1/1, and `SettingsMenuActionDeviceTest` 7/7. The responsive settings test exercises Compose layouts at 320/360/400 dp, landscape 640x320 dp, and 100/130/150% font scales; prior Honor checks covered 800x366 dp landscape and 320 dp / 150% model-menu and view-cube actions.
+- Honor is at its normal 1280x2800 px / 560 dpi / font scale 1.0 after testing. `enabled_accessibility_services` returned `null`; therefore physical TalkBack traversal was unavailable and is not marked passed. Emulator `emulator-5554` is offline. Xiaomi-specific KromaCut behavior also remains unverified on Xiaomi.
+- Phase 4 remains complete based on prior workspace/renderer and lifecycle tests. Phase 5 remains in progress because the full user-facing menu action inventory is not yet all individually audited. Phase 6 remains partial due to manual TalkBack and untested physical device configurations.
+- Next concrete work: continue the source-derived global/profile menu action audit and extend real action coverage where missing; recheck TalkBack availability when an enabled service/device is available. No release is needed for this test/documentation-only checkpoint.
+
+---
 # KromaCut save permission recovery — 2026-10-21
 
 - Code fix committed as `adf62115` (`Recover KromaCut saves from revoked folder access`), version 0.8.337 / code 372. A stale SAF folder grant is cleared when provider access fails and the generated file is handed to Android's `ACTION_CREATE_DOCUMENT` picker; the app no longer reports a conversion failure for this permission case. Folders are only persisted when the picker result grants write access.

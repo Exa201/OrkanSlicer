@@ -1,3 +1,10 @@
+# UI 2.0 phase 5/6 Honor checkpoint — 2026-10-21
+
+- Code under test: `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`; no application source changed during this checkpoint.
+- Full Honor Slice instrumentation: 237 JUnit cases, 234 passed, 3 skipped, 0 failures/errors. The skipped cases require private multicolor KromaCut fixtures; emulator was offline.
+- Focused responsive/accessibility device tests on Honor PTP-N49 / Android 16: `SettingsAccessibilityDeviceTest` 1/1, `ProfileFilterAccessibilityDeviceTest` 1/1, `ProfileEnumOptionAccessibilityDeviceTest` 1/1, `SettingsMenuActionDeviceTest` 7/7. The settings accessibility test covers synthetic Compose configurations at 320/360/400 dp, landscape 640x320 dp, and 100/130/150% text. Prior real-Honor checks covered 320 dp / 150%, 400 dp / 130%, and 800x366 dp landscape / 130% for specified workspace actions.
+- Physical TalkBack was not tested: Android reported no enabled accessibility service. These test results do not imply full manual TalkBack acceptance. Honor was left at its original 1280x2800 px / 560 dpi / 100% text configuration.
+- Phase 5 action audit and Phase 6 accessibility acceptance remain in progress; no APK/release was generated because this checkpoint changed documentation only.
 # OrkanSlicer 0.8.337 — KromaCut save permission recovery (2026-10-21)
 
 - Runtime commit: `adf62115` (`Recover KromaCut saves from revoked folder access`); branch `codex/rinkhals-safe-start-audit`; PR #2.
