@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.337
+
+- Recover when Android revokes access to a previously selected converter folder: clear the stale folder grant and open the standard Android save picker instead of failing to save generated KromaCut models.
+- Do not remember a converter folder unless Android granted write access.
+
 ## 0.8.336 (debug build)
 
 - Update the in-app release notes to describe the KromaCut black-screen fix in German, English, and Russian. Xiaomi-specific verification remains pending.

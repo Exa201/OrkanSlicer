@@ -1350,6 +1350,18 @@ Toast.makeText(activity, activity.getString(R.string.ConverterSavedInFolder, fol
 showSavedOutputQuestion(activity, output, extension!!, bed) })
 }
 catch (error:Exception) {
+if (ConverterStorage.isPermissionFailure(error)) {
+    android.util.Log.w("ConverterStorage", "Saved folder permission is no longer valid; falling back to Android's save picker", error)
+    ConverterStorage.clearRoot(activity)
+    ViewUtils.postOnMainThread({
+        if (activity.isFinishing()) {
+            output.delete()
+            return@postOnMainThread
+        }
+        requestSavePicker(activity, output, extension!!, bed)
+    })
+    return@execute
+}
 showError(activity, if (error is IOException) error as IOException else IOException(error))
 }
 })
