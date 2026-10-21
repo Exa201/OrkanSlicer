@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -14,9 +15,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import android.R as AndroidR
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
@@ -119,6 +122,33 @@ class WorkspaceMenuCustomizationDeviceTest {
                 if (previousOrder == null) editor.remove("order_$menuKey") else editor.putString("order_$menuKey", previousOrder)
                 if (previousHidden == null) editor.remove("hidden_$menuKey") else editor.putStringSet("hidden_$menuKey", previousHidden)
             }.commit()
+        }
+    }
+
+    @Test fun cameraMenuCustomizationIsReachableAtCompactWidths() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val width = mutableIntStateOf(320)
+        compose.setContent {
+            BeamComposeTheme {
+                Box(Modifier.width(width.intValue.dp)) {
+                    CameraMenuContent(
+                        portrait = true,
+                        initialOrthoEnabled = true,
+                        onControlModeSelected = {},
+                        onOrthoChanged = {},
+                    )
+                }
+            }
+        }
+
+        listOf(320, 360, 400).forEach { widthDp ->
+            compose.runOnIdle { width.intValue = widthDp }
+            compose.waitForIdle()
+            compose.onNodeWithTag("menu-customize-view").assertIsDisplayed()
+            compose.onNodeWithContentDescription(context.getString(R.string.MenuCustomize)).assertIsDisplayed()
+            compose.onNodeWithTag("menu-customize-view").performClick()
+            compose.onNodeWithTag("menu-customize-list-view").assertIsDisplayed()
+            compose.onNodeWithText(context.getString(AndroidR.string.cancel)).performClick()
         }
     }
 

@@ -2220,4 +2220,5 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Next: commit/push this camera menu wiring and keep auditing actual action entry points. Xiaomi KromaCut and manual TalkBack remain unverified.
 
 - Follow-up: the static Kotlin UI migration audit initially failed because its source contract still required the former direct action host. Updated the audit to require the new keyed shared customization host; rerun passed with 381 production and 135 unit-test Kotlin sources.
+- Responsive check: Honor PTP-N49 / Android 16 `WorkspaceMenuCustomizationDeviceTest` passed 3/3 (JUnit XML timestamp `2026-10-21T15:04:27`). The camera action customization control was visible and accessible by its content description, and the editor opened/closed at 320, 360, and 400 dp. This uses default font scale and portrait composition; large fonts, landscape, TalkBack service traversal, and the other five menus remain unverified.
 
