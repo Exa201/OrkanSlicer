@@ -88,6 +88,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCube
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
 import ru.ytkab0bp.slicebeam.render.PrimeTowerObstacle
+import ru.ytkab0bp.slicebeam.render.PrimeTowerDragLogic
 import ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
@@ -197,10 +198,9 @@ val activePlateIndex: Int get() = currentPlateIndex
 
 /** Snapshot active plate bounds for the print-profile prime-tower preview and free-space action. */
 internal fun primeTowerPlacementMap(): PrimeTowerPlacementMap? {
-    val renderer = glView?.renderer ?: return null
-    val bed = renderer.bed ?: return null
-    val minimum = bed.getVolumeMin() ?: return null
-    val maximum = bed.getVolumeMax() ?: return null
+    val rendererBed = glView?.renderer?.bed
+    val minimum = rendererBed?.getVolumeMin()
+    val maximum = rendererBed?.getVolumeMax()
     val model = currentModel
     val obstacles = ArrayList<PrimeTowerObstacle>()
     if (model != null) {
@@ -213,7 +213,12 @@ internal fun primeTowerPlacementMap(): PrimeTowerPlacementMap? {
             }
         }
     }
-    return PrimeTowerPlacementMap(minimum.x, minimum.y, maximum.x, maximum.y, obstacles)
+    val configuredOutline = runCatching {
+        PrimeTowerDragLogic.fromBedShape(SliceBeam.buildCurrentConfigObject().get("bed_shape"), obstacles)
+    }.getOrNull()
+    if (minimum == null || maximum == null) return configuredOutline
+    val boundary = configuredOutline?.bedBoundary.orEmpty()
+    return PrimeTowerPlacementMap(minimum.x, minimum.y, maximum.x, maximum.y, obstacles, boundary)
 }
 val plateCount:Int
 get() {
@@ -2452,6 +2457,10 @@ SliceBeam.INSTANCE!!.getResources().getQuantityString(
 R.plurals.MenuToolbarSplitDone, count, count))) }) })
 }
 companion object {
+/** Printer-profile fallback used before the workspace GL surface has configured its native bed. */
+internal fun configuredPrimeTowerPlacementMap(): PrimeTowerPlacementMap? = runCatching {
+    PrimeTowerDragLogic.fromBedShape(SliceBeam.buildCurrentConfigObject().get("bed_shape"))
+}.getOrNull()
 private val DEBUG_VIEWER = false
 private fun usesCompactPortraitLayout(context:Context):Boolean {
 val configuration = context.getResources().getConfiguration()

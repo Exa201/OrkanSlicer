@@ -161,6 +161,13 @@
     <string name="MenuModel">Modell</string>
     <string name="ModelMenuSelectedObjectGroup">Ein Objekt</string>
     <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
+    <string name="ModelMenuBoolean">Boolesche Funktion</string>
+    <string name="ModelBooleanHelp">Wähle zuerst genau zwei Objekte. Bei Abziehen und Schnittmenge ist das aktuell ausgewählte Objekt die Basis. Das Ergebnis übernimmt dessen Filament.</string>
+    <string name="ModelBooleanUnion">Vereinigung · beide Körper verbinden</string>
+    <string name="ModelBooleanDifference">Abziehen · den anderen Körper abziehen</string>
+    <string name="ModelBooleanIntersection">Schnittmenge · Überlappung behalten</string>
+    <string name="ModelBooleanDone">Boolesches Ergebnis erstellt</string>
+    <string name="ModelBooleanFailed">Aus „%1$s“ und „%2$s“ konnte kein gültiger Körper erstellt werden. Prüfe, ob beide Netze geschlossen sind und sich wie erforderlich überschneiden.</string>
     <string name="MenuModelCompact">Modell</string>
     <string name="MenuPlates">Druckplatten</string>
     <string name="PlateNumber">Druckplatte %1$s</string>

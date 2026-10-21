@@ -557,10 +557,14 @@ internal object PrintConfigToolsLogic {
         return values.joinToString(",") { format(it) }
     }
 
-    fun towerPositions(xSerialized: String?, ySerialized: String?): PrintConfigTowerPositions {
+    fun towerPositions(
+        xSerialized: String?,
+        ySerialized: String?,
+        requiredPlateCount: Int = 1,
+    ): PrintConfigTowerPositions {
         val xRaw = parseStored(xSerialized, 15f)
         val yRaw = parseStored(ySerialized, 15f)
-        val count = maxOf(1, xRaw.size, yRaw.size)
+        val count = maxOf(1, requiredPlateCount, xRaw.size, yRaw.size)
         val x = List(count) { index -> format(xRaw[min(index, xRaw.lastIndex)]) }
         val y = List(count) { index -> format(yRaw[min(index, yRaw.lastIndex)]) }
         return PrintConfigTowerPositions(count, x, y)

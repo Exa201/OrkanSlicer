@@ -2,26 +2,31 @@ package ru.ytkab0bp.slicebeam
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.components.FastenerFormLogic
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelBooleanDialog
 import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
 import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 import ru.ytkab0bp.slicebeam.utils.Vec3d
+import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createComposeRule()
 
     @Test fun combineSelectedMeshesKeepsPlacementAndPerVolumeFilamentAssignments() {
         val modelFile = copyAsset("models/xyz_cube.stl", "combine-cube.stl")
@@ -98,6 +103,81 @@ class ModelEditingNativeDeviceTest {
             assertTrue(max.z - min.z > 1.0 && max.z - min.z < 1.5)
         } finally {
             model.release()
+        }
+    }
+
+    @Test fun nativeBooleanUnionCreatesOneClosedObjectWithCombinedVolume() = assertBooleanResult(
+        BooleanOperation.UNION,
+        expectedVolumeFactor = 1.5,
+    )
+
+    @Test fun nativeBooleanDifferenceSubtractsTheOverlappingHalf() = assertBooleanResult(
+        BooleanOperation.DIFFERENCE,
+        expectedVolumeFactor = 0.5,
+    )
+
+    @Test fun nativeBooleanIntersectionKeepsOnlyTheOverlappingHalf() = assertBooleanResult(
+        BooleanOperation.INTERSECTION,
+        expectedVolumeFactor = 0.5,
+    )
+
+    @Test fun booleanDialogOffersUnionDifferenceAndIntersectionAsSeparateActions() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var selected: BooleanOperation? = null
+        compose.setContent {
+            BeamComposeTheme {
+                ModelBooleanDialog(onDismiss = {}, onChoose = { selected = it })
+            }
+        }
+
+        compose.onNodeWithText(context.getString(R.string.ModelBooleanUnion)).performClick()
+        compose.runOnIdle { assertEquals(BooleanOperation.UNION, selected) }
+        compose.onNodeWithText(context.getString(R.string.ModelBooleanDifference)).performClick()
+        compose.runOnIdle { assertEquals(BooleanOperation.DIFFERENCE, selected) }
+        compose.onNodeWithText(context.getString(R.string.ModelBooleanIntersection)).performClick()
+        compose.runOnIdle { assertEquals(BooleanOperation.INTERSECTION, selected) }
+    }
+
+    private fun assertBooleanResult(operation: BooleanOperation, expectedVolumeFactor: Double) {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-${operation.name.lowercase()}.stl")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val sourceVolume = model.getObjectVolume(0)
+            assertTrue("fixture cube must have finite positive volume", sourceVolume > 0.0)
+            model.addObject(model, 0)
+            model.translate(1, (max.x - min.x) / 2.0, 0.0, 0.0)
+
+            val resultIndex = model.booleanObjects(0, 1, operation)
+
+            assertEquals("boolean replaces both source objects only after success", 0, resultIndex)
+            assertEquals(1, model.objectsCount)
+            val resultVolume = model.getObjectVolume(resultIndex)
+            assertEquals(expectedVolumeFactor, resultVolume / sourceVolume, 0.02)
+            assertTrue("boolean output must be a non-empty printable mesh", model.getTriangleCount(resultIndex) > 0)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun invalidBooleanRequestLeavesBothObjectsUnchanged() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-invalid.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 100.0, 0.0, 0.0)
+            val firstVolume = model.getObjectVolume(0)
+            val secondVolume = model.getObjectVolume(1)
+            assertTrue(model.booleanObjects(0, 1, BooleanOperation.DIFFERENCE) < 0)
+            assertTrue(model.booleanObjects(0, 1, BooleanOperation.INTERSECTION) < 0)
+            assertEquals(2, model.objectsCount)
+            assertEquals(firstVolume, model.getObjectVolume(0), 0.01)
+            assertEquals(secondVolume, model.getObjectVolume(1), 0.01)
+        } finally {
+            model.release()
+            modelFile.delete()
         }
     }
 

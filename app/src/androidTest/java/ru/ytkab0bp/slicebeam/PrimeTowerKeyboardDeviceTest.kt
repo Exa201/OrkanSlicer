@@ -108,6 +108,8 @@ class PrimeTowerKeyboardDeviceTest {
         }
 
         compose.onNodeWithTag("prime-tower-bed-preview").assertIsDisplayed()
+        compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.PrimeTowerPositionBlocked))
+            .assertIsDisplayed()
         compose.onNodeWithTag("prime-tower-auto-place").assertIsDisplayed().performClick()
         compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.PrimeTowerPositionFree))
             .assertIsDisplayed()

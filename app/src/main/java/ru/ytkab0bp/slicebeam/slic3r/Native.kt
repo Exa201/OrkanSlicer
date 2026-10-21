@@ -178,6 +178,11 @@ class Native {
     external fun model_create_text_object(ptr: Long, fontPath: String, text: String, size: Float, depth: Float, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double): Int
     @JvmStatic
     external fun model_combine_objects_as_parts(ptr: Long, objectIndices: IntArray): Int
+    /** op: 0=union, 1=target minus tool, 2=intersection. Negative values mean no mutation was applied. */
+    @JvmStatic
+    external fun model_boolean_objects(ptr: Long, targetIndex: Int, toolIndex: Int, op: Int): Int
+    @JvmStatic
+    external fun model_get_object_volume(ptr: Long, objectIndex: Int): Double
     @JvmStatic
     external fun paint_begin(modelPtr: Long, objIdx: Int, mode: Int): Long
     @JvmStatic

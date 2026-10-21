@@ -9,6 +9,7 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
 internal class ModelMenuItems(
@@ -60,6 +61,9 @@ internal class ModelMenuItems(
                     }
                 }
             }, enabled = selectedCount >= 2),
+            BedComposeMenuAction(R.string.ModelMenuBoolean, R.drawable.square_stack_up_outline_28, { anchor ->
+                showBooleanDialog(anchor)
+            }, enabled = selectedCount == 2),
             BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.picture_stack_outline_28, { anchor ->
                 fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
                     fragment.updateModel()
@@ -177,6 +181,49 @@ internal class ModelMenuItems(
                         glView.renderer.invalidateGlModel(moving)
                         glView.requestRender()
                         ViewUtils.postOnMainThread { fragment.updateModel() }
+                    }
+                },
+            )
+        }
+    }
+
+    private fun showBooleanDialog(anchor: android.view.View) {
+        val glView = fragment.glView ?: return
+        val renderer = glView.renderer
+        val model = renderer.model ?: return
+        val selected = renderer.selectedObjectIndices()
+        if (selected.size != 2) return
+        val targetIndex = renderer.selectedObject.takeIf { it in selected } ?: selected[0]
+        val toolIndex = selected.first { it != targetIndex }
+        val targetName = model.getObjectName(targetIndex)
+            ?: anchor.context.getString(R.string.MenuFileObjectNumber, targetIndex + 1)
+        val toolName = model.getObjectName(toolIndex)
+            ?: anchor.context.getString(R.string.MenuFileObjectNumber, toolIndex + 1)
+
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelBooleanDialog(
+                onDismiss = dismiss,
+                onChoose = { operation ->
+                    dismiss()
+                    glView.queueEvent {
+                        val currentRenderer = glView.renderer
+                        val currentModel = currentRenderer.model ?: return@queueEvent
+                        val result = currentModel.booleanObjects(targetIndex, toolIndex, operation)
+                        if (result >= 0) {
+                            currentRenderer.resetGlModels()
+                            currentRenderer.setSelectedObject(result)
+                            glView.requestRender()
+                            ViewUtils.postOnMainThread {
+                                fragment.updateModel()
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelBooleanDone))
+                            }
+                        } else {
+                            ViewUtils.postOnMainThread {
+                                SliceBeam.EVENT_BUS.fireEvent(
+                                    NeedSnackbarEvent(R.string.ModelBooleanFailed, targetName, toolName),
+                                )
+                            }
+                        }
                     }
                 },
             )

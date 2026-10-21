@@ -181,12 +181,13 @@ class PrintConfigFragment : ProfileListFragment() {
     }
 
     private fun showPrimeTowerPositionDialog() {
+        val workspace = (getContext() as? MainActivity)
+            ?.navigationDelegate?.getFragmentForSlot(0) as? BedFragment
         val positions = PrintConfigToolsLogic.towerPositions(
             optionValue("wipe_tower_x"),
             optionValue("wipe_tower_y"),
+            requiredPlateCount = (workspace?.plateCount ?: 1).coerceAtLeast(1),
         )
-        val workspace = (getContext() as? MainActivity)
-            ?.navigationDelegate?.getFragmentForSlot(0) as? BedFragment
         val previewPlateIndex = (workspace?.activePlateIndex ?: 0).coerceIn(0, positions.plateCount - 1)
         val footprint = PrintConfigToolsLogic.towerFootprint(
             optionValue("prime_tower_width"),
@@ -195,7 +196,7 @@ class PrintConfigFragment : ProfileListFragment() {
         )
         activeToolDialog = PrintConfigToolDialogState.PrimeTower(
             positions,
-            workspace?.primeTowerPlacementMap(),
+            workspace?.primeTowerPlacementMap() ?: BedFragment.configuredPrimeTowerPlacementMap(),
             previewPlateIndex,
             footprint,
         )

@@ -171,6 +171,13 @@
     <string name="ModelMenuCombineWarning">Selected objects will become one multipart object. Their separate volume materials are preserved; this is not a boolean union.</string>
     <string name="ModelMenuCombineDone">Objects combined as multipart object</string>
     <string name="ModelMenuCombineUnsupported">Select at least two single-instance objects to combine.</string>
+    <string name="ModelMenuBoolean">Boolean operation</string>
+    <string name="ModelBooleanHelp">Select exactly two objects first. The selected object is the base for Difference and Intersection. The result takes the selected object’s material.</string>
+    <string name="ModelBooleanUnion">Union · merge both solids</string>
+    <string name="ModelBooleanDifference">Difference · subtract the other solid</string>
+    <string name="ModelBooleanIntersection">Intersection · keep the overlap</string>
+    <string name="ModelBooleanDone">Boolean result created</string>
+    <string name="ModelBooleanFailed">Could not create a valid solid from “%1$s” and “%2$s”. Check that both meshes are closed and intersect as required.</string>
     <string name="MenuModelCompact">Model</string>
     <string name="MenuPlates">Plates</string>
     <string name="PlateNumber">Plate %1$s</string>

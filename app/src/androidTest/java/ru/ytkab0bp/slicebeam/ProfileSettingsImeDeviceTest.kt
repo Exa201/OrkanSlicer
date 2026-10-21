@@ -520,6 +520,11 @@ class ProfileSettingsImeDeviceTest {
         val towerButtonLabel = context.getString(R.string.PrimeTowerPositionShort)
         val towerButtonDescription = context.getString(R.string.PrimeTowerPositionInlineHelp)
         compose.onNodeWithContentDescription("$towerButtonLabel. $towerButtonDescription").performClick()
+        // The profile-screen entry point must use the retained workspace bed snapshot too;
+        // otherwise users see coordinates without knowing where the tower will land.
+        compose.onNodeWithTag("prime-tower-bed-preview").assertIsDisplayed()
+        compose.onNodeWithTag("prime-tower-auto-place").assertIsDisplayed().performClick()
+        compose.onNodeWithText(context.getString(R.string.PrimeTowerPositionFree)).assertIsDisplayed()
         compose.onNodeWithTag("prime-tower-x-0").performTextClearance()
         compose.onNodeWithTag("prime-tower-x-0").performTextInput("123.4")
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)

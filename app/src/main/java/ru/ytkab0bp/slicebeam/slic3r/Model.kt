@@ -311,6 +311,19 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return index
     }
 
+    /**
+     * Applies a validated Orca/CGAL solid operation to two single-instance objects.
+     * Returns the replacement object's index, or a negative status without changing inputs.
+     */
+    open fun booleanObjects(targetIndex: Int, toolIndex: Int, operation: BooleanOperation): Int {
+        val index = Native.model_boolean_objects(pointer, targetIndex, toolIndex, operation.nativeValue)
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    /** Absolute mesh volume in mm³ for one object, including its instance transform. */
+    open fun getObjectVolume(i: Int): Double = Native.model_get_object_volume(pointer, i)
+
     /** True if object i has any committed multi-color painting. */
     open fun hasPaint(i: Int): Boolean = Native.model_has_paint(pointer, i)
 
@@ -453,4 +466,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
             return Model(Native.models_merge(*pointers))
         }
     }
+}
+
+enum class BooleanOperation(val nativeValue: Int) {
+    UNION(0), DIFFERENCE(1), INTERSECTION(2),
 }

@@ -47,6 +47,15 @@ class PrintConfigToolsLogicTest {
     }
 
     @Test
+    fun towerPositionsIncludeTheActivePlateEvenWhenItsCoordinateUsesInheritedDefault() {
+        val positions = PrintConfigToolsLogic.towerPositions("10", "20", requiredPlateCount = 4)
+
+        assertEquals(4, positions.plateCount)
+        assertEquals(listOf("10", "10", "10", "10"), positions.x)
+        assertEquals(listOf("20", "20", "20", "20"), positions.y)
+    }
+
+    @Test
     fun towerPositionSerializationKeepsNegativeOffsetsAndAcceptsCommaDecimals() {
         val serialized = PrintConfigToolsLogic.serializeTowerPositions(listOf("-1,5", "20"), listOf("2", "3.25"))
         assertEquals("-1.5,20" to "2,3.25", serialized)

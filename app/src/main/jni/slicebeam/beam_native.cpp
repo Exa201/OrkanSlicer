@@ -15,6 +15,7 @@
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
+#include "libslic3r/MeshBoolean.hpp"
 #include <libslic3r/SVG.hpp>
 #include <libslic3r/GCode.hpp>
 #include <libslic3r/Print.hpp>
@@ -1389,6 +1390,92 @@ extern "C" {
             env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
             return -3;
         }
+    }
+
+    // Boolean operations work on transformed copies and only replace source objects after
+    // CGAL reports a valid, closed solid. This avoids mutating project state on failed CSG.
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1boolean_1objects(
+        JNIEnv* env, jclass, jlong ptr, jint targetIndex, jint toolIndex, jint operation) {
+        try {
+            ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+            if (ref == nullptr || targetIndex < 0 || toolIndex < 0 || targetIndex == toolIndex ||
+                targetIndex >= (int) ref->model.objects.size() || toolIndex >= (int) ref->model.objects.size() ||
+                operation < 0 || operation > 2) return -1;
+
+            ModelObject* target = ref->model.objects[targetIndex];
+            ModelObject* tool = ref->model.objects[toolIndex];
+            if (target == nullptr || tool == nullptr || target->instances.size() != 1 ||
+                tool->instances.size() != 1 || target->instances.front() == nullptr ||
+                tool->instances.front() == nullptr) return -2;
+
+            TriangleMesh targetMesh = target->mesh();
+            TriangleMesh toolMesh = tool->mesh();
+            auto valid_operand = [](const TriangleMesh& mesh) {
+                if (mesh.empty() || mesh.stats().open_edges != 0 ||
+                    !std::isfinite(mesh.stats().volume) || std::fabs(mesh.stats().volume) <= 1e-9f)
+                    return false;
+                auto cgal = MeshBoolean::cgal::triangle_mesh_to_cgal(mesh);
+                return cgal && !MeshBoolean::cgal::empty(*cgal) &&
+                    MeshBoolean::cgal::does_bound_a_volume(*cgal) &&
+                    !MeshBoolean::cgal::does_self_intersect(*cgal);
+            };
+            if (!valid_operand(targetMesh) || !valid_operand(toolMesh)) return -3;
+
+            const double baseVolume = std::fabs(targetMesh.volume());
+
+            switch (operation) {
+                case 0: MeshBoolean::cgal::plus(targetMesh, toolMesh); break;
+                case 1: MeshBoolean::cgal::minus(targetMesh, toolMesh); break;
+                case 2: MeshBoolean::cgal::intersect(targetMesh, toolMesh); break;
+            }
+            if (targetMesh.empty() || targetMesh.stats().open_edges != 0 ||
+                !std::isfinite(targetMesh.volume()) || std::fabs(targetMesh.volume()) <= 1e-9f)
+                return -4;
+            const double resultVolume = std::fabs(targetMesh.volume());
+            if (operation == 1 && resultVolume >= baseVolume - std::max(1e-5, baseVolume * 1e-6))
+                return -7; // A non-overlapping cutter must not silently delete its source object.
+            auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(targetMesh);
+            if (!resultCgal || !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
+                MeshBoolean::cgal::does_self_intersect(*resultCgal)) return -4;
+
+            // Boolean output is one solid, so it takes the target object's profile and
+            // material assignment. Preserve its world-space geometry as the new object.
+            const std::string resultName = target->name.empty() ? "Boolean result" : target->name + " (Boolean)";
+            const std::string sourcePath = target->input_file;
+            const bool printable = target->printable;
+            int targetExtruder = 1;
+            for (const ModelVolume* volume : target->volumes) {
+                if (volume != nullptr && volume->is_model_part()) {
+                    targetExtruder = std::max(1, volume->extruder_id());
+                    break;
+                }
+            }
+            ModelObject* replacement = ref->model.add_object(resultName.c_str(), sourcePath.c_str(), std::move(targetMesh));
+            if (replacement == nullptr || replacement->volumes.empty()) return -5;
+            replacement->config.assign_config(target->config);
+            replacement->printable = printable;
+            replacement->volumes.front()->config.set("extruder", targetExtruder);
+            replacement->volumes.front()->source.object_idx = (int) ref->model.objects.size() - 1;
+
+            const int firstRemoved = std::min(targetIndex, toolIndex);
+            const int secondRemoved = std::max(targetIndex, toolIndex);
+            ref->model.delete_object((size_t) secondRemoved);
+            ref->model.delete_object((size_t) firstRemoved);
+            return (jint) ref->model.objects.size() - 1;
+        } catch (const std::exception& e) {
+            __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean", "Boolean operation failed without replacing inputs: %s", e.what());
+            return -6;
+        } catch (...) {
+            __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean", "Boolean operation failed without replacing inputs");
+            return -6;
+        }
+    }
+
+    JNIEXPORT jdouble JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1volume(
+        JNIEnv*, jclass, jlong ptr, jint objectIndex) {
+        ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+        if (ref == nullptr || objectIndex < 0 || objectIndex >= (int) ref->model.objects.size()) return 0.0;
+        return (jdouble) ref->model.objects[objectIndex]->get_object_stl_stats().volume;
     }
 
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1slice(JNIEnv* env, jclass, jlong ptr, jstring configPath, jstring path, jobject listener, jint numFilaments, jintArray colorsArr, jint calibMode, jdouble calibStart, jdouble calibEnd, jdouble calibStep) {
