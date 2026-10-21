@@ -5,6 +5,7 @@
 - Honor PTP-N49 / Android 16: `SettingsMenuActionDeviceTest` 8/8 passed; it checks preview, persistence only on Apply, reset/cancel/Back, live text scaling and invariant GL viewport bounds. `SettingsAccessibilityDeviceTest` 1/1 passed for simulated 320/360/400 dp and 640×320 dp, portrait/landscape, and 100/130/150% system font scale. Emulator is offline; these simulated configurations are not physical resizing or physical TalkBack traversal.
 - Debug and Slice JVM suites each passed 588/588 with 0 failures/errors/skips. `:app:assembleDebug` succeeded for 0.8.338 / code 373. Code commit `79862bc7d835f69bc813b8c8fbbd0c68065fb65b`; debug APK `OrkanSlicer_79862bc7d8.apk`, 239,148,108 bytes, SHA-256 `7969467783344B03DA2BBBED711C55C25AF88CF15C2B07FA40A958A4924DE9CE`.
 - Installed and launched on Honor PTP-N49 / Android 16. Package reports 0.8.338 / code 373; sampled 1,200 Logcat lines had no fatal exception, package ANR, OOM or fatal-signal match. No live printer or print action. Xiaomi-specific rendering and manual TalkBack remain open.
+- Pushed implementation and verification commits to `codex/rinkhals-safe-start-audit`; PR #2 is open at head `73e1d3f74ca59c7409673b098c2050280dabc1a4`, merge state CLEAN.
 
 # Static migration guard + dead-route cleanup — 2026-10-21
 
