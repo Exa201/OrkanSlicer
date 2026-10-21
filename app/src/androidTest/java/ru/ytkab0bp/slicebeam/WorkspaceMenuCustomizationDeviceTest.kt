@@ -2,8 +2,15 @@ package ru.ytkab0bp.slicebeam
 
 import android.view.View
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -37,8 +44,17 @@ class WorkspaceMenuCustomizationDeviceTest {
 
         compose.setContent {
             BeamComposeTheme {
-                Box(Modifier.width(360.dp)) {
-                    CustomizableBedMenuActionsContent(menuKey, actions, portrait = true)
+                var generation by remember { mutableIntStateOf(0) }
+                Column {
+                    androidx.compose.material3.TextButton(
+                        onClick = { generation++ },
+                        modifier = Modifier.testTag("force-remount-$menuKey"),
+                    ) { androidx.compose.material3.Text("Remount") }
+                    Box(Modifier.width(360.dp)) {
+                        key(generation) {
+                            CustomizableBedMenuActionsContent(menuKey, actions, portrait = true)
+                        }
+                    }
                 }
             }
         }
@@ -55,6 +71,13 @@ class WorkspaceMenuCustomizationDeviceTest {
         val prefs = context.getSharedPreferences("workspace_menu_customization", 0)
         assertTrue(prefs.getString("order_$menuKey", "").orEmpty().startsWith("$bottomKey|"))
         assertTrue(bottomKey in prefs.getStringSet("hidden_$menuKey", emptySet()).orEmpty())
+
+        // Discard remembered composable state and reconstruct from persisted preferences.
+        compose.onNodeWithTag("force-remount-$menuKey").performClick()
+        compose.onNodeWithText(context.getString(R.string.MenuCameraBottom)).assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.MenuCameraTop)).assertIsDisplayed()
+        compose.onNodeWithTag("menu-customize-$menuKey").performClick()
+        compose.onNodeWithTag("menu-customize-down-$menuKey-$bottomKey").assertIsDisplayed()
     }
 
     private fun noOp(view: View) = Unit
