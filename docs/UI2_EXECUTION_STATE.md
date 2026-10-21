@@ -1,3 +1,13 @@
+# Xiaomi generated M12 model raycast crash checkpoint — 2026-10-21
+
+- Device report (Xiaomi fuxi / Android 16) crashed on first touch in `GLView.onTouchEvent` → `GLRenderer.raycastObjectIndex` → lazy `GLModel.raycaster` → native `AABBMesh::AABBMesh` → `create_face_neighbors_index`.
+- Removed the unused per-face and per-vertex adjacency indexes from `AABBMesh` construction. The active AABB raycast only needs the AABB tree; adjacency was extra work on first touch and led into the reported native crash path.
+- Added Honor PTP-N49 regression: generate the app's standard M12 bolt, import 40,128 facets, initialize the native raycaster, and confirm an axial ray hits the model. Passed 1/1; raycast index 13 ms and complete test 1.089 s. The app was installed/launched on Honor; sampled logcat had no fatal, ANR, or OOM marker.
+- Version 0.8.343 / code 378. Debug + Slice JVM suites 594/594 each; ARM64 debug build successful. APK SHA-256 and release URL are recorded after publication below this checkpoint once available.
+- Xiaomi itself is not attached to ADB, so actual Xiaomi reproduction is pending user verification. Continue prioritizing generated-model responsiveness and other model-editing features.
+
+---
+
 # Active feature checkpoint — model editing tools (2026-10-21)
 
 - Branch: `codex/rinkhals-safe-start-audit`; code base before this change: `43aa0a61795fc94aef1343d14b3b525364586d08`.

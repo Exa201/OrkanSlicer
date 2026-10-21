@@ -8,9 +8,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
+import ru.ytkab0bp.slicebeam.components.FastenerFormLogic
+import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
+import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 
@@ -93,6 +98,44 @@ class ModelEditingNativeDeviceTest {
             assertTrue(max.z - min.z > 1.0 && max.z - min.z < 1.5)
         } finally {
             model.release()
+        }
+    }
+
+    @Test fun standardM12BoltCanBuildNativeRaycastDataAndBePicked() {
+        val values = FastenerFormLogic.defaults(size = FastenerStandards.count() - 1)
+        assertEquals(null, FastenerFormLogic.validate(values))
+        val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "m12-raycast-regression.stl")
+        val written = FastenerStlWriter.writeBolt(
+            file,
+            FastenerStandards.diameter(values.size),
+            FastenerFormLogic.parse(values.second),
+            FastenerFormLogic.parse(values.first),
+            FastenerFormLogic.parse(values.fourth),
+            FastenerFormLogic.parse(values.third),
+        )
+        val model = Model(file)
+        val glModel = GLModel()
+        try {
+            assertTrue("generated STL should retain its screw triangles", model.getTriangleCount(0) > 0)
+            assertEquals(written, model.getTriangleCount(0))
+            glModel.initFrom(model, 0)
+            val started = android.os.SystemClock.elapsedRealtime()
+            Native.glmodel_init_raycast_data(glModel.pointer)
+            val elapsed = android.os.SystemClock.elapsedRealtime() - started
+
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val hits = Native.glmodel_raycast_closest_hit(
+                glModel.pointer,
+                doubleArrayOf((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z + 10.0),
+                doubleArrayOf(0.0, 0.0, -1.0),
+            )
+            android.util.Log.i("FastenerRaycastRegression", "M12 facets=${written}, raycastIndexMs=${elapsed}")
+            assertTrue("ray through the bolt axis should hit the generated model", hits.size >= 6)
+        } finally {
+            glModel.release()
+            model.release()
+            file.delete()
         }
     }
 
