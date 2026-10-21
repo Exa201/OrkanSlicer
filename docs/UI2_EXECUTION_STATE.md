@@ -1,3 +1,10 @@
+# Workspace action sweep — Honor (2026-10-21)
+
+- `InitialProjectMenuDeviceTest` passed 42/42 on Honor PTP-N49 / Android 16 against runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`. The class exercises the six workspace destinations with real interactions across file/project import/export and warnings, model and plate operations, camera presets/view cube, transform/undo/redo, GL tools and cancellation, slicing, preview, and generated output. No print start was issued; tests use fixtures/test data.
+- This result plus the 46 focused global/profile/accessibility cases and the full 237-case Honor suite provides broad functional evidence. Counts overlap across suite and focused runs and must not be summed into a unique total. Full source-to-handler inventory for every visible action is still incomplete; Phase 5 remains active. Phase 6 remains partial because physical TalkBack could not run.
+- Latest docs checkpoint commit before this update: `32dad37d`; next: continue auditing the remaining global app/profile submenu handlers and explicitly map any visible action without an action-level test. No new app build/release is needed for test-only work.
+
+---
 # Phase 5 global profile action follow-up — Honor (2026-10-21)
 
 - On the unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`, additional global/profile action instrumentation passed on Honor PTP-N49 / Android 16: `PrintProfileDropdownIntegrationDeviceTest` 18/18, `ProfileNumericOptionDeviceTest` 3/3, `ProfileSettingsImeDeviceTest` 12/12, and `PrinterWebWorkspacePanelDeviceTest` 3/3. Together with the earlier focused accessibility/settings run, these tests exercised 46 individual cases (1 + 1 + 1 + 7 + 18 + 3 + 12 + 3), all passed. No printer connection/sync or print was initiated; printer-web panels used test routes/fakes.

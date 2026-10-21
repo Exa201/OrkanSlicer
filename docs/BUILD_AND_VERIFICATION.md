@@ -1,3 +1,7 @@
+# Honor workspace action sweep — 2026-10-21
+
+- `InitialProjectMenuDeviceTest`: 42/42 passed on Honor PTP-N49 / Android 16. This covers actual project/file, model, view/camera, edit/tool, and slicing interactions. No print start was performed.
+- Results apply to runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`; current branch head contains documentation-only commits thereafter. Phase 5's full visible-action inventory remains open; Phase 6 manual TalkBack remains unavailable.
 # UI 2.0 global profile action follow-up — 2026-10-21
 
 - Additional current-code Honor instrumentation passed: `PrintProfileDropdownIntegrationDeviceTest` 18/18, `ProfileNumericOptionDeviceTest` 3/3, `ProfileSettingsImeDeviceTest` 12/12, `PrinterWebWorkspacePanelDeviceTest` 3/3. Combined with the prior focused responsive/settings set (10 cases), 46 targeted cases passed across both checkpoints; these are a subset of the full 237-case suite and must not be added to that suite count.
