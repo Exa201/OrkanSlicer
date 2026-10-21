@@ -2065,3 +2065,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Full Debug and Slice JVM unit suites then passed: 583/583 each, zero skipped/failures/errors. No product source or APK changed in this test-only follow-up, so no new release was built. No printer synchronization, firmware change, or print start occurred.
 - Phase 5 action audit and Phase 6 responsive/accessibility acceptance remain active; manual TalkBack traversal, remaining unverified menu actions, and full multi-plate project persistence remain open. The exact KromaCut issue is verified against the tested native slice/G-code path; UI 2.0 is not complete. Next: continue remaining actual menu-action and accessibility checks, then build/publish only after production changes are ready.
 
+# UI 2.0 continuation — 2026-10-21 (Maker generator success path)
+
+- Current pushed base at start: `3fb455ccb7022b608ded3ac2bf8562e3ea1d4ff1`; current app runtime remains 0.8.337 / code 372. This pass changes an instrumentation test only.
+- Added an Honor end-to-end interaction for the active Text Tag Maker route: open the workspace form, submit defaults, wait for generated binary STL validation and output dialog, assert a non-empty facet file in the app cache, then discard and verify only that temporary file is removed.
+- Honor PTP-N49 / Android 16: the focused success-path test passed 1/1. The full `MakerGeneratorWorkspaceDeviceTest` then passed 12/12, 0 skipped/failures/errors. XML: `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, timestamp `2026-10-21T12:17:22`.
+- No user-visible export picker was confirmed and no external file was written; the test intentionally discards the cache artifact. Other Maker generators' complete generate/save success paths remain uncovered. No runtime code, APK, release, real printer action, or print start occurred.
+- Phase 5 remains active; the source-to-handler audit and other generator success flows are incomplete. Phase 6 remains partial, including unavailable physical TalkBack. Next: add/test a second representative Maker generation path only if it is deterministic and cache-contained, then continue uncovered actions from the menu matrix.
+

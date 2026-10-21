@@ -38,3 +38,9 @@ Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since
 - Current-pass `SliceUploadOnlyLoopbackDeviceTest` was previously run against that same unchanged runtime; it uses a local fake server. Its “print” request is a mock endpoint test, not a real print.
 - This is a source-to-test map, not a claim that every conditional Maker generator has been run end-to-end. Remaining action gaps: exercise the active Maker screen's KromaCut entry end-to-end through its actual navigation path; cover each Maker generator's generate/save success path where safe fixtures exist; verify printer upload on a controlled printer only if such an environment is intentionally provisioned; execute physical TalkBack traversal when available.
 - No actual print start, live printer sync, firmware change, or user-profile overwrite was performed.
+
+## Maker generator success-path follow-up — 2026-10-21
+
+- Added a real Text Tag Maker submit test to `MakerGeneratorWorkspaceDeviceTest`. On Honor PTP-N49 / Android 16 it generated a binary STL in the app cache, passed the production STL validator (facet count, exact binary length, finite coordinates, and non-degenerate bounds), displayed the generated-output choices, and removed the artifact after the user-facing discard action.
+- Focused test: 1/1 passed. Full `MakerGeneratorWorkspaceDeviceTest`: 12/12 passed, no skips or failures. The test does not select save, open Android's document picker, or write outside app cache.
+- This closes one representative generator success/discard path; it does not claim success-path coverage for all Maker generators or external-save workflow. Those remain explicit gaps in Phase 5.
