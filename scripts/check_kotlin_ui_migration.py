@@ -1159,7 +1159,7 @@ def main() -> None:
             raise AssertionError(f"Kotlin object actions are missing {action}")
     object_action_contracts = (
         "model?.getObjectName(index)", "MenuFileObjectNumber", "ModelObjectsDialog(",
-        "SelectedObjectChangedEvent()", "minOf(4, slots.size)",
+        "SelectedObjectChangedEvent()", "slots.indices.map { tool ->",
         "setObjectUniformFilament(objectIndex, filament)", "(0 until plateCount).filter { it != source }",
         "moveSelectedObjectToPlate(target)", "duplicateSelectedModel(copies)", "deleteSelectedModel",
     )

@@ -123,7 +123,9 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
 
         val context = view.context
         val currentTool = model.getExtruder(objectIndex) - 1
-        val choices = (0 until minOf(4, slots.size)).map { tool ->
+        // Match the complete persisted Slicer palette. Limiting this picker to four made
+        // individually loaded objects impossible to assign to ACE Pro / larger tool palettes.
+        val choices = slots.indices.map { tool ->
             val slot = slots[tool]
             val label = context.getString(
                 R.string.ModelContextFilamentSlot,

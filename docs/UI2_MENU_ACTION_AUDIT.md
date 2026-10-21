@@ -68,3 +68,9 @@ Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since
 - Full `:app:connectedSliceTestAndroidTest` run on Honor (without reinstalling the fixture-bearing test package): XML timestamp `2026-10-21T13:12:19`, 241/241 passed, 0 skipped, 0 failed/errors. The three KromaCut 3MF tests are all PASS in this run; this replaces the earlier full-suite record with three missing-fixture skips for this latest run.
 - Sampled device Logcat after run: no fatal exception, ANR, OOM, or fatal-signal matches. Emulator offline.
 - No application source/runtime version changed; no APK/release generated. The attached 3MF is private test input and must not be checked in. Remaining work includes the full action audit and Phase 6 responsive/physical accessibility verification.
+
+## Per-object picker expanded beyond four saved slots — 2026-10-21
+
+- Source inspection found that the File → Objects → Assign Filament picker artificially exposed only four palette entries even though the stored Slicer palette supports more. Removed that limit so every persisted slot is selectable.
+- Updated the Honor action-level regression using the bundled two-object 3MF and eight synthetic stored slots. Through the actual object list, object 1 was assigned T6 and object 2 T3 independently; a real slice emitted both tools and the matching seven-entry `filament_colour` palette. Focused result: 1/1 passed on PTP-N49 / Android 16.
+- Debug JVM 588/588, Slice JVM 588/588, migration audit passed, debug build succeeded. Full Honor 241/241 with the private KromaCut fixture above predates this picker change; the focused device test covers the change. The current APK was built against the previous Git HEAD and must be rebuilt from the committed change before distribution. No release, upload, or print start.

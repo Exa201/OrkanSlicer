@@ -3166,6 +3166,10 @@ class InitialProjectMenuDeviceTest {
             FilamentSlot(0xFF3366CC.toInt(), "UI Test PETG"),
             FilamentSlot(0xFF33AA66.toInt(), "UI Test ABS"),
             FilamentSlot(0xFFFFCC22.toInt(), "UI Test TPU"),
+            FilamentSlot(0xFF9933CC.toInt(), "UI Test Slot 5"),
+            FilamentSlot(0xFFFF6633.toInt(), "UI Test Slot 6"),
+            FilamentSlot(0xFF33CCCC.toInt(), "UI Test Slot 7"),
+            FilamentSlot(0xFFF2F2F2.toInt(), "UI Test Slot 8"),
         )
         Prefs.setStoredFilamentSlots(testSlots)
         SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
@@ -3219,12 +3223,12 @@ class InitialProjectMenuDeviceTest {
             }
 
             // Assign different own slots through the real object-list UI, one object at a time.
-            assignObject(index = 0, slot = 2)
+            assignObject(index = 0, slot = 6)
             assertArrayEquals("assigning object 1 must leave object 2 on its imported tool",
                 intArrayOf(2), requireNotNull(bed.currentModel).getUsedFilaments(1))
             assignObject(index = 1, slot = 3)
             val assignedModel = requireNotNull(bed.currentModel)
-            assertArrayEquals("object 1 should use own T2", intArrayOf(3), assignedModel.getUsedFilaments(0))
+            assertArrayEquals("object 1 should independently use own T6", intArrayOf(7), assignedModel.getUsedFilaments(0))
             assertArrayEquals("object 2 should independently use own T3", intArrayOf(4), assignedModel.getUsedFilaments(1))
             assertFalse("uniform reassignment removes old per-volume paint overrides",
                 assignedModel.hasPaint(0))
@@ -3240,11 +3244,11 @@ class InitialProjectMenuDeviceTest {
             snapshotKeys.forEach(editor::remove)
             editor.commit()
             SliceBeam.genCurrentConfig(assignedModel)
-            val expectedPalette = testSlots.take(4).joinToString(";") {
+            val expectedPalette = testSlots.take(7).joinToString(";") {
                 String.format(java.util.Locale.ROOT, "#%06X", it.color and 0xFFFFFF)
             }
             val generatedConfig = configFile.readText()
-            assertTrue("slice config must use the current four-slot palette",
+            assertTrue("slice config must include all seven slots through assigned T6",
                 Regex("(?m)^filament_colour = ${Regex.escape(expectedPalette)}$").containsMatchIn(generatedConfig))
             assertFalse("bundled Anycubic Generic PLA start G-code must not contain unsupported, commented placeholders",
                 generatedConfig.contains("filament_start_gcode = ") &&
@@ -3254,9 +3258,9 @@ class InitialProjectMenuDeviceTest {
             val gcode = output.readText()
             val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
                 .map { it.groupValues[1].toInt() }.toSet()
-            assertTrue("G-code must emit object 1's assigned T2, tools=$emittedTools", 2 in emittedTools)
+            assertTrue("G-code must emit object 1's assigned T6, tools=$emittedTools", 6 in emittedTools)
             assertTrue("G-code must emit object 2's assigned T3, tools=$emittedTools", 3 in emittedTools)
-            assertTrue("G-code preview palette must match the four selected slot colors",
+            assertTrue("G-code preview palette must match all seven required slot colors",
                 Regex("(?m)^; filament_colour = ${Regex.escape(expectedPalette)}$").containsMatchIn(gcode))
         } finally {
             sliceResult?.release()
