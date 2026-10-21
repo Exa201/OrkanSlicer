@@ -213,6 +213,72 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun nativeBooleanDifferenceAppliesTwoSeparateSelectedCutters() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-two-cutter-difference.stl")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val centerX = (min.x + max.x) / 2.0
+            val centerY = (min.y + max.y) / 2.0
+            val centerZ = (min.z + max.z) / 2.0
+            val sourceVolume = model.getObjectVolume(0)
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            for (index in 1..2) {
+                model.scale(index, 0.3, 0.3, 0.3)
+                val cutterMin = Vec3d(); val cutterMax = Vec3d()
+                model.getBoundingBoxExact(index, cutterMin, cutterMax)
+                val cutterCenterX = (cutterMin.x + cutterMax.x) / 2.0
+                val cutterCenterY = (cutterMin.y + cutterMax.y) / 2.0
+                val cutterCenterZ = (cutterMin.z + cutterMax.z) / 2.0
+                val offsetX = if (index == 1) -width * 0.2 else width * 0.2
+                model.translate(index, centerX + offsetX - cutterCenterX, centerY - cutterCenterY, centerZ - cutterCenterZ)
+            }
+
+            val result = model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.DIFFERENCE)
+
+            assertEquals("two-cutter difference should replace the three source objects", 0, result)
+            assertEquals(1, model.objectsCount)
+            assertEquals("two disjoint 30% cutters remove 5.4% of the base volume", 0.946,
+                model.getObjectVolume(result) / sourceVolume, 0.015)
+            assertTrue(model.getTriangleCount(result) > 0)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun nativeBooleanIntersectionKeepsSharedVolumeAcrossThreeObjects() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-three-object-intersection.stl")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, width * 0.2, width * 0.2, width * 0.2)
+            model.translate(2, -width * 0.2, -width * 0.2, -width * 0.2)
+
+            val result = model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.INTERSECTION)
+
+            assertEquals("three-solid intersection should replace all source objects", 0, result)
+            assertEquals(1, model.objectsCount)
+            assertEquals(0.216, model.getObjectVolume(result) / sourceVolume, 0.02)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals(width * 0.6, resultMax.x - resultMin.x, 0.02)
+            assertEquals(width * 0.6, resultMax.y - resultMin.y, 0.02)
+            assertEquals(width * 0.6, resultMax.z - resultMin.z, 0.02)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun failedMultiObjectBooleanLeavesEveryInputUntouched() {
         val modelFile = copyAsset("models/xyz_cube.stl", "boolean-three-object-failure.stl")
         val model = Model(modelFile)

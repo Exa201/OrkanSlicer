@@ -2365,3 +2365,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Added a device slice test proving independently generated printable text produces extrusion G-code. The existing Boolean slice regression also remains green.
 - Verification on Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest` 14/14; actual three-object Boolean menu action 1/1; `NativeSliceDeviceTest` 5/5. Debug and Slice JVM suites 603/603 each, no failures/errors/skips. ARM64 CMake and debug APK build succeeded; app installed/launched on Honor. Emulator remains offline.
 - Next: rebuild APK after committing to bind artifact filename to code SHA, then commit/push tested changes and continue model editing with sequential multi-object difference/intersection and placement UX coverage. Do not stage `.codex-remote-attachments/`.
+
+# Multi-operand Boolean regression coverage — 2026-10-21
+
+- Added Honor native regression coverage for sequential difference using two separate cutters and three-body intersection. The initial intersection fixture used axis-aligned cubes with coplanar faces and was rejected by the native solid-validity guard; the corrected fixture offsets all three solids in X/Y/Z to test a non-degenerate shared volume. This documents a limitation of that degenerate fixture; no runtime CSG behavior was changed in this follow-up.
+- Honor PTP-N49 / Android 16: focused three-body intersection passed 1/1; full `ModelEditingNativeDeviceTest` passed 16/16, including multi-object union/difference/intersection and preservation of inputs on invalid operations. Emulator remains offline.
+- No APK rebuild was needed for these test-only changes; the tested runtime remains commit `5ea747548f`. Debug/Slice JVM suites were not rerun because production code did not change. `git diff --check` passed.
+- Next: commit and push these added regression tests plus this checkpoint, then continue actual interaction coverage of grouped placement and multi-object filament assignment.
