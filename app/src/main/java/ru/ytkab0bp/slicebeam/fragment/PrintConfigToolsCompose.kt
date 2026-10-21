@@ -265,16 +265,12 @@ internal fun PrimeTowerPositionEditor(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = screenHeight * .72f)
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            helpText,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 16.sp,
-            lineHeight = 22.sp,
-        )
+        // Keep the live bed map and free-space action in the dialog viewport while
+        // the numeric keyboard is open. Scrolling the entire form used to scroll
+        // this feedback off screen precisely while coordinates were being edited.
         if (placementMap != null && previewPlateIndex in xValues.indices && previewPlateIndex in yValues.indices) {
             val previewX = PrintConfigToolsLogic.parseInput(xValues[previewPlateIndex])?.toDouble() ?: 0.0
             val previewY = PrintConfigToolsLogic.parseInput(yValues[previewPlateIndex])?.toDouble() ?: 0.0
@@ -292,7 +288,7 @@ internal fun PrimeTowerPositionEditor(
                         onXChanged(previewPlateIndex, PrintConfigToolsLogic.formatCoordinate(suggested.x))
                         onYChanged(previewPlateIndex, PrintConfigToolsLogic.formatCoordinate(suggested.y))
                     },
-                    modifier = Modifier.fillMaxWidth().testTag("prime-tower-auto-place"),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("prime-tower-auto-place"),
                 ) { Text(stringResource(R.string.PrimeTowerFindFreePlace)) }
             } else {
                 Text(
@@ -302,6 +298,18 @@ internal fun PrimeTowerPositionEditor(
                 )
             }
         }
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+        Text(
+            helpText,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 16.sp,
+            lineHeight = 22.sp,
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -345,6 +353,7 @@ internal fun PrimeTowerPositionEditor(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
+        }
         }
     }
 }

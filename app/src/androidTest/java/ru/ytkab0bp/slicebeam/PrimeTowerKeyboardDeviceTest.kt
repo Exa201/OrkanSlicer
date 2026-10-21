@@ -34,13 +34,24 @@ class PrimeTowerKeyboardDeviceTest {
 
         compose.setContent {
             BeamComposeTheme {
-                PrimeTowerPositionDialog(positions, onDismiss = {}, onApply = { applied = it })
+                PrimeTowerPositionDialog(
+                    positions,
+                    onDismiss = {},
+                    onApply = { applied = it },
+                    placementMap = PrimeTowerPlacementMap(
+                        0.0, 0.0, 200.0, 200.0,
+                        listOf(PrimeTowerObstacle(0.0, 0.0, 70.0, 70.0)),
+                    ),
+                )
             }
         }
 
         val firstX = compose.onNodeWithTag("prime-tower-x-0")
         firstX.performTextClearance()
         firstX.performTextInput("27.5")
+        // Editing coordinates must keep the map/status visible alongside the IME.
+        compose.onNodeWithTag("prime-tower-bed-preview").assertIsDisplayed()
+        compose.onNodeWithTag("prime-tower-auto-place").assertIsDisplayed()
         val firstY = compose.onNodeWithTag("prime-tower-y-0")
         firstY.performTextClearance()
         firstY.performTextInput("42.25")

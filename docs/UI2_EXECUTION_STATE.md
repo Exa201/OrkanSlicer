@@ -36,6 +36,13 @@
 
 # Phase 5/6 continuation checkpoint — migration guard restored (2026-10-21)
 
+# Prime tower placement visibility — 2026-10-21
+
+- Current phase remains Phase 6 responsive UI/accessibility; prime-tower positioning now keeps the bed preview and free-space action fixed while coordinate fields scroll, so keyboard focus does not hide the spatial feedback.
+- Automatic placement uses the active plate's bed bounds and model bounding boxes, checks footprint plus clearance, and updates the active plate X/Y draft; user still explicitly confirms through the existing dialog Apply action.
+- Honor PTP-N49 / Android 16: `PrimeTowerKeyboardDeviceTest` passed 3/3, including preview and auto-placement visibility after entering coordinates, and multi-plate draft behavior. Targeted `PrimeTowerDragLogicTest` and `PrintConfigToolsLogicTest` JVM tests passed. Emulator remains offline.
+- Implementation is in progress at `e54fa8ed` plus working-tree changes. Next: inspect and commit the focused layout/test change, then continue responsive verification. No release or printer operation.
+
 - Branch HEAD at start: `40f9eac6b6295e6539abad8416e9991f75067bf1`; active app version remains 0.8.337 / code 372. No runtime behavior changed in this pass.
 - Removed the unused `components/bed_menu/ConverterMenu.kt`: repository-wide production search found no construction or call sites. Active KromaCut remains `KromacutEditorMenu` / Maker route.
 - Repaired `scripts/check_kotlin_ui_migration.py`, which was failing against obsolete host/component assumptions. It now checks the active workspace dialogs, slice and camera routes, current KromaCut asset path, current cloud/changelog/progress/color/filament/MMU components, and the required GL/WebView `AndroidView` bridges. Result: passed; 381 production Kotlin sources and 135 Kotlin unit-test sources checked, with AndroidView limited to the renderer and the two WebViews.
