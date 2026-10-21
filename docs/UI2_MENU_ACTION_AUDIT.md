@@ -9,7 +9,7 @@
 - Added and verified the real global navigation path into KromaCut (Settings → Maker → KromaCut): `SettingsMenuActionDeviceTest` 8/8, with a final focused re-run 1/1. The test checks the WebView attaches and Back restores the same renderer/model instance. This closes that specific Maker navigation gap; generator success/save coverage and full six-menu reconciliation remain open.
 - The six-menu map below remains a source-to-test audit with uncovered action-level gaps; passing the migration checker does not close Phase 5.
 
-Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since `adf62115`, 0.8.337 / versionCode 372). This matrix maps the active route definitions to the strongest existing action-level test evidence; a test of a dialog or callback is not represented as a full real-printer or release workflow.
+Audit basis: PR #2 branch HEAD `8771589e` (application runtime source at `ed6db0ac`, 0.8.337 / versionCode 372). This matrix maps the active route definitions to the strongest existing action-level test evidence; a test of a dialog or callback is not represented as a full real-printer or release workflow.
 
 ## Six workspace destinations
 
@@ -36,7 +36,7 @@ Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since
 - Fresh Honor `MakerGeneratorWorkspaceDeviceTest`: Gradle reported 11 tests finished, 0 skipped, 0 failed; app code was rebuilt after removing the unused host. No real printer was contacted.
 - The latest previously recorded full Honor sliceTest suite was 234 passed, 3 skipped for unavailable private multicolor KromaCut fixtures, 0 failures/errors; these were against unchanged runtime code. JVM Debug and Slice suites were each 588/588 at that same runtime revision.
 - Current-pass `SliceUploadOnlyLoopbackDeviceTest` was previously run against that same unchanged runtime; it uses a local fake server. Its “print” request is a mock endpoint test, not a real print.
-- This is a source-to-test map, not a claim that every conditional Maker generator has been run end-to-end. Remaining action gaps: exercise the active Maker screen's KromaCut entry end-to-end through its actual navigation path; cover each Maker generator's generate/save success path where safe fixtures exist; verify printer upload on a controlled printer only if such an environment is intentionally provisioned; execute physical TalkBack traversal when available.
+- This is a source-to-test map, not a claim that every conditional Maker generator has been run end-to-end. Remaining action gaps: cover other Maker generators' generate/save success paths where safe fixtures exist; verify printer upload on a controlled printer only if such an environment is intentionally provisioned; execute physical TalkBack traversal when available.
 - No actual print start, live printer sync, firmware change, or user-profile overwrite was performed.
 
 ## Maker generator success-path follow-up — 2026-10-21
