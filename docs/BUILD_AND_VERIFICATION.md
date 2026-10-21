@@ -1,3 +1,7 @@
+# Filament and slicing action follow-up — Honor (2026-10-21)
+
+- `FilamentPaletteComposeDeviceTest` 20/20, `MmuFilamentSyncDeviceTest` 15/15, `SlicePrintPreparationComposeDeviceTest` 5/5, and `SliceResultWorkspaceDeviceTest` 2/2 passed on Honor PTP-N49 / Android 16 against unchanged runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`.
+- MMU synchronization used test doubles; no real printer was contacted. No physical print was initiated. Phase 5 exhaustive visible-action reconciliation and Phase 6 manual TalkBack remain open.
 # Global dialogs, generators and calibration — Honor (2026-10-21)
 
 - Passed on Honor PTP-N49 / Android 16 against unchanged runtime code: `PrintConfigToolsDialogsDeviceTest` 3/3, `MakerGeneratorWorkspaceDeviceTest` 11/11, `CalibrationWorkspaceDeviceTest` 2/2, `SettingsChoiceDialogDeviceTest` 6/6, `ProfileOptionHelpDialogDeviceTest` 1/1. No live printer operation or print start occurred.

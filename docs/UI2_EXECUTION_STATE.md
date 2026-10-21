@@ -1,3 +1,11 @@
+# Filament and slicing action follow-up — Honor (2026-10-21)
+
+- On runtime code `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`, focused Honor instrumentation passed: `FilamentPaletteComposeDeviceTest` 20/20, `MmuFilamentSyncDeviceTest` 15/15, `SlicePrintPreparationComposeDeviceTest` 5/5, `SliceResultWorkspaceDeviceTest` 2/2. MMU synchronization was exercised through test doubles, not a live printer. Slice preparation/output UI tests do not start a physical print.
+- Combined with the fresh 42/42 workspace-action run, targeted profile/settings run (46/46 across two checkpoints), and global dialog/generator/calibration run (23/23), these cover key actions across the six workspace destinations and global menus. Counts overlap with the 237-case suite and across different focused runs; they are not a unique-test total. No new app defect was observed.
+- Phase 5 remains active because the final exhaustive source-to-handler matrix is not yet reconciled. Phase 6 remains partial because Honor has no enabled TalkBack service and emulator is offline. The app runtime and release are unchanged.
+- Next: finish the action inventory by reviewing all active entries in File/Model/Camera/Edit/Tools/Slice and the global destinations against the action-level test methods, listing concrete remaining uncovered items; then implement tests/fixes only for those gaps. Continue with TalkBack when the service is available.
+
+---
 # Workspace dialogs, generators and calibration follow-up — Honor (2026-10-21)
 
 - Additional action-level tests passed against the unchanged runtime `c94a6ca5aac79e83257ffc16f7c019b6eb911a6a`: `PrintConfigToolsDialogsDeviceTest` 3/3, `MakerGeneratorWorkspaceDeviceTest` 11/11, `CalibrationWorkspaceDeviceTest` 2/2, `SettingsChoiceDialogDeviceTest` 6/6, and `ProfileOptionHelpDialogDeviceTest` 1/1. The test filters use the instrumentation suite's controlled app state; no printer was contacted and no print was started.
