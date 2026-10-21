@@ -2185,3 +2185,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Phase 5 remains open: not all Maker generator success/save paths and global/workspace menu actions are action-tested. Phase 6 remains partial: manual TalkBack and Xiaomi-specific KromaCut rendering remain unverified.
 - Next: commit/push the Plant Tags action-level generator test and corrected evidence, then proceed with the next uncovered safe generator/output route. No production layout change, external save, printer operation, or print start.
 
+# Maker generator coverage continuation — 2026-10-21
+
+- Added one Honor UI test that runs the default Planter Pot, Power Strip Tray, and Wall Tool Holder generation flows through the visible workspace form. Each flow waits for the shared output dialog, verifies the generated binary STL has content accepted by the production validator, then discards and confirms only that temporary output is removed.
+- Honor PTP-N49 / Android 16: full `MakerGeneratorWorkspaceDeviceTest` passed 22/22, 0 skipped/failures/errors. JUnit XML: `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, timestamp `2026-10-21T14:44:11`.
+- The first focused compile exposed only a missing assertion symbol in the new test; the assertion was changed to an already imported `assertTrue`, after which the targeted instrumentation completed successfully. No production source changed.
+- This covers default generation and discard for these three generators, not user-selected parameter variants or Android save-picker write success. Phase 5 menu/action reconciliation and Phase 6 device/accessibility checks remain open. Xiaomi KromaCut rendering remains unverified.
+- Next: continue action-level verification of uncovered Maker generation/save routes, starting with successful SAF destination writing if a safe in-test destination can be provided; do not claim external save success from cancellation coverage.
+

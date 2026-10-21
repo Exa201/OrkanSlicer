@@ -707,6 +707,51 @@ class MakerGeneratorWorkspaceDeviceTest {
     }
 
     @Test
+    fun planterPowerStripAndWallHolderGeneratorsCreateValidatedStlAndDiscardTheirOutputs() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val generators = listOf(
+            Triple(ru.ytkab0bp.slicebeam.R.string.PlanterTitle, "planter-pot-") {
+                PlanterPotGenerator.show(activity, bed)
+            },
+            Triple(ru.ytkab0bp.slicebeam.R.string.PowerStripTitle, "power-strip-tray-") {
+                PowerStripTrayGenerator.show(activity, bed)
+            },
+            Triple(ru.ytkab0bp.slicebeam.R.string.WallToolHolderTitle, "wall-tool-holder-") {
+                WallToolHolderGenerator.show(activity, bed)
+            },
+        )
+
+        generators.forEach { (title, filePrefix, show) ->
+            val existing = activity.cacheDir.listFiles().orEmpty().map { it.name }.toSet()
+            activity.runOnUiThread { show() }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithText(activity.getString(title)).assertIsDisplayed()
+            compose.onNodeWithTag("generator-dialog-title").assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterConvertSave))
+                .performClick()
+
+            compose.waitUntil(timeoutMillis = 60_000) {
+                bed.isWorkspaceMessageDialogAttached() &&
+                    compose.onAllNodesWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputTitle))
+                        .fetchSemanticsNodes().isNotEmpty()
+            }
+            val generated = activity.cacheDir.listFiles().orEmpty().singleOrNull {
+                it.name.startsWith(filePrefix) && it.name !in existing
+            }
+            assertTrue("$filePrefix generation must produce one validated cache STL", generated != null)
+            requireNotNull(generated)
+            assertTrue("$filePrefix output must contain binary STL facets", generated.length() > 84L)
+
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputCancel))
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertFalse("Discard must remove only the $filePrefix temporary output", generated.exists())
+            assertFalse("Generation and discard must keep the workspace active", activity.isFinishing)
+        }
+    }
+
+    @Test
     fun litogenValidationStaysInWorkspaceFormWithoutDismissal() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
