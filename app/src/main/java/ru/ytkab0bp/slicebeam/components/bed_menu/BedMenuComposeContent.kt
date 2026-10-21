@@ -52,6 +52,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
@@ -455,14 +456,17 @@ private fun BedMenuActionTile(
     Surface(
         modifier = modifier
             .padding(3.dp)
+            // Keep the lifted item above its neighbours while it follows the pointer.
+            // LazyRow/LazyHorizontalGrid otherwise draw later cells over a translated tile.
+            .zIndex(if (isDragged) 1f else 0f)
             .graphicsLayer {
                 if (isDragged) {
                     translationX = draggedActionTranslation.x
                     translationY = draggedActionTranslation.y
-                    scaleX = 1.06f
-                    scaleY = 1.06f
-                    shadowElevation = 16.dp.toPx()
-                    alpha = 0.94f
+                    scaleX = 1.1f
+                    scaleY = 1.1f
+                    shadowElevation = 24.dp.toPx()
+                    alpha = 1f
                 }
             }
             .then(dragModifier)
