@@ -169,6 +169,7 @@
     <string name="ModelMenuAllObjectsGroup">All objects</string>
     <string name="ModelMenuPlaceOnObject">Place on top of another object</string>
     <string name="ModelMenuPlaceOnObjectShort">Place on top</string>
+    <string name="ModelMenuPlaceOnObjectDone">Placed and grouped with the target as one printable assembly.</string>
     <string name="ModelMenuCombineSelected">Combine selected as parts</string>
     <string name="ModelMenuCombineSelectedShort">Combine parts</string>
     <string name="ModelMenuCombineWarning">Selected objects will become one multipart object. Their separate volume materials are preserved; this is not a boolean union.</string>

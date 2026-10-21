@@ -17,9 +17,12 @@ import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 import java.io.FileOutputStream
+import java.util.zip.ZipFile
 
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
@@ -51,7 +54,9 @@ class NativeSliceDeviceTest {
     fun combinedMultipartObjectKeepsBothFilamentsThroughSlicing() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "combined-filaments-slice.stl")
+        val roundTripFile = File(context.cacheDir, "combined-filaments-roundtrip.3mf")
         val model = Model(modelFile)
+        var restored: Model? = null
         try {
             model.addObject(model, 0)
             model.translate(1, 30.0, 0.0, 0.0)
@@ -61,10 +66,67 @@ class NativeSliceDeviceTest {
             assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
             assertEquals("both part assignments must remain on the combined object", listOf(1, 2), model.getUsedFilaments(0).toList())
 
-            val gcode = sliceToGcode(context, model, "combined-filaments-slice.gcode")
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, roundTripFile.absolutePath)
+            ZipFile(roundTripFile).use { archive ->
+                val entry = archive.getEntry("Metadata/Slic3r_PE_model.config")
+                val metadata = entry?.let { archive.getInputStream(it).bufferedReader().use { reader -> reader.readText() } }
+                assertTrue("second part's filament must be present in the 3MF volume metadata",
+                    metadata.orEmpty().contains("type=\"volume\" key=\"extruder\" value=\"2\""))
+            }
+            val roundTrip = Model(roundTripFile, 1).also { restored = it }
+            assertEquals(1, roundTrip.objectsCount)
+            assertEquals("both part assignments must survive 3MF save/reload", listOf(1, 2), roundTrip.getUsedFilaments(0).toList())
+
+            val gcode = sliceToGcode(context, roundTrip, "combined-filaments-slice.gcode")
 
             assertHasExtrusion(gcode)
             assertTrue("the second part's T1 assignment must reach emitted G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            roundTripFile.delete()
+        }
+    }
+
+    @Test
+    fun placedObjectGroupRemainsPrintableAfterSurfacePlacement() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "placed-group-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 30.0, -10.0, 8.0)
+            model.translate(2, 65.0, 12.0, 14.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 2)
+
+            fun bounds(index: Int): ObjectBounds3D {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val target = bounds(0)
+            val movingGroup = requireNotNull(ObjectPlacement.enclosing(listOf(bounds(1), bounds(2))))
+            val delta = requireNotNull(ObjectPlacement.onTop(movingGroup, target))
+            model.translate(1, delta.x, delta.y, delta.z)
+            model.translate(2, delta.x, delta.y, delta.z)
+
+            val placed = requireNotNull(ObjectPlacement.enclosing(listOf(bounds(1), bounds(2))))
+            assertEquals(target.maxZ, placed.minZ, 0.001)
+            // Orca rejects separate ModelObjects whose first printable layer is above
+            // the bed. A stacked assembly must become multipart geometry before slicing.
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1, 2)))
+            assertEquals(1, model.objectsCount)
+            assertEquals("surface placement assembly must retain target and placed-part tools",
+                listOf(1, 2), model.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, model, "placed-group-slice.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("the placed assembly's second material must reach G-code",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
         } finally {
             model.release()
             modelFile.delete()

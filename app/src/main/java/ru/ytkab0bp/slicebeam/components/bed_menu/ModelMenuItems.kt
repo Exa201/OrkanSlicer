@@ -6,9 +6,6 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
-import ru.ytkab0bp.slicebeam.utils.Vec3d
-import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
-import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
@@ -177,24 +174,13 @@ internal class ModelMenuItems(
                 onSelect = { choice ->
                     dismiss()
                     val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
-                    glView.queueEvent {
-                        val current = glView.renderer.model ?: return@queueEvent
-                        if (target !in 0 until current.objectsCount || movingIndices.any { it !in 0 until current.objectsCount }) return@queueEvent
-                        fun bounds(index: Int): ObjectBounds3D {
-                            val min = Vec3d()
-                            val max = Vec3d()
-                            current.getBoundingBoxExact(index, min, max)
-                            return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+                    glView.placeSelectedObjectsOnObject(target) { result ->
+                        if (result >= 0) {
+                            fragment.updateModel()
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnObjectDone))
+                        } else {
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
                         }
-                        val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return@queueEvent
-                        val delta = ObjectPlacement.onTop(movingBounds, bounds(target), clearanceMm = 0.0)
-                        if (delta == null) return@queueEvent
-                        movingIndices.forEach { index ->
-                            current.translate(index, delta.x, delta.y, delta.z)
-                            glView.renderer.invalidateGlModel(index)
-                        }
-                        glView.requestRender()
-                        ViewUtils.postOnMainThread { fragment.updateModel() }
                     }
                 },
             )

@@ -183,6 +183,13 @@ queueEvent({
     ViewUtils.postOnMainThread { onComplete(result) }
 })
 }
+fun placeSelectedObjectsOnObject(targetIndex: Int, onComplete: (Int) -> Unit) {
+    queueEvent {
+        val result = renderer.placeSelectedObjectsOnObject(targetIndex)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
 fun centerSelectedOnBed(onComplete:Runnable) {
 queueEvent({ renderer.centerSelectionOnBed()
 requestRender()

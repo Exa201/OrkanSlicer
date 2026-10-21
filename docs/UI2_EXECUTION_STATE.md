@@ -1,3 +1,13 @@
+# Model editing and menu drag feedback — 2026-10-22
+
+- Current UI phase: Phase 5/6 continuation; model-editing goal active. Previous completed checkpoint: native M12 raycaster crash was reduced and verified on Honor; menu navigation and tower placement checks are documented below. Next: finalize and commit the verified model-editing/importer group, then continue the remaining edit actions and device coverage.
+- Implemented in the working tree: place selected objects onto a target surface and group the assembly as printable multipart geometry; preserve per-volume filament metadata when standalone 3MF exports are reloaded; report native slicing errors with their object-specific details. Long-press menu tiles now lift, scale, tilt, track horizontal/vertical finger motion, and highlight the current drop target.
+- Regression safeguard: `PrusaFileParser` routes standalone exports containing `Slic3r_PE_model.config` through the volume-aware importer, but keeps BBS projects on the BBS importer when `Metadata/model_settings.config` is present. Honor PTP-N49 / Android 16 passed MultiPlateProjectDeviceTest 4/4 (including up to 20 plates), NativeSliceDeviceTest 10/10, ModelEditingNativeDeviceTest 18/18, TwoColorProjectDeviceTest plus ThreeMfMulticolorDeviceTest 8/8, and WorkspaceMenuCustomizationDeviceTest 4/4.
+- Current JVM suites: Debug 604/604 and Slice 604/604, with zero failures, errors, or skips. `:app:assembleDebug` passed. Temporary validation APK built from the working tree based on HEAD `7465ff0a`: `OrkanSlicer_7465ff0a48.apk`, 239,263,498 bytes, SHA-256 `9A83FCBBEA01E83ADACDBD879E4FEC582EE87AF5CEF0BB325C4FD20F9F15B602`. It is not a commit-final/release artifact because the verified changes are still uncommitted.
+- Known limits: Xiaomi is not attached to ADB, so the Xiaomi-specific run is unavailable. User-private multicolor fixtures remain unavailable. No real printer or print-start operation was used.
+
+---
+
 # Xiaomi generated M12 model raycast crash checkpoint — 2026-10-21
 
 - Device report (Xiaomi fuxi / Android 16) crashed on first touch in `GLView.onTouchEvent` → `GLRenderer.raycastObjectIndex` → lazy `GLModel.raycaster` → native `AABBMesh::AABBMesh` → `create_face_neighbors_index`.

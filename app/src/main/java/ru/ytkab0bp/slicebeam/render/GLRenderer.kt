@@ -197,6 +197,37 @@ fun combineSelectedObjectsAsParts(): Int {
     return combined
 }
 
+/** Places the current selection on a target and groups the assembly for printable slicing. */
+fun placeSelectedObjectsOnObject(targetIndex: Int): Int {
+    val activeModel = model ?: return -1
+    val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices)
+        return -1
+
+    fun bounds(index: Int): ObjectBounds3D {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        return ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+    }
+    val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
+    val delta = ObjectPlacement.onTop(movingBounds, bounds(targetIndex)) ?: return -1
+
+    movingIndices.forEach { index ->
+        activeModel.translate(index, delta.x, delta.y, delta.z)
+        invalidateGlModel(index)
+    }
+    val combined = activeModel.combineObjectsAsParts((movingIndices + targetIndex).toIntArray())
+    if (combined < 0) {
+        movingIndices.forEach { index ->
+            activeModel.translate(index, -delta.x, -delta.y, -delta.z)
+            invalidateGlModel(index)
+        }
+        return combined
+    }
+    resetGlModels()
+    setSelectedObject(combined)
+    return combined
+}
+
 private var paintModeKind = PAINT_MODE_COLOR
 private class CutConnectorPreview {
 internal lateinit var position:Vec3d

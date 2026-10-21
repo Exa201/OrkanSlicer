@@ -1839,6 +1839,13 @@ extern "C" {
             resultRef->name = print.output_filename(model->base_name);
 
             return (jlong) (intptr_t) resultRef;
+        } catch (const Slic3r::SlicingErrors& e) {
+            std::string message = e.what();
+            for (const Slic3r::SlicingError& error : e.errors_)
+                message += "\nObject " + std::to_string(error.objectId()) + ": " + error.what();
+            __android_log_print(ANDROID_LOG_ERROR, "BeamPaint", "slice exception type=%s what=%s", typeid(e).name(), message.c_str());
+            env->ThrowNew(env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError"), message.c_str());
+            return 0;
         } catch (const std::exception& e) {
             __android_log_print(ANDROID_LOG_ERROR, "BeamPaint", "slice exception type=%s what=%s", typeid(e).name(), e.what());
             env->ThrowNew(env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError"), e.what());
