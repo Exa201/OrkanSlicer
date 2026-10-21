@@ -2,8 +2,23 @@ package ru.ytkab0bp.slicebeam.ui.workspace
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import ru.ytkab0bp.slicebeam.ui.settings.TemporaryProjectSettingsBarLayoutPolicy
 
 class WorkspaceShellLayoutPolicyTest {
+    @Test
+    fun workspaceHeaderReservesTheMaximumAppZoomForEachSystemFontScale() {
+        assertEquals(58, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(1f))
+        assertEquals(73, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(1.3f))
+        assertEquals(58, WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(Float.NaN))
+    }
+
+    @Test
+    fun temporaryProjectBannerReservesTwoExplanationLinesAtTheMaximumAppZoom() {
+        assertEquals(96, TemporaryProjectSettingsBarLayoutPolicy.heightDp(1f))
+        assertEquals(116, TemporaryProjectSettingsBarLayoutPolicy.heightDp(1.3f))
+        assertEquals(96, TemporaryProjectSettingsBarLayoutPolicy.heightDp(Float.NaN))
+    }
+
     @Test
     fun landscapeMenuWidthPreservesReadableActionsAndRendererSpace() {
         assertEquals(256, WorkspaceShellLayoutPolicy.menuPanelWidthDp(800, 1f))

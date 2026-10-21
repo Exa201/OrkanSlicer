@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import kotlin.math.ceil
 import androidx.compose.ui.platform.testTag
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 import ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale
@@ -123,8 +124,12 @@ internal fun WorkspaceShell(
     val header: @Composable (Modifier) -> Unit = { modifier ->
         Row(
             modifier = modifier
-                .fillMaxWidth()
-                .heightIn(min = OrkanUiTokens.touchTarget)
+            .fillMaxWidth()
+                .testTag("workspace-header")
+                // Reserve the header height for the largest app text zoom. The
+                // reservation depends only on Android's accessibility scale, so
+                // moving the app slider cannot change the bed viewport geometry.
+                .height(WorkspaceShellLayoutPolicy.workspaceHeaderHeightDp(LocalBeamLayoutFontScale.current).dp)
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         ) {
             Box(
@@ -148,9 +153,9 @@ internal fun WorkspaceShell(
     Box(Modifier.fillMaxSize().background(background)) {
       if (portrait) {
         Column(Modifier.fillMaxSize()) {
-            Box(Modifier.fillMaxWidth().heightIn(min = 0.dp)) { projectSettingsContent() }
+            Box(Modifier.fillMaxWidth().heightIn(min = 0.dp).testTag("workspace-project-settings-area")) { projectSettingsContent() }
             header(Modifier)
-            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).testTag("workspace-renderer-area")) {
                 AndroidView(
                     factory = { rendererView },
                     modifier = Modifier.fillMaxSize(),
@@ -178,7 +183,7 @@ internal fun WorkspaceShell(
                 }
             }
             AdaptiveWorkspaceNavigation(
-                modifier = Modifier.fillMaxWidth().height(navigationHeightDp.dp),
+                modifier = Modifier.fillMaxWidth().height(navigationHeightDp.dp).testTag("workspace-navigation"),
                 items = navigationItems,
                 selectedSlot = selectedNavigationSlot,
                 isBottomNavigation = true,
@@ -287,6 +292,18 @@ internal fun WorkspaceActionControl(
 
 /** Measurable policy for the portion of a compact workspace reserved for the actual build plate. */
 internal object WorkspaceShellLayoutPolicy {
+    private const val MAX_APP_TEXT_SCALE = 1.5f
+
+    /** Stable header geometry with room for its two profile lines at the app zoom maximum. */
+    @JvmStatic
+    fun workspaceHeaderHeightDp(systemFontScale: Float): Int {
+        val stableScale = (systemFontScale.takeIf { it.isFinite() && it > 0f } ?: 1f) * MAX_APP_TEXT_SCALE
+        // 18sp title line plus a 12sp summary with a small font-metric safety margin,
+        // then the fixed vertical padding around the header row.
+        val contentHeight = ceil(33f * stableScale).toInt().coerceAtLeast(48)
+        return contentHeight + 8
+    }
+
     /** Keeps the renderer at full viewport size while fitting the expanded action menu over it. */
     @JvmStatic
     fun portraitMenuOverlayHeightDp(viewportHeightDp: Int, preferredHeightDp: Int, fontScale: Float): Int {

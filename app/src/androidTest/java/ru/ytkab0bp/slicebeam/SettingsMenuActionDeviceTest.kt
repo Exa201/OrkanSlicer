@@ -31,6 +31,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.atomic.AtomicReference
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
+import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.fragment.SettingsFragment
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.fragment.MakerFragment
@@ -120,8 +122,23 @@ class SettingsMenuActionDeviceTest {
         val targetLabel = "${(targetScale * 100).toInt()}%"
 
         try {
+            TemporaryProjectSettings.clear()
+            TemporaryProjectSettings.activate(
+                ThreeMfProjectSettings(
+                    sourceName = "responsive-layout-fixture.3mf",
+                    process = mapOf("layer_height" to "0.2"),
+                    filaments = emptyList(),
+                    filamentTypes = emptyMap(),
+                    printSettingsImported = true,
+                    filamentSettingsImported = false,
+                    printerSettingsImported = false,
+                ),
+            )
             navigateToSettings(activity)
+            showPreviewWorkspace(activity)
             val viewportBeforeZoom = workspaceViewportBounds(activity)
+            val regionsBeforeZoom = workspaceRegionBounds()
+            navigateToSettings(activity)
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
                 .performScrollTo().assertIsDisplayed().performClick()
 
@@ -153,7 +170,16 @@ class SettingsMenuActionDeviceTest {
             val afterHeight = compose.onNodeWithText(activity.getString(R.string.SlotAppSettings))
                 .fetchSemanticsNode().size.height
             assertEquals(targetScale, Prefs.getUiTextScale(), 0f)
-            assertEquals("Changing app text zoom must not move or resize the build plate viewport", viewportBeforeZoom, workspaceViewportBounds(activity))
+            showPreviewWorkspace(activity)
+            val regionsAfterZoom = workspaceRegionBounds()
+            assertEquals("Workspace rows must keep the same geometry at different app text zoom values",
+                regionsBeforeZoom, regionsAfterZoom)
+            assertEquals(
+                "Changing app text zoom must not move or resize the build plate viewport. Regions before=$regionsBeforeZoom, after=$regionsAfterZoom",
+                viewportBeforeZoom,
+                workspaceViewportBounds(activity),
+            )
+            navigateToSettings(activity)
             assertTrue("The already-created workspace must receive the global theme/text-scale invalidation",
                 workspaceThemeRevision(activity) > workspaceRevisionBefore)
             if (targetScale > originalScale) {
@@ -181,9 +207,12 @@ class SettingsMenuActionDeviceTest {
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
             assertEquals("Android Back closes the preview without changing the applied text size", targetScale, Prefs.getUiTextScale(), 0f)
-            assertEquals("App text zoom must not move or resize the build plate viewport", viewportBeforeZoom, workspaceViewportBounds(activity))
+            showPreviewWorkspace(activity)
+            assertEquals("App text zoom must not move or resize the build plate viewport after Back navigation",
+                viewportBeforeZoom, workspaceViewportBounds(activity))
         } finally {
             activity.runOnUiThread {
+                TemporaryProjectSettings.clear()
                 Prefs.setUiTextScale(originalScale)
                 ThemesRepo.invalidate(activity)
             }
@@ -359,6 +388,25 @@ class SettingsMenuActionDeviceTest {
         waitForSettingsContent(activity)
     }
 
+    private fun showPreviewWorkspace(activity: MainActivity) {
+        activity.runOnUiThread {
+            (activity.navigationDelegate as MobileNavigationDelegate).switchToSlot(0)
+        }
+        compose.waitUntil(timeoutMillis = 15_000) {
+            val bed = activity.navigationDelegate.getCurrentFragment() as? BedFragment ?: return@waitUntil false
+            val view = bed.glView ?: return@waitUntil false
+            val fragmentView = bed.getView() ?: return@waitUntil false
+            // switchToSlot updates currentFragment before its spring transition has
+            // finished. Measuring during that transition reports translated GLView
+            // bounds and makes a stable-layout check flaky.
+            val container = activity.navigationDelegate.getContainerView()
+            view.visibility == View.VISIBLE && view.width > 0 && view.height > 0 &&
+                container?.childCount == 1 &&
+                fragmentView.translationX == 0f && fragmentView.translationY == 0f &&
+                fragmentView.alpha >= 0.999f
+        }
+    }
+
     private fun waitForSettingsContent(activity: MainActivity) {
         val label = activity.getString(R.string.SettingsInterface)
         compose.waitUntil(timeoutMillis = 15_000) {
@@ -421,6 +469,15 @@ class SettingsMenuActionDeviceTest {
             result.set(listOf(location[0], location[1], viewport.width, viewport.height))
         }
         return requireNotNull(result.get())
+    }
+
+    private fun workspaceRegionBounds(): Map<String, String> = listOf(
+        "workspace-project-settings-area",
+        "workspace-header",
+        "workspace-renderer-area",
+        "workspace-navigation",
+    ).associateWith { tag ->
+        compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.toString()
     }
 
     private fun resumedActivity(): Activity? {

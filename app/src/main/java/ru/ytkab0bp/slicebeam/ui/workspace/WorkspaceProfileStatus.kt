@@ -49,7 +49,6 @@ internal fun WorkspaceProfileStatus(
         Row(
             modifier = Modifier.fillMaxWidth().padding(
                 horizontal = OrkanUiTokens.controlHorizontalPadding,
-                vertical = OrkanUiTokens.controlVerticalPadding,
             ),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
