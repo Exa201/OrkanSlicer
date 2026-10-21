@@ -2237,3 +2237,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: `WorkspaceMenuCustomizationDeviceTest` passed 4/4, 0 skipped/failures/errors (XML timestamp `2026-10-21T15:14:53`). No app defect was reproduced. Emulator remains offline; this test uses simulated Compose font scale and host width, not system-level font settings or physical landscape rotation.
 - Test-only instrumentation change; `git diff --check` passed. No APK or JVM unit suite was rebuilt. Phase 5 action matrix and manual TalkBack traversal remain incomplete.
 - Next: continue the source-to-handler reconciliation of remaining workspace/global actions; verify which have existing action-level device coverage before adding more tests.
+
+## Profile accessibility action checks (2026-10-21)
+
+- Honor PTP-N49 / Android 16 focused runs passed: `ProfileEnumOptionAccessibilityDeviceTest` 1/1, `SettingsAccessibilityDeviceTest` 1/1, and `ProfileFilterAccessibilityDeviceTest` 1/1. The profile enum run used a 320×640 dp host and 150% font scale, scrolled to the final bed-surface option, then dismissed without applying; settings expansion and profile filter/favorites semantics were exercised by their respective tests.
+- These are separate focused runs and not a new full instrumentation pass. No product defect was reproduced and no production source changed. Manual TalkBack service traversal remains unverified; the emulator is still offline.
+- Phase 5 remains active: actual visible action-to-handler reconciliation is not exhaustive. Phase 6 remains partial: automated camera and profile accessibility/layout paths now have recent Honor evidence, but a complete menu/display matrix and physical TalkBack are outstanding.
+- Next: complete the source-derived menu action matrix, marking send-to-printer and print-start items safety-excluded; then address uncovered safe actions with focused Honor tests.
