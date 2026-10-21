@@ -2368,7 +2368,7 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 
 # Multi-operand Boolean regression coverage — 2026-10-21
 
-- Added Honor native regression coverage for sequential difference using two separate cutters and three-body intersection. The initial intersection fixture used axis-aligned cubes with coplanar faces and was rejected by the native solid-validity guard; the corrected fixture offsets all three solids in X/Y/Z to test a non-degenerate shared volume. This documents a limitation of that degenerate fixture; no runtime CSG behavior was changed in this follow-up.
+- Added Honor native regression coverage for sequential difference using two separate cutters and three-body intersection. The initial intersection fixture used axis-aligned cubes with coplanar faces and was rejected by the native solid-validity guard (`-4`); the corrected fixture offsets all three solids in X/Y/Z and passes on the non-degenerate shared volume. The aligned/coplanar case remains unresolved and should be investigated as a possible CGAL robustness limitation; no runtime CSG behavior was changed in this follow-up.
 - Honor PTP-N49 / Android 16: focused three-body intersection passed 1/1; full `ModelEditingNativeDeviceTest` passed 16/16, including multi-object union/difference/intersection and preservation of inputs on invalid operations. Emulator remains offline.
 - No APK rebuild was needed for these test-only changes; the tested runtime remains commit `5ea747548f`. Debug/Slice JVM suites were not rerun because production code did not change. `git diff --check` passed.
 - Next: commit and push these added regression tests plus this checkpoint, then continue actual interaction coverage of grouped placement and multi-object filament assignment.
