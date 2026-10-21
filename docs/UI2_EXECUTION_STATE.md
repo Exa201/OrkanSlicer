@@ -1,10 +1,14 @@
 # KromaCut black-screen follow-up — 2026-10-21
 
+- Delivered build: code commit `5680d92edf5854d49bfab299a9c7dddcdd5e86b7`, app 0.8.335 / versionCode 370. APK `OrkanSlicer_5680d92edf.apk`, 239,127,058 bytes, SHA-256 `A64EDAF83178B3D3667C014F3D0D1967360DBAB01CA78463CE8B62BFED08D91C`.
+- Final verification on Honor PTP-N49 / Android 16: `:app:assembleDebug` succeeded; installed APK launched; KromaCut route was opened and screenshot confirmed visible 2D/3D controls, adjustments, toolbar, and colorful image canvas. Focused device test passed 1/1. Logcat smoke filter found no FATAL EXCEPTION, ANR, or OutOfMemoryError. Emulator is offline; Xiaomi remains untested.
+- GitHub: code commit pushed to `codex/rinkhals-safe-start-audit`; PR #2 is open and CLEAN. Previous latest debug prerelease `v0.8.330` was removed as requested. Publish the verified APK as regular release `v0.8.335`.
+
 - Root cause confirmed on Honor PTP-N49 / Android 16: the `GLSurfaceView` Surface overlaps and obscures the Compose-hosted WebView, while the KromaCut DOM itself loads. Separately, KromaCut's `100dvh` rule produced a zero-height document root.
 - Runtime fix: keep the existing GLView/model, temporarily set the GL surface `GONE` only while KromaCut is open, then restore visibility and request a frame on dismissal. Reopening the GL surface invokes its existing surface recreation path; Honor test confirmed the native model object is retained and the renderer bed becomes available again.
 - Keep explicit measured-pixel WebView root sizing and normal WebView compositor. Honor screenshot captured during the test showed KromaCut 2D/3D controls, adjustment sidebar, image tool row and image canvas. Final focused Honor `WorkspaceNavigationDeviceTest`: 1/1 passed, including visible WebView layout, WebGL2 availability, Back dismissal, GL visibility/model restoration, and renderer surface readiness.
 - Current candidate version: 0.8.335 / code 370. Xiaomi is not connected and remains unverified. Do not state the user's Xiaomi issue is confirmed fixed until their phone is tested. Emulator remains offline.
-- Next: assemble/install the regular debug APK, visually inspect KromaCut and return navigation, run startup/logcat smoke checks, then update branch/PR and provide a candidate APK/release with the Xiaomi limitation stated.
+- Next: publish v0.8.335 with the verified APK, confirm its uploaded checksum, then resume the UI 2.0 backlog. Xiaomi-specific confirmation still requires a Xiaomi device test.
 
 ---
 
