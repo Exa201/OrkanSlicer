@@ -1864,3 +1864,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - The exact commit-named APK was installed and launched. Android reported `MainActivity` resumed. A sampled 12,000-line startup Logcat had no matches for fatal exception, package ANR, OOM, or fatal signal.
 - No printer was contacted and no print was started. PR #2 was open and mergeable before this commit; final pushed-branch/PR state is recorded after publication.
 
+# Build and verification update — slice viewport and 0.8.340 changelog (2026-10-21)
+
+- Slice viewport runtime/test commit: `83337820fdbc6efa587ad315b6766b1e23d8e551`; follow-up version and in-app release-note commit: `f0b3ec9cf7c3a1bd8279947241cf83cb44fe0f74`.
+- `:app:assembleDebug` succeeded for 0.8.340 / versionCode 375. APK `OrkanSlicer_f0b3ec9cf7.apk`, 239,148,100 bytes, SHA-256 `45CF5C597E3A2A772FC350CCECA89C08F3817951CDA2179443C9758DB908AB46`.
+- Slice panel focused Honor cases passed 2/2; real native slice and layer selection passed 1/1. Debug and Slice JVM suites passed 591/591 each against the panel implementation. The 0.8.339 full Honor run exposed a stale changelog string: 1 failure, 3 private fixture skips; all other executed tests completed. After updating German/English/Russian notes, `ChangeLogComposeDeviceTest` passed 1/1 on 0.8.340. The complete Honor suite was not repeated after that note-only correction.
+- Exact 0.8.340 APK installed/launched on Honor PTP-N49 / Android 16; Android reports MainActivity resumed. Sampled 12,000 startup log lines had no fatal exception, package ANR, OOM, or fatal-signal matches. Emulator offline. No printer or print action.
+
