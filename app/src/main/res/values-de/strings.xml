@@ -752,6 +752,7 @@
     <string name="SettingsCameraOrthographic">Orthografisch</string>
     <string name="SettingsCameraPerspective">Perspektivisch</string>
     <string name="MenuCustomize">Menü anpassen</string>
+    <string name="MenuCustomizeDragHint">Zum Verschieben ein Menüelement gedrückt halten und an die gewünschte Position ziehen. Unten kannst du Elemente ein- oder ausblenden.</string>
     <string name="MenuCustomizeReset">Zurücksetzen</string>
     <string name="MenuCustomizeMoveUp">Nach oben</string>
     <string name="MenuCustomizeMoveDown">Nach unten</string>

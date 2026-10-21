@@ -762,6 +762,7 @@
     <string name="SettingsCameraOrthographic">Orthographic</string>
     <string name="SettingsCameraPerspective">Perspective</string>
     <string name="MenuCustomize">Customize menu</string>
+    <string name="MenuCustomizeDragHint">Long-press an action and drag it to its new position. Use the controls below to hide or show actions.</string>
     <string name="MenuCustomizeReset">Reset</string>
     <string name="MenuCustomizeMoveUp">Move up</string>
     <string name="MenuCustomizeMoveDown">Move down</string>

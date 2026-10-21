@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -22,10 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -54,8 +55,73 @@ internal fun CustomizableBedMenuActionsContent(
     var editing by remember(menuKey) { mutableStateOf(false) }
     var draftOrder by remember(menuKey) { mutableStateOf(emptyList<String>()) }
     var draftHidden by remember(menuKey) { mutableStateOf(emptySet<String>()) }
+    val dragState = remember(menuKey) { MenuActionDragState() }
     val actionByKey = remember(actions, actionKeys) { actionKeys.zip(actions).toMap() }
     val visibleActions = order.filterNot { it in hidden }.mapNotNull(actionByKey::get)
+
+    fun persistOrder(next: List<String>) {
+        order = next
+        preferences.edit().putString("order_$menuKey", next.joinToString("|")).apply()
+    }
+
+    fun swapVisibleAction(titleRes: Int, direction: Int) {
+        val key = context.resources.getResourceEntryName(titleRes)
+        val visibleKeys = order.filterNot { it in hidden }
+        val index = visibleKeys.indexOf(key)
+        val targetKey = visibleKeys.getOrNull(index + direction) ?: return
+        val from = order.indexOf(key)
+        val target = order.indexOf(targetKey)
+        if (from < 0 || target < 0) return
+        persistOrder(order.toMutableList().also {
+            val current = it[from]
+            it[from] = it[target]
+            it[target] = current
+        })
+    }
+
+    fun moveToVisibleTarget(sourceKey: String, targetTitleRes: Int) {
+        val targetKey = context.resources.getResourceEntryName(targetTitleRes)
+        if (sourceKey == targetKey || sourceKey !in order || targetKey !in order) return
+        val next = order.toMutableList()
+        next.remove(sourceKey)
+        val targetIndex = next.indexOf(targetKey)
+        if (targetIndex < 0) return
+        next.add(targetIndex, sourceKey)
+        order = next
+        dragState.hasMoved = true
+    }
+
+    val onActionPositioned: (Int, Rect) -> Unit = { id, bounds -> dragState.bounds[id] = bounds }
+    val onActionDragStart: (Int, Offset) -> Unit = { id, localOffset ->
+        dragState.hasMoved = false
+        dragState.lastTargetTitleRes = null
+        dragState.activeTitleRes = id
+        dragState.pointerInRoot = dragState.bounds[id]?.topLeft?.plus(localOffset)
+    }
+    val onActionDrag: (Int, Offset) -> Unit = { id, delta ->
+        if (dragState.activeTitleRes == id) {
+            dragState.pointerInRoot = dragState.pointerInRoot?.plus(delta)
+            val visibleTitleIds = visibleActions.map { it.titleRes }.toSet()
+            val target = dragState.pointerInRoot?.let { point ->
+                dragState.bounds.entries.firstOrNull { (candidate, bounds) ->
+                    candidate != id && candidate in visibleTitleIds && bounds.contains(point)
+                }?.key
+            }
+            if (target != dragState.lastTargetTitleRes) {
+                dragState.lastTargetTitleRes = target
+                if (target != null) moveToVisibleTarget(context.resources.getResourceEntryName(id), target)
+            }
+        }
+    }
+    val onActionDragEnd: () -> Unit = {
+        if (dragState.hasMoved) {
+            preferences.edit().putString("order_$menuKey", order.joinToString("|")).apply()
+        }
+        dragState.hasMoved = false
+        dragState.lastTargetTitleRes = null
+        dragState.activeTitleRes = null
+        dragState.pointerInRoot = null
+    }
 
     val openCustomization = {
         draftOrder = order.toList()
@@ -67,7 +133,14 @@ internal fun CustomizableBedMenuActionsContent(
         // header row consumed most of the short workspace panel on compact phones and
         // reduced every action to an unusable touch target.
         Row(modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-            BedMenuActionsContent(visibleActions, portrait, multiRow, Modifier.weight(1f))
+            BedMenuActionsContent(
+                visibleActions, portrait, multiRow, Modifier.weight(1f),
+                onActionPositioned = onActionPositioned,
+                onActionDragStart = onActionDragStart,
+                onActionDrag = onActionDrag,
+                onActionDragEnd = onActionDragEnd,
+                onMoveAction = ::swapVisibleAction,
+            )
             TextButton(
                 onClick = openCustomization,
                 modifier = Modifier.width(48.dp).fillMaxSize().testTag("menu-customize-$menuKey"),
@@ -88,7 +161,14 @@ internal fun CustomizableBedMenuActionsContent(
                     modifier = Modifier.heightIn(min = 48.dp).testTag("menu-customize-$menuKey"),
                 ) { Text(stringResource(R.string.MenuCustomize)) }
             }
-            BedMenuActionsContent(visibleActions, portrait, multiRow, Modifier.weight(1f))
+            BedMenuActionsContent(
+                visibleActions, portrait, multiRow, Modifier.weight(1f),
+                onActionPositioned = onActionPositioned,
+                onActionDragStart = onActionDragStart,
+                onActionDrag = onActionDrag,
+                onActionDragEnd = onActionDragEnd,
+                onMoveAction = ::swapVisibleAction,
+            )
         }
     }
 
@@ -97,37 +177,33 @@ internal fun CustomizableBedMenuActionsContent(
             onDismissRequest = { editing = false },
             title = { Text(stringResource(R.string.MenuCustomize)) },
             text = {
-                LazyColumn(Modifier.heightIn(max = 520.dp).testTag("menu-customize-list-$menuKey")) {
-                    itemsIndexed(draftOrder, key = { _, key -> key }) { index, key ->
-                        val action = actionByKey[key] ?: return@itemsIndexed
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = key !in draftHidden,
-                                onCheckedChange = { checked ->
-                                    draftHidden = if (checked) draftHidden - key else draftHidden + key
-                                },
-                                modifier = Modifier
-                                    .semantics { contentDescription = context.getString(action.titleRes) }
-                                    .testTag("menu-customize-visible-$menuKey-$key"),
-                            )
-                            Text(stringResource(action.titleRes), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                            TextButton(enabled = index > 0, onClick = {
-                                val moved = draftOrder.toMutableList()
-                                moved.add(index - 1, moved.removeAt(index))
-                                draftOrder = moved
-                            }, modifier = Modifier.heightIn(min = 48.dp)
-                                .semantics { contentDescription = context.getString(R.string.MenuCustomizeMoveUp) }
-                                .testTag("menu-customize-up-$menuKey-$key")) { Text("↑") }
-                            TextButton(enabled = index < draftOrder.lastIndex, onClick = {
-                                val moved = draftOrder.toMutableList()
-                                moved.add(index + 1, moved.removeAt(index))
-                                draftOrder = moved
-                            }, modifier = Modifier.heightIn(min = 48.dp)
-                                .semantics { contentDescription = context.getString(R.string.MenuCustomizeMoveDown) }
-                                .testTag("menu-customize-down-$menuKey-$key")) { Text("↓") }
+                Column(Modifier.heightIn(max = 520.dp)) {
+                    Text(
+                        stringResource(R.string.MenuCustomizeDragHint),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    LazyColumn(Modifier.heightIn(max = 460.dp).testTag("menu-customize-list-$menuKey")) {
+                        items(draftOrder, key = { key -> key }) { key ->
+                            val action = actionByKey[key] ?: return@items
+                            Row(
+                                Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(
+                                    checked = key !in draftHidden,
+                                    onCheckedChange = { checked ->
+                                        draftHidden = if (checked) draftHidden - key else draftHidden + key
+                                    },
+                                    modifier = Modifier
+                                        .semantics { contentDescription = context.getString(action.titleRes) }
+                                        .testTag("menu-customize-visible-$menuKey-$key"),
+                                )
+                                Text(
+                                    stringResource(action.titleRes), Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
                         }
                     }
                 }
@@ -158,4 +234,12 @@ internal fun CustomizableBedMenuActionsContent(
             },
         )
     }
+}
+
+private class MenuActionDragState {
+    val bounds = mutableMapOf<Int, Rect>()
+    var activeTitleRes: Int? = null
+    var pointerInRoot: Offset? = null
+    var lastTargetTitleRes: Int? = null
+    var hasMoved: Boolean = false
 }

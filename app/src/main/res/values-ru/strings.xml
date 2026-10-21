@@ -359,4 +359,9 @@
     <string name="NavigationScrollMoreBelow">Другие пункты навигации ниже</string>
     <string name="NavigationScrollMoreAbove">Другие пункты навигации выше</string>
     <plurals name="GCodeIntegrityLayerStarts"><item quantity="one">%1$d начало слоя</item><item quantity="few">%1$d начала слоя</item><item quantity="many">%1$d начал слоя</item><item quantity="other">%1$d начала слоя</item></plurals>
+    <string name="MenuCustomize">Настроить меню</string>
+    <string name="MenuCustomizeDragHint">Чтобы переместить пункт, удерживайте его и перетащите на новое место. Ниже можно скрывать и показывать пункты.</string>
+    <string name="MenuCustomizeReset">Сбросить</string>
+    <string name="MenuCustomizeMoveUp">Переместить выше</string>
+    <string name="MenuCustomizeMoveDown">Переместить ниже</string>
 </resources>

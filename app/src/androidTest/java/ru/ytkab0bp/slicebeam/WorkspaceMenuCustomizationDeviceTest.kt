@@ -22,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -70,8 +71,11 @@ class WorkspaceMenuCustomizationDeviceTest {
 
         compose.onNodeWithText(context.getString(R.string.MenuCameraTop)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.MenuCameraBottom)).assertIsDisplayed()
+        dragAction(
+            "workspace-menu-action-${R.string.MenuCameraTop}",
+            "workspace-menu-action-${R.string.MenuCameraBottom}",
+        )
         compose.onNodeWithTag("menu-customize-$menuKey").performClick()
-        compose.onNodeWithTag("menu-customize-down-$menuKey-$topKey").performClick()
         compose.onNodeWithTag("menu-customize-visible-$menuKey-$bottomKey").performClick()
         compose.onNodeWithTag("menu-customize-save-$menuKey").performClick()
 
@@ -86,7 +90,7 @@ class WorkspaceMenuCustomizationDeviceTest {
         compose.onNodeWithText(context.getString(R.string.MenuCameraBottom)).assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.MenuCameraTop)).assertIsDisplayed()
         compose.onNodeWithTag("menu-customize-$menuKey").performClick()
-        compose.onNodeWithTag("menu-customize-down-$menuKey-$bottomKey").assertIsDisplayed()
+        compose.onNodeWithTag("menu-customize-visible-$menuKey-$bottomKey").assertIsDisplayed()
     }
 
     @Test fun cameraMenuUsesCustomizationAndPersistsHiddenAndReorderedActions() {
@@ -114,7 +118,12 @@ class WorkspaceMenuCustomizationDeviceTest {
             }
 
             compose.onNodeWithTag("menu-customize-view").assertIsDisplayed().performClick()
-            compose.onNodeWithTag("menu-customize-down-view-$orthoKey").performClick()
+            compose.onNodeWithText(context.getString(AndroidR.string.cancel)).performClick()
+            dragAction(
+                "workspace-menu-action-${R.string.MenuCameraOrtho}",
+                "workspace-menu-action-${R.string.MenuCameraControlMode}",
+            )
+            compose.onNodeWithTag("menu-customize-view").performClick()
             compose.onNodeWithTag("menu-customize-visible-view-$orthoKey").performClick()
             compose.onNodeWithTag("menu-customize-save-view").performClick()
 
@@ -211,4 +220,16 @@ class WorkspaceMenuCustomizationDeviceTest {
     }
 
     private fun noOp(view: View) = Unit
+
+    private fun dragAction(sourceTag: String, targetTag: String) {
+        val source = compose.onNodeWithTag(sourceTag)
+        val sourceBounds = source.fetchSemanticsNode().boundsInRoot
+        val targetCenter = compose.onNodeWithTag(targetTag).fetchSemanticsNode().boundsInRoot.center
+        source.performTouchInput {
+            down(center)
+            advanceEventTime(600)
+            moveTo(targetCenter - sourceBounds.topLeft, durationMillis = 500)
+            up()
+        }
+    }
 }

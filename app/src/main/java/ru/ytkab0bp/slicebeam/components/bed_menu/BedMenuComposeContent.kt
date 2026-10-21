@@ -4,6 +4,7 @@ import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -33,9 +34,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -44,6 +51,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import ru.ytkab0bp.slicebeam.R
@@ -128,6 +137,11 @@ internal fun BedMenuActionsContent(
     portrait: Boolean,
     multiRow: Boolean = false,
     modifier: Modifier = Modifier,
+    onActionPositioned: ((Int, Rect) -> Unit)? = null,
+    onActionDragStart: ((Int, Offset) -> Unit)? = null,
+    onActionDrag: ((Int, Offset) -> Unit)? = null,
+    onActionDragEnd: (() -> Unit)? = null,
+    onMoveAction: ((Int, Int) -> Unit)? = null,
 ) {
     val menuView = LocalView.current
     val widthDp = LocalConfiguration.current.screenWidthDp
@@ -177,7 +191,13 @@ internal fun BedMenuActionsContent(
                             // LazyHorizontalGrid can measure the one-row fallback using only the
                             // label's intrinsic height. Set the cell height explicitly so it
                             // keeps a useful touch target on compact viewports.
-                            modifier = Modifier.width(tileWidth).height(gridTileHeight))
+                            modifier = Modifier.width(tileWidth).height(gridTileHeight),
+                            onActionPositioned = onActionPositioned,
+                            onActionDragStart = onActionDragStart,
+                            onActionDrag = onActionDrag,
+                            onActionDragEnd = onActionDragEnd,
+                            onMoveAction = onMoveAction,
+                        )
                     }
                 }
                 if (reservePagingSlot) {
@@ -224,6 +244,11 @@ internal fun BedMenuActionsContent(
                     portrait = true,
                     menuView = menuView,
                     modifier = Modifier.width(portraitActionTileWidth).height(tileHeight),
+                    onActionPositioned = onActionPositioned,
+                    onActionDragStart = onActionDragStart,
+                    onActionDrag = onActionDrag,
+                    onActionDragEnd = onActionDragEnd,
+                    onMoveAction = onMoveAction,
                 )
             }
         }
@@ -243,7 +268,14 @@ internal fun BedMenuActionsContent(
         ) {
             actions.forEach { action ->
                 if (action.sectionBreakBefore) Spacer(Modifier.heightIn(min = 6.dp))
-                BedMenuActionTile(action, portrait = false, menuView = menuView, modifier = Modifier.fillMaxWidth())
+                BedMenuActionTile(
+                    action, portrait = false, menuView = menuView, modifier = Modifier.fillMaxWidth(),
+                    onActionPositioned = onActionPositioned,
+                    onActionDragStart = onActionDragStart,
+                    onActionDrag = onActionDrag,
+                    onActionDragEnd = onActionDragEnd,
+                    onMoveAction = onMoveAction,
+                )
             }
         }
     }
@@ -256,6 +288,11 @@ private fun BedMenuActionTile(
     menuView: View,
     compactPortraitGrid: Boolean = false,
     modifier: Modifier,
+    onActionPositioned: ((Int, Rect) -> Unit)?,
+    onActionDragStart: ((Int, Offset) -> Unit)?,
+    onActionDrag: ((Int, Offset) -> Unit)?,
+    onActionDragEnd: (() -> Unit)?,
+    onMoveAction: ((Int, Int) -> Unit)?,
 ) {
     val fullTitle = stringResource(action.titleRes)
     val fontScale = LocalDensity.current.fontScale
@@ -318,13 +355,50 @@ private fun BedMenuActionTile(
     } else {
         Modifier.clickable(enabled = action.enabled, role = Role.Button) { action.onClick(menuView) }
     }
+    val latestDragStart = rememberUpdatedState(onActionDragStart)
+    val latestDrag = rememberUpdatedState(onActionDrag)
+    val latestDragEnd = rememberUpdatedState(onActionDragEnd)
+    val moveUpDescription = stringResource(R.string.MenuCustomizeMoveUp)
+    val moveDownDescription = stringResource(R.string.MenuCustomizeMoveDown)
+    val dragModifier = if (onActionPositioned != null || onActionDragStart != null || onActionDrag != null) {
+        Modifier
+            .then(if (onActionPositioned != null) Modifier.onGloballyPositioned {
+                onActionPositioned(action.titleRes, it.boundsInRoot())
+            } else Modifier)
+            .then(if (onActionDragStart != null && onActionDrag != null) Modifier.pointerInput(action.titleRes) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { latestDragStart.value?.invoke(action.titleRes, it) },
+                    onDragEnd = { latestDragEnd.value?.invoke() },
+                    onDragCancel = { latestDragEnd.value?.invoke() },
+                    onDrag = { change, amount ->
+                        change.consume()
+                        latestDrag.value?.invoke(action.titleRes, amount)
+                    },
+                )
+            } else Modifier)
+    } else Modifier
     Surface(
         modifier = modifier
             .padding(3.dp)
+            .then(dragModifier)
             .then(interaction)
             // Keep the accessible node on the whole clickable tile, not just its short
             // label. This preserves its real touch target in compact horizontal grids.
-            .semantics(mergeDescendants = true) { contentDescription = fullTitle }
+            .semantics(mergeDescendants = true) {
+                contentDescription = fullTitle
+                if (onMoveAction != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(moveUpDescription) {
+                            onMoveAction(action.titleRes, -1)
+                            true
+                        },
+                        CustomAccessibilityAction(moveDownDescription) {
+                            onMoveAction(action.titleRes, 1)
+                            true
+                        },
+                    )
+                }
+            }
             .testTag("workspace-menu-action-${action.titleRes}"),
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         color = background,
