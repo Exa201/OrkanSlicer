@@ -2079,3 +2079,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: focused test passed in the full `MakerGeneratorWorkspaceDeviceTest`, now 13/13, 0 skipped/failures/errors. JUnit XML timestamp: `2026-10-21T12:19:39`.
 - No production code or export picker was changed or invoked. Other Maker generator success/save paths, full Phase 5 reconciliation, and Phase 6 physical TalkBack remain outstanding. Next: continue with safe generator outputs and uncovered menu action tests; do not count these representative cases as all-generator coverage.
 
+# UI 2.0 continuation — phone stand generator verified (2026-10-21)
+
+- Added the Phone Stand default generation path to the Honor Maker instrumentation class. The test submits the real workspace form, waits for production STL validation/output options, checks the binary file exists under app cache, then discards it and verifies cleanup.
+- Honor PTP-N49 / Android 16: `MakerGeneratorWorkspaceDeviceTest` passed 14/14, 0 skips/failures/errors. XML timestamp `2026-10-21T12:21:47`.
+- No app runtime code changed; external save picker is still untested. Remaining Maker generator success paths and Phase 5/6 audit remain open. Next: pursue deterministic cache-only generator cases and continue the uncovered action matrix.
+
