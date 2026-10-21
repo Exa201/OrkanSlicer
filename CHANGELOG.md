@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.340 (debug)
+
+- Keep the build plate visible while inspecting sliced layers: layer controls are docked outside the renderer viewport in portrait and landscape.
+- Update the in-app release notes to match this version and describe the layer-panel change in German, English, and Russian. This also fixes the stale release-note version that failed the Honor changelog test.
+- Honor PTP-N49 / Android 16: layer-panel interaction passed 2/2 and actual slice/layer selection passed 1/1. The full 0.8.339 instrumentation run had one failure from the stale in-app changelog and three private-fixture skips; the changelog fix is being verified separately.
+
 ## 0.8.339 (debug)
 
 - Move the post-slice layer controls out of the build-plate viewport. The renderer now gets a separately measured area above the portrait controls or beside the landscape controls, so the selected layers can be inspected without a dialog obscuring the plate.
