@@ -1,25 +1,21 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -29,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,30 +39,58 @@ import ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy
 import ru.ytkab0bp.slicebeam.slic3r.GCodePreviewSelection
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 
 /** Hosts the post-slice layer range editor in the exclusive workspace overlay. */
 internal fun showSliceLayersWorkspace(bed: BedFragment) {
     val controller = SliceLayersWorkspaceController(bed)
-    bed.showWorkspaceComposeDialog { dismiss ->
+    val toolId = "slice-layer-preview"
+    bed.showWorkspaceToolPanel(
+        toolId = toolId,
+        panelSize = WorkspacePanelSize(
+            portrait = WorkspacePanelDimension.ClampedFraction(0.72f, minDp = 280f, maxDp = 380f),
+            landscape = WorkspacePanelDimension.Fixed(380f),
+        ),
+        allowBackgroundInteraction = false,
+        dockPanel = true,
+        onDismiss = {
+            controller.close()
+            bed.clearWorkspaceToolPanel(toolId)
+        },
+    ) {
         DisposableEffect(controller) {
             controller.open()
             onDispose { controller.close() }
         }
-        AlertDialog(
-            onDismissRequest = dismiss,
-            title = { Text(stringResource(R.string.MenuSliceLayers), modifier = Modifier.testTag("slice-layers-title")) },
-            text = {
-                Box(Modifier.fillMaxWidth().heightIn(max = 470.dp)) {
-                    controller.Content()
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = dismiss, modifier = Modifier.heightIn(min = 48.dp).testTag("slice-layers-close")) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            },
+        SliceLayersPanel(
+            onClose = { bed.dismissWorkspaceToolPanel() },
+            content = { controller.Content() },
         )
+    }
+}
+
+@Composable
+private fun SliceLayersPanel(onClose: () -> Unit, content: @Composable () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).testTag("slice-layers-panel"),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 16.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.MenuSliceLayers),
+                modifier = Modifier.weight(1f).testTag("slice-layers-title"),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            IconButton(onClick = onClose, modifier = Modifier.heightIn(min = 48.dp).testTag("slice-layers-close")) {
+                Text(stringResource(android.R.string.cancel), color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        Box(Modifier.fillMaxWidth().weight(1f)) { content() }
     }
 }
 
@@ -182,6 +205,7 @@ private class SliceLayersWorkspaceController(private val bed: BedFragment) {
     }
 
     fun close() {
+        if (destroyed) return
         applyView(layerRange.from, layerRange.to)
         destroyed = true
         cancelPendingApply()
@@ -228,7 +252,6 @@ private fun SliceLayersContent(
             onValueChangeFinished = onValueChangeFinished,
         )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 

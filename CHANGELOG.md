@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.339 (debug)
+
+- Move the post-slice layer controls out of the build-plate viewport. The renderer now gets a separately measured area above the portrait controls or beside the landscape controls, so the selected layers can be inspected without a dialog obscuring the plate.
+- Keep the layer panel scrollable on short or large-text layouts while preserving a minimum visible renderer area. Closing with its button or Android Back restores the normal workspace; layer range changes still update the active G-code viewer.
+- Honor PTP-N49 / Android 16: `SliceResultWorkspaceDeviceTest` 2/2 passed, including renderer/panel non-overlap and close/Back. `sliceMenuProducesResultAndExposesSafeResultActions` passed 1/1 with a real native slice and layer block selection. Debug and Slice JVM suites passed 591/591 each. Emulator remains offline.
+
 ## 0.8.338
 
 - Use Android dp window dimensions and the existing adaptive workspace policies to size navigation, panels, and the 3D viewport; remove the manual 3D render-resolution selector and migrate its saved override to the device performance policy.

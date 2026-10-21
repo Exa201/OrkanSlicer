@@ -37,6 +37,9 @@ internal class WorkspaceController(
     var activeToolPanelSize by mutableStateOf<WorkspacePanelSize?>(null)
         private set
 
+    var activeToolPanelDocked by mutableStateOf(false)
+        private set
+
     var isNavigationTransitionInProgress by mutableStateOf(false)
         private set
 
@@ -65,6 +68,7 @@ internal class WorkspaceController(
         activeToolAllowsBackgroundInteraction = false
         activeToolPanelContent = null
         activeToolPanelSize = null
+        activeToolPanelDocked = false
         return selectDestination(slot)
     }
 
@@ -86,13 +90,15 @@ internal class WorkspaceController(
         dismiss: () -> Unit,
         panelContent: @Composable () -> Unit,
         panelSize: WorkspacePanelSize? = null,
-    ) = activateTool(toolId, dismiss, panelContent, panelSize)
+        dockPanel: Boolean = false,
+    ) = activateTool(toolId, dismiss, panelContent, panelSize, dockPanel)
 
     private fun activateTool(
         toolId: String,
         dismiss: () -> Unit,
         panelContent: (@Composable () -> Unit)?,
         panelSize: WorkspacePanelSize? = null,
+        dockPanel: Boolean = false,
     ) {
         // SPECIAL_TOOL is one panel kind, but selecting a different tool must still
         // dismiss the previous tool host instead of silently replacing its callback.
@@ -101,6 +107,7 @@ internal class WorkspaceController(
         activeToolAllowsBackgroundInteraction = false
         activeToolPanelContent = panelContent
         activeToolPanelSize = panelSize
+        activeToolPanelDocked = dockPanel
         overlays.activate(WorkspaceOverlayPanel.SPECIAL_TOOL, dismiss)
     }
 
@@ -112,6 +119,7 @@ internal class WorkspaceController(
         activeToolAllowsBackgroundInteraction = false
         activeToolPanelContent = null
         activeToolPanelSize = null
+        activeToolPanelDocked = false
         overlays.clear(WorkspaceOverlayPanel.SPECIAL_TOOL)
     }
 

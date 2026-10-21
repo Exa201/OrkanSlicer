@@ -698,7 +698,13 @@ class InitialProjectMenuDeviceTest {
             val layersAction = compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceLayers))
                 .assertIsDisplayed()
             tapSemanticsNodeOnDevice(layersAction)
-            awaitWorkspaceDialogTag(bed, "slice-layers-title")
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
+            compose.onNodeWithTag("slice-layers-panel").assertIsDisplayed()
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+            val rendererBounds = compose.onNodeWithTag("workspace-renderer-area").fetchSemanticsNode().boundsInRoot
+            val controlsBounds = compose.onNodeWithTag("workspace-docked-tool-panel").fetchSemanticsNode().boundsInRoot
+            assertTrue("The layer controls must not cover the build plate renderer",
+                rendererBounds.bottom <= controlsBounds.top + 1f)
             compose.onNodeWithTag("slice-layers-title").assertIsDisplayed()
             compose.onNodeWithTag("slice-layers-range-title").assertIsDisplayed()
             compose.onNodeWithText("25").assertIsDisplayed().performClick()
@@ -706,7 +712,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("layer preview control must update the active G-code range policy", 25,
                 result.previewSelection?.blockSize)
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
 
             scrollMenuToIndex(4)
             compose.waitForIdle()

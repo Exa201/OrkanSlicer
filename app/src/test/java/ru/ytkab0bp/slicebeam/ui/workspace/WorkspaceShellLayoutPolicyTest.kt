@@ -91,4 +91,23 @@ class WorkspaceShellLayoutPolicyTest {
         assertEquals(0, WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(0, 176, 1.5f))
         assertEquals(40, WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(50, 176, 1.5f))
     }
+
+    @Test
+    fun dockedLayerControlsReserveSpaceOutsideThePlateRenderer() {
+        assertEquals(200, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(
+            500, WorkspacePanelDimension.Fraction(0.4f), 1f,
+        ))
+        assertEquals(100, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(
+            250, WorkspacePanelDimension.Fraction(0.8f), 1f,
+        ))
+        assertEquals(0, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(
+            120, WorkspacePanelDimension.Fixed(240f), 1.5f,
+        ))
+        assertEquals(184, WorkspaceShellLayoutPolicy.dockedLandscapePanelWidthDp(
+            464, WorkspacePanelDimension.Fixed(380f),
+        ))
+        assertEquals(0, WorkspaceShellLayoutPolicy.dockedLandscapePanelWidthDp(
+            240, WorkspacePanelDimension.Fixed(180f),
+        ))
+    }
 }

@@ -41,11 +41,22 @@ class SliceResultWorkspaceDeviceTest {
         compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
 
         activity.runOnUiThread { showSliceLayersWorkspace(bed) }
-        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
+        compose.onNodeWithTag("slice-layers-panel").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
         compose.onNodeWithTag("slice-layers-title").assertIsDisplayed()
         compose.onNodeWithTag("slice-layers-range-title").assertIsDisplayed()
+        val rendererBounds = compose.onNodeWithTag("workspace-renderer-area").fetchSemanticsNode().boundsInRoot
+        val controlsBounds = compose.onNodeWithTag("workspace-docked-tool-panel").fetchSemanticsNode().boundsInRoot
+        assertTrue("Layer controls must be outside the renderer instead of covering the build plate",
+            rendererBounds.bottom <= controlsBounds.top + 1f)
         activity.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
-        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
+
+        activity.runOnUiThread { showSliceLayersWorkspace(bed) }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
+        compose.onNodeWithTag("slice-layers-close").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceToolPanelAttached("slice-layer-preview") }
 
         assertFalse("Closing result tools must not finish the app", activity.isFinishing)
     }

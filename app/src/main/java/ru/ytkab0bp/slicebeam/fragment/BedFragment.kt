@@ -698,6 +698,32 @@ fun showWorkspaceComposeTool(menu: WorkspaceComposeToolRoute) {
         renderer?.visibility = View.GONE
     }
 }
+/** Opens a lightweight workspace tool panel while keeping the renderer visible for inspection. */
+internal fun showWorkspaceToolPanel(
+    toolId: String,
+    panelSize: WorkspacePanelSize,
+    allowBackgroundInteraction: Boolean = true,
+    dockPanel: Boolean = false,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    workspaceController.selectToolWithPanel(
+        toolId = toolId,
+        dismiss = onDismiss,
+        panelContent = content,
+        panelSize = panelSize,
+        dockPanel = dockPanel,
+    )
+    workspaceController.setToolAllowsBackgroundInteraction(toolId, allowBackgroundInteraction)
+}
+internal fun dismissWorkspaceToolPanel() {
+    workspaceController.dismissActiveTool()
+}
+internal fun clearWorkspaceToolPanel(toolId: String) {
+    workspaceController.clearTool(toolId)
+}
+internal fun isWorkspaceToolPanelAttached(toolId: String): Boolean =
+    workspaceController.activeToolId == toolId
 internal fun setWorkspaceToolAllowsBackgroundInteraction(toolId: String, allowed: Boolean) {
     workspaceController.setToolAllowsBackgroundInteraction(toolId, allowed)
 }
@@ -1594,6 +1620,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     },
                     modePanelContent = workspaceController.activeToolPanelContent,
                     modePanelSize = workspaceController.activeToolPanelSize,
+                    modePanelDocked = workspaceController.activeToolPanelDocked,
                     modePanelAllowsBackgroundInteraction = workspaceController.activeToolAllowsBackgroundInteraction ||
                         workspaceController.activeToolId == "paint-mode",
                     onModePanelDismiss = { workspaceController.dismissActivePanel() },

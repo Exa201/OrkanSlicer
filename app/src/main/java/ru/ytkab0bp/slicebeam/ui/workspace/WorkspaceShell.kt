@@ -73,6 +73,7 @@ internal fun WorkspaceShell(
     printerWebButtonContent: @Composable () -> Unit,
     modePanelContent: (@Composable () -> Unit)?,
     modePanelSize: WorkspacePanelSize?,
+    modePanelDocked: Boolean,
     modePanelAllowsBackgroundInteraction: Boolean,
     onModePanelDismiss: () -> Unit,
     transientPanelContent: (@Composable () -> Unit)?,
@@ -155,31 +156,43 @@ internal fun WorkspaceShell(
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().heightIn(min = 0.dp).testTag("workspace-project-settings-area")) { projectSettingsContent() }
             header(Modifier)
-            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).testTag("workspace-renderer-area")) {
-                AndroidView(
-                    factory = { rendererView },
-                    modifier = Modifier.fillMaxSize(),
-                )
-                // Once a GL-bound mode owns the interaction, keep the workspace
-                // action grid out of the canvas hit area. It returns with the mode
-                // panel when the tool closes.
-                if (toolPanelExpanded && modePanelContent == null) {
-                    val overlayHeightDp = WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(
-                        viewportHeightDp = maxHeight.value.toInt(),
-                        preferredHeightDp = toolPanelHeightDp,
-                        fontScale = LocalBeamLayoutFontScale.current,
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                val availableHeightDp = maxHeight.value.toInt()
+                val dockHeight = if (modePanelDocked && modePanelContent != null) {
+                    WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(
+                        availableHeightDp, modePanelSize?.portrait, LocalBeamLayoutFontScale.current,
                     )
-                    WorkspaceMenuHost(
-                        slot = activeMenuSlot,
-                        composeContentForSlot = menuComposeContentForSlot,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .height(overlayHeightDp.dp)
-                            .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
-                            .testTag("workspace-menu-panel"),
-                    )
+                } else 0
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxWidth().weight(1f).testTag("workspace-renderer-area")) {
+                        AndroidView(factory = { rendererView }, modifier = Modifier.fillMaxSize())
+                        // Once a GL-bound mode owns the interaction, keep the workspace
+                        // action grid out of the canvas hit area. It returns with the mode
+                        // panel when the tool closes.
+                        if (toolPanelExpanded && modePanelContent == null) {
+                            val overlayHeightDp = WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(
+                                viewportHeightDp = availableHeightDp,
+                                preferredHeightDp = toolPanelHeightDp,
+                                fontScale = LocalBeamLayoutFontScale.current,
+                            )
+                            WorkspaceMenuHost(
+                                slot = activeMenuSlot,
+                                composeContentForSlot = menuComposeContentForSlot,
+                                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                                    .height(overlayHeightDp.dp)
+                                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+                                    .testTag("workspace-menu-panel"),
+                            )
+                        }
+                    }
+                    if (dockHeight > 0) {
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxWidth().height(dockHeight.dp).testTag("workspace-docked-tool-panel"),
+                            color = MaterialTheme.colorScheme.surface,
+                            shadowElevation = 4.dp,
+                        ) { modePanelContent?.invoke() }
+                    }
                 }
             }
             AdaptiveWorkspaceNavigation(
@@ -220,14 +233,28 @@ internal fun WorkspaceShell(
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 Box(Modifier.fillMaxWidth().heightIn(min = 0.dp)) { projectSettingsContent() }
                 header(Modifier)
-                AndroidView(
-                    factory = { rendererView },
-                    modifier = Modifier.fillMaxSize().weight(1f),
-                )
+                BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                    val dockWidth = if (modePanelDocked && modePanelContent != null) {
+                        WorkspaceShellLayoutPolicy.dockedLandscapePanelWidthDp(maxWidth.value.toInt(), modePanelSize?.landscape)
+                    } else 0
+                    Row(Modifier.fillMaxSize()) {
+                        AndroidView(
+                            factory = { rendererView },
+                            modifier = Modifier.weight(1f).fillMaxHeight().testTag("workspace-renderer-area"),
+                        )
+                        if (dockWidth > 0) {
+                            androidx.compose.material3.Surface(
+                                modifier = Modifier.width(dockWidth.dp).fillMaxHeight().testTag("workspace-docked-tool-panel"),
+                                color = MaterialTheme.colorScheme.surface,
+                                shadowElevation = 4.dp,
+                            ) { modePanelContent?.invoke() }
+                        }
+                    }
+                }
             }
         }
       }
-      if (modePanelContent != null) {
+      if (modePanelContent != null && !modePanelDocked) {
           WorkspaceModePanelHost(
               onDismiss = onModePanelDismiss,
               panelSize = modePanelSize,
@@ -326,6 +353,23 @@ internal object WorkspaceShellLayoutPolicy {
     @JvmStatic
     fun portraitMenuRows(availableHeightDp: Int, fontScale: Float): Int =
         if (availableHeightDp < if (fontScale >= 1.3f) 152 else 112) 1 else 2
+
+    /** Keeps inspection controls outside the GL surface and leaves a visible plate viewport. */
+    @JvmStatic
+    fun dockedPortraitPanelHeightDp(availableHeightDp: Int, dimension: WorkspacePanelDimension?, fontScale: Float): Int {
+        val available = availableHeightDp.coerceAtLeast(0)
+        val minimumRenderer = if (fontScale >= 1.3f) 120 else 150
+        val requested = dimension?.let { WorkspacePanelSizePolicy.resolve(it, available.toFloat()).toInt() } ?: 0
+        return minOf(requested, (available - minimumRenderer).coerceAtLeast(0))
+    }
+
+    /** Side docks leave a useful minimum width for the live renderer. */
+    @JvmStatic
+    fun dockedLandscapePanelWidthDp(availableWidthDp: Int, dimension: WorkspacePanelDimension?): Int {
+        val available = availableWidthDp.coerceAtLeast(0)
+        val requested = dimension?.let { WorkspacePanelSizePolicy.resolve(it, available.toFloat()).toInt() } ?: 0
+        return minOf(requested, (available - 280).coerceAtLeast(0))
+    }
 
     /** Reserve a usable action menu while leaving most wide-window space to the renderer. */
     @JvmStatic
