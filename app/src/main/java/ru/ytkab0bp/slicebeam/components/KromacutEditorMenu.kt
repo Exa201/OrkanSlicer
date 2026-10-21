@@ -61,6 +61,79 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
         // leaving only the WebView's dark background visible. Kromacut's own language
         // selector remains available after the editor has initialized.
         private const val EDITOR_URL = "https://appassets.androidplatform.net/en/app/"
+        private val WEBGL_DIAGNOSTICS_SCRIPT = """
+            window.addEventListener('error',e=>window.OrcaMobile.reportError(String(e.message)+' '+e.filename+':'+e.lineno));
+            window.addEventListener('unhandledrejection',e=>window.OrcaMobile.reportError('Unhandled rejection: '+String(e.reason)));
+            window.__orcaWebGL2Available=null;
+            window.__orcaWebGL2Diagnostics={attempts:0,successes:0,failures:0,contextLost:false,lastError:null,lastAttributes:null,renderer:null};
+            window.__orcaWebGL2Reported=false;
+            (function(){
+                const nativeGetContext=HTMLCanvasElement.prototype.getContext;
+                const actualContexts=new WeakMap();
+                const recordedContexts=new WeakSet();
+                function reportOnce(code){
+                    if(window.__orcaWebGL2Reported) return;
+                    window.__orcaWebGL2Reported=true;
+                    window.OrcaMobile.reportRendererIssue(code);
+                }
+                function record(canvas,type,gl){
+                    if(type!=='webgl2') return;
+                    window.__orcaWebGL2Available=!!gl;
+                    if(gl){
+                        if(recordedContexts.has(canvas)) return;
+                        recordedContexts.add(canvas);
+                        window.__orcaWebGL2Diagnostics.successes++;
+                        window.__orcaWebGL2Diagnostics.renderer=gl.getParameter(gl.RENDERER);
+                    }else{
+                        window.__orcaWebGL2Diagnostics.failures++;
+                        setTimeout(function(){
+                            if(window.__orcaWebGL2Available!==true)
+                                reportOnce(window.__orcaWebGL2Diagnostics.lastError?
+                                    'webgl2-creation-failed:'+window.__orcaWebGL2Diagnostics.lastError:
+                                    'webgl2-unavailable');
+                        },0);
+                        return;
+                    }
+                    window.__orcaWebGL2Renderer=gl.getParameter(gl.RENDERER);
+                    if(canvas.dataset.orcaWebGlDiagnosticsAttached==='true') return;
+                    canvas.dataset.orcaWebGlDiagnosticsAttached='true';
+                    window.__orcaWebGL2Diagnostics.contextLost=gl.isContextLost();
+                    if(window.__orcaWebGL2Diagnostics.contextLost) reportOnce('webgl2-context-lost');
+                    canvas.addEventListener('webglcontextlost',function(event){
+                        event.preventDefault();
+                        window.__orcaWebGL2Available=false;
+                        window.__orcaWebGL2Diagnostics.contextLost=true;
+                        reportOnce('webgl2-context-lost');
+                    });
+                }
+                HTMLCanvasElement.prototype.getContext=function(type,...args){
+                    if(type==='webgl2'){
+                        window.__orcaWebGL2Diagnostics.attempts++;
+                        window.__orcaWebGL2Diagnostics.lastAttributes=args[0]||null;
+                        if(this.dataset.orcaWebGlCreationErrorAttached!=='true'){
+                            this.dataset.orcaWebGlCreationErrorAttached='true';
+                            this.addEventListener('webglcontextcreationerror',function(event){
+                                window.__orcaWebGL2Diagnostics.lastError=event.statusMessage||'WebGL context creation failed without a status message';
+                                if(window.__orcaWebGL2Available===false)
+                                    reportOnce('webgl2-creation-failed:'+window.__orcaWebGL2Diagnostics.lastError);
+                            });
+                        }
+                    }
+                    const context=nativeGetContext.call(this,type,...args);
+                    if(type==='webgl2'){
+                        actualContexts.set(this,{type:type,context:context});
+                        record(this,type,context);
+                    }
+                    return context;
+                };
+                new MutationObserver(function(){
+                    document.querySelectorAll('#root canvas').forEach(function(canvas){
+                        const entry=actualContexts.get(canvas);
+                        if(entry) record(canvas,entry.type,entry.context);
+                    });
+                }).observe(document.documentElement,{childList:true,subtree:true});
+            })();
+        """.trimIndent()
 
         private var fileCallback: ValueCallback<Array<Uri>>? = null
         @JvmStatic
@@ -110,7 +183,7 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
         ViewUtils.postOnMainThread {
             val context = fragment?.getContext() ?: return@postOnMainThread
             if (fragment?.getView() != null) {
-                activeError = context.getString(R.string.KromacutWebGlProbeFailed, detail)
+                activeError = context.getString(R.string.KromacutWebGlCreationFailed, detail)
             }
         }
     }
@@ -135,11 +208,6 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                 .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(ctx))
                 .build()
             webViewClient = object : WebViewClientCompat() {
-            override fun onPageFinished(view: WebView, url: String) {
-                super.onPageFinished(view, url)
-                view.evaluateJavascript("if(window.__orcaWebGL2Available===false)window.OrcaMobile.reportRendererIssue(window.__orcaWebGL2ProbeError?('webgl2-probe-failed:'+window.__orcaWebGL2ProbeError):'webgl2-unavailable')", null)
-            }
-
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest,
@@ -164,7 +232,7 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                                 // Preloading this exact local chunk makes the same module
                                 // available to React.lazy without making any network request.
                                 "<link rel=\"modulepreload\" href=\"https://appassets.androidplatform.net/assets/kromacut-editor/assets/App-QLOjXI_l.js\">" +
-                                "<script>window.addEventListener('error',e=>window.OrcaMobile.reportError(String(e.message)+' '+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>window.OrcaMobile.reportError('Unhandled rejection: '+String(e.reason)));try{const c=document.createElement('canvas'),g=c.getContext('webgl2');window.__orcaWebGL2Available=!!g;if(g){const x=g.getExtension('WEBGL_lose_context');if(x)x.loseContext()}}catch(e){window.__orcaWebGL2Available=false;window.__orcaWebGL2ProbeError=String(e)}</script>",
+                                "<script>$WEBGL_DIAGNOSTICS_SCRIPT</script>",
                         )
                     return WebResourceResponse("text/html", "UTF-8", ByteArrayInputStream(html.toByteArray(Charsets.UTF_8)))
                 }
@@ -330,7 +398,7 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                 ViewUtils.postOnMainThread {
                     val context = fragment?.getContext()
                     if (context != null && fragment?.getView() != null) {
-                        activeError = context.getString(R.string.KromacutWebGlProbeFailed, detail)
+                        activeError = context.getString(R.string.KromacutWebGlCreationFailed, detail)
                     }
                 }
             }
@@ -346,7 +414,8 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                         if (fragment?.getView() != null) activeError = context.getString(R.string.KromacutWebGlUnavailable)
                     }
                 }
-                code?.startsWith("webgl2-probe-failed") == true -> showRendererError(code.substringAfter(':'))
+                code?.startsWith("webgl2-creation-failed") == true -> showRendererError(code.substringAfter(':'))
+                code?.startsWith("webgl2-context-lost") == true -> showRendererError(code)
             }
         }
 

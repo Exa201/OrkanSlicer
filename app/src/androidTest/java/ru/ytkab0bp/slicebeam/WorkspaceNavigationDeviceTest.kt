@@ -266,13 +266,14 @@ class WorkspaceNavigationDeviceTest {
             while (SystemClock.uptimeMillis() < deadline &&
                 (!webTitle[0].orEmpty().contains("Kromacut") ||
                     webRenderState[0].orEmpty().contains("\"rootChildren\":0") ||
-                    webRenderState[0].orEmpty().contains("\"visibleText\":0"))) {
+                    webRenderState[0].orEmpty().contains("\"visibleText\":0") ||
+                    !webRenderState[0].orEmpty().contains("\"webgl2Diagnostics\""))) {
                 val ready = CountDownLatch(1)
                 editor.post {
                     editor.evaluateJavascript("document.title") {
                         webTitle[0] = it
                     }
-                    editor.evaluateJavascript("(()=>{const root=document.querySelector('#root'),rect=e=>{const b=e?.getBoundingClientRect();return b?{x:b.x,y:b.y,width:b.width,height:b.height}:null},style=e=>e?{height:getComputedStyle(e).height,minHeight:getComputedStyle(e).minHeight,display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility,opacity:getComputedStyle(e).opacity,color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor,overflow:getComputedStyle(e).overflow,inline:e.getAttribute('style')}:null,canvases=[...document.querySelectorAll('canvas')].map(c=>{const g=c.getContext('webgl2');return{width:c.width,height:c.height,rect:rect(c),display:getComputedStyle(c).display,visibility:getComputedStyle(c).visibility,contextLost:g?.isContextLost()??null,glError:g?.getError()??null,renderer:g?.getParameter(g.RENDERER)??null}}),htmlRect=rect(document.documentElement),bodyRect=rect(document.body),rootRect=rect(root),appRect=rect(root?.firstElementChild),asideRect=rect(root?.querySelector('aside')),canvasVisible=canvases.some(c=>c.rect?.width>0&&c.rect?.height>0);return{viewport:{window:[innerWidth,innerHeight],document:[document.documentElement.clientWidth,document.documentElement.clientHeight],root:rootRect,rootFirstChild:appRect,body:bodyRect},computed:{html:style(document.documentElement),body:style(document.body),root:style(root),app:style(root?.firstElementChild)},layoutHasHeight:(htmlRect?.height||0)>0&&(bodyRect?.height||0)>0&&(rootRect?.height||0)>0&&(appRect?.height||0)>0,visibleEditorArea:(asideRect?.height||0)>0&&canvasVisible,aside:asideRect,rootChildren:root?.children.length||0,visibleText:(root?.innerText||'').trim().length,canvasCount:canvases.length,canvases,webgl2Available:window.__orcaWebGL2Available===true,bodyHtmlLength:document.body?.innerHTML.length||0,readyState:document.readyState,href:location.href}})()") {
+                        editor.evaluateJavascript("(()=>{const root=document.querySelector('#root'),rect=e=>{const b=e?.getBoundingClientRect();return b?{x:b.x,y:b.y,width:b.width,height:b.height}:null},style=e=>e?{height:getComputedStyle(e).height,minHeight:getComputedStyle(e).minHeight,display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility,opacity:getComputedStyle(e).opacity,color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor,overflow:getComputedStyle(e).overflow,inline:e.getAttribute('style')}:null,canvases=[...document.querySelectorAll('canvas')].map(c=>({width:c.width,height:c.height,rect:rect(c),display:getComputedStyle(c).display,visibility:getComputedStyle(c).visibility})),htmlRect=rect(document.documentElement),bodyRect=rect(document.body),rootRect=rect(root),appRect=rect(root?.firstElementChild),asideRect=rect(root?.querySelector('aside')),canvasVisible=canvases.some(c=>c.rect?.width>0&&c.rect?.height>0);return{viewport:{window:[innerWidth,innerHeight],document:[document.documentElement.clientWidth,document.documentElement.clientHeight],root:rootRect,rootFirstChild:appRect,body:bodyRect},computed:{html:style(document.documentElement),body:style(document.body),root:style(root),app:style(root?.firstElementChild)},layoutHasHeight:(htmlRect?.height||0)>0&&(bodyRect?.height||0)>0&&(rootRect?.height||0)>0&&(appRect?.height||0)>0,visibleEditorArea:(asideRect?.height||0)>0&&canvasVisible,aside:asideRect,rootChildren:root?.children.length||0,visibleText:(root?.innerText||'').trim().length,visibleTextContent:(root?.innerText||'').slice(0,900),canvasCount:canvases.length,canvases,webgl2Available:window.__orcaWebGL2Available,webgl2Diagnostics:window.__orcaWebGL2Diagnostics,bodyHtmlLength:document.body?.innerHTML.length||0,readyState:document.readyState,href:location.href}})()") {
                         webRenderState[0] = it
                         ready.countDown()
                     }
@@ -289,16 +290,60 @@ class WorkspaceNavigationDeviceTest {
             assertTrue("Kromacut page loaded without rendering its React interface (diagnostic title ${webTitle[0]}): ${webRenderState[0]}",
                 rootChildren > 0 && visibleTextLength > 0)
             assertTrue(
-                "Kromacut's Three.js renderer requires WebGL2; this device reports no WebGL2 context: ${webRenderState[0]}",
-                webRenderState[0].orEmpty().contains("\"webgl2Available\":true"),
-            )
-            assertTrue(
                 "Kromacut's embedded document must have a nonzero layout viewport: ${webRenderState[0]}",
                 webRenderState[0].orEmpty().contains("\"layoutHasHeight\":true"),
             )
             assertTrue(
                 "Kromacut's image/sidebar area must have measurable visible layout: ${webRenderState[0]}",
                 webRenderState[0].orEmpty().contains("\"visibleEditorArea\":true"),
+            )
+            val modeSwitch = CountDownLatch(1)
+            val modeSwitchResult = arrayOf<String?>(null)
+            editor.post {
+                editor.evaluateJavascript("(()=>{const root=document.querySelector('#root'),items=[...(root?.querySelectorAll('button,[role=tab]')||[])],button=items.find(e=>(e.innerText||e.getAttribute('aria-label')||'').trim()==='3D');if(button)button.click();return JSON.stringify({found:!!button,labels:items.map(e=>(e.innerText||e.getAttribute('aria-label')||'').trim()).filter(Boolean).slice(0,40)})})()") {
+                    modeSwitchResult[0] = it
+                    modeSwitch.countDown()
+                }
+            }
+            assertTrue("KromaCut 3D mode control was not available: ${modeSwitchResult[0]}",
+                modeSwitch.await(5, TimeUnit.SECONDS) && modeSwitchResult[0].orEmpty().contains("\\\"found\\\":true"))
+            val webglDeadline = SystemClock.uptimeMillis() + 45_000L
+            fun actualWebGlAttempted() = Regex("\\\"attempts\\\":([0-9]+)")
+                .find(webRenderState[0].orEmpty())?.groupValues?.get(1)?.toIntOrNull()?.let { it > 0 } == true
+            while (SystemClock.uptimeMillis() < webglDeadline && !actualWebGlAttempted()) {
+                val ready = CountDownLatch(1)
+                editor.post {
+                    editor.evaluateJavascript("window.__orcaWebGL2Diagnostics") {
+                        webRenderState[0] = it
+                        ready.countDown()
+                    }
+                }
+                ready.await(500, TimeUnit.MILLISECONDS)
+                if (!actualWebGlAttempted()) SystemClock.sleep(100L)
+            }
+            val finalRenderState = CountDownLatch(1)
+            editor.post {
+                editor.evaluateJavascript("(()=>{const root=document.querySelector('#root'),rect=e=>{const b=e?.getBoundingClientRect();return b?{x:b.x,y:b.y,width:b.width,height:b.height}:null},canvases=[...document.querySelectorAll('#root canvas')].map(c=>({width:c.width,height:c.height,rect:rect(c)}));return{canvasCount:canvases.length,canvases,webgl2Available:window.__orcaWebGL2Available,webgl2Diagnostics:window.__orcaWebGL2Diagnostics}})()") {
+                    webRenderState[0] = it
+                    finalRenderState.countDown()
+                }
+            }
+            finalRenderState.await(5, TimeUnit.SECONDS)
+            android.util.Log.i("KromacutDeviceTest", "KromaCut 3D renderer diagnostics: ${webRenderState[0]}")
+            val hasPositiveCanvasWidth = Regex("\\\"width\\\":([0-9]+)")
+                .findAll(webRenderState[0].orEmpty()).any { it.groupValues[1].toIntOrNull()?.let { width -> width > 0 } == true }
+            val hasPositiveCanvasHeight = Regex("\\\"height\\\":([0-9]+)")
+                .findAll(webRenderState[0].orEmpty()).any { it.groupValues[1].toIntOrNull()?.let { height -> height > 0 } == true }
+            assertTrue(
+                "Kromacut 3D mode must create its actual Three.js WebGL2 context: ${webRenderState[0]}",
+                webRenderState[0].orEmpty().contains("\"webgl2Available\":true") &&
+                    webRenderState[0].orEmpty().contains("\"attempts\":1") &&
+                    webRenderState[0].orEmpty().contains("\"successes\":1") &&
+                    webRenderState[0].orEmpty().contains("\"failures\":0") &&
+                    webRenderState[0].orEmpty().contains("\"contextLost\":false") &&
+                    webRenderState[0].orEmpty().contains("\"renderer\":") &&
+                    !webRenderState[0].orEmpty().contains("\"renderer\":null") &&
+                    hasPositiveCanvasWidth && hasPositiveCanvasHeight,
             )
         }
         scenario.onActivity { activity ->

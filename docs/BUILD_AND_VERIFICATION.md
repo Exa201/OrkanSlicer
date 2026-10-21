@@ -1802,3 +1802,15 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - On Honor PTP-N49 / Android 16, `MakerGeneratorWorkspaceDeviceTest` passed 16/16. It exercises KromaCut's JavaScript download bridge with a valid binary STL, the shared production validator/output dialog, safe discard, and the no-saved-folder path from `ACTION_OPEN_DOCUMENT_TREE` cancellation to `ACTION_CREATE_DOCUMENT` cancellation/temporary-file cleanup.
 - The complete `:app:connectedSliceTestAndroidTest` then passed. JUnit XML `2026-10-21T13:37:44`: 243 cases, 240 passed, 3 skipped, 0 failures/errors. Only the three external/private-fixture KromaCut project slicing cases skipped in this run; they were separately verified 3/3 with the supplied fixture in an earlier Honor run. Emulator offline.
 - Honor returned to OrkanSlicer MainActivity; sampled 10,000 Logcat lines had no fatal exception, ANR, OOM, or fatal signal. No external file was written, no live printer contacted, and no print was started. Instrumentation/docs only; app version and APK unchanged. PR #2 is open/unmerged at `595bf65f2ecc3e0b08de419bba5ff358111533ea` with mergeable state clean. UI menu/accessibility audit remains incomplete.
+
+## KromaCut actual 3D WebGL check — 2026-10-21
+
+- Focused Honor `WorkspaceNavigationDeviceTest`: 1/1 passed after entering KromaCut 3D mode. The observed real Three.js call created WebGL2 successfully (`WebKit WebGL`, 1 request, 0 failures; visible 732×576 canvas). An unrelated disposable context is no longer used as the success criterion.
+- Runtime working-tree change adds one-shot error reporting for actual WebGL2 context creation failure/context loss. This gives affected devices a useful renderer error instead of a silent black canvas. It is diagnostic/error handling, not proof that the Xiaomi-specific black-rendering report is resolved.
+- Xiaomi PTP device was not connected; its WebView/GPU behavior remains unverified. Debug/Slice JVM suites and full connected instrumentation are pending for this current runtime diff. No APK or release has been produced for it.
+
+## KromaCut WebGL verification — final current-tree result (2026-10-21)
+
+- `WorkspaceNavigationDeviceTest` passed 1/1 on Honor PTP-N49 / Android 16 after entering KromaCut 3D mode. Actual WebGL2 diagnostics: one request, one success, no failures, context not lost, renderer `WebKit WebGL`, and a nonzero canvas. The old separate create-and-destroy probe is gone.
+- `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest` both passed 588/588 with zero failures/errors/skips on the same working tree. Emulator remains offline.
+- The editor now reports a failed actual WebGL2 context creation or context loss once per session, with an actionable message. This is an error-reporting safeguard, not confirmation that Xiaomi's black view is fixed. Xiaomi device validation is still open. No APK/release produced.
