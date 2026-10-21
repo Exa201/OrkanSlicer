@@ -1796,3 +1796,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Included focused classes now pass: `InitialProjectMenuDeviceTest` true landscape 42/42; `FilamentPaletteComposeDeviceTest` 20/20; `ImageFormatPairDialogDeviceTest` 2/2. No focused failure from the earlier scroll/search selectors remains.
 - Honor returned to the regular OrkanSlicer app with auto-rotation enabled and user rotation 0. Sampled Logcat had no fatal exception, ANR, OOM, or fatal signal. Emulator was offline and skipped.
 - This follow-up changes test harnesses/docs only; no runtime APK was built and no release was created. Debug/Slice unit suites were not rerun in this follow-up. UI 2.0 Phase 5/6 and complete multi-plate project persistence remain open.
+
+## KromaCut download bridge and Android save fallback — 2026-10-21
+
+- On Honor PTP-N49 / Android 16, `MakerGeneratorWorkspaceDeviceTest` passed 16/16. It exercises KromaCut's JavaScript download bridge with a valid binary STL, the shared production validator/output dialog, safe discard, and the no-saved-folder path from `ACTION_OPEN_DOCUMENT_TREE` cancellation to `ACTION_CREATE_DOCUMENT` cancellation/temporary-file cleanup.
+- The complete `:app:connectedSliceTestAndroidTest` then passed. JUnit XML `2026-10-21T13:37:44`: 243 cases, 240 passed, 3 skipped, 0 failures/errors. Only the three external/private-fixture KromaCut project slicing cases skipped in this run; they were separately verified 3/3 with the supplied fixture in an earlier Honor run. Emulator offline.
+- Honor returned to OrkanSlicer MainActivity; sampled 10,000 Logcat lines had no fatal exception, ANR, OOM, or fatal signal. No external file was written, no live printer contacted, and no print was started. Instrumentation/docs only; app version and APK unchanged. PR #2 is open/unmerged at `595bf65f2ecc3e0b08de419bba5ff358111533ea` with mergeable state clean. UI menu/accessibility audit remains incomplete.
