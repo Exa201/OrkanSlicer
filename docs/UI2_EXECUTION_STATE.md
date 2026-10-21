@@ -2148,3 +2148,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: each 588/588, 0 failures/errors/skips on the same runtime tree. The Gradle invocation containing all three tasks completed successfully. Emulator remains offline.
 - The production guard now reports an actual WebGL2 creation failure or later context loss once per editor session, and its German/English message says context creation rather than probe. No throwaway context is created. Xiaomi rendering remains unverified and is not claimed fixed; Honor did not reproduce the report. No APK/release yet.
 - Next: run the Kotlin UI migration audit, review the final diff, then commit and push this tested diagnostic/regression increment. Continue the remaining menu action reconciliation separately; Xiaomi validation still needs that device or diagnostic logs from it.
+
+## KromaCut renderer failure fallback tested — 2026-10-21
+
+- Added a device test that invokes the actual `DownloadBridge.reportRendererIssue("webgl2-creation-failed:…")` path, confirms the localized context-creation error dialog and diagnostic detail are visible, dismisses it, and verifies KromaCut stays open until Android Back is pressed.
+- Honor PTP-N49 / Android 16: complete `MakerGeneratorWorkspaceDeviceTest` passed 17/17, 0 skipped/failures/errors. The previous dedicated 3D-renderer test passed 1/1; Debug and Slice JVM suites each passed 588/588 on production commit `4246239e`.
+- This verifies actionable failure reporting, not renderer recovery on Xiaomi. No Xiaomi is connected. No APK/release produced. Next: commit/push the fallback regression test and its results; then continue Phase 5 action reconciliation and seek Xiaomi-specific diagnostics.

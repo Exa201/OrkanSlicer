@@ -213,6 +213,40 @@ class MakerGeneratorWorkspaceDeviceTest {
     }
 
     @Test
+    fun kromacutWebGlCreationFailureShowsDismissibleWorkspaceError() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val menu = KromacutEditorMenu()
+        activity.runOnUiThread { bed.showWorkspaceComposeTool(menu) }
+        compose.waitUntil(timeoutMillis = 5_000) { menu.isAttached() }
+
+        val bridgeClass = KromacutEditorMenu::class.java.declaredClasses
+            .single { it.simpleName == "DownloadBridge" }
+        val bridge = bridgeClass.getDeclaredConstructor(KromacutEditorMenu::class.java)
+            .apply { isAccessible = true }
+            .newInstance(menu)
+        activity.runOnUiThread {
+            bridgeClass.getDeclaredMethod("reportRendererIssue", String::class.java)
+                .apply { isAccessible = true }
+                .invoke(bridge, "webgl2-creation-failed:synthetic test failure")
+        }
+
+        val message = activity.getString(
+            ru.ytkab0bp.slicebeam.R.string.KromacutWebGlCreationFailed,
+            "synthetic test failure",
+        )
+        compose.onNodeWithTag("kromacut-error-message").assertIsDisplayed()
+        compose.onNodeWithText(message).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("kromacut-error-message").fetchSemanticsNodes().isEmpty()
+        }
+        assertTrue("Dismissing the renderer explanation must leave KromaCut open", menu.isAttached())
+        activity.runOnUiThread { bed.onBackPressed() }
+        compose.waitUntil(timeoutMillis = 5_000) { !menu.isAttached() }
+    }
+
+    @Test
     fun activityFileOperationErrorsUseWorkspaceComposeAndDismissWithOk() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
