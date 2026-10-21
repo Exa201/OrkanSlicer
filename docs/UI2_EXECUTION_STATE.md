@@ -2071,5 +2071,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Added an Honor end-to-end interaction for the active Text Tag Maker route: open the workspace form, submit defaults, wait for generated binary STL validation and output dialog, assert a non-empty facet file in the app cache, then discard and verify only that temporary file is removed.
 - Honor PTP-N49 / Android 16: the focused success-path test passed 1/1. The full `MakerGeneratorWorkspaceDeviceTest` then passed 12/12, 0 skipped/failures/errors. XML: `app/build/outputs/androidTest-results/connected/sliceTest/TEST-PTP-N49 - 16-_app-.xml`, timestamp `2026-10-21T12:17:22`.
 - No user-visible export picker was confirmed and no external file was written; the test intentionally discards the cache artifact. Other Maker generators' complete generate/save success paths remain uncovered. No runtime code, APK, release, real printer action, or print start occurred.
-- Phase 5 remains active; the source-to-handler audit and other generator success flows are incomplete. Phase 6 remains partial, including unavailable physical TalkBack. Next: add/test a second representative Maker generation path only if it is deterministic and cache-contained, then continue uncovered actions from the menu matrix.
+- Phase 5 remains active; the source-to-handler audit and other generator success flows are incomplete. Phase 6 remains partial, including unavailable physical TalkBack. Next: continue with safe generator outputs and uncovered menu action tests; do not count representative cases as all-generator coverage.
+
+# UI 2.0 continuation — cable grommet generator verified (2026-10-21)
+
+- Added a second real Maker generation case for the deterministic Cable Grommet defaults. It follows the same cache-only generation → production STL validation → explicit discard path and confirms the workspace stays active.
+- Honor PTP-N49 / Android 16: focused test passed in the full `MakerGeneratorWorkspaceDeviceTest`, now 13/13, 0 skipped/failures/errors. JUnit XML timestamp: `2026-10-21T12:19:39`.
+- No production code or export picker was changed or invoked. Other Maker generator success/save paths, full Phase 5 reconciliation, and Phase 6 physical TalkBack remain outstanding. Next: continue with safe generator outputs and uncovered menu action tests; do not count these representative cases as all-generator coverage.
 
