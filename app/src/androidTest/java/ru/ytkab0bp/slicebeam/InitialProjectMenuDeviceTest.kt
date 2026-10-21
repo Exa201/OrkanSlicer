@@ -191,7 +191,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelUndo))
                 .performScrollTo().assertIsDisplayed()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
-                .assertDoesNotExist()
+                .performScrollTo().assertIsDisplayed().assertIsEnabled()
         } finally {
             modelFile.delete()
         }
@@ -1290,35 +1290,65 @@ class InitialProjectMenuDeviceTest {
     fun cameraMenuActionsUpdateProjectionAndCameraControlPreference() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-        val glView = requireNotNull(bed.glView)
+        val initialGlView = requireNotNull(bed.glView)
+        val projectionBefore = readProjectionMatrixOnGl(initialGlView)
         val previousProjection = Prefs.isOrthoProjectionEnabled()
         val previousControlMode = Prefs.getCameraControlMode()
         try {
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuCamera))
-                .assertIsDisplayed()
+            // Camera options moved from the removed workspace destination into App settings;
+            // the view cube remains the persistent way to change standard camera direction.
+            activity.runOnUiThread {
+                (activity.navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate).switchToSlot(5)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                activity.navigationDelegate.getCurrentFragment() is ru.ytkab0bp.slicebeam.fragment.SettingsFragment &&
+                    compose.onAllNodesWithText(activity.getString(R.string.SettingsInterface))
+                        .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.MenuCamera))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsCameraProjection))
+                .performScrollTo().assertIsDisplayed()
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsCameraProjection))
                 .performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithContentDescription(activity.getString(R.string.MenuCameraOrtho))
-                    .fetchSemanticsNodes().isNotEmpty()
+                Prefs.isOrthoProjectionEnabled() != previousProjection
             }
-
-            val projectionBefore = readProjectionMatrixOnGl(glView)
-            val projectionAction = compose.onNodeWithContentDescription(
-                activity.getString(R.string.MenuCameraOrtho),
-            ).assertIsDisplayed()
-            projectionAction.performClick()
+            activity.runOnUiThread {
+                (activity.navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+                    .switchToSlot(0)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                activity.navigationDelegate.getCurrentFragment() is BedFragment
+            }
+            val resumedGlView = requireNotNull(
+                (activity.navigationDelegate.getCurrentFragment() as BedFragment).glView,
+            )
             compose.waitUntil(timeoutMillis = 5_000) {
-                val projectionAfter = readProjectionMatrixOnGl(glView)
+                val projectionAfter = readProjectionMatrixOnGl(resumedGlView)
                 projectionAfter.indices.any { index ->
                     kotlin.math.abs(projectionAfter[index] - projectionBefore[index]) > 1e-9
                 }
             }
-            assertEquals("camera projection tile should update the persisted preference",
+            assertEquals("App camera projection setting should update the persisted preference",
                 !previousProjection, Prefs.isOrthoProjectionEnabled())
 
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuCameraControlMode))
-                .assertIsDisplayed()
-                .performClick()
+            activity.runOnUiThread {
+                (activity.navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+                    .switchToSlot(5)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                activity.navigationDelegate.getCurrentFragment() is ru.ytkab0bp.slicebeam.fragment.SettingsFragment
+            }
+            if (compose.onAllNodesWithText(activity.getString(R.string.SettingsCameraProjection))
+                    .fetchSemanticsNodes().isEmpty()
+            ) {
+                compose.onNodeWithText(activity.getString(R.string.MenuCamera))
+                    .performScrollTo().assertIsDisplayed().performClick()
+            }
+            compose.onNodeWithText(activity.getString(R.string.MenuCameraControlMode))
+                .performScrollTo().assertIsDisplayed().performClick()
             val targetMode = (previousControlMode + 1) % 3
             val targetLabel = activity.getString(
                 when (targetMode) {
@@ -1329,14 +1359,16 @@ class InitialProjectMenuDeviceTest {
             )
             compose.onNodeWithText(targetLabel, substring = true).assertIsDisplayed().performClick()
             compose.waitForIdle()
-            assertEquals("camera control dialog selection should update its preference",
+            assertEquals("App camera control setting should update its preference",
                 targetMode, Prefs.getCameraControlMode())
         } finally {
             Prefs.setOrthoProjectionEnabled(previousProjection)
             Prefs.setCameraControlMode(previousControlMode)
-            glView.queueEvent {
-                glView.renderer.updateProjection()
-                glView.requestRender()
+            val restoreGlView = (activity.navigationDelegate.getCurrentFragment() as? BedFragment)?.glView
+                ?: initialGlView
+            restoreGlView.queueEvent {
+                restoreGlView.renderer.updateProjection()
+                restoreGlView.requestRender()
             }
         }
     }
@@ -2883,9 +2915,11 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(title).performScrollTo().assertIsDisplayed()
             return
         }
+        val tileTag = "workspace-menu-action-$titleRes"
         repeat(24) {
             val action = compose.onAllNodesWithContentDescription(title)
                 .fetchSemanticsNodes().firstOrNull()
+            val tile = compose.onAllNodesWithTag(tileTag).fetchSemanticsNodes().firstOrNull()
             val panel = compose.onAllNodesWithTag("workspace-menu-panel")
                 .fetchSemanticsNodes().firstOrNull()
             val pagingAffordanceVisible = compose.onAllNodesWithContentDescription(
@@ -2894,15 +2928,15 @@ class InitialProjectMenuDeviceTest {
             val visiblePanelRight = panel?.boundsInWindow?.right?.minus(
                 if (pagingAffordanceVisible) 52f * activity.resources.displayMetrics.density else 0f,
             ) ?: Float.NEGATIVE_INFINITY
-            val geometryLooksVisible = action != null && panel != null &&
-                action.boundsInWindow.left >= panel.boundsInWindow.left &&
-                action.boundsInWindow.top >= panel.boundsInWindow.top &&
-                action.boundsInWindow.width >= 48f * activity.resources.displayMetrics.density &&
-                action.boundsInWindow.height >= 48f * activity.resources.displayMetrics.density &&
+            val geometryLooksVisible = action != null && tile != null && panel != null &&
+                tile.boundsInWindow.left >= panel.boundsInWindow.left &&
+                tile.boundsInWindow.top >= panel.boundsInWindow.top &&
+                tile.boundsInWindow.width >= 48f * activity.resources.displayMetrics.density &&
+                tile.boundsInWindow.height >= 48f * activity.resources.displayMetrics.density &&
                 // Reserve space only while the paging affordance is actually present. When a
                 // menu fits on one page, the final action may use the panel's right-hand area.
-                action.boundsInWindow.right <= visiblePanelRight &&
-                action.boundsInWindow.bottom <= panel.boundsInWindow.bottom
+                tile.boundsInWindow.right <= visiblePanelRight &&
+                tile.boundsInWindow.bottom <= panel.boundsInWindow.bottom
             if (geometryLooksVisible && runCatching {
                     compose.onNodeWithContentDescription(title).assertIsDisplayed()
                 }.isSuccess
@@ -2926,6 +2960,7 @@ class InitialProjectMenuDeviceTest {
         }
         val action = compose.onAllNodesWithContentDescription(title)
             .fetchSemanticsNodes().firstOrNull()
+        val tile = compose.onAllNodesWithTag(tileTag).fetchSemanticsNodes().firstOrNull()
         val panel = compose.onAllNodesWithTag("workspace-menu-panel")
             .fetchSemanticsNodes().firstOrNull()
         val descriptions = compose.onAllNodes(
@@ -2936,7 +2971,7 @@ class InitialProjectMenuDeviceTest {
         }
         throw AssertionError(
             "Menu action '$title' did not become fully visible inside its panel; " +
-                "action=${action?.boundsInWindow}, panel=${panel?.boundsInWindow}, " +
+            "action=${action?.boundsInWindow}, tile=${tile?.boundsInWindow}, panel=${panel?.boundsInWindow}, " +
                 "grid=${compose.onAllNodesWithTag("workspace-menu-actions-grid").fetchSemanticsNodes().size}, " +
                 "visible descriptions=$descriptions",
         )
@@ -3699,6 +3734,10 @@ class InitialProjectMenuDeviceTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
         SliceBeam.INSTANCE = application as SliceBeam
+        // Menu customizations are intentionally persisted by the app. Give this broad
+        // integration class a stable default order so a prior customization test run
+        // cannot hide actions that these tests expect in their baseline menu.
+        context.getSharedPreferences("workspace_menu_customization", 0).edit().clear().commit()
         Prefs.init(application)
         Prefs.getPrefs()?.edit()
             ?.remove("crash")

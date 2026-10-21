@@ -80,7 +80,7 @@ class FileMenu : ListBedMenu() {
     override fun WorkspaceContent(portrait: Boolean) {
         wasPortrait = portrait
         LaunchedEffect(this, portrait) { refreshComposeActions() }
-        BedMenuActionsContent(composeActions.value, portrait)
+        CustomizableBedMenuActionsContent("project", composeActions.value, portrait)
     }
 
     private fun createComposeActions(portrait: Boolean): List<BedComposeMenuAction> =

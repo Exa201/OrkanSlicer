@@ -47,7 +47,6 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
-import ru.ytkab0bp.slicebeam.utils.MmuGateAssignmentPolicy
 import java.util.Locale
 
 /** Chooses model-to-filament routing before G-code is generated. */
@@ -143,7 +142,7 @@ object PreSliceFilamentDialog {
                         onEditTemperatures = editTemperatures?.let { action -> { dismiss(); action() } },
                     )
                 },
-                onConfirm = { requestMismatchWarning, reportInvalidMapping ->
+                onConfirm = { requestMismatchWarning ->
                     val oneSource = if (useOneSlot.value && !preserveColors.value && physicalGates.isNotEmpty()) {
                         val physical = MmuFilamentSync.gateSlot(printerTitle, onePhysicalGate.intValue)
                         val candidates = slots.mapIndexed { index, slot ->
@@ -158,11 +157,9 @@ object PreSliceFilamentDialog {
                     )
                     val gates = colorMapping.value.toMutableList()
                     val activeTools = if (preserveColors.value) usedTools.toList() else listOf(oneSource)
-                    if (preserveColors.value && MmuGateAssignmentPolicy.firstSharedGateTool(
-                            activeTools.toIntArray(), gates.toIntArray()) != null) {
-                        reportInvalidMapping()
-                        return@PreSliceFilamentDialogContent
-                    }
+                    // Reusing one physical spool for several logical model colors is valid.
+                    // The upload preparation stage verifies that the shared tools have
+                    // compatible material and temperatures before routing their G-code.
                     if (gates.isNotEmpty() && (preserveColors.value || useOneSlot.value) && !preserveColors.value) {
                         gates[oneSource] = onePhysicalGate.intValue
                     }
@@ -188,14 +185,10 @@ private fun PreSliceFilamentDialogContent(
     titleLabel: Int,
     positiveLabel: Int,
     onDismiss: () -> Unit,
-    onConfirm: (
-        requestMismatchWarning: ((() -> Unit) -> Unit),
-        reportInvalidMapping: () -> Unit,
-    ) -> Unit,
+    onConfirm: (requestMismatchWarning: ((() -> Unit) -> Unit)) -> Unit,
     content: @Composable () -> Unit,
 ) {
     var continueAfterMismatch by androidx.compose.runtime.remember { mutableStateOf<(() -> Unit)?>(null) }
-    var invalidMapping by androidx.compose.runtime.remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(titleLabel), modifier = Modifier.testTag("pre-slice-title")) },
@@ -203,7 +196,7 @@ private fun PreSliceFilamentDialogContent(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onConfirm({ action -> continueAfterMismatch = action }, { invalidMapping = true })
+                    onConfirm { action -> continueAfterMismatch = action }
                 },
                 modifier = Modifier.heightIn(min = 48.dp).testTag("pre-slice-confirm"),
             ) { Text(stringResource(positiveLabel)) }
@@ -229,18 +222,6 @@ private fun PreSliceFilamentDialogContent(
             dismissButton = {
                 TextButton(onClick = { continueAfterMismatch = null }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(android.R.string.cancel))
-                }
-            },
-        )
-    }
-    if (invalidMapping) {
-        AlertDialog(
-            onDismissRequest = { invalidMapping = false },
-            title = { Text(stringResource(R.string.MmuAssignmentTitle)) },
-            text = { Text(stringResource(R.string.MmuAssignmentDuplicateGateError)) },
-            confirmButton = {
-                TextButton(onClick = { invalidMapping = false }, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text(stringResource(android.R.string.ok))
                 }
             },
         )

@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import android.webkit.JavascriptInterface
+import android.webkit.ConsoleMessage
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
@@ -53,7 +56,11 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
 
     companion object {
         const val REQUEST_CODE_FILE = 15
-        private const val EDITOR_URL = "https://appassets.androidplatform.net/assets/kromacut-editor/index.html"
+        // Pin the SPA's first route to English while it bootstraps. On Android WebView
+        // the system-language path can race locale chunk loading before React mounts,
+        // leaving only the WebView's dark background visible. Kromacut's own language
+        // selector remains available after the editor has initialized.
+        private const val EDITOR_URL = "https://appassets.androidplatform.net/en/app/"
 
         private var fileCallback: ValueCallback<Array<Uri>>? = null
         @JvmStatic
@@ -118,12 +125,63 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest,
-            ): WebResourceResponse? = loader.shouldInterceptRequest(request.url)
+            ): WebResourceResponse? {
+                val requestUrl = request.url
+                val requestedPath = requestUrl.path.orEmpty()
+                if (requestUrl.host == "appassets.androidplatform.net" &&
+                    Regex("^/(?:(?:en|de|fr|it|ro|es|ja|zh-CN|hi|pt-PT|uk|bn)/)?app/?$").matches(requestedPath)) {
+                    // v4.2's top-level index is the marketing landing page. Serve the app
+                    // route and anchor Vite's relative URLs to the bundled asset root.
+                    val html = ctx.assets.open("kromacut-editor/app/index.html").bufferedReader().use { it.readText() }
+                        .replace(
+                            "<head>",
+                            "<head><base href=\"https://appassets.androidplatform.net/assets/kromacut-editor/\">" +
+                                // WebView's Vite lazy import for the editor entry can remain
+                                // unresolved when the app route is served from AssetLoader.
+                                // Preloading this exact local chunk makes the same module
+                                // available to React.lazy without making any network request.
+                                "<link rel=\"modulepreload\" href=\"https://appassets.androidplatform.net/assets/kromacut-editor/assets/App-QLOjXI_l.js\">" +
+                                "<script>window.addEventListener('error',e=>window.OrcaMobile.reportError(String(e.message)+' '+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>window.OrcaMobile.reportError('Unhandled rejection: '+String(e.reason)));</script>",
+                        )
+                    return WebResourceResponse("text/html", "UTF-8", ByteArrayInputStream(html.toByteArray(Charsets.UTF_8)))
+                }
+                // Kromacut selects the Android device language and changes the SPA base
+                // path to /de/ (or another localized path). Its Vite chunks then resolve
+                // below /de/assets/ while the Android asset loader exposes the bundled
+                // site under /assets/. Alias localized asset requests back to that bundle.
+                val localizedAssetPath = Regex("^/(?:en|de|fr|it|ro|es|ja|zh-CN|hi|pt-PT|uk|bn)/assets/")
+                val path = requestUrl.path.orEmpty()
+                val normalizedUrl = if (requestUrl.host == "appassets.androidplatform.net" &&
+                    localizedAssetPath.containsMatchIn(path)) {
+                    requestUrl.buildUpon()
+                        .encodedPath(path.replaceFirst(localizedAssetPath, "/assets/"))
+                        .build()
+                } else requestUrl
+                val response = loader.shouldInterceptRequest(normalizedUrl)
+                if (path.contains("App-QLOjXI_l")) {
+                    Log.d("KromacutWebView", "Lazy app chunk $requestUrl -> $normalizedUrl (${response?.mimeType})")
+                }
+                if (path.contains("kromacut-editor/assets/index-") ||
+                    path.contains("/de/assets/kromacut-editor/")) {
+                    Log.d("KromacutWebView", "Asset request $requestUrl -> $normalizedUrl (${response?.mimeType})")
+                }
+                if (path.contains("/assets/") && response == null) {
+                    Log.e("KromacutWebView", "No bundled asset for $requestUrl (mapped=$normalizedUrl)")
+                }
+                return response
+            }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
                 request.url.host != "appassets.androidplatform.net"
             }
             webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                    if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                        Log.e("KromacutWebView", "${message.message()} (${message.sourceId()}:${message.lineNumber()})")
+                    }
+                    return true
+                }
+
                 override fun onShowFileChooser(
                     view: WebView,
                     callback: ValueCallback<Array<Uri>>,
@@ -233,6 +291,11 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
     }
 
     private inner class DownloadBridge {
+        @JavascriptInterface
+        fun reportError(message: String?) {
+            Log.e("KromacutWebView", "JavaScript failure: ${message ?: "unknown"}")
+        }
+
         @JavascriptInterface
         fun beginDownload(filename: String?) = this@KromacutEditorMenu.beginDownload(filename)
 

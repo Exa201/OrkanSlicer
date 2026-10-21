@@ -11,7 +11,7 @@
         <meta name="theme-color" content="#ffffff" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="application-name" content="Kromacut" />
-        <meta name="description" content="Use adjustments, palettes, quantization, and swatches." />
+        <meta name="description" content="Understand the two-stage reduction pipeline, fixed palettes, and the difference between recoloring and transparency." />
         <meta
             name="keywords"
             content="Kromacut, free image to 3D print, color lithophane, filament swaps, palette quantization, STL export, 3MF export"
@@ -22,7 +22,7 @@
 
         <!-- Open Graph / social -->
         <meta property="og:title" content="Reducing Colors | Kromacut Docs" />
-        <meta property="og:description" content="Use adjustments, palettes, quantization, and swatches." />
+        <meta property="og:description" content="Understand the two-stage reduction pipeline, fixed palettes, and the difference between recoloring and transparency." />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="https://kromacut.com/docs/reducing-colors" />
         <meta property="og:site_name" content="Kromacut" />
@@ -37,7 +37,7 @@
         <!-- Twitter -->
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content="Reducing Colors | Kromacut Docs" />
-        <meta name="twitter:description" content="Use adjustments, palettes, quantization, and swatches." />
+        <meta name="twitter:description" content="Understand the two-stage reduction pipeline, fixed palettes, and the difference between recoloring and transparency." />
         <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
         <meta name="twitter:image:alt" content="Kromacut logo" />
         <title>Reducing Colors | Kromacut Docs</title>
@@ -69,42 +69,58 @@
                 ]
             }
         </script>
-      <script type="module" crossorigin src="./assets/index-BitRc1L5.js"></script>
-      <link rel="stylesheet" crossorigin href="./assets/index-DjVXpfYh.css">
-    </head>
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/reducing-colors">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/reducing-colors">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/reducing-colors">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/reducing-colors">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/reducing-colors">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/reducing-colors">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/reducing-colors">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/reducing-colors">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/reducing-colors">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/reducing-colors">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/reducing-colors">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/reducing-colors">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/reducing-colors">
+</head>
     <body>
         <div id="root">
             <main class="seo-doc-page">
                 <nav aria-label="Documentation">
                     <a href="/">Kromacut home</a>
                     <a href="/app">Open Kromacut</a>
-                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
+                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/image-adjustments">Image Adjustments</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/auto-paint">Auto-paint Controls</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/flat-paint">Flat Paint</a></li><li><a href="/docs/calibration-workflows">Calibration Workflows</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
                 </nav>
                 <article>
                     <h1 id="reducing-colors">Reducing Colors</h1>
-<p>Color reduction turns a full image into a smaller palette that can become printable layers. This is the main 2D preparation step.</p>
-<h2 id="adjustments-first">Adjustments First</h2>
-<p>Use <strong>Adjustments</strong> to make the subject easier to separate before reducing colors. The controls are:</p>
-<table><thead><tr><th>Control</th><th>Use it for</th></tr></thead><tbody><tr><td>Exposure</td><td>Overall brightness.</td></tr><tr><td>Contrast</td><td>Stronger or softer separation between tones.</td></tr><tr><td>Highlights and Shadows</td><td>Recovering detail in bright or dark regions.</td></tr><tr><td>Whites and Blacks</td><td>Moving the brightest and darkest endpoints.</td></tr><tr><td>Saturation and Vibrance</td><td>More or less color intensity.</td></tr><tr><td>Hue, Temperature, and Tint</td><td>Correcting color shifts.</td></tr><tr><td>Clarity</td><td>Local contrast and edge definition.</td></tr></tbody></table>
-<p>Click <strong>Apply</strong> in the Adjustments panel to bake the current look into the image.</p>
-<h2 id="quantization-settings">Quantization Settings</h2>
-<p>Use <strong>Quantization Settings</strong> to reduce the image.</p>
-<ul><li><strong>Palette</strong> chooses the target color set. <strong>Auto</strong> lets Kromacut find colors from the image. Built-in palettes, supplier palettes, and custom palettes constrain the result to known colors.</li><li><strong>Supplier Palettes</strong> are built-in color sets matching real filament lines (for example Bambu Lab PLA Basic), so the reduced image only uses colors you can actually buy. They cannot be edited directly — clone one into a custom palette to adjust it. These are unofficial reference palettes of filament color names and hex values, taken from <a href="https://store.bblcdn.com/s7/default/1084369ef84345bbaa5d704a492954e0/Bambu_PLA_Basic_Hex_Code.pdf" target="_blank" rel="noopener noreferrer">Bambu Lab's official filament hex chart</a>; advertised values may not match printed filament exactly. Kromacut is not affiliated with, endorsed by, or sponsored by Bambu Lab or any other filament manufacturer — supplier names are used only to identify the referenced products.</li><li><strong>Number of Colors</strong> sets the target color count when using <strong>Auto</strong>.</li><li><strong>Algorithm Weight</strong> changes how strongly the selected algorithm groups colors. It is disabled when the algorithm is <strong>None (postprocess only)</strong>.</li><li><strong>Algorithm</strong> chooses the reduction method.</li><li><strong>Apply</strong> runs the reduction.</li></ul>
-<h2 id="choosing-an-algorithm">Choosing An Algorithm</h2>
-<table><thead><tr><th>Algorithm</th><th>When to try it</th></tr></thead><tbody><tr><td>None (postprocess only)</td><td>You already have the colors you want and only need palette postprocessing.</td></tr><tr><td>Posterize</td><td>Simple graphic images with broad color regions.</td></tr><tr><td>Median-cut</td><td>Fast general-purpose reduction.</td></tr><tr><td>K-means</td><td>A good default for photos and mixed artwork.</td></tr><tr><td>Wu</td><td>Smooth photos or gradients that need balanced color buckets.</td></tr><tr><td>Octree</td><td>Images with many distinct colors and sharp regions.</td></tr></tbody></table>
-<p>If the result looks muddy, try fewer colors plus stronger contrast. If important colors disappear, increase <strong>Number of Colors</strong> or try another algorithm.</p>
+<p>Quantization replaces many source colors with a smaller set, simplifying regions used by Manual and Auto-paint 3D workflows. A 2D palette contains target image colors, not an Auto-paint filament profile or measured print predictions.</p>
+<p>Crop and resize first. If you changed <a href="/docs/image-adjustments">image adjustments</a>, click Apply in that panel before quantizing.</p>
+<h2 id="the-two-stage-pipeline">The Two-Stage Pipeline</h2>
+<p><a href="/assets/34_quantization_pipeline-CnWUB_-x.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: Algorithm Weight limits the intermediate palette; Number of Colors or a selected fixed palette controls the second stage."><img src="/assets/34_quantization_pipeline-CnWUB_-x.svg" alt="Algorithm Weight limits the intermediate palette; Number of Colors or a selected fixed palette controls the second stage." loading="lazy"></a></p>
+<p><strong>Algorithm Weight</strong> and <strong>Number of Colors</strong> do different jobs. K-means with Weight 128 first groups the source into up to 128 colors. Auto with Number of Colors 16 then merges that result to at most 16. Weight is not a percentage, opacity, or filament count.</p>
+<table><thead><tr><th>Field or action</th><th>Meaning</th></tr></thead><tbody><tr><td>Palette: Auto</td><td>Finds image-dependent colors, then limits their count.</td></tr><tr><td>Palette: built-in, supplier, or custom</td><td>Maps the intermediate image to the selected palette's enabled colors. Not every available color must appear.</td></tr><tr><td>Number of Colors</td><td>Auto's final upper limit: 2 to 256, default 16. Disabled for a fixed palette.</td></tr><tr><td>Algorithm Weight</td><td>Intermediate palette budget: 2 to 256, default 128. A larger value usually retains more intermediate detail, not necessarily a better final match.</td></tr><tr><td>Algorithm</td><td>First-stage reduction method. Default: K-means.</td></tr><tr><td>Apply</td><td>Processes the underlying image and creates an Undo step. Changing a setting alone does not recolor it.</td></tr><tr><td>Reset arrow</td><td>Restores Auto, 16 colors, Weight 128, and K-means. It does not restore an earlier image.</td></tr></tbody></table>
+<p>Output can contain fewer colors than requested. Raising the target after reduction cannot recover discarded colors: <strong>Undo</strong> first to compare alternatives from the same source.</p>
+<p>Quantization preserves fully transparent pixels but makes <strong>all partially transparent pixels fully opaque</strong>. A soft alpha edge is not a partially printed edge.</p>
+<h2 id="choose-an-algorithm">Choose An Algorithm</h2>
+<p>These methods group colors. None adds a spatial dither pattern or guarantees that a small feature will survive your nozzle's line width.</p>
+<table><thead><tr><th>Algorithm</th><th>What changes</th><th>Useful comparison</th></tr></thead><tbody><tr><td>None (postprocess only)</td><td>Skips the first-stage quantizer; Weight is disabled. Final count reduction or fixed-palette mapping still runs.</td><td>Directly map clean artwork to a known palette. It is not a universal “leave image unchanged” switch.</td></tr><tr><td>Posterize</td><td>Divides RGB channels into discrete steps, then enforces Weight.</td><td>Deliberately stepped graphics; available channel levels change in discrete jumps.</td></tr><tr><td>Median-cut</td><td>Splits the color distribution into buckets represented by average colors.</td><td>Compare when another method loses an important tonal group.</td></tr><tr><td>K-means</td><td>Finds pixel-count-weighted color clusters using random initialization.</td><td>A starting point for photos and mixed artwork. Runs from the same source can differ slightly.</td></tr><tr><td>Wu</td><td>Uses color-distribution statistics to choose divisions with less within-group variation.</td><td>Compare on gradients and photographs.</td></tr><tr><td>Octree</td><td>Groups colors through RGB subdivisions and combines groups to fit the budget.</td><td>Compare on artwork with many distinct regions.</td></tr></tbody></table>
+<p>There is no universally best algorithm. Inspect the subject, small lettering, and important accents at the intended physical size.</p>
+<h2 id="fixed-and-supplier-palettes">Fixed And Supplier Palettes</h2>
+<p>A fixed palette offers only its chosen colors. After any first-stage reduction, each nontransparent pixel maps to the nearest available color in Lab color space. This is image-color matching, not filament optical simulation.</p>
+<p><strong>Supplier Palettes</strong> are unofficial reference sets of filament names and advertised hex colors. They do not guarantee current product availability or printed-color accuracy. For example, Bambu reference colors use <a href="https://store.bblcdn.com/s7/default/1084369ef84345bbaa5d704a492954e0/Bambu_PLA_Basic_Hex_Code.pdf" target="_blank" rel="noopener noreferrer">Bambu Lab's filament hex chart</a>. Kromacut is not affiliated with or endorsed by manufacturers.</p>
+<p>Built-in and supplier palettes are read-only. Clone one to customize it. Use <a href="/docs/calibration-theory">filament calibration</a> separately for actual spool and layer behavior.</p>
 <h2 id="custom-palettes">Custom Palettes</h2>
-<p>The palette toolbar lets you create, edit, clone, import, export, or delete custom palettes.</p>
-<ul><li>Custom palettes can be saved for later use.</li><li>Palette files use the <code>.kpal</code> format.</li><li>Pick colors that match real filament when you plan to use Manual mode.</li><li><strong>Clone</strong> copies the currently selected palette — including built-in and supplier palettes — into a new custom palette you can edit. The clone is named after the original with &quot;(copy)&quot; appended.</li><li>Each color can have an optional <strong>name</strong> (for example &quot;Pumpkin Orange&quot;) so you can recognize it quickly. Names show as tooltips on the color chips in the palette dropdown, travel with <code>.kpal</code> exports, and are kept when cloning — supplier palettes come with the real filament names filled in.</li></ul>
-<h3 id="disabling-colors">Disabling Colors</h3>
-<p>In the palette editor, use the eye toggle on a color row to disable that color without deleting it — handy when a spool runs out but you plan to restock it. Disabled colors:</p>
-<ul><li>Are skipped during quantization, so the reduced image only uses the enabled colors.</li><li>Stay saved in the palette and are included when you export it.</li><li>Show as <code>Name (enabled/total)</code> in the palette dropdown, for example <code>My Filaments (5/8)</code>.</li></ul>
-<p>At least one color must stay enabled.</p>
+<table><thead><tr><th>Control</th><th>What to do</th></tr></thead><tbody><tr><td>Create new palette</td><td>Name it and add at least one enabled valid color. It becomes selected.</td></tr><tr><td>Edit selected palette</td><td>Changes a custom palette, not current image pixels. Apply quantization afterward.</td></tr><tr><td>Add color</td><td>Adds a picker, hex field, and optional name. Valid entries use <code>#RGB</code> or <code>#RRGGBB</code>; invalid rows are omitted on Save.</td></tr><tr><td>Optional color name</td><td>Labels a color, for example a spool name. It does not change matching.</td></tr><tr><td>Eye toggle</td><td>Disables a saved color without deleting it. At least one valid color must remain enabled.</td></tr><tr><td>Remove row</td><td>Deletes the row; you cannot remove the last row.</td></tr><tr><td>Clone</td><td>Copies a non-Auto palette to an editable custom palette, preserving names and disabled flags.</td></tr><tr><td>Import</td><td>Reads a <code>.kpal</code> file and reports imported, overwritten, duplicate, or renamed entries. Selects the first imported palette when applicable.</td></tr><tr><td>Export</td><td>Saves the selected custom palette as <code>.kpal</code>, including names and disabled colors. Clone built-ins first to export an editable copy.</td></tr><tr><td>Delete selected palette</td><td>Removes the saved palette and returns its selection to Auto. Does not erase image pixels.</td></tr><tr><td>Save / Cancel</td><td>Commits or discards the editor draft.</td></tr></tbody></table>
+<p>A selector label such as <strong>My Spools (5/8)</strong> means five enabled colors out of eight saved entries. Only enabled colors participate. Palettes and the selection are saved locally; export backups before clearing app/browser storage. They are separate from <a href="/docs/settings-and-controls#filament-profile-files">filament profiles</a>.</p>
 <h2 id="image-colors">Image Colors</h2>
-<p>The <strong>Image colors</strong> panel shows detected swatches. The count excludes fully transparent pixels.</p>
-<p>Click a swatch to open <strong>Edit Color</strong>. You can:</p>
-<ol><li>Change the color with the picker.</li><li>Type a hex value.</li><li>Adjust transparency.</li><li>Click <strong>Apply</strong> to replace the swatch in the image.</li><li>Click <strong>Delete</strong> to remove that color from the image.</li></ol>
-<blockquote><p>Tip: Keep Manual-mode palettes small. If the image has more than 64 colors, Kromacut disables swap instructions and asks you to reduce the image first.</p></blockquote>
+<p>Image colors describes the underlying image, not live unbaked adjustments. Its badge excludes fully transparent pixels. Tooltips show hex, alpha, and pixel count. Different alpha values can create separate entries with the same RGB. Very colorful images have a bounded displayed list rather than every photographic color.</p>
+<p>Click a swatch for <strong>Edit Color</strong>. Use the RGBA picker or hex field, then Apply. Six-digit hex changes RGB while retaining the picker's current alpha; eight-digit hex explicitly includes alpha. Use the transparency control or an explicit alpha suffix when opacity matters.</p>
+<p><a href="/assets/35_swatch_operations-DdIp7-fY.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: Opaque replacement recolors every exact match, alpha zero removes those pixels, and Delete remaps colors rather than cutting holes."><img src="/assets/35_swatch_operations-DdIp7-fY.svg" alt="Opaque replacement recolors every exact match, alpha zero removes those pixels, and Delete remaps colors rather than cutting holes." loading="lazy"></a></p>
+<table><thead><tr><th>Action</th><th>What changes</th></tr></thead><tbody><tr><td>Apply an opaque color</td><td>Replaces every exact RGB-and-alpha match throughout the image, including disconnected regions.</td></tr><tr><td>Apply fully transparent alpha</td><td>Removes exact matching pixels from the visible image and printable silhouette. Matching subject pixels disappear too.</td></tr><tr><td>Apply to the transparent swatch</td><td>Replaces all fully transparent pixels, potentially adding a background or filling holes.</td></tr><tr><td>Delete</td><td>Requantizes using the remaining target palette. It does <strong>not</strong> erase pixels. The selected first-stage algorithm still runs, so other colors can change too.</td></tr><tr><td>Close / Escape</td><td>Discards the uncommitted edit.</td></tr></tbody></table>
+<p>Choose <strong>None (postprocess only)</strong> before Delete for direct mapping to the remaining palette. Use <a href="/docs/loading-images#touch-up-pixels">Fill or Eraser</a> for a local change. Undo if more of the image changes than intended.</p>
+<p>Manual swap instructions are disabled above 64 nontransparent colors. A smaller palette can simplify the stack even below that limit, but fewer targets do not automatically mean fewer Auto-paint filament changes.</p>
 <p>Next: <a href="/docs/dedithering-cleanup">Dedithering and cleanup</a>.</p>
                 </article>
             </main>

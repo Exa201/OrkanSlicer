@@ -64,7 +64,8 @@ object MmuFilamentAssignments {
                 ?: MmuColorAssignmentPolicy.suggest(palette.getOrNull(tool)?.color, palette.getOrNull(tool)?.type,
                     MmuFilamentSync.defaultGateForTool(printerTitle, tool).takeIf { it >= 0 } ?: tool, options)
         }
-        return MmuGateAssignmentPolicy.normalize(suggested, loadedGates)
+        // Preserve intentional sharing: two model colors can use the same physical spool.
+        return suggested.map { gate -> gate.takeIf { it in loadedGates } ?: loadedGates.firstOrNull() ?: -1 }.toIntArray()
     }
 
     internal fun hasMaterialMismatch(printerTitle: String, mapping: List<Int>, usedTools: List<Int>): Boolean {

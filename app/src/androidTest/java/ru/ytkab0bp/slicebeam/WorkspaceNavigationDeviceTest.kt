@@ -207,6 +207,9 @@ class WorkspaceNavigationDeviceTest {
         create: (BedFragment) -> T,
     ) {
         var launchedMenu: T? = null
+        val webTitle = arrayOfNulls<String>(1)
+        val webRenderState = arrayOfNulls<String>(1)
+        val editorView = arrayOfNulls<android.webkit.WebView>(1)
         scenario.onActivity { activity ->
             val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
             launchedMenu = create(bed)
@@ -240,7 +243,40 @@ class WorkspaceNavigationDeviceTest {
                 val editor = requireNotNull(webView)
                 assertTrue("Kromacut editor must keep file access disabled", editor.settings.allowFileAccess.not())
                 assertTrue("Kromacut editor must keep JavaScript enabled for its bundled editor", editor.settings.javaScriptEnabled)
+                assertTrue("Kromacut must load the bundled 4.2 editor app route", editor.url.orEmpty().endsWith("/en/app/"))
+                editorView[0] = editor
             }
+        }
+        if (expectedType == KromacutEditorMenu::class.java) {
+            val editor = requireNotNull(editorView[0])
+            val deadline = SystemClock.uptimeMillis() + 45_000L
+            while (SystemClock.uptimeMillis() < deadline &&
+                (!webTitle[0].orEmpty().contains("Kromacut") ||
+                    webRenderState[0].orEmpty().contains("\"rootChildren\":0") ||
+                    webRenderState[0].orEmpty().contains("\"visibleText\":0"))) {
+                val ready = CountDownLatch(1)
+                editor.post {
+                    editor.evaluateJavascript("document.title") {
+                        webTitle[0] = it
+                    }
+                    editor.evaluateJavascript("({rootChildren:document.querySelector('#root')?.children.length||0,rootHtml:document.querySelector('#root')?.innerHTML.slice(0,300)||'',visibleText:(document.querySelector('#root')?.innerText||'').trim().length,canvasCount:document.querySelectorAll('canvas').length,bodyHtmlLength:document.body?.innerHTML.length||0,readyState:document.readyState,scripts:[...document.scripts].map(s=>s.src+' attr='+s.getAttribute('src')+' type='+s.type).join('|'),base:document.baseURI,href:location.href,resources:performance.getEntriesByType('resource').map(r=>r.name+' status='+r.responseStatus).slice(-15).join('|')})") {
+                        webRenderState[0] = it
+                        ready.countDown()
+                    }
+                }
+                ready.await(500, TimeUnit.MILLISECONDS)
+                if (webRenderState[0].orEmpty().contains("\"visibleText\":0")) SystemClock.sleep(100L)
+            }
+            val rootChildren = Regex("\\\"rootChildren\\\":([0-9]+)")
+                .find(webRenderState[0].orEmpty())?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val visibleTextLength = Regex("\\\"visibleText\\\":([0-9]+)")
+                .find(webRenderState[0].orEmpty())?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            assertTrue("Kromacut page title was not rendered: ${webTitle[0]}", webTitle[0].orEmpty().contains("Kromacut"))
+            assertTrue("Kromacut page loaded without rendering its React interface (diagnostic title ${webTitle[0]}): ${webRenderState[0]}",
+                rootChildren > 0 && visibleTextLength > 0)
+        }
+        scenario.onActivity { activity ->
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
             assertTrue("Android back should close ${expectedType.simpleName}", bed.onBackPressed())
         }
         instrumentation.waitForIdleSync()

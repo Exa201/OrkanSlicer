@@ -19,9 +19,9 @@ class MmuGateAssignmentPolicyTest {
         )
     }
 
-    @Test fun selectingAnOccupiedGateSwapsThePreviousAssignment() {
+    @Test fun selectingAnOccupiedGateAllowsIntentionalSharedFilamentAssignment() {
         assertArrayEquals(
-            intArrayOf(0, 3, 2, 1),
+            intArrayOf(0, 3, 2, 3),
             MmuGateAssignmentPolicy.selectGate(intArrayOf(0, 1, 2, 3), 1, 3, intArrayOf(0, 1, 2, 3)),
         )
     }

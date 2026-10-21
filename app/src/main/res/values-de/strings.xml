@@ -744,6 +744,13 @@
     <string name="MenuCameraControlModeOne">Ein Finger: drehen, zwei Finger: verschieben</string>
     <string name="MenuCameraControlModeTwo">Ein Finger: verschieben, zwei Finger: drehen</string>
     <string name="MenuCameraControlModeThree">Nur Bewegung</string>
+    <string name="SettingsCameraProjection">Kameraprojektion</string>
+    <string name="SettingsCameraOrthographic">Orthografisch</string>
+    <string name="SettingsCameraPerspective">Perspektivisch</string>
+    <string name="MenuCustomize">Menü anpassen</string>
+    <string name="MenuCustomizeReset">Zurücksetzen</string>
+    <string name="MenuCustomizeMoveUp">Nach oben</string>
+    <string name="MenuCustomizeMoveDown">Nach unten</string>
     <string name="MenuOrientation">Ausrichtung</string>
     <string name="MenuOrientationArrange">Modelle auf Platte verteilen</string>
     <string name="MenuOrientationArrangeFinished">Modelle angeordnet.</string>

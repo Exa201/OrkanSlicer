@@ -16,4 +16,11 @@ internal enum class WorkspaceDestination(
     EDIT(R.string.MenuToolbar, R.drawable.menu_scale_28, R.string.MenuToolbarNavigation),
     TOOLS(R.string.MenuOptions, R.drawable.settings_outline_28),
     SLICE(R.string.MenuSlice, R.drawable.magic_wand_outline_28),
+
+    ;
+
+    companion object {
+        /** Camera presets stay on the view cube; projection and gesture settings live under App. */
+        val visibleNavigationDestinations: List<WorkspaceDestination> = values().filterNot { it == CAMERA }
+    }
 }

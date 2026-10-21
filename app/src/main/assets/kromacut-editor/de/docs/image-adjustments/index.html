@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Alle Ton- und Farbregler, ihr Einfluss auf Zielfarben und wann die Vorschau ins Bild übernommen werden sollte." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/de/docs/image-adjustments">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Bildanpassungen | Kromacut-Dokumentation" />
+        <meta property="og:description" content="Alle Ton- und Farbregler, ihr Einfluss auf Zielfarben und wann die Vorschau ins Bild übernommen werden sollte." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/de/docs/image-adjustments" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="de_DE" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Bildanpassungen | Kromacut-Dokumentation" />
+        <meta name="twitter:description" content="Alle Ton- und Farbregler, ihr Einfluss auf Zielfarben und wann die Vorschau ins Bild übernommen werden sollte." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Bildanpassungen | Kromacut-Dokumentation</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/image-adjustments">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/image-adjustments">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/image-adjustments">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/image-adjustments">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/image-adjustments">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/image-adjustments">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/image-adjustments">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/image-adjustments">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/image-adjustments">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/image-adjustments">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/image-adjustments">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/image-adjustments">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/image-adjustments">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Dokumentation">
+                    <a href="/de/">Zur Startseite</a>
+                    <a href="/app">Kromacut öffnen</a>
+                    <ul><li><a href="/de/docs/overview">Überblick</a></li><li><a href="/de/docs/quick-start">Schnellstart</a></li><li><a href="/de/docs/loading-images">Bilder laden</a></li><li><a href="/de/docs/image-adjustments">Bildanpassungen</a></li><li><a href="/de/docs/reducing-colors">Farben reduzieren</a></li><li><a href="/de/docs/dedithering-cleanup">Rasterglättung und Bereinigung</a></li><li><a href="/de/docs/3d-mode">3D-Modus</a></li><li><a href="/de/docs/auto-paint">Auto-paint-Steuerung</a></li><li><a href="/de/docs/calibration-theory">Kalibrierungstheorie</a></li><li><a href="/de/docs/flat-paint">Flat Paint</a></li><li><a href="/de/docs/calibration-workflows">Kalibrierabläufe</a></li><li><a href="/de/docs/generating-exporting-output">Ergebnisse erzeugen und exportieren</a></li><li><a href="/de/docs/settings-and-controls">Einstellungen und Steuerung</a></li><li><a href="/de/docs/troubleshooting">Fehlerbehebung</a></li><li><a href="/de/docs/faq">Häufige Fragen</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="image-adjustments">Bildanpassungen</h1>
+<p>Bildanpassungen verändern das Zielbild vor der Farbreduktion. Sie kalibrieren kein Filament, ändern keine Deckdistanz und garantieren nicht, dass eine angezeigte Farbe physisch druckbar ist.</p>
+<p>Bewege einen Regler, um seine Wirkung zu sehen; die Vorschau aktualisiert sich nach dem Beenden der Bedienung. Alle Regler beginnen bei null. Einzelne Rücksetz-Pfeile setzen einen Regler zurück, die Rücksetzfunktion des Bereichs alle Regler.</p>
+<h2 id="tone-and-color-controls">Ton- und Farbregler</h2>
+<p><a href="/localized/de/diagrams/32_adjustment_controls.svg" target="_blank" rel="noopener noreferrer" aria-label="Illustration in voller Größe öffnen: Schematische negative, neutrale und positive Beispiele für alle zwölf Bildanpassungen."><img src="/localized/de/diagrams/32_adjustment_controls.svg" alt="Schematische negative, neutrale und positive Beispiele für alle zwölf Bildanpassungen." loading="lazy"></a></p>
+<p><em>Gezeigt werden schematische Wirkungsrichtungen, keine kalibrierten Druckvorhersagen. Die Effekte hängen von der Quelle und anderen aktiven Anpassungen ab.</em></p>
+<h3 id="tone">Tonwerte</h3>
+<table><thead><tr><th>Regler</th><th>Bereich</th><th>Negative Werte</th><th>Positive Werte</th><th>Bedeutung für die Druckvorbereitung</th></tr></thead><tbody><tr><td>Belichtung</td><td>−3 bis +3 Blendenstufen, Schritt 0,01</td><td>RGB-Werte abdunkeln.</td><td>Aufhellen; +1 verdoppelt die Kanalwerte bis zur Begrenzung.</td><td>Verschiebt großflächige Zieltonwerte. Diese Anpassung des gerenderten Bildes kann abgeschnittene RAW-Informationen nicht wiederherstellen.</td></tr><tr><td>Kontrast</td><td>−100 % bis +100 %</td><td>Tonwerte zu Mittelgrau ziehen. −100 % ergibt vor weiteren Anpassungen Mittelgrau.</td><td>Tonwerte von Mittelgrau wegschieben, mit Begrenzung bei Schwarz und Weiß.</td><td>Trennt große Bereiche, kann aber feine Schatten- und Lichtabstufungen einebnen.</td></tr><tr><td>Lichter</td><td>−100 % bis +100 %</td><td>Helle Bereiche abdunkeln.</td><td>Helle Bereiche aufhellen.</td><td>Ändert helle Tonwerte, die um Palettenplätze konkurrieren; fehlende Details lassen sich nicht zurückholen.</td></tr><tr><td>Tiefen</td><td>−100 % bis +100 %</td><td>Schattenbereiche abdunkeln.</td><td>Schattenbereiche aufhellen.</td><td>Kann vorhandene dunkle Unterschiede vor der Reduktion sichtbar machen.</td></tr><tr><td>Weiß</td><td>−100 % bis +100 %</td><td>Den hellsten Bereich abdunkeln.</td><td>Den hellsten Bereich aufhellen.</td><td>Trennt oder verbindet nahezu weiße Zielfarben. Keine Weißabgleichseinstellung.</td></tr><tr><td>Schwarz</td><td>−100 % bis +100 %</td><td>Den dunkelsten Bereich abdunkeln.</td><td>Den dunkelsten Bereich aufhellen.</td><td>Ändert nahezu schwarze Zielfarben; reines Schwarz bleibt wegen der Skalierung der Werte schwarz.</td></tr></tbody></table>
+<p>Lichter und Tiefen wirken auf breitere Bereiche als Weiß und Schwarz. Die Bereiche überlappen sich: Ein sehr dunkler Pixel kann sowohl auf Schwarz als auch auf Tiefen reagieren. Die Tonwertbereiche werden nach Belichtung, Kontrast, Temperatur/Tönung und den HSL-Anpassungen ausgewertet; die Regler können sich daher gegenseitig beeinflussen.</p>
+<h3 id="color-and-local-detail">Farbe und lokale Details</h3>
+<table><thead><tr><th>Regler</th><th>Bereich</th><th>Negative Werte</th><th>Positive Werte</th><th>Bedeutung für die Druckvorbereitung</th></tr></thead><tbody><tr><td>Sättigung</td><td>−100 % bis +100 %</td><td>Intensität verringern; −100 % entsättigt.</td><td>Intensität erhöhen.</td><td>Ändert Unterschiede zwischen Bildfarben, nicht den physischen Farbumfang der Filamente.</td></tr><tr><td>Dynamik</td><td>−100 % bis +100 %</td><td>Die Sättigung vergleichsweise ungesättigter Farben stärker verringern.</td><td>Die Sättigung vergleichsweise ungesättigter Farben stärker erhöhen.</td><td>Weniger gleichmäßig als Sättigung, berücksichtigt aber keine Hauttöne. Reines Grau bleibt grau.</td></tr><tr><td>Farbton</td><td>−180° bis +180°</td><td>Farbtöne in eine Richtung drehen.</td><td>In die andere Richtung drehen.</td><td>Färbt das gesamte Bild um; zum Ändern einer exakten Farbe ein Farbfeld bearbeiten.</td></tr><tr><td>Temperatur</td><td>−100 bis +100</td><td>Kühler: weniger Rot, mehr Blau.</td><td>Wärmer: mehr Rot, weniger Blau.</td><td>Eine angenäherte Farbstichkorrektur, <strong>keine Kelvin-Angabe</strong>.</td></tr><tr><td>Tönung</td><td>−100 bis +100</td><td>Grün hinzufügen.</td><td>Magenta hinzufügen, Rot/Blau erhöhen und Grün verringern.</td><td>Korrigiert oder erzeugt einen Farbstich; kein gemessenes Kameraprofil.</td></tr><tr><td>Klarheit</td><td>−100 bis +100</td><td>Lokalen Kontrast abschwächen.</td><td>Lokalen Kontrast und Kanten betonen.</td><td>Kann Kantenfarben oder Halos erzeugen, die quantisiert werden müssen. Stellt keine Details wieder her und verbreitert keine dünnen Linien.</td></tr></tbody></table>
+<p>Außer Belichtung und Farbton verwenden die Regler ganzzahlige Schritte. Alpha bleibt unverändert. Bei der Quantisierung ist das Alpha-Verhalten anders: Teiltransparente Pixel werden vollständig undurchsichtig.</p>
+<h2 id="preview-versus-apply">Vorschau und Anwenden</h2>
+<p><a href="/localized/de/diagrams/33_adjustment_bake.svg" target="_blank" rel="noopener noreferrer" aria-label="Illustration in voller Größe öffnen: Eine laufende Vorschau zweigt vom Quellbild ab. Anwenden übernimmt dieses Aussehen und setzt die Regler zurück; Quantisierung, PNG-Export und 3D verwenden danach die übernommenen Pixel."><img src="/localized/de/diagrams/33_adjustment_bake.svg" alt="Eine laufende Vorschau zweigt vom Quellbild ab. Anwenden übernimmt dieses Aussehen und setzt die Regler zurück; Quantisierung, PNG-Export und 3D verwenden danach die übernommenen Pixel." loading="lazy"></a></p>
+<p><strong>Anwenden</strong> übernimmt das aktuelle Aussehen fest in das zugrunde liegende Bild, setzt die Regler auf null und erzeugt einen Schritt im Bildverlauf. Dabei werden keine Farben reduziert, kein Modell erstellt und keine Druckeinstellungen verändert.</p>
+<p>Die Unterscheidung ist wichtig:</p>
+<ul><li><strong>Farbquantisierung, Bild skalieren, Bild herunterladen und 3D-Erzeugung verwenden das zugrunde liegende Arbeitsbild</strong>, nicht die noch nicht übernommenen Vorschauanpassungen.</li><li><strong>Bildfarben</strong> beschreibt die zugrunde liegenden Pixel; die Farbfelder folgen daher nicht den laufenden Anpassungen.</li><li>Retuschierwerkzeuge bearbeiten das zugrunde liegende Bild; aktive Anpassungen wirken anschließend erneut darauf.</li><li>Die Rasterglättung liest das angepasste Bild. Übernimm die Anpassungen vorher, damit sie nicht zusätzlich auf das verarbeitete Ergebnis wirken.</li></ul>
+<p>Der verlässliche Ablauf lautet <strong>Anpassungen vorprüfen → Anpassungen anwenden → quantisieren → prüfen/bereinigen → 3D erstellen</strong>. Schneide das Bild nach Möglichkeit vorher zu und skaliere es vorher.</p>
+<h2 id="reset-and-undo-are-different">Zurücksetzen und Rückgängig sind verschieden</h2>
+<p>Zurücksetzen entfernt eine laufende Anpassung, keine bereits ins Bild übernommene Änderung. Nach Anwenden stehen die Regler erwartungsgemäß auf null, weil ihre vorherige Wirkung jetzt im Bild steckt. Verwende <strong>Rückgängig</strong>, um das frühere Bild wiederherzustellen.</p>
+<p>Wiederholtes Anwenden wirkt auf das bereits bearbeitete Bild. Dadurch können sich abgeschnittene Werte und verlorene Tonwertdetails summieren. Mache die Änderung zuerst rückgängig, wenn du Alternativen vergleichen möchtest.</p>
+<p>Weiter: <a href="/de/docs/reducing-colors">Farben reduzieren</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

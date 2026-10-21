@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ro">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Generează modelul, inspectează-l, exportă fișiere și copiază instrucțiunile de imprimare." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ro/docs/generating-exporting-output">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Generarea și exportul rezultatului | Documentație Kromacut" />
+        <meta property="og:description" content="Generează modelul, inspectează-l, exportă fișiere și copiază instrucțiunile de imprimare." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ro/docs/generating-exporting-output" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ro_RO" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Generarea și exportul rezultatului | Documentație Kromacut" />
+        <meta name="twitter:description" content="Generează modelul, inspectează-l, exportă fișiere și copiază instrucțiunile de imprimare." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Generarea și exportul rezultatului | Documentație Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/generating-exporting-output">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/generating-exporting-output">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/generating-exporting-output">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/generating-exporting-output">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/generating-exporting-output">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/generating-exporting-output">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/generating-exporting-output">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/generating-exporting-output">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/generating-exporting-output">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/generating-exporting-output">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/generating-exporting-output">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentație">
+                    <a href="/ro/">Mergi la pagina principală</a>
+                    <a href="/app">Deschide Kromacut</a>
+                    <ul><li><a href="/ro/docs/overview">Prezentare generală</a></li><li><a href="/ro/docs/quick-start">Ghid rapid</a></li><li><a href="/ro/docs/loading-images">Încărcarea imaginilor</a></li><li><a href="/ro/docs/image-adjustments">Ajustările imaginii</a></li><li><a href="/ro/docs/reducing-colors">Reducerea culorilor</a></li><li><a href="/ro/docs/dedithering-cleanup">Eliminarea ditheringului și curățarea</a></li><li><a href="/ro/docs/3d-mode">Modul 3D</a></li><li><a href="/ro/docs/auto-paint">Comenzi Auto-paint</a></li><li><a href="/ro/docs/calibration-theory">Teoria calibrării</a></li><li><a href="/ro/docs/flat-paint">Flat Paint</a></li><li><a href="/ro/docs/calibration-workflows">Fluxuri de calibrare</a></li><li><a href="/ro/docs/generating-exporting-output">Generarea și exportul rezultatului</a></li><li><a href="/ro/docs/settings-and-controls">Setări și comenzi</a></li><li><a href="/ro/docs/troubleshooting">Depanare</a></li><li><a href="/ro/docs/faq">Întrebări frecvente</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="generating-and-exporting-output">Generarea și exportul rezultatului</h1>
+<p>Fluxul de export începe după ce imaginea 2D și comenzile 3D sunt pregătite.</p>
+<p><a href="/localized/ro/diagrams/40_build_export_snapshot.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Pregătește imaginea și setările, generează un model fixat, inspectează-l, apoi exportă stiva completă. Schimbarea unei setări necesită o nouă generare; limitarea previzualizării nu limitează exportul."><img src="/localized/ro/diagrams/40_build_export_snapshot.svg" alt="Pregătește imaginea și setările, generează un model fixat, inspectează-l, apoi exportă stiva completă. Schimbarea unei setări necesită o nouă generare; limitarea previzualizării nu limitează exportul." loading="lazy"></a></p>
+<h2 id="before-you-export">Înainte de export</h2>
+<p>Verifică următoarele:</p>
+<ol><li>În modul 2D, redu imaginea la un număr practic de culori.</li><li>În <strong>Setări de imprimare 3D</strong>, alege dimensiunile fizice cu <strong>Dimensiunea pixelului (XY)</strong>. Potrivește <strong>Înălțimea stratului</strong> și <strong>Înălțimea primului strat</strong> cu slicerul, iar <strong>Lățimea efectivă a liniei</strong> cu lățimea de extrudare planificată pentru verificările detaliilor imprimabile și ditheringul de înălțime din Auto-paint.</li><li>Alege <strong>Manual</strong> sau <strong>Auto-paint</strong>.</li><li>Apasă <strong>Generează modelul 3D</strong>.</li><li>Inspectează modelul și <strong>Previzualizarea straturilor</strong>.</li></ol>
+<p>Dacă Kromacut afișează un <strong>Avertisment de performanță</strong>, generarea poate fi lentă din cauza dimensiunii imaginii, numărului de pixeli, numărului de straturi sau a unui volum de lucru similar. Poți continua cu <strong>Generează oricum</strong> sau poți anula și simplifica proiectul.</p>
+<h2 id="build-3d-model">Generarea modelului 3D</h2>
+<p>Apasă <strong>Generează modelul 3D</strong> ori de câte ori vrei ca previzualizarea și geometria exportată să reflecte setările 3D curente.</p>
+<p>În timpul generării, Kromacut afișează progresul: citirea straturilor de culoare ale imaginii, maparea culorilor imaginii sau construirea straturilor colorate. Comenzile de export redevin utilizabile după dispariția suprapunerii de progres și când modelul actualizat este gata de inspecție.</p>
+<p>Calcularea unei stive noi în Auto-paint nu este același lucru cu generarea unei geometrii noi. Exportul folosește ultimul model generat, iar Instrucțiunile de imprimare rămân legate de acea generare. După editarea imaginii, schimbarea unui profil, salvarea calibrării sau modificarea setărilor de imprimare, așteaptă calculul curent și generează din nou înainte de export. O previzualizare anterioară poate rămâne vizibilă cât timp noile setări sunt calculate sau respinse; prezența ei nu dovedește că noile setări au reușit.</p>
+<h2 id="choose-stl-or-3mf">Alege STL sau 3MF</h2>
+<p>Deschide meniul de descărcare 3D și alege:</p>
+<table><thead><tr><th>Format</th><th>Când îl folosești</th></tr></thead><tbody><tr><td>STL</td><td>Vrei un model cu geometrie unică, acceptat pe scară largă, și vei gestiona manual schimbările de filament.</td></tr><tr><td>3MF</td><td>Vrei un rezultat cu informații de culoare pentru slicere care pot păstra mai multe obiecte colorate.</td></tr></tbody></table>
+<p>Exportul 3MF păstrează, când este posibil, culorile filamentelor fizice din Auto-paint. Verifică totuși atribuirile din slicer înainte de imprimare.</p>
+<p>O previzualizare Auto-paint poate arăta zeci de culori amestecate produse din doar câteva role reale. 3MF atribuie aceste filamente reale straturilor fizice, nu câte un material pentru fiecare amestec prezis. Vederea obișnuită a culorilor filamentelor din slicer poate deci arăta diferit de vederea <strong>Simulate</strong> din Kromacut, fără ca atribuirile materialelor să fie greșite. Compară cu culorile <strong>Fizice</strong> când verifici atribuirile.</p>
+<p>STL nu conține culori de filament sau atribuiri automate de role. Folosește planul de schimbări copiat cu comenzile de schimbare a culorii din slicer. Un 3MF este tot un model, nu G-code gata de rulare: alege imprimanta, duza, profilurile de filament, temperaturile și vitezele proprii, apoi feliază-l.</p>
+<p>Pentru modelele <strong>Flat Paint</strong>, meniul de descărcare oferă doar 3MF: modelul conține câte un obiect pentru fiecare filament fizic și, în aranjamentul implicit cu fața în jos, un obiect de suport transparent. Aranjamentul opțional cu fața în sus omite suportul. Un STL necolorat cu geometrie unică al oricăreia dintre aceste plăci ar fi inutil. Ambele orientări acceptă toate intensitățile pentru <strong>Geometrie netezită</strong>. Reconstruiește modelul după schimbarea intensității pentru a o aplica previzualizării și geometriei exportate.</p>
+<h2 id="print-instructions">Instrucțiuni de imprimare</h2>
+<p>Panoul <strong>Instrucțiuni de imprimare</strong> oferă:</p>
+<ul><li>Recomandări pentru numărul de pereți, umplere, înălțimea stratului și a primului strat.</li><li><strong>Începe cu culoarea</strong>.</li><li><strong>Plan de schimbare a culorilor</strong>, cu numere de strat și înălțimi aproximative.</li><li>Un buton <strong>Copiază</strong> pentru întregul plan în text simplu.</li></ul>
+<p>Folosește planul copiat lângă previzualizarea slicerului. Numerele straturilor depind de <strong>Înălțimea stratului</strong> și <strong>Înălțimea primului strat</strong>, așa că păstrează aceste valori consecvente.</p>
+<p><a href="/localized/ro/diagrams/41_swap_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Un prim strat de 0,10 mm urmat de straturi de 0,04 mm. O schimbare înainte de stratul 4 se află la limita de material de 0,18 mm, iar stratul nou se termină la 0,22 mm."><img src="/localized/ro/diagrams/41_swap_layers.svg" alt="Un prim strat de 0,10 mm urmat de straturi de 0,04 mm. O schimbare înainte de stratul 4 se află la limita de material de 0,18 mm, iar stratul nou se termină la 0,22 mm." loading="lazy"></a></p>
+<p><strong>Schimbă la stratul N</strong> înseamnă că noul filament imprimă stratul N. De exemplu, cu primul strat de 0,10 mm și straturi normale de 0,04 mm, straturile 1, 2 și 3 se termină la 0,10, 0,14 și 0,18 mm. Pentru a începe filamentul următor la stratul 4, schimbă-l după stratul 3, înainte de extrudarea stratului 4. Stratul nou se termină la 0,22 mm.</p>
+<p>Înălțimea aproximativă din plan necesită atenție: modul Manual afișează Z-ul superior al stratului nou, iar Auto-paint afișează limita schimbării materialului. Folosește numărul stratului și inspectează tranziția reală a materialelor din feliere, nu doar un număr Z care pare să coincidă. Slicerele pot eticheta diferit stratul selectat și punctul de inserare.</p>
+<p>În modul Flat Paint nu există plan de schimbări manuale. Panoul rezumă în schimb fluxul multimaterial selectat: atribuie fiecărui obiect 3MF filamentul său, apoi fie folosește filament transparent și întoarce imprimarea implicită cu fața în jos, fie imprimă aranjamentul fără suport cu fața în sus. Niciun aranjament nu trebuie oglindit în slicer.</p>
+<h2 id="recommended-slicer-setup">Configurația recomandată pentru slicer</h2>
+<p>Kromacut recomandă:</p>
+<ul><li>Număr de pereți: <code>1</code></li><li>Umplere: <code>100%</code></li><li>Înălțimea stratului: valoarea afișată în <strong>Instrucțiuni de imprimare</strong></li><li>Înălțimea primului strat: valoarea afișată în <strong>Instrucțiuni de imprimare</strong></li></ul>
+<p>Inspectează întotdeauna previzualizarea slicerului înainte de imprimare. Înălțimile sunt aproximative, iar slicerele pot afișa diferit schimbările de strat în funcție de setările primului strat.</p>
+<p>Păstrează exportul la <strong>scară Z de 100%</strong> și folosește o înălțime constantă a stratului, identică modelului. Schimbarea scării Z sau activarea înălțimii variabile a straturilor deplasează tranzițiile fizice și invalidează planul copiat. Dacă ai nevoie de altă înălțime de strat, seteaz-o în Kromacut și regenerează. Schimbarea scării XY modifică și detaliile imprimabile față de duză; setează dimensiunea dorită în Kromacut pentru ca verificarea lățimii liniei să folosească acea dimensiune.</p>
+<p>Verifică în slicer insulele mici, textul, decupajele transparente deconectate, fundațiile și aranjamentul de purjare/amorsare. Netezirea contururilor nu poate face imprimabilă orice linie îngustă. Aplicația nu calibrează debitul, retragerea, temperatura sau configurația mecanică a imprimantei.</p>
+<h2 id="saving-and-cancelling">Salvare și anulare</h2>
+<p>Exporturile din aplicația desktop deschid un dialog <strong>Salvează ca</strong>. În browser folosesc setările sale de descărcare, deci afișarea unei solicitări de locație depinde de browser. Anularea unui dialog de fișier nu trimite nimic imprimantei. În timpul exportului, scrierea geometriei și comprimarea arhivei pot dura; așteaptă finalizarea salvării înainte de a închide aplicația.</p>
+<h2 id="export-tips">Sfaturi pentru export</h2>
+<ul><li>Generează modelul după schimbarea setărilor 3D.</li><li>Nu te baza doar pe intervalul vizibil din previzualizarea straturilor; exportul include modelul complet.</li><li>Dacă geometria este prea complexă pentru generare sau feliere, decupează sau micșorează rezoluția sursei în 2D și redu regiunile de culoare inutile. Mărirea <strong>Dimensiunii pixelului (XY)</strong> mărește aceiași pixeli; nu le reduce numărul și nu simplifică geometria.</li><li>Dacă instrucțiunile de schimbare sunt dezactivate din cauza prea multor culori, revino la <a href="/ro/docs/reducing-colors#image-colors">Reducerea culorilor</a>.</li></ul>
+<p>În continuare: <a href="/ro/docs/settings-and-controls">Setări și comenzi</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

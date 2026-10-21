@@ -58,6 +58,8 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
+import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
+import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.SlicingProgressEvent
@@ -559,6 +561,7 @@ if (e.tag != null)
 {
 s.tag(e.tag!!)
 }
+
 if (e.buttonTitle != null)
 {
 s.lifetime = 0
@@ -566,6 +569,21 @@ s.buttonTitle = e.buttonTitle
 s.buttonClick = e.buttonClick
 }
 snackbarController.show(s)
+}
+@EventHandler(runOnMainThread = true)
+fun onCameraProjectionChanged(event: CameraProjectionChangedEvent) {
+    val view = glView ?: return
+    view.queueEvent {
+        view.renderer.updateProjection()
+        view.requestRender()
+    }
+}
+@EventHandler(runOnMainThread = true)
+fun onCameraPresetRequested(event: CameraPresetRequestedEvent) {
+    (menuMap.get(WorkspaceDestination.CAMERA.ordinal) as? CameraMenu)?.let { cameraMenu ->
+        cameraMenu.onSetBed(this)
+        cameraMenu.selectCameraPreset(event.preset)
+    }
 }
 @EventHandler(runOnMainThread = true)
 fun onTemporaryProjectSettingsChanged(event: TemporaryProjectSettingsChangedEvent) {
@@ -1134,6 +1152,13 @@ gCodeResult = null
 override fun onResume() {
 super.onResume()
 glView!!.onResume()
+// App settings can change camera projection while this fragment's view is detached,
+// so its event listener is not registered. Re-apply the persisted preference as the
+// workspace renderer resumes, on the GL thread.
+glView!!.queueEvent {
+    glView!!.renderer.updateProjection()
+    glView!!.requestRender()
+}
 updateProfileStatus()
 filamentPaletteRevision++
 updatePrinterWebViewAvailability()
@@ -1443,7 +1468,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                     toolPanelAdditionalChromeDp = if (currentMenuSlot == WorkspaceDestination.MODEL.ordinal) {
                         if (ctx.resources.configuration.fontScale >= 1.3f) 72 else 56
                     } else 0,
-                    navigationItemCount = WorkspaceDestination.values().size,
+                    navigationItemCount = WorkspaceDestination.visibleNavigationDestinations.size,
                     menuWidthDp = WorkspaceShellLayoutPolicy.menuPanelWidthDp(
                         ctx.resources.configuration.screenWidthDp,
                         ctx.resources.configuration.fontScale,

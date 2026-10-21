@@ -588,8 +588,16 @@ object SliceUploadController {
             ))
             return null
         }
-        if (routing.sharedGateTool != null) {
-            showAnycubicMappingError(fragment, R.plurals.MmuAssignmentSharedAceGate, routing.sharedGateTool + 1)
+        val currentSliceConfig = SliceBeam.buildCurrentConfigObject(logicalToolCount)
+        val incompatibleSharedTool = AnycubicAceRoutingPolicy.firstIncompatibleSharedGateTool(
+            usedTools,
+            routing.gates,
+            scan.materials.toList(),
+            AnycubicAceRoutingPolicy.toolValues(currentSliceConfig["nozzle_temperature_initial_layer"]),
+            AnycubicAceRoutingPolicy.toolValues(currentSliceConfig["nozzle_temperature"]),
+        )
+        if (incompatibleSharedTool != null) {
+            showAnycubicMappingError(fragment, R.plurals.MmuAssignmentSharedAceGate, incompatibleSharedTool + 1)
             return null
         }
         val gates = routing.gates

@@ -61,6 +61,25 @@ class AnycubicAceRoutingPolicyTest {
         assertEquals(1, routing.sharedGateTool)
     }
 
+    @Test fun allowsSharedGateWhenMaterialAndTemperaturesMatch() {
+        val incompatible = AnycubicAceRoutingPolicy.firstIncompatibleSharedGateTool(
+            intArrayOf(0, 1), intArrayOf(2, 2), listOf("PETG", "petg"),
+            AnycubicAceRoutingPolicy.toolValues("80;80"), listOf("240", "240.0"),
+        )
+        assertNull(incompatible)
+    }
+
+    @Test fun detectsSharedGateWithDifferentMaterialOrTemperature() {
+        assertEquals(1, AnycubicAceRoutingPolicy.firstIncompatibleSharedGateTool(
+            intArrayOf(0, 1), intArrayOf(2, 2), listOf("PETG", "PLA"),
+            listOf("80", "80"), listOf("240", "240"),
+        ))
+        assertEquals(1, AnycubicAceRoutingPolicy.firstIncompatibleSharedGateTool(
+            intArrayOf(0, 1), intArrayOf(2, 2), listOf("PETG", "PETG"),
+            listOf("80", "80"), listOf("240", "210"),
+        ))
+    }
+
     @Test fun rejectsASelectedGateThatIsNoLongerLoadedInsteadOfSubstitutingAnother() {
         val routing = AnycubicAceRoutingPolicy.resolve(
             toolCount = 2,

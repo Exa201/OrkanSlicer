@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Filament inputs, printable detail, matching, height constraints, and confidence." />
+        <meta
+            name="keywords"
+            content="Kromacut, free image to 3D print, color lithophane, filament swaps, palette quantization, STL export, 3MF export"
+        />
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/docs/auto-paint" />
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Auto-paint Controls | Kromacut Docs" />
+        <meta property="og:description" content="Filament inputs, printable detail, matching, height constraints, and confidence." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/docs/auto-paint" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut logo" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Auto-paint Controls | Kromacut Docs" />
+        <meta name="twitter:description" content="Filament inputs, printable detail, matching, height constraints, and confidence." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut logo" />
+        <title>Auto-paint Controls | Kromacut Docs</title>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "WebSite",
+                        "@id": "https://kromacut.com/#website",
+                        "url": "https://kromacut.com/",
+                        "name": "Kromacut",
+                        "description": "Turn 2D images into stacked, color-layered 3D prints.",
+                        "potentialAction": {
+                            "@type": "CreateAction",
+                            "target": "https://kromacut.com/app"
+                        }
+                    },
+                    {
+                        "@type": "SoftwareApplication",
+                        "@id": "https://kromacut.com/#application",
+                        "name": "Kromacut",
+                        "applicationCategory": "DesignApplication",
+                        "operatingSystem": "Web, Windows, macOS, Linux",
+                        "url": "https://kromacut.com/",
+                        "description": "Browser-first image-to-3D color-layer print generator with STL and 3MF export.",
+                        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+                    }
+                ]
+            }
+        </script>
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    </head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/">Kromacut home</a>
+                    <a href="/app">Open Kromacut</a>
+                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/image-adjustments">Image Adjustments</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/auto-paint">Auto-paint Controls</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/flat-paint">Flat Paint</a></li><li><a href="/docs/calibration-workflows">Calibration Workflows</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="auto-paint-controls">Auto-paint Controls</h1>
+<p>Auto-paint predicts thin filament layers over one another and chooses printable heights for the prepared image. Several visible colors can come from different thicknesses of one physical filament. Twenty image colors therefore do not necessarily need twenty spools.</p>
+<p>Set <a href="/docs/3d-mode#3d-print-settings">physical size, layer heights, and effective line width</a>, add filaments you can actually load, wait for calculation, then <strong>Build 3D Model</strong>. Inputs recalculate automatically; displayed geometry updates only when you build.</p>
+<h2 id="filament-inputs">Filament Inputs</h2>
+<table><thead><tr><th>Control</th><th>What to enter or do</th><th>Effect</th></tr></thead><tbody><tr><td><strong>Add Filament</strong></td><td>Create a new neutral-gray row.</td><td>Adds an available material, not a physical printer slot.</td></tr><tr><td><strong>Color swatch / Hex</strong></td><td>Choose the filament's opaque color or enter hex.</td><td>Changes blends and exported material color. Enter the actual spool color, not a desired output color.</td></tr><tr><td><strong>Name</strong></td><td>Give the spool a useful label.</td><td>Identifies it. A blank name returns to an automatic color-based label.</td></tr><tr><td><strong>HD</strong></td><td>Frontlit hiding distance, 0.01 to 2 mm.</td><td>Shorter HD hides lower colors faster. Longer HD needs more thickness and transmits more at the same thickness.</td></tr><tr><td><strong>Convert from TD</strong></td><td>Enter conventional lithophane/backlit Transmission Distance and press <strong>Convert</strong>.</td><td>Converts approximately TD × 0.1, rounded to 0.01 mm and bounded to the HD range. Do not convert an HD value again.</td></tr><tr><td><strong>Wand</strong></td><td>Estimate HD from color.</td><td>A starting guess, not a measurement.</td></tr><tr><td><strong>Status badge</strong></td><td>Inspect <strong>Estimate</strong> or a calibrated confidence label; hover for RGB-channel values.</td><td>Describes HD evidence for this row, not whole-image accuracy.</td></tr><tr><td><strong>Trash</strong></td><td>Remove the row.</td><td>That filament is no longer available. Saved profiles are unchanged until saved.</td></tr><tr><td><strong>Calibrate</strong></td><td>Open Hiding Distance, Palette Proof, or Stack Matrix.</td><td>Record physical evidence using <a href="/docs/calibration-workflows">Calibration workflows</a>.</td></tr></tbody></table>
+<p>Committing an HD value, converting TD, or using the wand clears that row's stored HD calibration. Changing a calibrated filament's color makes its calibration inactive and uses a color-derived estimate. Reverting to the measured color can reactivate preserved calibration unless it was cleared or replaced meanwhile. A name change is not a measurement.</p>
+<p>Measured channel behavior affects both predicted color and transition thickness. If material or process changes, do not assume the old preview remains verified.</p>
+<h2 id="filament-profiles">Filament Profiles</h2>
+<p>Loading a saved profile replaces the working filament set. <strong>Unsaved changes</strong> means the current set differs from the selected profile.</p>
+<table><thead><tr><th>Action</th><th>Result</th></tr></thead><tbody><tr><td><strong>Save changes to current profile</strong></td><td>Overwrite the editable profile with the current set. Disabled when unchanged, no profile is selected, or a template is selected.</td></tr><tr><td><strong>Save as new profile</strong></td><td>Enter a nonempty name to save separately, including modified templates.</td></tr><tr><td><strong>Rename selected profile</strong></td><td>Change its label without changing filaments. Unavailable for templates or without a selected profile.</td></tr><tr><td><strong>Import profile from file</strong></td><td>Read native <code>.kfil</code>, legacy <code>.kapp</code>, JSON, or supported HueForge spool CSV/TSV.</td></tr><tr><td><strong>Export current filaments as .kfil file</strong></td><td>Export the current set. Desktop opens Save As; browser uses its download flow. Cancelling does not change calibration.</td></tr><tr><td><strong>Delete selected profile</strong></td><td>Remove the saved profile. Export a backup first if needed. Templates cannot be deleted.</td></tr></tbody></table>
+<p>Appearance evidence belongs to an exact filament setup. While a selected profile has unsaved edits, its saved appearance evidence is not passed into Auto-paint. Exporting those edits creates a separately named profile without incompatible appearance evidence from the old set. Active per-filament HD calibration is separate from profile-level matrix and proof evidence. See <a href="/docs/settings-and-controls#filament-profile-files">profile compatibility and import handling</a>.</p>
+<h3 id="templates">Templates</h3>
+<p>Supplier templates supply advertised colors, names, brands, and estimated HD values. They are read-only. Remove colors you do not own, calibrate, then <strong>Save as new profile</strong>. Supplier reference colors are not guarantees for a batch or viewing condition. Templates are unofficial, not supplier endorsements.</p>
+<h2 id="standard-matching">Standard Matching</h2>
+<p>With <strong>Enhanced color matching off</strong>, Kromacut sorts filaments dark to light by luminance and calculates their transitions. It does not follow the row-addition order. The image-to-height mapping also uses luminance: it normalizes brightness between the darkest and lightest nontransparent image pixels, places that range between the foundation surface and the stack's top, then snaps to printable layers. Two different hues with equal brightness can therefore receive the same height, regardless of their hue. Repeats, separation, height dithering, and optimizer controls are inactive.</p>
+<p>Use this simpler baseline for brightness-led relief. Enhanced matching considers image color when choosing both the material sequence and printable color assignments, so it is the appropriate mode when hue distinctions matter.</p>
+<h2 id="max-height">Max Height</h2>
+<p>Clear <strong>Max Height</strong> or press <strong>Auto</strong> for the calculated, layer-aligned stack height. The field accepts 0.5 to 20 mm. A cap is a ceiling, not a target, so the result can be shorter.</p>
+<p>A cap between valid layer boundaries rounds down. If the normal transitions are too tall, Kromacut compresses them and displays the automatic height for comparison.</p>
+<p><a href="/assets/15_transition_height-BkTrvLnc.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: Automatic and height-capped stacks retain the opaque foundation while upper transitions become shorter."><img src="/assets/15_transition_height-BkTrvLnc.svg" alt="Automatic and height-capped stacks retain the opaque foundation while upper transitions become shorter." loading="lazy"></a></p>
+<p><em>Schematic. Colored bands identify material runs, not predicted blended appearance.</em></p>
+<p>The foundation must still achieve about 95% opacity in every modeled RGB channel. An insufficient cap rejects the stack rather than treating translucent backing as opaque. Increase the cap or use a foundation-capable filament with shorter HD.</p>
+<p>Compression can remove useful intermediate colors. It is not uniform scaling of an otherwise identical image. In <strong>Flat Paint</strong>, the clear carrier is additional geometry and its first-layer layout differs from relief. Check the full <strong>Model</strong> dimensions and slicer thickness; Max Height is not the carrier-inclusive slab thickness.</p>
+<h2 id="printable-detail">Printable Detail</h2>
+<p>Set <a href="/docs/3d-mode#effective-line-width"><strong>Effective line width</strong> in <strong>3D Print Settings</strong></a> to the slicer's intended extrusion width, not nozzle diameter or Pixel Size. Auto-paint's width-warning preview and optional isolated-speck cleanup use that same setting; their controls remain here.</p>
+<p>Think of a <strong>two-pixel purple stripe</strong> on a blue background. At <strong>0.10 mm/pixel</strong>, the stripe is <strong>0.20 mm wide</strong>. If your planned extrusion line is <strong>0.40 mm wide</strong>, that stripe is narrower than the line. Kromacut can flag it as <strong>at risk</strong>, but keeps the stripe even with cleanup on. A thin visible image region can be part of a much wider underlying material layer, and slicer toolpaths can preserve detail that this image-only check flags.</p>
+<p><a href="/assets/13_printable_detail-DQrFWFBO.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: A two-pixel purple stripe is narrower than the planned extrusion width. Amber is a width warning, not a filament color. Isolated-speck cleanup keeps the stripe and only replaces a tiny enclosed pink speck with blue."><img src="/assets/13_printable_detail-DQrFWFBO.svg" alt="A two-pixel purple stripe is narrower than the planned extrusion width. Amber is a width warning, not a filament color. Isolated-speck cleanup keeps the stripe and only replaces a tiny enclosed pink speck with blue." loading="lazy"></a></p>
+<p><em>This is a width estimate, not an exact slicer toolpath. The colored bars compare widths; the squares show the example image.</em></p>
+<p><strong>Omit isolated color specks</strong> gives you two choices:</p>
+<ul><li><strong>Off:</strong> keep all source pixels in Auto-paint's input, including every highlighted region.</li><li><strong>On:</strong> replace only colors used exclusively in tiny, compact, enclosed specks with their surrounding wider color before matching and model generation. A speck's full extent must be smaller than the effective line width, and it must have one unambiguous surrounding color with a wider region. If that source color is also used in a line or larger region anywhere in the image, it is kept everywhere.</li></ul>
+<p>Thin lines, diagonal connections, branches attached to wider regions, image-edge detail, and specks beside transparency or multiple colors are kept. Cleanup never turns a pixel into a hole or edits your original 2D image. It is deliberately cautious and may leave unwanted speckles; use <a href="/docs/dedithering-cleanup">2D cleanup</a> for broader image editing.</p>
+<p>Use <strong>Open preview</strong> to inspect:</p>
+<ul><li><strong>At risk:</strong> amber marks thin source-color regions near wider colors; pink marks thin regions without a wider neighbor. Other pixels are dimmed. These are warnings, not a prediction that the detail cannot print.</li><li><strong>Result:</strong> the pixels Auto-paint receives after the optional cleanup. This is not a slicer preview or a printability guarantee.</li><li><strong>Flagged / eligible / omitted:</strong> the width-warning fraction, pixels meeting the isolated-speck rules, and the actual number replaced. <strong>Flagged pixels kept</strong> explicitly counts warnings that do not change the image.</li></ul>
+<p>When eligible speck colors are omitted, Auto-paint uses the cleaned image to count target colors and plan the stack. Removing an entire target color can change matching choices elsewhere, so inspect the rebuilt result. A nonzero warning percentage with <strong>0 pixels omitted</strong> means cleanup has kept all source detail.</p>
+<p>After changing the toggle, let Auto-paint finish calculating and click <strong>Build 3D Model</strong> again. The analysis measures connected source-color regions, not physical material layers, walls, infill, or variable-width extrusion. Always check the sliced toolpaths. If detail really is lost there, increase the model's XY size, widen it in 2D, or choose a finer extrusion width that your printer and slicer support.</p>
+<h2 id="enhanced-color-matching">Enhanced Color Matching</h2>
+<p>Enhanced matching searches material sequences for the current 2D palette. It can omit filaments that add no useful coverage. Eight available spools need not produce eight runs.</p>
+<p>The optimizer does not secretly reduce the prepared palette again. More source colors require more work. Prepare the image in <a href="/docs/reducing-colors">Reducing colors</a>, then judge its achievable appearance in 3D.</p>
+<p>Turning enhanced matching off also disables separation and height dithering. New calculations cancel older ones; progress is approximate. A failed calculation cannot fall back to an unrelated manual stack. An older built model may remain visible until you build a valid new result.</p>
+<h3 id="total-repeat-limit">Total repeat limit</h3>
+<p>Choose <strong>Off</strong>, or up to <strong>2, 4, 6, 8, or 12 extra appearances</strong> for the entire stack. This is neither a per-filament allowance nor an exact swap count. Black → yellow → black uses one extra appearance of black. Returning to a material over a new substrate creates another possible blend path.</p>
+<p><a href="/assets/14_repeats_separation-Dso4ELUI.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: A shared repeat budget and distinct target assignments compared with dropped-color merging."><img src="/assets/14_repeats_separation-Dso4ELUI.svg" alt="A shared repeat budget and distinct target assignments compared with dropped-color merging." loading="lazy"></a></p>
+<p><em>Conceptual sequences and assignments, not material predictions.</em></p>
+<p>More repeats allow a wider search and potentially more print-time material changes. The budget is a ceiling. Unneeded runs can be omitted.</p>
+<h3 id="preserve-color-separation">Preserve color separation</h3>
+<p>Ordinary matching may map different image colors to the same output. Enable <strong>Preserve color separation</strong> when those distinctions matter, such as lettering against its background or adjacent face tones.</p>
+<p><strong>Unique-match limit (ΔE)</strong> is a hard maximum color difference for an image color to own a distinct printable output. Range: 1 to 100; default: 6. Lower values demand closer matches and are harder to satisfy. Higher values allow more error, not better physical filaments.</p>
+<p><strong>Require a unique match for every color</strong> is enabled by default. Incomplete assignments fail. Turn it off for a <strong>partial palette</strong>: unmatched colors lose their distinct outputs and merge into surviving mappings. The image stays filled but loses distinctions. If no color is eligible, even partial mode fails because nothing survives to merge into.</p>
+<p>The optimizer first maximizes preserved colors and source-image coverage. Then it prefers fewer repeated appearances, fewer material runs, and fewer physical layers, before lower in-limit error. Repeat allowances are explored progressively and search can stop once every color is preserved. A final deletion check removes individual runs that do not improve those priorities.</p>
+<p>For strict failure, consider fewer 2D colors, more height or repeats, another suitable filament, a larger ΔE limit, or partial merging. Choose the tradeoff you actually want instead of raising a limit just to dismiss the error.</p>
+<p>Separation and <strong>Height dithering</strong> are mutually exclusive. Enabling either turns the other off.</p>
+<h2 id="height-dithering">Height Dithering</h2>
+<p>Height dithering can distribute rounding error across small blocks at neighboring printable heights when its input contains heights between the available layer boundaries. Those height differences can suggest intermediate tones from a viewing distance. It requires enhanced matching and acts on the exported height map, not the 2D source image.</p>
+<p><a href="/assets/16_height_dithering-Bv_n3ej5.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: The height-dithering mechanism when fractional heights exist: direct snapping compared with distributing rounding error among nearby printable heights."><img src="/assets/16_height_dithering-Bv_n3ej5.svg" alt="The height-dithering mechanism when fractional heights exist: direct snapping compared with distributing rounding error among nearby printable heights." loading="lazy"></a></p>
+<p><em>Schematic mechanism, not a guaranteed before-and-after result. Different top heights do not mean additional spool colors.</em></p>
+<p>With dithering enabled, Auto-paint looks for an intermediate height between the selected layer and an adjacent printable layer when their blend improves the predicted match. Exact color matches and calibrated target matches stay at their selected heights; regions with no useful neighboring blend remain unchanged. Rebuild the model after changing the setting, then compare the preview and slicer output. Turning dithering off restores ordinary discrete matching.</p>
+<p>Dot size follows <strong>Effective line width</strong> in <strong>3D Print Settings</strong> relative to <strong>Pixel Size</strong>, rounded to a whole-pixel block size. This is approximate, not an exact minimum-width guarantee. Edge regions avoid the same dithering treatment to reduce boundary artifacts. Check the slicer for tiny islands and extra travel.</p>
+<p>Where fractional-height error is available, redistribution can help broad tones while making tiny graphics noisy or geometry heavier. It cannot add missing gamut or validate unsupported calibration. When it creates many small regions, combining it with Flat Paint can be especially expensive because those regions share each full-footprint layer.</p>
+<h2 id="optimizer-settings">Optimizer Settings</h2>
+<p><a href="/assets/18_optimizer_choices-V2azXEvb.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: Uniform, center, and edge priority on the same image, with increasing transition detail shown as more potential height choices."><img src="/assets/18_optimizer_choices-V2azXEvb.svg" alt="Uniform, center, and edge priority on the same image, with increasing transition detail shown as more potential height choices." loading="lazy"></a></p>
+<p><em>Schematic weights and choices, not measured colors or exact layer counts. Dimmed regions receive less priority; they are not removed from the image.</em></p>
+<table><thead><tr><th>Control</th><th>Choices and effect</th></tr></thead><tbody><tr><td><strong>Algorithm</strong></td><td><strong>Fast:</strong> narrower, quicker search. <strong>Balanced:</strong> general-purpose default. <strong>Thorough:</strong> deeper multi-start refinement. <strong>Deep:</strong> wider, more expensive search. <strong>Exact base order:</strong> enumerate applicable no-repeat orders.</td></tr><tr><td><strong>Region priority</strong></td><td><strong>Uniform:</strong> equal pixel weight. <strong>Center-weighted:</strong> favor colors near the center. <strong>Edge-weighted:</strong> favor colors near image edges. It changes matching priorities, not the crop or extrusion.</td></tr><tr><td><strong>Transition detail</strong></td><td><strong>Compact (80%)</strong>, <strong>Detailed (90%, default)</strong>, <strong>Maximum (95%)</strong> set transition opacity endpoints. Higher values permit taller transitions and more printable intermediate colors, subject to early convergence and the height cap.</td></tr><tr><td><strong>Seed (optional)</strong></td><td><strong>Automatic</strong> uses a stable input-derived seed. Enter an integer to compare a different deterministic search; clear to restore automatic. Not a quality slider.</td></tr></tbody></table>
+<p>Transition detail affects upper material transitions, not the opaque-foundation requirement. It does not increase image resolution or narrow line width. Added transition colors may not help the current image.</p>
+<p>For the same seed, higher heuristic tiers retain the best result from the lower tier. This is still optimization of predictions. Exact base order checks 109,600 nonempty orders at eight filaments and 986,409 at nine. Repeats use separate refinement, not exhaustive proof of every repeated stack.</p>
+<h2 id="transition-zones-and-confidence">Transition Zones And Confidence</h2>
+<table><thead><tr><th>Readout</th><th>Interpretation</th></tr></thead><tbody><tr><td><strong>Transition Zones</strong></td><td>Physical material runs with start, end, and thickness. Compressed badges indicate less than ideal thickness.</td></tr><tr><td><strong>Total height / physical layers</strong></td><td>Calculated stack dimensions, not image-color or spool count.</td></tr><tr><td><strong>Color separation status</strong></td><td>Preserved and merged colors, printable capacity, worst preserved ΔE, and repeats. Merged targets are not successful above-limit matches.</td></tr><tr><td><strong>Appearance model</strong></td><td>Whether simulation, fitted behavior, local comparisons, or Stack Matrix evidence supports prediction. A measurement count does not mean every output was measured.</td></tr><tr><td><strong>Prediction confidence: average / lowest</strong></td><td>Evidence strength of actual mapped colors. The weighted average can hide a weak region revealed by the lowest value. Counts distinguish measurements, interpolation, fitted predictions, and simulation.</td></tr><tr><td><strong>Result Confidence</strong></td><td>Combined HD calibration, coverage, and compression indicators. Not a measured accuracy percentage and not identical to prediction confidence.</td></tr><tr><td><strong>Calibration / Coverage / Compression</strong></td><td>HD evidence quality, filament coverage of source colors, and height-cap impact. High scores do not certify the print.</td></tr><tr><td><strong>Quality Score</strong></td><td>Optimizer comparison, not measurement. In incomplete non-strict separation the label becomes <strong>Partial palette</strong>.</td></tr><tr><td><strong>Iterations / Cache hit</strong></td><td>Search work and result reuse. More iterations are not proof of better color.</td></tr><tr><td><strong>Exact optimum / Best found</strong></td><td>Exhaustive applicable no-repeat comparison versus heuristic or repeated-stack refinement. Neither proves physical accuracy.</td></tr><tr><td><strong>No removable run</strong></td><td>No one-run deletion preserves the selected priorities. A different multi-run rearrangement might still be better.</td></tr></tbody></table>
+<p>Evidence weakens away from measurements, when nearby observations disagree, or when held-out predictions miss measured colors. Ordinary matching can include a bounded uncertainty cost. Separation still uses raw ΔE for eligibility, so uncertainty cannot make an out-of-limit color valid.</p>
+<p>After changing process or layer height, inspect this evidence summary. A high general calibration score does not mean every new recipe is supported. See <a href="/docs/calibration-workflows">Calibration workflows</a>.</p>
+<h2 id="suggest-next-filament">Suggest Next Filament</h2>
+<p><strong>Suggest next filament</strong> appears after a result exists. It seeks a hypothetical color that could improve this image's coverage. It is not a product listing or a spool already loaded in the printer.</p>
+<table><thead><tr><th>Field or action</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Hex swatch</strong></td><td>Suggested opaque filament color.</td></tr><tr><td><strong>Est. ΔE +…%</strong></td><td>Estimated reduction in blend-aware average image error if added. Higher is better; not confidence.</td></tr><tr><td><strong>HD</strong></td><td>Starting estimate borrowed from the nearest existing filament by perceptual color distance. Not measured for a product.</td></tr><tr><td><strong>Captures</strong></td><td>Percentage of image pixels with improved estimated error.</td></tr><tr><td><strong>Isolation</strong></td><td>Distinctness from current filaments on a 0 to 1 scale. Higher indicates a more separate coverage gap.</td></tr><tr><td><strong>Add to filaments</strong></td><td>Add a working row named <code>Kromacut-Suggestion-…</code> and recalculate with it.</td></tr></tbody></table>
+<p>Find a real spool if the suggestion is useful, then enter its real color and calibration. Do not print assuming the hypothetical row is already available. Suggestions reset when the image colors or filament set changes. A no-candidate result says the current set already covers the image well under this approximate test.</p>
+<p>Next: <a href="/docs/flat-paint">Flat Paint</a>, <a href="/docs/calibration-workflows">Calibration workflows</a>, or <a href="/docs/generating-exporting-output">Generating and exporting output</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

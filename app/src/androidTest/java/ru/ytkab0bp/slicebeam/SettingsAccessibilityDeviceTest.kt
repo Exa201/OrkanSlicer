@@ -59,6 +59,8 @@ class SettingsAccessibilityDeviceTest {
                         renderScale = "100%",
                         uiTextScale = "150%",
                         converterRoot = "Default",
+                        cameraProjection = "Orthographic",
+                        cameraControlMode = "Rotate",
                         onToggleSection = { index ->
                             expanded.value = if (index in expanded.value) expanded.value - index else expanded.value + index
                         },
@@ -68,6 +70,9 @@ class SettingsAccessibilityDeviceTest {
                         onRenderScale = {},
                         onUiTextScale = {},
                         onConverterFolder = {},
+                        onCameraProjection = {},
+                        onCameraControlMode = {},
+                        onCameraPreset = {},
                         onCloud = {},
                         onAddPrinter = {},
                         onAbout = {},

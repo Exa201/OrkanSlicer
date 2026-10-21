@@ -1,3 +1,13 @@
+# Fortsetzungsstatus — 2026-10-21 (0.8.331)
+
+- Arbeitsbranch `codex/rinkhals-safe-start-audit`; Ausgangs-HEAD `9dd9121d2bc1994711953c253cd6348080312b12`. Diese Arbeitsgruppe enthält KromaCut 4.2.0, ACE-Mehrfachzuordnungen, G-Code/Preview-Routing, Objektzuweisung, editierbare Menüs und Kamera-Menüverlagerung.
+- Verifikation: Debug-Unit 586/586 und Slice-Unit 586/586 bestanden. Vollständige Honor-`connectedSliceTestAndroidTest`: 237 Tests, 0 Fehler, 0 übersprungen. Echte KromaCut-3MF-Fixture auf Honor: 3/3 bestanden. Menü/Layout-, Menüanpassungs- und ACE-Mehrfachslot-Gerätetests bestanden. Emulator bleibt offline.
+- KromaCut-Black-Screen-Ursache: WebView lud den Lazy-App-Chunk nach dem HTML-Einstieg nicht; lokales Module-Preload behebt das. Honor-Test bestätigt sichtbare React-Oberfläche.
+- Debug-Build für Ausgangs-HEAD erfolgreich: 239,126,048 Bytes, SHA-256 `815E9EEC0B873C28060D05E10A971D1D61EB926B1E8EDB964339B3752B55FACD`. Vor Veröffentlichung nach Commit erneut bauen, damit BuildConfig den finalen Commit enthält.
+- Aktuelle bekannte Grenzen: vollständige UI-2.0-Menü-/Accessibility-Abnahme und Mehrplatten-Projektpersistenz bleiben offen. Release 0.8.331 noch nicht erstellt; PR #2 offen und vor dem Push mergeable. Kein Druck gestartet und keine Firmware geändert.
+- Nächster Schritt: veröffentlichbare APK nach finalem Commit erstellen, auf Honor starten und Release/PR aktualisieren; anschließend verbleibende Menü-, Accessibility- und Mehrplattenarbeiten fortsetzen.
+
+---
 # Current continuation state — 2026-10-20 (large-text settings and workspace actions)
 
 - Code base before this test-only follow-up: `a77073cb5130043dd5ade018896428f6a57f2599`; app runtime/version is unchanged (`0.8.330`, code 365). No new APK or release was created because only instrumentation tests changed.

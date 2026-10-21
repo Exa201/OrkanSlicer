@@ -92,7 +92,14 @@ object SlicePrintPreparationDialog {
                 if (invalidTool != null) {
                     return PrintPreparationWarning.UnavailableTool(invalidTool, routing.gates[invalidTool])
                 }
-                routing.sharedGateTool?.let { return PrintPreparationWarning.SharedAceGate(it) }
+                val profile = SliceBeam.buildCurrentConfigObject(gcodeToolCount)
+                AnycubicAceRoutingPolicy.firstIncompatibleSharedGateTool(
+                    activeTools,
+                    routing.gates,
+                    sourceFilamentTypes,
+                    AnycubicAceRoutingPolicy.toolValues(profile["nozzle_temperature_initial_layer"]),
+                    AnycubicAceRoutingPolicy.toolValues(profile["nozzle_temperature"]),
+                )?.let { return PrintPreparationWarning.SharedAceGate(it) }
             }
             if (print && isAnycubicKobra(targetPrinter)) {
                 val title = targetPrinter.title.orEmpty()

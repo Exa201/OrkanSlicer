@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Importer, recadrer, redimensionner et retoucher les pixels avant leur conversion en zones imprimées." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/fr/docs/loading-images">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Chargement des images | Documentation Kromacut" />
+        <meta property="og:description" content="Importer, recadrer, redimensionner et retoucher les pixels avant leur conversion en zones imprimées." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/fr/docs/loading-images" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="fr_FR" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Chargement des images | Documentation Kromacut" />
+        <meta name="twitter:description" content="Importer, recadrer, redimensionner et retoucher les pixels avant leur conversion en zones imprimées." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Chargement des images | Documentation Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/loading-images">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/loading-images">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/loading-images">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/loading-images">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/loading-images">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/loading-images">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/loading-images">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/loading-images">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/loading-images">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/loading-images">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/loading-images">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/loading-images">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/loading-images">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/fr/">Aller à l’accueil</a>
+                    <a href="/app">Ouvrir Kromacut</a>
+                    <ul><li><a href="/fr/docs/overview">Présentation</a></li><li><a href="/fr/docs/quick-start">Démarrage rapide</a></li><li><a href="/fr/docs/loading-images">Chargement des images</a></li><li><a href="/fr/docs/image-adjustments">Réglages d’image</a></li><li><a href="/fr/docs/reducing-colors">Réduction des couleurs</a></li><li><a href="/fr/docs/dedithering-cleanup">Détramage et nettoyage</a></li><li><a href="/fr/docs/3d-mode">Mode 3D</a></li><li><a href="/fr/docs/auto-paint">Commandes de peinture automatique</a></li><li><a href="/fr/docs/calibration-theory">Théorie de l’étalonnage</a></li><li><a href="/fr/docs/flat-paint">Peinture à plat</a></li><li><a href="/fr/docs/calibration-workflows">Méthodes d’étalonnage</a></li><li><a href="/fr/docs/generating-exporting-output">Génération et export</a></li><li><a href="/fr/docs/settings-and-controls">Paramètres et commandes</a></li><li><a href="/fr/docs/troubleshooting">Dépannage</a></li><li><a href="/fr/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="loading-images">Chargement des images</h1>
+<p>En mode <strong>2D</strong>, vous préparez l’image que le modèle 3D utilisera. Les changements de couleur affectent les couleurs cibles ; les retouches de pixels affectent les formes et les détails imprimés.</p>
+<h2 id="choose-a-source">Choisir une source</h2>
+<p>Cliquez sur <strong>Choisir un fichier</strong> dans la barre d’outils de l’aperçu, ou faites glisser un fichier image dans l’aperçu 2D. Seul le premier fichier déposé est chargé. Utilisez un format que votre navigateur ou la vue web de l’application peut décoder ; le PNG est utile lorsque la transparence importe. Développez d’abord les fichiers RAW de votre appareil photo et exportez-les dans un format d’image courant.</p>
+<p>Kromacut démarre avec son logo comme exemple. Charger une autre image remplace l’image de travail actuelle. Cela ne publie pas l’image et ne télécharge pas de source à partir d’un lien web collé.</p>
+<h2 id="inspect-without-changing-the-image">Examiner sans modifier l’image</h2>
+<table><thead><tr><th>Commande</th><th>Effet</th></tr></thead><tbody><tr><td>Molette</td><td>Zoome autour du pointeur. Cela change uniquement la vue, pas la résolution ni les dimensions d’impression.</td></tr><tr><td>Glisser avec le bouton gauche</td><td>Déplace la vue lorsqu’aucun outil de retouche n’est actif.</td></tr><tr><td>Glisser avec le bouton central</td><td>Déplace la vue même lorsqu’un outil de retouche est actif.</td></tr><tr><td>Afficher/masquer le damier</td><td>Affiche un motif derrière les pixels transparents. Ce motif ne fait partie ni de l’image ni de l’impression.</td></tr><tr><td>Badge des dimensions de l’image</td><td>Affiche les dimensions en pixels. Pendant le recadrage, affiche aussi les dimensions proposées.</td></tr></tbody></table>
+<p>L’aperçu conserve les bords nets des pixels au lieu de les lisser. Zoomez pour repérer les pixels isolés et les détails étroits.</p>
+<h2 id="crop-resize-or-change-print-size">Recadrer, redimensionner ou changer la taille d’impression ?</h2>
+<p><a href="/localized/fr/diagrams/30_crop_resize_scale.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Le recadrage retire une partie de l’image, le redimensionnement réduit la résolution et la taille du pixel modifie l’échelle physique de chaque pixel."><img src="/localized/fr/diagrams/30_crop_resize_scale.svg" alt="Le recadrage retire une partie de l’image, le redimensionnement réduit la résolution et la taille du pixel modifie l’échelle physique de chaque pixel." loading="lazy"></a></p>
+<p><em>Les dimensions schématiques illustrent la relation, pas une taille d’impression recommandée.</em></p>
+<h3 id="crop">Recadrer</h3>
+<p>Cliquez sur <strong>Recadrer</strong>, faites glisser la sélection ou ses poignées de coin et de bord, puis choisissez <strong>Enregistrer le recadrage</strong>. <strong>Annuler le recadrage</strong> laisse l’image inchangée. L’enregistrement conserve le rectangle sélectionné à la résolution des pixels de l’image.</p>
+<p>Retirez les marges inutiles avant la réduction des couleurs pour qu’elles ne concurrencent pas le sujet dans la palette. Le recadrage est rectangulaire ; utilisez la transparence pour un arrière-plan irrégulier.</p>
+<h3 id="resize-image">Redimensionner l’image</h3>
+<p>L’<strong>Échelle</strong> va de <strong>1 % à 100 %</strong>, avec <strong>50 %</strong> par défaut. <strong>Actuel</strong> et <strong>Après redimensionnement</strong> affichent les dimensions avant validation. Cliquez sur <strong>Appliquer</strong> pour réduire l’image. 100 %, ou une valeur arrondie aux mêmes dimensions, ne change rien. La flèche de réinitialisation rétablit le pourcentage, pas l’image.</p>
+<p>Le redimensionnement utilise un lissage : il peut introduire des couleurs mélangées sur les bords et de la transparence partielle. Redimensionnez avant la quantification, ou réduisez de nouveau les couleurs après. Des applications répétées redimensionnent l’image déjà réduite : deux applications à 50 % laissent 25 % de la largeur et de la hauteur initiales. Utilisez Annuler pour restaurer les détails plutôt que de tenter de les agrandir ici.</p>
+<h3 id="physical-size-in-3d">Dimensions physiques en 3D</h3>
+<p>La <strong>Taille du pixel (XY)</strong> est exprimée en millimètres par pixel de l’image, pas en résolution. Une image entièrement opaque de 1 000 pixels de large à 0,1 mm/pixel mesure 100 mm. Réduite à 500 pixels au même réglage, elle mesure 50 mm. Passer à 0,2 mm/pixel rétablit les 100 mm, mais pas les détails supprimés. Les marges extérieures entièrement transparentes sont exclues de l’emprise du modèle.</p>
+<p>Réduire les dimensions en pixels allège les calculs et la géométrie. Modifier seulement la taille du pixel ne supprime aucun pixel. Consultez <a href="/fr/docs/3d-mode">Mode 3D</a> pour les commandes d’échelle physique.</p>
+<h2 id="touch-up-pixels">Retoucher les pixels</h2>
+<p><strong>Pinceau</strong>, <strong>Gomme</strong>, <strong>Remplissage</strong>, <strong>Texte</strong> et <strong>Prélever une couleur dans l’image</strong> utilisent des pixels à bords nets, sans anticrénelage. Une couleur personnalisée peut toujours ajouter une couleur à la palette ; les bords nets évitent les mélanges indésirables sur les contours.</p>
+<p><a href="/localized/fr/diagrams/31_pixel_tools.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Le pinceau ajoute des pixels de couleur exacte, la gomme rend les pixels transparents, le remplissage modifie une zone connectée et le texte devient des pixels aux bords nets."><img src="/localized/fr/diagrams/31_pixel_tools.svg" alt="Le pinceau ajoute des pixels de couleur exacte, la gomme rend les pixels transparents, le remplissage modifie une zone connectée et le texte devient des pixels aux bords nets." loading="lazy"></a></p>
+<table><thead><tr><th>Outil ou champ</th><th>Fonctionnement</th><th>Effet sur l’impression</th></tr></thead><tbody><tr><td>Pinceau</td><td>Faites glisser pour peindre des pixels opaques. Le diamètre va de 1 à 64 pixels de l’image, avec 4 par défaut.</td><td>Répare les contours, relie des zones ou épaissit les détails. Le curseur montre son emprise.</td></tr><tr><td>Gomme</td><td>Utilise le même réglage de taille, mais écrit des pixels entièrement transparents.</td><td>Retire de la matière de la forme et peut créer des trous ou séparer des morceaux.</td></tr><tr><td>Remplissage</td><td>Remplace la zone cliquée correspondant exactement à ses valeurs RVB et alpha. Les connexions se font par les bords, pas les diagonales.</td><td>Recolore une seule zone connectée, pas toutes les occurrences de la couleur. Aucun réglage de tolérance photographique.</td></tr><tr><td>Prélever une couleur dans l’image</td><td>Prélève un pixel source non transparent et active le pinceau.</td><td>Réutilise une couleur de l’image sous-jacente, pas l’effet d’un réglage non appliqué.</td></tr><tr><td>Couleur de l’outil</td><td>Choisissez dans Couleurs de l’image, utilisez la pipette ou saisissez un code hexadécimal à six chiffres. Fermer la fenêtre valide le choix.</td><td>Définit la couleur opaque du pinceau, du remplissage ou du texte.</td></tr><tr><td>Taille du texte</td><td>Taille de police de 6 à 128 pixels de l’image, avec 24 par défaut.</td><td>Un texte plus grand laisse des détails plus grands à échelle physique constante ; la valeur n’est pas en millimètres.</td></tr></tbody></table>
+<h3 id="place-text">Placer du texte</h3>
+<p>Sélectionnez Texte, cliquez sur l’image et saisissez votre texte. Entrée ajoute une ligne. Faites glisser la poignée au-dessus du cadre pour le déplacer, ou celle du bord droit pour régler le retour à la ligne. La taille et la couleur mettent à jour le brouillon.</p>
+<p>Cliquez sur la coche ou appuyez sur <strong>Ctrl+Entrée</strong> (<strong>Commande+Entrée</strong> sur macOS) pour appliquer. Cliquer ailleurs sur l’image ou changer d’outil valide également le texte. X ou <strong>Échap</strong> supprime un brouillon ouvert ; un second Échap quitte l’outil. Le texte appliqué devient des pixels, pas un objet texte modifiable.</p>
+<p>Chaque trait modifié, remplissage ou placement de texte constitue une étape de l’historique. Un trait d’un pixel à 0,1 mm/pixel ne mesure que 0,1 mm de large, même s’il paraît grand à fort zoom. Examinez les lettres fines dans le logiciel de découpe.</p>
+<h2 id="remove-a-background">Retirer un arrière-plan</h2>
+<p>Il n’existe pas de sélection automatique du sujet ni de suppression d’arrière-plan par IA. Pour un fond uni, ouvrez son échantillon dans Couleurs de l’image, rendez-le entièrement transparent et appliquez. Cela supprime toutes les correspondances exactes, y compris dans le sujet. Utilisez la gomme pour une suppression locale et le damier pour examiner le contour.</p>
+<p>N’utilisez pas <strong>Supprimer</strong> sur un échantillon dans ce but : cela réassocie les couleurs au lieu de rendre les pixels transparents. Consultez <a href="/fr/docs/reducing-colors#image-colors">Couleurs de l’image</a>.</p>
+<h2 id="undo-download-and-clear">Annuler, télécharger et vider</h2>
+<p><strong>Annuler</strong> et <strong>Rétablir</strong> parcourent les modifications validées de l’image : chargement, recadrage, redimensionnement, application des réglages, quantification, détramage, modifications d’échantillons et retouches. Ils ne conservent pas l’historique de chaque réglage ou mouvement de curseur. Une nouvelle modification efface la branche de rétablissement. L’historique appartient à la session actuelle : enregistrez l’image si vous en aurez besoin plus tard.</p>
+<p><strong>Télécharger l’image</strong> enregistre l’image de travail sous-jacente en PNG à sa résolution en pixels. Le zoom, le damier, les poignées de recadrage et les brouillons de texte sont exclus. Validez le texte et <strong>Appliquez les réglages</strong> d’abord pour les inclure. Sur ordinateur, une boîte d’enregistrement s’ouvre ; dans le navigateur, l’emplacement dépend des paramètres de téléchargement.</p>
+<p><strong>Retirer l’image</strong> vide l’espace de travail, pas les réglages. Ne considérez pas cette action comme réversible : elle n’ajoute pas l’image retirée à une nouvelle étape d’annulation. Téléchargez d’abord une copie si vous souhaitez la conserver.</p>
+<p>Suite : <a href="/fr/docs/image-adjustments">Réglages d’image</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

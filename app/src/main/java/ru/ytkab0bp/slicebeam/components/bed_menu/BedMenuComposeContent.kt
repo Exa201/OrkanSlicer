@@ -159,6 +159,7 @@ internal fun BedMenuActionsContent(
                 reservedEndDp = 4,
             ).dp
             val gridState = rememberLazyGridState()
+            val gridTileHeight = if (fontScale >= 1.3f) 82.dp else OrkanUiTokens.menuTileHeight
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 LazyHorizontalGrid(
                     rows = GridCells.Fixed(rows),
@@ -173,7 +174,10 @@ internal fun BedMenuActionsContent(
                     items(actions, key = { action -> action.titleRes }) { action ->
                         BedMenuActionTile(action, portrait = true, menuView = menuView,
                             compactPortraitGrid = columns == 1,
-                            modifier = Modifier.width(tileWidth))
+                            // LazyHorizontalGrid can measure the one-row fallback using only the
+                            // label's intrinsic height. Set the cell height explicitly so it
+                            // keeps a useful touch target on compact viewports.
+                            modifier = Modifier.width(tileWidth).height(gridTileHeight))
                     }
                 }
                 if (reservePagingSlot) {
@@ -317,8 +321,11 @@ private fun BedMenuActionTile(
     Surface(
         modifier = modifier
             .padding(3.dp)
-            .semantics { contentDescription = fullTitle }
-            .then(interaction),
+            .then(interaction)
+            // Keep the accessible node on the whole clickable tile, not just its short
+            // label. This preserves its real touch target in compact horizontal grids.
+            .semantics(mergeDescendants = true) { contentDescription = fullTitle }
+            .testTag("workspace-menu-action-${action.titleRes}"),
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
         color = background,
         contentColor = foreground,

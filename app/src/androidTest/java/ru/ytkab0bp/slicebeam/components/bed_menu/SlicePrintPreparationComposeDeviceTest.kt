@@ -35,7 +35,7 @@ class SlicePrintPreparationComposeDeviceTest {
     val compose = createInitializedActivityRule()
 
     @Test
-    fun selectingAnOccupiedAceGateSwapsTheVisibleToolAssignments() {
+    fun selectingAnOccupiedAceGateAllowsTwoColorsToShareOnePhysicalFilament() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val mapping = mutableStateOf(listOf(0, 1, 2, 3))
@@ -63,8 +63,8 @@ class SlicePrintPreparationComposeDeviceTest {
         compose.onNodeWithTag("mmu-assignment-tool-1").assertIsDisplayed().performClick()
         compose.onNodeWithTag("mmu-assignment-gate-3").assertIsDisplayed().performClick()
         compose.runOnIdle {
-            assertEquals("Choosing ACE 4 for T1 moves T3 to T1's former ACE 2 slot",
-                listOf(0, 3, 2, 1), mapping.value)
+            assertEquals("Choosing ACE 4 for T1 must leave T3 on ACE 4 so two colors can share white filament",
+                listOf(0, 3, 2, 3), mapping.value)
         }
         compose.onNodeWithTag("mmu-assignment-tool-0").assertIsDisplayed()
     }

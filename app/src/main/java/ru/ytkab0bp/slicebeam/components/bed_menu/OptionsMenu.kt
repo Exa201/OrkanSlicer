@@ -19,7 +19,7 @@ class OptionsMenu : ListBedMenu() {
     @Composable
     override fun WorkspaceContent(portrait: Boolean) {
         LaunchedEffect(this, fragment) { refreshActions() }
-        BedMenuActionsContent(composeActions.value, portrait)
+        CustomizableBedMenuActionsContent("tools", composeActions.value, portrait)
     }
 
     private fun refreshActions() {

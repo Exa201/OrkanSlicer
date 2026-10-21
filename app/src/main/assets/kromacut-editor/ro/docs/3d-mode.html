@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ro">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Dimensiuni fizice, succesiuni manuale de culori, geometrie și comenzi de previzualizare." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ro/docs/3d-mode">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Modul 3D | Documentație Kromacut" />
+        <meta property="og:description" content="Dimensiuni fizice, succesiuni manuale de culori, geometrie și comenzi de previzualizare." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ro/docs/3d-mode" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ro_RO" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Modul 3D | Documentație Kromacut" />
+        <meta name="twitter:description" content="Dimensiuni fizice, succesiuni manuale de culori, geometrie și comenzi de previzualizare." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Modul 3D | Documentație Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/3d-mode">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/3d-mode">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/3d-mode">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/3d-mode">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/3d-mode">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/3d-mode">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/3d-mode">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/3d-mode">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/3d-mode">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/3d-mode">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/3d-mode">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/3d-mode">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/3d-mode">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentație">
+                    <a href="/ro/">Mergi la pagina principală</a>
+                    <a href="/app">Deschide Kromacut</a>
+                    <ul><li><a href="/ro/docs/overview">Prezentare generală</a></li><li><a href="/ro/docs/quick-start">Ghid rapid</a></li><li><a href="/ro/docs/loading-images">Încărcarea imaginilor</a></li><li><a href="/ro/docs/image-adjustments">Ajustările imaginii</a></li><li><a href="/ro/docs/reducing-colors">Reducerea culorilor</a></li><li><a href="/ro/docs/dedithering-cleanup">Eliminarea ditheringului și curățarea</a></li><li><a href="/ro/docs/3d-mode">Modul 3D</a></li><li><a href="/ro/docs/auto-paint">Comenzi Auto-paint</a></li><li><a href="/ro/docs/calibration-theory">Teoria calibrării</a></li><li><a href="/ro/docs/flat-paint">Flat Paint</a></li><li><a href="/ro/docs/calibration-workflows">Fluxuri de calibrare</a></li><li><a href="/ro/docs/generating-exporting-output">Generarea și exportul rezultatului</a></li><li><a href="/ro/docs/settings-and-controls">Setări și comenzi</a></li><li><a href="/ro/docs/troubleshooting">Depanare</a></li><li><a href="/ro/docs/faq">Întrebări frecvente</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="3d-mode">Modul 3D</h1>
+<p>Modul 3D transformă culorile imaginii în straturi fizice. Pregătește imaginea în 2D, alege dimensiunile și metoda de imprimare, apoi apasă <strong>Generează modelul 3D</strong>. Schimbarea unei setări nu regenerează automat modelul afișat.</p>
+<p>Folosește <strong>Manual</strong> pentru a alege singur ordinea culorilor și grosimea. Folosește <strong>Auto-paint</strong> pentru a prezice amestecurile filamentelor reale și a găsi o stivă pentru imagine. Niciuna dintre metode nu comandă imprimanta: exportă modelul și verifică-l în slicer.</p>
+<h2 id="3d-print-settings">Setări de imprimare 3D</h2>
+<table><thead><tr><th>Comandă</th><th>Efect asupra modelului</th><th>Ce verifici</th></tr></thead><tbody><tr><td><strong>Dimensiunea pixelului (XY)</strong></td><td>Milimetri pe pixel al imaginii în ambele direcții orizontale.</td><td>Indicatorul <strong>Model</strong> estimează lățimea, înălțimea și adâncimea fizică înainte de generare.</td></tr><tr><td><strong>Înălțimea stratului</strong></td><td>Pasul vertical normal folosit pentru înălțimi și schimbări.</td><td>Potrivește-l cu slicerul. Straturile mai mici oferă înălțimi mai fine, nu linii de extrudare mai înguste.</td></tr><tr><td><strong>Înălțimea primului strat</strong></td><td>Primul pas deasupra plăcii.</td><td>Potrivește-l separat. Prima culoare trebuie să aibă cel puțin valoarea mai mare dintre înălțimea normală și cea a primului strat.</td></tr><tr><td><strong>Lățimea efectivă a liniei</strong></td><td>Lățimea de extrudare folosită pentru verificările detaliilor imprimabile și ditheringul de înălțime din Auto-paint.</td><td>Potrivește-o cu lățimea de linie dorită în slicer, nu cu diametrul duzei sau dimensiunea pixelului. Nu schimbă profilul imprimantei.</td></tr><tr><td><strong>Geometrie netezită</strong></td><td>Transformă limitele în trepte de pixeli în contururi conectate netezite.</td><td>Schimbă geometria exportată, nu doar iluminarea. Nu adaugă detalii imaginii și nu calcă suprafața.</td></tr><tr><td><strong>Resetează</strong></td><td>Restabilește 0,1 mm/pixel, straturi normale de 0,12 mm, primul strat de 0,2 mm, lățimea efectivă a liniei de 0,42 mm și netezirea dezactivată.</td><td>Resetează și grosimile manuale la minime, păstrând ordinea curentă a culorilor.</td></tr></tbody></table>
+<h3 id="pixel-size-is-not-nozzle-size">Dimensiunea pixelului nu este dimensiunea duzei</h3>
+<p>O imagine lată de 1000 de pixeli la <strong>0,1 mm/pixel</strong> produce un model lat de aproximativ <strong>100 mm</strong>. La <strong>0,2 mm/pixel</strong>, ajunge la aproximativ <strong>200 mm</strong> cu exact aceiași pixeli. Marginile exterioare transparente sunt excluse din limitele modelului.</p>
+<p><a href="/localized/ro/diagrams/10_physical_size.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Aceeași grilă de imagine devine fizic mai mare când crește dimensiunea pixelului; redimensionarea imaginii schimbă în schimb numărul de pixeli."><img src="/localized/ro/diagrams/10_physical_size.svg" alt="Aceeași grilă de imagine devine fizic mai mare când crește dimensiunea pixelului; redimensionarea imaginii schimbă în schimb numărul de pixeli." loading="lazy"></a></p>
+<p><em>Schemă. Dimensiunea XY, rezoluția imaginii și lățimea de extrudare sunt comenzi separate.</em></p>
+<p>Pentru a păstra lățimea de 100 mm cu 2000 de pixeli, folosește <strong>0,05 mm/pixel</strong>. Mai mulți pixeli pot descrie margini mai fine, dar imprimanta are în continuare o limită de lățime a extrudării. Setează <strong>Lățimea efectivă a liniei</strong> în <strong>Setări de imprimare 3D</strong>, apoi folosește <a href="/ro/docs/auto-paint#printable-detail">previzualizarea detaliilor imprimabile</a> din Auto-paint pentru a inspecta această limitare.</p>
+<p>Mărirea dimensiunii pixelului nu reduce numărul de pixeli și nu face geometria în mod inerent mai ușor de generat. Pentru o generare mai ușoară, redimensionează sau decupează în <a href="/ro/docs/loading-images">modul 2D</a> ori simplifică paleta.</p>
+<h3 id="effective-line-width">Lățimea efectivă a liniei</h3>
+<p>Copiază lățimea de extrudare dorită din slicer în <strong>Lățimea efectivă a liniei</strong>. Acceptă 0,1–2 mm. Resetarea <strong>Setărilor de imprimare 3D</strong> o readuce la 0,42 mm, împreună cu celelalte valori implicite ale secțiunii. Editarea acestui câmp nu schimbă profilul imprimantei.</p>
+<p>Auto-paint folosește lățimea pentru previzualizarea avertismentelor, curățarea opțională a punctelor de culoare izolate și dimensiunea blocurilor de dithering de înălțime. Comenzile de inspectare a avertismentelor sau de omitere a punctelor izolate rămân în <a href="/ro/docs/auto-paint#printable-detail">Auto-paint</a>. Avertismentele nu înseamnă că un element va fi eliminat sau că nu poate fi imprimat.</p>
+<h3 id="layer-heights-and-valid-boundaries">Înălțimile straturilor și limitele valide</h3>
+<p>Cu <strong>primul strat de 0,20 mm</strong> și <strong>straturi normale de 0,08 mm</strong>, suprafețele straturilor se află la 0,20, 0,28, 0,36 și 0,44 mm. Nu la 0,08, 0,16, 0,24 și 0,32 mm. Kromacut reconciliază grosimile culorilor cu această grilă.</p>
+<p>Schimbarea <strong>Înălțimii stratului</strong> resetează grosimile manuale la noul pas normal, apoi aplică minimul primei culori. Schimbarea <strong>Înălțimii primului strat</strong> resetează prima culoare la noul minim. Stabilește-le înainte de reglarea glisoarelor și verifică din nou planul dacă se schimbă.</p>
+<p>Câmpurile acceptă intervale largi ale aplicației: 0,01–10 mm/pixel pentru Dimensiunea pixelului, 0,01–10 mm pentru Înălțimea stratului și 0–10 mm pentru Înălțimea primului strat. Acestea sunt limite de intrare, nu setări recomandate de imprimare; prima culoare este în continuare reconciliată cu minimul său fizic. Folosește valori acceptate de duză, material și slicer. O înălțime mai fină schimbă rețetele disponibile în Auto-paint; nu face automat compatibilă calibrarea existentă.</p>
+<h2 id="manual-mode">Modul Manual</h2>
+<p><strong>Înălțimile secțiunilor de culoare</strong> listează <strong>Culorile imaginii</strong> netransparente. Fiecare rând are un mâner de tragere, o mostră de culoare, un glisor de grosime și o valoare în milimetri. Valoarea reprezintă grosimea secvenței de culoare, nu înălțimea sa superioară absolută. O secvență poate acoperi mai multe straturi de slicer.</p>
+<p><a href="/localized/ro/diagrams/11_manual_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Trei secvențe manuale formează înălțimi cumulative; mărirea unei secvențe inferioare ridică fiecare suprafață ulterioară."><img src="/localized/ro/diagrams/11_manual_layers.svg" alt="Trei secvențe manuale formează înălțimi cumulative; mărirea unei secvențe inferioare ridică fiecare suprafață ulterioară." loading="lazy"></a></p>
+<p><em>Secțiune schematică. Suprafața unei culori ulterioare conține dedesubt secvențele anterioare.</em></p>
+<p>De exemplu, setează negrul la <strong>0,20 mm</strong>, roșul la <strong>0,16 mm</strong> și albul la <strong>0,08 mm</strong>, cu straturi normale de 0,08 mm. Regiunile negre se opresc la 0,20 mm, cele roșii la 0,36 mm, iar cele albe la 0,44 mm. Roșul începe la stratul 2 al slicerului; albul la stratul 4. Confirmă instrucțiunile generate și interpretarea slicerului înainte de imprimare.</p>
+<h3 id="reorder-colors">Reordonează culorile</h3>
+<p>Trage rândurile de sus în jos în ordinea imprimării. Rândul de sus începe pe placă. Rândurile ulterioare se imprimă peste cele anterioare doar unde imaginea are nevoie de ele, formând relief în trepte. Mutarea unei culori îi schimbă materialul de dedesubt, înălțimea suprafeței și secvența de schimbări. Un rând mutat primul este ridicat la minimul primului strat, dacă este necesar.</p>
+<p>Previzualizarea și exportul Manual folosesc culorile imaginii, nu modelul HD Auto-paint. Un strat subțire de roșu peste negru se poate imprima mai întunecat decât mostra, chiar dacă previzualizarea manuală pare roșie. Alege materialele și grosimile în consecință.</p>
+<h3 id="adjust-and-reset-thicknesses">Ajustează și resetează grosimile</h3>
+<p>Trage un glisor și eliberează-l pentru confirmare. Secvențele ulterioare avansează în pași de <strong>Înălțimea stratului</strong>. Prima începe de la minim și adaugă pași normali. Mărirea unei secvențe inferioare ridică toate suprafețele ulterioare și mută schimbările lor, nu doar regiunile unde culoarea inferioară rămâne vizibilă.</p>
+<p>Resetarea <strong>Înălțimilor secțiunilor de culoare</strong> sortează de la întunecat la luminos după luminanță și atribuie grosimi minime. Diferă de resetarea <strong>Setărilor de imprimare 3D</strong>, care schimbă și parametrii fizici, dar păstrează ordinea.</p>
+<p>Comenzile Manual și instrucțiunile de schimbare acceptă <strong>64 de culori</strong>. Redu paletele mai mari în 2D. Pixelii complet transparenți nu creează material, nici suport alb. Insulele opace deconectate rămân piese separate dacă imaginea nu le conectează.</p>
+<h2 id="smooth-meshing">Geometrie netezită</h2>
+<p>Cu netezirea oprită, contururile urmează grila pătrată de pixeli. Cu ea pornită, limitele conectate sunt netezite într-o geometrie sudată. Diferența se exportă, nu este un filtru de previzualizare.</p>
+<p>Netezește contururile modelului în previzualizare și exporturi. Medie păstrează netezirea originală. Reconstruiește pentru aplicare.</p>
+<table><thead><tr><th>Intensitate</th><th>Utilizare</th></tr></thead><tbody><tr><td><strong>Fără</strong></td><td>Pixel art, margini exacte pe grilă sau generarea cea mai rapidă.</td></tr><tr><td><strong>Minimă</strong></td><td>Netezire ușoară a colțurilor zimțate.</td></tr><tr><td><strong>Medie</strong></td><td>Rezultatul familiar al setării activate anterior.</td></tr><tr><td><strong>Intensă</strong></td><td>Netezire mai puternică de-a lungul contururilor, inclusiv a treptelor rămase, cu aceeași limită de deplasare ca Medie.</td></tr></tbody></table>
+<p>Deplasarea rămâne sub jumătate de pixel. Reconstruiește modelul și verifică previzualizarea în slicer. Setările vechi activat/dezactivat devin Medie/Fără.</p>
+<p><a href="/localized/ro/diagrams/12_smooth_boundaries.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Contururi diagonale în trepte de pixeli și netezite, comparate pe aceeași grilă sursă."><img src="/localized/ro/diagrams/12_smooth_boundaries.svg" alt="Contururi diagonale în trepte de pixeli și netezite, comparate pe aceeași grilă sursă." loading="lazy"></a></p>
+<p><em>Comparație schematică de contururi, nu simulare de slicer.</em></p>
+<p>Folosește-o pentru contururi curbe sau diagonale care par prea treptate. Las-o oprită pentru pixel art intenționat sau margini exacte de grilă. Niciuna dintre opțiuni nu repară detalii prea mici pentru imprimare și nu inventează rezoluție sursă lipsă.</p>
+<p>Geometria netezită funcționează și cu <a href="/ro/docs/flat-paint">Flat Paint</a>. Ambele orientări păstrează o placă plană și granițe comune între culori; alege o intensitate și reconstruiește pentru a o aplica.</p>
+<h2 id="auto-paint">Auto-paint</h2>
+<p>Auto-paint primește culori reale de filament și <strong>Distanța de acoperire (HD)</strong>, prezice amestecuri și mapează culorile imaginii la înălțimi imprimabile. Citește <a href="/ro/docs/auto-paint">Comenzi Auto-paint</a> pentru toate comenzile de filament, potrivire, detaliu și încredere.</p>
+<h2 id="calibrating-filament-hiding-distance">Calibrarea distanței de acoperire a filamentului</h2>
+<p><strong>Calibrează</strong>, sub lista de filamente, deschide <strong>Distanță de acoperire</strong>, <strong>Palette Proof</strong> și <strong>Stack Matrix</strong>. Urmează <a href="/ro/docs/calibration-workflows">Fluxuri de calibrare</a> pentru imprimarea și înregistrarea rezultatelor sau <a href="/ro/docs/calibration-theory">Teoria calibrării</a> pentru modelul optic.</p>
+<h2 id="filament-profiles">Profiluri de filamente</h2>
+<p>Profilurile stochează seturi denumite de filamente și date compatibile. Editările nesalvate nu sunt scrise automat în profilul selectat. Consultă <a href="/ro/docs/auto-paint#filament-profiles">Filamente și profiluri</a> și <a href="/ro/docs/settings-and-controls#filament-profile-files">fișiere de profil</a>.</p>
+<h3 id="templates">Șabloane</h3>
+<p>Șabloanele sunt seturi de referință ale furnizorilor, doar pentru citire, nu măsurători ale rolelor tale. Încarcă, ajustează, calibrează, apoi <strong>Salvează ca profil nou</strong>. Consultă <a href="/ro/docs/auto-paint#templates">Șabloane</a>.</p>
+<h2 id="max-height">Înălțimea maximă</h2>
+<p>Limita scurtează tranzițiile Auto-paint pe limite valide de strat, dar nu poate elimina fundația opacă. Citește <a href="/ro/docs/auto-paint#max-height">Înălțimea maximă</a>, inclusiv observația despre suportul Flat Paint.</p>
+<h2 id="printable-detail">Detalii imprimabile</h2>
+<p>Setează <strong>Lățimea efectivă a liniei</strong> în <strong>Setări de imprimare 3D</strong>, apoi folosește <strong>Deschide previzualizarea</strong> în Auto-paint pentru a inspecta regiunile înguste de culoare sursă. <strong>Omite punctele de culoare izolate</strong> înlocuiește opțional culorile folosite doar în puncte minuscule închise, păstrând liniile subțiri și detaliile conectate. Avertismentele și numărul efectiv de pixeli omiși sunt afișate separat. Consultă <a href="/ro/docs/auto-paint#printable-detail">Detalii imprimabile</a>.</p>
+<h2 id="enhanced-color-matching">Potrivire îmbunătățită a culorilor</h2>
+<p>Caută ordini de material cu repetări, cerințe de culori distincte sau dithering spațial de înălțime. Acestea implică compromisuri între acoperirea culorilor, grosime, schimbări și calcul. Consultă <a href="/ro/docs/auto-paint#enhanced-color-matching">Potrivire îmbunătățită a culorilor</a>.</p>
+<h2 id="flat-paint">Flat Paint</h2>
+<p>Creează o placă multimaterial în locul reliefului în trepte, fie cu fața în jos și suport transparent, fie cu fața în sus fără suport. Citește <a href="/ro/docs/flat-paint">Flat Paint</a> înainte de export, deoarece direcția de vizualizare și atribuirea obiectelor contează.</p>
+<h2 id="optimizer-settings">Setările optimizatorului</h2>
+<p><strong>Algoritm</strong>, <strong>Prioritatea regiunii</strong>, <strong>Detalierea tranzițiilor</strong> și <strong>Sămânța aleatorie</strong> reglează potrivirea, nu viteza imprimantei. Consultă <a href="/ro/docs/auto-paint#optimizer-settings">Setările optimizatorului</a>.</p>
+<h2 id="transition-zones-and-confidence">Zonele de tranziție și încrederea</h2>
+<p>Zonele descriu secvențe fizice; încrederea descrie datele și limitele modelării, nu precizia măsurată a imprimării. Consultă <a href="/ro/docs/auto-paint#transition-zones-and-confidence">Interpretarea rezultatului</a>.</p>
+<h2 id="palette-proof">Palette Proof</h2>
+<p>Compară o probă imprimată cu culori selectate ale imaginii și înregistrează candidații care se potrivesc. Consultă <a href="/ro/docs/calibration-workflows#palette-proof-compare-artwork-colors">Fluxuri de calibrare</a>.</p>
+<h2 id="stack-matrix">Stack Matrix</h2>
+<p>Fotografiază o placă de rețete salvată, verifică alinierea și salvează culorile măsurate pentru stive compatibile. Consultă <a href="/ro/docs/calibration-workflows#stack-matrix-photograph-known-recipes">Fluxuri de calibrare</a>.</p>
+<h2 id="preview-controls">Comenzi de previzualizare</h2>
+<p>Trage cu butonul principal al mouse-ului pentru orbitare, folosește rotița pentru zoom și trage cu butonul secundar pentru deplasare. Mișcarea camerei nu schimbă niciodată dimensiunile fizice.</p>
+<table><thead><tr><th>Comandă din bară</th><th>Utilizare</th><th>Efect asupra imprimării</th></tr></thead><tbody><tr><td><strong>Culori exacte</strong></td><td>Compară mostrele selectate fără iluminarea scenei sau mapare tonală cinematografică.</td><td>Doar previzualizare. Depinde în continuare de model și ecran; nu validează calibrarea.</td></tr><tr><td><strong>Umbrire</strong></td><td>Inspectează relieful și forma iluminate.</td><td>Doar previzualizare; iluminarea schimbă culoarea aparentă.</td></tr><tr><td><strong>Transparent</strong></td><td>Vezi straturile suprapuse.</td><td>Doar previzualizare; nu face filamentul transparent.</td></tr><tr><td><strong>Schelet</strong></td><td>Inspectează muchiile elementelor colorate pe straturi.</td><td>Doar previzualizare; nu sunt trasee de extrudare.</td></tr><tr><td><strong>Culori de previzualizare</strong></td><td>Comută între amestecurile simulate Auto-paint și culorile fizice ale filamentelor.</td><td>Doar previzualizare. Exporturile păstrează atribuirile reale de material.</td></tr><tr><td><strong>Comutator cameră</strong></td><td>Adâncime în perspectivă sau aliniere ortografică fără scurtare perspectivă.</td><td>Doar previzualizare. Poziția camerei se păstrează.</td></tr><tr><td><strong>Anulează / Refă</strong></td><td>Parcurge istoricul comun al editării imaginii.</td><td>Nu este un istoric de anulare pentru câmpuri 3D sau editări de filament. Regenerează după schimbarea imaginii.</td></tr><tr><td><strong>Descarcă</strong></td><td>Exportă STL sau 3MF generat.</td><td>Folosește ultimul model generat, nu setări laterale neaplicate.</td></tr></tbody></table>
+<p>Modul de vizualizare și alegerile simulate/fizice sunt memorate. <strong>Culori de previzualizare</strong> apare doar pentru un model Auto-paint generat.</p>
+<h2 id="layer-preview">Previzualizarea straturilor</h2>
+<p>Trage mânerele inferior și superior ale barei de jos pentru a izola un interval de înălțime. Pozițiile se aliniază la grila straturilor. Treci cursorul peste segmentele de material pentru informații despre început sau schimbare.</p>
+<p><a href="/localized/ro/diagrams/19_preview_only.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Mânerele limitelor ascund straturi pentru inspecție, dar exportul conține în continuare modelul complet."><img src="/localized/ro/diagrams/19_preview_only.svg" alt="Mânerele limitelor ascund straturi pentru inspecție, dar exportul conține în continuare modelul complet." loading="lazy"></a></p>
+<p><em>Schemă. Ascunderea unui strat pe ecran nu îl șterge niciodată din export.</em></p>
+<p>Flat Paint are o bară simplă, deoarece mai multe materiale pot ocupa un strat imprimat. Rotește camera sub aranjamentul implicit cu fața în jos pentru a-i vedea imaginea.</p>
+<p>Un calcul Auto-paint eșuat poate lăsa vizibil ultimul model generat cu succes. Nu îl considera dovada că noile setări au funcționat. Instrucțiunile de imprimare folosesc modelul fixat la generare când există. Rezolvă eroarea, generează din nou, apoi inspectează și exportă.</p>
+<p>În continuare: <a href="/ro/docs/auto-paint">Comenzi Auto-paint</a>, <a href="/ro/docs/flat-paint">Flat Paint</a> sau <a href="/ro/docs/generating-exporting-output">Generarea și exportul rezultatului</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

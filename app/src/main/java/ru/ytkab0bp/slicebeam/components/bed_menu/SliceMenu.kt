@@ -23,7 +23,7 @@ class SliceMenu : ListBedMenu() {
     @Composable
     override fun WorkspaceContent(portrait: Boolean) {
         LaunchedEffect(this, portrait) { refreshItems(portrait) }
-        BedMenuActionsContent(composeActions.value, portrait)
+        CustomizableBedMenuActionsContent("slice", composeActions.value, portrait)
     }
 
     private fun createActions(): List<BedComposeMenuAction> {

@@ -21,9 +21,9 @@ class TransformMenu : ListBedMenu() {
         val items = remember(this, bed) { createTransformMenuItems(bed) }
         LaunchedEffect(items, portrait) {
             menuItems = items
-            composeActions.value = items.createItems().filterNot { ModelMenuActionScope.isSingleObject(it.titleRes) }
+            composeActions.value = items.createItems()
         }
-        BedMenuActionsContent(composeActions.value, portrait, multiRow = true)
+        CustomizableBedMenuActionsContent("edit", composeActions.value, portrait, multiRow = true)
     }
 
     @EventHandler(runOnMainThread = true)

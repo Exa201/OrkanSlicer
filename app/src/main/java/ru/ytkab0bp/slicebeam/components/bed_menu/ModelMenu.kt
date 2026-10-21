@@ -64,9 +64,10 @@ class ModelMenu : ListBedMenu() {
                     modifier = Modifier.weight(1f).testTag("model-menu-scope-all"),
                 )
             }
-            BedMenuActionsContent(
-                if (selectedScope.intValue == 0) selectedActions else allActions,
-                portrait,
+            CustomizableBedMenuActionsContent(
+                menuKey = if (selectedScope.intValue == 0) "model_selected" else "model_all",
+                actions = if (selectedScope.intValue == 0) selectedActions else allActions,
+                portrait = portrait,
                 multiRow = true,
                 modifier = Modifier.weight(1f),
             )

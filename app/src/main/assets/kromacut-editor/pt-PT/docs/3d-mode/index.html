@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-PT">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Dimensões físicas, empilhamentos manuais de cor, malhas e controlos de pré-visualização." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/pt-PT/docs/3d-mode">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Modo 3D | Documentação Kromacut" />
+        <meta property="og:description" content="Dimensões físicas, empilhamentos manuais de cor, malhas e controlos de pré-visualização." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/pt-PT/docs/3d-mode" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Modo 3D | Documentação Kromacut" />
+        <meta name="twitter:description" content="Dimensões físicas, empilhamentos manuais de cor, malhas e controlos de pré-visualização." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Modo 3D | Documentação Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/3d-mode">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/3d-mode">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/3d-mode">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/3d-mode">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/3d-mode">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/3d-mode">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/3d-mode">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/3d-mode">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/3d-mode">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/3d-mode">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/3d-mode">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/3d-mode">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/3d-mode">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentação">
+                    <a href="/pt-PT/">Ir para a página inicial</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/pt-PT/docs/overview">Visão geral</a></li><li><a href="/pt-PT/docs/quick-start">Início rápido</a></li><li><a href="/pt-PT/docs/loading-images">Carregar imagens</a></li><li><a href="/pt-PT/docs/image-adjustments">Ajustes de imagem</a></li><li><a href="/pt-PT/docs/reducing-colors">Redução de cores</a></li><li><a href="/pt-PT/docs/dedithering-cleanup">Remoção de pontilhamento e limpeza</a></li><li><a href="/pt-PT/docs/3d-mode">Modo 3D</a></li><li><a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a></li><li><a href="/pt-PT/docs/calibration-theory">Teoria da calibração</a></li><li><a href="/pt-PT/docs/flat-paint">Pintura plana</a></li><li><a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a></li><li><a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a></li><li><a href="/pt-PT/docs/settings-and-controls">Definições e controlos</a></li><li><a href="/pt-PT/docs/troubleshooting">Resolução de problemas</a></li><li><a href="/pt-PT/docs/faq">Perguntas frequentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="3d-mode">Modo 3D</h1>
+<p>O modo 3D transforma cores em camadas físicas. Prepare a imagem em 2D, escolha dimensões e método de impressão e clique em <strong>Gerar modelo 3D</strong>. Alterar uma definição não regenera automaticamente o modelo mostrado.</p>
+<p>Use <strong>Manual</strong> para escolher ordem e espessuras. Use <strong>Pintura automática</strong> para prever misturas dos filamentos reais e encontrar um empilhamento. Nenhum controla a impressora: exporte e verifique no laminador.</p>
+<h2 id="3d-print-settings">Definições de impressão 3D</h2>
+<table><thead><tr><th>Controlo</th><th>Efeito no modelo</th><th>O que verificar</th></tr></thead><tbody><tr><td><strong>Tamanho do píxel (XY)</strong></td><td>Milímetros por píxel nas duas direções horizontais.</td><td>O indicador <strong>Modelo</strong> estima largura, altura e profundidade antes da geração.</td></tr><tr><td><strong>Altura de camada</strong></td><td>Passo vertical normal de alturas e trocas.</td><td>Corresponda ao laminador. Camadas menores dão alturas mais finas, não extrusões mais estreitas.</td></tr><tr><td><strong>Altura da primeira camada</strong></td><td>Primeiro passo acima da placa.</td><td>Corresponda separadamente. A primeira cor deve ter pelo menos a maior das alturas normal e inicial.</td></tr><tr><td><strong>Largura de linha efetiva</strong></td><td>Extrusão usada nas verificações de detalhe e pontilhamento de altura.</td><td>Corresponda à linha prevista no laminador, não ao bico nem ao píxel. Não muda o perfil da impressora.</td></tr><tr><td><strong>Malha suavizada</strong></td><td>Transforma fronteiras em degraus em contornos ligados suaves.</td><td>Muda geometria exportada, não só luz. Não acrescenta detalhe nem passa a ferro a superfície.</td></tr><tr><td><strong>Repor</strong></td><td>Repõe 0,1 mm/píxel, camadas de 0,12 mm, primeira de 0,2 mm, largura de 0,42 mm e suavização desligada.</td><td>Também repõe espessuras manuais mínimas, preservando a ordem.</td></tr></tbody></table>
+<h3 id="pixel-size-is-not-nozzle-size">O tamanho do píxel não é o do bico</h3>
+<p>Uma imagem de 1000 píxeis de largura a <strong>0,1 mm/píxel</strong> produz cerca de <strong>100 mm</strong>. A <strong>0,2 mm/píxel</strong>, mede cerca de <strong>200 mm</strong> com os mesmos píxeis. Margens exteriores transparentes não contam.</p>
+<p><a href="/localized/pt-PT/diagrams/10_physical_size.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: A mesma grelha cresce fisicamente quando aumenta o píxel; redimensionar a imagem muda o número de píxeis."><img src="/localized/pt-PT/diagrams/10_physical_size.svg" alt="A mesma grelha cresce fisicamente quando aumenta o píxel; redimensionar a imagem muda o número de píxeis." loading="lazy"></a></p>
+<p><em>Esquema. Tamanho XY, resolução e largura de extrusão são controlos separados.</em></p>
+<p>Para manter 100 mm com 2000 píxeis, use <strong>0,05 mm/píxel</strong>. Mais píxeis descrevem contornos mais finos, mas continua a existir limite de extrusão. Defina <strong>Largura de linha efetiva</strong> em <strong>Definições de impressão 3D</strong> e use a <a href="/pt-PT/docs/auto-paint#printable-detail">vista de detalhe imprimível</a>.</p>
+<p>Aumentar o píxel não reduz a contagem nem torna a malha intrinsecamente mais barata. Para aligeirar, redimensione ou recorte em <a href="/pt-PT/docs/loading-images">2D</a>, ou simplifique a paleta.</p>
+<h3 id="effective-line-width">Largura de linha efetiva</h3>
+<p>Copie a largura de extrusão prevista para <strong>Largura de linha efetiva</strong>. Aceita 0,1–2 mm. Repor <strong>Definições de impressão 3D</strong> recupera 0,42 mm e os restantes valores. Editar não muda o perfil da impressora.</p>
+<p>A pintura automática usa-a para avisos, limpeza opcional de pontos e blocos de pontilhamento. Os controlos de inspeção/omissão ficam em <a href="/pt-PT/docs/auto-paint#printable-detail">Pintura automática</a>. Avisos não significam que o detalhe será removido ou não possa imprimir.</p>
+<h3 id="layer-heights-and-valid-boundaries">Alturas de camada e fronteiras válidas</h3>
+<p>Com <strong>primeira camada de 0,20 mm</strong> e <strong>normais de 0,08 mm</strong>, os topos ficam a 0,20, 0,28, 0,36 e 0,44 mm, não 0,08, 0,16, 0,24 e 0,32 mm. O Kromacut reconcilia espessuras com esta grelha.</p>
+<p>Mudar <strong>Altura de camada</strong> repõe espessuras manuais no novo passo e aplica o mínimo da primeira cor. Mudar <strong>Altura da primeira camada</strong> repõe a primeira cor no novo mínimo. Defina antes de afinar e reveja o plano se mudar.</p>
+<p>Os campos aceitam gamas amplas: 0,01–10 mm/píxel para tamanho, 0,01–10 mm para camada e 0–10 mm para primeira. São limites de entrada, não recomendações; a primeira cor respeita sempre o mínimo físico. Use valores suportados por bico, material e laminador. Uma altura mais fina muda receitas disponíveis, não torna a calibração antiga automaticamente compatível.</p>
+<h2 id="manual-mode">Modo Manual</h2>
+<p><strong>Espessuras de cor</strong> lista as <strong>Cores da imagem</strong> não transparentes. Cada linha tem pega, amostra, controlo de espessura e leitura em mm. O valor é a espessura da sequência, não a altura absoluta do topo. Pode abranger várias camadas do laminador.</p>
+<p><a href="/localized/pt-PT/diagrams/11_manual_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Três sequências formam alturas acumuladas; aumentar uma inferior eleva todas as superfícies seguintes."><img src="/localized/pt-PT/diagrams/11_manual_layers.svg" alt="Três sequências formam alturas acumuladas; aumentar uma inferior eleva todas as superfícies seguintes." loading="lazy"></a></p>
+<p><em>Corte esquemático. Uma superfície posterior contém as sequências anteriores por baixo.</em></p>
+<p>Por exemplo, preto <strong>0,20 mm</strong>, vermelho <strong>0,16 mm</strong> e branco <strong>0,08 mm</strong>, com camadas de 0,08 mm: regiões pretas terminam a 0,20 mm, vermelhas a 0,36 mm e brancas a 0,44 mm. Vermelho começa na camada 2 e branco na 4. Confirme instruções e interpretação do laminador antes de imprimir.</p>
+<h3 id="reorder-colors">Reordenar cores</h3>
+<p>Arraste linhas de cima para baixo pela ordem de impressão. A primeira começa na placa. As seguintes imprimem sobre anteriores só onde necessário, formando relevo. Mover uma cor muda suporte, altura de superfície e trocas. Ao passar para primeiro lugar, sobe ao mínimo inicial se preciso.</p>
+<p>Vista e exportação manuais usam cores da imagem, não o modelo HD. Vermelho fino sobre preto pode imprimir mais escuro que a amostra, mesmo que a vista seja vermelha. Escolha materiais e espessuras em conformidade.</p>
+<h3 id="adjust-and-reset-thicknesses">Ajustar e repor espessuras</h3>
+<p>Arraste e solte para confirmar. Sequências posteriores avançam por <strong>Altura de camada</strong>. A primeira parte do mínimo e acrescenta passos normais. Aumentar uma inferior eleva todas as superfícies e trocas seguintes, não apenas zonas onde a cor continua visível.</p>
+<p>Repor <strong>Espessuras de cor</strong> ordena do escuro ao claro por luminância e atribui mínimos. Difere de repor <strong>Definições de impressão 3D</strong>, que também altera parâmetros físicos mas preserva a ordem.</p>
+<p>Controlos manuais e instruções suportam <strong>64 cores</strong>. Reduza paletas maiores em 2D. Píxeis totalmente transparentes não criam material, não um suporte branco. Ilhas opacas desligadas permanecem peças separadas salvo se a imagem as ligar.</p>
+<h2 id="smooth-meshing">Malha suavizada</h2>
+<p>Desligada, os contornos seguem a grelha quadrada. Ligada, fronteiras conectadas tornam-se geometria suavizada e soldada. A diferença é exportada, não um filtro visual.</p>
+<p>Suaviza os contornos do modelo na pré-visualização e nas exportações. Média mantém a suavização original. Reconstrua para aplicar.</p>
+<table><thead><tr><th>Intensidade</th><th>Utilização</th></tr></thead><tbody><tr><td><strong>Nenhuma</strong></td><td>Pixel art, contornos exatos da grelha ou geração mais rápida.</td></tr><tr><td><strong>Mínima</strong></td><td>Limpeza ligeira dos cantos irregulares.</td></tr><tr><td><strong>Média</strong></td><td>O resultado familiar da opção anteriormente ativada.</td></tr><tr><td><strong>Intensa</strong></td><td>Suavização mais forte dos contornos e degraus restantes, com o mesmo limite de deslocação de Média.</td></tr></tbody></table>
+<p>A deslocação mantém-se abaixo de meio píxel. Reconstrua o modelo e verifique a pré-visualização no slicer. As definições antigas ligada/desligada passam a Média/Nenhuma.</p>
+<p><a href="/localized/pt-PT/diagrams/12_smooth_boundaries.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Contornos diagonais escalonados e suavizados comparados na mesma grelha."><img src="/localized/pt-PT/diagrams/12_smooth_boundaries.svg" alt="Contornos diagonais escalonados e suavizados comparados na mesma grelha." loading="lazy"></a></p>
+<p><em>Comparação esquemática, não simulação do laminador.</em></p>
+<p>Use para curvas ou diagonais demasiado escalonadas. Deixe desligada para arte de píxeis intencional ou bordos de grelha exatos. Nenhuma escolha repara detalhes demasiado pequenos nem inventa resolução ausente.</p>
+<p>Malha suavizada também funciona com <a href="/pt-PT/docs/flat-paint">Pintura plana</a>. Ambas as orientações mantêm uma placa plana e limites partilhados entre cores; escolha uma intensidade e gere novamente para a aplicar.</p>
+<h2 id="auto-paint">Pintura automática</h2>
+<p>Aceita cores reais e <strong>Distância de ocultação (HD)</strong>, prevê misturas e mapeia cores para alturas imprimíveis. Consulte <a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a> para filamentos, correspondência, detalhe e confiança.</p>
+<h2 id="calibrating-filament-hiding-distance">Calibrar a distância de ocultação</h2>
+<p><strong>Calibrar</strong>, sob os filamentos, abre <strong>Distância de ocultação</strong>, <strong>Prova de paleta</strong> e <strong>Matriz de empilhamentos</strong>. Siga <a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a> para impressão/registo ou <a href="/pt-PT/docs/calibration-theory">Teoria da calibração</a> para o modelo ótico.</p>
+<h2 id="filament-profiles">Perfis de filamentos</h2>
+<p>Guardam conjuntos nomeados e evidências compatíveis. Edições por guardar não regressam automaticamente ao perfil selecionado. Consulte <a href="/pt-PT/docs/auto-paint#filament-profiles">Filamentos e perfis</a> e <a href="/pt-PT/docs/settings-and-controls#filament-profile-files">Ficheiros de perfil</a>.</p>
+<h3 id="templates">Modelos de perfil</h3>
+<p>São referências de fornecedores só de leitura, não medições das bobinas. Carregue, ajuste, calibre e <strong>Guarde como novo perfil</strong>. Consulte <a href="/pt-PT/docs/auto-paint#templates">Modelos de perfil</a>.</p>
+<h2 id="max-height">Altura máxima</h2>
+<p>O limite encurta transições em fronteiras válidas, mas não remove a fundação opaca. Consulte <a href="/pt-PT/docs/auto-paint#max-height">Altura máxima</a>, incluindo a ressalva do suporte transparente.</p>
+<h2 id="printable-detail">Detalhe imprimível</h2>
+<p>Defina <strong>Largura de linha efetiva</strong> nas <strong>Definições de impressão 3D</strong> e use <strong>Abrir pré-visualização</strong> para regiões finas. <strong>Omitir pontos isolados de cor</strong> substitui opcionalmente cores usadas só em pontos pequenos fechados, mantendo linhas e detalhes ligados. Avisos e contagens reais de omissão aparecem separados. Consulte <a href="/pt-PT/docs/auto-paint#printable-detail">Detalhe imprimível</a>.</p>
+<h2 id="enhanced-color-matching">Correspondência de cor melhorada</h2>
+<p>Procura ordens com repetições, distinção de cores ou pontilhamento espacial. São compromissos entre cobertura, espessura, trocas e cálculo. Consulte <a href="/pt-PT/docs/auto-paint#enhanced-color-matching">Correspondência de cor melhorada</a>.</p>
+<h2 id="flat-paint">Pintura plana</h2>
+<p>Crie placa multimaterial em vez de relevo, de face para baixo com suporte ou para cima sem ele. Leia <a href="/pt-PT/docs/flat-paint">Pintura plana</a> antes de exportar, pois direção de observação e atribuições importam.</p>
+<h2 id="optimizer-settings">Definições do otimizador</h2>
+<p><strong>Algoritmo</strong>, <strong>Prioridade regional</strong>, <strong>Detalhe de transição</strong> e <strong>Semente</strong> ajustam correspondência, não velocidade de impressão. Consulte <a href="/pt-PT/docs/auto-paint#optimizer-settings">Definições do otimizador</a>.</p>
+<h2 id="transition-zones-and-confidence">Zonas de transição e confiança</h2>
+<p>Zonas descrevem sequências físicas; confiança descreve evidência e limitações, não exatidão medida. Consulte <a href="/pt-PT/docs/auto-paint#transition-zones-and-confidence">Ler o resultado</a>.</p>
+<h2 id="palette-proof">Prova de paleta</h2>
+<p>Compare uma amostra impressa com cores escolhidas e registe candidatos correspondentes. Consulte <a href="/pt-PT/docs/calibration-workflows#palette-proof-compare-artwork-colors">Fluxos de calibração</a>.</p>
+<h2 id="stack-matrix">Matriz de empilhamentos</h2>
+<p>Fotografe uma placa de receitas guardada, verifique alinhamento e guarde cores medidas para empilhamentos compatíveis. Consulte <a href="/pt-PT/docs/calibration-workflows#stack-matrix-photograph-known-recipes">Fluxos de calibração</a>.</p>
+<h2 id="preview-controls">Controlos de pré-visualização</h2>
+<p>Arraste com o botão principal para rodar, use roda para ampliar e botão secundário para deslocar. A câmara nunca altera dimensões físicas.</p>
+<table><thead><tr><th>Controlo</th><th>Utilidade</th><th>Efeito na impressão</th></tr></thead><tbody><tr><td><strong>Cor fiel</strong></td><td>Comparar amostras sem iluminação de cena nem mapeamento tonal cinematográfico.</td><td>Só vista. Depende do modelo e ecrã; não valida calibração.</td></tr><tr><td><strong>Sombreado</strong></td><td>Examinar relevo iluminado e forma.</td><td>Só vista; a luz muda a cor aparente.</td></tr><tr><td><strong>Transparente</strong></td><td>Ver camadas sobrepostas.</td><td>Só vista; não torna o filamento transparente.</td></tr><tr><td><strong>Aramado</strong></td><td>Examinar arestas coloridas por camada.</td><td>Só vista; não são trajetórias de extrusão.</td></tr><tr><td><strong>Cores da pré-visualização</strong></td><td>Alternar misturas simuladas e cores físicas.</td><td>Só vista. Exportações mantêm materiais reais.</td></tr><tr><td><strong>Alternar câmara</strong></td><td>Perspetiva com profundidade ou alinhamento ortográfico sem encurtamento.</td><td>Só vista. A posição mantém-se.</td></tr><tr><td><strong>Anular / Refazer</strong></td><td>Percorrer histórico partilhado da imagem.</td><td>Não anula campos 3D nem filamentos. Regenere após mudar imagem.</td></tr><tr><td><strong>Transferir</strong></td><td>Exportar STL ou 3MF gerado.</td><td>Usa o último modelo, não definições laterais por aplicar.</td></tr></tbody></table>
+<p>Modo de vista e escolha simulada/física são recordados. <strong>Cores da pré-visualização</strong> só aparece para um modelo automático gerado.</p>
+<h2 id="layer-preview">Pré-visualização de camadas</h2>
+<p>Arraste as pegas inferior e superior da barra para isolar alturas. As posições encaixam na grelha de camadas. Passe sobre segmentos para informação de início ou troca.</p>
+<p><a href="/localized/pt-PT/diagrams/19_preview_only.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: As pegas ocultam camadas para inspeção, mas a exportação mantém o modelo completo."><img src="/localized/pt-PT/diagrams/19_preview_only.svg" alt="As pegas ocultam camadas para inspeção, mas a exportação mantém o modelo completo." loading="lazy"></a></p>
+<p><em>Esquema. Ocultar no ecrã nunca elimina da exportação.</em></p>
+<p>A pintura plana tem faixa simples, pois vários materiais ocupam uma camada. Rode por baixo da disposição predefinida para ver a imagem.</p>
+<p>Um cálculo falhado pode deixar a geração anterior visível. Não o considere prova de sucesso das novas definições. As instruções usam o instantâneo gerado quando existe. Resolva o erro, regenere, examine e exporte.</p>
+<p>Seguinte: <a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a>, <a href="/pt-PT/docs/flat-paint">Pintura plana</a> ou <a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

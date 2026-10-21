@@ -36,4 +36,36 @@ object AnycubicAceRoutingPolicy {
         val shared = MmuGateAssignmentPolicy.firstSharedGateTool(usedTools, gates)
         return Routing(commands, gates, unavailable, shared)
     }
+
+    /** A shared spool is safe only when every slicer tool using it has matching material and temperatures. */
+    @JvmStatic
+    fun firstIncompatibleSharedGateTool(
+        activeTools: IntArray,
+        gates: IntArray,
+        materials: List<String>,
+        initialTemperatures: List<String>,
+        temperatures: List<String>,
+    ): Int? {
+        data class Signature(val material: String, val initial: String, val normal: String)
+        val firstByGate = HashMap<Int, Pair<Int, Signature>>()
+        for (tool in activeTools) {
+            val gate = gates.getOrNull(tool) ?: continue
+            val signature = Signature(
+                materials.getOrNull(tool).orEmpty().trim().uppercase(),
+                normalizeTemperature(initialTemperatures.getOrNull(tool)),
+                normalizeTemperature(temperatures.getOrNull(tool)),
+            )
+            val previous = firstByGate.putIfAbsent(gate, tool to signature)
+            if (previous != null && previous.second != signature) return tool
+        }
+        return null
+    }
+
+    @JvmStatic
+    fun toolValues(value: String?): List<String> = value.orEmpty()
+        .split(',', ';')
+        .map(String::trim)
+
+    private fun normalizeTemperature(value: String?): String = value.orEmpty().trim()
+        .toDoubleOrNull()?.let { java.lang.Double.toString(it) } ?: value.orEmpty().trim()
 }

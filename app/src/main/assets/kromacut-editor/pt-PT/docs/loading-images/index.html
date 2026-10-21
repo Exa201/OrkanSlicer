@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-PT">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Importe, recorte, redimensione e retoque os píxeis antes de se tornarem regiões impressas." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/pt-PT/docs/loading-images">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Carregar imagens | Documentação Kromacut" />
+        <meta property="og:description" content="Importe, recorte, redimensione e retoque os píxeis antes de se tornarem regiões impressas." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/pt-PT/docs/loading-images" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Carregar imagens | Documentação Kromacut" />
+        <meta name="twitter:description" content="Importe, recorte, redimensione e retoque os píxeis antes de se tornarem regiões impressas." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Carregar imagens | Documentação Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/loading-images">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/loading-images">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/loading-images">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/loading-images">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/loading-images">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/loading-images">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/loading-images">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/loading-images">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/loading-images">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/loading-images">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/loading-images">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/loading-images">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/loading-images">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentação">
+                    <a href="/pt-PT/">Ir para a página inicial</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/pt-PT/docs/overview">Visão geral</a></li><li><a href="/pt-PT/docs/quick-start">Início rápido</a></li><li><a href="/pt-PT/docs/loading-images">Carregar imagens</a></li><li><a href="/pt-PT/docs/image-adjustments">Ajustes de imagem</a></li><li><a href="/pt-PT/docs/reducing-colors">Redução de cores</a></li><li><a href="/pt-PT/docs/dedithering-cleanup">Remoção de pontilhamento e limpeza</a></li><li><a href="/pt-PT/docs/3d-mode">Modo 3D</a></li><li><a href="/pt-PT/docs/auto-paint">Controlos de pintura automática</a></li><li><a href="/pt-PT/docs/calibration-theory">Teoria da calibração</a></li><li><a href="/pt-PT/docs/flat-paint">Pintura plana</a></li><li><a href="/pt-PT/docs/calibration-workflows">Fluxos de calibração</a></li><li><a href="/pt-PT/docs/generating-exporting-output">Geração e exportação</a></li><li><a href="/pt-PT/docs/settings-and-controls">Definições e controlos</a></li><li><a href="/pt-PT/docs/troubleshooting">Resolução de problemas</a></li><li><a href="/pt-PT/docs/faq">Perguntas frequentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="loading-images">Carregar imagens</h1>
+<p>Em <strong>2D</strong>, prepara a imagem que o modelo 3D vai usar. As alterações de cor afetam as cores-alvo; as edições de píxeis afetam formas e detalhes da impressão.</p>
+<h2 id="choose-a-source">Escolher uma origem</h2>
+<p>Clique em <strong>Escolher ficheiro</strong> na barra da pré-visualização ou arraste uma imagem para a vista 2D. Só é carregado o primeiro ficheiro largado. Use um formato que o navegador ou a vista web de ambiente de trabalho consiga descodificar; PNG é útil para transparência. Revele primeiro ficheiros RAW da câmara e exporte um formato normal.</p>
+<p>O Kromacut começa com o logótipo como exemplo. Carregar outra imagem substitui a imagem de trabalho. Não a publica nem transfere uma origem a partir de uma ligação web colada.</p>
+<h2 id="inspect-without-changing-the-image">Examinar sem alterar a imagem</h2>
+<table><thead><tr><th>Controlo</th><th>Efeito</th></tr></thead><tbody><tr><td>Roda do rato</td><td>Amplia em torno do ponteiro. Só altera a vista, não a resolução nem o tamanho de impressão.</td></tr><tr><td>Arrastar com botão esquerdo</td><td>Desloca quando não há ferramenta de retoque ativa.</td></tr><tr><td>Arrastar com botão central</td><td>Desloca mesmo com uma ferramenta ativa.</td></tr><tr><td>Alternar xadrez</td><td>Mostra um padrão atrás dos píxeis transparentes. O padrão não faz parte da imagem nem da impressão.</td></tr><tr><td>Indicador de tamanho</td><td>Mostra dimensões em píxeis e, durante o recorte, as dimensões propostas.</td></tr></tbody></table>
+<p>A vista mantém os bordos nítidos dos píxeis em vez de os suavizar. Amplie para encontrar píxeis isolados e detalhes estreitos.</p>
+<h2 id="crop-resize-or-change-print-size">Recortar, redimensionar ou mudar o tamanho de impressão?</h2>
+<p><a href="/localized/pt-PT/diagrams/30_crop_resize_scale.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: Recortar remove parte da imagem, redimensionar reduz a resolução e Tamanho do píxel altera a escala física de cada píxel."><img src="/localized/pt-PT/diagrams/30_crop_resize_scale.svg" alt="Recortar remove parte da imagem, redimensionar reduz a resolução e Tamanho do píxel altera a escala física de cada píxel." loading="lazy"></a></p>
+<p><em>As dimensões esquemáticas ilustram a relação, não um tamanho recomendado.</em></p>
+<h3 id="crop">Recortar</h3>
+<p>Clique em <strong>Recortar</strong>, arraste a seleção ou as pegas dos cantos e bordos e escolha <strong>Guardar recorte</strong>. <strong>Cancelar recorte</strong> deixa a imagem intacta. Guardar conserva o retângulo à resolução dos píxeis da imagem.</p>
+<p>Recorte margens indesejadas antes de reduzir cores para não competirem com o motivo pela paleta. O recorte é retangular; use transparência para fundos irregulares.</p>
+<h3 id="resize-image">Redimensionar imagem</h3>
+<p>A <strong>Escala</strong> vai de <strong>1% a 100%</strong>, com <strong>50%</strong> por predefinição. <strong>Atual</strong> e <strong>Após redimensionar</strong> mostram dimensões antes de confirmar. Clique em <strong>Aplicar</strong> para reduzir. 100%, ou um valor que arredonde às mesmas dimensões, não faz nada. A seta repõe a percentagem, não a imagem.</p>
+<p>O redimensionamento usa suavização, podendo introduzir cores misturadas nos contornos e transparência parcial. Redimensione antes de quantizar ou reduza novamente as cores depois. Aplicações repetidas reduzem a imagem já reduzida: duas a 50% deixam 25% da largura e altura originais. Use Anular para recuperar detalhe em vez de tentar ampliar aqui.</p>
+<h3 id="physical-size-in-3d">Tamanho físico em 3D</h3>
+<p><strong>Tamanho do píxel (XY)</strong> é milímetros por píxel, não resolução. Uma imagem opaca de 1000 píxeis de largura a 0,1 mm/píxel mede 100 mm. Reduzir para 500 píxeis com a mesma definição dá 50 mm. Alterar para 0,2 mm/píxel repõe 100 mm, mas não o detalhe perdido. As margens exteriores totalmente transparentes não contam para a área do modelo.</p>
+<p>Reduzir dimensões em píxeis diminui processamento e geometria. Alterar apenas o tamanho do píxel não remove píxeis. Consulte <a href="/pt-PT/docs/3d-mode">Modo 3D</a> para a escala física.</p>
+<h2 id="touch-up-pixels">Retocar píxeis</h2>
+<p><strong>Pincel</strong>, <strong>Borracha</strong>, <strong>Preencher</strong>, <strong>Texto</strong> e <strong>Escolher cor da imagem</strong> usam píxeis de bordos nítidos sem antialiasing. Uma cor personalizada ainda pode acrescentar uma cor à paleta; bordos nítidos evitam misturas involuntárias nos contornos.</p>
+<p><a href="/localized/pt-PT/diagrams/31_pixel_tools.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustração em tamanho completo: O pincel acrescenta píxeis de cor exata, a borracha remove por transparência, o preenchimento muda uma zona ligada e o texto torna-se píxeis nítidos."><img src="/localized/pt-PT/diagrams/31_pixel_tools.svg" alt="O pincel acrescenta píxeis de cor exata, a borracha remove por transparência, o preenchimento muda uma zona ligada e o texto torna-se píxeis nítidos." loading="lazy"></a></p>
+<table><thead><tr><th>Ferramenta ou campo</th><th>Funcionamento</th><th>Efeito na impressão</th></tr></thead><tbody><tr><td>Pincel</td><td>Arraste para pintar píxeis opacos. Diâmetro de 1 a 64 píxeis, predefinição 4.</td><td>Repara contornos, liga zonas ou engrossa detalhes. O cursor mostra a área.</td></tr><tr><td>Borracha</td><td>Usa o mesmo tamanho, mas escreve píxeis totalmente transparentes.</td><td>Remove material, podendo criar buracos ou separar peças.</td></tr><tr><td>Preencher</td><td>Substitui a região clicada com RGB e alfa exatos. Ligações por bordos, não diagonais.</td><td>Recolore uma região ligada, não todas as ocorrências. Não existe tolerância fotográfica de cor.</td></tr><tr><td>Escolher cor da imagem</td><td>Recolhe um píxel de origem não transparente e muda para Pincel.</td><td>Reutiliza a cor subjacente, não o efeito de um ajuste por aplicar.</td></tr><tr><td>Cor da ferramenta</td><td>Escolha nas Cores da imagem, use o conta-gotas ou introduza seis dígitos hexadecimais. Fechar confirma.</td><td>Define a cor opaca de Pincel, Preencher ou Texto.</td></tr><tr><td>Tamanho do texto</td><td>Fonte de 6 a 128 píxeis, predefinição 24.</td><td>Texto maior deixa detalhes maiores à mesma escala física; não é um valor em milímetros.</td></tr></tbody></table>
+<h3 id="place-text">Colocar texto</h3>
+<p>Selecione Texto, clique na imagem e escreva. Enter acrescenta uma linha. Arraste a pega acima da caixa para mover ou a da direita para ajustar a mudança de linha. Tamanho e cor atualizam o rascunho.</p>
+<p>Clique na confirmação ou prima <strong>Ctrl+Enter</strong> (<strong>Command+Enter</strong> no macOS) para aplicar. Clicar noutro ponto ou mudar de ferramenta também confirma. X ou <strong>Escape</strong> descarta o rascunho; outro Escape sai da ferramenta. O texto aplicado torna-se píxeis, não um objeto editável.</p>
+<p>Cada traço alterado, preenchimento ou colocação de texto é um passo do histórico. Um traço de um píxel a 0,1 mm/píxel tem apenas 0,1 mm de largura, por grande que pareça ampliado. Examine letras estreitas no laminador.</p>
+<h2 id="remove-a-background">Remover um fundo</h2>
+<p>Não há seleção automática do motivo nem remoção por IA. Para um fundo uniforme, abra a amostra em Cores da imagem, torne-a transparente e aplique. Isto remove todas as correspondências exatas, incluindo píxeis do motivo. Use Borracha para remoção local e xadrez para verificar o contorno.</p>
+<p>Não use <strong>Eliminar</strong> na amostra: remapeia cores em vez de tornar píxeis transparentes. Consulte <a href="/pt-PT/docs/reducing-colors#image-colors">Cores da imagem</a>.</p>
+<h2 id="undo-download-and-clear">Anular, transferir e limpar</h2>
+<p><strong>Anular</strong> e <strong>Refazer</strong> percorrem alterações confirmadas: carregamento, recorte, redimensionamento, incorporação de ajustes, quantização, limpeza, edições de amostras e retoques. Não são histórico de todas as definições ou movimentos de controlos. Uma nova edição elimina o caminho de refazer. O histórico pertence à sessão atual, por isso guarde a imagem se precisar dela depois.</p>
+<p><strong>Transferir imagem</strong> guarda a imagem de trabalho subjacente como PNG à resolução dos píxeis. Exclui zoom, xadrez, pegas de recorte e rascunhos de texto. Confirme o texto e <strong>Aplique os ajustes</strong> primeiro para os incluir. No ambiente de trabalho abre uma janela de gravação; no navegador segue as definições de transferência.</p>
+<p><strong>Remover imagem</strong> limpa a área, não as definições. Não conte com reversibilidade: não acrescenta a imagem removida como novo passo de Anular. Transfira uma cópia antes se a quiser preservar.</p>
+<p>Seguinte: <a href="/pt-PT/docs/image-adjustments">Ajustes de imagem</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

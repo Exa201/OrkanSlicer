@@ -55,6 +55,9 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
+import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
+import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
+import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.theme.BeamTheme
@@ -108,6 +111,8 @@ class SettingsFragment : Fragment() {
                             renderScale = "${(Prefs.getRenderScale() * 100).toInt()}%",
                             uiTextScale = "${(Prefs.getUiTextScale() * 100).toInt()}%",
                             converterRoot = ConverterStorage.getRootDisplayName(ctx),
+                            cameraProjection = ctx.getString(if (Prefs.isOrthoProjectionEnabled()) R.string.SettingsCameraOrthographic else R.string.SettingsCameraPerspective),
+                            cameraControlMode = cameraControlModeLabel(ctx, Prefs.getCameraControlMode()),
                             onToggleSection = ::toggleSection,
                             onMaker = ::openMaker,
                             onTheme = ::showThemePicker,
@@ -115,6 +120,9 @@ class SettingsFragment : Fragment() {
                             onRenderScale = ::showRenderScalePicker,
                             onUiTextScale = ::showUiTextScalePicker,
                             onConverterFolder = ::chooseConverterFolder,
+                            onCameraProjection = ::toggleCameraProjection,
+                            onCameraControlMode = ::showCameraControlPicker,
+                            onCameraPreset = ::selectCameraPreset,
                             onCloud = { startSetup(SetupActivity.EXTRA_CLOUD_PROFILE) },
                             onAddPrinter = { startSetup(SetupActivity.EXTRA_ADD_PRINTER) },
                             onAbout = { startSetup(SetupActivity.EXTRA_ABOUT) },
@@ -244,6 +252,39 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    private fun toggleCameraProjection() {
+        Prefs.setOrthoProjectionEnabled(!Prefs.isOrthoProjectionEnabled())
+        SliceBeam.EVENT_BUS.fireEvent(CameraProjectionChangedEvent())
+        themeRevision++
+    }
+
+    private fun showCameraControlPicker() {
+        val context = getContext() ?: return
+        val labels = listOf(
+            context.getString(R.string.MenuCameraControlModeOne),
+            context.getString(R.string.MenuCameraControlModeTwo),
+            context.getString(R.string.MenuCameraControlModeThree),
+        )
+        showChoiceDialog(
+            R.string.MenuCameraControlModeFull,
+            labels,
+            Prefs.getCameraControlMode().coerceIn(labels.indices),
+        ) { mode ->
+            Prefs.setCameraControlMode(mode)
+            themeRevision++
+        }
+    }
+
+    private fun cameraControlModeLabel(context: Context, mode: Int): String = listOf(
+        R.string.MenuCameraControlModeOne,
+        R.string.MenuCameraControlModeTwo,
+        R.string.MenuCameraControlModeThree,
+    ).getOrElse(mode) { R.string.MenuCameraControlModeOne }.let(context::getString)
+
+    private fun selectCameraPreset(preset: CameraPreset) {
+        SliceBeam.EVENT_BUS.fireEvent(CameraPresetRequestedEvent(preset))
+    }
+
     private fun chooseConverterFolder() {
         val activity = getContext() as? Activity ?: return
         try {
@@ -319,6 +360,8 @@ internal fun SettingsContent(
     renderScale: String,
     uiTextScale: String,
     converterRoot: String,
+    cameraProjection: String,
+    cameraControlMode: String,
     onToggleSection: (Int) -> Unit,
     onMaker: () -> Unit,
     onTheme: () -> Unit,
@@ -326,6 +369,9 @@ internal fun SettingsContent(
     onRenderScale: () -> Unit,
     onUiTextScale: () -> Unit,
     onConverterFolder: () -> Unit,
+    onCameraProjection: () -> Unit,
+    onCameraControlMode: () -> Unit,
+    onCameraPreset: (CameraPreset) -> Unit,
     onCloud: () -> Unit,
     onAddPrinter: () -> Unit,
     onAbout: () -> Unit,
@@ -467,6 +513,40 @@ internal fun SettingsContent(
                 }
             }
 
+            val cameraSection: @Composable () -> Unit = {
+                SettingsSection(
+                    index = 5,
+                    expandedSections = expandedSections,
+                    onToggle = onToggleSection,
+                    iconRes = R.drawable.camera_outline_28,
+                    title = stringResource(R.string.MenuCamera),
+                    compactLayout = compactLayout,
+                    denseLandscape = shortLandscapeLayout,
+                ) {
+                    SettingsRow(R.string.SettingsCameraProjection, value = cameraProjection, onClick = onCameraProjection, compactLayout = compactLayout)
+                    SettingsRow(R.string.MenuCameraControlMode, value = cameraControlMode, onClick = onCameraControlMode, compactLayout = compactLayout)
+                    CameraPreset.values().forEach { preset ->
+                        val label = when (preset) {
+                            CameraPreset.FRONT -> R.string.MenuCameraFront
+                            CameraPreset.BACK -> R.string.MenuCameraBack
+                            CameraPreset.LEFT -> R.string.MenuCameraLeft
+                            CameraPreset.RIGHT -> R.string.MenuCameraRight
+                            CameraPreset.TOP -> R.string.MenuCameraTop
+                            CameraPreset.BOTTOM -> R.string.MenuCameraBottom
+                            CameraPreset.ISOMETRIC -> R.string.MenuCameraIsometric
+                        }
+                        SettingsActionRow(
+                            iconRes = R.drawable.camera_outline_28,
+                            titleRes = label,
+                            description = null,
+                            onClick = { onCameraPreset(preset) },
+                            compactLayout = compactLayout,
+                            denseLandscape = shortLandscapeLayout,
+                        )
+                    }
+                }
+            }
+
             val devicesSection: @Composable () -> Unit = {
                 SettingsSection(
                     index = 2,
@@ -525,6 +605,7 @@ internal fun SettingsContent(
                     Column(modifier = Modifier.weight(1f)) {
                         devicesSection()
                         converterSection()
+                        cameraSection()
                         informationSection()
                     }
                 }
@@ -533,6 +614,7 @@ internal fun SettingsContent(
                 interfaceSection()
                 devicesSection()
                 converterSection()
+                cameraSection()
                 informationSection()
             }
 

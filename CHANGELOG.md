@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.331 (alpha)
+
+- Bundle the upstream Kromacut 4.2.0 editor with the Android WebView/file bridge and relative offline assets.
+- Let multiple model colors intentionally map to the same ACE spool. The slicer now keeps duplicate mappings, remaps tool changes and M104/M109 selectors, and collapses palette/material/mass metadata to the selected physical slots; shared slots are blocked only when material or nozzle temperatures conflict.
+- Keep individual model assignment and the mapped slice preview/G-code path aligned; add device coverage for choosing the same ACE slot twice and for loading the bundled Kromacut page.
+- Add per-menu action reordering and visibility controls, move camera presets into App settings, and keep edit actions visible but disabled when they cannot currently run.
+
 ## 0.8.330 (alpha)
 
 - Refresh the active Project menu after a model import so "3MF sichern" becomes enabled as soon as the renderer commits the model, including when Project was already open.
@@ -765,3 +772,9 @@
 ## Earlier alpha development
 
 This fork includes the earlier OrcaMobile/SliceBeam Kotlin UI migration, model and 3MF workflows, maker tools, printer integrations, and Android 16 compatibility work. The upstream project history and retained credits document their origins.
+
+### Verifikation (2026-10-21)
+
+- Debug- und Slice-Unit-Suiten: 586/586 bestanden. Vollständige Honor-Instrumentierung: 237 Tests, keine Fehler oder Überspringungen; KromaCut-Fixture separat 3/3 bestanden.
+- APK-Metadaten und Hash werden nach dem finalen Commit aktualisiert.
+

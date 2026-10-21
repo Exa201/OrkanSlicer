@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Générer le modèle, l’examiner, exporter les fichiers et copier les instructions d’impression." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/fr/docs/generating-exporting-output">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Génération et export | Documentation Kromacut" />
+        <meta property="og:description" content="Générer le modèle, l’examiner, exporter les fichiers et copier les instructions d’impression." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/fr/docs/generating-exporting-output" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="fr_FR" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Génération et export | Documentation Kromacut" />
+        <meta name="twitter:description" content="Générer le modèle, l’examiner, exporter les fichiers et copier les instructions d’impression." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Génération et export | Documentation Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/generating-exporting-output">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/generating-exporting-output">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/generating-exporting-output">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/generating-exporting-output">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/generating-exporting-output">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/generating-exporting-output">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/generating-exporting-output">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/generating-exporting-output">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/generating-exporting-output">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/generating-exporting-output">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/generating-exporting-output">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/fr/">Aller à l’accueil</a>
+                    <a href="/app">Ouvrir Kromacut</a>
+                    <ul><li><a href="/fr/docs/overview">Présentation</a></li><li><a href="/fr/docs/quick-start">Démarrage rapide</a></li><li><a href="/fr/docs/loading-images">Chargement des images</a></li><li><a href="/fr/docs/image-adjustments">Réglages d’image</a></li><li><a href="/fr/docs/reducing-colors">Réduction des couleurs</a></li><li><a href="/fr/docs/dedithering-cleanup">Détramage et nettoyage</a></li><li><a href="/fr/docs/3d-mode">Mode 3D</a></li><li><a href="/fr/docs/auto-paint">Commandes de peinture automatique</a></li><li><a href="/fr/docs/calibration-theory">Théorie de l’étalonnage</a></li><li><a href="/fr/docs/flat-paint">Peinture à plat</a></li><li><a href="/fr/docs/calibration-workflows">Méthodes d’étalonnage</a></li><li><a href="/fr/docs/generating-exporting-output">Génération et export</a></li><li><a href="/fr/docs/settings-and-controls">Paramètres et commandes</a></li><li><a href="/fr/docs/troubleshooting">Dépannage</a></li><li><a href="/fr/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="generating-and-exporting-output">Génération et export</h1>
+<p>Le parcours d’export commence lorsque votre image 2D et vos commandes 3D sont prêts.</p>
+<p><a href="/localized/fr/diagrams/40_build_export_snapshot.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Préparez l’image et les réglages, générez un instantané, examinez-le, puis exportez l’empilement complet. Un changement de réglage nécessite une nouvelle génération ; limiter l’aperçu ne limite pas l’export."><img src="/localized/fr/diagrams/40_build_export_snapshot.svg" alt="Préparez l’image et les réglages, générez un instantané, examinez-le, puis exportez l’empilement complet. Un changement de réglage nécessite une nouvelle génération ; limiter l’aperçu ne limite pas l’export." loading="lazy"></a></p>
+<h2 id="before-you-export">Avant d’exporter</h2>
+<p>Vérifiez les éléments suivants :</p>
+<ol><li>En mode 2D, réduisez l’image à un nombre de couleurs pratique.</li><li>Dans <strong>Paramètres d’impression 3D</strong>, choisissez les dimensions physiques avec <strong>Taille du pixel (XY)</strong>. Faites correspondre <strong>Hauteur de couche</strong> et <strong>Hauteur de première couche</strong> à votre logiciel de découpe, et <strong>Largeur de ligne effective</strong> à la largeur d’extrusion prévue pour les contrôles de détails imprimables et le tramage de hauteur en peinture automatique.</li><li>Choisissez <strong>Manuel</strong> ou <strong>Peinture automatique</strong>.</li><li>Cliquez sur <strong>Générer le modèle 3D</strong>.</li><li>Examinez le modèle et l’<strong>Aperçu des couches</strong>.</li></ol>
+<p>Si Kromacut affiche un <strong>Avertissement de performances</strong>, la génération peut être lente en raison des dimensions de l’image, du nombre de pixels, du nombre de couches ou d’une charge similaire. Vous pouvez choisir <strong>Générer quand même</strong>, ou annuler et simplifier le projet.</p>
+<h2 id="build-3d-model">Générer le modèle 3D</h2>
+<p>Cliquez sur <strong>Générer le modèle 3D</strong> chaque fois que vous souhaitez que l’aperçu et la géométrie exportée reflètent les paramètres 3D actuels.</p>
+<p>Pendant la génération, Kromacut affiche la progression : lecture des couches de couleur, association des couleurs de l’image ou construction des couches. Les commandes d’export redeviennent utilisables lorsque la surimpression disparaît et que le modèle actualisé est prêt à être examiné.</p>
+<p>Le calcul d’un nouvel empilement en peinture automatique n’est pas la génération d’un nouveau maillage. L’export utilise le dernier modèle généré, et les instructions d’impression restent liées à cette génération. Après avoir modifié l’image, changé de profil, enregistré un étalonnage ou modifié les paramètres d’impression, attendez la fin du calcul puis régénérez avant d’exporter. Un ancien aperçu peut rester visible pendant que les nouveaux réglages sont calculés ou rejetés ; sa présence ne prouve pas que les nouveaux réglages ont abouti.</p>
+<h2 id="choose-stl-or-3mf">Choisir STL ou 3MF</h2>
+<p>Ouvrez le menu de téléchargement 3D et choisissez :</p>
+<table><thead><tr><th>Format</th><th>À utiliser lorsque</th></tr></thead><tbody><tr><td>STL</td><td>Vous souhaitez un modèle à géométrie unique largement pris en charge et gérez les changements de filament manuellement.</td></tr><tr><td>3MF</td><td>Vous souhaitez un export avec couleurs pour un logiciel de découpe capable de conserver plusieurs objets colorés.</td></tr></tbody></table>
+<p>L’export 3MF conserve si possible les couleurs des filaments physiques en peinture automatique. Vérifiez tout de même les affectations dans le logiciel de découpe avant l’impression.</p>
+<p>Un aperçu de peinture automatique peut montrer des dizaines de mélanges provenant de quelques bobines réelles. Le 3MF affecte ces filaments réels aux couches physiques, pas un matériau par mélange prédit. La vue habituelle des couleurs de filament dans un logiciel de découpe peut donc différer de la vue <strong>Simulées</strong> de Kromacut sans que les affectations soient erronées. Comparez avec les couleurs <strong>Physiques</strong> pour vérifier les affectations.</p>
+<p>Le STL ne contient ni couleurs de filament ni affectations automatiques de bobines. Utilisez le plan de changements copié avec les commandes de changement de couleur du logiciel de découpe. Un 3MF reste un modèle, pas un G-code prêt à exécuter : choisissez votre imprimante, buse, profils de filament, températures et vitesses, puis découpez-le.</p>
+<p>Pour les modèles de <strong>Peinture à plat</strong>, le menu ne propose que le 3MF : le modèle contient un objet par filament physique et, dans la disposition par défaut face vers le bas, un objet de support transparent. La disposition facultative face vers le haut omet ce support. Un STL sans couleur à géométrie unique de l’une ou l’autre plaque serait inutile. Les deux orientations prennent en charge toutes les intensités de <strong>Maillage lissé</strong>. Reconstruisez le modèle après avoir changé l’intensité pour l’appliquer à l’aperçu et à la géométrie exportée.</p>
+<h2 id="print-instructions">Instructions d’impression</h2>
+<p>Le panneau <strong>Instructions d’impression</strong> fournit :</p>
+<ul><li>Les nombres de parois, le remplissage, la hauteur de couche et celle de première couche recommandés.</li><li><strong>Commencer avec la couleur</strong>.</li><li>Le <strong>Plan de changements de couleur</strong>, avec numéros de couche et hauteurs approximatives.</li><li>Un bouton <strong>Copier</strong> pour le plan complet en texte brut.</li></ul>
+<p>Consultez le plan copié à côté de l’aperçu du logiciel de découpe. Les numéros de couche dépendent de <strong>Hauteur de couche</strong> et de <strong>Hauteur de première couche</strong> : gardez ces valeurs cohérentes.</p>
+<p><a href="/localized/fr/diagrams/41_swap_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Une première couche de 0,10 mm suivie de couches de 0,04 mm. Un changement avant la couche 4 se situe à la frontière de matériau de 0,18 mm, tandis que la nouvelle couche se termine à 0,22 mm."><img src="/localized/fr/diagrams/41_swap_layers.svg" alt="Une première couche de 0,10 mm suivie de couches de 0,04 mm. Un changement avant la couche 4 se situe à la frontière de matériau de 0,18 mm, tandis que la nouvelle couche se termine à 0,22 mm." loading="lazy"></a></p>
+<p><strong>Changer à la couche N</strong> signifie que le nouveau filament imprime la couche N. Par exemple, avec une première couche de 0,10 mm et des couches normales de 0,04 mm, les couches 1, 2 et 3 se terminent à 0,10, 0,14 et 0,18 mm. Pour commencer le filament suivant à la couche 4, changez après la couche 3, avant d’extruder la couche 4. Cette nouvelle couche se termine à 0,22 mm.</p>
+<p>La hauteur approximative du plan demande de l’attention : le parcours Manuel affiche le Z du dessus de la nouvelle couche, tandis que la peinture automatique affiche la frontière du changement de matériau. Utilisez le numéro de couche et examinez la transition réelle des matériaux après découpe, pas seulement une valeur Z qui semble correspondre. Les logiciels de découpe peuvent nommer différemment la couche sélectionnée et le point d’insertion.</p>
+<p>En peinture à plat, il n’y a pas de plan de changements manuels. Le panneau résume plutôt la méthode multimatériau choisie : affectez chaque objet 3MF à son filament, puis utilisez un filament transparent et retournez l’impression par défaut face vers le bas, ou imprimez la disposition sans support face vers le haut. Aucune disposition ne doit être mise en miroir dans le logiciel de découpe.</p>
+<h2 id="recommended-slicer-setup">Paramètres de découpe recommandés</h2>
+<p>Kromacut recommande :</p>
+<ul><li>Nombre de parois : <code>1</code></li><li>Remplissage : <code>100%</code></li><li>Hauteur de couche : la valeur des <strong>Instructions d’impression</strong></li><li>Hauteur de première couche : la valeur des <strong>Instructions d’impression</strong></li></ul>
+<p>Examinez toujours l’aperçu de découpe avant l’impression. Les hauteurs sont approximatives et les logiciels peuvent afficher les changements différemment selon la première couche.</p>
+<p>Conservez une <strong>échelle Z de 100 %</strong> et une hauteur de couche constante correspondant au modèle. Modifier l’échelle Z ou activer une hauteur de couche variable déplace les transitions physiques et invalide le plan copié. Si vous avez besoin d’une autre hauteur de couche, réglez-la dans Kromacut et régénérez. Modifier l’échelle XY change aussi les détails imprimables par rapport à la buse ; définissez la taille souhaitée dans Kromacut afin que le contrôle de largeur de ligne utilise cette taille.</p>
+<p>Examinez les petits îlots, le texte, les découpes transparentes déconnectées, les fondations et le dispositif de purge/amorçage dans le logiciel de découpe. Lisser les contours ne rend pas tous les traits fins imprimables. L’application n’étalonne ni le débit, ni la rétraction, ni la température, ni la mécanique de votre imprimante.</p>
+<h2 id="saving-and-cancelling">Enregistrer et annuler</h2>
+<p>Sur ordinateur, les exports ouvrent une boîte <strong>Enregistrer sous</strong>. Dans le navigateur, ils suivent les paramètres de téléchargement ; l’apparition d’une demande d’emplacement dépend donc du navigateur. Annuler une boîte de dialogue n’envoie rien à l’imprimante. Pendant l’export, l’écriture de la géométrie et la compression de l’archive peuvent prendre du temps ; attendez la fin de l’enregistrement avant de fermer l’application.</p>
+<h2 id="export-tips">Conseils d’export</h2>
+<ul><li>Régénérez le modèle après avoir modifié les paramètres 3D.</li><li>Ne vous fiez pas uniquement à la plage visible de l’aperçu des couches : l’export contient le modèle complet.</li><li>Si le maillage est trop lourd à générer ou découper, recadrez ou réduisez la résolution de la source en 2D et supprimez les zones colorées inutiles. Augmenter la <strong>Taille du pixel (XY)</strong> agrandit les mêmes pixels ; cela n’en réduit pas le nombre et ne simplifie pas le maillage.</li><li>Si les instructions de changement sont désactivées à cause d’un trop grand nombre de couleurs, revenez à <a href="/fr/docs/reducing-colors#image-colors">Réduction des couleurs</a>.</li></ul>
+<p>Suite : <a href="/fr/docs/settings-and-controls">Paramètres et commandes</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

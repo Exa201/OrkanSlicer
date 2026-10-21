@@ -1,6 +1,6 @@
 package ru.ytkab0bp.slicebeam.utils
 
-/** Pure assignment rules for keeping slicer tools on distinct physical ACE gates. */
+/** Pure assignment rules for mapping slicer tools to physical ACE gates. */
 object MmuGateAssignmentPolicy {
     /** Resolves logical slicer tools to their chosen physical gates, with firmware defaults. */
     @JvmStatic
@@ -10,21 +10,14 @@ object MmuGateAssignmentPolicy {
             selectedGates?.getOrNull(tool) ?: defaultGates.getOrNull(tool) ?: -1
         }
 
-    /**
-     * Keeps the requested gate on [tool], moves any previous occupant to the tool's former
-     * gate, then repairs remaining duplicates when enough gates are available.
-     */
+    /** Multiple slicer colors may intentionally share one physical spool/gate. */
     @JvmStatic
     fun selectGate(mapping: IntArray, tool: Int, gate: Int, availableGates: IntArray): IntArray {
         require(tool in mapping.indices) { "Unknown slicer tool T$tool" }
         require(gate in availableGates) { "ACE gate ${gate + 1} is unavailable" }
         val result = mapping.copyOf()
-        val previousGate = result[tool]
         result[tool] = gate
-        result.indices.firstOrNull { it != tool && result[it] == gate }?.let { occupant ->
-            result[occupant] = previousGate
-        }
-        return normalize(result, availableGates, tool)
+        return result
     }
 
     /** Repairs duplicate or stale mappings without changing a valid selected tool's gate. */

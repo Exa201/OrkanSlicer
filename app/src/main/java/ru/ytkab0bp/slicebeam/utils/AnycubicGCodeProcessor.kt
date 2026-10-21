@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 import java.util.regex.Pattern
+import java.util.regex.Matcher
 
 /** Pure file transformation for the G-code metadata expected by Anycubic Kobra 3 firmware. */
 class AnycubicGCodeProcessor private constructor() {
@@ -62,6 +63,7 @@ class AnycubicGCodeProcessor private constructor() {
 
     companion object {
         private val LIST_SEPARATOR = Pattern.compile("[,;]")
+        private val HEATER_TOOL_SELECTOR = Pattern.compile("(?i)(\\bM(?:104|109)\\b[^;]*?\\bT)(\\d+)(?=\\s|$)")
         private val EXTRUSION_MOVE = Pattern.compile("(?i)^G[0-3](?=\\s|$).*\\sE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:\\s|$).*")
         private const val DEFAULT_FILAMENT_DENSITY = 1.24
 
@@ -175,9 +177,16 @@ class AnycubicGCodeProcessor private constructor() {
                 ?: throw IllegalArgumentException("Tool routing and physical gates are required")
 
             val mass = String.format(Locale.ROOT, "%.2f", scan.totalMass)
-            val massBreakdown = scan.computedFilamentMasses.joinToString(",") {
+            val sharedPhysicalTools = remappedTools.distinct().size < remappedTools.size
+            val mappedMasses = DoubleArray((remappedTools.maxOrNull() ?: -1) + 1)
+            scan.computedFilamentMasses.forEachIndexed { sourceTool, mass ->
+                val physicalTool = remappedTools.getOrNull(sourceTool)
+                if (physicalTool != null && physicalTool in mappedMasses.indices) mappedMasses[physicalTool] += mass
+            }
+            val massBreakdown = (if (sharedPhysicalTools) mappedMasses else scan.computedFilamentMasses).joinToString(",") {
                 String.format(Locale.ROOT, "%.2f", it)
             }
+            val rewriteMassBreakdown = scan.needsMassBreakdownRewrite || sharedPhysicalTools
             val densityList = scan.densities.joinToString(",") { formatDensity(it) }
             var headerClosed = false
             var toolSelectionInserted = false
@@ -195,7 +204,7 @@ class AnycubicGCodeProcessor private constructor() {
                             } else if (line.startsWith("; filament_density = ")) {
                                 line = "; filament_density = $densityList"
                             } else if (line.startsWith("; total filament used [g] = ") && scan.totalMass > 0) {
-                                if (scan.needsMassBreakdownRewrite && !scan.hasFilamentMass && massBreakdown.isNotEmpty()) {
+                                if (rewriteMassBreakdown && !scan.hasFilamentMass && massBreakdown.isNotEmpty()) {
                                     writer.write("; filament used [g] = $massBreakdown\n")
                                 }
                                 if (!scan.hasReportedTotalMass) line = "; total filament used [g] = $mass"
@@ -216,13 +225,15 @@ class AnycubicGCodeProcessor private constructor() {
                                 line = GCodeToolMapper.remapToolLine(line, remappedTools)
                             } else if (GCodeToolMapper.isFilamentMapLine(line)) {
                                 line = "; filament: ${GCodeToolMapper.formatGateList(gates)}"
+                            } else {
+                                line = remapHeaterToolSelector(line, remappedTools)
                             }
                             if (line.startsWith("; filament_colour = ")) {
                                 line = "; filament_colour = ${options.colors}"
                             } else if (line.startsWith("; filament_type = ")) {
                                 line = "; filament_type = ${options.materials}"
                             } else if (line.startsWith("; filament used [g] = ") &&
-                                scan.needsMassBreakdownRewrite && massBreakdown.isNotEmpty()) {
+                                rewriteMassBreakdown && massBreakdown.isNotEmpty()) {
                                 line = "; filament used [g] = $massBreakdown"
                             }
                             // Custom start scripts may omit M106 S0. Select the physical
@@ -257,6 +268,16 @@ class AnycubicGCodeProcessor private constructor() {
                 return false
             }
             return true
+        }
+
+        /** M104/M109 can name a logical tool explicitly; route it to the selected physical gate too. */
+        @JvmStatic
+        fun remapHeaterToolSelector(line: String, remappedTools: IntArray): String {
+            val matcher = HEATER_TOOL_SELECTOR.matcher(line)
+            if (!matcher.find()) return line
+            val sourceTool = matcher.group(2)?.toIntOrNull() ?: return line
+            val physicalTool = remappedTools.getOrNull(sourceTool) ?: return line
+            return matcher.replaceFirst(Matcher.quoteReplacement("${matcher.group(1)}$physicalTool"))
         }
 
         private fun parseFirstPositiveNumber(value: String): Double {

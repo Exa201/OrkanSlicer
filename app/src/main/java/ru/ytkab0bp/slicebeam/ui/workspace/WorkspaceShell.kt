@@ -93,7 +93,7 @@ internal fun WorkspaceShell(
         portrait,
     )
     val headerActionWeight = if (LocalConfiguration.current.screenWidthDp <= 320) 2f else 1.45f
-    val navigationItems = WorkspaceDestination.values().map { destination ->
+    val navigationItems = WorkspaceDestination.visibleNavigationDestinations.map { destination ->
         val compactTitle = when (destination) {
             WorkspaceDestination.PROJECT -> ru.ytkab0bp.slicebeam.R.string.MenuFileCompact
             WorkspaceDestination.MODEL -> ru.ytkab0bp.slicebeam.R.string.MenuModelCompact

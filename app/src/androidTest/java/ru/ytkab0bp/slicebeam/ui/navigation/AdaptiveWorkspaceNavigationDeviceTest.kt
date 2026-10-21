@@ -36,7 +36,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
     fun compactNavigationKeepsAllDestinationsReachableAndReportsSelection() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val selected = mutableIntStateOf(WorkspaceDestination.PROJECT.ordinal)
-        val items = WorkspaceDestination.values().map { destination ->
+        val items = WorkspaceDestination.visibleNavigationDestinations.map { destination ->
             WorkspaceNavigationItem(
                 slot = destination.ordinal,
                 label = context.getString(destination.navigationTitleRes),
@@ -61,11 +61,12 @@ class AdaptiveWorkspaceNavigationDeviceTest {
         }
 
         val editLabel = context.getString(WorkspaceDestination.EDIT.navigationTitleRes)
-        WorkspaceDestination.values().forEach { destination ->
+        WorkspaceDestination.visibleNavigationDestinations.forEach { destination ->
             compose.onNodeWithContentDescription(context.getString(destination.navigationTitleRes))
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(48.dp)
         }
+        compose.onNodeWithContentDescription(context.getString(WorkspaceDestination.CAMERA.navigationTitleRes)).assertDoesNotExist()
         compose.onNodeWithContentDescription(editLabel).assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(WorkspaceDestination.EDIT.ordinal, selected.intValue) }
     }
@@ -73,7 +74,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
     @Test
     fun largeTextUsesTwoRowsWithoutLosingDestinationAccessibilityLabels() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val items = WorkspaceDestination.values().map { destination ->
+        val items = WorkspaceDestination.visibleNavigationDestinations.map { destination ->
             WorkspaceNavigationItem(
                 slot = destination.ordinal,
                 label = context.getString(destination.navigationTitleRes),
@@ -101,7 +102,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
             }
         }
 
-        WorkspaceDestination.values().forEach { destination ->
+        WorkspaceDestination.visibleNavigationDestinations.forEach { destination ->
             compose.onNodeWithContentDescription(context.getString(destination.navigationTitleRes))
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(48.dp)
@@ -113,7 +114,7 @@ class AdaptiveWorkspaceNavigationDeviceTest {
     fun shortNavigationRailShowsScrollHintAndCanReachLastDestination() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val selected = mutableIntStateOf(WorkspaceDestination.PROJECT.ordinal)
-        val items = WorkspaceDestination.values().map { destination ->
+        val items = WorkspaceDestination.visibleNavigationDestinations.map { destination ->
             WorkspaceNavigationItem(
                 slot = destination.ordinal,
                 label = context.getString(destination.navigationTitleRes),
