@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.332 (alpha)
+
+- Expand Honor device verification for the selected-object/whole-plate Edit menu and the view cube at 320 dp / 150% text, 400 dp / 130% text, and 800×366 dp landscape / 130% text.
+- Use the actual accessible menu paging control in responsive instrumentation instead of assuming a fixed lazy-grid index makes an action visible.
+- Full `InitialProjectMenuDeviceTest`: 42/42 passed on Honor PTP-N49 / Android 16. Focused responsive menu and view-cube checks passed in the listed configurations.
+- Debug prerelease. Full responsive/accessibility acceptance, manual TalkBack traversal, and multi-plate project persistence remain open.
+
 ## 0.8.331 (alpha)
 
 - Bundle the upstream Kromacut 4.2.0 editor with the Android WebView/file bridge and relative offline assets.
