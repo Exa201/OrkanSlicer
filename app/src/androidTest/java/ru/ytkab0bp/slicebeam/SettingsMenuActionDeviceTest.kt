@@ -290,7 +290,9 @@ class SettingsMenuActionDeviceTest {
         var rendererBefore: Any? = null
         var modelBefore: Any? = null
         val expectedToolId = KromacutEditorMenu::class.java.name
-        compose.waitUntil(timeoutMillis = 10_000) {
+        // This route creates a new BedFragment and starts the embedded WebView; allow the
+        // full connected suite's slower device state to settle before asserting GL visibility.
+        compose.waitUntil(timeoutMillis = 30_000) {
             val current = activity.navigationDelegate.getCurrentFragment()
             if (current !is BedFragment) return@waitUntil false
             bed = current

@@ -2085,3 +2085,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: `MakerGeneratorWorkspaceDeviceTest` passed 14/14, 0 skips/failures/errors. XML timestamp `2026-10-21T12:21:47`.
 - No app runtime code changed; external save picker is still untested. Remaining Maker generator success paths and Phase 5/6 audit remain open. Next: pursue deterministic cache-only generator cases and continue the uncovered action matrix.
 
+# UI 2.0 regression checkpoint — full suite route timeout (2026-10-21)
+
+- First complete Honor instrumentation run after adding the three generator paths: 241 cases started, 3 KromaCut private-fixture cases skipped, 1 failure, 0 reported errors. Failure was `SettingsMenuActionDeviceTest.makerSettingsRouteOpensKromacutAndBackRestoresWorkspaceRenderer` timing out at the 10-second wait for the KromaCut tool/GL visibility state (XML timestamp `2026-10-21T12:29:24`).
+- The same route passed in a focused 1/1 run immediately after the suite and `SettingsMenuActionDeviceTest` passed 8/8. No app crash or runtime exception was reported. Increased only that test's state-settle window to 30 seconds; production code unchanged.
+- Retest after the timeout adjustment: `SettingsMenuActionDeviceTest` 8/8 on Honor, 0 skipped/failures. Full-suite rerun is now underway; do not call the prior full suite green.
+

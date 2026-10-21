@@ -46,3 +46,8 @@ Audit basis: current branch HEAD `40f9eac6` (application runtime unchanged since
 - This closes one representative generator success/discard path; it does not claim success-path coverage for all Maker generators or external-save workflow. Those remain explicit gaps in Phase 5.
 - A second Honor success/discard path now covers Cable Grommet defaults as well. The full `MakerGeneratorWorkspaceDeviceTest` reports 13/13; its output is validated and discarded from app cache. No external save behavior was exercised.
 - A third success/discard path covers Phone Stand defaults, including the larger generated mesh. The Maker device class reports 14/14 on Honor; the generated file passed production binary STL validation and was discarded from cache. The external document picker remains unverified.
+
+## Full connected-suite retest note — 2026-10-21
+
+- The first 241-case full Honor run after these additions had 3 skipped private-fixture KromaCut cases and one Compose timeout in the unrelated Settings → Maker → KromaCut navigation regression. That navigation test passed standalone 1/1 and its containing class 8/8 immediately afterward.
+- Increased that test's state-settle timeout from 10 to 30 seconds; the containing class again passed 8/8. A second full connected-suite run is in progress. No production code changed as part of this test stability adjustment.
