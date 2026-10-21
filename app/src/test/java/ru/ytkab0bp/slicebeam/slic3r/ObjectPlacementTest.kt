@@ -45,6 +45,16 @@ class ObjectPlacementTest {
         assertEquals(4.0, delta.z, 0.0)
     }
 
+    @Test fun droppingGroupToBedUsesOneVerticalDeltaAndPreservesRelativeHeights() {
+        val group = ObjectBounds3D(-5.0, 2.0, 12.0, 18.0, 22.0, 41.0)
+        val delta = requireNotNull(ObjectPlacement.ontoBed(group, bedZ = 0.0))
+        assertEquals(0.0, delta.x, 0.0)
+        assertEquals(0.0, delta.y, 0.0)
+        assertEquals(-12.0, delta.z, 0.0)
+        assertEquals(0.0, group.minZ + delta.z, 0.0)
+        assertEquals(29.0, group.maxZ + delta.z, 0.0)
+    }
+
     @Test fun enclosingRejectsEmptyOrInvalidObjectSets() {
         assertNull(ObjectPlacement.enclosing(emptyList()))
         assertNull(ObjectPlacement.enclosing(listOf(ObjectBounds3D(0.0, 0.0, 0.0, Double.NaN, 1.0, 1.0))))
@@ -55,5 +65,6 @@ class ObjectPlacementTest {
         assertNull(ObjectPlacement.onTop(valid.copy(maxZ = -1.0), valid))
         assertNull(ObjectPlacement.onTop(valid.copy(maxX = Double.NaN), valid))
         assertNull(ObjectPlacement.onTop(valid, valid, -0.1))
+        assertNull(ObjectPlacement.ontoBed(valid.copy(minZ = Double.NaN), 0.0))
     }
 }

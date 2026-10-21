@@ -35,4 +35,13 @@ internal object ObjectPlacement {
             z = target.maxZ + clearanceMm - moving.minZ,
         )
     }
+
+    /** Drops an entire object group onto the printable bed while preserving its internal Z offsets. */
+    fun ontoBed(moving: ObjectBounds3D, bedZ: Double): ObjectPlacementDelta? {
+        val values = listOf(moving.minX, moving.minY, moving.minZ, moving.maxX, moving.maxY, moving.maxZ, bedZ)
+        if (values.any { !it.isFinite() } ||
+            moving.maxX < moving.minX || moving.maxY < moving.minY || moving.maxZ < moving.minZ
+        ) return null
+        return ObjectPlacementDelta(0.0, 0.0, bedZ - moving.minZ)
+    }
 }

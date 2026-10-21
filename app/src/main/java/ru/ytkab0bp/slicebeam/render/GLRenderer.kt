@@ -24,6 +24,8 @@ import ru.ytkab0bp.slicebeam.slic3r.GLShaderProgram
 import ru.ytkab0bp.slicebeam.slic3r.GLShadersManager
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -1473,6 +1475,47 @@ finally
 sourceModel.release()
 }
 }
+/** Duplicates the current multi-selection as complete groups and arranges once. */
+fun duplicateSelectedObjects(copies: Int): Int {
+    val activeModel = model ?: return 0
+    val activeBed = bed ?: return 0
+    if (!activeBed.isValid() || isViewerEnabled) return 0
+    val sourceIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (sourceIndices.size < 2) return 0
+    val groupCopies = copies.coerceIn(1, 50)
+    val originalCount = activeModel.objectsCount
+    val originalTranslations = ArrayList<Vec3d>(originalCount)
+    for (index in 0 until originalCount) {
+        val translation = Vec3d()
+        activeModel.getTranslation(index, translation)
+        originalTranslations.add(translation)
+    }
+    val sourceGroup = Model()
+    try {
+        sourceIndices.forEach { sourceGroup.addObject(activeModel, it) }
+        repeat(groupCopies) {
+            for (index in 0 until sourceGroup.objectsCount) activeModel.addObject(sourceGroup, index)
+        }
+        activeModel.resetBoundingBox()
+        if (!activeBed.arrange(activeModel)) {
+            while (activeModel.objectsCount > originalCount) activeModel.deleteObject(activeModel.objectsCount - 1)
+            originalTranslations.forEachIndexed { index, before ->
+                val after = Vec3d()
+                activeModel.getTranslation(index, after)
+                activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+            }
+            activeModel.resetBoundingBox()
+            resetGlModels()
+            return 0
+        }
+        activeModel.resetBoundingBox()
+        resetGlModels()
+        SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
+        return groupCopies
+    } finally {
+        sourceGroup.release()
+    }
+}
 @JvmOverloads fun beginPaint(objIdx:Int, mode:Int = PAINT_MODE_COLOR) {
 if (this.model == null || objIdx < 0 || objIdx >= this.model!!.objectsCount) return
 // A paint session copies facet state and overlays. Refuse the high-memory path even if
@@ -2008,6 +2051,29 @@ invalidateGlModel(idx)
 selZ = 0.0
 selY = selZ
 selX = selY
+}
+/** Drops the complete selected group onto the printable bed using one shared Z translation. */
+fun placeSelectedObjectsOnBed(): Boolean {
+    val activeModel = model ?: return false
+    val activeBed = bed ?: return false
+    if (!activeBed.isValid() || selectedObjects.isEmpty()) return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return false
+    val bounds = indices.map { index ->
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+    }
+    val groupBounds = ObjectPlacement.enclosing(bounds) ?: return false
+    val bedMinZ = activeBed.getVolumeMin()?.z ?: return false
+    val delta = ObjectPlacement.ontoBed(groupBounds, bedMinZ) ?: return false
+    indices.forEach { index ->
+        activeModel.translate(index, delta.x, delta.y, delta.z)
+        invalidateGlModel(index)
+    }
+    selZ = 0.0
+    selY = 0.0
+    selX = 0.0
+    return true
 }
 /** Delete every selected object. Returns how many were removed. */
  fun deleteSelectedObjects():Int {

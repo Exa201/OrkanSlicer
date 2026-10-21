@@ -394,6 +394,103 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun selectedGroupCanBeDuplicatedWithItsFilamentsAndDroppedTogetherOnBed() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-group-duplicate-drop-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            val bedCenter = AtomicReference<DoubleArray>()
+            val bedMinZ = AtomicReference<Double>()
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val activeBed = requireNotNull(renderer.bed)
+                val min = requireNotNull(activeBed.getVolumeMin())
+                val max = requireNotNull(activeBed.getVolumeMax())
+                bedCenter.set(doubleArrayOf((min.x + max.x) / 2.0, (min.y + max.y) / 2.0))
+                bedMinZ.set(min.z)
+                val widthBounds = Vec3d(); val widthMax = Vec3d()
+                model.getBoundingBoxExact(0, widthBounds, widthMax)
+                val width = widthMax.x - widthBounds.x
+                model.translate(0, 35.0, 20.0, 8.0)
+                model.addObject(model, 0)
+                model.translate(1, width * 1.5, 7.0, 18.0)
+                model.setUniformFilament(0, 2)
+                model.setUniformFilament(1, 3)
+                renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("the selected group should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuDuplicate)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuDuplicateShort))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            val countField = compose.onNodeWithTag("duplicate-model-count")
+            countField.performTextClearance()
+            countField.performTextInput("1")
+            compose.onNodeWithTag("duplicate-model-confirm").performClick()
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 4 }
+            val duplicatedFilaments = AtomicReference<List<IntArray>>()
+            val duplicateReady = CountDownLatch(1)
+            glView.queueEvent {
+                val current = requireNotNull(glView.renderer.model)
+                duplicatedFilaments.set(listOf(current.getUsedFilaments(2), current.getUsedFilaments(3)))
+                duplicateReady.countDown()
+            }
+            assertTrue("duplicated group filaments should be readable", duplicateReady.await(10, TimeUnit.SECONDS))
+            assertArrayEquals("the first group copy keeps its source filament", intArrayOf(2),
+                requireNotNull(duplicatedFilaments.get())[0])
+            assertArrayEquals("the second group copy keeps its source filament", intArrayOf(3),
+                requireNotNull(duplicatedFilaments.get())[1])
+            assertArrayEquals("group selection survives duplication", intArrayOf(0, 1), readSelectedIndicesOnGl(glView))
+
+            val beforeCenter = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuCenterOnBed)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuCenterOnBedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            instrumentationWaitForGlIdle()
+            val centeredBounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            val expectedCenter = requireNotNull(bedCenter.get())
+            assertEquals("the selected group's combined X bounds are centered on the bed", expectedCenter[0],
+                (centeredBounds[0][0] + centeredBounds[1][3]) / 2.0, 0.03)
+            assertEquals("the selected group's combined Y bounds are centered on the bed", expectedCenter[1],
+                (centeredBounds[0][1] + centeredBounds[1][4]) / 2.0, 0.03)
+            assertEquals("group centering preserves internal X spacing",
+                (beforeCenter[1][0] + beforeCenter[1][3] - beforeCenter[0][0] - beforeCenter[0][3]) / 2.0,
+                (centeredBounds[1][0] + centeredBounds[1][3] - centeredBounds[0][0] - centeredBounds[0][3]) / 2.0,
+                0.03)
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceGroupOnBed)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuPlaceGroupOnBedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            instrumentationWaitForGlIdle()
+            val droppedBounds = readExactBoundsOnGl(glView, 0, 1, 2, 3)
+            assertEquals("the lowest selected object rests on the printable bed", requireNotNull(bedMinZ.get()),
+                minOf(droppedBounds[0][2], droppedBounds[1][2]), 0.03)
+            assertEquals("dropping preserves the selected group's relative height",
+                centeredBounds[1][2] - centeredBounds[0][2], droppedBounds[1][2] - droppedBounds[0][2], 0.03)
+            assertArrayEquals("unselected group copies stay untouched", centeredBounds[2], droppedBounds[2], 0.03)
+            assertArrayEquals("the second unselected group copy stays untouched", centeredBounds[3], droppedBounds[3], 0.03)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -3645,6 +3742,37 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return selected object count", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(selected.get())
+    }
+
+    private fun readSelectedIndicesOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): IntArray {
+        val finished = CountDownLatch(1)
+        val selected = AtomicReference<IntArray>()
+        glView.queueEvent {
+            selected.set(glView.renderer.selectedObjectIndices())
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return selected object indices", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(selected.get())
+    }
+
+    private fun readExactBoundsOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        vararg indices: Int,
+    ): List<DoubleArray> {
+        val finished = CountDownLatch(1)
+        val bounds = AtomicReference<List<DoubleArray>>()
+        glView.queueEvent {
+            val model = requireNotNull(glView.renderer.model)
+            bounds.set(indices.map { index ->
+                val min = ru.ytkab0bp.slicebeam.utils.Vec3d()
+                val max = ru.ytkab0bp.slicebeam.utils.Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            })
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return exact bounds", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(bounds.get())
     }
 
     private fun readBoundsOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): String {

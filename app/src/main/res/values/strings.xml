@@ -221,9 +221,12 @@
     <string name="WorkspaceAddModel">Add model</string>
     <string name="WorkspaceAddModelAction">Load model</string>
     <string name="WorkspaceObjects">Objects</string>
-    <string name="ModelMenuDuplicate">Duplicate selected model and choose the number of copies</string>
+    <string name="ModelMenuDuplicate">Duplicate selected object or group and choose the number of copies</string>
     <string name="ModelMenuMoveToPlate">Move selected model to another plate</string>
-    <string name="ModelMenuCenterOnBed">Center selected model on the plate</string>
+    <string name="ModelMenuCenterOnBed">Center selected object or group on the plate</string>
+    <string name="ModelMenuPlaceGroupOnBed">Place selected object group on the bed</string>
+    <string name="ModelMenuPlaceGroupOnBedShort">Drop to bed</string>
+    <string name="ModelMenuPlaceGroupOnBedDone">Selected objects placed on the bed</string>
     <string name="ModelMenuFillBed">Fill the plate with copies of this model</string>
     <string name="ModelMenuArrange">Automatically arrange all models on the plate</string>
     <string name="ModelMenuOrientAll">Auto-orient all models</string>

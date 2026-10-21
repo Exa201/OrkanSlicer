@@ -181,13 +181,17 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                 onDismiss = dismiss,
                 onConfirm = { copies ->
                     dismiss()
-                    fragment.glView?.duplicateSelectedModel(copies) {
-                        fragment.updateModel()
-                        Toast.makeText(
-                            context,
-                            context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, copies, copies),
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                    fragment.glView?.duplicateSelectedModels(copies) { addedCopies ->
+                        if (addedCopies > 0) {
+                            fragment.updateModel()
+                            Toast.makeText(
+                                context,
+                                context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, addedCopies, addedCopies),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        } else {
+                            Toast.makeText(context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+                        }
                     }
                 },
             )

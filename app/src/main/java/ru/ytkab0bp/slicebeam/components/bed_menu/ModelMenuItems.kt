@@ -40,6 +40,16 @@ internal class ModelMenuItems(
                     Toast.makeText(anchor.context, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show()
                 }
             }, enabled = availability.hasSelectedObject),
+            BedComposeMenuAction(R.string.ModelMenuPlaceGroupOnBed, R.drawable.view_in_ar_24, { anchor ->
+                fragment.glView!!.placeSelectedObjectsOnBed { placed ->
+                    if (placed) {
+                        fragment.updateModel()
+                        Toast.makeText(anchor.context, R.string.ModelMenuPlaceGroupOnBedDone, Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(anchor.context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuPlaceOnObject, R.drawable.view_in_ar_24, { anchor ->
                 showPlaceOnObjectDialog(anchor)
             }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > selectedCount),

@@ -211,9 +211,12 @@
     <string name="WorkspaceAddModel">Modell laden</string>
     <string name="WorkspaceAddModelAction">Modell laden</string>
     <string name="WorkspaceObjects">Objekte</string>
-    <string name="ModelMenuDuplicate">Ausgewähltes Modell duplizieren und Anzahl der Kopien wählen</string>
+    <string name="ModelMenuDuplicate">Ausgewähltes Objekt oder Gruppe duplizieren und Anzahl wählen</string>
     <string name="ModelMenuMoveToPlate">Ausgewähltes Modell auf andere Druckplatte verschieben</string>
-    <string name="ModelMenuCenterOnBed">Ausgewähltes Modell auf der Druckplatte zentrieren</string>
+    <string name="ModelMenuCenterOnBed">Ausgewähltes Objekt oder Gruppe auf der Platte zentrieren</string>
+    <string name="ModelMenuPlaceGroupOnBed">Ausgewählte Objektgruppe auf die Platte ablegen</string>
+    <string name="ModelMenuPlaceGroupOnBedShort">Auf Platte ablegen</string>
+    <string name="ModelMenuPlaceGroupOnBedDone">Ausgewählte Objekte auf die Platte gestellt</string>
     <string name="ModelMenuFillBed">Druckplatte mit Kopien dieses Modells füllen</string>
     <string name="ModelMenuArrange">Alle Modelle automatisch auf der Druckplatte anordnen</string>
     <string name="ModelMenuOrientAll">Alle Modelle automatisch ausrichten</string>

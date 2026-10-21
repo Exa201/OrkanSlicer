@@ -108,6 +108,7 @@ internal object ModelMenuActionScope {
         R.string.ModelMenuMoveToPlate,
         R.string.ModelMenuPlaceOnObject,
         R.string.ModelMenuCenterOnBed,
+        R.string.ModelMenuPlaceGroupOnBed,
         R.string.ModelMenuFillBed,
         R.string.ModelMenuAutoOrientSelected,
         R.string.ModelMenuFlatten,

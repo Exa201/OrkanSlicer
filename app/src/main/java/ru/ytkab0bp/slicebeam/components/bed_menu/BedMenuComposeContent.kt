@@ -311,6 +311,7 @@ private fun BedMenuActionTile(
         R.string.ModelMenuDuplicate -> R.string.ModelMenuDuplicateShort
         R.string.ModelMenuMoveToPlate -> R.string.ModelMenuMoveToPlateShort
         R.string.ModelMenuCenterOnBed -> R.string.ModelMenuCenterOnBedShort
+        R.string.ModelMenuPlaceGroupOnBed -> R.string.ModelMenuPlaceGroupOnBedShort
         R.string.ModelMenuFillBed -> R.string.ModelMenuFillBedShort
         R.string.ModelMenuArrange -> R.string.ModelMenuArrangeShort
         R.string.ModelMenuOrientAll -> R.string.ModelMenuOrientAllShort

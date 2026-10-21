@@ -138,6 +138,20 @@ renderer.duplicateSelectedObject()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
+fun duplicateSelectedModels(copies: Int, onComplete: (Int) -> Unit) {
+    queueEvent {
+        val count = copies.coerceIn(1, 50)
+        val added = if (renderer.selectedObjectsCount > 1) {
+            renderer.duplicateSelectedObjects(count)
+        } else {
+            var completed = 0
+            repeat(count) { completed += renderer.duplicateSelectedObject() }
+            completed
+        }
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(added) }
+    }
+}
 fun selectModel(objectIndex:Int, onComplete:Runnable) {
 queueEvent({ renderer.setSelectedObject(objectIndex)
 requestRender()
@@ -173,6 +187,13 @@ fun centerSelectedOnBed(onComplete:Runnable) {
 queueEvent({ renderer.centerSelectionOnBed()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+}
+fun placeSelectedObjectsOnBed(onComplete: (Boolean) -> Unit) {
+    queueEvent {
+        val placed = renderer.placeSelectedObjectsOnBed()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(placed) }
+    }
 }
 fun deleteAllModels(onComplete:Runnable) {
 queueEvent({ renderer.deleteAllObjects()
