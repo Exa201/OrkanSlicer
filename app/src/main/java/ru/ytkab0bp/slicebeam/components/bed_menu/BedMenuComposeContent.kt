@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
@@ -153,6 +154,7 @@ internal fun BedMenuActionsContent(
     onActionDragEnd: (() -> Unit)? = null,
     onMoveAction: ((Int, Int) -> Unit)? = null,
     draggedActionTitleRes: Int? = null,
+    dropTargetTitleRes: Int? = null,
     draggedActionTranslation: Offset = Offset.Zero,
     draggedActionPointerInRoot: Offset? = null,
     onDragAutoScroll: ((Float) -> Unit)? = null,
@@ -232,6 +234,7 @@ internal fun BedMenuActionsContent(
                             onActionDragEnd = onActionDragEnd,
                             onMoveAction = onMoveAction,
                             draggedActionTitleRes = draggedActionTitleRes,
+                            dropTargetTitleRes = dropTargetTitleRes,
                             draggedActionTranslation = draggedActionTranslation,
                             draggedActionPointerInRoot = draggedActionPointerInRoot,
                             onDragAutoScroll = onDragAutoScroll,
@@ -310,6 +313,7 @@ internal fun BedMenuActionsContent(
                     onActionDragEnd = onActionDragEnd,
                     onMoveAction = onMoveAction,
                     draggedActionTitleRes = draggedActionTitleRes,
+                    dropTargetTitleRes = dropTargetTitleRes,
                     draggedActionTranslation = draggedActionTranslation,
                     draggedActionPointerInRoot = draggedActionPointerInRoot,
                     onDragAutoScroll = onDragAutoScroll,
@@ -340,6 +344,7 @@ internal fun BedMenuActionsContent(
                     onActionDragEnd = onActionDragEnd,
                     onMoveAction = onMoveAction,
                     draggedActionTitleRes = draggedActionTitleRes,
+                    dropTargetTitleRes = dropTargetTitleRes,
                     draggedActionTranslation = draggedActionTranslation,
                     draggedActionPointerInRoot = draggedActionPointerInRoot,
                     onDragAutoScroll = onDragAutoScroll,
@@ -362,6 +367,7 @@ private fun BedMenuActionTile(
     onActionDragEnd: (() -> Unit)?,
     onMoveAction: ((Int, Int) -> Unit)?,
     draggedActionTitleRes: Int?,
+    dropTargetTitleRes: Int?,
     draggedActionTranslation: Offset,
     draggedActionPointerInRoot: Offset?,
     onDragAutoScroll: ((Float) -> Unit)?,
@@ -453,9 +459,16 @@ private fun BedMenuActionTile(
             } else Modifier)
     } else Modifier
     val isDragged = draggedActionTitleRes == action.titleRes
+    val isDropTarget = !isDragged && dropTargetTitleRes == action.titleRes
+    val dragAccent = MaterialTheme.colorScheme.primary
     Surface(
         modifier = modifier
             .padding(3.dp)
+            .then(if (isDragged || isDropTarget) Modifier.border(
+                width = if (isDragged) 2.dp else 1.5.dp,
+                color = dragAccent,
+                shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
+            ) else Modifier)
             // Keep the lifted item above its neighbours while it follows the pointer.
             // LazyRow/LazyHorizontalGrid otherwise draw later cells over a translated tile.
             .zIndex(if (isDragged) 1f else 0f)
@@ -465,8 +478,11 @@ private fun BedMenuActionTile(
                     translationY = draggedActionTranslation.y
                     scaleX = 1.1f
                     scaleY = 1.1f
-                    shadowElevation = 24.dp.toPx()
+                    rotationZ = -1.5f
+                    shadowElevation = 30.dp.toPx()
                     alpha = 1f
+                } else {
+                    rotationZ = 0f
                 }
             }
             .then(dragModifier)
@@ -490,8 +506,16 @@ private fun BedMenuActionTile(
             }
             .testTag("workspace-menu-action-${action.titleRes}"),
         shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
-        color = background,
-        contentColor = foreground,
+        color = when {
+            isDragged -> MaterialTheme.colorScheme.primaryContainer
+            isDropTarget -> MaterialTheme.colorScheme.secondaryContainer
+            else -> background
+        },
+        contentColor = when {
+            isDragged -> MaterialTheme.colorScheme.onPrimaryContainer
+            isDropTarget -> MaterialTheme.colorScheme.onSecondaryContainer
+            else -> foreground
+        },
     ) {
         if (portrait) {
             Column(

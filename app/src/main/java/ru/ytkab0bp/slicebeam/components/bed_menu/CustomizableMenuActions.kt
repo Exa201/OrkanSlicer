@@ -157,6 +157,7 @@ internal fun CustomizableBedMenuActionsContent(
                 onActionDragEnd = onActionDragEnd,
                 onMoveAction = ::swapVisibleAction,
                 draggedActionTitleRes = dragState.activeTitleRes,
+                dropTargetTitleRes = dragState.lastTargetTitleRes,
                 draggedActionTranslation = dragState.dragTranslation,
                 draggedActionPointerInRoot = dragState.pointerInRoot,
                 onDragAutoScroll = { amount -> dragState.dragTranslation += Offset(amount, 0f) },
@@ -189,6 +190,7 @@ internal fun CustomizableBedMenuActionsContent(
                 onActionDragEnd = onActionDragEnd,
                 onMoveAction = ::swapVisibleAction,
                 draggedActionTitleRes = dragState.activeTitleRes,
+                dropTargetTitleRes = dragState.lastTargetTitleRes,
                 draggedActionTranslation = dragState.dragTranslation,
                 draggedActionPointerInRoot = dragState.pointerInRoot,
                 onDragAutoScroll = { amount -> dragState.dragTranslation += Offset(amount, 0f) },
@@ -265,6 +267,6 @@ private class MenuActionDragState {
     var activeTitleRes by mutableStateOf<Int?>(null)
     var pointerInRoot by mutableStateOf<Offset?>(null)
     var dragTranslation by mutableStateOf(Offset.Zero)
-    var lastTargetTitleRes: Int? = null
+    var lastTargetTitleRes by mutableStateOf<Int?>(null)
     var hasMoved: Boolean = false
 }
