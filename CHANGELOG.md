@@ -4,7 +4,7 @@
 
 - Keep the build plate visible while inspecting sliced layers: layer controls are docked outside the renderer viewport in portrait and landscape.
 - Update the in-app release notes to match this version and describe the layer-panel change in German, English, and Russian. This also fixes the stale release-note version that failed the Honor changelog test.
-- Honor PTP-N49 / Android 16: layer-panel interaction passed 2/2 and actual slice/layer selection passed 1/1. The full 0.8.339 instrumentation run had one failure from the stale in-app changelog and three private-fixture skips; the changelog fix is being verified separately.
+- Honor PTP-N49 / Android 16: full instrumentation passed 253/256 with 3 unavailable private KromaCut fixtures skipped; 0 failures. Debug and Slice JVM suites passed 591/591 each. Layer-panel interaction passed 2/2, and actual slice/layer selection passed 1/1.
 
 ## 0.8.339 (debug)
 
