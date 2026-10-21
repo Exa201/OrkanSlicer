@@ -43,14 +43,17 @@ class TemporaryProjectSettingsBarLayoutDeviceTest {
             ),
         )
         val widthDp = mutableIntStateOf(320)
+        val heightDp = mutableIntStateOf(640)
         val systemFontScale = mutableFloatStateOf(1f)
         val appTextScale = mutableFloatStateOf(0.9f)
         try {
             compose.setContent {
                 val configuration = Configuration().apply {
                     screenWidthDp = widthDp.intValue
-                    screenHeightDp = 800
-                    orientation = Configuration.ORIENTATION_PORTRAIT
+                    screenHeightDp = heightDp.intValue
+                    orientation = if (widthDp.intValue >= heightDp.intValue) {
+                        Configuration.ORIENTATION_LANDSCAPE
+                    } else Configuration.ORIENTATION_PORTRAIT
                 }
                 CompositionLocalProvider(
                     LocalConfiguration provides configuration,
@@ -65,8 +68,9 @@ class TemporaryProjectSettingsBarLayoutDeviceTest {
                 }
             }
 
-            listOf(320, 360, 400).forEach { width ->
+            listOf(320 to 640, 360 to 800, 400 to 850, 640 to 320, 800 to 400).forEach { (width, height) ->
                 widthDp.intValue = width
+                heightDp.intValue = height
                 listOf(1f, 1.3f, 1.5f).forEach { systemScale ->
                     systemFontScale.floatValue = systemScale
                     var baselineHeight: Int? = null
