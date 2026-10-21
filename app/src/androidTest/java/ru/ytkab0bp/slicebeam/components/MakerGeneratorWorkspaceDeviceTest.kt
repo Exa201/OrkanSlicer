@@ -676,6 +676,38 @@ class MakerGeneratorWorkspaceDeviceTest {
     }
 
     @Test
+    fun plantLabelSetGeneratorCreatesValidatedStlAndDiscardRemovesOnlyItsCacheOutput() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val cache = activity.cacheDir
+        val existing = cache.listFiles().orEmpty().map { it.name }.toSet()
+
+        activity.runOnUiThread { PlantLabelSetGenerator.show(activity, bed) }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        compose.onNodeWithTag("generator-dialog-title").assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterConvertSave))
+            .performScrollTo()
+            .performClick()
+        compose.waitUntil(timeoutMillis = 60_000) {
+            bed.isWorkspaceMessageDialogAttached() &&
+                compose.onAllNodesWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputTitle))
+                    .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        val generated = cache.listFiles().orEmpty().singleOrNull {
+            it.name.startsWith("plant-tags-") && it.name !in existing
+        }
+        assertTrue("Successful generation must produce one cache STL", generated != null)
+        requireNotNull(generated)
+        assertTrue("Validated binary STL must contain facets", generated.length() > 84L)
+        compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputCancel))
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertFalse("Discard must delete the generated temporary STL", generated.exists())
+        assertFalse("Generation and discard must keep the workspace active", activity.isFinishing)
+    }
+
+    @Test
     fun litogenValidationStaysInWorkspaceFormWithoutDismissal() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
