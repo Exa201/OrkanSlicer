@@ -82,11 +82,20 @@ internal fun CustomizableBedMenuActionsContent(
     fun moveToVisibleTarget(sourceKey: String, targetTitleRes: Int) {
         val targetKey = context.resources.getResourceEntryName(targetTitleRes)
         if (sourceKey == targetKey || sourceKey !in order || targetKey !in order) return
+        val visibleKeys = order.filterNot { it in hidden }
+        val sourceVisibleIndex = visibleKeys.indexOf(sourceKey)
+        val targetVisibleIndex = visibleKeys.indexOf(targetKey)
+        if (sourceVisibleIndex < 0 || targetVisibleIndex < 0) return
         val next = order.toMutableList()
         next.remove(sourceKey)
         val targetIndex = next.indexOf(targetKey)
         if (targetIndex < 0) return
-        next.add(targetIndex, sourceKey)
+        // Drop after the crossed item when moving toward the end, and before it
+        // when moving toward the start. Always inserting before the target made
+        // a drag from the first to the second item visually complete but leave
+        // the saved order unchanged.
+        val insertionIndex = if (sourceVisibleIndex < targetVisibleIndex) targetIndex + 1 else targetIndex
+        next.add(insertionIndex.coerceAtMost(next.size), sourceKey)
         order = next
         dragState.hasMoved = true
     }
@@ -97,9 +106,11 @@ internal fun CustomizableBedMenuActionsContent(
         dragState.lastTargetTitleRes = null
         dragState.activeTitleRes = id
         dragState.pointerInRoot = dragState.bounds[id]?.topLeft?.plus(localOffset)
+        dragState.dragTranslation = Offset.Zero
     }
     val onActionDrag: (Int, Offset) -> Unit = { id, delta ->
         if (dragState.activeTitleRes == id) {
+            dragState.dragTranslation += delta
             dragState.pointerInRoot = dragState.pointerInRoot?.plus(delta)
             val visibleTitleIds = visibleActions.map { it.titleRes }.toSet()
             val target = dragState.pointerInRoot?.let { point ->
@@ -109,11 +120,15 @@ internal fun CustomizableBedMenuActionsContent(
             }
             if (target != dragState.lastTargetTitleRes) {
                 dragState.lastTargetTitleRes = target
-                if (target != null) moveToVisibleTarget(context.resources.getResourceEntryName(id), target)
             }
         }
     }
     val onActionDragEnd: () -> Unit = {
+        val sourceTitle = dragState.activeTitleRes
+        val targetTitle = dragState.lastTargetTitleRes
+        if (sourceTitle != null && targetTitle != null) {
+            moveToVisibleTarget(context.resources.getResourceEntryName(sourceTitle), targetTitle)
+        }
         if (dragState.hasMoved) {
             preferences.edit().putString("order_$menuKey", order.joinToString("|")).apply()
         }
@@ -121,6 +136,7 @@ internal fun CustomizableBedMenuActionsContent(
         dragState.lastTargetTitleRes = null
         dragState.activeTitleRes = null
         dragState.pointerInRoot = null
+        dragState.dragTranslation = Offset.Zero
     }
 
     val openCustomization = {
@@ -140,6 +156,10 @@ internal fun CustomizableBedMenuActionsContent(
                 onActionDrag = onActionDrag,
                 onActionDragEnd = onActionDragEnd,
                 onMoveAction = ::swapVisibleAction,
+                draggedActionTitleRes = dragState.activeTitleRes,
+                draggedActionTranslation = dragState.dragTranslation,
+                draggedActionPointerInRoot = dragState.pointerInRoot,
+                onDragAutoScroll = { amount -> dragState.dragTranslation += Offset(amount, 0f) },
             )
             TextButton(
                 onClick = openCustomization,
@@ -168,6 +188,10 @@ internal fun CustomizableBedMenuActionsContent(
                 onActionDrag = onActionDrag,
                 onActionDragEnd = onActionDragEnd,
                 onMoveAction = ::swapVisibleAction,
+                draggedActionTitleRes = dragState.activeTitleRes,
+                draggedActionTranslation = dragState.dragTranslation,
+                draggedActionPointerInRoot = dragState.pointerInRoot,
+                onDragAutoScroll = { amount -> dragState.dragTranslation += Offset(amount, 0f) },
             )
         }
     }
@@ -238,8 +262,9 @@ internal fun CustomizableBedMenuActionsContent(
 
 private class MenuActionDragState {
     val bounds = mutableMapOf<Int, Rect>()
-    var activeTitleRes: Int? = null
-    var pointerInRoot: Offset? = null
+    var activeTitleRes by mutableStateOf<Int?>(null)
+    var pointerInRoot by mutableStateOf<Offset?>(null)
+    var dragTranslation by mutableStateOf(Offset.Zero)
     var lastTargetTitleRes: Int? = null
     var hasMoved: Boolean = false
 }

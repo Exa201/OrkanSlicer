@@ -4,6 +4,7 @@ import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +36,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -44,6 +51,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
@@ -63,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 /** A menu route whose visible workspace content is hosted directly by WorkspaceShell. */
 internal interface WorkspaceComposeBedMenu {
@@ -142,6 +151,10 @@ internal fun BedMenuActionsContent(
     onActionDrag: ((Int, Offset) -> Unit)? = null,
     onActionDragEnd: (() -> Unit)? = null,
     onMoveAction: ((Int, Int) -> Unit)? = null,
+    draggedActionTitleRes: Int? = null,
+    draggedActionTranslation: Offset = Offset.Zero,
+    draggedActionPointerInRoot: Offset? = null,
+    onDragAutoScroll: ((Float) -> Unit)? = null,
 ) {
     val menuView = LocalView.current
     val widthDp = LocalConfiguration.current.screenWidthDp
@@ -173,12 +186,32 @@ internal fun BedMenuActionsContent(
                 reservedEndDp = 4,
             ).dp
             val gridState = rememberLazyGridState()
+            var gridBounds by remember { mutableStateOf(Rect.Zero) }
+            val latestDragPointer = rememberUpdatedState(draggedActionPointerInRoot)
+            val edgeSizePx = with(LocalDensity.current) { 44.dp.toPx() }
+            LaunchedEffect(draggedActionTitleRes) {
+                while (draggedActionTitleRes != null) {
+                    val pointer = latestDragPointer.value
+                    val bounds = gridBounds
+                    if (pointer != null && bounds.width > 0f) {
+                        val delta = when {
+                            pointer.x < bounds.left + edgeSizePx -> -6f
+                            pointer.x > bounds.right - edgeSizePx -> 6f
+                            else -> 0f
+                        }
+                        if (delta != 0f) onDragAutoScroll?.invoke(gridState.scrollBy(delta))
+                    }
+                    delay(16)
+                }
+            }
             val gridTileHeight = if (fontScale >= 1.3f) 82.dp else OrkanUiTokens.menuTileHeight
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 LazyHorizontalGrid(
                     rows = GridCells.Fixed(rows),
                     state = gridState,
-                    modifier = Modifier.weight(1f).fillMaxHeight().testTag("workspace-menu-actions-grid"),
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                        .onGloballyPositioned { gridBounds = it.boundsInRoot() }
+                        .testTag("workspace-menu-actions-grid"),
                     contentPadding = PaddingValues(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
@@ -197,6 +230,10 @@ internal fun BedMenuActionsContent(
                             onActionDrag = onActionDrag,
                             onActionDragEnd = onActionDragEnd,
                             onMoveAction = onMoveAction,
+                            draggedActionTitleRes = draggedActionTitleRes,
+                            draggedActionTranslation = draggedActionTranslation,
+                            draggedActionPointerInRoot = draggedActionPointerInRoot,
+                            onDragAutoScroll = onDragAutoScroll,
                         )
                     }
                 }
@@ -232,8 +269,30 @@ internal fun BedMenuActionsContent(
             actions.size,
         ).dp
         val tileHeight = if (fontScale >= 1.3f) 82.dp else OrkanUiTokens.menuTileHeight
+        val listState = rememberLazyListState()
+        var rowBounds by remember { mutableStateOf(Rect.Zero) }
+        val latestDragPointer = rememberUpdatedState(draggedActionPointerInRoot)
+        val edgeSizePx = with(LocalDensity.current) { 44.dp.toPx() }
+        LaunchedEffect(draggedActionTitleRes) {
+            while (draggedActionTitleRes != null) {
+                val pointer = latestDragPointer.value
+                val bounds = rowBounds
+                if (pointer != null && bounds.width > 0f) {
+                    val delta = when {
+                        pointer.x < bounds.left + edgeSizePx -> -6f
+                        pointer.x > bounds.right - edgeSizePx -> 6f
+                        else -> 0f
+                    }
+                    if (delta != 0f) onDragAutoScroll?.invoke(listState.scrollBy(delta))
+                }
+                delay(16)
+            }
+        }
         LazyRow(
-            modifier = modifier.fillMaxSize().testTag("workspace-menu-actions-grid"),
+            state = listState,
+            modifier = modifier.fillMaxSize()
+                .onGloballyPositioned { rowBounds = it.boundsInRoot() }
+                .testTag("workspace-menu-actions-grid"),
             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -249,6 +308,10 @@ internal fun BedMenuActionsContent(
                     onActionDrag = onActionDrag,
                     onActionDragEnd = onActionDragEnd,
                     onMoveAction = onMoveAction,
+                    draggedActionTitleRes = draggedActionTitleRes,
+                    draggedActionTranslation = draggedActionTranslation,
+                    draggedActionPointerInRoot = draggedActionPointerInRoot,
+                    onDragAutoScroll = onDragAutoScroll,
                 )
             }
         }
@@ -275,6 +338,10 @@ internal fun BedMenuActionsContent(
                     onActionDrag = onActionDrag,
                     onActionDragEnd = onActionDragEnd,
                     onMoveAction = onMoveAction,
+                    draggedActionTitleRes = draggedActionTitleRes,
+                    draggedActionTranslation = draggedActionTranslation,
+                    draggedActionPointerInRoot = draggedActionPointerInRoot,
+                    onDragAutoScroll = onDragAutoScroll,
                 )
             }
         }
@@ -293,6 +360,10 @@ private fun BedMenuActionTile(
     onActionDrag: ((Int, Offset) -> Unit)?,
     onActionDragEnd: (() -> Unit)?,
     onMoveAction: ((Int, Int) -> Unit)?,
+    draggedActionTitleRes: Int?,
+    draggedActionTranslation: Offset,
+    draggedActionPointerInRoot: Offset?,
+    onDragAutoScroll: ((Float) -> Unit)?,
 ) {
     val fullTitle = stringResource(action.titleRes)
     val fontScale = LocalDensity.current.fontScale
@@ -380,9 +451,20 @@ private fun BedMenuActionTile(
                 )
             } else Modifier)
     } else Modifier
+    val isDragged = draggedActionTitleRes == action.titleRes
     Surface(
         modifier = modifier
             .padding(3.dp)
+            .graphicsLayer {
+                if (isDragged) {
+                    translationX = draggedActionTranslation.x
+                    translationY = draggedActionTranslation.y
+                    scaleX = 1.06f
+                    scaleY = 1.06f
+                    shadowElevation = 16.dp.toPx()
+                    alpha = 0.94f
+                }
+            }
             .then(dragModifier)
             .then(interaction)
             // Keep the accessible node on the whole clickable tile, not just its short
