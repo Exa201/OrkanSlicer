@@ -1,9 +1,13 @@
 package ru.ytkab0bp.slicebeam.components
 
 import android.app.Application
+import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Base64
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityOptionsCompat
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -125,6 +129,87 @@ class MakerGeneratorWorkspaceDeviceTest {
 
         activity.runOnUiThread { bed.onBackPressed() }
         compose.waitUntil(timeoutMillis = 5_000) { !menu.isAttached() }
+    }
+
+    @Test
+    fun kromacutSaveFallsBackToCreateDocumentWhenFolderPickerIsCancelled() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val menu = KromacutEditorMenu()
+        val preferences = requireNotNull(Prefs.getPrefs())
+        val previousRoot = preferences.getString("converter_storage_tree_uri", null)
+        preferences.edit().remove("converter_storage_tree_uri").commit()
+
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val rootRequestCode = MainActivity.REQUEST_CODE_CONVERTER_ROOT_SAVE
+        val documentRequestCode = MainActivity.REQUEST_CODE_SAVE_CONVERTED_FILE
+        val previousRootLauncher = requireNotNull(launchers[rootRequestCode])
+        val previousDocumentLauncher = requireNotNull(launchers[documentRequestCode])
+        val rootIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        val documentIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        fun capture(target: java.util.concurrent.atomic.AtomicReference<Intent?>) =
+            object : ActivityResultLauncher<Intent>() {
+                override val contract: androidx.activity.result.contract.ActivityResultContract<Intent, *> =
+                    ActivityResultContracts.StartActivityForResult()
+
+                override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                    target.set(Intent(input))
+                }
+
+                override fun unregister() = Unit
+            }
+        launchers[rootRequestCode] = capture(rootIntent)
+        launchers[documentRequestCode] = capture(documentIntent)
+
+        var generated: java.io.File? = null
+        try {
+            activity.runOnUiThread { bed.showWorkspaceComposeTool(menu) }
+            compose.waitUntil(timeoutMillis = 5_000) { menu.isAttached() }
+            val bridgeClass = KromacutEditorMenu::class.java.declaredClasses
+                .single { it.simpleName == "DownloadBridge" }
+            val bridge = bridgeClass.getDeclaredConstructor(KromacutEditorMenu::class.java)
+                .apply { isAccessible = true }
+                .newInstance(menu)
+            val encodedStl = Base64.encodeToString(validTetrahedronStl(), Base64.NO_WRAP)
+            activity.runOnUiThread {
+                bridgeClass.getDeclaredMethod("beginDownload", String::class.java)
+                    .apply { isAccessible = true }.invoke(bridge, "kromacut-save-fallback.stl")
+                bridgeClass.getDeclaredMethod("writeData", String::class.java)
+                    .apply { isAccessible = true }.invoke(bridge, encodedStl)
+                bridgeClass.getDeclaredMethod("finishDownload")
+                    .apply { isAccessible = true }.invoke(bridge)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputSave))
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { rootIntent.get() != null }
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT_TREE, requireNotNull(rootIntent.get()).action)
+
+            dispatchResult(activity, rootRequestCode, android.app.Activity.RESULT_CANCELED, Intent())
+            compose.waitUntil(timeoutMillis = 5_000) { documentIntent.get() != null }
+            val saveIntent = requireNotNull(documentIntent.get())
+            assertEquals("Cancellation of the remembered-folder picker must fall back to SAF", Intent.ACTION_CREATE_DOCUMENT, saveIntent.action)
+            assertEquals("model/stl", saveIntent.type)
+            assertTrue(saveIntent.getStringExtra(Intent.EXTRA_TITLE).orEmpty().endsWith("kromacut-save-fallback.stl"))
+            generated = activity.cacheDir.listFiles().orEmpty()
+                .single { it.name.startsWith("kromacut-") && it.name.endsWith("-kromacut-save-fallback.stl") }
+
+            dispatchResult(activity, documentRequestCode, android.app.Activity.RESULT_CANCELED, Intent())
+            compose.waitUntil(timeoutMillis = 5_000) { !generated!!.exists() }
+            assertFalse("Cancelling Android's document picker must remove the temporary KromaCut output", generated!!.exists())
+        } finally {
+            if (generated?.exists() == true) ImageToStlConverter.finishSave(activity, null)
+            launchers[rootRequestCode] = previousRootLauncher
+            launchers[documentRequestCode] = previousDocumentLauncher
+            preferences.edit().also { editor ->
+                if (previousRoot == null) editor.remove("converter_storage_tree_uri")
+                else editor.putString("converter_storage_tree_uri", previousRoot)
+            }.commit()
+            if (menu.isAttached()) activity.runOnUiThread { bed.onBackPressed() }
+        }
     }
 
     @Test
@@ -515,5 +600,16 @@ class MakerGeneratorWorkspaceDeviceTest {
             bytes.write(facet.array())
         }
         return bytes.toByteArray()
+    }
+
+    private fun dispatchResult(activity: MainActivity, requestCode: Int, resultCode: Int, data: Intent) {
+        activity.runOnUiThread {
+            MainActivity::class.java.getDeclaredMethod(
+                "dispatchActivityResult",
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Intent::class.java,
+            ).apply { isAccessible = true }.invoke(activity, requestCode, resultCode, data)
+        }
     }
 }
