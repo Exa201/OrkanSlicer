@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.336 (debug build)
+
+- Update the in-app release notes to describe the KromaCut black-screen fix in German, English, and Russian. Xiaomi-specific verification remains pending.
+
 ## 0.8.335 (alpha)
 
 - Fix KromaCut's black editor by hiding the existing GL `SurfaceView` only while the full-screen WebView editor is open. Honor diagnostics showed the GL surface overlapped the WebView; hiding it exposed the complete KromaCut controls and image canvas. Restore the same GLView when the editor closes and request a fresh frame; the native model object remains intact.
