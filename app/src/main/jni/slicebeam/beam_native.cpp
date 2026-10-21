@@ -603,6 +603,16 @@ extern "C" {
         return volume != nullptr && volume->cut_info.is_connector && !volume->cut_info.is_processed;
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1cut_1connector_1count(JNIEnv*, jclass, jlong ptr, jint objIdx) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || objIdx < 0 || static_cast<size_t>(objIdx) >= model->model.objects.size()) return 0;
+        int count = 0;
+        for (const ModelVolume* volume : model->model.objects[objIdx]->volumes) {
+            if (is_unprocessed_cut_connector(volume)) ++count;
+        }
+        return count;
+    }
+
     static CutConnectorType connector_type_from_int(jint type) {
         switch (type) {
             case 1: return CutConnectorType::Dowel;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.345
+
+- Make the cut workflow transactional for connector pins: if a cut fails, only pins added for that attempt are removed; existing unprocessed pins and the source mesh remain intact.
+- Keep the cut action on the GL thread and verify its successful split path, failed-operation rollback, native model-editing suite, and slicing after surface placement on Honor PTP-N49 / Android 16.
+- Debug and Slice JVM suites passed 604/604 each; ARM64 debug build succeeded.
+
 ## 0.8.344
 
 - Place selected objects onto a target surface and keep the result as a printable multipart assembly with per-volume filament assignments.

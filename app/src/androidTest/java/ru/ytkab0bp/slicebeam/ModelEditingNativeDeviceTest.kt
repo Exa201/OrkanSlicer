@@ -81,6 +81,41 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun failedCutRollsBackOnlyConnectorsAddedForThatCut() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "cut-connector-rollback.stl")
+        val model = Model(modelFile)
+        try {
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            model.addConnector(0, Vec3d(0.0, 0.0, 5.0), 2f, 5f, 0)
+            val connectorsBeforeCut = model.getCutConnectorCount(0)
+            assertEquals("the fixture should contain one pre-existing connector", 1, connectorsBeforeCut)
+
+            model.addConnector(0, Vec3d(1.0, 1.0, 5.0), 2f, 5f, 1)
+            assertEquals(2, model.getCutConnectorCount(0))
+
+            val applied = model.cutPreservingConnectorsOnFailure(
+                objectIndex = 0,
+                connectorCountBeforeCommit = connectorsBeforeCut,
+                zHeight = 0.0,
+                rotX = 0.0,
+                rotY = 0.0,
+                keepUpper = false,
+                keepLower = false,
+            )
+
+            assertTrue("a cut with neither resulting side selected should fail", !applied)
+            assertEquals("rollback must preserve connectors that existed before this cut", connectorsBeforeCut,
+                model.getCutConnectorCount(0))
+            assertEquals("failed cut must preserve source triangles", originalTriangles, model.getTriangleCount(0))
+            assertEquals("failed cut must preserve source volume", originalVolume, model.getObjectVolume(0), 0.001)
+            assertEquals(1, model.objectsCount)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun placingSelectedObjectGroupOnAnotherKeepsGroupSpacingAndTouchesSurface() {
         val modelFile = copyAsset("models/xyz_cube.stl", "place-group-cube.stl")
         val model = Model(modelFile)

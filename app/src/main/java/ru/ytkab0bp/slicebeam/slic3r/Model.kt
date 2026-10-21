@@ -188,6 +188,29 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return result
     }
 
+    /** Applies a cut and removes only newly committed, unprocessed connectors if it fails. */
+    open fun cutPreservingConnectorsOnFailure(
+        objectIndex: Int,
+        connectorCountBeforeCommit: Int,
+        zHeight: Double,
+        rotX: Double,
+        rotY: Double,
+        keepUpper: Boolean,
+        keepLower: Boolean,
+    ): Boolean {
+        val applied = cut(objectIndex, zHeight, rotX, rotY, keepUpper, keepLower)
+        if (!applied) {
+            val connectorCount = Native.model_get_cut_connector_count(pointer, objectIndex)
+            for (connectorIndex in connectorCount - 1 downTo connectorCountBeforeCommit) {
+                removeConnector(objectIndex, connectorIndex)
+            }
+        }
+        return applied
+    }
+
+    open fun getCutConnectorCount(objectIndex: Int): Int =
+        Native.model_get_cut_connector_count(pointer, objectIndex)
+
     open fun addConnector(
         objectIndex: Int,
         position: Vec3d,

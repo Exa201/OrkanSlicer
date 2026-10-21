@@ -1,3 +1,12 @@
+# Cut connector rollback — 2026-10-22
+
+- Active goal: continue model-editing functions within UI 2.0. Phase 4 architecture remains complete; Phase 5 action audit and Phase 6 accessibility/device coverage remain open.
+- Fixed cut failure cleanup. `TransformCutMenu` records the number of existing unprocessed connector pins before committing the temporary pins, then uses `Model.cutPreservingConnectorsOnFailure`; on native cut failure it removes only the pins added during that attempt. Added a JNI-backed count for unprocessed cut connectors.
+- Verification on Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest` 19/19; failed-cut rollback 1/1 within that class; GL cut application/split 1/1; surface-placed grouped-model slicing 1/1. The model-editing class covers native Booleans, printable standalone text, grouping, and surface placement. Debug and Slice JVM suites each passed 604/604 with zero failures, errors, or skips; ARM64 debug build succeeded.
+- Version prepared: 0.8.345 / versionCode 380. Next: finish release APK build and upload, record its exact commit/hash, then continue the remaining model-editing and menu/accessibility audit. Xiaomi remains unavailable; no physical printer or print start was used.
+
+---
+
 # Model editing and menu drag feedback — 2026-10-22
 
 - Current UI phase: Phase 5/6 continuation; model-editing goal remains active. Phase 4 architecture is complete. Phase 5 action-level audit and Phase 6 device/accessibility coverage remain open. Next: continue the source-derived menu action audit and model-editing/device coverage.

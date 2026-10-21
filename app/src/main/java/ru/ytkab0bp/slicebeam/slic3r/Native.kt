@@ -155,6 +155,8 @@ class Native {
     @JvmStatic
     external fun model_clear_connectors(ptr: Long, objIdx: Int): Unit
     @JvmStatic
+    external fun model_get_cut_connector_count(ptr: Long, objIdx: Int): Int
+    @JvmStatic
     external fun model_auto_orient(ptr: Long, i: Int): Unit
     @JvmStatic
     external fun model_is_big_object(ptr: Long, i: Int): Boolean

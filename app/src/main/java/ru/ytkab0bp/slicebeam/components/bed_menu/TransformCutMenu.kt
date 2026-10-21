@@ -257,8 +257,17 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
                 if (!isAttachedToWorkspace) return@queueEvent
                 val renderer = glView.renderer
                 val model = renderer.model ?: return@queueEvent
+                val connectorCountBeforeCommit = model.getCutConnectorCount(objectIndex)
                 renderer.commitCutConnectorsForObject(objectIndex)
-                val applied = model.cut(objectIndex, z, rotX, rotY, true, true)
+                val applied = model.cutPreservingConnectorsOnFailure(
+                    objectIndex,
+                    connectorCountBeforeCommit,
+                    z,
+                    rotX,
+                    rotY,
+                    true,
+                    true,
+                )
                 renderer.clearAllCutConnectorPreviews()
                 ViewUtils.postOnMainThread {
                     if (applied) bed.updateModel()
