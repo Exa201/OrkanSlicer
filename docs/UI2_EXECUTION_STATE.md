@@ -2314,6 +2314,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Prime-tower report: the print-profile dialog could omit the bed map before GL initialized the native bed. It now derives bed outline from the active printer profile as a fallback, keeps model bounding boxes when the workspace exists, expands per-plate coordinate fields to include the active plate, and checks placement against the configured bed polygon. Honor `PrimeTowerKeyboardDeviceTest` passed 3/3; the actual print-profile entry test passed 1/1 with preview and auto-place visible. Prime-tower geometry/profile JVM tests passed.
 - Full JVM suites passed: Debug 600/600, Slice 600/600. `:app:assembleDebug` succeeded for version 0.8.343 / code 378. A final test-only assertion was added after that build and passed on Honor; the runtime sources were unchanged afterward.
 - Current phase remains Phase 5 action audit / Phase 6 responsive and accessibility coverage. Changes are not yet committed. Next: stage only project source/tests/docs (never `.codex-remote-attachments/`), commit and push the tested changes, rebuild against the resulting commit, then verify install/start on Honor and continue the remaining action/accessibility audit. The emulator remains offline; no merge or release was performed.
+
+# Verification update — 2026-10-21
+
+- Supersedes the previous “not yet committed” line: code and tests are committed as `4f7325a55ce224d2f1939109499c1e67e058b1c0` on `codex/rinkhals-safe-start-audit`.
+- Debug and Slice JVM suites: 600/600 each. Honor PTP-N49 / Android 16: Boolean/native and dialog tests 9/9; prime-tower dialog tests 3/3; print-profile entry test 1/1. The emulator remains offline.
+- Debug build for code commit `4f7325a55ce224d2f1939109499c1e67e058b1c0`: `OrkanSlicer_4f7325a55c.apk`, 239,217,394 bytes, SHA-256 `DB9CEC4210A225AC6FE2E9338A032BF3A382DE9E92A189B07D88376635125E5B`. Installed and launched on Honor; `MainActivity` resumed. Sampled logcat had no matching fatal exception, package ANR, fatal signal, or OOM lines.
+- Next: push the code and checkpoint to the existing branch/PR #2, verify the remote PR state, then continue Phase 5 action audit and Phase 6 accessibility coverage. No release or merge was performed.
 # Slice-layer viewport correction — 2026-10-21
 
 - Current phase: Phase 6 (responsive UI/accessibility), in progress; Phase 5 action reconciliation also remains open. Previous Phase 4 workspace architecture remains accepted by prior evidence.
