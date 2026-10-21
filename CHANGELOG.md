@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.344
+
+- Place selected objects onto a target surface and keep the result as a printable multipart assembly with per-volume filament assignments.
+- Reload standalone 3MF exports through the volume-aware importer while preserving BBS multi-plate projects on their project importer.
+- Show a lifted, moving menu tile and a highlighted drop target while reordering bottom-menu actions.
+- Native Honor PTP-N49 / Android 16 checks passed: model editing 18/18, slicing 10/10, multi-plate projects 4/4, two-color/multicolor projects 8/8, and workspace menu customization 4/4. Debug and Slice JVM suites passed 604/604 each; debug APK build succeeded.
+
 ## 0.8.341 (debug prerelease)
 
 - Reorder bottom workspace menu actions directly: long-press an action and drag it to its new position. The menu customization button remains available for hiding, showing, or resetting actions.
