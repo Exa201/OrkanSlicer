@@ -50,7 +50,7 @@ internal fun PrinterWebErrorPanel(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val stackActions = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.3f
+            val stackActions = maxWidth < 360.dp || ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current >= 1.3f
             if (stackActions) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),

@@ -131,7 +131,7 @@ internal fun BedMenuActionsContent(
 ) {
     val menuView = LocalView.current
     val widthDp = LocalConfiguration.current.screenWidthDp
-    val fontScale = LocalDensity.current.fontScale
+    val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
     if (portrait && (multiRow || BedMenuActionTileWidthPolicy.usesTwoRows(
             actions.size, portrait, widthDp, fontScale,
         ))) {

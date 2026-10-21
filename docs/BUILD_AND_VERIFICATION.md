@@ -1,3 +1,11 @@
+# Automatic workspace sizing and text zoom — 2026-10-21
+
+- Workspace layout remains based on Android window dimensions in dp and the adaptive Compose policies; app text zoom no longer drives workspace geometry breakpoints. Android system accessibility font scale remains an input to responsive accommodations. The manual 3D render-scale setting was removed; old `render_scale` overrides are cleared and GL rendering uses `DevicePerformancePolicy`.
+- App settings now provides a 90–150% accessible slider with live sample preview, Standard reset, Apply, Cancel and Android Back. No setting is persisted until Apply.
+- Honor PTP-N49 / Android 16: `SettingsMenuActionDeviceTest` 8/8 passed; it checks preview, persistence only on Apply, reset/cancel/Back, live text scaling and invariant GL viewport bounds. `SettingsAccessibilityDeviceTest` 1/1 passed for simulated 320/360/400 dp and 640×320 dp, portrait/landscape, and 100/130/150% system font scale. Emulator is offline; these simulated configurations are not physical resizing or physical TalkBack traversal.
+- Debug and Slice JVM suites each passed 588/588 with 0 failures/errors/skips. `:app:assembleDebug` succeeded for 0.8.338 / code 373. Debug APK `OrkanSlicer_da183234ed.apk`, 239,148,120 bytes, SHA-256 `44221FF7A13C1FA426A12DA23925F8218ECEB3E276A2308CE20F83E1CBEED356`.
+- Installed and launched on Honor PTP-N49 / Android 16. Package reports 0.8.338 / code 373; sampled 1,200 Logcat lines had no fatal exception, package ANR, OOM or fatal-signal match. No live printer or print action. Xiaomi-specific rendering and manual TalkBack remain open.
+
 # Static migration guard + dead-route cleanup — 2026-10-21
 
 - `scripts/check_kotlin_ui_migration.py`: passed after updating stale contracts to current Compose dialog/workspace hosts and required GL/WebView interop. It checks 381 production Kotlin and 135 Kotlin unit-test source files.

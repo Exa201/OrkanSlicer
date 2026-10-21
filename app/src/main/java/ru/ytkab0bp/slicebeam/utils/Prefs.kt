@@ -35,6 +35,9 @@ open class Prefs {
         fun init(ctx: Application) {
             mPrefs = PreferenceManager.getDefaultSharedPreferences(ctx)
             lowRamDevice = (ctx.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true
+            // Older versions exposed a manual 3D surface scale. Rendering now uses the
+            // device performance policy, so discard that obsolete per-device override.
+            mPrefs?.edit()?.remove("render_scale")?.apply()
         }
 
         @JvmStatic
@@ -179,14 +182,7 @@ open class Prefs {
         fun isVibrationEnabled(): Boolean = requirePrefs().getBoolean("vibration", true)
 
         @JvmStatic
-        fun getRenderScale(): Float = requirePrefs().getFloat(
-            "render_scale", DevicePerformancePolicy.defaultRenderScale(lowRamDevice)
-        ).coerceIn(0.5f, 1f)
-
-        @JvmStatic
-        fun setRenderScale(s: Float) {
-            requirePrefs().edit().putFloat("render_scale", s).apply()
-        }
+        fun getRenderScale(): Float = DevicePerformancePolicy.defaultRenderScale(lowRamDevice)
 
         /** App-specific text zoom, multiplied on top of the Android accessibility font scale. */
         @JvmStatic

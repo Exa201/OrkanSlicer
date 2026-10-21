@@ -102,7 +102,7 @@ internal fun PlateTabs(
     val screenHeightDp = configuration.screenHeightDp
     val estimatedGridColumns = ((configuration.screenWidthDp - 88) / 104).coerceIn(1, 4)
     val pickerLayout = PlatePickerLayoutPolicy.choose(plateCount, configuration.screenWidthDp,
-        screenHeightDp, LocalDensity.current.fontScale)
+        screenHeightDp, ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current)
     val label = stringResource(R.string.PlateNumber, (selectedIndex + 1).toString())
     Surface(
         // The two counter labels scale with system font size. Keep the 48 dp minimum

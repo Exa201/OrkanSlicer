@@ -8,13 +8,17 @@ import android.view.ViewGroup
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
@@ -35,6 +39,7 @@ import ru.ytkab0bp.slicebeam.navigation.NavigationDelegate
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
+import ru.ytkab0bp.slicebeam.render.DevicePerformancePolicy
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.components.ColorChooserPalette
 import java.util.Locale
@@ -46,34 +51,30 @@ class SettingsMenuActionDeviceTest {
     val compose = createInitializedActivityRule()
 
     @Test
-    fun renderScaleSelectionPersistsAndAndroidBackLeavesItUnchanged() {
+    fun renderResolutionUsesDevicePolicyAndHasNoManualPicker() {
         val activity = compose.activity
-        val originalScale = Prefs.getRenderScale()
-        val targetScale = floatArrayOf(1f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f).first { it != originalScale }
-        val targetLabel = "${(targetScale * 100).toInt()}%"
-
+        val prefs = requireNotNull(Prefs.getPrefs())
         try {
+            prefs.edit().putFloat("render_scale", 0.5f).commit()
+            Prefs.init(activity.application as Application)
             navigateToSettings(activity)
 
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceResolutionScale))
-                .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(targetLabel, substring = true)
-                .performScrollTo().assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getRenderScale() == targetScale }
-            assertEquals("Selecting a scale applies the selected app preference", targetScale, Prefs.getRenderScale(), 0f)
-
-            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceResolutionScale))
-                .assertIsDisplayed().performClick()
-            assertEquals("The selected value appears in both the current setting and the open choice list", 2,
-                compose.onAllNodesWithText(targetLabel).fetchSemanticsNodes().size)
-            InstrumentationRegistry.getInstrumentation()
-                .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            compose.waitForIdle()
-            assertEquals("Android Back dismisses without changing the applied setting", targetScale, Prefs.getRenderScale(), 0f)
+            assertTrue("Manual render-resolution row was removed from the App menu",
+                compose.onAllNodesWithText(activity.getString(R.string.SettingsInterfaceResolutionScale))
+                    .fetchSemanticsNodes().isEmpty())
+            assertEquals("The legacy override is cleared at preference initialization", false,
+                prefs.contains("render_scale"))
+            assertEquals(
+                "Render scale is calculated by the current device performance policy",
+                DevicePerformancePolicy.defaultRenderScale(Prefs.isLowRamDevice()),
+                Prefs.getRenderScale(),
+                0f,
+            )
         } finally {
-            Prefs.setRenderScale(originalScale)
+            prefs.edit().remove("render_scale").commit()
+            Prefs.init(activity.application as Application)
         }
     }
 
@@ -120,6 +121,7 @@ class SettingsMenuActionDeviceTest {
 
         try {
             navigateToSettings(activity)
+            val viewportBeforeZoom = workspaceViewportBounds(activity)
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
                 .performScrollTo().assertIsDisplayed().performClick()
 
@@ -130,14 +132,28 @@ class SettingsMenuActionDeviceTest {
 
             compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTextSize))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(targetLabel, substring = true)
-                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("settings-ui-text-scale-slider")
+                .assertIsDisplayed()
+                .performSemanticsAction(SemanticsActions.SetProgress) { setProgress ->
+                    assertTrue("Slider accepts an accessible target value", setProgress(targetScale))
+                }
+            compose.onNodeWithTag("settings-ui-text-scale-value").assertTextEquals(targetLabel)
+            assertEquals("Previewing a value does not persist it before confirmation", originalScale, Prefs.getUiTextScale(), 0f)
+            compose.onNodeWithTag("settings-ui-text-scale-preview-card").assertIsDisplayed()
+            compose.onNodeWithTag("settings-ui-text-scale-reset").performClick()
+            compose.onNodeWithTag("settings-ui-text-scale-value").assertTextEquals("100%")
+            compose.onNodeWithTag("settings-ui-text-scale-slider")
+                .performSemanticsAction(SemanticsActions.SetProgress) { setProgress ->
+                    assertTrue("Slider accepts the selected value after reset", setProgress(targetScale))
+                }
+            compose.onNodeWithTag("settings-ui-text-scale-apply").performClick()
             compose.waitUntil(timeoutMillis = 5_000) { Prefs.getUiTextScale() == targetScale }
             compose.waitForIdle()
 
             val afterHeight = compose.onNodeWithText(activity.getString(R.string.SlotAppSettings))
                 .fetchSemanticsNode().size.height
             assertEquals(targetScale, Prefs.getUiTextScale(), 0f)
+            assertEquals("Changing app text zoom must not move or resize the build plate viewport", viewportBeforeZoom, workspaceViewportBounds(activity))
             assertTrue("The already-created workspace must receive the global theme/text-scale invalidation",
                 workspaceThemeRevision(activity) > workspaceRevisionBefore)
             if (targetScale > originalScale) {
@@ -147,9 +163,30 @@ class SettingsMenuActionDeviceTest {
                 assertTrue("The live Compose heading must shrink with the selected text scale ($beforeHeight → $afterHeight)",
                     afterHeight < beforeHeight)
             }
-            compose.onNodeWithText(targetLabel).performScrollTo().assertIsDisplayed()
+
+            navigateToSettings(activity)
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTextSize))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("settings-ui-text-scale-slider")
+                .performSemanticsAction(SemanticsActions.SetProgress) { setProgress ->
+                    assertTrue("Slider accepts a disposable preview value", setProgress(0.9f))
+                }
+            compose.onNodeWithTag("settings-ui-text-scale-cancel").performClick()
+            compose.waitForIdle()
+            assertEquals("Cancel discards the preview and preserves the applied value", targetScale, Prefs.getUiTextScale(), 0f)
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterfaceTextSize))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("settings-ui-text-scale-slider").assertIsDisplayed()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            assertEquals("Android Back closes the preview without changing the applied text size", targetScale, Prefs.getUiTextScale(), 0f)
+            assertEquals("App text zoom must not move or resize the build plate viewport", viewportBeforeZoom, workspaceViewportBounds(activity))
         } finally {
-            Prefs.setUiTextScale(originalScale)
+            activity.runOnUiThread {
+                Prefs.setUiTextScale(originalScale)
+                ThemesRepo.invalidate(activity)
+            }
         }
     }
 
@@ -367,6 +404,23 @@ class SettingsMenuActionDeviceTest {
             isAccessible = true
         }
         return (revisionField.get(bedFragment) as MutableIntState).intValue
+    }
+
+    private fun workspaceViewportBounds(activity: MainActivity): List<Int> {
+        val result = AtomicReference<List<Int>>()
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            val stacksField = NavigationDelegate::class.java.getDeclaredField("fragmentStack").apply {
+                isAccessible = true
+            }
+            val stacks = stacksField.get(activity.navigationDelegate) as SparseArray<*>
+            val bedStack = stacks.get(0) as java.util.Stack<*>
+            val bedFragment = bedStack.peek() as BedFragment
+            val viewport = requireNotNull(bedFragment.glView)
+            val location = IntArray(2)
+            viewport.getLocationInWindow(location)
+            result.set(listOf(location[0], location[1], viewport.width, viewport.height))
+        }
+        return requireNotNull(result.get())
     }
 
     private fun resumedActivity(): Activity? {

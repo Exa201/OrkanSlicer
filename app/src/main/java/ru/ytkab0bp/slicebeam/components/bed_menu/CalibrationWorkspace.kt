@@ -479,7 +479,7 @@ internal fun CalibrationActionRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val largeText = LocalDensity.current.fontScale >= 1.3f
+    val largeText = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current >= 1.3f
     Surface(
         modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).testTag(testTag)
             .semantics { contentDescription = "$title. $subtitle" }

@@ -49,7 +49,7 @@ internal fun SliceChoiceField(
     var expanded by remember { mutableStateOf(false) }
     var query by remember(options) { mutableStateOf("") }
     val selectedLabel = options.getOrNull(selectedIndex).orEmpty().ifBlank { "—" }
-    val searchable = SliceChoiceFilter.usesSearch(options.size, LocalDensity.current.fontScale)
+    val searchable = SliceChoiceFilter.usesSearch(options.size, ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current)
     val visibleOptions = remember(options, query) { SliceChoiceFilter.indices(options, query) }
     val availableDialogHeight = (LocalConfiguration.current.screenHeightDp - 48).coerceAtLeast(180)
 

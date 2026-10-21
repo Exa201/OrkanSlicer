@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.338
+
+- Use Android dp window dimensions and the existing adaptive workspace policies to size navigation, panels, and the 3D viewport; remove the manual 3D render-resolution selector and migrate its saved override to the device performance policy.
+- Separate app text zoom from workspace layout decisions so changing the app font size keeps the viewport and control geometry anchored. Android's system accessibility font scale still drives responsive layout accommodations.
+- Replace the numeric text-size choices with an accessible slider, live workspace-style preview, Standard reset, Apply, Cancel, and Android Back behavior.
+- Honor PTP-N49 / Android 16: `SettingsMenuActionDeviceTest` 8/8 passed (including slider preview/apply/cancel/Back and unchanged viewport bounds); `SettingsAccessibilityDeviceTest` 1/1 passed across 320/360/400 dp, portrait/landscape and simulated 100/130/150% system font scales. Debug and Slice unit suites: 588/588 each.
+- Debug APK `OrkanSlicer_da183234ed.apk` (239,148,120 bytes), SHA-256 `44221FF7A13C1FA426A12DA23925F8218ECEB3E276A2308CE20F83E1CBEED356`. Installed/launched on Honor PTP-N49 / Android 16 as 0.8.338 / code 373; sampled 1,200 Logcat lines had no fatal exception, package ANR, OOM or fatal-signal match. Emulator is offline. Xiaomi-specific verification and manual TalkBack traversal remain open.
+
 ## 0.8.337
 
 - Recover when Android revokes access to a previously selected converter folder: clear the stale folder grant and open the standard Android save picker instead of failing to save generated KromaCut models.

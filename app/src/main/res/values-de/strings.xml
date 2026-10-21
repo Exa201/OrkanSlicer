@@ -910,6 +910,14 @@
     <string name="CustomColorApply">Farbe übernehmen</string>
     <string name="SettingsInterfaceTextSize">Menüschriftgröße</string>
     <string name="SettingsInterfaceTextSizeDescription">Menüschrift anpassen; Android-Schrift bleibt aktiv.</string>
+    <string name="SettingsInterfaceTextScaleDescription">Schriftgröße in der Vorschau einstellen. Die Workspace-Anordnung richtet sich weiterhin nach dem Bildschirm.</string>
+    <string name="SettingsInterfaceTextScalePreview">Live-Vorschau</string>
+    <string name="SettingsTextScalePreviewPlate">Druckplatte 1</string>
+    <string name="SettingsTextScalePreviewObject">Beispielobjekt · PLA</string>
+    <string name="SettingsTextScalePreviewEdit">Bearbeiten</string>
+    <string name="SettingsTextScalePreviewSlice">Slicen</string>
+    <string name="SettingsTextScaleApply">Übernehmen</string>
+    <string name="SettingsTextScaleReset">Standardgröße</string>
     <string name="SettingsTextSizeCompact">Kompakt</string>
     <string name="SettingsTextSizeStandard">Standard</string>
     <string name="SettingsTextSizeLarge">Groß</string>

@@ -21,29 +21,39 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.BeamServerData
@@ -73,6 +83,7 @@ class SettingsFragment : Fragment() {
     private var themeRevision by mutableIntStateOf(0)
     private var expandedSections by mutableStateOf(emptySet<Int>())
     private var activeChoiceDialog by mutableStateOf<SettingsChoiceDialogState?>(null)
+    private var showUiTextScaleDialog by mutableStateOf(false)
     private var showAccentColorDialog by mutableStateOf(false)
     private var showFolderPickerError by mutableStateOf(false)
     private var showResetConfirmation by mutableStateOf(false)
@@ -84,6 +95,7 @@ class SettingsFragment : Fragment() {
 
     override fun onDestroy() {
         activeChoiceDialog = null
+        showUiTextScaleDialog = false
         showAccentColorDialog = false
         showFolderPickerError = false
         showResetConfirmation = false
@@ -108,7 +120,6 @@ class SettingsFragment : Fragment() {
                             boostyAvailable = BeamServerData.isBoostyAvailable(),
                             themeName = ctx.getString(Prefs.getThemeMode().title),
                             accentColor = "#%08X".format(Prefs.getAccentColor()),
-                            renderScale = "${(Prefs.getRenderScale() * 100).toInt()}%",
                             uiTextScale = "${(Prefs.getUiTextScale() * 100).toInt()}%",
                             converterRoot = ConverterStorage.getRootDisplayName(ctx),
                             cameraProjection = ctx.getString(if (Prefs.isOrthoProjectionEnabled()) R.string.SettingsCameraOrthographic else R.string.SettingsCameraPerspective),
@@ -117,7 +128,6 @@ class SettingsFragment : Fragment() {
                             onMaker = ::openMaker,
                             onTheme = ::showThemePicker,
                             onAccent = ::showAccentPicker,
-                            onRenderScale = ::showRenderScalePicker,
                             onUiTextScale = ::showUiTextScalePicker,
                             onConverterFolder = ::chooseConverterFolder,
                             onCameraProjection = ::toggleCameraProjection,
@@ -131,6 +141,17 @@ class SettingsFragment : Fragment() {
                         )
                         activeChoiceDialog?.let { dialog ->
                             SettingsChoiceDialog(dialog) { activeChoiceDialog = null }
+                        }
+                        if (showUiTextScaleDialog) {
+                            SettingsTextScaleDialog(
+                                initialScale = Prefs.getUiTextScale(),
+                                onDismiss = { showUiTextScaleDialog = false },
+                                onApply = { scale ->
+                                    Prefs.setUiTextScale(scale)
+                                    showUiTextScaleDialog = false
+                                    (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) } ?: run { themeRevision++ }
+                                },
+                            )
                         }
                         if (showAccentColorDialog) {
                             ColorChooserDialog(
@@ -222,34 +243,8 @@ class SettingsFragment : Fragment() {
         themeRevision++
     }
 
-    private fun showRenderScalePicker() {
-        if (getContext() == null) return
-        val variants = floatArrayOf(1f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f)
-        val labels = variants.map { "${(it * 100).toInt()}%" }
-        val selected = variants.indexOfFirst { it == Prefs.getRenderScale() }.coerceAtLeast(0)
-        showChoiceDialog(R.string.SettingsInterfaceResolutionScale, labels, selected) { which ->
-            Prefs.setRenderScale(variants[which])
-            themeRevision++
-        }
-    }
-
     private fun showUiTextScalePicker() {
-        val context = getContext() ?: return
-        val variants = floatArrayOf(0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f)
-        val labels = variants.map { scale ->
-            val sizeLabel = when {
-                scale < 1f -> context.getString(R.string.SettingsTextSizeCompact)
-                scale == 1f -> context.getString(R.string.SettingsTextSizeStandard)
-                scale < 1.3f -> context.getString(R.string.SettingsTextSizeLarge)
-                else -> context.getString(R.string.SettingsTextSizeExtraLarge)
-            }
-            "$sizeLabel · ${(scale * 100).toInt()}%"
-        }
-        val selected = variants.indexOfFirst { it == Prefs.getUiTextScale() }.coerceAtLeast(0)
-        showChoiceDialog(R.string.SettingsInterfaceTextSize, labels, selected) { which ->
-            Prefs.setUiTextScale(variants[which])
-            (getContext() as? Activity)?.let { ThemesRepo.invalidate(it) } ?: run { themeRevision++ }
-        }
+        showUiTextScaleDialog = true
     }
 
     private fun toggleCameraProjection() {
@@ -351,13 +346,113 @@ internal fun SettingsResetConfirmationDialog(onDismiss: () -> Unit, onConfirm: (
 }
 
 @Composable
+internal fun SettingsTextScaleDialog(
+    initialScale: Float,
+    onDismiss: () -> Unit,
+    onApply: (Float) -> Unit,
+) {
+    val appScaleBeforePreview = Prefs.getUiTextScale().coerceIn(0.9f, 1.5f)
+    val inheritedDensity = LocalDensity.current
+    val sliderDescription = stringResource(R.string.SettingsInterfaceTextSize)
+    var previewScale by remember(initialScale) { mutableFloatStateOf(initialScale.coerceIn(0.9f, 1.5f)) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.SettingsInterfaceTextSize)) },
+        text = {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.65f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(stringResource(R.string.SettingsInterfaceTextScaleDescription))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.SettingsInterfaceTextScalePreview), Modifier.weight(1f))
+                    Text(
+                        "${(previewScale * 100).toInt()}%",
+                        Modifier.testTag("settings-ui-text-scale-value"),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Slider(
+                    value = previewScale,
+                    onValueChange = { previewScale = it },
+                    valueRange = 0.9f..1.5f,
+                    steps = 5,
+                    modifier = Modifier.fillMaxWidth()
+                        .semantics {
+                            contentDescription = sliderDescription
+                            stateDescription = "${(previewScale * 100).toInt()}%"
+                        }
+                        .testTag("settings-ui-text-scale-slider"),
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { previewScale = 1f }, modifier = Modifier.testTag("settings-ui-text-scale-reset")) {
+                        Text(stringResource(R.string.SettingsTextScaleReset))
+                    }
+                }
+                CompositionLocalProvider(
+                    LocalDensity provides Density(
+                        inheritedDensity.density,
+                        inheritedDensity.fontScale / appScaleBeforePreview * previewScale,
+                    ),
+                ) {
+                    Card(
+                        Modifier.fillMaxWidth().testTag("settings-ui-text-scale-preview-card"),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    ) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(stringResource(R.string.SettingsTextScalePreviewPlate), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.SettingsTextScalePreviewObject), style = MaterialTheme.typography.bodyMedium)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Surface(
+                                    Modifier.weight(1f).heightIn(min = 40.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(stringResource(R.string.SettingsTextScalePreviewEdit))
+                                    }
+                                }
+                                Surface(
+                                    Modifier.weight(1f).heightIn(min = 40.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(stringResource(R.string.SettingsTextScalePreviewSlice))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onApply(previewScale) },
+                modifier = Modifier.testTag("settings-ui-text-scale-apply"),
+            ) { Text(stringResource(R.string.SettingsTextScaleApply)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("settings-ui-text-scale-cancel")) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
 internal fun SettingsContent(
     expandedSections: Set<Int>,
     cloudAvailable: Boolean,
     boostyAvailable: Boolean,
     themeName: String,
     accentColor: String,
-    renderScale: String,
     uiTextScale: String,
     converterRoot: String,
     cameraProjection: String,
@@ -366,7 +461,6 @@ internal fun SettingsContent(
     onMaker: () -> Unit,
     onTheme: () -> Unit,
     onAccent: () -> Unit,
-    onRenderScale: () -> Unit,
     onUiTextScale: () -> Unit,
     onConverterFolder: () -> Unit,
     onCameraProjection: () -> Unit,
@@ -481,13 +575,6 @@ internal fun SettingsContent(
                         description = stringResource(R.string.SettingsInterfaceTextSizeDescription),
                         value = uiTextScale,
                         onClick = onUiTextScale,
-                        compactLayout = compactLayout,
-                    )
-                    SettingsRow(
-                        R.string.SettingsInterfaceResolutionScale,
-                        description = stringResource(R.string.SettingsInterfaceResolutionScaleDescription),
-                        value = renderScale,
-                        onClick = onRenderScale,
                         compactLayout = compactLayout,
                     )
                 }

@@ -67,7 +67,7 @@ fun ProfileFilterBar(
     val showFilters = expanded ?: filtersExpanded
     val stacked = ProfileSettingsMenuLayoutPolicy.usesStackedFilterControls(
         LocalConfiguration.current.screenWidthDp,
-        LocalDensity.current.fontScale,
+        ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current,
     )
     val favoritesDescription = stringResource(R.string.ProfileSettingsFavoritesToggle)
     val favoritesStateDescription = stringResource(

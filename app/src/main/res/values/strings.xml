@@ -921,6 +921,14 @@
     <string name="SettingsInterfaceColorReset">Reset to default</string>
     <string name="SettingsInterfaceTextSize">Menu text size</string>
     <string name="SettingsInterfaceTextSizeDescription">Adjusts text throughout the app menus. Android accessibility text scaling still applies.</string>
+    <string name="SettingsInterfaceTextScaleDescription">Preview and set the app text size. The workspace layout stays anchored to your screen size.</string>
+    <string name="SettingsInterfaceTextScalePreview">Live preview</string>
+    <string name="SettingsTextScalePreviewPlate">Build plate 1</string>
+    <string name="SettingsTextScalePreviewObject">Sample object · PLA</string>
+    <string name="SettingsTextScalePreviewEdit">Edit</string>
+    <string name="SettingsTextScalePreviewSlice">Slice</string>
+    <string name="SettingsTextScaleApply">Apply</string>
+    <string name="SettingsTextScaleReset">Standard size</string>
     <string name="SettingsTextSizeCompact">Compact</string>
     <string name="SettingsTextSizeStandard">Standard</string>
     <string name="SettingsTextSizeLarge">Large</string>

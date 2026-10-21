@@ -32,13 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
+import ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale
 import androidx.compose.material3.MaterialTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveWorkspaceNavigation
@@ -79,17 +79,17 @@ internal fun WorkspaceShell(
 ) {
     val toolPanelHeightDp = WorkspaceToolPanelPolicy.menuHeightDp(
         toolPanelNeedsTwoRows,
-        LocalDensity.current.fontScale,
+        LocalBeamLayoutFontScale.current,
         toolPanelAdditionalChromeDp,
     )
     val navigationHeightDp = AdaptiveNavigationPolicy.navigationBarHeightDp(
-        LocalDensity.current.fontScale,
+        LocalBeamLayoutFontScale.current,
         navigationItemCount,
     )
     val background = MaterialTheme.colorScheme.background
     val compactLabels = AdaptiveNavigationPolicy.usesCompactWorkspaceLabels(
         LocalConfiguration.current.screenWidthDp,
-        LocalDensity.current.fontScale,
+        LocalBeamLayoutFontScale.current,
         portrait,
     )
     val headerActionWeight = if (LocalConfiguration.current.screenWidthDp <= 320) 2f else 1.45f
@@ -162,7 +162,7 @@ internal fun WorkspaceShell(
                     val overlayHeightDp = WorkspaceShellLayoutPolicy.portraitMenuOverlayHeightDp(
                         viewportHeightDp = maxHeight.value.toInt(),
                         preferredHeightDp = toolPanelHeightDp,
-                        fontScale = LocalDensity.current.fontScale,
+                        fontScale = LocalBeamLayoutFontScale.current,
                     )
                     WorkspaceMenuHost(
                         slot = activeMenuSlot,
@@ -193,7 +193,7 @@ internal fun WorkspaceShell(
       } else {
         Row(Modifier.fillMaxSize()) {
             AdaptiveWorkspaceNavigation(
-                modifier = Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale).dp).fillMaxHeight(),
+                modifier = Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalBeamLayoutFontScale.current).dp).fillMaxHeight(),
                 items = navigationItems,
                 selectedSlot = selectedNavigationSlot,
                 isBottomNavigation = false,
@@ -242,7 +242,7 @@ internal fun WorkspaceShell(
           toolPanelHeightDp = toolPanelHeightDp,
           navigationHeightDp = navigationHeightDp,
           startInsetDp = if (portrait) 8 else
-              AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale) + menuWidthDp + 8,
+              AdaptiveNavigationPolicy.navigationRailWidthDp(LocalBeamLayoutFontScale.current) + menuWidthDp + 8,
       )
     }
 }

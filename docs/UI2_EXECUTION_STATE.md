@@ -2244,3 +2244,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - These are separate focused runs and not a new full instrumentation pass. No product defect was reproduced and no production source changed. Manual TalkBack service traversal remains unverified; the emulator is still offline.
 - Phase 5 remains active: actual visible action-to-handler reconciliation is not exhaustive. Phase 6 remains partial: automated camera and profile accessibility/layout paths now have recent Honor evidence, but a complete menu/display matrix and physical TalkBack are outstanding.
 - Next: complete the source-derived menu action matrix, marking send-to-printer and print-start items safety-excluded; then address uncovered safe actions with focused Honor tests.
+
+# Responsive workspace sizing and app text zoom — 2026-10-21
+
+- Current phase: Phase 6 (Responsive UI and Accessibility), in progress. Phase 5 action reconciliation remains open.
+- Implemented: workspace geometry now reads the system accessibility font scale separately from the app-specific text zoom. The app zoom therefore does not change viewport/navigation/panel layout breakpoints. Workspace sizing remains dp/window based. Removed the manual render resolution choice and clears its old persisted `render_scale`; the GL surface uses the automatic `DevicePerformancePolicy` scale.
+- App settings replaces discrete numeric text-size choices with a 90–150% slider, live preview, Standard reset, Apply, Cancel, and Android Back. Preview changes are temporary until Apply.
+- Device evidence: Honor PTP-N49 / Android 16 `SettingsMenuActionDeviceTest` 8/8 passed, including viewport position/size invariance. `SettingsAccessibilityDeviceTest` 1/1 passed with simulated 320/360/400 dp and 640×320 dp at 100/130/150% system font scales; this is not physical device resizing or TalkBack service traversal.
+- Regression/build: Debug unit 588/588; Slice unit 588/588; `:app:assembleDebug` succeeded. APK `OrkanSlicer_da183234ed.apk`, 239,148,120 bytes, SHA-256 `44221FF7A13C1FA426A12DA23925F8218ECEB3E276A2308CE20F83E1CBEED356`; Honor installed/launched 0.8.338 / code 373. Sampled logcat had no fatal exception, package ANR, OOM, or fatal signal. Emulator offline.
+- Remaining: verify at physical system font sizes and other devices if available; manual TalkBack traversal; continue the remaining Phase 5 action audit and responsive checks for other panels. Do not mark UI 2.0 complete based on this single responsive group.
+- Last code base at start: `da183234edf6b010a1736f80821ecdf7116722a3`. Next concrete step: commit and push this responsive-layout/settings change to the existing branch, then continue Phase 5/6 work.

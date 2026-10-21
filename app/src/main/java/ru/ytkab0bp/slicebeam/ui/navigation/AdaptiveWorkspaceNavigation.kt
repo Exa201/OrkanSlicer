@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -57,7 +56,7 @@ fun AdaptiveWorkspaceNavigation(
     railTestTag: String? = null,
     onSelected: (Int) -> Unit,
 ) {
-    val fontScale = LocalDensity.current.fontScale
+    val fontScale = ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current
     val twoRowBottomNavigation = AdaptiveNavigationPolicy.usesTwoRowBottomNavigation(fontScale, items.size)
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.surface) {
         if (isBottomNavigation) {
@@ -90,7 +89,7 @@ fun AdaptiveWorkspaceNavigation(
         } else {
             val railScrollState = rememberScrollState()
             Box(
-                Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale).dp)
+                Modifier.width(AdaptiveNavigationPolicy.navigationRailWidthDp(ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current).dp)
                     .heightIn(max = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp)
                     .fillMaxHeight(),
             ) {
