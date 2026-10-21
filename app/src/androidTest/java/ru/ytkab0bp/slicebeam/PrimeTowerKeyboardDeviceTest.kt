@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,6 +15,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.fragment.PrintConfigToolsLogic
 import ru.ytkab0bp.slicebeam.fragment.PrimeTowerPositionDialog
+import ru.ytkab0bp.slicebeam.render.PrimeTowerObstacle
+import ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 
 /** Exercises the Material Compose dialog window, keyboard, multi-plate values, and explicit Apply. */
@@ -66,5 +69,39 @@ class PrimeTowerKeyboardDeviceTest {
         compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
 
         compose.runOnIdle { assertEquals("10,21.5" to "30,31.25", applied) }
+    }
+
+    @Test
+    fun bedPreviewShowsModelAndAutomaticPlacementUpdatesCoordinates() {
+        val positions = PrintConfigToolsLogic.towerPositions("15", "15")
+        var applied: Pair<String, String>? = null
+        val map = PrimeTowerPlacementMap(
+            bedMinX = 0.0,
+            bedMinY = 0.0,
+            bedMaxX = 200.0,
+            bedMaxY = 200.0,
+            obstacles = listOf(PrimeTowerObstacle(0.0, 0.0, 70.0, 70.0)),
+        )
+
+        compose.setContent {
+            BeamComposeTheme {
+                PrimeTowerPositionDialog(
+                    positions = positions,
+                    onDismiss = {},
+                    onApply = { applied = it },
+                    placementMap = map,
+                    towerWidth = 35.0,
+                    towerDepth = 35.0,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("prime-tower-bed-preview").assertIsDisplayed()
+        compose.onNodeWithTag("prime-tower-auto-place").assertIsDisplayed().performClick()
+        compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.PrimeTowerPositionFree))
+            .assertIsDisplayed()
+        compose.onNodeWithText(InstrumentationRegistry.getInstrumentation().targetContext.getString(android.R.string.ok)).performClick()
+
+        compose.runOnIdle { assertEquals("77" to "2", applied) }
     }
 }

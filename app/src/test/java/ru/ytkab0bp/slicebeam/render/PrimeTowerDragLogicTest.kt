@@ -5,6 +5,36 @@ import org.junit.Test
 
 class PrimeTowerDragLogicTest {
     @Test
+    fun automaticPositionAvoidsModelsAndStaysInsideTheBed() {
+        val map = PrimeTowerPlacementMap(
+            bedMinX = 0.0,
+            bedMinY = 0.0,
+            bedMaxX = 200.0,
+            bedMaxY = 200.0,
+            obstacles = listOf(PrimeTowerObstacle(0.0, 0.0, 70.0, 70.0)),
+        )
+
+        val position = requireNotNull(PrimeTowerDragLogic.findFreePosition(map, 35.0, 35.0))
+
+        assertEquals(true, PrimeTowerDragLogic.isPositionFree(map, position.x, position.y, 35.0, 35.0))
+        assertEquals(true, position.x >= 0.0 && position.y >= 0.0)
+        assertEquals(true, position.x + 35.0 <= 200.0 && position.y + 35.0 <= 200.0)
+    }
+
+    @Test
+    fun automaticPositionReturnsNullWhenModelsCoverTheWholeBed() {
+        val map = PrimeTowerPlacementMap(
+            bedMinX = 0.0,
+            bedMinY = 0.0,
+            bedMaxX = 80.0,
+            bedMaxY = 80.0,
+            obstacles = listOf(PrimeTowerObstacle(-10.0, -10.0, 90.0, 90.0)),
+        )
+
+        assertEquals(null, PrimeTowerDragLogic.findFreePosition(map, 35.0, 35.0))
+    }
+
+    @Test
     fun towerHasPhoneFriendlyTouchMarginAroundVisibleFootprint() {
         assertEquals(
             true,

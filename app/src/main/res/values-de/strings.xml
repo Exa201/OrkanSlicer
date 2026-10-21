@@ -983,6 +983,12 @@
     <string name="No">Nein</string>
     <string name="UnsupportedFileType">Nicht unterstützter Dateityp: %1$s</string>
     <string name="PrimeTowerPosition">Turmposition X/Y</string>
+    <string name="PrimeTowerBedPreview">Druckplattenvorschau · Modelle und Reinigungsturm</string>
+    <string name="PrimeTowerPositionFree">Position ist frei</string>
+    <string name="PrimeTowerPositionBlocked">Reinigungsturm überschneidet ein Modell oder liegt außerhalb der Platte</string>
+    <string name="PrimeTowerPositionCoordinates">X %1$.1f mm · Y %2$.1f mm</string>
+    <string name="PrimeTowerFindFreePlace">Freien Platz finden</string>
+    <string name="PrimeTowerNoFreePlace">Kein freier Platz für den Reinigungsturm gefunden.</string>
     <string name="PrimeTowerPositionShort">Turmposition</string>
     <string name="PrimeTowerPositionInlineHelp">Reinigungsturm ziehen · antippen für genaue X-/Y-Werte</string>
     <string name="PrintConfigToolsTitle">Material und Spülung</string>

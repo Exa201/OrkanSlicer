@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.fragment
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,16 +24,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -40,6 +37,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -48,6 +49,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.render.PrimeTowerDragLogic
+import ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.max
@@ -245,6 +248,10 @@ internal fun PrimeTowerPositionEditor(
     error: Boolean,
     plateNumberOffset: Int = 0,
     helpTextResource: Int = R.string.PrintConfigPrimeTowerPositionHelp,
+    placementMap: PrimeTowerPlacementMap? = null,
+    previewPlateIndex: Int = 0,
+    towerWidth: Double = 35.0,
+    towerDepth: Double = 35.0,
     onXChanged: (Int, String) -> Unit,
     onYChanged: (Int, String) -> Unit,
 ) {
@@ -253,15 +260,6 @@ internal fun PrimeTowerPositionEditor(
         stringResource(helpTextResource, plateNumberOffset + 1)
     } else {
         stringResource(helpTextResource)
-    }
-    val firstFieldFocus = remember { FocusRequester() }
-    val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(Unit) {
-        if (positions.plateCount > 0) {
-            withFrameNanos { }
-            firstFieldFocus.requestFocus()
-            keyboard?.show()
-        }
     }
     Column(
         modifier = Modifier
@@ -277,6 +275,33 @@ internal fun PrimeTowerPositionEditor(
             fontSize = 16.sp,
             lineHeight = 22.sp,
         )
+        if (placementMap != null && previewPlateIndex in xValues.indices && previewPlateIndex in yValues.indices) {
+            val previewX = PrintConfigToolsLogic.parseInput(xValues[previewPlateIndex])?.toDouble() ?: 0.0
+            val previewY = PrintConfigToolsLogic.parseInput(yValues[previewPlateIndex])?.toDouble() ?: 0.0
+            PrimeTowerPlacementPreview(
+                map = placementMap,
+                x = previewX,
+                y = previewY,
+                towerWidth = towerWidth,
+                towerDepth = towerDepth,
+            )
+            val suggested = PrimeTowerDragLogic.findFreePosition(placementMap, towerWidth, towerDepth)
+            if (suggested != null) {
+                OutlinedButton(
+                    onClick = {
+                        onXChanged(previewPlateIndex, PrintConfigToolsLogic.formatCoordinate(suggested.x))
+                        onYChanged(previewPlateIndex, PrintConfigToolsLogic.formatCoordinate(suggested.y))
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("prime-tower-auto-place"),
+                ) { Text(stringResource(R.string.PrimeTowerFindFreePlace)) }
+            } else {
+                Text(
+                    stringResource(R.string.PrimeTowerNoFreePlace),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -301,12 +326,7 @@ internal fun PrimeTowerPositionEditor(
                     value = xValues.getOrElse(plate) { "15" },
                     label = stringResource(R.string.PrintConfigPrimeX),
                     error = error,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("prime-tower-x-$plate")
-                        .let { field ->
-                            if (plate == 0) field.focusRequester(firstFieldFocus) else field
-                        },
+                    modifier = Modifier.weight(1f).testTag("prime-tower-x-$plate"),
                     onValueChanged = { onXChanged(plate, it) },
                 )
                 TowerPositionField(
@@ -336,6 +356,10 @@ internal fun PrimeTowerPositionDialog(
     onApply: (Pair<String, String>) -> Unit,
     plateNumberOffset: Int = 0,
     helpTextResource: Int = R.string.PrintConfigPrimeTowerPositionHelp,
+    placementMap: PrimeTowerPlacementMap? = null,
+    previewPlateIndex: Int = 0,
+    towerWidth: Double = 35.0,
+    towerDepth: Double = 35.0,
 ) {
     val xValues = remember(positions) { mutableStateListOf<String>().apply { addAll(positions.x) } }
     val yValues = remember(positions) { mutableStateListOf<String>().apply { addAll(positions.y) } }
@@ -351,6 +375,10 @@ internal fun PrimeTowerPositionDialog(
                 error = error.value,
                 plateNumberOffset = plateNumberOffset,
                 helpTextResource = helpTextResource,
+                placementMap = placementMap,
+                previewPlateIndex = previewPlateIndex,
+                towerWidth = towerWidth,
+                towerDepth = towerDepth,
                 onXChanged = { index, value ->
                     if (index in xValues.indices) xValues[index] = value
                     error.value = false
@@ -376,6 +404,81 @@ internal fun PrimeTowerPositionDialog(
             }
         },
     )
+}
+
+@Composable
+private fun PrimeTowerPlacementPreview(
+    map: PrimeTowerPlacementMap,
+    x: Double,
+    y: Double,
+    towerWidth: Double,
+    towerDepth: Double,
+) {
+    val free = PrimeTowerDragLogic.isPositionFree(map, x, y, towerWidth, towerDepth)
+    val status = stringResource(if (free) R.string.PrimeTowerPositionFree else R.string.PrimeTowerPositionBlocked)
+    val previewDescription = stringResource(R.string.PrimeTowerBedPreview) + ". " + status
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.PrimeTowerBedPreview), style = MaterialTheme.typography.labelLarge)
+        Text(
+            status,
+            color = if (free) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(132.dp)
+                .testTag("prime-tower-bed-preview")
+                .semantics { contentDescription = previewDescription },
+        ) {
+            val inset = 8.dp.toPx()
+            val bedWidth = (map.bedMaxX - map.bedMinX).coerceAtLeast(1.0)
+            val bedDepth = (map.bedMaxY - map.bedMinY).coerceAtLeast(1.0)
+            val scale = minOf((size.width - inset * 2) / bedWidth.toFloat(), (size.height - inset * 2) / bedDepth.toFloat())
+            val bedRect = androidx.compose.ui.geometry.Rect(
+                inset,
+                inset,
+                inset + bedWidth.toFloat() * scale,
+                inset + bedDepth.toFloat() * scale,
+            )
+            drawRoundRect(
+                color = Color(0xFFE4E1E8),
+                topLeft = Offset(bedRect.left, bedRect.top),
+                size = Size(bedRect.width, bedRect.height),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()),
+            )
+            drawRoundRect(
+                color = Color(0xFF77727D),
+                topLeft = Offset(bedRect.left, bedRect.top),
+                size = Size(bedRect.width, bedRect.height),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()),
+                style = Stroke(1.dp.toPx()),
+            )
+            map.obstacles.forEach { obstacle ->
+                val left = inset + ((obstacle.minX - map.bedMinX) * scale).toFloat()
+                val top = inset + ((obstacle.minY - map.bedMinY) * scale).toFloat()
+                val right = inset + ((obstacle.maxX - map.bedMinX) * scale).toFloat()
+                val bottom = inset + ((obstacle.maxY - map.bedMinY) * scale).toFloat()
+                drawRect(
+                    color = Color(0xFF77727D),
+                    topLeft = Offset(left, top),
+                    size = Size((right - left).coerceAtLeast(1f), (bottom - top).coerceAtLeast(1f)),
+                )
+            }
+            val towerLeft = inset + ((x - map.bedMinX) * scale).toFloat()
+            val towerTop = inset + ((y - map.bedMinY) * scale).toFloat()
+            drawRect(
+                color = if (free) Color(0xFF00A884) else Color(0xFFD34B45),
+                topLeft = Offset(towerLeft, towerTop),
+                size = Size((towerWidth * scale).toFloat(), (towerDepth * scale).toFloat()),
+            )
+        }
+        Text(
+            text = stringResource(R.string.PrimeTowerPositionCoordinates, x, y) + " · " + status,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
 }
 
 @Composable
@@ -412,9 +515,21 @@ private fun TowerPositionField(
 internal data class PrintConfigFlushMatrix(val side: Int, val cells: List<String>)
 
 internal data class PrintConfigTowerPositions(val plateCount: Int, val x: List<String>, val y: List<String>)
+internal data class PrintConfigTowerFootprint(val width: Double, val depth: Double)
 
 /** Profile matrix and per-plate tower logic remains independent of Android views. */
 internal object PrintConfigToolsLogic {
+    fun towerFootprint(primeWidth: String?, legacyWidth: String?, flushMatrix: String?): PrintConfigTowerFootprint {
+        val parsedWidth = parseInput(primeWidth.orEmpty()) ?: parseInput(legacyWidth.orEmpty()) ?: 35f
+        val width = parsedWidth.toDouble().coerceIn(8.0, 120.0)
+        val maxFlush = parseSerialized(flushMatrix).mapNotNull { parseInput(it) }.maxOrNull() ?: 280f
+        val purgeVolume = maxFlush.takeIf { it > 0f } ?: 280f
+        val depth = maxOf(width, (purgeVolume.toDouble() / width * 6.0).coerceAtMost(180.0))
+        return PrintConfigTowerFootprint(width, depth)
+    }
+
+    fun formatCoordinate(value: Double): String = format(value.toFloat())
+
     fun flushMatrix(serialized: String?, slotCount: Int, maxSlots: Int): PrintConfigFlushMatrix {
         val parts = parseSerialized(serialized)
         val existingSide = if (parts.isEmpty()) 0 else ceil(sqrt(parts.size.toDouble())).toInt()

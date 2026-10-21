@@ -1002,6 +1002,12 @@
     <string name="No">No</string>
     <string name="UnsupportedFileType">Unsupported file type: %1$s</string>
     <string name="PrimeTowerPosition">Tower position X/Y</string>
+    <string name="PrimeTowerBedPreview">Bed preview · models and purge tower</string>
+    <string name="PrimeTowerPositionFree">Position is clear</string>
+    <string name="PrimeTowerPositionBlocked">Purge tower overlaps a model or is outside the bed</string>
+    <string name="PrimeTowerPositionCoordinates">X %1$.1f mm · Y %2$.1f mm</string>
+    <string name="PrimeTowerFindFreePlace">Find free position</string>
+    <string name="PrimeTowerNoFreePlace">No free position for the purge tower was found.</string>
     <string name="PrimeTowerPositionShort">Tower position</string>
     <string name="PrimeTowerPositionInlineHelp">Drag the purge tower · tap it to enter exact X/Y values</string>
     <string name="PrintConfigToolsTitle">Material and purge</string>

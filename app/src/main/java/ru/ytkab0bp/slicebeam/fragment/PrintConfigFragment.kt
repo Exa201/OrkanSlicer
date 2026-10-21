@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
+import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
@@ -134,6 +135,10 @@ class PrintConfigFragment : ProfileListFragment() {
                 is PrintConfigToolDialogState.PrimeTower -> PrimeTowerPositionDialog(
                     positions = dialog.positions,
                     onDismiss = { activeToolDialog = null },
+                    placementMap = dialog.placementMap,
+                    previewPlateIndex = dialog.previewPlateIndex,
+                    towerWidth = dialog.footprint.width,
+                    towerDepth = dialog.footprint.depth,
                     onApply = { serialized ->
                         activeToolDialog = null
                         applyOptionValue("wipe_tower_x", serialized.first)
@@ -180,7 +185,20 @@ class PrintConfigFragment : ProfileListFragment() {
             optionValue("wipe_tower_x"),
             optionValue("wipe_tower_y"),
         )
-        activeToolDialog = PrintConfigToolDialogState.PrimeTower(positions)
+        val workspace = (getContext() as? MainActivity)
+            ?.navigationDelegate?.getFragmentForSlot(0) as? BedFragment
+        val previewPlateIndex = (workspace?.activePlateIndex ?: 0).coerceIn(0, positions.plateCount - 1)
+        val footprint = PrintConfigToolsLogic.towerFootprint(
+            optionValue("prime_tower_width"),
+            optionValue("wipe_tower_width"),
+            optionValue("flush_volumes_matrix"),
+        )
+        activeToolDialog = PrintConfigToolDialogState.PrimeTower(
+            positions,
+            workspace?.primeTowerPlacementMap(),
+            previewPlateIndex,
+            footprint,
+        )
     }
 
     override fun cloneCurrentProfile() {
@@ -287,5 +305,10 @@ class PrintConfigFragment : ProfileListFragment() {
 
 private sealed interface PrintConfigToolDialogState {
     data class FlushVolumes(val matrix: PrintConfigFlushMatrix) : PrintConfigToolDialogState
-    data class PrimeTower(val positions: PrintConfigTowerPositions) : PrintConfigToolDialogState
+    data class PrimeTower(
+        val positions: PrintConfigTowerPositions,
+        val placementMap: ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap?,
+        val previewPlateIndex: Int,
+        val footprint: PrintConfigTowerFootprint,
+    ) : PrintConfigToolDialogState
 }

@@ -87,6 +87,8 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceShellLayoutPolicy
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCube
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
+import ru.ytkab0bp.slicebeam.render.PrimeTowerObstacle
+import ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
@@ -190,6 +192,28 @@ val currentModel:Model?
 get() {
 if (platesModels.isEmpty()) return null
 return platesModels.get(currentPlateIndex)
+}
+val activePlateIndex: Int get() = currentPlateIndex
+
+/** Snapshot active plate bounds for the print-profile prime-tower preview and free-space action. */
+internal fun primeTowerPlacementMap(): PrimeTowerPlacementMap? {
+    val renderer = glView?.renderer ?: return null
+    val bed = renderer.bed ?: return null
+    val minimum = bed.getVolumeMin() ?: return null
+    val maximum = bed.getVolumeMax() ?: return null
+    val model = currentModel
+    val obstacles = ArrayList<PrimeTowerObstacle>()
+    if (model != null) {
+        val objectMin = Vec3d()
+        val objectMax = Vec3d()
+        for (index in 0 until model.objectsCount) {
+            model.getBoundingBoxApprox(index, objectMin, objectMax)
+            if (objectMin.x.isFinite() && objectMin.y.isFinite() && objectMax.x.isFinite() && objectMax.y.isFinite()) {
+                obstacles.add(PrimeTowerObstacle(objectMin.x, objectMin.y, objectMax.x, objectMax.y))
+            }
+        }
+    }
+    return PrimeTowerPlacementMap(minimum.x, minimum.y, maximum.x, maximum.y, obstacles)
 }
 val plateCount:Int
 get() {
@@ -619,12 +643,20 @@ val positions = PrintConfigToolsLogic.towerPositions(
 )
 val plateIndex = currentPlateIndex.coerceIn(0, positions.plateCount - 1)
 val editorPositions = PrintConfigTowerPositions(1, listOf(positions.x[plateIndex]), listOf(positions.y[plateIndex]))
+val footprint = PrintConfigToolsLogic.towerFootprint(
+    config.get("prime_tower_width"),
+    config.get("wipe_tower_width"),
+    config.get("flush_volumes_matrix"),
+)
 showWorkspaceComposeDialog { dismiss ->
     PrimeTowerPositionDialog(
         positions = editorPositions,
         onDismiss = dismiss,
         plateNumberOffset = plateIndex,
         helpTextResource = R.string.PrimeTowerPositionTapHelp,
+        placementMap = primeTowerPlacementMap(),
+        towerWidth = footprint.width,
+        towerDepth = footprint.depth,
         onApply = apply@{ values ->
             val current = SliceBeam.buildCurrentConfigObject()
             val x = PrintConfigToolsLogic.updateTowerPosition(current.get("wipe_tower_x"), plateIndex, values.first)
