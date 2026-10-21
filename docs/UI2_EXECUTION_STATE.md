@@ -16,6 +16,14 @@
 
 ---
 
+# De-duplicate printer filament controls — 2026-10-21
+
+- Removed the duplicated ACE physical-slot row and model filament palette from the Druck profile screen. Filament/ACE management remains available from the workspace's main filament control, including slot sync; print-specific quick controls (prime tower and purge volumes) remain visible.
+- Added a navigation regression asserting the palette add action and ACE-slot heading are absent on the print-profile screen while both print quick controls remain. `MobileNavigationDeviceTest` passed 1/1 on Honor PTP-N49 / Android 16; targeted `AdaptiveNavigationPolicyTest` passed; `:app:assembleDebug` succeeded. No printer was contacted.
+- Next: continue the UI 2.0 action and accessibility audit. The physical Xiaomi is not connected, so visual verification on that device is still pending.
+
+---
+
 # Active feature checkpoint — model editing tools (2026-10-21)
 
 - Branch: `codex/rinkhals-safe-start-audit`; code base before this change: `43aa0a61795fc94aef1343d14b3b525364586d08`.

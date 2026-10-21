@@ -43,6 +43,11 @@ class MobileNavigationDeviceTest {
             activity.navigationDelegate.getCurrentFragment() is BedFragment)
 
         openDestination(context.getString(R.string.SlotPrintConfig), PrintConfigFragment::class.java)
+        compose.onNodeWithContentDescription(context.getString(R.string.FilamentPaletteAdd))
+            .assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.AcePhysicalSlotsTitle)).assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.PrimeTowerPositionShort)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.FlushVolumes)).assertIsDisplayed()
         openDestination(context.getString(R.string.NavigationFilament), FilamentConfigFragment::class.java)
         openDestination(context.getString(R.string.SlotPrinterConfig), PrinterConfigFragment::class.java)
         openDestination(context.getString(R.string.NavigationApp), SettingsFragment::class.java)

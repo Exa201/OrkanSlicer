@@ -18,7 +18,7 @@ import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.utils.Prefs
 
-/** Process-profile screen with printer filtering, purge controls and the filament palette. */
+/** Process-profile screen with printer filtering and purge controls. Filament routing lives in the workspace palette. */
 class PrintConfigFragment : ProfileListFragment() {
     private var compatItems: List<ProfileListItem>? = null
     private var lastPrinter: String? = null
@@ -33,7 +33,9 @@ class PrintConfigFragment : ProfileListFragment() {
 
     override fun useAccordionCategories(): Boolean = true
 
-    override fun showFilamentPalette(): Boolean = true
+    override fun showFilamentPalette(): Boolean = false
+
+    override fun showBelowFilamentPaletteContent(): Boolean = true
 
     override fun onCreate() {
         super.onCreate()

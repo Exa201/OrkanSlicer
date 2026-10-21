@@ -105,6 +105,9 @@ abstract class ProfileListFragment : Fragment() {
     /** The print screen overrides this to show its multi-color filament palette bar. */
     protected open fun showFilamentPalette(): Boolean = false
 
+    /** Quick controls can remain visible when their related palette is available elsewhere. */
+    protected open fun showBelowFilamentPaletteContent(): Boolean = showFilamentPalette()
+
     override fun onCreateView(ctx: Context): View {
         refreshProfileDropdownTitle()
         if (getProfileListType() != -1 && ctx is ViewModelStoreOwner) {
@@ -301,15 +304,19 @@ abstract class ProfileListFragment : Fragment() {
                                 filamentPaletteController?.Content(
                                     modifier = Modifier.weight(1f).heightIn(min = 64.dp).padding(bottom = 2.dp),
                                 )
-                                BelowFilamentPaletteContent(
-                                    modifier = Modifier.width(290.dp).padding(end = 12.dp, bottom = 4.dp),
-                                )
+                                if (showBelowFilamentPaletteContent()) {
+                                    BelowFilamentPaletteContent(
+                                        modifier = Modifier.width(290.dp).padding(end = 12.dp, bottom = 4.dp),
+                                    )
+                                }
                             }
                         } else {
-                            filamentPaletteController?.Content(
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(bottom = 2.dp),
-                            )
                             if (showFilamentPalette()) {
+                                filamentPaletteController?.Content(
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(bottom = 2.dp),
+                                )
+                            }
+                            if (showBelowFilamentPaletteContent()) {
                                 BelowFilamentPaletteContent(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 3.dp),
                                 )
