@@ -2193,3 +2193,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - This covers default generation and discard for these three generators, not user-selected parameter variants or Android save-picker write success. Phase 5 menu/action reconciliation and Phase 6 device/accessibility checks remain open. Xiaomi KromaCut rendering remains unverified.
 - Next: continue action-level verification of uncovered Maker generation/save routes, starting with successful SAF destination writing if a safe in-test destination can be provided; do not claim external save success from cancellation coverage.
 
+# Generated output SAF save round-trip — 2026-10-21
+
+- Added a test-only exported `ContentProvider` in the instrumentation APK; it writes to its own test cache and exposes bytes for assertions. No production manifest or app code changed.
+- Added an Honor device test that invokes the real generated-STL output dialog, chooses Save, drives remembered-folder cancellation into `ACTION_CREATE_DOCUMENT`, returns a test `content://` destination, and verifies the destination bytes exactly match the validated STL. It then chooses “keep saved” and verifies the temporary generated file is removed. The provider output is deleted in cleanup.
+- Honor PTP-N49 / Android 16: complete `MakerGeneratorWorkspaceDeviceTest` passed 23/23, 0 skipped/failures/errors. XML timestamp `2026-10-21T14:52:59`. It includes the three generator tests (Planter Pot, Power Strip Tray, Wall Tool Holder) added immediately before this run.
+- During test harness development, the first provider implementation accidentally pulled Kotlin runtime and then a Java NIO desugaring class unavailable in the isolated test APK; both were corrected by using a Java provider and `FileInputStream`. A path assumption was also removed; the provider now returns its bytes over `query()`. These were test-fixture issues, not app save-path defects. The final run passed.
+- This verifies app callback byte transfer into a controlled SAF-like content URI, not manual interaction with third-party Files apps or cloud document providers. No production source, app version, APK, external user file, printer action, or print start changed. Emulator remains offline; full JVM suites and broader instrumentation have not been rerun.
+- Next: continue concrete workspace action testing; separately verify third-party document-provider behavior when suitable provider/device coverage is available. Phase 5/6 and Xiaomi KromaCut hardware diagnosis remain open.
+

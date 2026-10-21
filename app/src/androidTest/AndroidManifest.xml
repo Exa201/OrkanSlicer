@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="ru.ytkab0bp.slicebeam.components.TestSaveDestinationProvider"
+            android:authorities="ru.ytkab0bp.slicebeam.test.save-destination"
+            android:exported="true"
+            android:grantUriPermissions="true" />
+    </application>
+</manifest>

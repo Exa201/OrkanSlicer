@@ -213,6 +213,88 @@ class MakerGeneratorWorkspaceDeviceTest {
     }
 
     @Test
+    fun generatedStlSavePickerWritesExactBytesToAnIsolatedContentDestination() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val preferences = requireNotNull(Prefs.getPrefs())
+        val previousRoot = preferences.getString("converter_storage_tree_uri", null)
+        preferences.edit().remove("converter_storage_tree_uri").commit()
+
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val rootRequestCode = MainActivity.REQUEST_CODE_CONVERTER_ROOT_SAVE
+        val documentRequestCode = MainActivity.REQUEST_CODE_SAVE_CONVERTED_FILE
+        val previousRootLauncher = requireNotNull(launchers[rootRequestCode])
+        val previousDocumentLauncher = requireNotNull(launchers[documentRequestCode])
+        val rootIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        val documentIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        fun capture(target: java.util.concurrent.atomic.AtomicReference<Intent?>) =
+            object : ActivityResultLauncher<Intent>() {
+                override val contract: androidx.activity.result.contract.ActivityResultContract<Intent, *> =
+                    ActivityResultContracts.StartActivityForResult()
+
+                override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                    target.set(Intent(input))
+                }
+
+                override fun unregister() = Unit
+            }
+        launchers[rootRequestCode] = capture(rootIntent)
+        launchers[documentRequestCode] = capture(documentIntent)
+
+        val output = java.io.File(activity.cacheDir, "isolated-generated-save.stl")
+        output.writeBytes(validTetrahedronStl())
+        val destination = Uri.parse("content://ru.ytkab0bp.slicebeam.test.save-destination/roundtrip")
+        try {
+            activity.contentResolver.openOutputStream(destination, "wt")!!.use { it.write(byteArrayOf(1, 2, 3)) }
+            assertTrue("The isolated test SAF provider must be writable before exercising the save callback",
+                readTestSaveDestination(activity, destination)?.contentEquals(byteArrayOf(1, 2, 3)) == true)
+            activity.contentResolver.delete(destination, null, null)
+            activity.runOnUiThread { ImageToStlConverter.saveGeneratedStl(activity, output, bed) }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.GeneratedOutputSave))
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { rootIntent.get() != null }
+            dispatchResult(activity, rootRequestCode, android.app.Activity.RESULT_CANCELED, Intent())
+            compose.waitUntil(timeoutMillis = 5_000) { documentIntent.get() != null }
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, requireNotNull(documentIntent.get()).action)
+
+            dispatchResult(
+                activity,
+                documentRequestCode,
+                android.app.Activity.RESULT_OK,
+                Intent().setData(destination),
+            )
+            compose.waitUntil(timeoutMillis = 5_000) {
+                bed.isWorkspaceMessageDialogAttached() && readTestSaveDestination(activity, destination) != null
+            }
+            assertTrue("The SAF destination must receive the exact generated STL bytes",
+                output.readBytes().contentEquals(requireNotNull(readTestSaveDestination(activity, destination))))
+            compose.onNodeWithText(activity.getString(ru.ytkab0bp.slicebeam.R.string.ConverterOnlySave))
+                .performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertFalse("Keeping the saved copy should clean up the temporary generated STL", output.exists())
+        } finally {
+            if (output.exists()) ImageToStlConverter.finishSave(activity, null)
+            activity.contentResolver.delete(destination, null, null)
+            launchers[rootRequestCode] = previousRootLauncher
+            launchers[documentRequestCode] = previousDocumentLauncher
+            preferences.edit().also { editor ->
+                if (previousRoot == null) editor.remove("converter_storage_tree_uri")
+                else editor.putString("converter_storage_tree_uri", previousRoot)
+            }.commit()
+        }
+    }
+
+    private fun readTestSaveDestination(activity: MainActivity, uri: Uri): ByteArray? =
+        activity.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (!cursor.moveToFirst()) null
+            else Base64.decode(cursor.getString(cursor.getColumnIndexOrThrow("payload")), Base64.NO_WRAP)
+        }
+
+    @Test
     fun kromacutWebGlCreationFailureShowsDismissibleWorkspaceError() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
