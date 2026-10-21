@@ -3,7 +3,7 @@
 - Device report (Xiaomi fuxi / Android 16) crashed on first touch in `GLView.onTouchEvent` → `GLRenderer.raycastObjectIndex` → lazy `GLModel.raycaster` → native `AABBMesh::AABBMesh` → `create_face_neighbors_index`.
 - Removed the unused per-face and per-vertex adjacency indexes from `AABBMesh` construction. The active AABB raycast only needs the AABB tree; adjacency was extra work on first touch and led into the reported native crash path.
 - Added Honor PTP-N49 regression: generate the app's standard M12 bolt, import 40,128 facets, initialize the native raycaster, and confirm an axial ray hits the model. Passed 1/1; raycast index 13 ms and complete test 1.089 s. The app was installed/launched on Honor; sampled logcat had no fatal, ANR, or OOM marker.
-- Version 0.8.343 / code 378. Debug + Slice JVM suites 594/594 each; ARM64 debug build successful. APK SHA-256 and release URL are recorded after publication below this checkpoint once available.
+- Version 0.8.343 / code 378. Debug + Slice JVM suites 594/594 each; ARM64 debug build successful. APK `OrkanSlicer_0.8.343-debug.apk`, 239,191,078 bytes, SHA-256 `4CF88E797383ACC2CBC060D98AD729DE0EC24895CCB6AAAD53EFADB461D2DC7D`; [GitHub prerelease](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.343), built from code commit `c2b143db4f12bb5ee3723e9866976aebff3d1175`.
 - Xiaomi itself is not attached to ADB, so actual Xiaomi reproduction is pending user verification. Continue prioritizing generated-model responsiveness and other model-editing features.
 
 ---
