@@ -2416,3 +2416,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: combined `ModelEditingNativeDeviceTest` and `NativeSliceDeviceTest` run completed 24/24 with no skips, failures, or errors. This exercises standalone text, group combination/placement, Boolean union/difference/intersection safety, SVG solid import, and actual extrusion G-code. The separate menu drag-and-drop run passed 4/4 immediately before this modeling pass.
 - No production implementation changed in this pass; these tests characterize existing native SVG support and lock in end-to-end slice behavior. `git diff --check` passed. Emulator remains offline; no Xiaomi validation was available.
 - Next: review multi-volume/multi-color grouping through slicing and add a regression ensuring per-volume extruder assignments survive Boolean and combine workflows, then continue safe model-editing actions. Do not stage `.codex-remote-attachments/`.
+
+# Multi-filament model editing through G-code — 2026-10-22
+
+- Added three native end-to-end slicing checks: separate objects assigned to T0/T1 emit a T1 change; combining them as multipart geometry retains both assignments and emits T1; a Boolean union retains the target's T0 assignment and does not emit a stale T1 for the removed tool object.
+- Honor PTP-N49 / Android 16: complete `NativeSliceDeviceTest` passed 9/9, including these assignment cases, standalone text extrusion, Boolean G-code, SVG G-code, and profile temperature delivery. No production code changed in this test group; no app APK or release was produced.
+- Current code branch is `codex/rinkhals-safe-start-audit`. Xiaomi remains unavailable for direct device validation. `git diff --check` passed before this checkpoint.
+- Next: verify per-volume material assignments across painted facets and saved/reloaded 3MF projects, then keep progressing through distinct multi-object model editing functions. Do not stage `.codex-remote-attachments/`.

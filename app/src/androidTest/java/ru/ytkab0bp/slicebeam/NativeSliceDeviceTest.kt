@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,6 +24,77 @@ import java.io.FileOutputStream
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun separateObjectsAssignedToDifferentFilamentsEmitToolChange() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "separate-filaments-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(listOf(1), model.getUsedFilaments(0).toList())
+            assertEquals(listOf(2), model.getUsedFilaments(1).toList())
+
+            val gcode = sliceToGcode(context, model, "separate-filaments-slice.gcode")
+
+            assertHasExtrusion(gcode)
+            assertTrue("the second object's T1 assignment must reach emitted G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun combinedMultipartObjectKeepsBothFilamentsThroughSlicing() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "combined-filaments-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("both part assignments must remain on the combined object", listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            val gcode = sliceToGcode(context, model, "combined-filaments-slice.gcode")
+
+            assertHasExtrusion(gcode)
+            assertTrue("the second part's T1 assignment must reach emitted G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanResultUsesTargetObjectsFilamentAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-filament-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 10.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            assertEquals(0, model.booleanObjects(0, 1, BooleanOperation.UNION))
+            assertEquals("a single Boolean solid should keep the target material", listOf(1), model.getUsedFilaments(0).toList())
+
+            val gcode = sliceToGcode(context, model, "boolean-filament-slice.gcode")
+
+            assertHasExtrusion(gcode)
+            assertFalse("the removed Boolean tool's T1 must not remain assigned", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test
     fun importedSvgSolidProducesExtrusionGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -359,5 +431,50 @@ class NativeSliceDeviceTest {
             SliceBeam.getCurrentConfigFile().delete()
             gcodeFile.delete()
         }
+    }
+
+    private inline fun withKobraProfile(block: () -> Unit) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            config.presets = ConfigObject("presets").apply {
+                put("printer", requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle")).title)
+                put("print", requireNotNull(config.findPrint("0.16mm Standard")).title)
+                put("filament", requireNotNull(config.findFilament("Anycubic Generic PLA")).title)
+            }
+            block()
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    private fun copyCube(context: Context, name: String): File = File(context.cacheDir, name).also { target ->
+        context.assets.open("models/xyz_cube.stl").use { input -> target.outputStream().use(input::copyTo) }
+    }
+
+    private fun sliceToGcode(context: Context, model: Model, name: String): String {
+        val gcodeFile = File(context.cacheDir, name)
+        var generatedConfig: File? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            return gcodeFile.readText()
+        } finally {
+            result?.release()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    private fun assertHasExtrusion(gcode: String) {
+        assertTrue("Slicing should produce non-empty G-code", gcode.isNotBlank())
+        assertTrue("Slicing should produce deposited moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
     }
 }
