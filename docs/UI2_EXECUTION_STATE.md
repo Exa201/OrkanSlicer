@@ -1,6 +1,6 @@
 # Latest checkpoint — 2026-10-22 (STEP/STP launch race fixed)
 
-- Current branch `codex/rinkhals-safe-start-audit`; app source baseline v0.8.349 / code 384. The STEP/STP importer and pre-load settings dialog were already present. Newly found issue: if the file picker/direct-open completed before BedFragment's Compose overlay host attached, the import path deleted the cached file and showed a misleading fallback instead of waiting.
+- Current branch `codex/rinkhals-safe-start-audit`; latest relevant commit `c7251313` (pushed to PR #2); app source baseline v0.8.349 / code 384. The STEP/STP importer and pre-load settings dialog were already present. Newly found issue: if the file picker/direct-open completed before BedFragment's Compose overlay host attached, the import path deleted the cached file and showed a misleading fallback instead of waiting.
 - Fixed by retrying dialog-host readiness for up to 10 seconds and preserving the cached file during this transient lifecycle race. A clear unavailable-host error is shown only after timeout.
 - Honor PTP-N49 / Android 16: delayed-host STEP→options dialog→mesh import/render regression passed 1/1. Targeted `StepImportOptionsTest` passed; Android instrumentation sources compiled; `git diff --check` passed. No production release/APK has been published for this fix yet.
 - Next: build and install a coherent debug APK for manual STEP and STP external-open verification; then continue UI 2.0 Phase 5/6 menu, responsive, and accessibility work. Xiaomi-specific verification remains unavailable.
