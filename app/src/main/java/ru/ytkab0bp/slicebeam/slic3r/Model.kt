@@ -283,6 +283,12 @@ open class Model private constructor(@JvmField var pointer: Long) {
         Native.model_set_uniform_filament(pointer, i, filament)
     }
 
+    /** Remaps imported logical filament IDs (one-based) throughout all model-part volumes and painted facets. */
+    open fun remapFilaments(sourceFilaments: IntArray, targetFilaments: IntArray) {
+        require(sourceFilaments.size == targetFilaments.size) { "Source and target filament arrays must match" }
+        Native.model_remap_filaments(pointer, sourceFilaments, targetFilaments)
+    }
+
     open fun applyAdaptiveLayerHeight(i: Int, configPath: String, qualityFactor: Float) {
         Native.model_apply_adaptive_layer_height(pointer, i, configPath, qualityFactor)
     }

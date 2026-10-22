@@ -2633,6 +2633,19 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.redoModelEdit() }
             assertEquals("Redo should restore the confirmed Z position", 18.75,
                 readTranslationOnGl(glView, 0).z, 0.01)
+
+            compose.onNodeWithContentDescription("Z")
+                .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(24f) }
+            val rulerMoved = readTranslationOnGl(glView, 0)
+            assertEquals("The Z ruler must preview and commit a Z translation", 24.0, rulerMoved.z, 0.01)
+            assertEquals("The Z ruler must not change X", original.x, rulerMoved.x, 0.01)
+            assertEquals("The Z ruler must not change Y", original.y, rulerMoved.y, 0.01)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            assertEquals("Undo should restore the previous Z after ruler movement", 18.75,
+                readTranslationOnGl(glView, 0).z, 0.01)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            assertEquals("Redo should restore the ruler-selected Z", 24.0,
+                readTranslationOnGl(glView, 0).z, 0.01)
         } finally {
             modelFile.delete()
         }

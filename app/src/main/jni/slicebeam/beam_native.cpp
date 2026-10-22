@@ -39,6 +39,7 @@
 #include "GLModel.hpp"
 #include "GLShader.hpp"
 #include "bed_utils.hpp"
+#include "ModelFilamentRemap.hpp"
 #include "libvgcode_utils.hpp"
 
 #include <igl/unproject.h>
@@ -1186,6 +1187,33 @@ extern "C" {
             volume->config.erase("extruder");
             volume->mmu_segmentation_facets.reset();
         }
+    }
+
+    // Remap source 3MF filament IDs to user-selected slots without flattening multipart objects.
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1remap_1filaments(
+            JNIEnv* env, jclass, jlong ptr, jintArray sourceFilaments, jintArray targetFilaments) {
+        ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+        if (model == nullptr || sourceFilaments == nullptr || targetFilaments == nullptr) return;
+        const jsize sourceCount = env->GetArrayLength(sourceFilaments);
+        const jsize targetCount = env->GetArrayLength(targetFilaments);
+        if (sourceCount != targetCount) return;
+
+        std::array<int, 17> remapping{};
+        jint* sources = env->GetIntArrayElements(sourceFilaments, nullptr);
+        jint* targets = env->GetIntArrayElements(targetFilaments, nullptr);
+        if (sources == nullptr || targets == nullptr) {
+            if (sources != nullptr) env->ReleaseIntArrayElements(sourceFilaments, sources, JNI_ABORT);
+            if (targets != nullptr) env->ReleaseIntArrayElements(targetFilaments, targets, JNI_ABORT);
+            return;
+        }
+        for (jsize index = 0; index < sourceCount; ++index) {
+            if (sources[index] >= 1 && sources[index] <= 16 && targets[index] >= 1 && targets[index] <= 16)
+                remapping[static_cast<size_t>(sources[index])] = targets[index];
+        }
+        env->ReleaseIntArrayElements(sourceFilaments, sources, JNI_ABORT);
+        env->ReleaseIntArrayElements(targetFilaments, targets, JNI_ABORT);
+        if (std::none_of(remapping.begin(), remapping.end(), [](int target) { return target > 0; })) return;
+        remap_model_filaments(model->model, remapping);
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1apply_1adaptive_1layer_1height(JNIEnv* env, jclass, jlong ptr, jint i, jstring configPath, jfloat qualityFactor) {

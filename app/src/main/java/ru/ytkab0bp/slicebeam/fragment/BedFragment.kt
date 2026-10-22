@@ -287,12 +287,22 @@ private fun filamentGateMappingSignature(): String {
 }
 
 /** Apply one assignment from the shared model/pre-slice dialog and refresh the model preview. */
-private fun applyFilamentAssignment(model: Model, selectedSlots: IntArray, after: () -> Unit) {
+private fun applyFilamentAssignment(
+    model: Model,
+    selectedSlots: IntArray,
+    sourceFilaments: IntArray? = null,
+    targetFilamentSlots: IntArray? = null,
+    after: () -> Unit,
+) {
     val viewport = glView ?: return
     viewport.queueEvent {
         if (currentModel !== model) return@queueEvent
         selectedSlots.forEachIndexed { index, slot ->
             if (slot >= 0) viewport.renderer.setObjectUniformFilament(index, slot + 1)
+        }
+        if (sourceFilaments != null && targetFilamentSlots != null) {
+            model.remapFilaments(sourceFilaments, targetFilamentSlots)
+            repeat(model.objectsCount) { viewport.renderer.invalidateGlModel(it) }
         }
         val config = SliceBeam.CONFIG
         val printerTitle = config?.presets?.get("printer")?.let(config::findPrinter)?.title
@@ -341,9 +351,17 @@ fun showModelColorSlots(synchronize: Boolean = false) {
         }
         return
     }
-    PreSliceFilamentDialog.show(this, model, { selectedSlots ->
-        applyFilamentAssignment(model, selectedSlots) {
-            Toast.makeText(context, R.string.ModelColorSlotsSaved, Toast.LENGTH_SHORT).show()
+    PreSliceFilamentDialog.show(this, model, object : PreSliceFilamentDialog.Callback {
+        override fun onSelected(slotIndices: IntArray) {
+            applyFilamentAssignment(model, slotIndices) {
+                Toast.makeText(context, R.string.ModelColorSlotsSaved, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        override fun onSourceColorsSelected(slotIndices: IntArray, sourceTools: IntArray, targetSlots: IntArray) {
+            applyFilamentAssignment(model, slotIndices, sourceTools, targetSlots) {
+                Toast.makeText(context, R.string.ModelColorSlotsSaved, Toast.LENGTH_SHORT).show()
+            }
         }
     }, R.string.ModelColorSlotsApply, R.string.ModelColorSlotsAction)
 }
@@ -427,8 +445,16 @@ if (preparedFilamentModel === activeModel &&
     runSlice(activeModel, onSuccess)
     return
 }
-PreSliceFilamentDialog.show(this, activeModel, { selectedSlots ->
-    applyFilamentAssignment(activeModel, selectedSlots) { runSlice(activeModel, onSuccess) }
+PreSliceFilamentDialog.show(this, activeModel, object : PreSliceFilamentDialog.Callback {
+    override fun onSelected(slotIndices: IntArray) {
+        applyFilamentAssignment(activeModel, slotIndices) { runSlice(activeModel, onSuccess) }
+    }
+
+    override fun onSourceColorsSelected(slotIndices: IntArray, sourceTools: IntArray, targetSlots: IntArray) {
+        applyFilamentAssignment(activeModel, slotIndices, sourceTools, targetSlots) {
+            runSlice(activeModel, onSuccess)
+        }
+    }
 })
 }
 private fun showMmuSyncFailure(context:Context, onContinue: Runnable) {

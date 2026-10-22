@@ -70,6 +70,16 @@ internal object OrientationTransformPolicy {
         OrientationAxis.Z -> values.copy(z = value)
     }
 
+    fun positionFromRuler(
+        current: OrientationVector3,
+        values: OrientationAxisValues,
+        axis: OrientationAxis,
+    ) = when (axis) {
+        OrientationAxis.X -> current.copy(x = values.x.toDouble())
+        OrientationAxis.Y -> current.copy(y = values.y.toDouble())
+        OrientationAxis.Z -> current.copy(z = values.z.toDouble())
+    }
+
     fun normalizedDegrees(value: Double): Double = if (value.isFinite()) value % 360.0 else 0.0
 
     fun normalizedDegrees(values: OrientationVector3) = OrientationVector3(
@@ -170,11 +180,10 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
         previewTranslation(index, target)
     }
 
-    private fun previewFromRuler(values: OrientationAxisValues) {
+    private fun previewFromRuler(axis: OrientationAxis, values: OrientationAxisValues) {
         val index = bed.glView?.renderer?.selectedObject ?: return
         if (index < 0) return
-        val current = position.value
-        val target = OrientationVector3(values.x.toDouble(), values.y.toDouble(), current.z)
+        val target = OrientationTransformPolicy.positionFromRuler(position.value, values, axis)
         position.value = target
         selectedObjectForPreview = index
         previewTranslation(index, target)
@@ -229,7 +238,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
     private fun changeRuler(axis: OrientationAxis, value: Int) {
         val next = OrientationTransformPolicy.setAxis(rulerValues.value, axis, value)
         rulerValues.value = next
-        previewFromRuler(next)
+        previewFromRuler(axis, next)
     }
 
     private fun editAxis(axis: OrientationAxis, title: Int) {

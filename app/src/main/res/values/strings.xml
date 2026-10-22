@@ -52,6 +52,10 @@
     <string name="MakerBack">Back</string>
     <string name="ProjectSettingsTemporarySource">Temporary 3MF settings\n%1$s</string>
     <string name="PreSliceKeepModelColors">Keep model colors and part assignments</string>
+    <string name="PreSliceRemapModelColors">Assign each model color to a slot</string>
+    <string name="PreSliceRemapModelColorsHelp">Choose a filament slot for each imported T color. The same source color in every object is remapped together.</string>
+    <string name="PreSliceSourceColorMapping">Model T%1$d (%2$s) → Slot %3$d (%4$s)</string>
+    <string name="PreSliceChooseSourceColorSlot">Choose slot for model T%1$d</string>
     <string name="PreSliceOffline">Slice only (offline)</string>
     <string name="ProjectBooleanInherit">Automatic (printer value)</string>
     <string name="ProjectBooleanOff">Off</string>

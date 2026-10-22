@@ -244,6 +244,76 @@ class SlicePrintPreparationComposeDeviceTest {
     }
 
     @Test
+    fun multipartModelColorsCanBeRemappedIndividuallyToTheSameSlot() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val previousSlots = Prefs.getFilamentSlots()
+        val slots = listOf(
+            FilamentSlot(0xFF212721.toInt(), "PETG"),
+            FilamentSlot(0xFFFFFFFF.toInt(), "PLA"),
+            FilamentSlot(0xFF0047BB.toInt(), "PLA"),
+        )
+        val source = File(activity.cacheDir, "pre-slice-remap-colors.stl")
+        activity.assets
+            .open("models/xyz_cube.stl").use { input -> source.outputStream().use(input::copyTo) }
+        var model: Model? = null
+        try {
+            Prefs.setFilamentSlots(slots)
+            model = Model(source)
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.translate(2, 60.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+            val objectIndices = IntArray(model.objectsCount) { it }
+            assertEquals(0, model.combineObjectsAsParts(objectIndices))
+            assertEquals(1, model.objectsCount)
+            val sourceTools = model.getUsedFilaments(0).map { it - 1 }.toIntArray()
+            assertTrue("combined project should retain at least two imported colors", sourceTools.size >= 2)
+
+            val result = AtomicReference<IntArray?>()
+            val mappedSources = AtomicReference<IntArray?>()
+            val mappedTargets = AtomicReference<IntArray?>()
+            activity.runOnUiThread {
+                PreSliceFilamentDialog.show(
+                    fragment = bed,
+                    model = model,
+                    callback = object : PreSliceFilamentDialog.Callback {
+                        override fun onSelected(slotIndices: IntArray) { result.set(slotIndices) }
+                        override fun onSourceColorsSelected(slotIndices: IntArray, sourceFilaments: IntArray, targetFilaments: IntArray) {
+                            result.set(slotIndices)
+                            mappedSources.set(sourceFilaments)
+                            mappedTargets.set(targetFilaments)
+                        }
+                    },
+                    positiveLabel = R.string.ModelColorSlotsApply,
+                    titleLabel = R.string.ModelColorSlotsAction,
+                )
+            }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithText(activity.getString(R.string.PreSliceRemapModelColors)).performScrollTo().performClick()
+            sourceTools.take(2).forEach { sourceTool ->
+                compose.onNodeWithTag("pre-slice-source-tool-$sourceTool").performScrollTo().performClick()
+                compose.onNodeWithTag("pre-slice-source-$sourceTool-slot-1").performScrollTo().performClick()
+            }
+            compose.onNodeWithTag("pre-slice-confirm").performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+
+            assertArrayEquals("color remapping preserves object-level overrides", intArrayOf(-1), requireNotNull(result.get()))
+            assertArrayEquals("every model color is passed as a one-based source tool",
+                sourceTools.map { it + 1 }.toIntArray(), requireNotNull(mappedSources.get()))
+            val targetTools = requireNotNull(mappedTargets.get())
+            assertEquals("two model colors may intentionally map to the same destination slot", 2, targetTools.count { it == 2 })
+        } finally {
+            model?.release()
+            source.delete()
+            Prefs.setFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
     fun sliceMenuPrinterActionsRequireSupportedHostAndDispatchOnlyInjectedCallback() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

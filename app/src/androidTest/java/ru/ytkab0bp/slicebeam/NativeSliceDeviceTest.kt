@@ -145,6 +145,76 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun perSourceColorRemappingSurvives3mfReloadAndEmitsMappedTools() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sourceFile = copyCube(context, "per-color-remap-source.stl")
+        val firstRoundTrip = File(context.cacheDir, "per-color-remap-first.3mf")
+        val sharedRoundTrip = File(context.cacheDir, "per-color-remap-shared.3mf")
+        val firstOutput = File(context.cacheDir, "per-color-remap-first.gcode")
+        val sharedOutput = File(context.cacheDir, "per-color-remap-shared.gcode")
+        val model = Model(sourceFile)
+        var firstReload: Model? = null
+        var sharedReload: Model? = null
+        var firstResult: GCodeProcessorResult? = null
+        var sharedResult: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.translate(2, 60.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1, 2)))
+            assertEquals(listOf(1, 2, 3), model.getUsedFilaments(0).toList())
+
+            model.remapFilaments(intArrayOf(1, 2, 3), intArrayOf(2, 3, 3))
+            assertEquals("each 3MF material must map independently, including two sharing a target",
+                listOf(2, 3), model.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, firstRoundTrip.absolutePath)
+            firstReload = Model(firstRoundTrip, 1)
+            assertEquals("source color assignments must survive 3MF reload", listOf(2, 3),
+                firstReload.getUsedFilaments(0).toList())
+            firstResult = firstReload.slice(SliceBeam.getCurrentConfigFile().absolutePath,
+                firstOutput.absolutePath, null)
+            val firstGcode = firstOutput.readText()
+            assertHasExtrusion(firstGcode)
+            assertTrue("mapped source colors must use output tools T1 and T2",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(firstGcode) &&
+                    Regex("(?m)^T2(?:\\s|$)").containsMatchIn(firstGcode))
+            assertFalse("unmapped T0 must not be emitted", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(firstGcode))
+
+            firstReload.remapFilaments(intArrayOf(2, 3), intArrayOf(2, 2))
+            assertEquals("different model colors may intentionally share one filament slot", listOf(2),
+                firstReload.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(firstReload)
+            firstReload.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, sharedRoundTrip.absolutePath)
+            sharedReload = Model(sharedRoundTrip, 1)
+            assertEquals(listOf(2), sharedReload.getUsedFilaments(0).toList())
+            sharedResult = sharedReload.slice(SliceBeam.getCurrentConfigFile().absolutePath,
+                sharedOutput.absolutePath, null)
+            val sharedGcode = sharedOutput.readText()
+            assertHasExtrusion(sharedGcode)
+            assertTrue("the shared assignment must slice with target tool T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(sharedGcode))
+            assertFalse("the shared assignment must not retain target tool T2",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(sharedGcode))
+        } finally {
+            firstResult?.release()
+            sharedResult?.release()
+            firstReload?.release()
+            sharedReload?.release()
+            model.release()
+            sourceFile.delete()
+            firstRoundTrip.delete()
+            sharedRoundTrip.delete()
+            firstOutput.delete()
+            sharedOutput.delete()
+        }
+    }
+
+    @Test
     fun placedObjectGroupRemainsPrintableAfterSurfacePlacement() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "placed-group-slice.stl")

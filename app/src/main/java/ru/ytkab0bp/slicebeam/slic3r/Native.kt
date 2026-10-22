@@ -169,6 +169,8 @@ class Native {
     @JvmStatic
     external fun model_set_uniform_filament(ptr: Long, i: Int, filament: Int): Unit
     @JvmStatic
+    external fun model_remap_filaments(ptr: Long, sourceFilaments: IntArray, targetFilaments: IntArray): Unit
+    @JvmStatic
     external fun model_apply_adaptive_layer_height(ptr: Long, i: Int, configPath: String, qualityFactor: Float): Unit
     @JvmStatic
     external fun model_clear_adaptive_layer_height(ptr: Long, i: Int): Unit
