@@ -10,6 +10,7 @@
     <string name="StepSaveDefaults">Diese Werte als Standard speichern</string>
     <string name="StepInvalidOptions">Bitte gültige Werte innerhalb der angegebenen Bereiche eingeben.</string>
     <string name="StepImportAction">Netz erzeugen und laden</string>
+    <string name="StepImportWorkspaceUnavailable">Der Arbeitsbereich wird noch vorbereitet. Öffne die Datei erneut, sobald die Druckplatte sichtbar ist.</string>
     <string name="LargeModelPreciseSurfaceUnavailable">Dieses Werkzeug braucht einen genauen Oberflächenpunkt. Vereinfache zuerst das Modell; auswählen kannst du es weiterhin.</string>
     <string name="LargeModelSurfaceTitle">Für Oberflächenwerkzeuge vereinfachen?</string>
     <string name="LargeModelSurfaceMessage">Dieses Modell hat %1$d Dreiecke. Zum Malen und Prägen sind höchstens %2$d nötig. Die Vereinfachung verändert das Modell auf der Druckplatte und kann Details entfernen; die Quelldatei bleibt erhalten. Öffne das Werkzeug danach erneut.</string>

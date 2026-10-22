@@ -903,7 +903,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun projectMenuPromptsForStepMeshingOptionsThenImportsAndRendersSelectedFile() {
+    fun projectMenuWaitsForWorkspaceHostThenPromptsForStepOptionsAndRendersFile() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val fileName = "menu-step-import-${System.nanoTime()}.step"
@@ -932,6 +932,7 @@ class InitialProjectMenuDeviceTest {
             PackageManager.GET_PROVIDERS,
         ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
         val authority = requireNotNull(provider.authority).substringBefore(';')
+        val originalOverlay = bed.overlayLayout
         try {
             InstrumentationRegistry.getInstrumentation().context.assets
                 .open("step_cube_ccby4.step").use { source ->
@@ -950,11 +951,14 @@ class InitialProjectMenuDeviceTest {
 
             val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
             activity.runOnUiThread {
+                // Simulate the STEP file finishing its cache copy before the workspace overlay attaches.
+                bed.overlayLayout = null
                 MainActivity::class.java.getDeclaredMethod(
                     "dispatchActivityResult", Int::class.javaPrimitiveType,
                     Int::class.javaPrimitiveType, Intent::class.java,
                 ).apply { isAccessible = true }
                     .invoke(activity, requestCode, Activity.RESULT_OK, Intent().setData(inputUri))
+                activity.window.decorView.postDelayed({ bed.overlayLayout = originalOverlay }, 350)
             }
 
             compose.waitUntil(timeoutMillis = 15_000) {
@@ -975,6 +979,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue("the loaded model must contain renderable triangles",
                 requireNotNull(bed.currentModel).getTriangleCount(0) > 0)
         } finally {
+            activity.runOnUiThread { bed.overlayLayout = originalOverlay }
             launchers[requestCode] = previousLauncher
             inputFile.delete()
             cachedImport.delete()

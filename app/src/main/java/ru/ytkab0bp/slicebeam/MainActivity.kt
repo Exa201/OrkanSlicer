@@ -1685,13 +1685,22 @@ ViewUtils.postOnMainThread({ showFileOperationError(
 }
 } })
 }
-private fun showStepImportOptions(file:File, autoorient:Boolean) {
+private fun showStepImportOptions(file:File, autoorient:Boolean, readinessAttempt:Int = 0) {
     if (isFinishing || isDestroyed) { file.delete(); return }
     val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
     if (bed?.canShowWorkspaceComposeDialog() != true) {
+        // ACTION_VIEW can arrive while the activity is still attaching its initial fragment.
+        // Do not discard the selected STEP file just because the Compose overlay host is not ready yet.
+        if (readinessAttempt < STEP_DIALOG_HOST_MAX_ATTEMPTS) {
+            window.decorView.postDelayed(
+                { showStepImportOptions(file, autoorient, readinessAttempt + 1) },
+                STEP_DIALOG_HOST_RETRY_DELAY_MS,
+            )
+            return
+        }
         showFileOperationError(
             getString(R.string.StepImportTitle),
-            getString(R.string.StepImportDescription),
+            getString(R.string.StepImportWorkspaceUnavailable),
         )
         file.delete()
         return
@@ -2122,6 +2131,8 @@ private val ACTIVITY_RESULT_REQUEST_CODES = intArrayOf(
     REQUEST_CODE_CONVERTER_ROOT_SAVE,
     ru.ytkab0bp.slicebeam.components.KromacutEditorMenu.REQUEST_CODE_FILE,
 )
+private val STEP_DIALOG_HOST_RETRY_DELAY_MS = 100L
+private val STEP_DIALOG_HOST_MAX_ATTEMPTS = 100
 private var activeInstance: MainActivity? = null
 @JvmField
 var EXPORTING_PRINTS: List<ConfigObject>? = null

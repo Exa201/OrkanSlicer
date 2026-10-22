@@ -1,3 +1,10 @@
+# STEP/STP-Import und Interaktionsstart — 2026-10-22
+
+- Ursache eingegrenzt: STEP/STP-Erkennung, Einstellungsdialog und nativer Import waren bereits vorhanden. Bei direktem Dateistart bzw. frühem Rücklauf des Dateiauswahldialogs konnte der Workspace-Compose-Overlayhost noch nicht bereit sein. Der bisherige Fehlerpfad löschte dann die zwischengespeicherte Datei, statt auf den Host zu warten.
+- Behoben: der Import wartet bis zu 10 Sekunden auf den Workspace-Dialoghost. Erst wenn dieser wirklich nicht verfügbar wird, erscheint eine konkrete Meldung. Ein kurzer Fragment-/Overlay-Lifecycle-Rennzustand verwirft die Datei nicht mehr.
+- Honor PTP-N49 / Android 16: Regressionstest mit absichtlich verzögert bereitgestelltem Overlayhost bestanden (1/1). Er bestätigt, dass vor der Bestätigung kein Modell geladen wird und danach ein renderbares Dreiecksnetz erscheint. Android-Testquellen kompiliert; gezielter JVM-Test `StepImportOptionsTest` erfolgreich. `git diff --check` erfolgreich.
+- Version bleibt 0.8.349 / code 384; dies ist ein noch unveröffentlichter Bugfix-Stand. In diesem Schritt wurde kein Release erstellt.
+
 # Post-release KromaCut fixture and repeated-slot assignment — Honor, 2026-10-22
 
 - The user-provided `kromacut-1792184183294-kromacut-2026-10-16.3mf` was staged only in the isolated `sliceTest` app's external-files directory on Honor PTP-N49 / Android 16 (SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`). `KromaCutThreeMfDeviceTest`: 3/3 passed, 0 failures/errors/skips. Coverage includes independent import-choice combinations, own-settings vs embedded settings, palette recoloring and paint followed by real slicing, and the reported T0→white ACE2 / T1→blue ACE4 mapping. The emitted native G-code retained both used tools and the selected white/blue palette; the G-code preview palette matched the native slicer result.
