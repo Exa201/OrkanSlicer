@@ -94,7 +94,9 @@ class NativeSliceDeviceTest {
     fun placedObjectGroupRemainsPrintableAfterSurfacePlacement() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "placed-group-slice.stl")
+        val projectFile = File(context.cacheDir, "placed-group-roundtrip.3mf")
         val model = Model(modelFile)
+        var restored: Model? = null
         try {
             model.addObject(model, 0)
             model.addObject(model, 0)
@@ -123,13 +125,26 @@ class NativeSliceDeviceTest {
             assertEquals(1, model.objectsCount)
             assertEquals("surface placement assembly must retain target and placed-part tools",
                 listOf(1, 2), model.getUsedFilaments(0).toList())
-            val gcode = sliceToGcode(context, model, "placed-group-slice.gcode")
+            SliceBeam.genCurrentConfig(model)
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals("surface-placed multipart object must survive project reload", 1, restored.objectsCount)
+            assertEquals("surface placement must retain the target and placed-part tools after reload",
+                listOf(1, 2), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "placed-group-slice.gcode")
             assertHasExtrusion(gcode)
             assertTrue("the placed assembly's second material must reach G-code",
                 Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
         } finally {
+            restored?.release()
             model.release()
             modelFile.delete()
+            projectFile.delete()
         }
     }
 
@@ -137,7 +152,9 @@ class NativeSliceDeviceTest {
     fun booleanResultUsesTargetObjectsFilamentAndStillSlices() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "boolean-filament-slice.stl")
+        val projectFile = File(context.cacheDir, "boolean-filament-roundtrip.3mf")
         val model = Model(modelFile)
+        var restored: Model? = null
         try {
             model.addObject(model, 0)
             model.translate(1, 10.0, 0.0, 0.0)
@@ -147,13 +164,26 @@ class NativeSliceDeviceTest {
             assertEquals(0, model.booleanObjects(0, 1, BooleanOperation.UNION))
             assertEquals("a single Boolean solid should keep the target material", listOf(1), model.getUsedFilaments(0).toList())
 
-            val gcode = sliceToGcode(context, model, "boolean-filament-slice.gcode")
+            SliceBeam.genCurrentConfig(model)
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals("the Boolean result should survive project reload", 1, restored.objectsCount)
+            assertEquals("reload must keep the target material and omit the removed cutter material",
+                listOf(1), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "boolean-filament-slice.gcode")
 
             assertHasExtrusion(gcode)
             assertFalse("the removed Boolean tool's T1 must not remain assigned", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
         } finally {
+            restored?.release()
             model.release()
             modelFile.delete()
+            projectFile.delete()
         }
     }
 
@@ -281,8 +311,10 @@ class NativeSliceDeviceTest {
         }
 
         val fontFile = File(context.cacheDir, "standalone-text-slice-font.ttf")
+        val projectFile = File(context.cacheDir, "standalone-text-roundtrip.3mf")
         val gcodeFile = File(context.cacheDir, "standalone-text-slice.gcode")
         var model: Model? = null
+        var restored: Model? = null
         var sliceResult: GCodeProcessorResult? = null
         var generatedConfig: File? = null
         try {
@@ -301,15 +333,27 @@ class NativeSliceDeviceTest {
 
             SliceBeam.genCurrentConfig(model)
             generatedConfig = SliceBeam.getCurrentConfigFile()
-            sliceResult = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("standalone text should remain a separate object after 3MF reload", 1, restored.objectsCount)
+            assertEquals("text label should survive project reload", "ORKAN", restored.getObjectName(0))
+            assertTrue("reloaded text should remain a printable mesh", restored.getTriangleCount(0) > 0)
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
             val gcode = gcodeFile.readText()
             assertTrue("native slicer should emit G-code for standalone text", gcode.isNotBlank())
             assertTrue("text G-code should contain deposited moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
             Log.i("NativeSliceDeviceTest", "PASS standalone text G-code bytes=${gcodeFile.length()}")
         } finally {
             sliceResult?.release()
+            restored?.release()
             model?.release()
             fontFile.delete()
+            projectFile.delete()
             gcodeFile.delete()
             generatedConfig?.delete()
             SliceBeam.CONFIG = previousConfig

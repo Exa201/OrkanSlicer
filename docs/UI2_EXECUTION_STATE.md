@@ -2483,3 +2483,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 
 - Published regular GitHub Release 0.8.346 from code commit 6718417fd6ef88d23a74a32a9a6e4add87b053cf: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.346. APK OrkanSlicer_6718417fd6.apk, 239,263,616 bytes, SHA-256 71D6BB97ED265E8897DBB1435C67B437C17728449A25BFBAED1D4B08ED03FCFC; version 0.8.346 / code 381. Debug-signed because no production release keystore exists. Installed/launched on Honor PTP-N49 / Android 16. Z and X positioning focused tests passed; no full unit suites were rerun for release metadata-only version bump.
 - Next: continue remaining UI 2.0 and model-editing backlog from current code; Xiaomi-specific verification, full action audit and full responsiveness/accessibility matrix remain open. No print/firmware action.
+
+# Model editing 3MF round-trip slicing — 2026-10-22
+
+- Strengthened three native editing-to-slice workflows: (1) objects placed as a multipart assembly on another object's surface, (2) independent 3D text, and (3) a Boolean union. Each now exports to 3MF, reloads the archive, validates geometry/material assignment, and slices the reloaded project to G-code.
+- Honor PTP-N49 / Android 16: NativeSliceDeviceTest passed 10/10 (0 failures/errors/skips). The placed assembly kept target/T1 material assignments; the Boolean result retained only the target filament; standalone text retained its label and printable mesh. All three emitted extrusion G-code after reload.
+- Test sources compiled and git diff --check passed. No product behavior changed, no APK/release created, and no printer/firmware action.
+- Next: continue actual model editing and safety coverage, prioritizing Boolean union/difference/intersection round-trips plus placement/group undo/redo through project save/reload. Full JVM suites are not rerun for this device-test-only pass.
