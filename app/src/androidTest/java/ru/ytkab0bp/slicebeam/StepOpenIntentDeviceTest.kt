@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.content.Intent
+import android.content.ClipData
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,6 +29,13 @@ class StepOpenIntentDeviceTest {
             // Some file managers omit the MIME type entirely when sharing a file URL.
             Intent(Intent.ACTION_VIEW).setData(Uri.parse("file:///storage/emulated/0/Download/model.stp")),
             Intent(Intent.ACTION_VIEW).setData(Uri.parse("content://documents.example/document/model.step")),
+            Intent(Intent.ACTION_SEND).setType("model/step")
+                .putExtra(Intent.EXTRA_STREAM, Uri.parse("content://documents.example/model.step")),
+            Intent(Intent.ACTION_SEND_MULTIPLE).setType("application/octet-stream")
+                .putParcelableArrayListExtra(
+                    Intent.EXTRA_STREAM,
+                    arrayListOf(Uri.parse("content://documents.example/a.step")),
+                ),
         )
 
         requests.forEach { request ->
@@ -37,5 +45,22 @@ class StepOpenIntentDeviceTest {
             assertNotNull("The app must be offered for $request", resolved)
             assertEquals(MainActivity::class.java.name, resolved?.activityInfo?.name)
         }
+    }
+
+    @Test
+    fun extractsStepUriFromViewAndSendIntentsIncludingClipData() {
+        val step = Uri.parse("content://documents.example/model.step")
+        assertEquals(listOf(step), ExternalModelOpenIntent.uris(Intent(Intent.ACTION_VIEW).setData(step)))
+        assertEquals(
+            listOf(step),
+            ExternalModelOpenIntent.uris(Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, step)),
+        )
+
+        val second = Uri.parse("content://documents.example/second.step")
+        val multi = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            putExtra(Intent.EXTRA_STREAM, arrayListOf(step, second))
+            clipData = ClipData.newRawUri("models", step)
+        }
+        assertEquals(listOf(step, second), ExternalModelOpenIntent.uris(multi))
     }
 }

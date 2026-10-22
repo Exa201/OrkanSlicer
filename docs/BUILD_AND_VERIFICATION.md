@@ -1,3 +1,9 @@
+# STEP/STP-Dateifreigabe — 2026-10-23
+
+- Datei-Apps können neben `ACTION_VIEW` auch `ACTION_SEND`/`ACTION_SEND_MULTIPLE` nutzen. Die Activity registriert und verarbeitet diese Übergaben jetzt einschließlich `EXTRA_STREAM` und `ClipData`; STEP-Dateien öffnen weiterhin zuerst den Meshing-Optionsdialog.
+- Honor PTP-N49 / Android 16: `StepOpenIntentDeviceTest` 2/2, STEP-`ACTION_VIEW`/`ACTION_SEND`-Dialog-/Abbruch-/Importablauf 1/1 und nativer `.step`-/`.stp`-Import 1/1 bestanden. Emulator Android 16: `StepOpenIntentDeviceTest` 2/2. Debug-Unit-Suite 617/617, gezielte Slice-JVM-Tests 7/7; Debug-Build erfolgreich. Keine echte Druckaktion ausgeführt.
+- Neue Debug-APK wurde erstellt. Kein offizielles Release in diesem Durchgang.
+
 # STEP/STP-Import und Interaktionsstart — 2026-10-22
 
 - Ursache eingegrenzt: STEP/STP-Erkennung, Einstellungsdialog und nativer Import waren bereits vorhanden. Bei direktem Dateistart bzw. frühem Rücklauf des Dateiauswahldialogs konnte der Workspace-Compose-Overlayhost noch nicht bereit sein. Der bisherige Fehlerpfad löschte dann die zwischengespeicherte Datei, statt auf den Host zu warten.

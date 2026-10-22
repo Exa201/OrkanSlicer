@@ -1288,13 +1288,13 @@ class InitialProjectMenuDeviceTest {
             ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
             val authority = requireNotNull(provider.authority).substringBefore(';')
             val uri = FileProvider.getUriForFile(activity, authority, file)
-            // The resolver test separately verifies that Android routes ACTION_VIEW to MainActivity.
-            // Exercise the same URI handler used by onCreate/onNewIntent without manually calling
-            // Activity's lifecycle callback (which makes ActivityScenario teardown unreliable).
+            // Exercise both external actions through the same production dispatcher used by
+            // onCreate/onNewIntent. Cancel VIEW first to prove no geometry is loaded prematurely.
             activity.runOnUiThread {
-                MainActivity::class.java.getDeclaredMethod("loadFile", Uri::class.java)
+                MainActivity::class.java.getDeclaredMethod("handleExternalModelOpen", Intent::class.java)
                     .apply { isAccessible = true }
-                    .invoke(activity, uri)
+                    .invoke(activity, Intent(Intent.ACTION_VIEW).setData(uri)
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
             }
             compose.waitUntil(timeoutMillis = 10_000) {
                 compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isNotEmpty()
@@ -1303,6 +1303,24 @@ class InitialProjectMenuDeviceTest {
                 0, bed.currentModel?.objectsCount ?: 0)
             compose.onNodeWithTag("step-linear-deflection").assertIsDisplayed()
             compose.onNodeWithTag("step-angular-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-import-cancel").performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isEmpty()
+            }
+            assertEquals("Cancel must not load the source geometry", 0, bed.currentModel?.objectsCount ?: 0)
+
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod("handleExternalModelOpen", Intent::class.java)
+                    .apply { isAccessible = true }
+                    .invoke(activity, Intent(Intent.ACTION_SEND).apply {
+                        type = "model/step"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    })
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("step-import-confirm").performClick()
 
             compose.waitUntil(timeoutMillis = 90_000) {

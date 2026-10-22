@@ -160,14 +160,10 @@ activeInstance = this
 }
 else
 {
-val i = Intent(this, MainActivity::class.java)
+// Copy the complete incoming intent so temporary content:// read grants, ClipData,
+// categories and provider metadata survive the activity hand-off.
+val i = Intent(getIntent()).setClass(this, MainActivity::class.java)
 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-if (getIntent() != null)
-{
-i.setAction(getIntent().getAction())
-i.putExtras(getIntent())
-i.setDataAndType(getIntent().getData(), getIntent().getType())
-}
 startActivity(i)
 finish()
 return
@@ -221,9 +217,9 @@ override fun handleOnBackPressed() {
 if (!handleAppBack()) finishAfterTransition()
 }
 })
-if (getIntent() != null && getIntent().getAction() != null && getIntent().getAction().equals(Intent.ACTION_VIEW))
+if (getIntent() != null && ExternalModelOpenIntent.uris(getIntent()).isNotEmpty())
 {
-getIntent().getData()?.let { loadFile(it) }
+handleExternalModelOpen(getIntent())
 setIntent(null)
 }
 val decorView = getWindow().getDecorView()
@@ -252,8 +248,32 @@ changeLogDialog = ChangeLogDialog(this)
 }
 protected override fun onNewIntent(@NonNull intent:Intent) {
 super.onNewIntent(intent)
-intent.getData()?.let { loadFile(it) }
+handleExternalModelOpen(intent)
 setIntent(null)
+}
+
+private fun handleExternalModelOpen(intent: Intent) {
+    val uris = ExternalModelOpenIntent.uris(intent)
+    if (uris.isEmpty()) return
+    if (uris.size == 1) {
+        loadFile(uris.single())
+        return
+    }
+
+    val stlFiles = uris.filter { uri ->
+        IOUtils.getDisplayName(uri)?.lowercase(Locale.ROOT)?.endsWith(".stl") == true
+    }
+    if (stlFiles.size != uris.size) {
+        Toast.makeText(this, R.string.MenuFileOpenMultipleStlOnly, Toast.LENGTH_LONG).show()
+    }
+    if (stlFiles.isEmpty()) {
+        showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.MenuFileOpenMultipleStlOnly),
+        )
+    } else {
+        loadMultipleStlFiles(stlFiles)
+    }
 }
 private fun dispatchActivityResult(requestCode:Int, resultCode:Int, data:Intent?) {
 if (ru.ytkab0bp.slicebeam.components.KromacutEditorMenu.handleActivityResult(requestCode, resultCode, data))
