@@ -2695,3 +2695,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Emulator API 36: neue Gruppenrotations- und Gruppenskalierungstests 2/2 bestanden.
 - Debug-Unit 617/617 und Slice-Unit 617/617 bestanden; Produktions- und Instrumentierungscode erfolgreich kompiliert; `git diff --check` sauber.
 - Vorbereitete Release-Version: 0.8.352 / Code 387. Nächster Schritt: Änderungen committen und auf den bestehenden Branch pushen, Debug-APK aus dem Code-Commit bauen, auf Honor installieren/starten, SHA-256 erfassen und den offiziellen GitHub-Release veröffentlichen. Untracked `.codex-remote-attachments/` bleibt unangetastet.
+
+## Offizieller Release 0.8.352 — 2026-10-23
+
+- Release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.352 (regulärer Release, kein Pre-release); PR #2 enthält Code-Commit `802b7687`.
+- APK `OrkanSlicer_802b7687dc.apk`, 239352691 Bytes, SHA-256 `2005DF2021BF1F486FAFD651C1462B480E1309985B0A38D865205F85DCD688D3`; Version 0.8.352 / Code 387. Debug-signiert, da kein Produktions-Keystore konfiguriert ist.
+- Honor PTP-N49 / Android 16: APK-Installation und MainActivity-Start erfolgreich; erfasster Logcat-Ausschnitt ohne FATAL EXCEPTION, nativen Fatal signal, ANR oder OOM.
+- Nächster konkreter Schritt: gruppierte Rotation und Skalierung als 3MF exportieren, erneut laden und slicingseitig Geometrie/Objektzuordnung sowie erzeugten G-Code prüfen; danach mit dem nächsten Satz Modellbearbeitungsfunktionen fortfahren.
