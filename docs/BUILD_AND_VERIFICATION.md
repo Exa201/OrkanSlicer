@@ -1,3 +1,12 @@
+# Official release candidate 0.8.347 — 2026-10-22
+
+- App version: 0.8.347, versionCode 382. APK: `OrkanSlicer_a653d8ab57.apk`, built from app commit `a653d8ab576a5252c4889bd96b30908ef5ce334d`; 239,286,524 bytes; SHA-256 `D31F47C348936F3E98813CBB28EF54DB257E087802CB219D0236E9970F0BD121`.
+- ARM64 native Release library build succeeded. Debug JVM suite: 605/605; Slice JVM suite: 605/605; both had zero failures, errors, or skips.
+- Honor PTP-N49 / Android 16 full instrumentation: 294 tests, 290 passed, 3 private-fixture cases skipped, 1 failed because the already packaged test app still contained the previous 0.8.346 changelog asset. Updated `update.json`, then reran `ChangeLogComposeDeviceTest`: 1/1 passed. Source-color remapping, 3MF reload, G-code slot selection, Compose mapping dialog, and Z ruler / Undo / Redo checks passed in focused Honor instrumentation. The user-provided KromaCut fixture was used only temporarily and is not in GitHub.
+- Installed the final APK on Honor; package reported versionCode 382 / versionName 0.8.347, `MainActivity` resumed, and the recent logcat window contained no fatal exception, ANR, fatal signal, or OOM.
+- App code commit: `787862bb114a350df819d4d6ec354df87641e275`. Release-note and verification commit: `a653d8ab576a5252c4889bd96b30908ef5ce334d`. No production signing keystore is configured; this APK is debug-signed. Xiaomi is unavailable for direct verification.
+- GitHub publication: pending upload of the regular release and APK asset.
+
 # Xiaomi menu-drag test APK — 2026-10-21
 
 - `:app:assembleDebug --no-daemon` succeeded for version 0.8.341 / versionCode 376 from code commit `3b435c61ee085aad04df21d70455848e3c270f39`.
