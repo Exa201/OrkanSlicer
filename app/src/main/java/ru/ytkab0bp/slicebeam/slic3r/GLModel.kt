@@ -11,8 +11,9 @@ import java.util.ArrayList
 open class GLModel internal constructor(
     @JvmField var pointer: Long,
 ) {
-    private var raycasterCache: MeshRaycaster? = null
-    private var approximatePickBounds: Pair<Vec3d, Vec3d>? = null
+    @Volatile private var raycasterCache: MeshRaycaster? = null
+    @Volatile private var approximatePickBounds: Pair<Vec3d, Vec3d>? = null
+    @Volatile private var fallbackPickBounds: Pair<Vec3d, Vec3d>? = null
 
     @JvmField var hoverProgress: Float = 0f
     @JvmField var isHovering: Boolean = false
@@ -23,16 +24,19 @@ open class GLModel internal constructor(
         initFrom(model)
     }
 
+    @Synchronized
     open fun initFrom(model: Model) {
         clearPicking()
         Native.glmodel_init_from_model(pointer, model.pointer)
     }
 
+    @Synchronized
     open fun initFrom(model: Model, i: Int) {
         updatePickBounds(model, i)
         Native.glmodel_init_from_model_object(pointer, model.pointer, i)
     }
 
+    @Synchronized
     open fun initPreviewFrom(model: Model, i: Int, maxTriangles: Int) {
         updatePickBounds(model, i)
         Native.glmodel_init_from_model_object_preview(pointer, model.pointer, i, maxTriangles)
@@ -40,15 +44,17 @@ open class GLModel internal constructor(
 
     private fun updatePickBounds(model: Model, i: Int) {
         clearPicking()
-        approximatePickBounds = if (LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(i))) {
-            val min = Vec3d()
-            val max = Vec3d()
-            model.getBoundingBoxApprox(i, min, max)
-            min to max
-        } else null
+        val min = Vec3d()
+        val max = Vec3d()
+        model.getBoundingBoxApprox(i, min, max)
+        fallbackPickBounds = min to max
+        approximatePickBounds = fallbackPickBounds.takeIf {
+            LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(i))
+        }
     }
 
     /** Build this model from facets painted with the given filament in a paint session (mesh-local coords). */
+    @Synchronized
     open fun initFromPaint(paintSessionPtr: Long, filamentIdx: Int): Int {
         clearPicking()
         return Native.glmodel_init_from_paint(pointer, paintSessionPtr, filamentIdx)
@@ -75,11 +81,13 @@ open class GLModel internal constructor(
     }
 
     /** Build a simple rectangular prism with origin at the front-left-bottom corner. */
+    @Synchronized
     open fun initBox(width: Float, depth: Float, height: Float) {
         clearPicking()
         Native.glmodel_init_box(pointer, width, depth, height)
     }
 
+    @Synchronized
     open fun initBoundingBox(model: Model, i: Int) {
         clearPicking()
         Native.glmodel_init_bounding_box(pointer, model.pointer, i)
@@ -93,11 +101,13 @@ open class GLModel internal constructor(
         Native.glmodel_render(pointer)
     }
 
+    @Synchronized
     open fun reset() {
         Native.glmodel_reset(pointer)
         clearPicking()
     }
 
+    @Synchronized
     open fun release() {
         if (pointer != 0L) {
             Native.glmodel_release(pointer)
@@ -109,23 +119,28 @@ open class GLModel internal constructor(
     private fun clearPicking() {
         raycasterCache = null
         approximatePickBounds = null
+        fallbackPickBounds = null
     }
 
     open val raycaster: MeshRaycaster
-        get() {
+        get() = synchronized(this) {
         var current = raycasterCache
         if (current == null) {
             // AABBMesh builds face-neighbour data for every triangle. KromaCut meshes
             // can exceed a million facets and crash the process on this tap path.
-            if (approximatePickBounds == null) Native.glmodel_init_raycast_data(pointer)
+            if (approximatePickBounds == null && !Native.glmodel_init_raycast_data(pointer))
+                approximatePickBounds = fallbackPickBounds
             current = MeshRaycaster()
             raycasterCache = current
         }
-        return current
+        current
     }
 
     inner class MeshRaycaster {
         fun raycast(renderer: GLRenderer?, list: ArrayList<HitResult>?, x: Float, y: Float) {
+            // `release`, mesh replacement and raycasts all share the GLModel monitor, so a
+            // touch already in flight can never call JNI with a freed native handle.
+            synchronized(this@GLModel) {
             DebugUtils.assertTrue(renderer != null)
             DebugUtils.assertTrue(list != null)
             val safeRenderer = renderer!!
@@ -160,6 +175,7 @@ open class GLModel internal constructor(
                     ),
                 )
                 i += 6
+            }
             }
         }
     }

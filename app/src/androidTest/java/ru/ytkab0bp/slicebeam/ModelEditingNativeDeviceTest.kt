@@ -26,6 +26,10 @@ import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
@@ -660,6 +664,72 @@ class ModelEditingNativeDeviceTest {
             glModel.release()
             model.release()
             file.delete()
+        }
+    }
+
+    @Test fun nativeRaycastCacheSurvivesConcurrentMeshReinitialization() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "raycast-concurrency-cube.stl")
+        val model = Model(modelFile)
+        val glModel = GLModel()
+        val start = CountDownLatch(1)
+        val done = CountDownLatch(2)
+        val stop = AtomicBoolean(false)
+        val failure = AtomicReference<Throwable?>()
+        var reader: Thread? = null
+        var writer: Thread? = null
+        try {
+            glModel.initFrom(model, 0)
+            reader = Thread {
+                try {
+                    start.await()
+                    repeat(60) {
+                        if (stop.get()) return@Thread
+                        Native.glmodel_init_raycast_data(glModel.pointer)
+                        val hits = Native.glmodel_raycast_closest_hit(
+                            glModel.pointer,
+                            doubleArrayOf(10.0, 10.0, 30.0),
+                            doubleArrayOf(0.0, 0.0, -1.0),
+                        )
+                        assertEquals("raycast result must contain complete position/normal tuples", 0, hits.size % 6)
+                    }
+                } catch (error: Throwable) {
+                    failure.compareAndSet(null, error)
+                } finally {
+                    done.countDown()
+                }
+            }
+            writer = Thread {
+                try {
+                    start.await()
+                    repeat(30) { index ->
+                        if (stop.get()) return@Thread
+                        glModel.initFrom(model, 0)
+                        if (index % 5 == 0) glModel.reset()
+                    }
+                } catch (error: Throwable) {
+                    failure.compareAndSet(null, error)
+                } finally {
+                    done.countDown()
+                }
+            }
+            reader.start()
+            writer.start()
+            start.countDown()
+            assertTrue("concurrent raycast/cache rebuild should finish", done.await(30, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("concurrent raycast/cache rebuild failed", it) }
+        } finally {
+            stop.set(true)
+            start.countDown()
+            reader?.join(5_000)
+            writer?.join(5_000)
+            val workersStopped = reader?.isAlive != true && writer?.isAlive != true
+            if (workersStopped) {
+                glModel.release()
+                model.release()
+                modelFile.delete()
+            } else {
+                throw AssertionError("raycast stress workers did not stop; native models kept alive to avoid use-after-free")
+            }
         }
     }
 

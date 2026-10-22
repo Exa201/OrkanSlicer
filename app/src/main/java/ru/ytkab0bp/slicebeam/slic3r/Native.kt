@@ -52,7 +52,7 @@ class Native {
     @JvmStatic
     external fun glmodel_init_from_model_object_preview(ptr: Long, model: Long, i: Int, maxTriangles: Int): Unit
     @JvmStatic
-    external fun glmodel_init_raycast_data(ptr: Long): Unit
+    external fun glmodel_init_raycast_data(ptr: Long): Boolean
     @JvmStatic
     external fun glmodel_set_color(ptr: Long, red: Float, green: Float, blue: Float, alpha: Float): Unit
     @JvmStatic

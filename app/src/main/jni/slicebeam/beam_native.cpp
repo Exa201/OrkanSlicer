@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <unordered_set>
 #include <memory>
+#include <mutex>
 
 #include <thread>
 
@@ -69,6 +70,9 @@ struct GLModelRef {
     AABBMesh* emesh = nullptr;
     std::vector<stl_normal> normals;
     Vec3d flatten_normal;
+    // Touch raycasts run on Android's UI thread while the renderer replaces GLModel meshes
+    // on the GL thread. Protect the CPU-side picking mesh/cache from concurrent destruction.
+    std::mutex picking_mutex;
 
     ~GLModelRef() { delete emesh; }
 };
@@ -2103,16 +2107,26 @@ extern "C" {
         return (jlong) (intptr_t) ref;
     }
 
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1raycast_1data(JNIEnv* env, jclass, jlong ptr) {
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1raycast_1data(JNIEnv* env, jclass, jlong ptr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
-        delete ref->emesh;
-        ref->emesh = nullptr;
-        ref->emesh = new AABBMesh(ref->mesh, true);
-        ref->normals = its_face_normals(ref->mesh.its);
+        if (ref == nullptr) return JNI_FALSE;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
+        if (ref->emesh != nullptr) return JNI_TRUE;
+        try {
+            auto emesh = std::make_unique<AABBMesh>(ref->mesh, true);
+            auto normals = its_face_normals(ref->mesh.its);
+            ref->emesh = emesh.release();
+            ref->normals.swap(normals);
+            return JNI_TRUE;
+        } catch (const std::exception& e) {
+            __android_log_print(ANDROID_LOG_WARN, TAG, "Raycast index build failed: %s", e.what());
+            return JNI_FALSE;
+        }
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1raycast_1closest_1hit(JNIEnv* env, jclass, jlong ptr, jdoubleArray pointArr, jdoubleArray directionArr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        if (ref == nullptr) return env->NewDoubleArray(0);
         jdouble* point = env->GetDoubleArrayElements(pointArr, JNI_FALSE);
         jdouble* direction = env->GetDoubleArrayElements(directionArr, JNI_FALSE);
 
@@ -2122,7 +2136,21 @@ extern "C" {
         Vec3d point_positive = point3d - direction3d;
         Vec3d point_negative = point3d + direction3d;
 
-        std::vector<AABBMesh::hit_result> hits = ref->emesh->query_ray_hits(point_positive, direction3d);
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
+        if (ref->emesh == nullptr) {
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
+            return env->NewDoubleArray(0);
+        }
+        std::vector<AABBMesh::hit_result> hits;
+        try {
+            hits = ref->emesh->query_ray_hits(point_positive, direction3d);
+        } catch (const std::exception& e) {
+            __android_log_print(ANDROID_LOG_WARN, TAG, "Raycast query failed: %s", e.what());
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
+            return env->NewDoubleArray(0);
+        }
         jdoubleArray arr = env->NewDoubleArray(hits.size() * 6);
         for (int i = 0; i < hits.size(); ++i) {
             const AABBMesh::hit_result& hit = hits[i];
@@ -2144,6 +2172,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model(JNIEnv* env, jclass, jlong ptr, jlong model) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         delete ref->emesh;
         ref->emesh = nullptr;
         ref->mesh = mRef->model.mesh();
@@ -2153,6 +2182,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model_1object(JNIEnv* env, jclass, jlong ptr, jlong model, jint i) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         delete ref->emesh;
         ref->emesh = nullptr;
         ref->mesh = mRef->model.objects[i]->mesh();
@@ -2162,6 +2192,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model_1object_1preview(JNIEnv* env, jclass, jlong ptr, jlong model, jint i, jint max_triangles) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         delete ref->emesh;
         ref->emesh = nullptr;
         ref->mesh = mRef->model.objects[i]->mesh();
@@ -2210,6 +2241,7 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1box(JNIEnv* env, jclass, jlong ptr, jfloat width, jfloat depth, jfloat height) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         ref->model.reset();
         ref->mesh.clear();
         delete ref->emesh;
@@ -2338,6 +2370,7 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1reset(JNIEnv* env, jclass, jlong ptr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         ref->model.reset();
         delete ref->emesh;
         ref->emesh = nullptr;
