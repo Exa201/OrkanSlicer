@@ -3584,6 +3584,138 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun selectedGroupRotationAndScaleSurviveThreeMfReloadAndProduceGcode() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "group-transform-slice-test.stl")
+        val projectFile = File(activity.cacheDir, "group-transform-slice-test.3mf")
+        val gcodeFile = File(activity.cacheDir, "group-transform-slice-test.gcode")
+        SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
+        Prefs.init(activity.applicationContext as SliceBeam)
+        TemporaryProjectSettings.clear()
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val snapshotKeys = listOf("mmu_snapshot_printer", "mmu_snapshot")
+        val previousSnapshots = snapshotKeys.associateWith { prefs.getString(it, null) }
+        var restoredModel: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+
+            val prepared = CountDownLatch(1)
+            val prepareFailure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val renderer = glView.renderer
+                    val model = requireNotNull(renderer.model)
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val gap = (max.x - min.x) * 2.5
+                    model.addObject(model, 0)
+                    model.translate(1, gap, 0.0, 0.0)
+                    model.setUniformFilament(0, 1)
+                    model.setUniformFilament(1, 2)
+                    renderer.setSelectedObjects(intArrayOf(0, 1))
+                    val rotated = renderer.rotateSelectedObjects(0.0, 0.0, Math.toRadians(37.0))
+                    val scaled = rotated && renderer.scaleSelectedObjects(1.2, 1.2, 1.2)
+                    check(scaled) { "selected group rotation and scale should apply" }
+                    glView.requestRender()
+                } catch (error: Throwable) {
+                    prepareFailure.set(error)
+                } finally {
+                    prepared.countDown()
+                }
+            }
+            assertTrue("group transform should complete on the GL thread", prepared.await(30, TimeUnit.SECONDS))
+            prepareFailure.get()?.let { throw AssertionError("group transform failed", it) }
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            val exportReady = CountDownLatch(1)
+            val exportFailure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val model = requireNotNull(glView.renderer.model)
+                    assertEquals(2, model.objectsCount)
+                    assertEquals(listOf(1), model.getUsedFilaments(0).toList())
+                    assertEquals(listOf(2), model.getUsedFilaments(1).toList())
+                    for (index in 0 until model.objectsCount) {
+                        val min = Vec3d(); val max = Vec3d()
+                        model.getBoundingBoxExact(index, min, max)
+                        assertTrue("transformed object must have finite printable bounds",
+                            listOf(min.x, min.y, min.z, max.x, max.y, max.z).all { it.isFinite() } && max.z > min.z)
+                    }
+                    activity.assets.open("orca_profiles/Anycubic.ini").use {
+                        SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+                    }
+                    SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                        put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                        put("print", "0.16mm Standard")
+                        put("filament", "Anycubic Generic PLA")
+                    }
+                    val clearSnapshots = prefs.edit()
+                    snapshotKeys.forEach(clearSnapshots::remove)
+                    check(clearSnapshots.commit())
+                    SliceBeam.genCurrentConfig(model)
+                    model.export3mf(configFile.absolutePath, projectFile.absolutePath)
+                } catch (error: Throwable) {
+                    exportFailure.set(error)
+                } finally {
+                    exportReady.countDown()
+                }
+            }
+            assertTrue("transformed group should export from the active renderer model",
+                exportReady.await(60, TimeUnit.SECONDS))
+            exportFailure.get()?.let { throw AssertionError("group transformation 3MF export failed", it) }
+            assertTrue("3MF export should create a project", projectFile.isFile && projectFile.length() > 0L)
+
+            restoredModel = Model(projectFile, 1)
+            assertEquals("both transformed objects should survive 3MF reload", 2, restoredModel!!.objectsCount)
+            assertEquals("first object's filament assignment should survive reload", listOf(1),
+                restoredModel!!.getUsedFilaments(0).toList())
+            assertEquals("second object's filament assignment should survive reload", listOf(2),
+                restoredModel!!.getUsedFilaments(1).toList())
+            val firstBounds = DoubleArray(6).also { bounds ->
+                val min = Vec3d(); val max = Vec3d()
+                restoredModel!!.getBoundingBoxExact(0, min, max)
+                bounds[0] = min.x; bounds[1] = min.y; bounds[2] = min.z
+                bounds[3] = max.x; bounds[4] = max.y; bounds[5] = max.z
+            }
+            assertTrue("reloaded group object should remain above the build plate", firstBounds[2] >= -0.05)
+            SliceBeam.genCurrentConfig(restoredModel!!)
+            sliceResult = restoredModel!!.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+            assertTrue("reloaded transformed group should produce non-empty G-code",
+                gcodeFile.isFile && gcodeFile.length() > 0L)
+            val gcode = gcodeFile.readText()
+            assertTrue("reloaded transformed group should produce deposited extrusion",
+                Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            assertTrue("both object tool assignments should reach G-code",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode) &&
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            sliceResult?.release()
+            restoredModel?.release()
+            gcodeFile.delete()
+            projectFile.delete()
+            val restoreSnapshots = prefs.edit()
+            previousSnapshots.forEach { (key, value) ->
+                if (value == null) restoreSnapshots.remove(key) else restoreSnapshots.putString(key, value)
+            }
+            restoreSnapshots.commit()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            TemporaryProjectSettings.clear()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editCutAndVariableLayerActionsOpenAndCancelWithoutChangingModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

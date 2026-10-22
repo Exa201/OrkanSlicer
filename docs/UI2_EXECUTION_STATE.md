@@ -2702,3 +2702,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - APK `OrkanSlicer_802b7687dc.apk`, 239352691 Bytes, SHA-256 `2005DF2021BF1F486FAFD651C1462B480E1309985B0A38D865205F85DCD688D3`; Version 0.8.352 / Code 387. Debug-signiert, da kein Produktions-Keystore konfiguriert ist.
 - Honor PTP-N49 / Android 16: APK-Installation und MainActivity-Start erfolgreich; erfasster Logcat-Ausschnitt ohne FATAL EXCEPTION, nativen Fatal signal, ANR oder OOM.
 - Nächster konkreter Schritt: gruppierte Rotation und Skalierung als 3MF exportieren, erneut laden und slicingseitig Geometrie/Objektzuordnung sowie erzeugten G-Code prüfen; danach mit dem nächsten Satz Modellbearbeitungsfunktionen fortfahren.
+
+## Gruppenrotation/-skalierung: 3MF- und Slicing-Roundtrip — 2026-10-23
+
+- Neuer Instrumentierungstest `selectedGroupRotationAndScaleSurviveThreeMfReloadAndProduceGcode`: zwei Objekte werden über die echte `GLRenderer`-Gruppenfunktion rotiert und skaliert, mit verschiedenen Filamenten als 3MF exportiert, erneut geladen und gesliced. Der Test prüft beide Objekte, Druckplattenhöhe, Geometrie, Filamentzuordnung, positive Extrusionsbewegungen und Werkzeugwechsel T0/T1.
+- Honor PTP-N49 / Android 16: 1/1 bestanden. Emulator API 36: 1/1 bestanden. Zusammen mit den bereits ausgeführten Gruppen-Undo-/Redo-Tests sind Rotation und Skalierung auf UI-, Modell- und Slicingebene geprüft.
+- Debug-/Slice-Unit-Suites bleiben jeweils 617/617 (unveränderte Produktionsquellen seit diesem Suite-Lauf); Slice-Instrumentierungsquellen erfolgreich kompiliert; `git diff --check` sauber.
+- Release 0.8.352 bleibt auf Produktionscode-Commit `802b7687`; dieser zusätzliche Commit ergänzt ausschließlich den End-to-End-Regressionstest und Projektstatus. Nächster Arbeitsschritt: weitere offene Mehrfachauswahl- und Modellmenüaktionen auf Funktion und gespeicherte Slice-Wirkung prüfen.
