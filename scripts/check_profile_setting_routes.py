@@ -470,12 +470,14 @@ def main() -> None:
     model_kotlin = uncommented(read(JAVA / "slic3r/Model.kt"))
     model_bridge = uncommented(read(JAVA / "slic3r/OrcaModelBridge.kt"))
     bed_fragment = uncommented(read(JAVA / "fragment/BedFragment.kt"))
-    if "OrcaModelBridge.load(path, plateId, progress)" not in model_kotlin:
+    if "OrcaModelBridge.load(path, plateId, progress, stepOptions)" not in model_kotlin:
         errors.append("Model constructors do not load files through the Kotlin JNI facade")
-    if "Native.model_read_from_file(path, baseName(source.name), plateId, progress)" not in model_bridge:
+    if "Native.model_read_from_file(" not in model_bridge or "effectiveStepOptions.linearDeflection" not in model_bridge or "effectiveStepOptions.angularDeflection" not in model_bridge or "effectiveStepOptions.splitCompound" not in model_bridge:
         errors.append("Kotlin model facade does not call the existing native file importer")
-    if "external fun model_read_from_file(path: String, baseName: String, plateId: Int, progress: ImportProgressCallback?): Long" not in native_kotlin:
+    if "external fun model_read_from_file(" not in native_kotlin or "splitStepCompound: Boolean" not in native_kotlin:
         errors.append("The existing model_read_from_file JNI declaration was changed or removed")
+    if "Model::read_from_step(" not in native_bridge_cpp or "stepLinearDeflection" not in native_bridge_cpp or "splitStepCompound == JNI_TRUE" not in native_bridge_cpp:
+        errors.append("Native model importer does not route STEP/STP files through the OpenCascade STEP mesher")
     if "Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file" not in native_bridge_cpp:
         errors.append("The existing native model importer implementation is missing")
     if "std::unique_ptr<ModelRef> ref" not in native_bridge_cpp or "return (jlong) (intptr_t) ref.release()" not in native_bridge_cpp:

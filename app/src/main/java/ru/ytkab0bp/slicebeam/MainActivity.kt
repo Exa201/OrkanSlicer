@@ -76,6 +76,7 @@ import ru.ytkab0bp.slicebeam.components.ProfileImportKey
 import ru.ytkab0bp.slicebeam.components.ProfileImportOption
 import ru.ytkab0bp.slicebeam.components.ThreeMfImportChoiceDialog
 import ru.ytkab0bp.slicebeam.components.SvgSimplifyConsentDialog
+import ru.ytkab0bp.slicebeam.components.StepImportOptionsDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
@@ -96,6 +97,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
+import ru.ytkab0bp.slicebeam.slic3r.StepImportOptions
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.ImageDecodePolicy
@@ -636,8 +638,8 @@ return lower.endsWith(".gcode") || lower.endsWith(".g") || lower.endsWith(".gco"
 }
 private fun isSupportedModelFile(fileName:String):Boolean {
 val lower = fileName.lowercase(Locale.ROOT)
-// Keep this list in sync with libslic3r::Model::read_from_file() on Android.
- return (lower.endsWith(".stl") || lower.endsWith(".oltp") || lower.endsWith(".obj") ||
+// Keep this list in sync with the native Model::read_from_file/read_from_step import routes.
+ return (StepImportOptions.isStepFile(lower) || lower.endsWith(".stl") || lower.endsWith(".oltp") || lower.endsWith(".obj") ||
 lower.endsWith(".3mf") || lower.endsWith(".amf") || lower.endsWith(".svg") ||
 lower.endsWith(".drc") || isGcodeFile(lower))
 }
@@ -1536,7 +1538,13 @@ private fun showStlImportProgress(tag: String, step: Int, cancelled: java.util.c
         }))
 }
 
-private fun loadFile(f:File, autoorient:Boolean) {
+private fun loadFile(f:File, autoorient:Boolean) = loadFile(f, autoorient, null)
+
+private fun loadFile(f:File, autoorient:Boolean, stepOptions:StepImportOptions?) {
+if (StepImportOptions.isStepFile(f.name) && stepOptions == null) {
+    ViewUtils.postOnMainThread { showStepImportOptions(f, autoorient) }
+    return
+}
 val tag = UUID.randomUUID().toString()
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, R.string.MenuFileOpenFileLoading).tag(tag))
 IOUtils.IO_POOL.submit({ Process.setThreadPriority(-20)
@@ -1657,7 +1665,7 @@ override fun onFailed(error: Exception) {
         )
     }
 }
-})
+}, stepOptions)
 }
 }
 catch (e:Slic3rRuntimeError) {
@@ -1676,6 +1684,31 @@ ViewUtils.postOnMainThread({ showFileOperationError(
 ) })
 }
 } })
+}
+private fun showStepImportOptions(file:File, autoorient:Boolean) {
+    if (isFinishing || isDestroyed) { file.delete(); return }
+    val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+    if (bed?.canShowWorkspaceComposeDialog() != true) {
+        showFileOperationError(
+            getString(R.string.StepImportTitle),
+            getString(R.string.StepImportDescription),
+        )
+        file.delete()
+        return
+    }
+    bed.showWorkspaceComposeDialog(
+        onExternalDismiss = { file.delete() },
+    ) { dismiss ->
+        StepImportOptionsDialog(
+            initial = StepImportOptions.loadDefaults(),
+            onDismiss = { dismiss(); file.delete() },
+            onImport = { options, saveAsDefault ->
+                dismiss()
+                if (saveAsDefault) StepImportOptions.saveDefaults(options)
+                loadFile(file, autoorient, options)
+            },
+        )
+    }
 }
 private fun showSvgSimplifyPrompt(source:File, autoorient:Boolean, problem:String) {
 if (isFinishing() || isDestroyed()) return

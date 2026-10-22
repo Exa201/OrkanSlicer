@@ -70,6 +70,7 @@ import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.ImportProgressCallback
+import ru.ytkab0bp.slicebeam.slic3r.StepImportOptions
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
@@ -2105,7 +2106,7 @@ private fun refreshPlateThumbnails() {
     }
 }
 @Throws(Slic3rRuntimeError::class)
-@JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null) {
+@JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null, stepOptions:StepImportOptions? = null) {
 if (destroyed || modelLoadInProgress)
 {
 if (callback != null)
@@ -2123,7 +2124,7 @@ Thread({ try
 StlImportPreflight.largeTriangleCount(f, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
     if (!confirmLargeStlImport(it)) throw ImportCancelledException()
 }
-loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, callback)
+loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, callback, stepOptions)
 }
 catch (e:Exception) {
 if (e is ImportCancelledException || e is java.util.concurrent.CancellationException) {
@@ -2165,7 +2166,7 @@ if (model != null && model !== emptyModel) model.release()
 glView!!.requestRender() }) })
 }
 @Throws(Slic3rRuntimeError::class)
-private fun loadModelBlocking(f:File, preserveProjectLayout:Boolean, plateCount:Int, importGeneration:Int, callback:ModelLoadCallback?) {
+private fun loadModelBlocking(f:File, preserveProjectLayout:Boolean, plateCount:Int, importGeneration:Int, callback:ModelLoadCallback?, stepOptions:StepImportOptions?) {
 if (destroyed) return
 if (importGeneration != modelImportGeneration) return
 this.totalPlates = plateCount
@@ -2256,14 +2257,16 @@ if (platesModels.get(currentPlateIndex) == null)
 {
 platesModels.set(currentPlateIndex, Model())
 }
-loadModelInternal(f, preserveProjectLayout, callback)
+loadModelInternal(f, preserveProjectLayout, callback, stepOptions)
 }
 updatePlateIndicator()
 }
 @Throws(Slic3rRuntimeError::class)
-private fun loadModelInternal(f:File, preserveProjectLayout:Boolean, callback:ModelLoadCallback?) {
+private fun loadModelInternal(f:File, preserveProjectLayout:Boolean, callback:ModelLoadCallback?, stepOptions:StepImportOptions?) {
 // Wait, if it's a 3mf project, it already passed plate count, so currentPlateIndex is correct.
- val m = if (callback != null && f.name.endsWith(".stl", ignoreCase = true))
+ val m = if (stepOptions != null)
+     Model(f, currentPlateIndex + 1, stepOptions, callback?.let { progress -> ImportProgressCallback { fraction -> progress.onProgress(fraction) } })
+ else if (callback != null && f.name.endsWith(".stl", ignoreCase = true))
      Model(f, currentPlateIndex + 1, ImportProgressCallback { fraction -> callback.onProgress(fraction) })
  else Model(f, currentPlateIndex + 1) // 1-based in JNI for specific plate, or 0 for default
  val reduction = try { simplifyImportedModel(m) } catch (e: Exception) { m.release(); throw e }

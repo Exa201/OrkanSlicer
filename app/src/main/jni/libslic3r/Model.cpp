@@ -195,7 +195,7 @@ Model Model::read_from_step(const std::string&                                  
     bool result = false;
     bool is_cb_cancel = false;
     Step::Step_Status status;
-    Step step_file(input_file, stepFn);
+    Step step_file(input_file, stepFn, stepIsUtf8Fn);
     status = step_file.load();
     if(status != Step::Step_Status::LOAD_SUCCESS) {
         goto _finished;

@@ -1,3 +1,11 @@
+# Latest execution checkpoint — 2026-10-22 (STEP/STP import)
+
+- Root cause: the Android picker allowlist rejected `.step`/`.stp`, and the native generic loader did not dispatch these extensions to the already-compiled OpenCascade `Model::read_from_step()` path.
+- Implemented: allow both extensions; show a pre-import Compose dialog for linear/angular mesh deflection and compound splitting; optionally save defaults; pass validated options and progress/cancel through BedFragment, Kotlin/JNI and OpenCascade. Fixed the missing UTF-8 callback forwarding in the native STEP wrapper and made cancellation cooperatively stop/join the STEP worker.
+- Verified: `:app:assembleDebug` succeeded; Debug JVM suite 608/608 passed. Honor PTP-N49 / Android 16 instrumentation passed 3/3 for the STEP dialog and native 10 mm fixture import as both `.step` and `.stp`, including mesh triangles, expected dimensions and compound-split setting. Fixture attribution is in `app/src/androidTest/assets/README_STEP_FIXTURE.md`.
+- Known unrelated check issue: `scripts/check_profile_setting_routes.py` still stops on its existing profile-import assertion for `applyImport(true)` before reaching the model-import checks. No full app-menu suite was run. Xiaomi was not available for this pass.
+- Next: produce the APK from the committed STEP changes, smoke-launch the exact OrkanSlicer package on Honor, then push the verified code to the existing branch/PR #2. Continue Phase 5/6 UI acceptance afterward; do not treat STEP support as completion of UI 2.0.
+
 # Latest execution checkpoint — 2026-10-22 (v0.8.348 official release)
 
 - Active goal: continue OrkanSlicer model-editing features and UI 2.0 acceptance; Phase 4 architecture is complete, Phase 5 action audit and Phase 6 responsive/accessibility/device coverage remain active.

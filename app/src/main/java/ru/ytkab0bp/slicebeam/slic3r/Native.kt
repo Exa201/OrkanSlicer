@@ -95,7 +95,15 @@ class Native {
     external fun model_create(): Long
     @JvmStatic
     @Throws(Slic3rRuntimeError::class)
-    external fun model_read_from_file(path: String, baseName: String, plateId: Int, progress: ImportProgressCallback?): Long
+    external fun model_read_from_file(
+        path: String,
+        baseName: String,
+        plateId: Int,
+        progress: ImportProgressCallback?,
+        stepLinearDeflection: Double,
+        stepAngularDeflection: Double,
+        splitStepCompound: Boolean,
+    ): Long
     @JvmStatic
     external fun model_get_objects_count(ptr: Long): Int
     @JvmStatic

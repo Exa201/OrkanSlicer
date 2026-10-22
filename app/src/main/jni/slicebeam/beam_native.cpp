@@ -11,6 +11,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/Emboss.hpp"
@@ -410,7 +411,7 @@ extern "C" {
         }
     }
 
-    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file(JNIEnv *env, jclass, jstring path, jstring base_name, jint plateId, jobject progressCallback) {
+    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file(JNIEnv *env, jclass, jstring path, jstring base_name, jint plateId, jobject progressCallback, jdouble stepLinearDeflection, jdouble stepAngularDeflection, jboolean splitStepCompound) {
         if (path == nullptr || base_name == nullptr) {
             jclass exceptionClass = env->FindClass("java/lang/IllegalArgumentException");
             if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, "Model path and name are required");
@@ -425,6 +426,8 @@ extern "C" {
         }
 
         ImportstlProgressFn progressFn;
+        ImportStepProgressFn stepProgressFn;
+        bool stepImportCancelled = false;
         if (progressCallback != nullptr) {
             jclass callbackClass = env->GetObjectClass(progressCallback);
             jmethodID onProgress = env->GetMethodID(callbackClass, "onProgress", "(F)Z");
@@ -443,6 +446,21 @@ extern "C" {
                 if (!keepGoing)
                     throw ModelImportCancelled();
             };
+            stepProgressFn = [env, progressCallback, onProgress, &stepImportCancelled](int stage, int current, int total, bool& cancel) {
+                const float stageProgress = total > 0
+                    ? std::clamp(static_cast<float>(current) / static_cast<float>(total), 0.f, 1.f)
+                    : 0.f;
+                const float fraction = std::clamp((static_cast<float>(stage) + stageProgress) / 3.f, 0.f, 1.f);
+                const jboolean keepGoing = env->CallBooleanMethod(progressCallback, onProgress, fraction);
+                if (env->ExceptionCheck()) {
+                    env->ExceptionClear();
+                    throw std::runtime_error("STEP import progress callback failed");
+                }
+                if (!keepGoing) {
+                    cancel = true;
+                    stepImportCancelled = true;
+                }
+            };
         }
 
         std::unique_ptr<ModelRef> ref;
@@ -452,7 +470,16 @@ extern "C" {
             if (boost::algorithm::iends_with(std::string(chars), ".3mf")) {
                 load_strategy = LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel;
             }
-            ref->model = Model::read_from_file(std::string(chars), nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, progressFn, nullptr, plateId, nullptr);
+            const std::string inputPath(chars);
+            if (boost::algorithm::iends_with(inputPath, ".step") || boost::algorithm::iends_with(inputPath, ".stp")) {
+                Model stepModel = Model::read_from_step(
+                    inputPath, LoadStrategy::AddDefaultInstances, stepProgressFn, nullptr, nullptr,
+                    stepLinearDeflection, stepAngularDeflection, splitStepCompound == JNI_TRUE);
+                if (stepImportCancelled) throw ModelImportCancelled();
+                ref->model = std::move(stepModel);
+            } else {
+                ref->model = Model::read_from_file(inputPath, nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, progressFn, nullptr, plateId, nullptr);
+            }
             ref->base_name = std::string(baseChars);
         } catch (const ModelImportCancelled&) {
             env->ReleaseStringUTFChars(path, chars);

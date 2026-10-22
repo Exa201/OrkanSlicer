@@ -1,5 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="StepImportTitle">STEP-Datei importieren</string>
+    <string name="StepImportDescription">STEP-Geometrie wird vor dem Laden in ein Dreiecksnetz umgewandelt. Kleinere Abweichungswerte erhalten mehr Details, benötigen aber mehr Zeit und Speicher.</string>
+    <string name="StepLinearDeflection">Lineare Abweichung (mm)</string>
+    <string name="StepLinearDeflectionHint">0,0001–1,0 · Standard: 0,003</string>
+    <string name="StepAngularDeflection">Winkelabweichung (rad)</string>
+    <string name="StepAngularDeflectionHint">0,01–1,5 · Standard: 0,5</string>
+    <string name="StepSplitCompound">Zusammengesetzte Körper in einzelne Objekte aufteilen</string>
+    <string name="StepSaveDefaults">Diese Werte als Standard speichern</string>
+    <string name="StepInvalidOptions">Bitte gültige Werte innerhalb der angegebenen Bereiche eingeben.</string>
+    <string name="StepImportAction">Netz erzeugen und laden</string>
     <string name="LargeModelPreciseSurfaceUnavailable">Dieses Werkzeug braucht einen genauen Oberflächenpunkt. Vereinfache zuerst das Modell; auswählen kannst du es weiterhin.</string>
     <string name="LargeModelSurfaceTitle">Für Oberflächenwerkzeuge vereinfachen?</string>
     <string name="LargeModelSurfaceMessage">Dieses Modell hat %1$d Dreiecke. Zum Malen und Prägen sind höchstens %2$d nötig. Die Vereinfachung verändert das Modell auf der Druckplatte und kann Details entfernen; die Quelldatei bleibt erhalten. Öffne das Werkzeug danach erneut.</string>

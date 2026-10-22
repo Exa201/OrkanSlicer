@@ -4,6 +4,16 @@
     <string name="LargeModelSurfaceMessage">This model has %1$d triangles. Painting and embossing need at most %2$d. Simplifying changes the model on the build plate and may remove detail; the source file stays unchanged. Open the tool again after simplification.</string>
     <string name="LargeModelSurfaceStillDense">The model is still too detailed for precise surface tools. Try a stronger simplification.</string>
     <string name="AppName" translatable="false">OrkanSlicer</string>
+    <string name="StepImportTitle">STEP-Datei importieren</string>
+    <string name="StepImportDescription">STEP-Geometrie wird vor dem Laden in ein Dreiecksnetz umgewandelt. Kleinere Abweichungswerte erhalten mehr Details, benötigen aber mehr Zeit und Speicher.</string>
+    <string name="StepLinearDeflection">Lineare Abweichung (mm)</string>
+    <string name="StepLinearDeflectionHint">0,0001–1,0 · Standard: 0,003</string>
+    <string name="StepAngularDeflection">Winkelabweichung (rad)</string>
+    <string name="StepAngularDeflectionHint">0,01–1,5 · Standard: 0,5</string>
+    <string name="StepSplitCompound">Zusammengesetzte Körper in einzelne Objekte aufteilen</string>
+    <string name="StepSaveDefaults">Diese Werte als Standard speichern</string>
+    <string name="StepInvalidOptions">Bitte gültige Werte innerhalb der angegebenen Bereiche eingeben.</string>
+    <string name="StepImportAction">Netz erzeugen und laden</string>
     <string name="SlotBed">Model</string>
     <string name="NavigationPreview">Preview</string>
     <string name="NavigationPreviewCompact" translatable="false">3D</string>
