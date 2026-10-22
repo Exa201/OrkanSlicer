@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.345\n\n• Wenn ein Schnitt fehlschlägt, werden nur die für diesen Versuch gesetzten Verbindungselemente entfernt. Bereits vorhandene Elemente und das Modell bleiben erhalten.\n• Die Schnittaktion bleibt auf dem GL-Thread; Schnitt, Rücknahme bei Fehlern und Slicen nach dem Platzieren auf einer Modellfläche wurden auf Honor geprüft.",
-  "en": "OrkanSlicer 0.8.345\n\n• If a cut fails, only connector pins added for that attempt are removed. Existing pins and the source model are preserved.\n• The cut action stays on the GL thread; cutting, failure rollback, and slicing after surface placement were verified on Honor.",
-  "ru": "OrkanSlicer 0.8.345\n\n• При неудачном разрезе удаляются только соединители, добавленные для этой попытки. Ранее существовавшие соединители и исходная модель сохраняются.\n• Операция разрезания выполняется в GL-потоке; разрезание, откат ошибки и нарезка после размещения на поверхности проверены на Honor."
+  "de": "OrkanSlicer 0.8.346\n\n• Objekte lassen sich jetzt auch entlang der Z-Achse positionieren. Der aktuelle Z-Wert wird angezeigt; bestätigte Änderungen unterstützen Undo und Redo.\n• Auf Honor wurden Z-Eingabe, Abbrechen, Übernehmen sowie Undo/Redo geprüft.",
+  "en": "OrkanSlicer 0.8.346\n\n• Objects can now be positioned along the Z axis. The current Z value is shown; confirmed changes support undo and redo.\n• Z input, cancel, apply, undo, and redo were verified on Honor.",
+  "ru": "OrkanSlicer 0.8.346\n\n• Теперь объекты можно перемещать и по оси Z. Текущее значение Z отображается; подтвержденные изменения поддерживают отмену и повтор.\n• Ввод Z, отмена, применение, отмена и повтор проверены на Honor."
 }
