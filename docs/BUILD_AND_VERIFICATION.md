@@ -6,6 +6,7 @@
 - Installed the final APK on Honor; package reported versionCode 382 / versionName 0.8.347, `MainActivity` resumed, and the recent logcat window contained no fatal exception, ANR, fatal signal, or OOM.
 - App code commit: `787862bb114a350df819d4d6ec354df87641e275`. Release-note and verification commit: `a653d8ab576a5252c4889bd96b30908ef5ce334d`. No production signing keystore is configured; this APK is debug-signed. Xiaomi is unavailable for direct verification.
 - Published as the regular (not prerelease) GitHub release `v0.8.347`: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.347. GitHub reports asset `OrkanSlicer_a653d8ab57.apk`, size 239,286,524 bytes, digest `sha256:d31f47c348936f3e98813cbb28ef54db257e087802cb219d0236e9970f0bd121`; release tag targets app commit `a653d8ab576a5252c4889bd96b30908ef5ce334d`.
+- Post-release Honor regression: `NativeSliceDeviceTest` passed 13/13 (0 skipped/failures/errors), including multipart composition, surface placement and slicing, printable 3D text, Boolean union/difference/intersection with 3MF reload and G-code, imported-color remapping, and tool selection. No app source changed after release; this only adds verification evidence.
 
 # Xiaomi menu-drag test APK — 2026-10-21
 
