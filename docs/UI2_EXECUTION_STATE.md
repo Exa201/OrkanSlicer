@@ -2490,3 +2490,5 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: NativeSliceDeviceTest passed 10/10 (0 failures/errors/skips). The placed assembly kept target/T1 material assignments; the Boolean result retained only the target filament; standalone text retained its label and printable mesh. All three emitted extrusion G-code after reload.
 - Test sources compiled and git diff --check passed. No product behavior changed, no APK/release created, and no printer/firmware action.
 - Next: continue actual model editing and safety coverage, prioritizing Boolean union/difference/intersection round-trips plus placement/group undo/redo through project save/reload. Full JVM suites are not rerun for this device-test-only pass.
+
+- Follow-up completed: added G-code round-trip verification for Boolean difference and intersection as well. Honor PTP-N49 / Android 16 focused test NativeSliceDeviceTest#booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice passed 1/1; both operations retained half-volume output, target-only filament mapping, and deposited G-code after 3MF reload. No production source changed.

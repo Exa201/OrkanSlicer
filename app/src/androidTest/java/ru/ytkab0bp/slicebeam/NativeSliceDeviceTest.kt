@@ -188,6 +188,61 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-operations-roundtrip.stl")
+        try {
+            listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION).forEach { operation ->
+                val projectFile = File(context.cacheDir, "boolean-${operation.name.lowercase()}-roundtrip.3mf")
+                val model = Model(modelFile)
+                var restored: Model? = null
+                try {
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val sourceVolume = model.getObjectVolume(0)
+                    model.addObject(model, 0)
+                    model.translate(1, (max.x - min.x) / 2.0, 0.0, 0.0)
+                    model.setUniformFilament(0, 1)
+                    model.setUniformFilament(1, 2)
+
+                    val result = model.booleanObjects(0, 1, operation)
+                    assertEquals("$operation should replace both operands", 0, result)
+                    assertEquals("$operation should leave one printable object", 1, model.objectsCount)
+                    assertEquals("$operation should produce the expected half-volume overlap", 0.5,
+                        model.getObjectVolume(result) / sourceVolume, 0.03)
+                    assertEquals("the Boolean output should use the target object's material",
+                        listOf(1), model.getUsedFilaments(result).toList())
+
+                    SliceBeam.genCurrentConfig(model)
+                    val exportConfig = SliceBeam.getCurrentConfigFile()
+                    try {
+                        model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+                    } finally {
+                        exportConfig.delete()
+                    }
+                    restored = Model(projectFile, 1)
+                    assertEquals("$operation result should survive 3MF reload", 1, restored.objectsCount)
+                    assertEquals("$operation reload must not restore the removed cutter's material",
+                        listOf(1), restored.getUsedFilaments(0).toList())
+                    assertEquals("$operation geometry volume should survive reload", 0.5,
+                        restored.getObjectVolume(0) / sourceVolume, 0.03)
+
+                    val gcode = sliceToGcode(context, restored, "boolean-${operation.name.lowercase()}-roundtrip.gcode")
+                    assertHasExtrusion(gcode)
+                    assertFalse("$operation G-code must not use the removed cutter's T1",
+                        Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                } finally {
+                    restored?.release()
+                    model.release()
+                    projectFile.delete()
+                }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun importedSvgSolidProducesExtrusionGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
