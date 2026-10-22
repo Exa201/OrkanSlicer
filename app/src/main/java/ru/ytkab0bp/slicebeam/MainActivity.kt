@@ -1787,15 +1787,30 @@ showFileOperationError(
 }
 })
 }
-private fun loadFile(uri:Uri) {
+private fun loadFile(uri:Uri) = loadFile(uri, stepDetectedFromContent = false)
+
+private fun loadFile(uri:Uri, stepDetectedFromContent:Boolean) {
 val resolver = getContentResolver()
-val fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.resolve(
+var fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.resolve(
     IOUtils.getDisplayName(uri),
     uri.path,
     runCatching { resolver.getType(uri) }.getOrNull(),
 )
+if (stepDetectedFromContent) {
+    fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.withStepExtension(fileName)
+}
 if (fileName == null)
 {
+if (!stepDetectedFromContent) {
+    probeStepContent(uri) { detected ->
+        if (detected) loadFile(uri, stepDetectedFromContent = true)
+        else showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.MenuFileOpenFileFailedNullName),
+        )
+    }
+    return
+}
 showFileOperationError(
     getString(R.string.MenuFileOpenFileFailed),
     getString(R.string.MenuFileOpenFileFailedNullName),
@@ -1820,6 +1835,17 @@ return
 }
 if (!isSupportedModelFile(fileName))
 {
+if (!stepDetectedFromContent) {
+    val unsupportedName = fileName
+    probeStepContent(uri) { detected ->
+        if (detected) loadFile(uri, stepDetectedFromContent = true)
+        else showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.UnsupportedFileType, unsupportedName),
+        )
+    }
+    return
+}
 showFileOperationError(
     getString(R.string.MenuFileOpenFileFailed),
     getString(R.string.UnsupportedFileType, fileName),
@@ -1850,6 +1876,28 @@ ViewUtils.postOnMainThread({ showFileOperationError(
 ) })
 }
 })
+}
+private fun probeStepContent(uri:Uri, onResult:(Boolean)->Unit) {
+    IOUtils.IO_POOL.submit {
+        val detected = try {
+            getContentResolver().openInputStream(uri)?.use { input ->
+                val prefix = ByteArray(256)
+                var length = 0
+                while (length < prefix.size) {
+                    val count = input.read(prefix, length, prefix.size - length)
+                    if (count <= 0) break
+                    length += count
+                }
+                ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.hasStepHeader(prefix, length)
+            } ?: false
+        } catch (error:Exception) {
+            Log.w("MainActivity", "Could not inspect an unknown document for STEP content", error)
+            false
+        }
+        ViewUtils.postOnMainThread {
+            if (!isFinishing && !isDestroyed) onResult(detected)
+        }
+    }
 }
 private fun loadMultipleStlFiles(files:List<Uri>) {
 if (files.isEmpty()) return

@@ -903,12 +903,13 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun projectMenuWaitsForWorkspaceHostThenPromptsForStepOptionsAndRendersFile() {
+    fun stepImportDetectsGenericProviderDocumentAndWaitsForWorkspaceHost() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-        val fileName = "menu-step-import-${System.nanoTime()}.step"
+        // Simulate providers that expose a generated display name and no STEP MIME type.
+        val fileName = "menu-step-import-${System.nanoTime()}-document"
         val inputFile = File(activity.cacheDir, fileName)
-        val cachedImport = File(SliceBeam.getModelCacheDir(), fileName)
+        val cachedImport = File(SliceBeam.getModelCacheDir(), "$fileName.step")
         val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
         val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
             .apply { isAccessible = true }

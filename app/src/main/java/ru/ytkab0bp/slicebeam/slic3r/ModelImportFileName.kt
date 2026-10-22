@@ -25,4 +25,21 @@ internal object ModelImportFileName {
         }
         return name
     }
+
+    fun withStepExtension(name: String?): String {
+        val candidate = name?.trim()?.takeIf(String::isNotEmpty) ?: "model"
+        if (StepImportOptions.isStepFile(candidate)) return candidate
+        val baseName = candidate.substringAfterLast('/').substringAfterLast('\\')
+        val dot = baseName.lastIndexOf('.')
+        val stem = if (dot > 0) baseName.substring(0, dot) else baseName
+        return (stem.ifBlank { "model" }) + ".step"
+    }
+
+    fun hasStepHeader(prefix: ByteArray, length: Int = prefix.size): Boolean {
+        if (length <= 0) return false
+        val text = String(prefix, 0, length.coerceAtMost(prefix.size), Charsets.UTF_8)
+            .removePrefix("\uFEFF")
+            .trimStart()
+        return text.startsWith("ISO-10303-21;")
+    }
 }
