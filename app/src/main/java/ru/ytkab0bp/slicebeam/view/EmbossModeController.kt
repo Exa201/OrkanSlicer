@@ -15,9 +15,12 @@ internal class EmbossModeController(
     private val onModelChanged: () -> Unit = {},
     initialStandaloneMode: Boolean = false,
 ) {
-    private var text: String = context.getString(R.string.AppName)
-    private var size: Float = context.getString(R.string.EmbossDefaultFontSize).toFloatOrNull() ?: 10f
-    private var depth: Float = context.getString(R.string.EmbossDefaultDepth).toFloatOrNull() ?: 1f
+    private val initialText = context.getString(R.string.AppName)
+    private var parameters: EmbossTextInputValidator.Result = EmbossTextInputValidator.validate(
+        initialText,
+        context.getString(R.string.EmbossDefaultFontSize),
+        context.getString(R.string.EmbossDefaultDepth),
+    )
     private var addMode: Boolean = true
     private var standaloneMode: Boolean = initialStandaloneMode
     private var fontFilePath: String? = null
@@ -34,15 +37,18 @@ internal class EmbossModeController(
     }
 
     fun update(text: String, size: String, depth: String, addMode: Boolean, standaloneMode: Boolean = false) {
-        this.text = text
-        this.size = size.replace(',', '.').toFloatOrNull() ?: 10f
-        this.depth = depth.replace(',', '.').toFloatOrNull() ?: 1f
+        parameters = EmbossTextInputValidator.validate(text, size, depth)
         this.addMode = addMode
         this.standaloneMode = standaloneMode
         glView.renderer.isStandaloneTextPlacementMode = standaloneMode
     }
 
     private fun onSurfaceClicked(event: EmbossSurfaceClickedEvent) {
+        val validParameters = parameters
+        if (validParameters.value == null) {
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossInvalidParameters))
+            return
+        }
         val selectedObject = glView.renderer.selectedObject
         if ((!standaloneMode && selectedObject == -1) || (event.isBuildPlatePlacement && !standaloneMode)) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.SelectObjectFirst))
@@ -53,9 +59,9 @@ internal class EmbossModeController(
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossFailed, "Schriftart konnte nicht geladen werden"))
             return
         }
-        val safeText = text.trim().ifEmpty { "text" }
-        val safeSize = size
-        val safeDepth = depth
+        val safeText = validParameters.value.text
+        val safeSize = validParameters.value.size
+        val safeDepth = validParameters.value.depth
         val operationType = if (addMode) 0 else 1
         val createSeparateObject = standaloneMode
         glView.queueEvent {
@@ -97,4 +103,32 @@ internal class EmbossModeController(
         }
         fontFile.absolutePath
     }.getOrNull()
+}
+
+/** Validates model-generation input before it reaches native geometry code. */
+internal object EmbossTextInputValidator {
+    data class Parameters(val text: String, val size: Float, val depth: Float)
+    data class Result(val value: Parameters?, val error: Error?)
+    enum class Error { EMPTY_TEXT, TEXT_TOO_LONG, INVALID_SIZE, INVALID_DEPTH }
+
+    fun validate(text: String, size: String, depth: String): Result {
+        val normalizedText = text.trim()
+        val error = when {
+            normalizedText.isEmpty() -> Error.EMPTY_TEXT
+            normalizedText.codePointCount(0, normalizedText.length) > MAX_TEXT_CODE_POINTS -> Error.TEXT_TOO_LONG
+            parsePositive(size) == null -> Error.INVALID_SIZE
+            parsePositive(depth) == null -> Error.INVALID_DEPTH
+            else -> null
+        }
+        if (error != null) return Result(null, error)
+        return Result(
+            Parameters(normalizedText, requireNotNull(parsePositive(size)), requireNotNull(parsePositive(depth))),
+            null,
+        )
+    }
+
+    private fun parsePositive(value: String): Float? = value.replace(',', '.').toFloatOrNull()
+        ?.takeIf { it.isFinite() && it > 0f }
+
+    private const val MAX_TEXT_CODE_POINTS = 256
 }

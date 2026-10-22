@@ -1,3 +1,9 @@
+# Fortsetzung — Modellbearbeitung, 2026-10-22
+
+- Eigenständige 3D-Texteingaben validieren jetzt Inhalt, positive endliche Schriftgröße und positive endliche Tiefe. Leere oder überlange Eingaben sowie ungültige Maße werden sichtbar markiert und nicht mehr still auf Standardwerte umgebogen oder an den nativen Mesh-Generator weitergegeben.
+- Verifikation: `EmbossTextInputValidatorTest` erfolgreich; Honor PTP-N49 / Android 16: `GlModePanelsComposeDeviceTest`, `ModelEditingNativeDeviceTest` und `NativeSliceDeviceTest` zusammen 40/40 erfolgreich (0 übersprungen, 0 fehlgeschlagen). Darin enthalten sind Text-Mesh-Erzeugung, multipartes Verbinden/Platzieren, native Boolean-Operationen und Slice-/G-Code-Regressionen.
+- Nächster Schritt: die Editieraktionen für Text und Boolesche Operationen weiter durch 3MF-Roundtrip und Undo/Redo absichern; danach nächste drei Modellbearbeitungsabläufe ergänzen und gegen Slice-Ergebnisse prüfen. Xiaomi bleibt für Gerätesichtprüfung gesondert zu testen.
+
 # Aktueller Fortsetzungsstand — STEP-Import und Spiegelwerkzeuge X/Y/Z, 2026-10-22
 
 ## STEP/STP-Dateiöffnung – 2026-10-22

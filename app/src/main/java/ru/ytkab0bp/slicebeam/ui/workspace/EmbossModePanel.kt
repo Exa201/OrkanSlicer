@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.view.EmbossModeController
+import ru.ytkab0bp.slicebeam.view.EmbossTextInputValidator
 
 @Composable
 internal fun EmbossModePanel(
@@ -42,6 +43,7 @@ internal fun EmbossModePanel(
     var depth by remember { mutableStateOf(initialDepth) }
     var addMode by remember { mutableStateOf(true) }
     var standaloneMode by remember { mutableStateOf(startInStandaloneMode) }
+    val validation = EmbossTextInputValidator.validate(text, size, depth)
 
     fun sync() = controller.update(text, size, depth, addMode, standaloneMode)
     DisposableEffect(controller) {
@@ -62,6 +64,8 @@ internal fun EmbossModePanel(
             label = { Text(stringResource(R.string.EmbossTextLabel)) },
             placeholder = { Text(stringResource(R.string.EmbossTextHint)) },
             singleLine = true,
+            isError = validation.error == EmbossTextInputValidator.Error.EMPTY_TEXT ||
+                validation.error == EmbossTextInputValidator.Error.TEXT_TOO_LONG,
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
@@ -69,15 +73,25 @@ internal fun EmbossModePanel(
             onValueChange = { size = it; sync() },
             label = { Text(stringResource(R.string.EmbossFontSize)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
+            isError = validation.error == EmbossTextInputValidator.Error.INVALID_SIZE,
+            modifier = Modifier.fillMaxWidth().testTag("emboss-font-size"),
         )
         OutlinedTextField(
             value = depth,
             onValueChange = { depth = it; sync() },
             label = { Text(stringResource(R.string.EmbossDepth)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            isError = validation.error == EmbossTextInputValidator.Error.INVALID_DEPTH,
             modifier = Modifier.fillMaxWidth(),
         )
+        if (validation.error != null) {
+            Text(
+                stringResource(R.string.EmbossInvalidParameters),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("emboss-input-error"),
+            )
+        }
         FilterChip(
             selected = standaloneMode,
             onClick = { standaloneMode = !standaloneMode; sync() },

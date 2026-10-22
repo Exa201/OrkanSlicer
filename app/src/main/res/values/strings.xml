@@ -1177,6 +1177,7 @@
     <string name="EmbossDefaultDepth">1.0</string>
     <string name="EmbossFontSize">Font size (mm):</string>
     <string name="EmbossDepth">Depth (mm):</string>
+    <string name="EmbossInvalidParameters">Enter text (up to 256 characters), a positive font size, and a positive depth.</string>
     <string name="EmbossOperation">Operation:</string>
     <string name="EmbossRaise">Raise</string>
     <string name="EmbossEngrave">Engrave</string>

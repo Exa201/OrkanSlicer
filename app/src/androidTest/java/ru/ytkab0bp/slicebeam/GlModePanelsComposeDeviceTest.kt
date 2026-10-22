@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
@@ -136,6 +137,19 @@ class GlModePanelsComposeDeviceTest {
         compose.onNodeWithText(context.getString(R.string.EmbossRaise)).assertIsNotDisplayed()
         compose.onNodeWithText(context.getString(R.string.EmbossEngrave)).assertIsNotDisplayed()
         compose.onNodeWithTag("emboss-standalone-mode").assertIsDisplayed()
+    }
+
+    @Test
+    fun embossPanelShowsInvalidGeometryInputInsteadOfSilentlyUsingDefaults() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lateinit var controller: EmbossModeController
+        compose.runOnUiThread { controller = EmbossModeController(context, GLView(context)) }
+        compose.setContent { BeamComposeTheme { EmbossModePanel(controller) {} } }
+
+        compose.onNodeWithTag("emboss-font-size").performTextReplacement("0")
+        compose.onNodeWithTag("emboss-input-error").assertIsDisplayed()
+        compose.onNodeWithTag("emboss-font-size").performTextReplacement("12")
+        compose.onNodeWithTag("emboss-input-error").assertDoesNotExist()
     }
 
     @Test
