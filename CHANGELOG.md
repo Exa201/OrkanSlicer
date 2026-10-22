@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.347
+
+- Add individual remapping for imported multipart 3MF colors. Different model colors can share a filament slot, and remapped part and painted-facet assignments persist through 3MF export/reload and slicing.
+- Fix Z positioning from the ruler: moving along Z now updates and previews Z while preserving X and Y. Confirm, undo, and redo are covered.
+- Verify remapping and sliced G-code with a synthetic multipart project and the user's private KromaCut 3MF on Honor PTP-N49 / Android 16. The private fixture was temporary and is not included in the repository.
+- Debug and Slice JVM suites passed 605/605 each. Honor full instrumentation ran 294 tests: 290 passed, 3 private-fixture tests skipped, and the initial run found an outdated changelog version; after updating the release notes, the affected device test passed 1/1.
+
 ## 0.8.345
 
 - Make the cut workflow transactional for connector pins: if a cut fails, only pins added for that attempt are removed; existing unprocessed pins and the source mesh remain intact.
