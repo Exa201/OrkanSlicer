@@ -1667,15 +1667,37 @@ return cols * rows
  * Duplicate the currently selected object (single copy).
  */
  fun duplicateSelectedObject():Int {
-if (this.model == null || bed == null || !bed!!.isValid() || isViewerEnabled || selectedObject == -1) return 0
+val activeModel = model ?: return 0
+val activeBed = bed ?: return 0
+val sourceIndex = selectedObject
+if (!activeBed.isValid() || isViewerEnabled || sourceIndex !in 0 until activeModel.objectsCount) return 0
+val originalCount = activeModel.objectsCount
+val originalTranslations = ArrayList<Vec3d>(originalCount)
+for (index in 0 until originalCount) {
+    val translation = Vec3d()
+    activeModel.getTranslation(index, translation)
+    originalTranslations.add(translation)
+}
 val sourceModel = Model()
 try
 {
-sourceModel.addObject(this.model!!, selectedObject)
-this.model!!.addObject(sourceModel, 0)
-this.model!!.resetBoundingBox()
-bed!!.arrange(this.model!!)
-this.model!!.resetBoundingBox()
+sourceModel.addObject(activeModel, sourceIndex)
+activeModel.addObject(sourceModel, 0)
+activeModel.resetBoundingBox()
+if (!activeBed.arrange(activeModel)) {
+    // Arrange may have moved existing objects before reporting that the full plate cannot fit.
+    // Roll back both the new copy and every original placement so a failed action is atomic.
+    activeModel.deleteObject(activeModel.objectsCount - 1)
+    originalTranslations.forEachIndexed { index, before ->
+        val after = Vec3d()
+        activeModel.getTranslation(index, after)
+        activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+    }
+    activeModel.resetBoundingBox()
+    resetGlModels()
+    return 0
+}
+activeModel.resetBoundingBox()
 resetGlModels()
 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return 1

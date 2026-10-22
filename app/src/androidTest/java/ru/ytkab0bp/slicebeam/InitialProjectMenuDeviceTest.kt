@@ -900,6 +900,48 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun duplicateDoesNotKeepCopyWhenArrangeCannotFitTheModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-duplicate-no-room-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.scale(0, 40.0, 40.0, 1.0)
+                glView.renderer.invalidateGlModel(0)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("oversized source should be prepared on GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val before = readExactBoundsOnGl(glView, 0).single()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuDuplicate)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuDuplicateShort))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("duplicate-model-count").performTextClearance()
+            compose.onNodeWithTag("duplicate-model-count").performTextInput("1")
+            compose.onNodeWithTag("duplicate-model-confirm").performClick()
+
+            instrumentationWaitForGlIdle()
+            assertEquals("a failed bed arrangement must roll back the duplicate", 1, readObjectCountOnGl(glView))
+            assertArrayEquals("the failed operation must preserve the source geometry and position",
+                before, readExactBoundsOnGl(glView, 0).single(), 0.03)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
