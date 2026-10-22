@@ -116,6 +116,43 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun combiningRotatedNonUniformlyScaledObjectPreservesWorldBounds() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "combine-transformed-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.scale(1, 1.4, 0.7, 1.2)
+            model.rotate(1, 0.35, -0.22, 0.48)
+            model.translate(1, 31.0, -17.0, 9.0)
+
+            fun bounds(index: Int): Pair<DoubleArray, DoubleArray> {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return doubleArrayOf(min.x, min.y, min.z) to doubleArrayOf(max.x, max.y, max.z)
+            }
+            val sourceBounds = listOf(bounds(0), bounds(1))
+            val expectedMin = DoubleArray(3) { axis -> sourceBounds.minOf { it.first[axis] } }
+            val expectedMax = DoubleArray(3) { axis -> sourceBounds.maxOf { it.second[axis] } }
+            val expectedTriangles = model.getTriangleCount(0) + model.getTriangleCount(1)
+
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals(expectedTriangles, model.getTriangleCount(0))
+            assertTrue("both source filament assignments must remain on the joined part",
+                model.getUsedFilaments(0).toSet().containsAll(setOf(1, 2)))
+            val joined = bounds(0)
+            for (axis in 0..2) {
+                assertEquals("joined minimum on axis $axis", expectedMin[axis], joined.first[axis], 0.01)
+                assertEquals("joined maximum on axis $axis", expectedMax[axis], joined.second[axis], 0.01)
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun rejectedObjectCombinesLeaveGeometryPlacementAndMaterialsUnchanged() {
         val modelFile = copyAsset("models/xyz_cube.stl", "combine-invalid-input-cube.stl")
         val model = Model(modelFile)
