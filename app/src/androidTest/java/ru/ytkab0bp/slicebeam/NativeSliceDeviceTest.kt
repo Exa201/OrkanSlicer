@@ -133,7 +133,9 @@ class NativeSliceDeviceTest {
         var restored: Model? = null
         try {
             model.addObject(model, 0)
-            model.translate(1, 30.0, 0.0, 0.0)
+            model.scale(1, 1.3, 0.8, 1.2)
+            model.rotate(1, 0.35, -0.22, 0.48)
+            model.translate(1, 50.0, 50.0, 0.0)
             model.setUniformFilament(0, 1)
             model.setUniformFilament(1, 2)
 
