@@ -1,3 +1,11 @@
+# Latest checkpoint — 2026-10-22 (private multicolor fixture recovered and exercised)
+
+- Active objective remains safe object joining/placement, standalone printable text, native Booleans, and UI 2.0 continuation. Current release source is `7a3ab0f0b9faf04abe5fc876e26f3535c5a002d6`; docs-only branch head is recorded in Git after this checkpoint.
+- Used the user's existing KromaCut 3MF attachment only as a temporary device test fixture. `KromaCutThreeMfDeviceTest` passed 3/3 on Honor PTP-N49 / Android 16, with zero skips/failures/errors. The actual slice used white ACE2 for T0 and blue ACE4 for T1; the native G-code emitted both tools and the selected palette, and the preview palette matched native slicing. The test also covered independent 3MF import choices, palette recoloring, painted facets, and real slicing.
+- Repeated-slot object assignment UI passed 1/1: two separate objects may map to the same white slot. Native per-source color remapping through 3MF export/reload and sliced tool emission passed 1/1. Temporary fixture copy removed; original attachment remains untouched and untracked.
+- No app source changed after v0.8.349 and no new APK/release was needed. These focused runs cover all three KromaCut tests that were skipped in the release full-instrumentation run; the original 301-case report still records those historical skips, while the added 3/3 fixture-backed run supplies the missing evidence.
+- Next concrete step: continue the model-editing phase by exercising Boolean and join workflows on actual multi-object, differently assigned models through save/reload and slicing, then resume the remaining UI 2.0 responsive/accessibility audit. Keep the persistent goal active.
+
 # Latest checkpoint — 2026-10-22 (surface placement and mesh-hit correction)
 
 - Active objective: continue verified model-editing work (safe joining/placement, standalone printable 3D text, and native Booleans) while advancing UI 2.0. Code/release commit is `7a3ab0f0b9faf04abe5fc876e26f3535c5a002d6` on `codex/rinkhals-safe-start-audit`.

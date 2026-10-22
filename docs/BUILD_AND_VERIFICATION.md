@@ -1,3 +1,9 @@
+# Post-release KromaCut fixture and repeated-slot assignment — Honor, 2026-10-22
+
+- The user-provided `kromacut-1792184183294-kromacut-2026-10-16.3mf` was staged only in the isolated `sliceTest` app's external-files directory on Honor PTP-N49 / Android 16 (SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`). `KromaCutThreeMfDeviceTest`: 3/3 passed, 0 failures/errors/skips. Coverage includes independent import-choice combinations, own-settings vs embedded settings, palette recoloring and paint followed by real slicing, and the reported T0→white ACE2 / T1→blue ACE4 mapping. The emitted native G-code retained both used tools and the selected white/blue palette; the G-code preview palette matched the native slicer result.
+- The two-object Compose assignment test passed 1/1: two separate objects can both select the same white filament slot. The native color-remapping 3MF round-trip + G-code test passed 1/1, verifying remapped material tools after reload.
+- The fixture was removed from the test package external-files directory after the run. The source attachment was not altered or added to Git. No real MMU query or printer connection occurred; tests used a synthetic MMU snapshot and never started a print. No production source changed after v0.8.349.
+
 # OrkanSlicer 0.8.349 official release — 2026-10-22
 
 - App code/release commit: `7a3ab0f0b9faf04abe5fc876e26f3535c5a002d6` (`Add precise surface placement for selected model groups`). Version 0.8.349 / versionCode 384.
