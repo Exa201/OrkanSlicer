@@ -1,3 +1,10 @@
+# KromaCut multipart filament reassignment and slicing — 2026-10-22
+
+- Tested the user-provided `kromacut-1792184183294-kromacut-2026-10-16.3mf` on Honor PTP-N49 / Android 16 using an ephemeral local instrumentation fixture (the private file was not added to the repository). Import produced one model object with two material parts `[1, 2]`. After explicitly reassigning the object to slot 2, its used-filament set became `[2]`; that assignment survived 3MF export/reload and the resulting G-code emitted T1 with extrusion. The earlier assertion requiring explicit T0 was invalid because Orca need not emit T0 when it is the initial active tool; no product defect reproduced in this specific uniform-reassignment path.
+- Added permanent fixture-independent `NativeSliceDeviceTest#uniformReassignmentOfMultipart3mfSurvivesReloadAndSlicesWithNewSlot`: creates a multipart model, exports/reloads it, applies a uniform slot override, round-trips again, and verifies T1 extrusion. Honor PTP-N49 / Android 16 passed 1/1. The existing real Workspace Model-menu surface-placement test passed 1/1 and the placed 3MF/G-code test passed 1/1 earlier in this pass.
+- No production code changed; no APK/release generated. Latest release remains v0.8.346. PR branch update is pending alongside the completed test coverage.
+- Next: run the relevant bundled JVM suites, commit/push this reproducible regression, then continue production UI/model-editing work before preparing a release.
+
 # Surface-placement material/history verification — 2026-10-22
 
 - Extended the actual Model-menu surface-placement test: three source objects now use distinct filament assignments; the result must be a single multipart object centered over the target, retain target/group geometry and all three material assignments, and restore those assignments through Undo/Redo.

@@ -91,6 +91,60 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun uniformReassignmentOfMultipart3mfSurvivesReloadAndSlicesWithNewSlot() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sourceFile = copyCube(context, "multipart-reassignment-source.stl")
+        val originalProject = File(context.cacheDir, "multipart-reassignment-original.3mf")
+        val remappedProject = File(context.cacheDir, "multipart-reassignment-remapped.3mf")
+        val output = File(context.cacheDir, "multipart-reassignment-remapped.gcode")
+        val model = Model(sourceFile)
+        var originalReload: Model? = null
+        var remappedReload: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("fixture starts as one object with two material volumes", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, originalProject.absolutePath)
+            originalReload = Model(originalProject, 1)
+            assertEquals("the source 3MF must reload both material assignments", listOf(1, 2),
+                originalReload.getUsedFilaments(0).toList())
+
+            // This is the same explicit uniform reassignment used by the model-to-filament UI.
+            originalReload.setUniformFilament(0, 2)
+            assertEquals("choosing slot 2 must replace the imported per-volume slot 1", listOf(2),
+                originalReload.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(originalReload)
+            originalReload.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, remappedProject.absolutePath)
+            remappedReload = Model(remappedProject, 1)
+            assertEquals("the chosen slot must survive the remapped 3MF round trip", listOf(2),
+                remappedReload.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(remappedReload)
+            result = remappedReload.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the chosen second slot must reach G-code as T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            remappedReload?.release()
+            originalReload?.release()
+            model.release()
+            sourceFile.delete()
+            originalProject.delete()
+            remappedProject.delete()
+            output.delete()
+        }
+    }
+
+    @Test
     fun placedObjectGroupRemainsPrintableAfterSurfacePlacement() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "placed-group-slice.stl")
