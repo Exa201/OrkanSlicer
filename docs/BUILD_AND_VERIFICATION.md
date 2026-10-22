@@ -1,3 +1,13 @@
+# OrkanSlicer 0.8.349 official release — 2026-10-22
+
+- App code/release commit: `7a3ab0f0b9faf04abe5fc876e26f3535c5a002d6` (`Add precise surface placement for selected model groups`). Version 0.8.349 / versionCode 384.
+- Debug APK: `OrkanSlicer_7a3ab0f0b9.apk`, 239,314,887 bytes, SHA-256 `E1A28196EB759D27085CFCD78C0CC4BAF01526EF99A394EC041DA5A22D010CB4`. APK digest and asset size match GitHub.
+- Verification from the release source: `:app:testDebugUnitTest` 610/610 and `:app:testSliceTestUnitTest` 610/610; zero failures/errors/skips. Full Honor PTP-N49 / Android 16 instrumentation: 301 tests, 298 passed, 3 KromaCut/private-fixture tests skipped, 0 failures/errors. The changelog-device test passed 1/1 after the version bump.
+- Installed and launched the exact APK on Honor PTP-N49 / Android 16; package reports versionCode 384 / versionName 0.8.349. Sampled startup Logcat had no fatal exception, ANR, fatal signal, or OOM match. Xiaomi-specific verification remains unavailable.
+- Published as the regular (not prerelease) GitHub release `v0.8.349`: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.349. Tag was verified to point to the release code commit above; APK asset digest is `sha256:e1a28196eb759d27085cfcd78c0cc4baf01526ef99a394ec041da5a22d010cb4`.
+- PR #2 remains open and reports `CLEAN` / mergeable at the code commit. No merge, firmware action, or print start occurred. APK is debug-signed because no production signing key is configured.
+- This release includes STEP/STP import with configurable tessellation and precise picked-surface placement. Model editing device evidence in the full run covers object joining, surface placement + cancel + undo/redo, printable text, Boolean operations, 3MF round-trip and slicing/G-code material slots. Private KromaCut fixtures were not part of this environment's full suite.
+
 # Official release candidate 0.8.347 — 2026-10-22
 
 - App version: 0.8.347, versionCode 382. APK: `OrkanSlicer_a653d8ab57.apk`, built from app commit `a653d8ab576a5252c4889bd96b30908ef5ce334d`; 239,286,524 bytes; SHA-256 `D31F47C348936F3E98813CBB28EF54DB257E087802CB219D0236E9970F0BD121`.
