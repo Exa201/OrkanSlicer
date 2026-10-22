@@ -1233,6 +1233,48 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun externalStepDocumentUriShowsMeshingOptionsBeforeLoadingRenderableModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val file = File(activity.cacheDir, "external-step-view-${System.nanoTime()}.step")
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("step_cube_ccby4.step").use { source -> file.outputStream().use(source::copyTo) }
+            val provider = activity.packageManager.getPackageInfo(
+                activity.packageName,
+                PackageManager.GET_PROVIDERS,
+            ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+            val authority = requireNotNull(provider.authority).substringBefore(';')
+            val uri = FileProvider.getUriForFile(activity, authority, file)
+            // The resolver test separately verifies that Android routes ACTION_VIEW to MainActivity.
+            // Exercise the same URI handler used by onCreate/onNewIntent without manually calling
+            // Activity's lifecycle callback (which makes ActivityScenario teardown unreliable).
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod("loadFile", Uri::class.java)
+                    .apply { isAccessible = true }
+                    .invoke(activity, uri)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertEquals("External STEP open must wait for the user's meshing choice",
+                0, bed.currentModel?.objectsCount ?: 0)
+            compose.onNodeWithTag("step-linear-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-angular-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-import-confirm").performClick()
+
+            compose.waitUntil(timeoutMillis = 90_000) {
+                val model = bed.currentModel
+                model != null && model.objectsCount == 1 && model.getTriangleCount(0) > 0
+            }
+            assertTrue("The externally opened STEP must become a renderable mesh",
+                requireNotNull(bed.currentModel).getTriangleCount(0) > 0)
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun projectMenuImportsMultipleSelectedStlsSequentially() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
