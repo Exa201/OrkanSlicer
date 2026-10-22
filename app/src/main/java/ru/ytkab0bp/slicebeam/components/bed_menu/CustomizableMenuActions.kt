@@ -18,6 +18,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -100,6 +101,16 @@ internal fun CustomizableBedMenuActionsContent(
         dragState.hasMoved = true
     }
 
+    fun updateDropTarget(pointer: Offset?) {
+        val source = dragState.activeTitleRes ?: return
+        val visibleTitleIds = visibleActions.map { it.titleRes }.toSet()
+        dragState.lastTargetTitleRes = pointer?.let { point ->
+            dragState.bounds.entries.firstOrNull { (candidate, bounds) ->
+                candidate != source && candidate in visibleTitleIds && bounds.contains(point)
+            }?.key
+        }
+    }
+
     val onActionPositioned: (Int, Rect) -> Unit = { id, bounds -> dragState.bounds[id] = bounds }
     val onActionDragStart: (Int, Offset) -> Unit = { id, localOffset ->
         dragState.hasMoved = false
@@ -112,19 +123,14 @@ internal fun CustomizableBedMenuActionsContent(
         if (dragState.activeTitleRes == id) {
             dragState.dragTranslation += delta
             dragState.pointerInRoot = dragState.pointerInRoot?.plus(delta)
-            val visibleTitleIds = visibleActions.map { it.titleRes }.toSet()
-            val target = dragState.pointerInRoot?.let { point ->
-                dragState.bounds.entries.firstOrNull { (candidate, bounds) ->
-                    candidate != id && candidate in visibleTitleIds && bounds.contains(point)
-                }?.key
-            }
-            if (target != dragState.lastTargetTitleRes) {
-                dragState.lastTargetTitleRes = target
-            }
+            updateDropTarget(dragState.pointerInRoot)
         }
     }
     val onActionDragEnd: () -> Unit = {
         val sourceTitle = dragState.activeTitleRes
+        // Resolve once more on release so the drop uses the latest item positions,
+        // including positions changed by horizontal auto-scroll near the rail edge.
+        updateDropTarget(dragState.pointerInRoot)
         val targetTitle = dragState.lastTargetTitleRes
         if (sourceTitle != null && targetTitle != null) {
             moveToVisibleTarget(context.resources.getResourceEntryName(sourceTitle), targetTitle)
@@ -160,7 +166,10 @@ internal fun CustomizableBedMenuActionsContent(
                 dropTargetTitleRes = dragState.lastTargetTitleRes,
                 draggedActionTranslation = dragState.dragTranslation,
                 draggedActionPointerInRoot = dragState.pointerInRoot,
-                onDragAutoScroll = { amount -> dragState.dragTranslation += Offset(amount, 0f) },
+                onDragAutoScroll = { amount ->
+                    dragState.dragTranslation += Offset(amount, 0f)
+                    updateDropTarget(dragState.pointerInRoot)
+                },
             )
             TextButton(
                 onClick = openCustomization,
@@ -193,7 +202,10 @@ internal fun CustomizableBedMenuActionsContent(
                 dropTargetTitleRes = dragState.lastTargetTitleRes,
                 draggedActionTranslation = dragState.dragTranslation,
                 draggedActionPointerInRoot = dragState.pointerInRoot,
-                onDragAutoScroll = { amount -> dragState.dragTranslation += Offset(amount, 0f) },
+                onDragAutoScroll = { amount ->
+                    dragState.dragTranslation += Offset(amount, 0f)
+                    updateDropTarget(dragState.pointerInRoot)
+                },
             )
         }
     }
@@ -263,7 +275,7 @@ internal fun CustomizableBedMenuActionsContent(
 }
 
 private class MenuActionDragState {
-    val bounds = mutableMapOf<Int, Rect>()
+    val bounds = mutableStateMapOf<Int, Rect>()
     var activeTitleRes by mutableStateOf<Int?>(null)
     var pointerInRoot by mutableStateOf<Offset?>(null)
     var dragTranslation by mutableStateOf(Offset.Zero)

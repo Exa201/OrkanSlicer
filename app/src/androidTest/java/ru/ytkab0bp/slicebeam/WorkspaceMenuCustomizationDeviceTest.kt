@@ -75,13 +75,25 @@ class WorkspaceMenuCustomizationDeviceTest {
             "workspace-menu-action-${R.string.MenuCameraTop}",
             "workspace-menu-action-${R.string.MenuCameraBottom}",
         )
+        val prefs = context.getSharedPreferences("workspace_menu_customization", 0)
+        assertTrue("Dragging right must move the selected action after its target",
+            prefs.getString("order_$menuKey", "").orEmpty().startsWith("$bottomKey|"))
+        dragAction(
+            "workspace-menu-action-${R.string.MenuCameraBottom}",
+            "workspace-menu-action-${R.string.MenuCameraTop}",
+        )
+        assertTrue("Dragging left must move the selected action before its target",
+            prefs.getString("order_$menuKey", "").orEmpty().startsWith("$topKey|"))
+        dragAction(
+            "workspace-menu-action-${R.string.MenuCameraTop}",
+            "workspace-menu-action-${R.string.MenuCameraBottom}",
+        )
         compose.onNodeWithTag("menu-customize-$menuKey").performClick()
         compose.onNodeWithTag("menu-customize-visible-$menuKey-$bottomKey").performClick()
         compose.onNodeWithTag("menu-customize-save-$menuKey").performClick()
 
         compose.onNodeWithText(context.getString(R.string.MenuCameraBottom)).assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.MenuCameraTop)).assertIsDisplayed()
-        val prefs = context.getSharedPreferences("workspace_menu_customization", 0)
         assertTrue(prefs.getString("order_$menuKey", "").orEmpty().startsWith("$bottomKey|"))
         assertTrue(bottomKey in prefs.getStringSet("hidden_$menuKey", emptySet()).orEmpty())
 

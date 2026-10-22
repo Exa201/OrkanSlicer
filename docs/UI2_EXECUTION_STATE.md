@@ -1,3 +1,10 @@
+# Menu drag placement follow-up — 2026-10-22
+
+- Menu actions now recalculate their highlighted drop target after horizontal auto-scroll and again on release, so a held item can be moved left or right until the intended slot is reached. Drag bounds are snapshot-aware so scrolling updates the visual target promptly.
+- Extended `WorkspaceMenuCustomizationDeviceTest` to verify both rightward and leftward reordering before checking hide/persistence behavior.
+- Verification on Honor PTP-N49 / Android 16: `WorkspaceMenuCustomizationDeviceTest` passed 4/4. `:app:compileDebugKotlin` and `:app:compileSliceTestAndroidTestKotlin` succeeded. Full suites were not run.
+- Next: continue the UI 2.0 menu/action audit and device coverage. Xiaomi-specific verification remains open.
+
 # Cut connector rollback — 2026-10-22
 
 - Active goal: continue model-editing functions within UI 2.0. Phase 4 architecture remains complete; Phase 5 action audit and Phase 6 accessibility/device coverage remain open.

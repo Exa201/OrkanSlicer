@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -202,7 +203,15 @@ internal fun BedMenuActionsContent(
                             pointer.x > bounds.right - edgeSizePx -> 6f
                             else -> 0f
                         }
-                        if (delta != 0f) onDragAutoScroll?.invoke(gridState.scrollBy(delta))
+                        if (delta != 0f) {
+                            val consumed = gridState.scrollBy(delta)
+                            if (consumed != 0f) {
+                                // Wait for the lazy grid to publish its new item bounds before
+                                // recalculating the highlighted drop target under a stationary finger.
+                                withFrameNanos { }
+                                onDragAutoScroll?.invoke(consumed)
+                            }
+                        }
                     }
                     delay(16)
                 }
@@ -287,7 +296,13 @@ internal fun BedMenuActionsContent(
                         pointer.x > bounds.right - edgeSizePx -> 6f
                         else -> 0f
                     }
-                    if (delta != 0f) onDragAutoScroll?.invoke(listState.scrollBy(delta))
+                    if (delta != 0f) {
+                        val consumed = listState.scrollBy(delta)
+                        if (consumed != 0f) {
+                            withFrameNanos { }
+                            onDragAutoScroll?.invoke(consumed)
+                        }
+                    }
                 }
                 delay(16)
             }
