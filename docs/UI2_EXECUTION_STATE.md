@@ -1,3 +1,11 @@
+# Fortsetzung — STEP/STP-Dateiöffnung unter Android 16, 2026-10-22
+
+- Ursache reproduziert: Öffnet ein Dateimanager eine STEP-Datei als `file:///sdcard/...`, verweigert Android 16 der App den direkten Pfad mit `EACCES`. Der bisherige Code versuchte trotzdem, ihn über `ContentResolver` einzulesen und zeigte den Datei-Zugriffsfehler. Die interne Auswahl über den Android-Dokumentdialog war davon nicht betroffen.
+- Behoben: Nicht lesbare `file://`-Links öffnen jetzt den SAF-Dokumentdialog erneut; danach läuft die gewählte Datei durch denselben STEP-Optionsdialog und den nativen Import. Lesbare lokale Dateien behalten den direkten Weg. Es werden keine zusätzlichen Speicherberechtigungen verlangt.
+- Zusätzlich behoben: Bei STEP-MIME-Typen werden generische oder unbekannte Dateiendungen wie `.bin` korrekt als STEP erkannt; bekannte explizite Nicht-STEP-Formate wie `.stl` bleiben unverändert.
+- Verifikation: gezielte JVM-Tests 7/7 bestanden; Honor PTP-N49 / Android 16 `stepImportFromFileUriFallsBackToDocumentPickerAndWaitsForWorkspaceHost` 1/1 bestanden. Der Test prüft SAF-Fallback, Optionen vor dem Import und anschließendes renderbares Dreiecksnetz. In diesem Durchgang außerdem `StepModelImportDeviceTest` 1/1 und `StepImportOptionsDialogDeviceTest` 2/2 bestanden; `git diff --check` bestanden.
+- Dieser Fix ist noch nicht in einem neuen Release enthalten. Nächster Schritt: Versionierten Debug-Build erstellen und Änderungen auf PR #2 sichern; ein neuer offizieller Release wird erst nach der nächsten gebündelten, verifizierten Projektgruppe erstellt.
+
 # Fortsetzung — Boolean-Quellmetadaten und Modellbearbeitung, 2026-10-22
 
 - Gefunden: Ein Boolean-Ergebnis ist neu erzeugte Weltgeometrie, erhielt beim Erzeugen aber den Quellpfad des Zielobjekts und einen Objektindex, der auf den zuvor eingefügten Ergebnis-Slot zeigte. Nach dem Löschen der Boolean-Eingaben war dieser Quellindex veraltet und wurde beim 3MF-Export als falsche Provenienz gespeichert.

@@ -11,6 +11,7 @@
     <string name="StepInvalidOptions">Bitte gültige Werte innerhalb der angegebenen Bereiche eingeben.</string>
     <string name="StepImportAction">Netz erzeugen und laden</string>
     <string name="StepImportWorkspaceUnavailable">Der Arbeitsbereich wird noch vorbereitet. Öffne die Datei erneut, sobald die Druckplatte sichtbar ist.</string>
+    <string name="FileUriNeedsDocumentPicker">Android gibt für diesen Dateipfad keinen Zugriff frei. Wähle die Datei im Dateiauswahldialog erneut aus.</string>
     <string name="LargeModelPreciseSurfaceUnavailable">Dieses Werkzeug braucht einen genauen Oberflächenpunkt. Vereinfache zuerst das Modell; auswählen kannst du es weiterhin.</string>
     <string name="LargeModelSurfaceTitle">Für Oberflächenwerkzeuge vereinfachen?</string>
     <string name="LargeModelSurfaceMessage">Dieses Modell hat %1$d Dreiecke. Zum Malen und Prägen sind höchstens %2$d nötig. Die Vereinfachung verändert das Modell auf der Druckplatte und kann Details entfernen; die Quelldatei bleibt erhalten. Öffne das Werkzeug danach erneut.</string>

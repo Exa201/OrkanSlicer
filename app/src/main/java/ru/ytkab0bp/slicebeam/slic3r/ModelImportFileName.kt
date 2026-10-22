@@ -3,6 +3,12 @@ package ru.ytkab0bp.slicebeam.slic3r
 /** Resolves the import name exposed by Android document providers, including providers that
  * publish STEP files with a generic name and rely on the document MIME type. */
 internal object ModelImportFileName {
+    /** Extensions whose explicit meaning should win over a provider's occasionally incorrect MIME. */
+    private val knownNonStepExtensions = setOf(
+        "stl", "oltp", "obj", "3mf", "amf", "svg", "drc", "gcode", "g", "gco", "bgcode",
+        "ini", "zip", "orca_printer", "orca_filament",
+    )
+
     private val stepMimeTypes = setOf(
         "model/step",
         "application/step",
@@ -19,7 +25,8 @@ internal object ModelImportFileName {
             return when {
                 name == null -> "model.step"
                 StepImportOptions.isStepFile(name) -> name
-                name.substringAfterLast('/', name).contains('.') -> name
+                name.substringAfterLast('/', name).substringAfterLast('.', "")
+                    .lowercase(java.util.Locale.ROOT) in knownNonStepExtensions -> name
                 else -> "$name.step"
             }
         }

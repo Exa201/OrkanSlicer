@@ -1790,6 +1790,24 @@ showFileOperationError(
 private fun loadFile(uri:Uri) = loadFile(uri, stepDetectedFromContent = false)
 
 private fun loadFile(uri:Uri, stepDetectedFromContent:Boolean) {
+if (uri.scheme.equals(ContentResolver.SCHEME_FILE, ignoreCase = true)) {
+    val localFile = uri.path?.let(::File)
+    if (localFile?.isFile == true && localFile.canRead()) {
+        // App-private or otherwise readable file:// URLs can use the existing import path.
+        loadFile(localFile, false)
+    } else {
+        // Android's scoped storage does not grant access to shared-storage file:// URLs.
+        // Ask the user to pick the same document through SAF, which returns a readable content:// URI.
+        Toast.makeText(this, R.string.FileUriNeedsDocumentPicker, Toast.LENGTH_LONG).show()
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        launchRegisteredActivityResult(intent, REQUEST_CODE_OPEN_FILE)
+    }
+    return
+}
 val resolver = getContentResolver()
 var fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.resolve(
     IOUtils.getDisplayName(uri),

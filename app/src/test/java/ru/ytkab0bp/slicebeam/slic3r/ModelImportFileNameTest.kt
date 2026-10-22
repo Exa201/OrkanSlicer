@@ -10,6 +10,8 @@ class ModelImportFileNameTest {
     fun stepMimeTypeSuppliesExtensionWhenProviderNameIsGeneric() {
         assertEquals("assembly.step", ModelImportFileName.resolve("assembly", "/document/42", "model/step"))
         assertEquals("assembly.step", ModelImportFileName.resolve("assembly", null, "application/x-step; charset=utf-8"))
+        assertEquals("assembly.bin.step", ModelImportFileName.resolve("assembly.bin", null, "application/step"))
+        assertEquals("assembly.custom.step", ModelImportFileName.resolve("assembly.custom", null, "model/step"))
     }
 
     @Test

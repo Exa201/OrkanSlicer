@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.Instrumentation.ActivityResult
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.pm.PackageManager
@@ -903,7 +904,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun stepImportDetectsGenericProviderDocumentAndWaitsForWorkspaceHost() {
+    fun stepImportFromFileUriFallsBackToDocumentPickerAndWaitsForWorkspaceHost() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         // Simulate providers that expose a generated display name and no STEP MIME type.
@@ -949,6 +950,20 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
                 .assertIsDisplayed().performClick()
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+
+            // A file manager may send a shared-storage file:// URL, which targetSdk 36 cannot read
+            // without a SAF grant. The app must request a content:// document instead of failing.
+            capturedIntent.set(null)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod("loadFile", Uri::class.java)
+                    .apply { isAccessible = true }
+                    .invoke(activity, Uri.parse("file:///sdcard/Download/step-file-manager-test.step"))
+            }
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+            assertEquals("*/*", requireNotNull(capturedIntent.get()).type)
+            assertEquals("The inaccessible file:// URL must not start import",
+                0, bed.currentModel?.objectsCount ?: 0)
 
             val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
             activity.runOnUiThread {
