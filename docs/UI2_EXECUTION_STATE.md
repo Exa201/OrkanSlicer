@@ -2471,3 +2471,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Extended `TwoColorProjectDeviceTest#paintedFilamentAssignmentsSurviveThreeMfExportAndImport`: after committing a controlled T1 paint band, export and reload the 3MF, remove the fixture's separate T1 object, then slice the remaining painted object. The test requires both restored used-filament states `[1, 2]` and an emitted T1 change plus deposited moves, isolating paint as the source of the second tool.
 - Honor PTP-N49 / Android 16: all 3 `TwoColorProjectDeviceTest` cases passed (0 skipped/failures/errors), including this paint-export-import-slice path, explicit object reassignment, and temporary profile import without persisting project values. `git diff --check` passed. Test-only change; no production APK/release.
 - This provides runtime evidence for facet assignment persistence through native G-code. Next: retain this regression while continuing the three core modeling workflows—safe multipart joining, placement, and native Boolean results—and test their undo/redo and save/reload behavior where supported. Xiaomi validation remains unavailable.
+
+# Z-Achse im Objekt-Verschieben — 2026-10-22
+
+- Der aktive Compose-Positionseditor zeigte bisher nur X/Y, obwohl Renderer und Preview bereits XYZ unterstützten. Der Editor enthält jetzt eine Z-Ruler-Achse mit numerischer Eingabe, farblich passend zur Z-Achse und scrollbarer Darstellung.
+- Beim Öffnen und nach GL-Verschiebungen wird der tatsächliche native Z-Wert in der Anzeige synchronisiert. X/Y bleiben bei reinen Z-Änderungen erhalten.
+- Honor PTP-N49 / Android 16: neuer Gerätetest bestätigt Z-Dialog-Abbruch ohne Modelländerung sowie bestätigte Z-Position, Undo und Redo. Bestehender X-Positionstest ebenfalls erneut bestanden. Kotlin-Produktions- und Slice-Testquellen erfolgreich kompiliert.
+- Nächster Schritt: committen/pushen; danach weitere offene Modellbearbeitung und UI-2.0-Aufgaben fortsetzen. Kein APK/Release in diesem Arbeitsschritt.

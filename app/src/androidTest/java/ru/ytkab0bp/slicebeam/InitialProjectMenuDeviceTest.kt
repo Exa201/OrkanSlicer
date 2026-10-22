@@ -2557,6 +2557,56 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun editPositionZIsVisibleCancelableAndUndoable() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-position-z-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val loaded = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, loaded.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val original = readTranslationOnGl(glView, 0)
+
+            openSelectedObjectMenu(activity)
+            scrollMenuToIndex(10)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText("Z =", substring = true).assertIsDisplayed().performClick()
+            val positionField = compose.onNodeWithText(activity.getString(R.string.OrientationManualValue))
+            positionField.assertIsDisplayed()
+            positionField.performTextClearance()
+            positionField.performTextInput("18.75")
+            compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
+            assertEquals("Cancelling the Z editor must preserve native Z", original.z,
+                readTranslationOnGl(glView, 0).z, 0.01)
+
+            compose.onNodeWithText("Z =", substring = true).assertIsDisplayed().performClick()
+            positionField.assertIsDisplayed()
+            positionField.performTextClearance()
+            positionField.performTextInput("18.75")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            val moved = readTranslationOnGl(glView, 0)
+            assertEquals("Confirming position Z should move the native object", 18.75, moved.z, 0.01)
+            assertEquals("Z editing must preserve X", original.x, moved.x, 0.01)
+            assertEquals("Z editing must preserve Y", original.y, moved.y, 0.01)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            assertEquals("Undo should restore the original Z position", original.z,
+                readTranslationOnGl(glView, 0).z, 0.01)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            assertEquals("Redo should restore the confirmed Z position", 18.75,
+                readTranslationOnGl(glView, 0).z, 0.01)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editMeasureMenuActionOpensComposeModeAndAndroidBackClosesIt() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

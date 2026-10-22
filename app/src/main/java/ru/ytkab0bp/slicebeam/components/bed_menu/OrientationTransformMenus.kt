@@ -151,7 +151,7 @@ abstract class OrientationTransformMenuBase(fragment: BedFragment) : WorkspaceCo
     }
 }
 
-/** Compose X/Y position editor. Translation previews remain reversible until the ruler settles. */
+/** Compose X/Y/Z position editor. Translation previews remain reversible until the ruler settles. */
 open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransformMenuBase(fragment) {
     private val rulerValues = mutableStateOf(OrientationAxisValues(0, 0, 0))
     private val position = mutableStateOf(OrientationVector3(0.0, 0.0, 0.0))
@@ -262,18 +262,24 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
         PositionEditorContent(
             xTitle = stringResource(R.string.MenuOrientationPositionX),
             yTitle = stringResource(R.string.MenuOrientationPositionY),
+            zTitle = stringResource(R.string.MenuOrientationPositionZ),
             xValue = stringResource(R.string.MenuOrientationPositionXValue, point.x),
             yValue = stringResource(R.string.MenuOrientationPositionYValue, point.y),
+            zValue = stringResource(R.string.MenuOrientationPositionZValue, point.z),
             x = values.x,
             y = values.y,
+            z = values.z,
             xColor = Color(ThemesRepo.getColor(R.attr.xTrackColor)),
             yColor = Color(ThemesRepo.getColor(R.attr.yTrackColor)),
+            zColor = Color(ThemesRepo.getColor(R.attr.zTrackColor)),
             enabled = available,
             backTitle = stringResource(R.string.MenuOrientationPositionBack),
             onEditX = { editAxis(OrientationAxis.X, R.string.MenuOrientationPositionX) },
             onEditY = { editAxis(OrientationAxis.Y, R.string.MenuOrientationPositionY) },
+            onEditZ = { editAxis(OrientationAxis.Z, R.string.MenuOrientationPositionZ) },
             onXChanged = { changeRuler(OrientationAxis.X, it) },
             onYChanged = { changeRuler(OrientationAxis.Y, it) },
+            onZChanged = { changeRuler(OrientationAxis.Z, it) },
             onCommit = ::commitTranslation,
             onBack = ::dismiss,
         )
@@ -314,7 +320,9 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
             model.getTranslation(index, translated)
             val target = OrientationVector3(translated.x, translated.y, translated.z)
             position.value = target
-            rulerValues.value = OrientationAxisValues(translated.x.toInt(), translated.y.toInt(), 0)
+            rulerValues.value = OrientationAxisValues(
+                translated.x.toInt(), translated.y.toInt(), translated.z.toInt(),
+            )
             selectedObjectForPreview = -1
             hasSelection.value = true
         }.onFailure {
@@ -350,7 +358,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
             rulerValues.value = OrientationAxisValues(
                 position.value.x.toInt(),
                 position.value.y.toInt(),
-                rulerValues.value.z,
+                position.value.z.toInt(),
             )
             selectedObjectForPreview = index
             hasSelection.value = true
@@ -519,18 +527,24 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
 private fun PositionEditorContent(
     xTitle: String,
     yTitle: String,
+    zTitle: String,
     xValue: String,
     yValue: String,
+    zValue: String,
     x: Int,
     y: Int,
+    z: Int,
     xColor: Color,
     yColor: Color,
+    zColor: Color,
     enabled: Boolean,
     backTitle: String,
     onEditX: () -> Unit,
     onEditY: () -> Unit,
+    onEditZ: () -> Unit,
     onXChanged: (Int) -> Unit,
     onYChanged: (Int) -> Unit,
+    onZChanged: (Int) -> Unit,
     onCommit: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -550,6 +564,10 @@ private fun PositionEditorContent(
             OrientationAxisEditor(
                 key = "position-y", title = yTitle, valueText = yValue, value = y, color = yColor,
                 enabled = enabled, onEdit = onEditY, onValueChanged = onYChanged, onCommit = onCommit,
+            )
+            OrientationAxisEditor(
+                key = "position-z", title = zTitle, valueText = zValue, value = z, color = zColor,
+                enabled = enabled, onEdit = onEditZ, onValueChanged = onZChanged, onCommit = onCommit,
             )
         }
         OrientationActions(backTitle = backTitle, onBack = onBack)
