@@ -25,6 +25,9 @@ class StepOpenIntentDeviceTest {
             Intent(Intent.ACTION_VIEW).setDataAndType(
                 Uri.parse("file:///storage/emulated/0/Download/model.step"), "application/octet-stream",
             ),
+            // Some file managers omit the MIME type entirely when sharing a file URL.
+            Intent(Intent.ACTION_VIEW).setData(Uri.parse("file:///storage/emulated/0/Download/model.stp")),
+            Intent(Intent.ACTION_VIEW).setData(Uri.parse("content://documents.example/document/model.step")),
         )
 
         requests.forEach { request ->

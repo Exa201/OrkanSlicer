@@ -52,6 +52,16 @@
                 <data android:mimeType="*/*" />
                 <!-- Do not require a URI authority: shared file:// URIs commonly have no host. -->
             </intent-filter>
+            <!-- A few file managers omit the MIME type entirely for ACTION_VIEW. Keep this
+                 scheme-only fallback so .step/.stp documents can still be opened; MainActivity
+                 validates the name/content and routes shared file:// paths through SAF. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+            </intent-filter>
             <!-- Some document providers publish STEP files using a specific CAD MIME type. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
