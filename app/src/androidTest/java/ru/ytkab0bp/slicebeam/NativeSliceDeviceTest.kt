@@ -351,6 +351,15 @@ class NativeSliceDeviceTest {
                     } finally {
                         exportConfig.delete()
                     }
+                    val modelXml = ZipFile(projectFile).use { archive ->
+                        archive.getInputStream(archive.getEntry("3D/3dmodel.model"))
+                            .bufferedReader().use { it.readText() }
+                    }
+                    assertFalse(
+                        "$operation's generated mesh must not retain stale source object metadata",
+                        listOf("key=\"source_file\"", "key=\"source_object_id\"", "key=\"source_volume_id\"")
+                            .any(modelXml::contains),
+                    )
                     restored = Model(projectFile, 1)
                     assertEquals("$operation result should survive 3MF reload", 1, restored.objectsCount)
                     assertEquals("$operation reload must not restore the removed cutter's material",

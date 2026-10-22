@@ -1,3 +1,10 @@
+# Fortsetzung — Boolean-Quellmetadaten und Modellbearbeitung, 2026-10-22
+
+- Gefunden: Ein Boolean-Ergebnis ist neu erzeugte Weltgeometrie, erhielt beim Erzeugen aber den Quellpfad des Zielobjekts und einen Objektindex, der auf den zuvor eingefügten Ergebnis-Slot zeigte. Nach dem Löschen der Boolean-Eingaben war dieser Quellindex veraltet und wurde beim 3MF-Export als falsche Provenienz gespeichert.
+- Behoben: Boolean-Ergebnisse haben kein Quellobjekt-Mapping mehr, das ihre neu erzeugte Mesh-Geometrie fälschlich einer Eingabe zuordnet. Zielprofil, Druckbarkeit und Extruder bleiben erhalten.
+- Verifikation auf Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest` + `NativeSliceDeviceTest` zusammen 33/33 bestanden (0 übersprungen/fehlgeschlagen). Die Boolean-Roundtrips prüfen jetzt auch, dass veraltete Source-File/Object/Volume-Metadaten im 3MF fehlen; erneutes Laden und tatsächlicher G-Code-Export für Union, Difference und Intersection funktionieren. Text, Verbinden und Platzierung waren in denselben Modell-/Slice-Suiten mit enthalten.
+- Nächster Schritt: die generierten Modelle aus Boolean/Text/Platzierung auf Undo/Redo und erneuten Projektwechsel prüfen; anschließend weitere drei Modellbearbeitungsaktionen mit Geometrie- und Slice-Ausgabe absichern.
+
 # Fortsetzung — Modellbearbeitung, 2026-10-22
 
 - Eigenständige 3D-Texteingaben validieren jetzt Inhalt, positive endliche Schriftgröße und positive endliche Tiefe. Leere oder überlange Eingaben sowie ungültige Maße werden sichtbar markiert und nicht mehr still auf Standardwerte umgebogen oder an den nativen Mesh-Generator weitergegeben.

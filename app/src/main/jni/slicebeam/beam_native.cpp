@@ -1570,7 +1570,6 @@ extern "C" {
             // Boolean output is one solid, so it takes the target object's profile and
             // material assignment. Preserve its world-space geometry as the new object.
             const std::string resultName = target->name.empty() ? "Boolean result" : target->name + " (Boolean)";
-            const std::string sourcePath = target->input_file;
             const bool printable = target->printable;
             int targetExtruder = 1;
             for (const ModelVolume* volume : target->volumes) {
@@ -1579,7 +1578,9 @@ extern "C" {
                     break;
                 }
             }
-            ModelObject* replacement = ref->model.add_object(resultName.c_str(), sourcePath.c_str(), std::move(resultMesh));
+            // A CSG result is newly generated geometry, not a mesh from one source
+            // object. Do not serialize the target's source path/object index onto it.
+            ModelObject* replacement = ref->model.add_object(resultName.c_str(), "", std::move(resultMesh));
             if (replacement == nullptr || replacement->volumes.empty()) return -5;
             // resultMesh is already in world coordinates (ModelObject::mesh applies
             // each source instance). A replacement ModelObject created by add_object
@@ -1589,7 +1590,9 @@ extern "C" {
             replacement->config.assign_config(target->config);
             replacement->printable = printable;
             replacement->volumes.front()->config.set("extruder", targetExtruder);
-            replacement->volumes.front()->source.object_idx = (int) ref->model.objects.size() - 1;
+            replacement->volumes.front()->source.input_file.clear();
+            replacement->volumes.front()->source.object_idx = -1;
+            replacement->volumes.front()->source.volume_idx = -1;
 
             std::sort(indices.begin(), indices.end(), std::greater<int>());
             for (int index : indices) ref->model.delete_object((size_t) index);
