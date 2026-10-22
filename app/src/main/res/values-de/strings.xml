@@ -1128,6 +1128,8 @@
     <string name="PaintAngleLimit">Winkelgrenze: %1$d°</string>
     <string name="EmbossTitle">Text prägen</string>
     <string name="EmbossInstruction">Werte eingeben und anschließend auf die Modelloberfläche tippen, um den Text zu platzieren.</string>
+    <string name="TextModelPlacementInstruction">Text und Größe festlegen, dann auf die Druckplatte oder eine Modellfläche tippen.</string>
+    <string name="TextModelCreateSeparate">Eigenständigen 3D-Text platzieren</string>
     <string name="EmbossTextHint">Einzuprägender Text</string>
     <string name="EmbossTextLabel">Text:</string>
     <string name="EmbossDefaultFontSize">10,0</string>

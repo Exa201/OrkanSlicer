@@ -116,6 +116,7 @@ clearMeasurePoints()
 }
 }
 @get:Synchronized @set:Synchronized var isInEmbossMode = false
+@Volatile var isStandaloneTextPlacementMode = false
 private var measurePointA:Vec3d? = null
 private var measurePointB:Vec3d? = null
 private var measurePointModel:GLModel? = null
@@ -1779,6 +1780,20 @@ val normal = preciseHit.normal
 SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(position, normal))
 return true
 }
+}
+if (isStandaloneTextPlacementMode) {
+    val bedHit = raycastBed(x, y)
+    if (bedHit != null) {
+        val bedZ = bed?.getVolumeMin()?.z ?: bedHit.z
+        SliceBeam.EVENT_BUS.fireEvent(
+            ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(
+                Vec3d(bedHit.x, bedHit.y, bedZ),
+                Vec3d(0.0, 0.0, 1.0),
+                isBuildPlatePlacement = true,
+            ),
+        )
+        return true
+    }
 }
 return false
 }

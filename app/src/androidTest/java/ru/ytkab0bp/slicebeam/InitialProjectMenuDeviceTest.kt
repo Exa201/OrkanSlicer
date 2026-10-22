@@ -17,6 +17,7 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.FileProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
@@ -3049,6 +3050,69 @@ class InitialProjectMenuDeviceTest {
             if (bed.isEmbossMode) bed.onBackPressed()
             modelFile.delete()
         }
+    }
+
+    @Test
+    fun modelMenuCanCreateStandaloneTextDirectlyOnTheBuildPlate() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        assertEquals("the test starts with an empty build plate", 0, readObjectCountOnGl(glView))
+
+        openModelMenu(activity)
+        selectAllObjectsScope()
+        compose.onNodeWithContentDescription(activity.getString(R.string.TextModelCreateSeparate))
+            .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+        compose.onNodeWithTag("emboss-standalone-mode").assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithText(activity.getString(R.string.TextModelPlacementInstruction)).assertIsDisplayed()
+        assertTrue("standalone text placement must activate emboss click handling",
+            readRendererBooleanOnGl(glView, "isInEmbossMode"))
+        assertTrue("standalone placement must allow bed hits without selecting a model",
+            readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
+
+        val hit = AtomicReference<FloatArray>()
+        val hitReady = CountDownLatch(1)
+        glView.queueEvent {
+            val renderer = glView.renderer
+            val raycastBed = GLRenderer::class.java.getDeclaredMethod(
+                "raycastBed", Float::class.javaPrimitiveType, Float::class.javaPrimitiveType,
+            ).apply { isAccessible = true }
+            val xFractions = floatArrayOf(.5f, .35f, .65f, .2f, .8f)
+            val yFractions = floatArrayOf(.5f, .35f, .65f, .2f, .8f)
+            for (yf in yFractions) {
+                for (xf in xFractions) {
+                    val x = renderer.viewportWidth * xf
+                    val y = renderer.viewportHeight * yf
+                    if (raycastBed.invoke(renderer, x, y) != null) {
+                        hit.set(floatArrayOf(x, y))
+                        break
+                    }
+                }
+                if (hit.get() != null) break
+            }
+            hitReady.countDown()
+        }
+        assertTrue("renderer should find a visible point on the empty build plate", hitReady.await(10, TimeUnit.SECONDS))
+        val bedPoint = requireNotNull(hit.get())
+        val clickHandled = AtomicReference<Boolean>()
+        val clickReady = CountDownLatch(1)
+        glView.queueEvent {
+            clickHandled.set(glView.renderer.onClick(bedPoint[0], bedPoint[1]))
+            clickReady.countDown()
+        }
+        assertTrue("GL click should finish", clickReady.await(10, TimeUnit.SECONDS))
+        assertTrue("build-plate click should be consumed by standalone placement", requireNotNull(clickHandled.get()))
+        compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
+        assertEquals("clicking the plate should create one independent printable object", 1,
+            readObjectCountOnGl(glView))
+        assertTrue("generated text must be real printable geometry", readTriangleCountOnGl(glView, 0) > 0)
+        assertEquals("created text should become selected", 0, glView.renderer.selectedObject)
+
+        bed.onBackPressed()
+        compose.waitForIdle()
+        assertFalse("exiting the tool should clear standalone placement mode",
+            readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
     }
 
     @Test

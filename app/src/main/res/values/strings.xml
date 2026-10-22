@@ -1153,6 +1153,7 @@
     <string name="PaintAngleLimit">Angle limit: %1$d°</string>
     <string name="EmbossTitle">Emboss text</string>
     <string name="EmbossInstruction">Enter the settings, then tap the model surface to place the text.</string>
+    <string name="TextModelPlacementInstruction">Set the text and size, then tap the build plate or a model surface.</string>
     <string name="EmbossTextHint">Text to emboss</string>
     <string name="EmbossTextLabel">Text:</string>
     <string name="EmbossDefaultFontSize">10.0</string>

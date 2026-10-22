@@ -1129,18 +1129,23 @@ if (isVariableLayerHeightMode)
 removeModePanelHost("variable-layer-height")
 }
 }
-fun enterEmbossMode() {
+fun enterEmbossMode(standaloneText: Boolean = false) {
 val ctx = getContext()
 val currentGlView = glView
 if (ctx == null || currentGlView == null || overlayLayout == null || isEmbossMode) return
 workspaceController.dismissActivePanel()
 val selected = currentGlView.renderer.selectedObject
-if (selected >= 0 && !requirePreciseSurfaceModel(selected)) return
+if (!standaloneText && selected >= 0 && !requirePreciseSurfaceModel(selected)) return
 currentGlView.queueEvent({ currentGlView.renderer.isInEmbossMode = true
+currentGlView.renderer.isStandaloneTextPlacementMode = standaloneText
 currentGlView.requestRender() })
-embossModeController = EmbossModeController(ctx, currentGlView, ::updateModel)
+embossModeController = EmbossModeController(ctx, currentGlView, ::updateModel, standaloneText)
 showWorkspaceModePanel("emboss-mode", ::exitEmbossMode) {
-    EmbossModePanel(requireNotNull(embossModeController), ::exitEmbossMode)
+    EmbossModePanel(
+        requireNotNull(embossModeController),
+        startInStandaloneMode = standaloneText,
+        onExit = ::exitEmbossMode,
+    )
 }
 }
 private fun showWorkspaceModePanel(
@@ -1178,6 +1183,7 @@ if (isEmbossMode)
 {
 embossModeController = null
 glView?.queueEvent({ glView?.renderer?.isInEmbossMode = false
+glView?.renderer?.isStandaloneTextPlacementMode = false
 glView?.requestRender() })
 removeModePanelHost("emboss-mode")
 }

@@ -29,7 +29,11 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.view.EmbossModeController
 
 @Composable
-internal fun EmbossModePanel(controller: EmbossModeController, onExit: () -> Unit) {
+internal fun EmbossModePanel(
+    controller: EmbossModeController,
+    startInStandaloneMode: Boolean = false,
+    onExit: () -> Unit,
+) {
     val initialText = stringResource(R.string.AppName)
     val initialSize = stringResource(R.string.EmbossDefaultFontSize)
     val initialDepth = stringResource(R.string.EmbossDefaultDepth)
@@ -37,17 +41,21 @@ internal fun EmbossModePanel(controller: EmbossModeController, onExit: () -> Uni
     var size by remember { mutableStateOf(initialSize) }
     var depth by remember { mutableStateOf(initialDepth) }
     var addMode by remember { mutableStateOf(true) }
-    var standaloneMode by remember { mutableStateOf(false) }
+    var standaloneMode by remember { mutableStateOf(startInStandaloneMode) }
 
     fun sync() = controller.update(text, size, depth, addMode, standaloneMode)
     DisposableEffect(controller) {
         controller.start()
+        sync()
         onDispose { controller.stop() }
     }
 
     Column(Modifier.fillMaxWidth().heightIn(max = 640.dp).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(stringResource(R.string.EmbossTitle), style = MaterialTheme.typography.titleMedium)
-        Text(stringResource(R.string.EmbossInstruction), style = MaterialTheme.typography.bodySmall)
+        Text(
+            stringResource(if (standaloneMode) R.string.TextModelPlacementInstruction else R.string.EmbossInstruction),
+            style = MaterialTheme.typography.bodySmall,
+        )
         OutlinedTextField(
             value = text,
             onValueChange = { text = it; sync() },

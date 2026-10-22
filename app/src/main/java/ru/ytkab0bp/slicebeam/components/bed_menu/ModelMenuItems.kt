@@ -108,6 +108,9 @@ internal class ModelMenuItems(
                     }
                 }
             }, enabled = availability.canArrange),
+            BedComposeMenuAction(R.string.TextModelCreateSeparate, R.drawable.edit_outline_28, {
+                fragment.enterEmbossMode(standaloneText = true)
+            }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuAutoOrientSelected, R.drawable.menu_orientation_auto_28, {
                 fragment.glView!!.queueEvent {
                     val model = renderer.model ?: return@queueEvent

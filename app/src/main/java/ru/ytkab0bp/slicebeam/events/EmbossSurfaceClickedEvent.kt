@@ -5,4 +5,5 @@ import ru.ytkab0bp.slicebeam.utils.Vec3d
 open class EmbossSurfaceClickedEvent(
     @JvmField val position: Vec3d,
     @JvmField val normal: Vec3d,
+    @JvmField val isBuildPlatePlacement: Boolean = false,
 )

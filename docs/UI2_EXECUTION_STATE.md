@@ -1,3 +1,12 @@
+# Latest execution checkpoint — 2026-10-22 (standalone text placement)
+
+- Active goal: continue model editing and UI 2.0 acceptance; next official release candidate is 0.8.348 / versionCode 383.
+- Implemented in this pass: Model → All Objects now offers standalone printable 3D text directly. Standalone mode starts selected, accepts an empty build-plate hit with a +Z normal, and keeps existing model-surface placement and selected-object embossing intact. Renderer mode state is cleared on tool exit.
+- Honor PTP-N49 / Android 16: empty-bed model-menu placement 1/1; previous surface-text Compose mode/back behavior 1/1; `ModelEditingNativeDeviceTest` 19/19 (combine, surface placement, 3D text, Boolean union/difference/intersection); standalone text slicing emitted extrusion G-code 1/1. Debug and Slice JVM suites passed 605/605 each, zero failures/errors/skips. Z-axis position test also passed 1/1 on Honor in this pass.
+- Current release preparation: code and version/changelog changes are local; final APK build/install/logcat, commit/push, and official GitHub release remain pending.
+- Known limits: Xiaomi is not connected for direct verification; current Honor is available. Private user fixtures remain outside Git.
+- Next concrete step: finish the v0.8.348 Debug APK build and Honor smoke check, then publish the regular GitHub release and verify the uploaded APK digest.
+
 # Latest execution checkpoint — 2026-10-22
 
 - Active work: per-source-color filament reassignment for imported/multipart models plus the Z-axis ruler fix; UI 2.0 Phase 5/6 work continues. The already completed UnfoldMenu/WorkspaceShell migration remains closed.

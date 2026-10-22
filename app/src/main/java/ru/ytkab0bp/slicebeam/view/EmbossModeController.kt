@@ -13,20 +13,23 @@ internal class EmbossModeController(
     private val context: Context,
     private val glView: GLView,
     private val onModelChanged: () -> Unit = {},
+    initialStandaloneMode: Boolean = false,
 ) {
     private var text: String = context.getString(R.string.AppName)
     private var size: Float = context.getString(R.string.EmbossDefaultFontSize).toFloatOrNull() ?: 10f
     private var depth: Float = context.getString(R.string.EmbossDefaultDepth).toFloatOrNull() ?: 1f
     private var addMode: Boolean = true
-    private var standaloneMode: Boolean = false
+    private var standaloneMode: Boolean = initialStandaloneMode
     private var fontFilePath: String? = null
     private val eventBridge = EmbossModeEventBridge(::onSurfaceClicked)
 
     fun start() {
+        glView.renderer.isStandaloneTextPlacementMode = standaloneMode
         SliceBeam.EVENT_BUS.registerListener(eventBridge)
     }
 
     fun stop() {
+        glView.renderer.isStandaloneTextPlacementMode = false
         SliceBeam.EVENT_BUS.unregisterListener(eventBridge)
     }
 
@@ -36,11 +39,12 @@ internal class EmbossModeController(
         this.depth = depth.replace(',', '.').toFloatOrNull() ?: 1f
         this.addMode = addMode
         this.standaloneMode = standaloneMode
+        glView.renderer.isStandaloneTextPlacementMode = standaloneMode
     }
 
     private fun onSurfaceClicked(event: EmbossSurfaceClickedEvent) {
         val selectedObject = glView.renderer.selectedObject
-        if (!standaloneMode && selectedObject == -1) {
+        if ((!standaloneMode && selectedObject == -1) || (event.isBuildPlatePlacement && !standaloneMode)) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.SelectObjectFirst))
             return
         }
