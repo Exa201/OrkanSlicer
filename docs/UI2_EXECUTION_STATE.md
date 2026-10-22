@@ -1,3 +1,9 @@
+# Boolean edit history verification — 2026-10-22
+
+- Extended the workspace Boolean Union integration test to verify that Undo restores all three selected source objects and Redo restores the single merged result with the same measured world-space width. This exercises the actual menu, native Boolean operation, renderer refresh, and model-history callbacks together.
+- Honor PTP-N49 / Android 16: `modelMenuBooleanUnionRunsForAllThreeSelectedObjects` passed 1/1, including the new Undo/Redo assertions. No broader suite or release build was run for this test-only change.
+- Next: continue toward multi-object material assignment and verify slicer/G-code tool-slot output against the assigned colors; then return to Boolean Difference/Intersection UI integration coverage.
+
 # Model arrange, orient and flatten — 2026-10-22
 
 - Fixed active Model-menu Arrange so its completion waits for the GL operation, records the finished model in Undo history, and shows completion only afterward. Flatten now rechecks that the selected object still exists on the GL thread before creating its interaction planes, avoiding a stale-selection crash.

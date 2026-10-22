@@ -268,6 +268,15 @@ class InitialProjectMenuDeviceTest {
             assertTrue("Boolean result bounds should be readable on the GL thread", checked.await(10, TimeUnit.SECONDS))
             assertEquals("UI should union all selected solids, not just two", 2.0 * requireNotNull(width.get()),
                 requireNotNull(widthAfter.get()), 0.03)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            assertEquals("Undo should restore all three source objects", 3, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals("Redo should restore the single Boolean result", 1, readObjectCountOnGl(glView))
+            val redoneBounds = readExactBoundsOnGl(glView, 0).single()
+            assertEquals("Redo should preserve the measured union width", 2.0 * requireNotNull(width.get()),
+                redoneBounds[3] - redoneBounds[0], 0.03)
         } finally {
             modelFile.delete()
         }
