@@ -107,6 +107,7 @@ internal object ModelMenuActionScope {
         R.string.ModelMenuDuplicate,
         R.string.ModelMenuMoveToPlate,
         R.string.ModelMenuPlaceOnObject,
+        R.string.ModelMenuPlaceOnSurface,
         R.string.ModelMenuCenterOnBed,
         R.string.ModelMenuPlaceGroupOnBed,
         R.string.ModelMenuFillBed,

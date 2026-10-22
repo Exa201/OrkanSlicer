@@ -436,6 +436,170 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuPlacesSelectedObjectAtTappedTargetSurfaceAndSupportsUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-picked-surface-placement-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            val sourceBounds = AtomicReference<List<DoubleArray>>()
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 38.0, 0.0, 0.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                glView.renderer.setSelectedObject(1)
+                sourceBounds.set((0..1).map { index ->
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(index, min, max)
+                    doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                })
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("surface-placement models should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceOnSurface)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnSurface))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
+
+            val tappedPoint = AtomicReference<DoubleArray>()
+            val tapReady = CountDownLatch(1)
+            var targetPixels = 0
+            var exactTargetHits = 0
+            var largestNormalZ = -2.0
+            var sampleHit: String? = null
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val glModelsField = GLRenderer::class.java.getDeclaredField("glModels").apply { isAccessible = true }
+                @Suppress("UNCHECKED_CAST")
+                val glModels = glModelsField.get(renderer) as List<GLModel>
+                val targetHits = ArrayList<GLModel.HitResult>()
+                val xStep = (renderer.viewportWidth / 64).coerceAtLeast(1)
+                val yStep = (renderer.viewportHeight / 64).coerceAtLeast(1)
+                loop@ for (y in yStep until renderer.viewportHeight step yStep) {
+                    for (x in xStep until renderer.viewportWidth step xStep) {
+                        if (renderer.raycastObjectIndex(x.toFloat(), y.toFloat()) != 0) continue
+                        targetPixels++
+                        targetHits.clear()
+                        glModels[0].raycaster.raycast(renderer, targetHits, x.toFloat(), y.toFloat())
+                        targetHits.filter { !it.approximate }.forEach { hit ->
+                            exactTargetHits++
+                            largestNormalZ = maxOf(largestNormalZ, hit.normal.z)
+                            if (sampleHit == null) sampleHit = "p=${hit.position}, n=${hit.normal}"
+                        }
+                        val hit = targetHits.firstOrNull { !it.approximate && it.normal.z >= 0.7 } ?: continue
+                        if (!renderer.onClick(x.toFloat(), y.toFloat())) continue
+                        tappedPoint.set(doubleArrayOf(hit.position.x, hit.position.y, hit.position.z))
+                        break@loop
+                    }
+                }
+                tapReady.countDown()
+            }
+            assertTrue("surface tap search should complete on GL", tapReady.await(20, TimeUnit.SECONDS))
+            val point = requireNotNull(tappedPoint.get()) {
+                "test camera should expose a precise upward target; targetPixels=$targetPixels, " +
+                    "exactHits=$exactTargetHits, largestNormalZ=$largestNormalZ, sample=$sampleHit"
+            }
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
+
+            val combinedBounds = readExactBoundsOnGl(glView, 0).single()
+            val originals = requireNotNull(sourceBounds.get())
+            val target = originals[0]
+            val moving = originals[1]
+            val dx = point[0] - (moving[0] + moving[3]) / 2.0
+            val dy = point[1] - (moving[1] + moving[4]) / 2.0
+            val dz = point[2] - moving[2]
+            val expectedBounds = doubleArrayOf(
+                minOf(target[0], moving[0] + dx),
+                minOf(target[1], moving[1] + dy),
+                minOf(target[2], moving[2] + dz),
+                maxOf(target[3], moving[3] + dx),
+                maxOf(target[4], moving[4] + dy),
+                maxOf(target[5], moving[5] + dz),
+            )
+            expectedBounds.forEachIndexed { index, expected ->
+                assertEquals("combined bounds must reflect the actual surface hit on axis $index",
+                    expected, combinedBounds[index], 0.04)
+            }
+            assertEquals("the grouped result should retain both material assignments", listOf(1, 2),
+                readUsedFilamentsOnGl(glView, 0).toList())
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals(listOf(1, 2), readUsedFilamentsOnGl(glView, 0).toList())
+        } finally {
+            if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun androidBackCancelsSurfacePlacementWithoutChangingEitherObject() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-surface-placement-back-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 38.0, 0.0, 0.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                glView.renderer.setSelectedObject(1)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("models should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val beforeBounds = readExactBoundsOnGl(glView, 0, 1)
+            val beforeFilaments = (0..1).map { readUsedFilamentsOnGl(glView, it).toList() }
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceOnSurface)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnSurface))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.isSurfacePlacementActive }
+
+            assertTrue("Android Back should cancel the waiting surface-pick operation", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 10_000) { !glView.renderer.isSurfacePlacementActive }
+            assertEquals("cancellation must leave both input objects in place", 2, readObjectCountOnGl(glView))
+            val afterBounds = readExactBoundsOnGl(glView, 0, 1)
+            beforeBounds.zip(afterBounds).forEachIndexed { objectIndex, (before, after) ->
+                before.indices.forEach { axis ->
+                    assertEquals("object $objectIndex bounds must survive Back on axis $axis",
+                        before[axis], after[axis], 0.001)
+                }
+            }
+            assertEquals("cancellation must preserve both objects' material assignments", beforeFilaments,
+                (0..1).map { readUsedFilamentsOnGl(glView, it).toList() })
+        } finally {
+            if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun selectedGroupCanBeDuplicatedWithItsFilamentsAndDroppedTogetherOnBed() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -731,6 +895,85 @@ class InitialProjectMenuDeviceTest {
                 requireNotNull(bed.currentModel).objectsCount)
             assertTrue("the actual result handler should copy the selected file into the model cache",
                 cachedImport.isFile && cachedImport.length() > 0L)
+        } finally {
+            launchers[requestCode] = previousLauncher
+            inputFile.delete()
+            cachedImport.delete()
+        }
+    }
+
+    @Test
+    fun projectMenuPromptsForStepMeshingOptionsThenImportsAndRendersSelectedFile() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val fileName = "menu-step-import-${System.nanoTime()}.step"
+        val inputFile = File(activity.cacheDir, fileName)
+        val cachedImport = File(SliceBeam.getModelCacheDir(), fileName)
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("step_cube_ccby4.step").use { source ->
+                    inputFile.outputStream().use(source::copyTo)
+                }
+            assertEquals(0, bed.currentModel?.objectsCount ?: 0)
+
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+
+            val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, Activity.RESULT_OK, Intent().setData(inputUri))
+            }
+
+            compose.waitUntil(timeoutMillis = 15_000) {
+                compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertEquals("STEP geometry must wait for the user's meshing choice", 0,
+                bed.currentModel?.objectsCount ?: 0)
+            compose.onNodeWithTag("step-linear-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-angular-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-import-confirm").performClick()
+
+            compose.waitUntil(timeoutMillis = 90_000) {
+                val model = bed.currentModel
+                model != null && model.objectsCount == 1 && model.getTriangleCount(0) > 0
+            }
+            assertTrue("the chosen STEP file should be cached for the native import",
+                cachedImport.isFile && cachedImport.length() > 0L)
+            assertTrue("the loaded model must contain renderable triangles",
+                requireNotNull(bed.currentModel).getTriangleCount(0) > 0)
         } finally {
             launchers[requestCode] = previousLauncher
             inputFile.delete()

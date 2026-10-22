@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam.slic3r
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import ru.ytkab0bp.slicebeam.utils.Vec3d
 
 class ObjectPlacementTest {
     @Test fun centersMovingObjectOnTargetAndMakesFacesTouch() {
@@ -25,6 +26,22 @@ class ObjectPlacementTest {
         assertEquals(2.5, delta.x, 0.0)
         assertEquals(2.5, delta.y, 0.0)
         assertEquals(5.25, delta.z, 0.0)
+    }
+
+    @Test fun pickedSurfacePointCentersAndSeatsMovingGroupAtThatPoint() {
+        val delta = requireNotNull(ObjectPlacement.onSurface(
+            ObjectBounds3D(-4.0, 2.0, 3.0, 8.0, 12.0, 15.0),
+            Vec3d(20.0, -5.0, 31.5),
+        ))
+        assertEquals(18.0, delta.x, 0.0)
+        assertEquals(-12.0, delta.y, 0.0)
+        assertEquals(28.5, delta.z, 0.0)
+    }
+
+    @Test fun surfacePlacementRejectsInvalidPointAndBounds() {
+        val valid = ObjectBounds3D(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+        assertNull(ObjectPlacement.onSurface(valid, Vec3d(Double.NaN, 0.0, 0.0)))
+        assertNull(ObjectPlacement.onSurface(valid.copy(maxZ = -1.0), Vec3d(0.0, 0.0, 0.0)))
     }
 
     @Test fun groupBoundsAllowSeveralSelectedObjectsToBePlacedTogether() {

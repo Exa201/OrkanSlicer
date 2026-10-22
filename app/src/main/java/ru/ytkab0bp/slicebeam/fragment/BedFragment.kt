@@ -61,6 +61,7 @@ import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
 import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
+import ru.ytkab0bp.slicebeam.events.ObjectSurfacePlacementTapEvent
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.SlicingProgressEvent
@@ -637,6 +638,18 @@ fun onCameraProjectionChanged(event: CameraProjectionChangedEvent) {
     }
 }
 @EventHandler(runOnMainThread = true)
+fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
+    val viewport = glView ?: return
+    viewport.placeSelectedObjectsOnSurface(event.targetObjectIndex, event.position) { result ->
+        if (result >= 0) {
+            updateModel()
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnSurfaceDone))
+        } else {
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+        }
+    }
+}
+@EventHandler(runOnMainThread = true)
 fun onCameraPresetRequested(event: CameraPresetRequestedEvent) {
     (menuMap.get(WorkspaceDestination.CAMERA.ordinal) as? CameraMenu)?.let { cameraMenu ->
         cameraMenu.onSetBed(this)
@@ -1200,6 +1213,11 @@ selectMenu(WorkspaceDestination.SLICE.ordinal) })
 }
 override fun onBackPressed():Boolean {
 if (workspaceController.activePanel == WorkspaceOverlayPanel.PRINTER_UPLOAD_PROGRESS) return true
+if (glView?.renderer?.isSurfacePlacementActive == true) {
+    glView?.cancelSurfacePlacement()
+    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSurfacePlacementCancelled))
+    return true
+}
 if (workspaceController.dismissActivePanel()) return true
 if (isEmbossMode)
 {

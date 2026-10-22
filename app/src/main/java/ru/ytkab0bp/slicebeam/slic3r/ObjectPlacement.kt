@@ -1,5 +1,7 @@
 package ru.ytkab0bp.slicebeam.slic3r
 
+import ru.ytkab0bp.slicebeam.utils.Vec3d
+
 internal data class ObjectBounds3D(
     val minX: Double, val minY: Double, val minZ: Double,
     val maxX: Double, val maxY: Double, val maxZ: Double,
@@ -33,6 +35,22 @@ internal object ObjectPlacement {
             x = (target.minX + target.maxX - moving.minX - moving.maxX) / 2.0,
             y = (target.minY + target.maxY - moving.minY - moving.maxY) / 2.0,
             z = target.maxZ + clearanceMm - moving.minZ,
+        )
+    }
+
+    /** Centers a moving assembly on a picked point and seats its lowest point on that surface. */
+    fun onSurface(moving: ObjectBounds3D, point: Vec3d): ObjectPlacementDelta? {
+        val values = listOf(
+            moving.minX, moving.minY, moving.minZ, moving.maxX, moving.maxY, moving.maxZ,
+            point.x, point.y, point.z,
+        )
+        if (values.any { !it.isFinite() } || moving.maxX < moving.minX ||
+            moving.maxY < moving.minY || moving.maxZ < moving.minZ
+        ) return null
+        return ObjectPlacementDelta(
+            x = point.x - (moving.minX + moving.maxX) / 2.0,
+            y = point.y - (moving.minY + moving.maxY) / 2.0,
+            z = point.z - moving.minZ,
         )
     }
 

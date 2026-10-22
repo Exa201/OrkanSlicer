@@ -15,6 +15,7 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
+import ru.ytkab0bp.slicebeam.events.ObjectSurfacePlacementTapEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
@@ -26,6 +27,7 @@ import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacementDelta
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -56,6 +58,7 @@ private var glModels = ArrayList<GLModel>()
 var model:Model? = null
 set(model) {
 field = model
+surfacePlacementTargetObject = -1
 if (previewPaletteModel !== model) {
     previewPaletteModel = null
     previewPalette = null
@@ -88,6 +91,9 @@ private var isViewerEnabled:Boolean = false
  // selectedObjects holds the full multi-selection; when non-empty it always contains selectedObject.
  var selectedObject = -1
 private val selectedObjects = LinkedHashSet<Int>()
+@Volatile private var surfacePlacementTargetObject = -1
+val isSurfacePlacementActive: Boolean
+    get() = surfacePlacementTargetObject >= 0
 private var selX:Double = 0.toDouble()
 private var selY:Double = 0.toDouble()
 private var selZ:Double = 0.toDouble()
@@ -211,6 +217,42 @@ fun placeSelectedObjectsOnObject(targetIndex: Int): Int {
     }
     val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
     val delta = ObjectPlacement.onTop(movingBounds, bounds(targetIndex)) ?: return -1
+
+    return placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+}
+
+/** Start a GL-thread-only interaction that seats the selected group at a picked top-surface point. */
+fun beginSurfacePlacement(targetIndex: Int): Boolean {
+    val activeModel = model ?: return false
+    if (targetIndex !in 0 until activeModel.objectsCount) return false
+    val moving = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (moving.isEmpty() || targetIndex in moving || isInEmbossMode || isInMeasureMode || isPaintMode) return false
+    surfacePlacementTargetObject = targetIndex
+    return true
+}
+
+fun cancelSurfacePlacement() {
+    surfacePlacementTargetObject = -1
+}
+
+/** Commits a surface-tap placement while keeping the moving group as one printable multipart object. */
+fun placeSelectedObjectsOnSurface(targetIndex: Int, position: Vec3d): Int {
+    val activeModel = model ?: return -1
+    val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices)
+        return -1
+    val min = Vec3d(); val max = Vec3d()
+    fun bounds(index: Int): ObjectBounds3D {
+        activeModel.getBoundingBoxExact(index, min, max)
+        return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+    }
+    val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
+    val delta = ObjectPlacement.onSurface(movingBounds, position) ?: return -1
+    return placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+}
+
+private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>, delta: ObjectPlacementDelta): Int {
+    val activeModel = model ?: return -1
 
     movingIndices.forEach { index ->
         activeModel.translate(index, delta.x, delta.y, delta.z)
@@ -1761,6 +1803,26 @@ return j
 }
 fun onClick(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false
+val placementTarget = surfacePlacementTargetObject
+if (placementTarget >= 0) {
+    if (placementTarget !in 0 until (this.model?.objectsCount ?: 0)) {
+        surfacePlacementTargetObject = -1
+        SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSurfacePlacementTargetUnavailable))
+        return true
+    }
+    // Require the tapped target to be the visible object under the pointer; otherwise a
+    // foreground model could make the user place the group through an occluding surface.
+    if (raycastObjectIndex(x, y) != placementTarget || placementTarget !in glModels.indices) return true
+    glModels[placementTarget].raycaster.raycast(this, raycastHits, x, y)
+    val hit = preciseSurfaceHit() ?: return true
+    if (hit.normal.z < 0.7) {
+        SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSurfacePlacementNeedsUpwardFace))
+        return true
+    }
+    surfacePlacementTargetObject = -1
+    SliceBeam.EVENT_BUS.fireEvent(ObjectSurfacePlacementTapEvent(placementTarget, Vec3d(hit.position)))
+    return true
+}
 if (isInEmbossMode)
 {
 var targetObj = selectedObject

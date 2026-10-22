@@ -50,6 +50,9 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuPlaceOnObject, R.drawable.view_in_ar_24, { anchor ->
                 showPlaceOnObjectDialog(anchor)
             }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > selectedCount),
+            BedComposeMenuAction(R.string.ModelMenuPlaceOnSurface, R.drawable.view_in_ar_24, { anchor ->
+                showPlaceOnSurfaceDialog(anchor)
+            }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > selectedCount),
             BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
                 val glView = fragment.glView ?: return@BedComposeMenuAction
                 fragment.showWorkspaceMessageDialog(
@@ -196,6 +199,36 @@ internal class ModelMenuItems(
                         } else {
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
                         }
+                    }
+                },
+            )
+        }
+    }
+
+    private fun showPlaceOnSurfaceDialog(anchor: android.view.View) {
+        val glView = fragment.glView ?: return
+        val model = glView.renderer.model ?: return
+        val movingIndices = glView.renderer.selectedObjectIndices()
+            .filter { it in 0 until model.objectsCount }
+        if (movingIndices.isEmpty()) return
+        val targetIndices = (0 until model.objectsCount).filter { it !in movingIndices }
+        val choices = targetIndices.map { index ->
+            model.getObjectName(index) ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1)
+        }
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = anchor.context.getString(R.string.ModelMenuPlaceOnSurface),
+                cancelLabel = anchor.context.getString(android.R.string.cancel),
+                choices = choices,
+                onDismiss = dismiss,
+                onSelect = { choice ->
+                    dismiss()
+                    val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
+                    glView.beginSurfacePlacement(target) { started ->
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                            if (started) R.string.ModelSurfacePlacementInstruction
+                            else R.string.ModelSurfacePlacementTargetUnavailable,
+                        ))
                     }
                 },
             )

@@ -237,7 +237,12 @@ class NativeSliceDeviceTest {
             }
             val target = bounds(0)
             val movingGroup = requireNotNull(ObjectPlacement.enclosing(listOf(bounds(1), bounds(2))))
-            val delta = requireNotNull(ObjectPlacement.onTop(movingGroup, target))
+            val surfacePoint = Vec3d(
+                (target.minX + target.maxX) / 2.0,
+                (target.minY + target.maxY) / 2.0,
+                target.maxZ,
+            )
+            val delta = requireNotNull(ObjectPlacement.onSurface(movingGroup, surfacePoint))
             model.translate(1, delta.x, delta.y, delta.z)
             model.translate(2, delta.x, delta.y, delta.z)
 

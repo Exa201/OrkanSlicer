@@ -2091,7 +2091,13 @@ extern "C" {
         jdoubleArray arr = env->NewDoubleArray(hits.size() * 6);
         for (int i = 0; i < hits.size(); ++i) {
             const AABBMesh::hit_result& hit = hits[i];
-            env->SetDoubleArrayRegion(arr, i * 6, 6, hit.position().data());
+            const Vec3d position = hit.position();
+            const Vec3d normal = hit.normal();
+            const jdouble hit_data[6] = {
+                position.x(), position.y(), position.z(),
+                normal.x(), normal.y(), normal.z(),
+            };
+            env->SetDoubleArrayRegion(arr, i * 6, 6, hit_data);
         }
 
         env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);

@@ -190,6 +190,26 @@ fun placeSelectedObjectsOnObject(targetIndex: Int, onComplete: (Int) -> Unit) {
         ViewUtils.postOnMainThread { onComplete(result) }
     }
 }
+fun beginSurfacePlacement(targetIndex: Int, onStarted: (Boolean) -> Unit) {
+    queueEvent {
+        val started = renderer.beginSurfacePlacement(targetIndex)
+        requestRender()
+        ViewUtils.postOnMainThread { onStarted(started) }
+    }
+}
+fun cancelSurfacePlacement() {
+    queueEvent {
+        renderer.cancelSurfacePlacement()
+        requestRender()
+    }
+}
+fun placeSelectedObjectsOnSurface(targetIndex: Int, position: Vec3d, onComplete: (Int) -> Unit) {
+    queueEvent {
+        val result = renderer.placeSelectedObjectsOnSurface(targetIndex, position)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
 fun centerSelectedOnBed(onComplete:Runnable) {
 queueEvent({ renderer.centerSelectionOnBed()
 requestRender()

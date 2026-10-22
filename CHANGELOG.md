@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.349
+
+- Add precise selected-group placement on a tapped, visible upward-facing model surface. The result remains a printable multipart assembly and preserves per-volume filament assignments.
+- Fix native mesh ray-hit JNI data to return both hit position and face normal; cancel the placement mode with Android Back without changing the model.
+- Import STEP/STP with a pre-import tessellation options dialog, compound splitting, progress, and cancellation.
+- Debug and Slice JVM suites: 610/610 each. Honor PTP-N49 / Android 16 instrumentation: 301 tests, 298 passed, 3 private-fixture tests skipped, 0 failures/errors.
+
 ## 0.8.347
 
 - Add individual remapping for imported multipart 3MF colors. Different model colors can share a filament slot, and remapped part and painted-facet assignments persist through 3MF export/reload and slicing.
