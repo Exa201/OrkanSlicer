@@ -3435,6 +3435,155 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun rotationEditorRotatesSelectedGroupAsOneAssemblyAndSupportsUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-group-rotation-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val spacing = (max.x - min.x) * 2.5
+                model.addObject(model, 0)
+                model.translate(1, spacing, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("selected group should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val before = readExactBoundsOnGl(glView, 0, 1)
+            fun center(bounds: DoubleArray, axis: Int) = (bounds[axis] + bounds[axis + 3]) / 2.0
+            val beforeDx = center(before[1], 0) - center(before[0], 0)
+            val beforeDy = center(before[1], 1) - center(before[0], 1)
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuToolbarRotate)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarRotate))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText("Z =", substring = true).assertIsDisplayed().performClick()
+            val angleField = compose.onNodeWithText(activity.getString(R.string.OrientationManualValue))
+            angleField.performTextClearance()
+            angleField.performTextInput("90")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.onNodeWithText(activity.getString(R.string.MenuOrientationRotationApply))
+                .assertIsDisplayed().performClick()
+
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readRotationOnGl(glView, 0).z - Math.PI / 2) < 0.01 &&
+                    kotlin.math.abs(readRotationOnGl(glView, 1).z - Math.PI / 2) < 0.01
+            }
+            val after = readExactBoundsOnGl(glView, 0, 1)
+            val afterDx = center(after[1], 0) - center(after[0], 0)
+            val afterDy = center(after[1], 1) - center(after[0], 1)
+            assertEquals("group rotation should rotate the selected layout around its common pivot", -beforeDy, afterDx, 0.1)
+            assertEquals("group rotation should retain spacing as the rotated Y offset", beforeDx, afterDy, 0.1)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readRotationOnGl(glView, 0).z) < 0.01 &&
+                    kotlin.math.abs(readRotationOnGl(glView, 1).z) < 0.01
+            }
+            val undone = readExactBoundsOnGl(glView, 0, 1)
+            assertEquals("Undo restores the original first-object center", center(before[0], 0), center(undone[0], 0), 0.1)
+            assertEquals("Undo restores the original second-object center", center(before[1], 0), center(undone[1], 0), 0.1)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readRotationOnGl(glView, 1).z - Math.PI / 2) < 0.01
+            }
+            val redone = readExactBoundsOnGl(glView, 0, 1)
+            assertEquals("Redo restores the rotated group layout", center(after[1], 1) - center(after[0], 1),
+                center(redone[1], 1) - center(redone[0], 1), 0.1)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun scaleEditorScalesSelectedGroupGeometryAndSpacingTogetherWithUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-group-scale-test.stl")
+        val previousLinked = Prefs.isScaleLinked()
+        val previousMillimeters = Prefs.isScaleInputInMM()
+        Prefs.setScaleLinked(false)
+        Prefs.setScaleInputInMM(false)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val spacing = (max.x - min.x) * 2.5
+                model.addObject(model, 0)
+                model.translate(1, spacing, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("selected group should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val before = readExactBoundsOnGl(glView, 0, 1)
+            fun width(bounds: DoubleArray) = bounds[3] - bounds[0]
+            fun centerX(bounds: DoubleArray) = (bounds[0] + bounds[3]) / 2.0
+            val originalWidth = width(before[0])
+            val originalSpacing = centerX(before[1]) - centerX(before[0])
+
+            openSelectedObjectMenu(activity)
+            scrollMenuToIndex(12)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription("X, X =", substring = true).assertIsDisplayed().performClick()
+            val scaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            scaleField.performTextClearance()
+            scaleField.performTextInput("150")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(width(readExactBoundsOnGl(glView, 0, 1)[0]) - originalWidth * 1.5) < 0.1
+            }
+            val after = readExactBoundsOnGl(glView, 0, 1)
+            assertEquals("each selected object's geometry should scale by the shared X factor",
+                originalWidth * 1.5, width(after[0]), 0.1)
+            assertEquals("the second selected object's geometry should scale by the same factor",
+                originalWidth * 1.5, width(after[1]), 0.1)
+            assertEquals("group spacing should scale about the common pivot",
+                originalSpacing * 1.5, centerX(after[1]) - centerX(after[0]), 0.1)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(width(readExactBoundsOnGl(glView, 0, 1)[0]) - originalWidth) < 0.1
+            }
+            val undone = readExactBoundsOnGl(glView, 0, 1)
+            assertEquals("Undo restores both selected object sizes", originalWidth, width(undone[1]), 0.1)
+            assertEquals("Undo restores their original spacing", originalSpacing,
+                centerX(undone[1]) - centerX(undone[0]), 0.1)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(width(readExactBoundsOnGl(glView, 0, 1)[1]) - originalWidth * 1.5) < 0.1
+            }
+        } finally {
+            Prefs.setScaleLinked(previousLinked)
+            Prefs.setScaleInputInMM(previousMillimeters)
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editCutAndVariableLayerActionsOpenAndCancelWithoutChangingModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

@@ -103,6 +103,8 @@ private var selRotZ:Double = 0.toDouble()
 private var selScaleX = 1.0
 private var selScaleY = 1.0
 private var selScaleZ = 1.0
+private var selectionTransformPivot = Vec3d()
+private var selectionTransformIsGroup = false
 private var lastDraw:Long = 0
 private lateinit var glView: GLView
 private var translate = Vec3d()
@@ -191,6 +193,130 @@ return selectedObjects.size
 }
 /** Returns a stable snapshot of the current multi-selection. Must be called on the GL thread. */
 fun selectedObjectIndices(): IntArray = selectedObjects.sorted().toIntArray()
+
+/** Cache the common preview pivot while on the GL thread so group transforms preview as a unit. */
+fun prepareSelectionTransformPreview() {
+    val activeModel = model ?: run { selectionTransformIsGroup = false; return }
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    selectionTransformIsGroup = indices.size > 1
+    if (indices.isEmpty()) return
+    var minX = Double.POSITIVE_INFINITY
+    var minY = Double.POSITIVE_INFINITY
+    var minZ = Double.POSITIVE_INFINITY
+    var maxX = Double.NEGATIVE_INFINITY
+    var maxY = Double.NEGATIVE_INFINITY
+    var maxZ = Double.NEGATIVE_INFINITY
+    for (index in indices) {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        minX = minOf(minX, bbMin.x); minY = minOf(minY, bbMin.y); minZ = minOf(minZ, bbMin.z)
+        maxX = maxOf(maxX, bbMax.x); maxY = maxOf(maxY, bbMax.y); maxZ = maxOf(maxZ, bbMax.z)
+    }
+    selectionTransformPivot.set((minX + maxX) / 2.0, (minY + maxY) / 2.0, (minZ + maxZ) / 2.0)
+}
+
+/** Apply the same rotation to each selected model around the group bounds center. */
+fun rotateSelectedObjects(x: Double, y: Double, z: Double): Boolean {
+    val activeModel = model ?: return false
+    if (!listOf(x, y, z).all(Double::isFinite)) return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return false
+    val before = indices.associateWith { selectionObjectBounds(activeModel, it) }
+    val pivot = enclosingSelectionBounds(before.values).center()
+    val rotation = DoubleArray(16)
+    DoubleMatrix.setIdentityM(rotation, 0)
+    DoubleMatrix.rotateM(rotation, 0, Math.toDegrees(x), 1.0, 0.0, 0.0)
+    DoubleMatrix.rotateM(rotation, 0, Math.toDegrees(y), 0.0, 1.0, 0.0)
+    DoubleMatrix.rotateM(rotation, 0, Math.toDegrees(z), 0.0, 0.0, 1.0)
+    for (index in indices) {
+        val oldCenter = before.getValue(index).center()
+        val relative = doubleArrayOf(oldCenter.x - pivot.x, oldCenter.y - pivot.y, oldCenter.z - pivot.z, 0.0)
+        val rotated = DoubleArray(4)
+        DoubleMatrix.multiplyMV(rotated, 0, rotation, 0, relative, 0)
+        val desired = Vec3d(pivot.x + rotated[0], pivot.y + rotated[1], pivot.z + rotated[2])
+        activeModel.rotate(index, x, y, z)
+        val rotatedCenter = selectionObjectBounds(activeModel, index).center()
+        activeModel.translate(index, desired.x - rotatedCenter.x, desired.y - rotatedCenter.y, desired.z - rotatedCenter.z)
+        invalidateGlModel(index)
+    }
+    placeSelectionOnBed(activeModel, indices)
+    setSelectionRotation(0.0, 0.0, 0.0)
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Scale each selected object by the primary object's relative factor around the group center. */
+fun scaleSelectedObjects(targetX: Double, targetY: Double, targetZ: Double): Boolean {
+    val activeModel = model ?: return false
+    if (!listOf(targetX, targetY, targetZ).all { it.isFinite() && it > 0.0 }) return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return false
+    val primary = selectedObject.takeIf { it in indices } ?: return false
+    val primaryScale = Vec3d()
+    activeModel.getScale(primary, primaryScale)
+    if (listOf(primaryScale.x, primaryScale.y, primaryScale.z).any { !it.isFinite() || it <= 0.0 }) return false
+    val ratio = Vec3d(targetX / primaryScale.x, targetY / primaryScale.y, targetZ / primaryScale.z)
+    if (listOf(ratio.x, ratio.y, ratio.z).any { !it.isFinite() || it <= 0.0 }) return false
+    val before = indices.associateWith { selectionObjectBounds(activeModel, it) }
+    val pivot = enclosingSelectionBounds(before.values).center()
+    val targetScales = indices.associateWith { index ->
+        val currentScale = Vec3d()
+        activeModel.getScale(index, currentScale)
+        Vec3d(currentScale.x * ratio.x, currentScale.y * ratio.y, currentScale.z * ratio.z)
+    }
+    // Validate the full selection before mutating any object. A bad scale must never
+    // leave a partially transformed group.
+    if (targetScales.values.any { scale ->
+            listOf(scale.x, scale.y, scale.z).any { !it.isFinite() || it <= 0.0 }
+        }) return false
+    for (index in indices) {
+        val oldCenter = before.getValue(index).center()
+        val nextScale = targetScales.getValue(index)
+        activeModel.scale(index, nextScale.x, nextScale.y, nextScale.z)
+        val scaledCenter = selectionObjectBounds(activeModel, index).center()
+        val desired = Vec3d(
+            pivot.x + (oldCenter.x - pivot.x) * ratio.x,
+            pivot.y + (oldCenter.y - pivot.y) * ratio.y,
+            pivot.z + (oldCenter.z - pivot.z) * ratio.z,
+        )
+        activeModel.translate(index, desired.x - scaledCenter.x, desired.y - scaledCenter.y, desired.z - scaledCenter.z)
+        invalidateGlModel(index)
+    }
+    placeSelectionOnBed(activeModel, indices)
+    setSelectionScale(1.0, 1.0, 1.0)
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+private data class SelectionBounds(val min: Vec3d, val max: Vec3d) {
+    fun center() = Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0)
+}
+
+private fun selectionObjectBounds(activeModel: Model, index: Int): SelectionBounds {
+    val min = Vec3d(); val max = Vec3d()
+    activeModel.getBoundingBoxExact(index, min, max)
+    return SelectionBounds(min, max)
+}
+
+private fun enclosingSelectionBounds(bounds: Collection<SelectionBounds>): SelectionBounds {
+    require(bounds.isNotEmpty())
+    return SelectionBounds(
+        Vec3d(bounds.minOf { it.min.x }, bounds.minOf { it.min.y }, bounds.minOf { it.min.z }),
+        Vec3d(bounds.maxOf { it.max.x }, bounds.maxOf { it.max.y }, bounds.maxOf { it.max.z }),
+    )
+}
+
+private fun placeSelectionOnBed(activeModel: Model, indices: List<Int>) {
+    val group = enclosingSelectionBounds(indices.map { selectionObjectBounds(activeModel, it) })
+    val bedZ = bed?.getVolumeMin()?.z ?: 0.0
+    val deltaZ = bedZ - group.min.z
+    if (!deltaZ.isFinite() || kotlin.math.abs(deltaZ) < 1e-9) return
+    indices.forEach { index ->
+        activeModel.translate(index, 0.0, 0.0, deltaZ)
+        invalidateGlModel(index)
+    }
+}
 
 /** Replaces the selected models by one multipart object, retaining each source volume's material. */
 fun combineSelectedObjectsAsParts(): Int {
@@ -910,8 +1036,18 @@ if (selected)
 {
 // Live move delta applies to the whole selection (group move).
  DoubleMatrix.translateM(modelMatrix, 0, selX, selY, selZ)
-// Live rotation/scale only previews on the primary object (the gizmo target).
- if (primary)
+// A multi-selection previews rotation/scale around its shared bounds center.
+ if (selectionTransformIsGroup)
+{
+DoubleMatrix.translateM(modelMatrix, 0, selectionTransformPivot.x, selectionTransformPivot.y, selectionTransformPivot.z)
+DoubleMatrix.rotateM(modelMatrix, 0, selRotX, (1).toDouble(), (0).toDouble(), (0).toDouble())
+DoubleMatrix.rotateM(modelMatrix, 0, selRotY, (0).toDouble(), (1).toDouble(), (0).toDouble())
+DoubleMatrix.rotateM(modelMatrix, 0, selRotZ, (0).toDouble(), (0).toDouble(), (1).toDouble())
+DoubleMatrix.scaleM(modelMatrix, 0, selScaleX, selScaleY, selScaleZ)
+DoubleMatrix.translateM(modelMatrix, 0, -selectionTransformPivot.x, -selectionTransformPivot.y, -selectionTransformPivot.z)
+}
+// Single-object preview remains around the object's existing origin.
+else if (primary)
 {
 this.model!!.getTranslation(i, translate)
 this.model!!.getRotation(i, rotate)

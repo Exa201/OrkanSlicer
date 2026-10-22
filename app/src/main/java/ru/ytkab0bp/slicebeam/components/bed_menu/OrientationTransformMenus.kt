@@ -415,15 +415,22 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
     private val rulerValues = mutableStateOf(OrientationAxisValues(0, 0, 0))
     private val rotation = mutableStateOf(OrientationVector3(0.0, 0.0, 0.0))
     private val hasSelection = mutableStateOf(false)
+    private var selectedObjectsForPreview = intArrayOf()
     private var eventBusRegistered = false
 
     private fun setRotationPreview(values: OrientationVector3) {
         val glView = bed.glView ?: return
-        if (glView.renderer.selectedObject < 0) return
+        if (glView.renderer.selectedObject < 0 || selectedObjectsForPreview.isEmpty()) return
         rotation.value = values
         val normalized = OrientationTransformPolicy.normalizedDegrees(values)
-        glView.renderer.setSelectionRotation(normalized.x, normalized.y, normalized.z)
-        glView.requestRender()
+        val expectedSelection = selectedObjectsForPreview.copyOf()
+        glView.queueEvent {
+            val renderer = glView.renderer
+            if (!renderer.selectedObjectIndices().contentEquals(expectedSelection)) return@queueEvent
+            renderer.prepareSelectionTransformPreview()
+            renderer.setSelectionRotation(normalized.x, normalized.y, normalized.z)
+            glView.requestRender()
+        }
     }
 
     private fun changeRuler(axis: OrientationAxis, value: Int) {
@@ -454,24 +461,23 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
         val glView = bed.glView ?: return
         val renderer = glView.renderer
         val index = renderer.selectedObject
-        if (index < 0 || (renderer.model == null)) return
+        val expectedSelection = selectedObjectsForPreview.copyOf()
+        if (index < 0 || renderer.model == null || expectedSelection.isEmpty()) return
         val target = OrientationTransformPolicy.normalizedDegrees(rotation.value)
         glView.queueEvent {
             val activeRenderer = glView.renderer
-            if (activeRenderer.selectedObject != index) return@queueEvent
+            if (activeRenderer.selectedObject != index ||
+                !activeRenderer.selectedObjectIndices().contentEquals(expectedSelection)) return@queueEvent
             val model: Model = activeRenderer.model ?: return@queueEvent
             runCatching {
-                model.rotate(
-                    index,
+                if (activeRenderer.rotateSelectedObjects(
                     Math.toRadians(target.x),
                     Math.toRadians(target.y),
                     Math.toRadians(target.z),
-                )
-                model.ensureOnBed(index)
-                activeRenderer.setSelectionRotation(0.0, 0.0, 0.0)
-                activeRenderer.invalidateGlModel(index)
-                glView.requestRender()
-                ViewUtils.postOnMainThread { bed.updateModel() }
+                )) {
+                    glView.requestRender()
+                    ViewUtils.postOnMainThread { bed.updateModel() }
+                }
             }
         }
         rotation.value = OrientationVector3(0.0, 0.0, 0.0)
@@ -535,9 +541,11 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
         val renderer = bed.glView?.renderer ?: return
         if (renderer.selectedObject < 0 || renderer.model == null) {
             hasSelection.value = false
+            selectedObjectsForPreview = intArrayOf()
             return
         }
-        renderer.setSelectionRotation(0.0, 0.0, 0.0)
+        selectedObjectsForPreview = renderer.selectedObjectIndices()
+        glViewQueuePrepare(renderer)
         rotation.value = OrientationVector3(0.0, 0.0, 0.0)
         rulerValues.value = OrientationAxisValues(0, 0, 0)
         hasSelection.value = true
@@ -545,8 +553,21 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
 
     private fun stopPreview() {
         val glView = bed.glView ?: return
-        glView.renderer.setSelectionRotation(0.0, 0.0, 0.0)
-        glView.requestRender()
+        glView.queueEvent {
+            glView.renderer.setSelectionRotation(0.0, 0.0, 0.0)
+            glView.requestRender()
+        }
+    }
+
+    private fun glViewQueuePrepare(renderer: ru.ytkab0bp.slicebeam.render.GLRenderer) {
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            if (glView.renderer === renderer) {
+                renderer.prepareSelectionTransformPreview()
+                renderer.setSelectionRotation(0.0, 0.0, 0.0)
+                glView.requestRender()
+            }
+        }
     }
 
     override fun dismiss() {

@@ -2687,3 +2687,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Fix/Regressionstest gepusht auf `codex/rinkhals-safe-start-audit`, Commit `57ef6bc5` (PR #2 aktualisiert).
 - Nach Commit erstellte Debug-APK: `app/build/outputs/apk/debug/OrkanSlicer_57ef6bc548.apk`, 239336299 Bytes, SHA-256 `DCDA146FC92015E4BF06B93EE837F6232C8BB3D5534E2A38E8AA5078F28BD644`, BuildConfig-Code-Commit `57ef6bc5`. Auf Honor installiert; die installierte MainActivity wird für MIME-loses `.stp`-`ACTION_VIEW` aufgelöst und startet.
 - Nächster Projektstep: mit dem Modellbearbeitungs-/UI-2.0-Backlog fortfahren. Der Xiaomi-Dateimanagerfall bleibt auf dem Xiaomi selbst zu bestätigen; kein Release aus diesem gezielten Fix erstellt.
+
+# Fortsetzung — Gruppen-Transformationen, 2026-10-23
+
+- Gruppenrotation und -skalierung verwenden jetzt dieselbe Auswahl, die beim Öffnen des Werkzeugs erfasst wurde. Vorschau und Bestätigung transformieren alle markierten Objekte als zusammenhängende Gruppe um deren gemeinsame Begrenzungsboxmitte. Vor einer Gruppen-Skalierung werden alle Zielwerte geprüft, damit ungültige Werte keine teilweise Modelländerung hinterlassen.
+- Gerätetests auf Honor PTP-N49 / Android 16: Gruppenrotation mit Abstandsprüfung und Undo/Redo 1/1; Gruppenskalierung von Geometrie und Abstand mit Undo/Redo 1/1; Gruppenverschieben 1/1; vorhandene Einzelobjekt-Skalierung 1/1 und Rotation 1/1.
+- Emulator API 36: neue Gruppenrotations- und Gruppenskalierungstests 2/2 bestanden.
+- Debug-Unit 617/617 und Slice-Unit 617/617 bestanden; Produktions- und Instrumentierungscode erfolgreich kompiliert; `git diff --check` sauber.
+- Vorbereitete Release-Version: 0.8.352 / Code 387. Nächster Schritt: Änderungen committen und auf den bestehenden Branch pushen, Debug-APK aus dem Code-Commit bauen, auf Honor installieren/starten, SHA-256 erfassen und den offiziellen GitHub-Release veröffentlichen. Untracked `.codex-remote-attachments/` bleibt unangetastet.
