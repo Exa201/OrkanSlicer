@@ -49,6 +49,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
@@ -68,6 +69,7 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
@@ -230,6 +232,29 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
         glView.requestRender()
     }
 
+    private fun mirrorSelected(axis: ModelMirrorAxis) {
+        val glView = bed.glView ?: return
+        val index = glView.renderer.selectedObject
+        if (index < 0 || index != selectedObjectForScale) return
+        glView.queueEvent {
+            val renderer = glView.renderer
+            if (renderer.selectedObject != index) return@queueEvent
+            val model = renderer.model ?: return@queueEvent
+            if (index !in 0 until model.objectsCount) return@queueEvent
+            runCatching {
+                model.mirror(index, axis)
+                model.ensureOnBed(index)
+                renderer.setSelectionScale(1.0, 1.0, 1.0)
+                renderer.invalidateGlModel(index)
+                glView.requestRender()
+                ViewUtils.postOnMainThread {
+                    bed.updateModel()
+                    loadSelectionValues()
+                }
+            }
+        }
+    }
+
     private fun openManualEditor(axis: TransformScaleAxis) {
         val inMillimeters = Prefs.isScaleInputInMM()
         val currentFactor = actualScale.value.forAxis(axis)
@@ -354,6 +379,7 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
             onConfirmManual = ::confirmManualEditor,
             onRulerChanged = ::setRulerValue,
             onCommitScale = ::commitScale,
+            onMirror = ::mirrorSelected,
             onOpenManual = ::openManualEditor,
             onLinkedChanged = ::setLinked,
             onBack = ::dismiss,
@@ -421,6 +447,7 @@ private fun TransformScaleEditorContent(
     onConfirmManual: () -> Unit,
     onRulerChanged: (TransformScaleAxis, Int) -> Unit,
     onCommitScale: () -> Unit,
+    onMirror: (ModelMirrorAxis) -> Unit,
     onOpenManual: (TransformScaleAxis) -> Unit,
     onLinkedChanged: (Boolean) -> Unit,
     onBack: () -> Unit,
@@ -468,6 +495,7 @@ private fun TransformScaleEditorContent(
                 onCommit = onCommitScale,
                 onEdit = { onOpenManual(TransformScaleAxis.Z) },
             )
+            ScaleMirrorControls(enabled = enabled, onMirror = onMirror)
             if (portrait) {
                 ScaleLinkedControl(linked, enabled, onLinkedChanged)
             }
@@ -518,6 +546,29 @@ private fun TransformScaleEditorContent(
             onConfirm = onConfirmManual,
             onDismiss = { onManualAxisChanged(null) },
         )
+    }
+}
+
+@Composable
+private fun ScaleMirrorControls(enabled: Boolean, onMirror: (ModelMirrorAxis) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.MenuTransformMirror), style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(
+                ModelMirrorAxis.X to R.string.MenuTransformMirrorX,
+                ModelMirrorAxis.Y to R.string.MenuTransformMirrorY,
+                ModelMirrorAxis.Z to R.string.MenuTransformMirrorZ,
+            ).forEach { (axis, label) ->
+                OutlinedButton(
+                    onClick = { onMirror(axis) },
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("scale-mirror-${axis.name.lowercase(Locale.ROOT)}"),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Text(stringResource(label), maxLines = 1, fontSize = 13.sp)
+                }
+            }
+        }
     }
 }
 

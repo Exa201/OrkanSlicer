@@ -13,6 +13,7 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
@@ -29,6 +30,65 @@ import java.nio.ByteOrder
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun mirrorXyZKeepsObjectCenterMeshAndCanBeToggledBack() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "mirror-axes-cube.stl")
+        val model = Model(modelFile)
+        try {
+            val triangles = model.getTriangleCount(0)
+            val volume = model.getObjectVolume(0)
+            val beforeMin = Vec3d(); val beforeMax = Vec3d()
+            model.getBoundingBoxExact(0, beforeMin, beforeMax)
+            val centerBefore = doubleArrayOf(
+                (beforeMin.x + beforeMax.x) / 2.0,
+                (beforeMin.y + beforeMax.y) / 2.0,
+                (beforeMin.z + beforeMax.z) / 2.0,
+            )
+
+            for ((axis, component) in listOf(
+                ModelMirrorAxis.X to 0,
+                ModelMirrorAxis.Y to 1,
+                ModelMirrorAxis.Z to 2,
+            )) {
+                model.mirror(0, axis)
+                val expected = doubleArrayOf(1.0, 1.0, 1.0).also { it[component] = -1.0 }
+                assertLinearTransform(model, expected)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val centerAfter = listOf((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0)
+                centerBefore.indices.forEach { coordinate ->
+                    assertEquals("$axis mirror should preserve the object's center", centerBefore[coordinate], centerAfter[coordinate], 0.001)
+                }
+                assertEquals("$axis mirror must retain the printable mesh", triangles, model.getTriangleCount(0))
+                assertEquals("$axis mirror must retain the solid volume", volume, model.getObjectVolume(0), 0.001)
+
+                model.mirror(0, axis)
+                assertLinearTransform(model, doubleArrayOf(1.0, 1.0, 1.0))
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    private fun assertLinearTransform(model: Model, expectedDiagonal: DoubleArray) {
+        val rotation = Vec3d(); val scale = Vec3d(); val mirror = Vec3d()
+        model.getRotation(0, rotation)
+        model.getScale(0, scale)
+        model.getMirror(0, mirror)
+        val sx = scale.x * mirror.x; val sy = scale.y * mirror.y; val sz = scale.z * mirror.z
+        val cx = kotlin.math.cos(rotation.x); val cy = kotlin.math.cos(rotation.y); val cz = kotlin.math.cos(rotation.z)
+        val sinX = kotlin.math.sin(rotation.x); val sinY = kotlin.math.sin(rotation.y); val sinZ = kotlin.math.sin(rotation.z)
+        val matrix = arrayOf(
+            doubleArrayOf(cz * cy * sx, (cz * sinY * sinX - sinZ * cx) * sy, (cz * sinY * cx + sinZ * sinX) * sz),
+            doubleArrayOf(sinZ * cy * sx, (sinZ * sinY * sinX + cz * cx) * sy, (sinZ * sinY * cx - cz * sinX) * sz),
+            doubleArrayOf(-sinY * sx, cy * sinX * sy, cy * cx * sz),
+        )
+        for (row in 0..2) for (column in 0..2) {
+            val expected = if (row == column) expectedDiagonal[row] else 0.0
+            assertEquals("mirrored transform matrix[$row,$column]", expected, matrix[row][column], 1e-5)
+        }
+    }
 
     @Test fun combineSelectedMeshesKeepsPlacementAndPerVolumeFilamentAssignments() {
         val modelFile = copyAsset("models/xyz_cube.stl", "combine-cube.stl")

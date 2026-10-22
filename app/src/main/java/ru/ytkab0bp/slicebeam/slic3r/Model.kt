@@ -267,6 +267,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
         vec.set(mirror[0], mirror[1], mirror[2])
     }
 
+    /** Mirrors every volume in an object around its current world-space bounds center. */
+    open fun mirror(i: Int, axis: ModelMirrorAxis) {
+        require(i in 0 until objectsCount) { "Invalid model object index: $i" }
+        Native.model_mirror(pointer, i, axis.nativeValue)
+        resetBoundingBox()
+    }
+
     open fun createFlattenPlanes(i: Int): List<GLModel> {
         val pointers = Native.model_create_flatten_planes(pointer, i)
         val models = ArrayList<GLModel>(pointers.size)

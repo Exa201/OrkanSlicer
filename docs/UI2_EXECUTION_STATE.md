@@ -1,11 +1,17 @@
-# Aktueller Fortsetzungsstand — Gruppenverschiebung X/Y/Z, 2026-10-22
+# Aktueller Fortsetzungsstand — STEP-Import und Spiegelwerkzeuge X/Y/Z, 2026-10-22
 
 ## STEP/STP-Dateiöffnung – 2026-10-22
 
 - Der aktuelle Importdialog und native STEP/STP-Meshingpfad waren bereits im Code vorhanden. Der Workspace-Dateiauswahltest auf Honor bestätigt: Optionen erscheinen vor dem Laden; nach Bestätigung entsteht ein renderbares Dreiecksnetz.
 - Zusätzliche Robustheitskorrektur: Wenn ein Android-Dokumentanbieter weder eine brauchbare STEP-Endung noch einen STEP-MIME-Typ liefert, wird der Dateikopf auf `ISO-10303-21;` geprüft. Erkannte Dateien erhalten für den nativen Import intern `.step`; sonstige unbekannte Dateien bleiben abgewiesen. MIME-basierte Endungserkennung und sicheres Schließen der Streams bleiben erhalten.
 - Verifikation: `ModelImportFileNameTest` bestanden; `stepImportDetectsGenericProviderDocumentAndWaitsForWorkspaceHost` auf Honor PTP-N49 / Android 16 bestanden (1/1), einschließlich Optionen vor dem Laden und anschließendem renderbarem Netz; Debug- und sliceTest-Instrumentierungs-APK erfolgreich gebaut; `git diff --check` bestanden.
-- Nächster Schritt: Fix auf Branch `codex/rinkhals-safe-start-audit` sichern und PR #2 aktualisieren. Kein Release in diesem Durchgang erstellt.
+- Commit `8ee452f7` wurde auf `codex/rinkhals-safe-start-audit` gepusht und aktualisiert PR #2. Kein Release in diesem Durchgang erstellt.
+
+## Spiegelwerkzeuge X/Y/Z
+
+- Die drei vorhandenen Spiegelaktionen sind an das native Modell und das Skalierungs-Werkzeugpanel angebunden. Der native Code spiegelt die Objektvolumen um die jeweilige Achse und hält den Objektmittelpunkt stabil.
+- Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest#mirrorXyZKeepsObjectCenterMeshAndCanBeToggledBack` und `InitialProjectMenuDeviceTest#mirrorPanelReflectsSelectedObjectOnEachAxisAndRecordsUndoRedo` bestanden je 1/1. Die Tests vergleichen die zusammengesetzte Transformationsmatrix; `getMirror()` allein gibt wegen der Rotations-/Spiegel-Zerlegung nicht zwingend dasselbe Achsenschild zurück.
+- Nächster Schritt: Spiegeländerungen gezielt mit Slice-/Undo-Regressionen prüfen, dann den geprüften Spiegelwerkzeug-Schritt auf PR #2 sichern. Ein Release wurde hierfür noch nicht erstellt.
 
 - Aktiver Projektfokus: Modellbearbeitung plus verbleibende UI-2.0-Arbeit. UnfoldMenu-/Workspace-Migration wird nicht erneut aufgerollt.
 - Der STEP/STP-Fix ist als offizieller Release 0.8.350 veröffentlicht. Neuer Modellbearbeitungsfehler gefunden: numerische Positionsvorschau galt für die ganze Mehrfachauswahl, die Bestätigung schrieb bisher nur die aktive Instanz ins Modell.

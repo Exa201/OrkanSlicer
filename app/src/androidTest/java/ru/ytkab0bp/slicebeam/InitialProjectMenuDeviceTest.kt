@@ -2797,6 +2797,66 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun mirrorPanelReflectsSelectedObjectOnEachAxisAndRecordsUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-mirror-action-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            assertEquals(1, model.objectsCount)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val initialBounds = readExactBoundsOnGl(glView, 0).single()
+            fun center(bounds: DoubleArray, axis: Int) = (bounds[axis] + bounds[axis + 3]) / 2.0
+            val initialCenter = (0..2).map { center(initialBounds, it) }
+
+            openSelectedObjectMenu(activity)
+            scrollMenuToIndex(12)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("scale-mirror-x").assertIsDisplayed()
+            compose.onNodeWithTag("scale-mirror-y").assertIsDisplayed()
+            compose.onNodeWithTag("scale-mirror-z").assertIsDisplayed()
+
+            val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
+                .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<*>
+            val initialUndoSize = undoHistory.size
+            compose.onNodeWithTag("scale-mirror-x").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                hasExpectedLinearTransform(glView, 0, doubleArrayOf(-1.0, 1.0, 1.0)) &&
+                    undoHistory.size > initialUndoSize
+            }
+            val afterXBounds = readExactBoundsOnGl(glView, 0).single()
+            (0..2).forEach { axis -> assertEquals("X reflection keeps world center", initialCenter[axis], center(afterXBounds, axis), 0.01) }
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                hasExpectedLinearTransform(glView, 0, doubleArrayOf(1.0, 1.0, 1.0))
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                hasExpectedLinearTransform(glView, 0, doubleArrayOf(-1.0, 1.0, 1.0))
+            }
+
+            compose.onNodeWithTag("scale-mirror-y").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                hasExpectedLinearTransform(glView, 0, doubleArrayOf(-1.0, -1.0, 1.0))
+            }
+            compose.onNodeWithTag("scale-mirror-z").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                hasExpectedLinearTransform(glView, 0, doubleArrayOf(-1.0, -1.0, -1.0))
+            }
+            assertTrue("mirrored object must remain renderable", readTriangleCountOnGl(glView, 0) > 0)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editPositionActionIsUndoableAndRedoableAfterConfirmation() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -4635,6 +4695,29 @@ class InitialProjectMenuDeviceTest {
         assertTrue("GL thread did not return model vector", finished.await(10, TimeUnit.SECONDS))
         failure.get()?.let { throw AssertionError("Could not read native model vector on GL thread", it) }
         return requireNotNull(value.get())
+    }
+
+    private fun hasExpectedLinearTransform(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        index: Int,
+        expectedDiagonal: DoubleArray,
+    ): Boolean {
+        val rotation = readVectorOnGl(glView, index) { model, vector -> model.getRotation(index, vector) }
+        val scale = readVectorOnGl(glView, index) { model, vector -> model.getScale(index, vector) }
+        val mirror = readVectorOnGl(glView, index) { model, vector -> model.getMirror(index, vector) }
+        val sx = scale.x * mirror.x; val sy = scale.y * mirror.y; val sz = scale.z * mirror.z
+        val cx = kotlin.math.cos(rotation.x); val cy = kotlin.math.cos(rotation.y); val cz = kotlin.math.cos(rotation.z)
+        val sinX = kotlin.math.sin(rotation.x); val sinY = kotlin.math.sin(rotation.y); val sinZ = kotlin.math.sin(rotation.z)
+        val matrix = arrayOf(
+            doubleArrayOf(cz * cy * sx, (cz * sinY * sinX - sinZ * cx) * sy, (cz * sinY * cx + sinZ * sinX) * sz),
+            doubleArrayOf(sinZ * cy * sx, (sinZ * sinY * sinX + cz * cx) * sy, (sinZ * sinY * cx - cz * sinX) * sz),
+            doubleArrayOf(-sinY * sx, cy * sinX * sy, cy * cx * sz),
+        )
+        for (row in 0..2) for (column in 0..2) {
+            val expected = if (row == column) expectedDiagonal[row] else 0.0
+            if (kotlin.math.abs(matrix[row][column] - expected) > 1e-4) return false
+        }
+        return true
     }
 
     private fun createInitializedActivityRule() = run {

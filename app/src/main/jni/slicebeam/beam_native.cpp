@@ -610,6 +610,26 @@ extern "C" {
         return arr;
     }
 
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1mirror(JNIEnv*, jclass, jlong ptr, jint object_index, jint axis) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || object_index >= static_cast<jint>(model->model.objects.size()) || axis < X || axis > Z)
+            return;
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || object->instances.empty()) return;
+
+        // Preserve the selected object's world-space center when reflecting its local volumes.
+        const Vec3d center_before = object->bounding_box_exact().center();
+        for (ModelVolume* volume : object->volumes) {
+            if (volume == nullptr) continue;
+            Vec3d mirror = volume->get_mirror();
+            mirror[axis] *= -1.0;
+            volume->set_mirror(mirror);
+        }
+        object->invalidate_bounding_box();
+        const Vec3d center_after = object->bounding_box_exact().center();
+        object->translate_instances(center_before - center_after);
+    }
+
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1scale(JNIEnv* env, jclass, jlong ptr, jint object_index) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         ModelObject* obj = model->model.objects[object_index];

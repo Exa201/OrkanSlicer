@@ -125,6 +125,8 @@ class Native {
     @JvmStatic
     external fun model_get_mirror(ptr: Long, objectIndex: Int): DoubleArray
     @JvmStatic
+    external fun model_mirror(ptr: Long, objectIndex: Int, axis: Int): Unit
+    @JvmStatic
     external fun model_get_rotation(ptr: Long, objectIndex: Int): DoubleArray
     @JvmStatic
     external fun model_get_bounding_box_exact(ptr: Long, i: Int): DoubleArray
