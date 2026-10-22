@@ -2079,6 +2079,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue("second temporary object should finish duplicating", duplicateDone.await(15, TimeUnit.SECONDS))
             instrumentationWaitForGlIdle()
             assertEquals(2, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.updateModel() }
 
             openModelMenu(activity)
             selectAllObjectsScope()
@@ -2096,12 +2097,20 @@ class InitialProjectMenuDeviceTest {
             scrollMenuToIndex(5)
             revealMenuAction(activity, R.string.ModelMenuAutoOrientSelected)
             val beforeOrientSelected = model.geometryRevision
+            val beforeSelectedOrientBounds = readBoundsOnGl(glView, 0)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuAutoOrientSelected))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision > beforeOrientSelected }
             assertEquals("Auto Orient Selected should process only the selected object", beforeOrientSelected + 1,
                 model.geometryRevision)
             assertEquals("orientation actions must preserve the object count", 2, readObjectCountOnGl(glView))
+            val afterSelectedOrientBounds = readBoundsOnGl(glView, 0)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            assertEquals("Undo after Auto Orient Selected must restore the previous bounds",
+                beforeSelectedOrientBounds, readBoundsOnGl(glView, 0))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            assertEquals("Redo after Auto Orient Selected must restore the oriented bounds",
+                afterSelectedOrientBounds, readBoundsOnGl(glView, 0))
         } finally {
             modelFile.delete()
         }
@@ -2127,6 +2136,7 @@ class InitialProjectMenuDeviceTest {
             val before = readTranslationOnGl(glView, 0)
             assertTrue("test object should begin clearly outside a typical build volume",
                 before.x > 1_000.0 && before.y > 1_000.0)
+            compose.runOnUiThread { bed.updateModel() }
 
             openModelMenu(activity)
             selectAllObjectsScope()
@@ -2140,6 +2150,14 @@ class InitialProjectMenuDeviceTest {
             assertTrue("Arrange should change the off-bed XY placement",
                 kotlin.math.abs(after.x - before.x) > 10.0 || kotlin.math.abs(after.y - before.y) > 10.0)
             assertEquals("Arrange must preserve the single temporary object", 1, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.undoModelEdit() }
+            val afterUndo = readTranslationOnGl(glView, 0)
+            assertEquals("Undo after Arrange must restore the exact pre-arrange X", before.x, afterUndo.x, 0.01)
+            assertEquals("Undo after Arrange must restore the exact pre-arrange Y", before.y, afterUndo.y, 0.01)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            val afterRedo = readTranslationOnGl(glView, 0)
+            assertEquals("Redo after Arrange must restore the arranged X", after.x, afterRedo.x, 0.01)
+            assertEquals("Redo after Arrange must restore the arranged Y", after.y, afterRedo.y, 0.01)
         } finally {
             modelFile.delete()
         }

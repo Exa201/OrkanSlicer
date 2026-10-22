@@ -84,11 +84,14 @@ internal class ModelMenuItems(
                 }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuArrange, R.drawable.grid_layout_outline_28, {
-                fragment.glView!!.arrange()
-                fragment.glView!!.queueEvent {
-                    if (renderer.invalidateFlattenMode()) fragment.glView!!.requestRender()
+                val glView = fragment.glView ?: return@BedComposeMenuAction
+                glView.arrange {
+                    glView.queueEvent {
+                        if (renderer.invalidateFlattenMode()) glView.requestRender()
+                    }
+                    fragment.updateModel()
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
                 }
-                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuOrientAll, R.drawable.menu_orientation_auto_28, {
                 fragment.glView!!.queueEvent {
@@ -123,9 +126,18 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuFlatten, R.drawable.menu_orientation_flatten_28, {
                 flattenEnabled = !flattenEnabled
                 val flatten = flattenEnabled
-                fragment.glView!!.queueEvent {
+                val glView = fragment.glView ?: return@BedComposeMenuAction
+                glView.queueEvent {
+                    val model = renderer.model
+                    if (flatten && (model == null || renderer.selectedObject !in 0 until model.objectsCount)) {
+                        ViewUtils.postOnMainThread {
+                            flattenEnabled = false
+                            onItemsChanged()
+                        }
+                        return@queueEvent
+                    }
                     renderer.setInFlattenMode(flatten)
-                    fragment.glView!!.requestRender()
+                    glView.requestRender()
                 }
                 onItemsChanged()
             }, selected = flattenEnabled, toggleable = true, enabled = availability.hasSelectedObject),

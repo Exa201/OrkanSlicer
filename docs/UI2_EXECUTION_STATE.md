@@ -1,3 +1,10 @@
+# Model arrange, orient and flatten — 2026-10-22
+
+- Fixed active Model-menu Arrange so its completion waits for the GL operation, records the finished model in Undo history, and shows completion only afterward. Flatten now rechecks that the selected object still exists on the GL thread before creating its interaction planes, avoiding a stale-selection crash.
+- Expanded Honor device coverage for three editing actions: Arrange now verifies Undo and Redo restore exact placements; Auto Orient Selected verifies Undo/Redo restore the prior/oriented mesh bounds; Flatten verifies enter/exit preserves mesh geometry.
+- Verification on Honor PTP-N49 / Android 16: Arrange 1/1, auto-orient all/selected with undo/redo 1/1, flatten toggle 1/1. Debug Kotlin and Android-test Kotlin compilation succeeded. Broader JVM suites were not run.
+- Next: continue native model-editing coverage, prioritizing Boolean operations and per-object material/color assignment through slicing.
+
 # Menu drag placement follow-up — 2026-10-22
 
 - Menu actions now recalculate their highlighted drop target after horizontal auto-scroll and again on release, so a held item can be moved left or right until the intended slot is reached. Drag bounds are snapshot-aware so scrolling updates the visual target promptly.
