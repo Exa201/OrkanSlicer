@@ -635,6 +635,121 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuPlacesSelectedGroupOnTappedSurfaceAndPreservesSpacingAndMaterials() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-group-surface-placement-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val sourceBounds = AtomicReference<List<DoubleArray>>()
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                model.translate(1, 45.0, 12.0, 7.0)
+                model.translate(2, 70.0, 28.0, 16.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                model.setUniformFilament(2, 3)
+                glView.renderer.setSelectedObjects(intArrayOf(1, 2))
+                sourceBounds.set((0..2).map { index ->
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(index, min, max)
+                    doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                })
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("the target and moving group should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceOnSurface)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnSurface))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.isSurfacePlacementActive }
+
+            val tappedPoint = AtomicReference<DoubleArray>()
+            val tapReady = CountDownLatch(1)
+            var exactTargetHits = 0
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val glModelsField = GLRenderer::class.java.getDeclaredField("glModels").apply { isAccessible = true }
+                @Suppress("UNCHECKED_CAST")
+                val glModels = glModelsField.get(renderer) as List<GLModel>
+                val targetHits = ArrayList<GLModel.HitResult>()
+                val xStep = (renderer.viewportWidth / 64).coerceAtLeast(1)
+                val yStep = (renderer.viewportHeight / 64).coerceAtLeast(1)
+                loop@ for (y in yStep until renderer.viewportHeight step yStep) {
+                    for (x in xStep until renderer.viewportWidth step xStep) {
+                        if (renderer.raycastObjectIndex(x.toFloat(), y.toFloat()) != 0) continue
+                        targetHits.clear()
+                        glModels[0].raycaster.raycast(renderer, targetHits, x.toFloat(), y.toFloat())
+                        val hit = targetHits.firstOrNull { !it.approximate && it.normal.z >= 0.7 } ?: continue
+                        exactTargetHits++
+                        if (!renderer.onClick(x.toFloat(), y.toFloat())) continue
+                        tappedPoint.set(doubleArrayOf(hit.position.x, hit.position.y, hit.position.z))
+                        break@loop
+                    }
+                }
+                tapReady.countDown()
+            }
+            assertTrue("group surface-pick search should complete on GL", tapReady.await(20, TimeUnit.SECONDS))
+            val point = requireNotNull(tappedPoint.get()) {
+                "the group should be placeable on an exposed upward target face; exactHits=$exactTargetHits"
+            }
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
+
+            val original = requireNotNull(sourceBounds.get())
+            val groupMinX = minOf(original[1][0], original[2][0])
+            val groupMinY = minOf(original[1][1], original[2][1])
+            val groupMinZ = minOf(original[1][2], original[2][2])
+            val groupMaxX = maxOf(original[1][3], original[2][3])
+            val groupMaxY = maxOf(original[1][4], original[2][4])
+            val groupMaxZ = maxOf(original[1][5], original[2][5])
+            val dx = point[0] - (groupMinX + groupMaxX) / 2.0
+            val dy = point[1] - (groupMinY + groupMaxY) / 2.0
+            val dz = point[2] - groupMinZ
+            val expectedBounds = doubleArrayOf(
+                minOf(original[0][0], groupMinX + dx),
+                minOf(original[0][1], groupMinY + dy),
+                minOf(original[0][2], groupMinZ + dz),
+                maxOf(original[0][3], groupMaxX + dx),
+                maxOf(original[0][4], groupMaxY + dy),
+                maxOf(original[0][5], groupMaxZ + dz),
+            )
+            expectedBounds.forEachIndexed { axis, expected ->
+                assertEquals("group surface placement should match the picked point on axis $axis",
+                    expected, readExactBoundsOnGl(glView, 0).single()[axis], 0.04)
+            }
+            assertEquals("target and moving group should keep their separate material assignments", listOf(1, 2, 3),
+                readUsedFilamentsOnGl(glView, 0).toList())
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            assertEquals("Undo should restore each source object's material assignment", listOf(1, 2, 3),
+                (0..2).map { readUsedFilamentsOnGl(glView, it).single() })
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals(listOf(1, 2, 3), readUsedFilamentsOnGl(glView, 0).toList())
+            expectedBounds.forEachIndexed { axis, expected ->
+                assertEquals("Redo should preserve the picked group placement on axis $axis",
+                    expected, readExactBoundsOnGl(glView, 0).single()[axis], 0.04)
+            }
+        } finally {
+            if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun androidBackCancelsSurfacePlacementWithoutChangingEitherObject() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
