@@ -50,7 +50,18 @@
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="*/*" />
-                <data android:host="*" />
+                <!-- Do not require a URI authority: shared file:// URIs commonly have no host. -->
+            </intent-filter>
+            <!-- Some document providers publish STEP files using a specific CAD MIME type. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="model/step" />
+                <data android:scheme="content" android:mimeType="application/step" />
+                <data android:scheme="content" android:mimeType="application/x-step" />
+                <data android:scheme="content" android:mimeType="application/vnd.step" />
+                <data android:scheme="content" android:mimeType="application/step-file" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
