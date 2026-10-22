@@ -1285,6 +1285,13 @@ ModelVolume* ModelObject::add_volume(const ModelVolume &other, ModelVolumeType t
     return v;
 }
 
+std::unique_ptr<ModelVolume> ModelObject::prepare_volume_copy(const ModelVolume &other)
+{
+    std::unique_ptr<ModelVolume> volume(new ModelVolume(this, other));
+    volume->cut_info = other.cut_info;
+    return volume;
+}
+
 ModelVolume* ModelObject::add_volume(const ModelVolume &other, TriangleMesh &&mesh)
 {
     ModelVolume* v = new ModelVolume(this, other, std::move(mesh));

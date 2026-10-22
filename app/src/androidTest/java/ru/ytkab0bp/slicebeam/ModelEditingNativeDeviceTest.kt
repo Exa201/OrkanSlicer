@@ -116,6 +116,53 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun rejectedObjectCombinesLeaveGeometryPlacementAndMaterialsUnchanged() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "combine-invalid-input-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.translate(1, 37.0, -12.0, 8.0)
+
+            data class Snapshot(
+                val triangles: Int,
+                val volume: Double,
+                val filaments: List<Int>,
+                val min: List<Double>,
+                val max: List<Double>,
+            )
+            fun snapshot(index: Int): Snapshot {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return Snapshot(
+                    model.getTriangleCount(index),
+                    model.getObjectVolume(index),
+                    model.getUsedFilaments(index).toList(),
+                    listOf(min.x, min.y, min.z),
+                    listOf(max.x, max.y, max.z),
+                )
+            }
+
+            val before = listOf(snapshot(0), snapshot(1))
+            val invalidRequests = listOf(
+                intArrayOf(0),
+                intArrayOf(0, 1, 1),
+                intArrayOf(0, 2),
+                intArrayOf(-1, 1),
+            )
+            invalidRequests.forEach { indices ->
+                assertTrue("invalid combine request must be rejected", model.combineObjectsAsParts(indices) < 0)
+                assertEquals("rejected request must preserve both source objects", 2, model.objectsCount)
+                assertEquals("target geometry/material/placement must remain unchanged", before[0], snapshot(0))
+                assertEquals("source geometry/material/placement must remain unchanged", before[1], snapshot(1))
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun placingOnePrintableObjectOnAnotherAlignsCentersAndTouchesSurface() {
         val modelFile = copyAsset("models/xyz_cube.stl", "place-cube.stl")
         val model = Model(modelFile)

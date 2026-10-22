@@ -416,6 +416,9 @@ public:
     ModelVolume*            add_volume(const ModelVolume &volume, ModelVolumeType type = ModelVolumeType::INVALID);
     ModelVolume*            add_volume(const ModelVolume &volume, TriangleMesh &&mesh);
     ModelVolume*            add_volume_with_shared_mesh(const ModelVolume &other, ModelVolumeType type = ModelVolumeType::MODEL_PART);
+    // Prepare a volume copy without attaching it, so callers can build a complete transaction
+    // before mutating this object's volume list.
+    std::unique_ptr<ModelVolume> prepare_volume_copy(const ModelVolume &other);
     void                    delete_volume(size_t idx);
     void                    clear_volumes();
     void                    sort_volumes(bool full_sort);
