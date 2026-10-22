@@ -541,6 +541,11 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
             assertEquals(listOf(1, 2), readUsedFilamentsOnGl(glView, 0).toList())
+            val redonePlacementBounds = readExactBoundsOnGl(glView, 0).single()
+            expectedBounds.forEachIndexed { index, expected ->
+                assertEquals("Redo must restore surface placement geometry on axis $index",
+                    expected, redonePlacementBounds[index], 0.04)
+            }
         } finally {
             if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()
             modelFile.delete()
@@ -753,6 +758,15 @@ class InitialProjectMenuDeviceTest {
             assertTrue("combined part filaments should be read on the GL thread", combinedReady.await(10, TimeUnit.SECONDS))
             assertArrayEquals("combining the selected group preserves all three source materials",
                 intArrayOf(1, 2, 3), requireNotNull(combinedFilaments.get()))
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            assertEquals("Undo should restore the three separate source objects", 3,
+                readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertArrayEquals("Redo should restore all multipart filament assignments", intArrayOf(1, 2, 3),
+                readUsedFilamentsOnGl(glView, 0))
         } finally {
             modelFile.delete()
         }
@@ -3509,11 +3523,26 @@ class InitialProjectMenuDeviceTest {
             readObjectCountOnGl(glView))
         assertTrue("generated text must be real printable geometry", readTriangleCountOnGl(glView, 0) > 0)
         assertEquals("created text should become selected", 0, glView.renderer.selectedObject)
+        val textTriangleCount = readTriangleCountOnGl(glView, 0)
+        val textBounds = readExactBoundsOnGl(glView, 0).single()
 
         bed.onBackPressed()
         compose.waitForIdle()
         assertFalse("exiting the tool should clear standalone placement mode",
             readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
+
+        compose.runOnUiThread { bed.undoModelEdit() }
+        compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 0 }
+        assertEquals("Undo should remove only the generated text object", 0, readObjectCountOnGl(glView))
+        compose.runOnUiThread { bed.redoModelEdit() }
+        compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+        assertEquals("Redo should restore the printable text mesh", textTriangleCount,
+            readTriangleCountOnGl(glView, 0))
+        val redoneTextBounds = readExactBoundsOnGl(glView, 0).single()
+        textBounds.forEachIndexed { axis, expected ->
+            assertEquals("Redo should preserve generated text bounds on axis $axis", expected,
+                redoneTextBounds[axis], 0.02)
+        }
     }
 
     @Test
