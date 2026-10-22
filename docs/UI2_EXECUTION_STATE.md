@@ -2478,3 +2478,8 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Beim Öffnen und nach GL-Verschiebungen wird der tatsächliche native Z-Wert in der Anzeige synchronisiert. X/Y bleiben bei reinen Z-Änderungen erhalten.
 - Honor PTP-N49 / Android 16: neuer Gerätetest bestätigt Z-Dialog-Abbruch ohne Modelländerung sowie bestätigte Z-Position, Undo und Redo. Bestehender X-Positionstest ebenfalls erneut bestanden. Kotlin-Produktions- und Slice-Testquellen erfolgreich kompiliert.
 - Z-Funktion wurde als `5a0886dd` gepusht. Versionsmetadaten für das angeforderte offizielle GitHub-Release werden auf 0.8.346 / Code 381 gesetzt; danach Debug-APK bauen, installieren/starten, Hash dokumentieren und als regulären (nicht Pre-release) GitHub-Release veröffentlichen. Projektstatus danach auf weitere offene Modellbearbeitung/UI-2.0-Aufgaben fortsetzen.
+
+# Official GitHub release — 2026-10-22
+
+- Published regular GitHub Release 0.8.346 from code commit 6718417fd6ef88d23a74a32a9a6e4add87b053cf: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.346. APK OrkanSlicer_6718417fd6.apk, 239,263,616 bytes, SHA-256 71D6BB97ED265E8897DBB1435C67B437C17728449A25BFBAED1D4B08ED03FCFC; version 0.8.346 / code 381. Debug-signed because no production release keystore exists. Installed/launched on Honor PTP-N49 / Android 16. Z and X positioning focused tests passed; no full unit suites were rerun for release metadata-only version bump.
+- Next: continue remaining UI 2.0 and model-editing backlog from current code; Xiaomi-specific verification, full action audit and full responsiveness/accessibility matrix remain open. No print/firmware action.

@@ -1879,3 +1879,13 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Slice panel focused Honor cases passed 2/2; real native slice and layer selection passed 1/1. Debug and Slice JVM suites each passed 591/591, 0 failures/errors/skips. The initial 0.8.339 full Honor run exposed a stale changelog string; after updating German/English/Russian notes, `ChangeLogComposeDeviceTest` passed 1/1. The complete Honor suite was rerun on 0.8.340: 256 cases, 253 passed, 3 unavailable private KromaCut fixtures skipped, 0 failures/errors (XML timestamp `2026-10-21T17:10:49`).
 - Exact 0.8.340 APK installed/launched on Honor PTP-N49 / Android 16; Android reports MainActivity resumed. Sampled 12,000 startup log lines had no fatal exception, package ANR, OOM, or fatal-signal matches. Emulator offline. No printer or print action.
 
+
+## GitHub Release 0.8.346 — 2026-10-22
+
+- Source/code commit: 6718417fd6ef88d23a74a32a9a6e4add87b053cf (branch codex/rinkhals-safe-start-audit).
+- Published as a regular, non-prerelease GitHub release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.346.
+- APK: OrkanSlicer_6718417fd6.apk, 239,263,616 bytes; SHA-256 71D6BB97ED265E8897DBB1435C67B437C17728449A25BFBAED1D4B08ED03FCFC.
+- Version 0.8.346 / versionCode 381. Z-position action and existing X-position regression passed on Honor PTP-N49 / Android 16; production and Slice Android-test Kotlin sources compiled. APK installed and MainActivity resumed on Honor.
+- Signing: debug-signed APK; repository has no production release keystore. This is stated on the release page.
+- No print started and no firmware action.
+
