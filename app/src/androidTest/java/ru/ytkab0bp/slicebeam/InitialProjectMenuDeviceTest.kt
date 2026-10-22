@@ -767,6 +767,25 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
             assertArrayEquals("Redo should restore all multipart filament assignments", intArrayOf(1, 2, 3),
                 readUsedFilamentsOnGl(glView, 0))
+
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuToolbarSplit)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 3 }
+            val splitAssignments = (0 until 3).map { index -> readUsedFilamentsOnGl(glView, index).single() }
+            assertEquals("Splitting a combined assembly must restore each source filament", listOf(1, 2, 3),
+                splitAssignments)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertArrayEquals("Undo split must restore the multipart assembly", intArrayOf(1, 2, 3),
+                readUsedFilamentsOnGl(glView, 0))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            assertEquals("Redo split must restore all three independent source bodies", listOf(1, 2, 3),
+                (0 until 3).map { index -> readUsedFilamentsOnGl(glView, index).single() })
         } finally {
             modelFile.delete()
         }

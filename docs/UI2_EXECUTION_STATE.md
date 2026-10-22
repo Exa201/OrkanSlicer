@@ -2648,3 +2648,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 
 - Follow-up completed: added G-code round-trip verification for Boolean difference and intersection as well. Honor PTP-N49 / Android 16 focused test NativeSliceDeviceTest#booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice passed 1/1; both operations retained half-volume output, target-only filament mapping, and deposited G-code after 3MF reload. No production source changed.
 
+# Model editing — split, simplify, auto-orient slice verification — 2026-10-22
+
+- Added native slice regressions for three separate operations: split a multipart object back into independent material-assigned objects, simplify a sphere while retaining a solid printable mesh, and auto-orient a rotated model while keeping it on the plate. All three generated extrusion G-code on Honor PTP-N49 / Android 16.
+- Extended the real Model-menu combine workflow to split the combined three-material assembly, verify source filament assignments, and verify undo/redo. Initial combined run exposed that the test had navigated to the wrong action host; corrected it to use the selected-object Model menu and explicit active selection. Focused rerun passed 1/1.
+- No production code changed. Test-only changes; no APK or release created. `git diff --check` passed. The runtime source base is unchanged from `ae140bab94bc48a82c871ed584b63d5e68d74b3c`.
+- Next: verify the complete focused test set from the final test source, commit and push these regressions, then continue end-to-end model-editing actions with multi-object and slice assertions.
+

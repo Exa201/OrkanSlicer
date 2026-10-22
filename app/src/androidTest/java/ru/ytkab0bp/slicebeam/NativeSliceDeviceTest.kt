@@ -28,6 +28,81 @@ import java.util.zip.ZipFile
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun splitMultipartObjectPreservesEachFilamentAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "split-multipart-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            assertEquals("Split should report both restored source bodies", 2, model.split(0))
+            assertEquals("Split should restore two separately editable objects", 2, model.objectsCount)
+            assertEquals(setOf(1, 2), (0 until model.objectsCount).flatMap { model.getUsedFilaments(it).toList() }.toSet())
+
+            val gcode = sliceToGcode(context, model, "split-multipart-slice.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("the split T1 body must still reach G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun simplifiedMeshRemainsSolidAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "simplified-sphere-slice.stl")
+        val model = Model(modelFile)
+        try {
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            assertTrue("sphere fixture should contain enough triangles to simplify", originalTriangles > 8)
+
+            val simplifiedTriangles = model.simplify(0, 0.5f)
+            assertTrue("simplification should reduce triangle count", simplifiedTriangles in 4 until originalTriangles)
+            assertTrue("simplification should retain a positive solid volume", model.getObjectVolume(0) > 0.0)
+            assertTrue("the simplified mesh should remain a substantial part of its original volume",
+                model.getObjectVolume(0) / originalVolume in 0.7..1.3)
+
+            val gcode = sliceToGcode(context, model, "simplified-sphere-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun autoOrientedModelRemainsOnBedAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/pyramid.stl", "auto-oriented-pyramid-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.rotate(0, Math.toRadians(23.0), Math.toRadians(31.0), Math.toRadians(17.0))
+            model.ensureOnBed(0)
+            model.autoOrient(0)
+            val min = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            val max = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            assertTrue("auto-orient should leave a finite, positive-height object", min.z.isFinite() && max.z > min.z)
+            assertTrue("auto-oriented model should remain on or above the build plate", min.z >= -0.05)
+            assertTrue("auto-orient should preserve the printable solid", model.getObjectVolume(0) > 0.0)
+
+            val gcode = sliceToGcode(context, model, "auto-oriented-pyramid-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun separateObjectsAssignedToDifferentFilamentsEmitToolChange() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "separate-filaments-slice.stl")
@@ -757,6 +832,11 @@ class NativeSliceDeviceTest {
     private fun copyCube(context: Context, name: String): File = File(context.cacheDir, name).also { target ->
         context.assets.open("models/xyz_cube.stl").use { input -> target.outputStream().use(input::copyTo) }
     }
+
+    private fun copyAsset(context: Context, assetPath: String, name: String): File =
+        File(context.cacheDir, name).also { target ->
+            context.assets.open(assetPath).use { input -> target.outputStream().use(input::copyTo) }
+        }
 
     private fun sliceToGcode(context: Context, model: Model, name: String): String {
         val gcodeFile = File(context.cacheDir, name)
