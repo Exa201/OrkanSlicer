@@ -4,7 +4,8 @@
 - Behoben: Nicht lesbare `file://`-Links öffnen jetzt den SAF-Dokumentdialog erneut; danach läuft die gewählte Datei durch denselben STEP-Optionsdialog und den nativen Import. Lesbare lokale Dateien behalten den direkten Weg. Es werden keine zusätzlichen Speicherberechtigungen verlangt.
 - Zusätzlich behoben: Bei STEP-MIME-Typen werden generische oder unbekannte Dateiendungen wie `.bin` korrekt als STEP erkannt; bekannte explizite Nicht-STEP-Formate wie `.stl` bleiben unverändert.
 - Verifikation: gezielte JVM-Tests 7/7 bestanden; Honor PTP-N49 / Android 16 `stepImportFromFileUriFallsBackToDocumentPickerAndWaitsForWorkspaceHost` 1/1 bestanden. Der Test prüft SAF-Fallback, Optionen vor dem Import und anschließendes renderbares Dreiecksnetz. In diesem Durchgang außerdem `StepModelImportDeviceTest` 1/1 und `StepImportOptionsDialogDeviceTest` 2/2 bestanden; `git diff --check` bestanden.
-- Dieser Fix ist noch nicht in einem neuen Release enthalten. Nächster Schritt: Versionierten Debug-Build erstellen und Änderungen auf PR #2 sichern; ein neuer offizieller Release wird erst nach der nächsten gebündelten, verifizierten Projektgruppe erstellt.
+- Gesichert: Commit `96c1a0bc3cad47d77581a62cfbd5fc10ff861027` auf `codex/rinkhals-safe-start-audit`; PR #2 ist offen und zeigt genau diesen HEAD. `:app:assembleDebug` erfolgreich: `app/build/outputs/apk/debug/OrkanSlicer_96c1a0bc3c.apk`, 239333051 Bytes, SHA-256 `6377268EFF2E53548BD0DEFD1EE21089B36B53A0DDF3EB4B7807D0BCE39A65AD`. Noch kein offizieller Release.
+- Nächster konkreter Schritt: STEP-Dateiöffnung nach Einbeziehung in den nächsten gebündelten Release-Kandidaten erneut auf Honor und einem Xiaomi prüfen; danach mit dem Modellbearbeitungs- und UI-2.0-Backlog fortfahren.
 
 # Fortsetzung — Boolean-Quellmetadaten und Modellbearbeitung, 2026-10-22
 
