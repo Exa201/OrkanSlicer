@@ -1,3 +1,11 @@
+# Surface-placement material/history verification — 2026-10-22
+
+- Extended the actual Model-menu surface-placement test: three source objects now use distinct filament assignments; the result must be a single multipart object centered over the target, retain target/group geometry and all three material assignments, and restore those assignments through Undo/Redo.
+- Extended the 3MF round-trip/slice test to use three distinct filaments on the placed assembly and require all three tools (T0/T1/T2) to appear in emitted G-code.
+- Verification on Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest#objectListCanSelectAndPlaceAGroupOnAnotherModel` passed 1/1; `NativeSliceDeviceTest#placedObjectGroupRemainsPrintableAfterSurfacePlacement` passed 1/1. Debug app and Slice Android-test Kotlin compilation succeeded. An early assertion incorrectly expected the combined object to start at the target's top; corrected it to account for the target volume remaining at the original bed position. No production defect was found in this path.
+- Current code HEAD at start: `38a39050`; no app code or version changed in this test-only checkpoint, so no APK/release is warranted yet. The next official release should include the next verified user-facing production change, not only expanded test assertions.
+- Next: continue the prioritized model-editing work with a production behavior improvement, then run focused Honor verification before preparing the requested official release. Xiaomi remains unavailable for direct confirmation.
+
 # Boolean edit history verification — 2026-10-22
 
 - Extended the workspace Boolean Union integration test to verify that Undo restores all three selected source objects and Redo restores the single merged result with the same measured world-space width. This exercises the actual menu, native Boolean operation, renderer refresh, and model-history callbacks together.

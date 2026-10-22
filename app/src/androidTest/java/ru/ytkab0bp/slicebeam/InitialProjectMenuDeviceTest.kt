@@ -305,6 +305,9 @@ class InitialProjectMenuDeviceTest {
                 model.addObject(model, 0)
                 model.translate(1, requireNotNull(width.get()) * 1.5, 0.0, 0.0)
                 model.translate(2, requireNotNull(width.get()) * 3.0, requireNotNull(width.get()) * 2.0, 0.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                model.setUniformFilament(2, 3)
                 renderer.setSelectedObject(0)
                 glView.requestRender()
                 prepared.countDown()
@@ -373,30 +376,59 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnObject))
                 .assertIsDisplayed().assertIsEnabled().performClick()
             compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
 
             val after = AtomicReference<List<DoubleArray>>()
+            val placedFilaments = AtomicReference<IntArray>()
             val afterReady = CountDownLatch(1)
             glView.queueEvent {
                 val model = glView.renderer.model
-                if (model != null && model.objectsCount == 3) {
-                    after.set((0..2).map { index ->
+                if (model != null && model.objectsCount == 1) {
+                    after.set((0 until model.objectsCount).map { index ->
                         val min = Vec3d(); val max = Vec3d()
                         model.getBoundingBoxExact(index, min, max)
                         doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
                     })
+                    placedFilaments.set(model.getUsedFilaments(0))
                 }
                 afterReady.countDown()
             }
             assertTrue("post-placement bounds should be collected on the GL thread", afterReady.await(15, TimeUnit.SECONDS))
             val original = requireNotNull(before.get())
             val placed = requireNotNull(after.get())
-            val originalSpacing = original[1][0] - original[0][0]
-            val placedSpacing = placed[1][0] - placed[0][0]
-            assertEquals("group placement preserves internal X spacing", originalSpacing,
-                placedSpacing, 0.02)
-            assertEquals("each selected object rests on the target object's top", placed[2][5], placed[0][2], 0.02)
-            assertEquals("the second selected object rests on the target object's top", placed[2][5], placed[1][2], 0.02)
-            assertArrayEquals("the unselected target remains in place", original[2], placed[2], 0.02)
+            assertEquals("placing selected objects on a model should create one printable multipart object", 1, placed.size)
+            assertArrayEquals("the combined model should retain each source object's filament assignment",
+                intArrayOf(1, 2, 3), requireNotNull(placedFilaments.get()))
+            assertEquals("group placement centers the selected group over the target on X",
+                (original[2][0] + original[2][3]) / 2.0, (placed[0][0] + placed[0][3]) / 2.0, 0.02)
+            assertEquals("group placement centers the selected group over the target on Y",
+                (original[2][1] + original[2][4]) / 2.0, (placed[0][1] + placed[0][4]) / 2.0, 0.02)
+            assertEquals("the assembly still includes the target down to its original bottom",
+                original[2][2], placed[0][2], 0.02)
+            assertEquals("the selected group is stacked above the target object's top",
+                original[2][5] + (original[0][5] - original[0][2]), placed[0][5], 0.02)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            val restoredFilaments = AtomicReference<List<Int>>()
+            val restoredReady = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                restoredFilaments.set((0..2).flatMap { model.getUsedFilaments(it).toList() })
+                restoredReady.countDown()
+            }
+            assertTrue("Undo should restore source-object materials", restoredReady.await(10, TimeUnit.SECONDS))
+            assertEquals(listOf(1, 2, 3), requireNotNull(restoredFilaments.get()))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            val redoneFilaments = AtomicReference<IntArray>()
+            val redoReady = CountDownLatch(1)
+            glView.queueEvent {
+                redoneFilaments.set(glView.renderer.model!!.getUsedFilaments(0))
+                redoReady.countDown()
+            }
+            assertTrue("Redo should restore multipart material assignments", redoReady.await(10, TimeUnit.SECONDS))
+            assertArrayEquals(intArrayOf(1, 2, 3), requireNotNull(redoneFilaments.get()))
         } finally {
             modelFile.delete()
         }

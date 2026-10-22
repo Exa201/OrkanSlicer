@@ -104,7 +104,7 @@ class NativeSliceDeviceTest {
             model.translate(2, 65.0, 12.0, 14.0)
             model.setUniformFilament(0, 1)
             model.setUniformFilament(1, 2)
-            model.setUniformFilament(2, 2)
+            model.setUniformFilament(2, 3)
 
             fun bounds(index: Int): ObjectBounds3D {
                 val min = Vec3d(); val max = Vec3d()
@@ -124,7 +124,7 @@ class NativeSliceDeviceTest {
             assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1, 2)))
             assertEquals(1, model.objectsCount)
             assertEquals("surface placement assembly must retain target and placed-part tools",
-                listOf(1, 2), model.getUsedFilaments(0).toList())
+                listOf(1, 2, 3), model.getUsedFilaments(0).toList())
             SliceBeam.genCurrentConfig(model)
             val exportConfig = SliceBeam.getCurrentConfigFile()
             try {
@@ -135,11 +135,13 @@ class NativeSliceDeviceTest {
             restored = Model(projectFile, 1)
             assertEquals("surface-placed multipart object must survive project reload", 1, restored.objectsCount)
             assertEquals("surface placement must retain the target and placed-part tools after reload",
-                listOf(1, 2), restored.getUsedFilaments(0).toList())
+                listOf(1, 2, 3), restored.getUsedFilaments(0).toList())
             val gcode = sliceToGcode(context, restored, "placed-group-slice.gcode")
             assertHasExtrusion(gcode)
             assertTrue("the placed assembly's second material must reach G-code",
                 Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the placed assembly's third material must reach G-code",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
         } finally {
             restored?.release()
             model.release()
