@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.350
+
+- Keep STEP/STP files selected through Android's document picker while the workspace Compose dialog host is attaching; show tessellation and compound-splitting options before loading and rendering.
+- Verify the delayed-host settings-to-mesh path on Honor PTP-N49 / Android 16; the existing version 0.8.349 already contained STEP/STP parsing and the options dialog.
+
 ## 0.8.349
 
 - Add precise selected-group placement on a tapped, visible upward-facing model surface. The result remains a printable multipart assembly and preserves per-volume filament assignments.

@@ -1,3 +1,15 @@
+# Aktueller Fortsetzungsstand — STEP/STP-Import, 2026-10-22
+
+- Phase: UI 2.0 Funktions-/Stabilitätsarbeit; dieser Durchgang verifiziert den STEP/STP-Importpfad.
+- Letzter Code-Stand vor Versionserhöhung: `c7251313` (Host-Bereitschaftsrennen behoben). Release-Kandidat: `0.8.350`, Code 385; APK ist aus Quellstand `bc1af68` gebaut.
+- STEP/STP-Importdialog wartet beim Android-Dokumentstart bis zu 10 Sekunden auf den Compose-Dialoghost und löscht die zwischengespeicherte Datei nicht bei einer vorübergehend noch nicht bereitstehenden UI.
+- Honor PTP-N49 / Android 16: `StepModelImportDeviceTest#importsStepAndStpAsRenderableTriangleMeshesWithSelectedMeshingOptions` bestanden 1/1 (0 Fehler, 0 übersprungen). Der getrennte Workspace-Host-Verzögerungstest bestand 1/1; er bestätigt Optionen vor dem Import, Abbruch ohne vorzeitiges Laden und anschließendes renderbares Netz.
+- Debug-/Slice-Unit-Suiten: jeweils 610/610 bestanden. Debug-APK 0.8.350 (Code 385) installiert und gestartet auf Honor; Logcat-Ausschnitt enthielt keinen FATAL EXCEPTION, nativen Fatal signal, ANR oder OutOfMemoryError.
+- APK: `app/build/outputs/apk/debug/OrkanSlicer_bc1af68edc.apk`, 239315147 Bytes, SHA-256 `AE3825D5E244C0AE2E2F247E8F9A8A8147AFE535B70F80DE98B725B2410008E0`.
+- Einschränkung: ein zusätzlicher Test, der externes `ACTION_VIEW` direkt über ActivityScenario startete, scheiterte beim Testabbau (Activity blieb RESUMED); daher ist dieser Harness kein bestandener Nachweis für externen Intent-Start. Die In-App-Import- und verzögerte Dialoghost-Strecke ist belegt.
+- Nächster Schritt: Release-/PR-Status prüfen und die geprüfte Version veröffentlichen; anschließend mit dem UI-2.0- und Modellbearbeitungs-Backlog weiterarbeiten. Keine echten Druckstarts oder Firmwareaktionen.
+
+---
 # Latest checkpoint — 2026-10-22 (STEP/STP launch race fixed)
 
 - Current branch `codex/rinkhals-safe-start-audit`; latest relevant commit `c7251313` (pushed to PR #2); app source baseline v0.8.349 / code 384. The STEP/STP importer and pre-load settings dialog were already present. Newly found issue: if the file picker/direct-open completed before BedFragment's Compose overlay host attached, the import path deleted the cached file and showed a misleading fallback instead of waiting.
