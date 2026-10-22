@@ -2655,4 +2655,5 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - No production code changed. Test-only changes; no APK or release created. `git diff --check` passed. The runtime source base is unchanged from `ae140bab94bc48a82c871ed584b63d5e68d74b3c`.
 - Next: continue end-to-end model-editing actions with multi-object and slice assertions; a broad instrumentation/JVM suite was not run for these test-only changes.
 - Follow-up verification: removed the test's pre-`autoOrient` `ensureOnBed` call so it now matches the menu action directly. Honor PTP-N49 / Android 16 targeted auto-orient-and-slice test passed 1/1; the action itself leaves the rotated model on the plate and produces extrusion G-code.
+- Final menu verification on Honor PTP-N49 / Android 16: `modelMenuAutoOrientActionsRunForAllObjectsAndSelectedObject` and `editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone` passed 2/2. Together with the focused split-menu rerun, each of the three functions has an exercised UI workflow; the corresponding native checks also produced printable G-code.
 
