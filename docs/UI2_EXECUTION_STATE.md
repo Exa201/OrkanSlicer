@@ -2657,3 +2657,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Follow-up verification: removed the test's pre-`autoOrient` `ensureOnBed` call so it now matches the menu action directly. Honor PTP-N49 / Android 16 targeted auto-orient-and-slice test passed 1/1; the action itself leaves the rotated model on the plate and produces extrusion G-code.
 - Final menu verification on Honor PTP-N49 / Android 16: `modelMenuAutoOrientActionsRunForAllObjectsAndSelectedObject` and `editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone` passed 2/2. Together with the focused split-menu rerun, each of the three functions has an exercised UI workflow; the corresponding native checks also produced printable G-code.
 
+# Multipart join safety and material round-trips — 2026-10-23
+
+- Current branch `codex/rinkhals-safe-start-audit`; code fix `3e963bdc` and follow-up test commits through `19fc8f4b` are pushed to PR #2. Untracked `.codex-remote-attachments/` was left untouched.
+- Made `combineObjectsAsParts` prepare copied volumes, mappings, name, and vector capacity before commit. It now snapshots project backup state before mutation; invalid selection cannot leave a partial join. Added regression checks for rejected indices, geometry, exact placement, and material preservation.
+- Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest` 21/21 and `NativeSliceDeviceTest` 16/16 passed after native change. Follow-up transformed-object bounds join 1/1, transformed multipart 3MF/G-code test 1/1, and full `TwoColorProjectDeviceTest` 3/3 passed. The painted-facet case now joins a second T0 part, exports/reloads 3MF, and confirms painted T1 still reaches actual G-code.
+- `git diff --check` passed. No APK or release was created in this pass; latest GitHub release remains v0.8.351. Xiaomi visual validation, complete UI 2.0 accessibility/responsive audit, and remaining model-editing features are still open.
+- Next concrete step: continue model editing with a user-facing interaction and G-code regression for another of the core operations, then run the relevant complete device classes and record the results. Keep the long-term goal active.
+
