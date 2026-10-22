@@ -1789,11 +1789,11 @@ showFileOperationError(
 }
 private fun loadFile(uri:Uri) {
 val resolver = getContentResolver()
-var fileName = IOUtils.getDisplayName(uri)
-if (fileName == null && "file".equals(uri.getScheme()))
-{
-fileName = uri.getLastPathSegment()
-}
+val fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.resolve(
+    IOUtils.getDisplayName(uri),
+    uri.path,
+    runCatching { resolver.getType(uri) }.getOrNull(),
+)
 if (fileName == null)
 {
 showFileOperationError(
@@ -1829,21 +1829,17 @@ return
 val f = getSafeCachedModelFile(fileName)
 IOUtils.IO_POOL.submit({ try
 {
-val `in` = resolver.openInputStream(uri)
-if (`in` == null)
-{
-throw FileNotFoundException(java.lang.String.valueOf(uri))
+val input = resolver.openInputStream(uri) ?: throw FileNotFoundException(java.lang.String.valueOf(uri))
+input.use { stream ->
+    FileOutputStream(f).use { output ->
+        val buffer = ByteArray(10240)
+        while (true) {
+            val count = stream.read(buffer)
+            if (count == -1) break
+            output.write(buffer, 0, count)
+        }
+    }
 }
-val fos = FileOutputStream(f)
-val buffer = ByteArray(10240)
-while (true)
-{
-val c = `in`.read(buffer)
-if (c == -1) break
-fos.write(buffer, 0, c)
-}
-fos.close()
-`in`.close()
 loadFile(f, false)
 }
 catch (e:Exception) {

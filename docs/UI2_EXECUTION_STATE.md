@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — Gruppenverschiebung X/Y/Z, 2026-10-22
 
+## STEP/STP-Dateiöffnung – 2026-10-22
+
+- Der aktuelle Importdialog und native STEP/STP-Meshingpfad waren bereits im Code vorhanden. Der Workspace-Dateiauswahltest auf Honor bestätigt: Optionen erscheinen vor dem Laden; nach Bestätigung entsteht ein renderbares Dreiecksnetz.
+- Zusätzliche Robustheitskorrektur: Wenn ein Android-Dokumentanbieter nur einen generischen Namen und einen STEP-MIME-Typ liefert, wird `.step` ergänzt. Vorhandene `.step`/`.stp` Namen bleiben erhalten. URI- und Cache-Dateiströme werden jetzt in jedem Fall geschlossen.
+- Verifikation: `ModelImportFileNameTest` und `StepImportOptionsTest` sowie Kotlin-Kompilierung bestanden; `projectMenuWaitsForWorkspaceHostThenPromptsForStepOptionsAndRendersFile` auf Honor PTP-N49 / Android 16 bestanden (1/1); Debug- und sliceTest-Instrumentierungs-APK erfolgreich gebaut; `git diff --check` bestanden.
+- Nächster Schritt: Fix auf Branch `codex/rinkhals-safe-start-audit` sichern und PR #2 aktualisieren. Kein Release in diesem Durchgang erstellt.
+
 - Aktiver Projektfokus: Modellbearbeitung plus verbleibende UI-2.0-Arbeit. UnfoldMenu-/Workspace-Migration wird nicht erneut aufgerollt.
 - Der STEP/STP-Fix ist als offizieller Release 0.8.350 veröffentlicht. Neuer Modellbearbeitungsfehler gefunden: numerische Positionsvorschau galt für die ganze Mehrfachauswahl, die Bestätigung schrieb bisher nur die aktive Instanz ins Modell.
 - Behoben: Die bestätigte X/Y/Z-Translation wird nun auf jedes bei Vorschau und Commit identische ausgewählte Objekt angewandt; jedes Objekt wird im Renderer invalidiert. Bei zwischenzeitlich geänderter Auswahl wird die Vorschau verworfen, statt falsche Objekte zu verschieben.
