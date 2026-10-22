@@ -2901,6 +2901,83 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-position-selected-group-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val nativeModel = requireNotNull(glView.renderer.model)
+                val min = Vec3d()
+                val max = Vec3d()
+                nativeModel.getBoundingBoxExact(0, min, max)
+                nativeModel.addObject(nativeModel, 0)
+                nativeModel.translate(1, (max.x - min.x) * 2.0, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two selected objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val before = (0..1).map { readTranslationOnGl(glView, it) }
+
+            openSelectedObjectMenu(activity)
+            scrollMenuToIndex(10)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            fun enterAxisValue(axis: String, value: Double, confirm: Boolean) {
+                compose.onNodeWithText("$axis =", substring = true).assertIsDisplayed().performClick()
+                val field = compose.onNodeWithText(activity.getString(R.string.OrientationManualValue))
+                field.assertIsDisplayed().performTextClearance()
+                field.performTextInput(value.toString())
+                compose.onNodeWithText(activity.getString(if (confirm) android.R.string.ok else android.R.string.cancel))
+                    .assertIsDisplayed().performClick()
+                compose.waitForIdle()
+            }
+
+            enterAxisValue("X", before[0].x + 11.0, confirm = false)
+            assertEquals("cancelling the active-object position field must preserve the group",
+                before[0].x, readTranslationOnGl(glView, 0).x, 0.01)
+            assertEquals("cancelling must not move the second selected object",
+                before[1].x, readTranslationOnGl(glView, 1).x, 0.01)
+
+            enterAxisValue("X", before[0].x + 11.0, confirm = true)
+            enterAxisValue("Y", before[0].y + 13.0, confirm = true)
+            enterAxisValue("Z", before[0].z + 17.0, confirm = true)
+            val after = (0..1).map { readTranslationOnGl(glView, it) }
+            for (index in 0..1) {
+                assertEquals("X entry should apply the same group delta to object $index",
+                    before[index].x + 11.0, after[index].x, 0.02)
+                assertEquals("Y entry should apply the same group delta to object $index",
+                    before[index].y + 13.0, after[index].y, 0.02)
+                assertEquals("Z entry should apply the same group delta to object $index",
+                    before[index].z + 17.0, after[index].z, 0.02)
+            }
+            assertEquals("group move must preserve X spacing", before[1].x - before[0].x,
+                after[1].x - after[0].x, 0.02)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                (0..1).all { kotlin.math.abs(readTranslationOnGl(glView, it).z - before[it].z) < 0.02 }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                (0..1).all { kotlin.math.abs(readTranslationOnGl(glView, it).z - after[it].z) < 0.02 }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editMeasureMenuActionOpensComposeModeAndAndroidBackClosesIt() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

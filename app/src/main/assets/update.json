@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.350\n\n• STEP/STP-Dateien bleiben beim Start über Android erhalten, bis der Arbeitsbereich bereit ist. Vor dem Laden werden Netzauflösung und Aufteilung zusammengesetzter Körper abgefragt.\n• STEP/STP-Dialog, Abbruch vor dem Laden und anschließendes Rendern eines importierten Netzes wurden auf Honor geprüft.",
-  "en": "OrkanSlicer 0.8.350\n\n• STEP/STP files opened through Android are retained until the workspace is ready. Mesh resolution and compound splitting are requested before loading.\n• The STEP/STP options dialog, cancel-before-load behavior, and rendering the imported mesh were verified on Honor.",
-  "ru": "OrkanSlicer 0.8.350\n\n• STEP/STP-файлы, открытые через Android, сохраняются до готовности рабочей области. Перед загрузкой предлагается настроить разрешение сетки и разделение составных тел.\n• На Honor проверены диалог STEP/STP, отмена до загрузки и отображение импортированной сетки."
+  "de": "OrkanSlicer 0.8.351\n\n• X/Y/Z-Positionsänderungen verschieben jetzt bei Mehrfachauswahl alle ausgewählten Objekte gemeinsam; die Vorschau entspricht der bestätigten Bewegung.\n• Abbrechen, drei Achsen sowie Undo/Redo wurden auf Honor geprüft.",
+  "en": "OrkanSlicer 0.8.351\n\n• Numeric X/Y/Z position edits now move every selected object together; the committed move matches the group preview.\n• Cancellation, all axes, undo, and redo were verified on Honor.",
+  "ru": "OrkanSlicer 0.8.351\n\n• Числовое перемещение по X/Y/Z теперь одновременно перемещает все выбранные объекты; подтверждённое перемещение соответствует предварительному просмотру группы.\n• Отмена, все оси, отмена и повтор действия проверены на Honor."
 }

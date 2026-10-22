@@ -167,6 +167,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
     private val position = mutableStateOf(OrientationVector3(0.0, 0.0, 0.0))
     private val hasSelection = mutableStateOf(false)
     private var selectedObjectForPreview = -1
+    private var selectedObjectsForPreview = intArrayOf()
     private var eventBusRegistered = false
 
     fun translateVisual(x: Double?, y: Double?, z: Double?) {
@@ -191,43 +192,69 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
 
     private fun previewTranslation(index: Int, target: OrientationVector3) {
         val glView = bed.glView ?: return
-        val model = glView.renderer.model ?: return
+        val renderer = glView.renderer
+        val model = renderer.model ?: return
+        val selectedIndices = renderer.selectedObjectIndices().filter { it in 0 until model.objectsCount }.toIntArray()
+        if (index !in selectedIndices) return
         runCatching {
             val current = Vec3d()
             model.getTranslation(index, current)
-            glView.renderer.setSelectionTranslation(
+            renderer.setSelectionTranslation(
                 target.x - current.x,
                 target.y - current.y,
                 target.z - current.z,
             )
+            selectedObjectForPreview = index
+            selectedObjectsForPreview = selectedIndices
             glView.requestRender()
         }
     }
 
     private fun commitTranslation() {
         val glView = bed.glView ?: return
-        val index = glView.renderer.selectedObject
-        if (index < 0 || (selectedObjectForPreview >= 0 && index != selectedObjectForPreview)) return
+        val renderer = glView.renderer
+        val index = renderer.selectedObject
+        val modelAtCommit = renderer.model ?: return
+        val selectedIndices = renderer.selectedObjectIndices()
+            .filter { it in 0 until modelAtCommit.objectsCount }
+            .toIntArray()
+        if (index < 0 || index !in selectedIndices ||
+            (selectedObjectForPreview >= 0 && index != selectedObjectForPreview) ||
+            (selectedObjectsForPreview.isNotEmpty() && !selectedObjectsForPreview.contentEquals(selectedIndices))
+        ) {
+            stopPreview()
+            return
+        }
         val target = position.value
         selectedObjectForPreview = -1
+        selectedObjectsForPreview = intArrayOf()
         glView.queueEvent {
             val renderer = glView.renderer
-            if (renderer.selectedObject != index) return@queueEvent
+            if (renderer.selectedObject != index || !renderer.selectedObjectIndices().contentEquals(selectedIndices)) {
+                renderer.setSelectionTranslation(0.0, 0.0, 0.0)
+                glView.requestRender()
+                return@queueEvent
+            }
             val model: Model = renderer.model ?: return@queueEvent
             runCatching {
                 val current = Vec3d()
                 model.getTranslation(index, current)
-                if (kotlin.math.abs(target.x - current.x) < 1e-9 &&
-                    kotlin.math.abs(target.y - current.y) < 1e-9 &&
-                    kotlin.math.abs(target.z - current.z) < 1e-9
+                val dx = target.x - current.x
+                val dy = target.y - current.y
+                val dz = target.z - current.z
+                if (kotlin.math.abs(dx) < 1e-9 &&
+                    kotlin.math.abs(dy) < 1e-9 &&
+                    kotlin.math.abs(dz) < 1e-9
                 ) {
                     renderer.setSelectionTranslation(0.0, 0.0, 0.0)
                     glView.requestRender()
                     return@runCatching
                 }
-                model.translate(index, target.x - current.x, target.y - current.y, target.z - current.z)
+                for (selectedIndex in selectedIndices) {
+                    model.translate(selectedIndex, dx, dy, dz)
+                    renderer.invalidateGlModel(selectedIndex)
+                }
                 renderer.setSelectionTranslation(0.0, 0.0, 0.0)
-                renderer.invalidateGlModel(index)
                 glView.requestRender()
                 ViewUtils.postOnMainThread { bed.updateModel() }
             }
@@ -347,6 +374,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
             glView.requestRender()
         }
         selectedObjectForPreview = -1
+        selectedObjectsForPreview = intArrayOf()
     }
 
     @EventHandler(runOnMainThread = true)
@@ -370,6 +398,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
                 position.value.z.toInt(),
             )
             selectedObjectForPreview = index
+            selectedObjectsForPreview = renderer.selectedObjectIndices()
             hasSelection.value = true
         }
     }

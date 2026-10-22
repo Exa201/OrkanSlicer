@@ -1,3 +1,14 @@
+# Aktueller Fortsetzungsstand — Gruppenverschiebung X/Y/Z, 2026-10-22
+
+- Aktiver Projektfokus: Modellbearbeitung plus verbleibende UI-2.0-Arbeit. UnfoldMenu-/Workspace-Migration wird nicht erneut aufgerollt.
+- Der STEP/STP-Fix ist als offizieller Release 0.8.350 veröffentlicht. Neuer Modellbearbeitungsfehler gefunden: numerische Positionsvorschau galt für die ganze Mehrfachauswahl, die Bestätigung schrieb bisher nur die aktive Instanz ins Modell.
+- Behoben: Die bestätigte X/Y/Z-Translation wird nun auf jedes bei Vorschau und Commit identische ausgewählte Objekt angewandt; jedes Objekt wird im Renderer invalidiert. Bei zwischenzeitlich geänderter Auswahl wird die Vorschau verworfen, statt falsche Objekte zu verschieben.
+- Honor PTP-N49 / Android 16: neuer Test `positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo` bestanden; prüft X/Y/Z, Abbrechen, Erhalt der Gruppenabstände und Undo/Redo. `editPositionZIsVisibleCancelableAndUndoable` bestanden. `ModelEditingNativeDeviceTest` 19/19 und `NativeSliceDeviceTest` 13/13 bestanden.
+- Debug-Unit- und Slice-Unit-Suites jeweils 610/610 bestanden; 0 Fehler, 0 Fehlerzustände, 0 übersprungen. `git diff --check` bestanden.
+- Ein Testlauf ohne Gerätefilter startete zusätzlich den Emulator, dessen Compose-Activity nicht erschien; derselbe Einzelobjekt-Z-Test bestand anschließend gezielt auf Honor. Der Emulatorfehler ist kein erfolgreicher Test und wird nicht als solcher gezählt.
+- Verifikation 0.8.351 / Code 386: Debug-APK erfolgreich gebaut, auf Honor installiert und gestartet; kein FATAL EXCEPTION, nativer Fatal signal, ANR oder OOM im erfassten Logcat-Ausschnitt. APK 239315023 Bytes, SHA-256 `F9DD2F028B3EE83D0EF5FEEC451778C10B205E3D9E167606E225708414904485`. Debug- und Slice-Unit je 610/610; Honor: Gruppen-XYZ-Editor 1/1, Einzelobjekt-Z 1/1, ModelEditingNativeDeviceTest 19/19, NativeSliceDeviceTest 13/13.\n- Nächster Schritt: getestete Änderungen auf PR #2 committen/pushen, Release-Tag exakt auf den Code-Commit setzen und offiziellen Release 0.8.351 veröffentlichen. Danach mit dem nächsten Modellbearbeitungs-/UI-2.0-Schritt fortfahren.
+
+---
 # Aktueller Fortsetzungsstand — STEP/STP-Import, 2026-10-22
 
 - Phase: UI 2.0 Funktions-/Stabilitätsarbeit; dieser Durchgang verifiziert den STEP/STP-Importpfad.

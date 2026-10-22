@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.351
+
+- Fix numeric X/Y/Z position edits for multi-selected models: the confirmed move now commits the same translation to every selected object, matching the preview while preserving group spacing.
+- Verify cancellation, all three axes, undo/redo, and selected-object spacing on Honor PTP-N49 / Android 16.
 ## 0.8.350
 
 - Keep STEP/STP files selected through Android's document picker while the workspace Compose dialog host is attaching; show tessellation and compound-splitting options before loading and rendering.
