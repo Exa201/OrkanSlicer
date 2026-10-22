@@ -5,7 +5,7 @@
 - Honor PTP-N49 / Android 16 full instrumentation: 294 tests, 290 passed, 3 private-fixture cases skipped, 1 failed because the already packaged test app still contained the previous 0.8.346 changelog asset. Updated `update.json`, then reran `ChangeLogComposeDeviceTest`: 1/1 passed. Source-color remapping, 3MF reload, G-code slot selection, Compose mapping dialog, and Z ruler / Undo / Redo checks passed in focused Honor instrumentation. The user-provided KromaCut fixture was used only temporarily and is not in GitHub.
 - Installed the final APK on Honor; package reported versionCode 382 / versionName 0.8.347, `MainActivity` resumed, and the recent logcat window contained no fatal exception, ANR, fatal signal, or OOM.
 - App code commit: `787862bb114a350df819d4d6ec354df87641e275`. Release-note and verification commit: `a653d8ab576a5252c4889bd96b30908ef5ce334d`. No production signing keystore is configured; this APK is debug-signed. Xiaomi is unavailable for direct verification.
-- GitHub publication: pending upload of the regular release and APK asset.
+- Published as the regular (not prerelease) GitHub release `v0.8.347`: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.347. GitHub reports asset `OrkanSlicer_a653d8ab57.apk`, size 239,286,524 bytes, digest `sha256:d31f47c348936f3e98813cbb28ef54db257e087802cb219d0236e9970f0bd121`; release tag targets app commit `a653d8ab576a5252c4889bd96b30908ef5ce334d`.
 
 # Xiaomi menu-drag test APK — 2026-10-21
 
