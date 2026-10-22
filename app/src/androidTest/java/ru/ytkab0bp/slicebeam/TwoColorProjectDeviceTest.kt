@@ -50,7 +50,7 @@ class TwoColorProjectDeviceTest {
         }
     }
 
-    @Test fun paintedFilamentAssignmentsSurviveThreeMfExportAndImport() {
+    @Test fun paintedFilamentAssignmentsSurviveMultipartJoinThreeMfRoundTripAndSlice() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         SliceBeam.INSTANCE = context.applicationContext as SliceBeam
         val previousConfig = SliceBeam.CONFIG
@@ -92,6 +92,15 @@ class TwoColorProjectDeviceTest {
             val paintedFacets = original.paintMaxFilament(0)
             assertTrue("committed painting should contain filament 2 facets (max=$paintedFacets)", paintedFacets >= 2)
 
+            // Give the separate source object the same base tool so any T1 in the final G-code
+            // can only come from the painted facets copied with the joined target volume.
+            original.setUniformFilament(1, 1)
+            assertEquals("joining a painted object with a second part should be atomic", 0,
+                original.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, original.objectsCount)
+            assertArrayEquals("painted and base material assignments should coexist after joining",
+                intArrayOf(1, 2), original.getUsedFilaments(0))
+
             SliceBeam.genCurrentConfig(original)
             original.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, exported.absolutePath)
             assertTrue("export should produce a 3MF project", exported.isFile && exported.length() > 0)
@@ -110,9 +119,8 @@ class TwoColorProjectDeviceTest {
             )
             assertArrayEquals(usedFilaments, restored.getUsedFilaments(0))
 
-            // Isolate the painted object so T1 in the generated G-code can only come from
-            // its restored facet assignments, not from the fixture's separate T1 object.
-            restored.deleteObject(1)
+            // The second source part is assigned to T0, so T1 in the generated G-code can only
+            // come from the painted facets carried through the multipart join and 3MF reload.
             assertEquals(1, restored.objectsCount)
             assertArrayEquals(intArrayOf(1, 2), restored.getUsedFilaments(0))
             SliceBeam.genCurrentConfig(restored)
