@@ -1899,3 +1899,12 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Signing: debug-signed APK; repository has no production release keystore. This is stated on the release page.
 - No print started and no firmware action.
 
+
+## GitHub Release 0.8.348 — 2026-10-22
+
+- Source/code commit: `2754c60dda3a61bdc0279f2fb5d2bd87eb1e5a1c` (branch `codex/rinkhals-safe-start-audit`).
+- Published as a regular, non-prerelease GitHub release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.348.
+- APK: `OrkanSlicer_2754c60dda.apk`, 239,286,917 bytes; SHA-256 `1302B2BD9CB90D25D3B87D23E58CD161300193D3B36497C4C7B452316E18F78F`. GitHub reports the matching SHA-256 asset digest.
+- Version 0.8.348 / versionCode 383. Debug build succeeded. Debug and Slice JVM suites each passed 605/605 with zero failures/errors/skips. On Honor PTP-N49 / Android 16, standalone plate text 1/1, surface-text/back regression 1/1, model editing 19/19, printable text slicing/G-code 1/1, and Z-position regression 1/1 passed.
+- APK installed successfully; Android reports version 0.8.348 / code 383 and the app launch succeeded. The sampled fresh startup log had no fatal exception, ANR, OOM, or fatal signal.
+- Signing: debug-signed APK; repository has no production release keystore. Xiaomi is not connected, so direct Xiaomi validation remains open. No print was started and no firmware was changed.

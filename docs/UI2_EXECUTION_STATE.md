@@ -1,3 +1,11 @@
+# Latest execution checkpoint — 2026-10-22 (v0.8.348 official release)
+
+- Active goal: continue OrkanSlicer model-editing features and UI 2.0 acceptance; Phase 4 architecture is complete, Phase 5 action audit and Phase 6 responsive/accessibility/device coverage remain active.
+- Implemented in code commit `2754c60dda3a61bdc0279f2fb5d2bd87eb1e5a1c`: Model → All Objects can start standalone printable 3D text placement on an empty build plate. Existing selected-surface placement and embossing are preserved; renderer state clears when leaving the tool.
+- Verified on Honor PTP-N49 / Android 16: standalone plate placement 1/1; surface-text/back regression 1/1; ModelEditingNativeDeviceTest 19/19; standalone text native slicing/G-code 1/1; Z-position test 1/1; Debug and Slice JVM suites each 605/605 with zero failures/errors/skips. APK installed and launched; version 0.8.348 / code 383 confirmed; sampled startup log had no crash, ANR, or OOM.
+- Official GitHub release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.348 (regular release, not prerelease). APK `OrkanSlicer_2754c60dda.apk`, 239,286,917 bytes, SHA-256 `1302B2BD9CB90D25D3B87D23E58CD161300193D3B36497C4C7B452316E18F78F`. GitHub asset digest matches. PR #2 remains open; no merge, print start, or firmware action.
+- Known limits: Xiaomi is not connected for direct verification; private user fixtures remain outside Git.
+- Next concrete step: continue the source-derived menu action audit and model-editing/device coverage, prioritizing multi-object per-color assignment through slice/G-code verification; then responsive/accessibility checks. Do not repeat the completed UnfoldMenu/WorkspaceShell migration.
 # Latest execution checkpoint — 2026-10-22 (standalone text placement)
 
 - Active goal: continue model editing and UI 2.0 acceptance; next official release candidate is 0.8.348 / versionCode 383.
@@ -2527,3 +2535,4 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Next: continue actual model editing and safety coverage, prioritizing Boolean union/difference/intersection round-trips plus placement/group undo/redo through project save/reload. Full JVM suites are not rerun for this device-test-only pass.
 
 - Follow-up completed: added G-code round-trip verification for Boolean difference and intersection as well. Honor PTP-N49 / Android 16 focused test NativeSliceDeviceTest#booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice passed 1/1; both operations retained half-volume output, target-only filament mapping, and deposited G-code after 3MF reload. No production source changed.
+
