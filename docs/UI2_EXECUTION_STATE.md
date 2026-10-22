@@ -3,7 +3,8 @@
 - Active goal: continue model-editing functions within UI 2.0. Phase 4 architecture remains complete; Phase 5 action audit and Phase 6 accessibility/device coverage remain open.
 - Fixed cut failure cleanup. `TransformCutMenu` records the number of existing unprocessed connector pins before committing the temporary pins, then uses `Model.cutPreservingConnectorsOnFailure`; on native cut failure it removes only the pins added during that attempt. Added a JNI-backed count for unprocessed cut connectors.
 - Verification on Honor PTP-N49 / Android 16: `ModelEditingNativeDeviceTest` 19/19; failed-cut rollback 1/1 within that class; GL cut application/split 1/1; surface-placed grouped-model slicing 1/1. The model-editing class covers native Booleans, printable standalone text, grouping, and surface placement. Debug and Slice JVM suites each passed 604/604 with zero failures, errors, or skips; ARM64 debug build succeeded.
-- Version prepared: 0.8.345 / versionCode 380. Next: finish release APK build and upload, record its exact commit/hash, then continue the remaining model-editing and menu/accessibility audit. Xiaomi remains unavailable; no physical printer or print start was used.
+- Release: OrkanSlicer 0.8.345 / versionCode 380, built from code commit `2bd58211717d69889077c22b5f2fe380945101b4`. GitHub release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.345. APK `OrkanSlicer_2bd5821171.apk`, 239,263,780 bytes, SHA-256 `C4E3C45897E7F906BA9CE2CE7159B2235246C5A265E5ED225A658EC9AEA8BA19`; GitHub asset digest matches. Installed and launched on Honor PTP-N49 / Android 16; sampled logcat had no crash, ANR, or OOM matches.
+- PR #2 is open at this commit and GitHub currently reports it mergeable. Next: continue the remaining model-editing and menu/accessibility audit. Xiaomi remains unavailable; no physical printer or print start was used.
 
 ---
 
