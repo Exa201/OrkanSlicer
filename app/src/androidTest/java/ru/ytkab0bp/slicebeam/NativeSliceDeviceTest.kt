@@ -85,7 +85,6 @@ class NativeSliceDeviceTest {
         val model = Model(modelFile)
         try {
             model.rotate(0, Math.toRadians(23.0), Math.toRadians(31.0), Math.toRadians(17.0))
-            model.ensureOnBed(0)
             model.autoOrient(0)
             val min = ru.ytkab0bp.slicebeam.utils.Vec3d()
             val max = ru.ytkab0bp.slicebeam.utils.Vec3d()
