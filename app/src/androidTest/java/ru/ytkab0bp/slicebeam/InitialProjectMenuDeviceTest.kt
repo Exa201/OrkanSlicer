@@ -290,6 +290,26 @@ class InitialProjectMenuDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
         val modelFile = File(activity.cacheDir, "model-menu-group-placement-test.stl")
+        val roundTripFile = File(activity.cacheDir, "model-menu-group-placement-test.3mf")
+        val gcodeFile = File(activity.cacheDir, "model-menu-group-placement-test.gcode")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        val testSlots = listOf(
+            FilamentSlot(0xFF303030.toInt(), "Placement T0"),
+            FilamentSlot(0xFF3366CC.toInt(), "Placement T1"),
+            FilamentSlot(0xFFF2F2F2.toInt(), "Placement T2"),
+        )
+        Prefs.setStoredFilamentSlots(testSlots)
+        SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
+        Prefs.init(activity.applicationContext as SliceBeam)
+        TemporaryProjectSettings.clear()
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val snapshotKeys = listOf("mmu_snapshot_printer", "mmu_snapshot")
+        val previousSnapshots = snapshotKeys.associateWith { prefs.getString(it, null) }
+        var roundTrippedModel: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
         try {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
@@ -410,6 +430,55 @@ class InitialProjectMenuDeviceTest {
             assertEquals("the selected group is stacked above the target object's top",
                 original[2][5] + (original[0][5] - original[0][2]), placed[0][5], 0.02)
 
+            // Verify the exact real menu operation survives project serialization and slicing.
+            activity.assets.open("orca_profiles/Anycubic.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            val clearSnapshots = prefs.edit()
+            snapshotKeys.forEach(clearSnapshots::remove)
+            assertTrue("stale printer filament snapshots should be cleared for this fixture",
+                clearSnapshots.commit())
+            val exportReady = CountDownLatch(1)
+            val exportFailure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val model = requireNotNull(glView.renderer.model)
+                    SliceBeam.genCurrentConfig(model)
+                    model.export3mf(configFile.absolutePath, roundTripFile.absolutePath)
+                } catch (error: Throwable) {
+                    exportFailure.set(error)
+                } finally {
+                    exportReady.countDown()
+                }
+            }
+            assertTrue("placed group should export through the real renderer model",
+                exportReady.await(60, TimeUnit.SECONDS))
+            exportFailure.get()?.let { throw AssertionError("placed group 3MF export failed", it) }
+            assertTrue("3MF export should produce a non-empty project", roundTripFile.isFile && roundTripFile.length() > 0L)
+            roundTrippedModel = Model(roundTripFile, 1)
+            assertEquals("the grouped placement should remain one multipart object after reload",
+                1, roundTrippedModel!!.objectsCount)
+            assertArrayEquals("the UI placement's three material assignments should survive 3MF reload",
+                intArrayOf(1, 2, 3), roundTrippedModel!!.getUsedFilaments(0))
+            SliceBeam.genCurrentConfig(roundTrippedModel!!)
+            sliceResult = roundTrippedModel!!.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+            assertTrue("the reloaded UI placement should produce non-empty G-code",
+                gcodeFile.isFile && gcodeFile.length() > 0L)
+            val gcode = gcodeFile.readText()
+            val positiveExtrusion = Regex("""(?m)^G1[^\r\n]*\bE([0-9]+(?:\.[0-9]+)?)""")
+                .findAll(gcode).any { it.groupValues[1].toDoubleOrNull()?.let { value -> value > 0.0 } == true }
+            assertTrue("the reloaded UI placement should produce positive deposited extrusion", positiveExtrusion)
+            val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
+                .map { it.groupValues[1].toInt() }.toSet()
+            assertTrue("placed target filament T0 must be used, tools=$emittedTools", 0 in emittedTools)
+            assertTrue("placed group filament T1 must be used, tools=$emittedTools", 1 in emittedTools)
+            assertTrue("placed group filament T2 must be used, tools=$emittedTools", 2 in emittedTools)
+
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
             val restoredFilaments = AtomicReference<List<Int>>()
@@ -432,6 +501,19 @@ class InitialProjectMenuDeviceTest {
             assertTrue("Redo should restore multipart material assignments", redoReady.await(10, TimeUnit.SECONDS))
             assertArrayEquals(intArrayOf(1, 2, 3), requireNotNull(redoneFilaments.get()))
         } finally {
+            sliceResult?.release()
+            roundTrippedModel?.release()
+            gcodeFile.delete()
+            roundTripFile.delete()
+            val restoreSnapshots = prefs.edit()
+            previousSnapshots.forEach { (key, value) ->
+                if (value == null) restoreSnapshots.remove(key) else restoreSnapshots.putString(key, value)
+            }
+            restoreSnapshots.commit()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            TemporaryProjectSettings.clear()
+            Prefs.setStoredFilamentSlots(previousSlots)
             modelFile.delete()
         }
     }
