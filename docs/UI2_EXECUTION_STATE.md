@@ -2665,3 +2665,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - `git diff --check` passed. No APK or release was created in this pass; latest GitHub release remains v0.8.351. Xiaomi visual validation, complete UI 2.0 accessibility/responsive audit, and remaining model-editing features are still open.
 - Next concrete step: continue model editing with a user-facing interaction and G-code regression for another of the core operations, then run the relevant complete device classes and record the results. Keep the long-term goal active.
 
+
+# Fortsetzung — 2026-10-23 (STEP-Öffnung und natives Picking)
+
+- STEP/STP-Dateiöffnung: Commit `a4024cd3` entfernt die unnötige Host-Bedingung aus dem `ACTION_VIEW`-Filter und ergänzt STEP-CAD-MIME-Typen. Auf Honor PTP-N49 und Emulator: Intent-Auflösung 1/1 je Gerät sowie STEP-Optionendialog, Abbrechen/Bestätigen und nativer STEP/STP-Meshimport zusammen 4/4 je Gerät bestanden.
+- Xiaomi-Crashpfad: Native Raycast-Index-Erzeugung ist jetzt lazy, mutex-geschützt und fehlertolerant; bei nicht verfügbarem Präzisionsindex fällt die Auswahl auf gespeicherte Objektgrenzen zurück. GLModel synchronisiert Meshwechsel, Raycast und Freigabe über denselben Monitor. Der Stresstest wartet auch bei Fehlern auf das Ende seiner Worker, bevor native Modelle freigegeben werden.
+- Verifikation auf Honor PTP-N49 und Emulator: `ModelEditingNativeDeviceTest` 23/23 je Gerät und `NativeSliceDeviceTest` 16/16 je Gerät; `LargeModelPickTest` 6/6. Keine übersprungenen oder fehlgeschlagenen Fälle. Die Slice-Suite deckt unter anderem eigenständigen 3D-Text, multipartes Verbinden/Platzieren und Union/Difference/Intersection ab.
+- Code-Commit `105efc8f` synchronisiert den nativen Modell-Picking-Lifecycle und ist zusammen mit STEP-Commit `a4024cd3` auf dem bestehenden Branch zu sichern. Es wurde kein APK-Build oder Release erstellt.
+- Noch offen: Der Xiaomi-spezifische M12/KromaCut-Touchfall muss auf dem Xiaomi selbst nach Installation einer aktuellen APK bestätigt werden; automatisierte Honor-/Emulator-Tests sind dafür kein Ersatz.
+- Nächster Schritt: Änderungen pushen und danach mit einem weiteren realen Modellbearbeitungsablauf einschließlich Undo/Redo, 3MF-Roundtrip und G-Code fortfahren.
