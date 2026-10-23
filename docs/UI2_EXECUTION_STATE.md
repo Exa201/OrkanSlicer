@@ -1,10 +1,11 @@
-# Aktueller Fortsetzungsstand — 2026-10-23, OrkanSlicer 0.8.362
+# Aktueller Fortsetzungsstand — 2026-10-23, OrkanSlicer 0.8.363 in Vorbereitung
 
-- Letzter Code-Commit: `310c2f0f9674974337509ebd87785ad22d34cc34`; PR #2 offen. Offizieller Release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.362.
-- GLView verschiebt Objekt-Raycasts und Long-Press-Vorschauarbeit aus Androids Touch-Callback auf die GL-Warteschlange. Grobe Auswahl dichter Meshes bleibt begrenzungsboxbasiert. M12-Touchtest nach der letzten Zustandskorrektur auf Honor bestanden.
-- Prüfstand in diesem Durchgang: Debug-JVM 621/621 und Slice-JVM 621/621; gezielte Honor-Prüfungen bestanden für M12-Touch/Long-Press, Boolean-Differenz mit Undo/Redo, Gruppen-Oberflächenplatzierung, eigenständige Textgeometrie, Textplatzierung auf der Platte und Text-G-Code. APK installiert und gestartet.
-- Xiaomi war nicht angeschlossen. Der bekannte Querformat-Hänger beim Compose-Test zur Erzeugung eines eigenständigen Textmodells wurde in diesem Durchgang nicht erneut ausgeführt oder behoben.
-- Nächster konkreter Schritt: den Querformat-Text-Erzeugungstest getrennt von Geräte- und GL-Thread-Ursachen reproduzieren und beheben; danach die 0.8.362-Auswahl-/Touchänderung auf dem Xiaomi mit dem zuvor gemeldeten Modell prüfen. UI-2.0-Abnahme insgesamt bleibt offen.
+- Branch `codex/rinkhals-safe-start-audit`, Basis-HEAD `a6cef1c1`; PR #2 offen. Änderungen dieses Durchgangs sind noch lokal und unveröffentlicht. Vorheriger offizieller Release: [v0.8.362](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.362). Version für den nächsten Build auf 0.8.363 / Code 398 angehoben.
+- STEP/STP-Ursache: der Projekt-Dateiauswahldialog wartete nur, solange `GLRenderer.bed` null war. Ein bereits angelegtes, aber noch ungültiges `Bed3D` führte sofort zu „Druckbett ungültig“ und verhinderte das Öffnen des Pickers. `FileMenu` wartet jetzt bis zu fünf Sekunden, bis das Druckbett wirklich gültig ist.
+- STEP-Ablauf ist mit einem neuen Honor-End-to-End-Test über „Projekt → Modell hinzufügen“ nachgewiesen: SAF-Ergebnis, Tessellierungswerte ändern, Import bestätigen und natives, renderbares Dreiecksmesh laden. Ein zusätzlicher Honor-Test simuliert ein nicht-null, zunächst ungültiges Druckbett und bestätigt, dass der Picker nach dessen Initialisierung geöffnet wird. Native `.step`/`.stp`-Meshes, Importdialog, externer `ACTION_VIEW`-Pfad und Abbrechen bestehen ebenfalls.
+- Letzter vollständiger JVM-Lauf: Debug 621/621, Slice 621/621; Debug-Build erfolgreich. Honor: GL-Paneltests 7/7, native Modellbearbeitung 24/24, gezielte Projekt-/Boolean-/Text-/STEP-Gerätetests bestanden. Debug-APK wurde auf PTP-N49 installiert und gestartet; Crash-Puffer blieb leer. Xiaomi-Dateimanager und eine private Nutzungsdatei wurden nicht direkt getestet.
+- Zusätzlich behoben: Boolean-Dialogaktionen waren auf dem Honor unterhalb des sichtbaren Dialogbereichs abgeschnitten; der Dialog scrollt jetzt. Textwerkzeugzustand/Lifecycle und GL-Eventpfad sind gegen frühe Oberflächen-Taps und Threadzugriffe abgesichert.
+- Nächster konkreter Schritt: Änderungen prüfen, auf den bestehenden Branch pushen, PR #2 aktualisieren und den offiziellen Release 0.8.363 mit der final gebauten und verifizierten APK veröffentlichen. Die vollständige UI-2.0-Abnahme bleibt offen.
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
 ## Modellbearbeitung: Boolean, Text, Kombinieren und M12 — 2026-10-23

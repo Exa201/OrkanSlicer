@@ -9,7 +9,9 @@ class EmbossModeEventBridge(private val callback: Callback) {
         fun onEmbossSurfaceClicked(event: EmbossSurfaceClickedEvent)
     }
 
-    @EventHandler(runOnMainThread = true)
+    // Surface-click events are emitted on GL. Keep the callback off the UI looper;
+    // the controller snapshots parameters and queues geometry work back onto GL.
+    @EventHandler
     fun onEmbossSurfaceClicked(event: EmbossSurfaceClickedEvent) {
         callback.onEmbossSurfaceClicked(event)
     }

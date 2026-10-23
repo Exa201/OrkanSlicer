@@ -35,6 +35,7 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performScrollToIndex
@@ -412,8 +413,9 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
-            compose.onNodeWithText(activity.getString(operationLabel)).performClick()
-            compose.waitUntil(timeoutMillis = 30_000) { bed.currentModel?.objectsCount == 1 }
+            compose.onNodeWithText(activity.getString(operationLabel))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
 
             fun volumeOnGl(): Double {
                 val value = AtomicReference<Double>()
@@ -2218,6 +2220,68 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun projectMenuWaitsForAnAllocatedRendererBedToBecomeValidBeforeOpeningPicker() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+
+        val originalRendererBed = AtomicReference<ru.ytkab0bp.slicebeam.slic3r.Bed3D?>()
+        val invalidRendererBed = ru.ytkab0bp.slicebeam.slic3r.Bed3D()
+        val bedReplaced = CountDownLatch(1)
+        glView.queueEvent {
+            originalRendererBed.set(glView.renderer.bed)
+            glView.renderer.bed = invalidRendererBed
+            bedReplaced.countDown()
+        }
+        try {
+            assertTrue("the test must install an allocated but unconfigured GL bed",
+                bedReplaced.await(10, TimeUnit.SECONDS))
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+
+            // Allow the first GL readiness check to observe the invalid non-null Bed3D.
+            activity.window.decorView.postDelayed({
+                glView.queueEvent { glView.renderer.bed = originalRendererBed.get() }
+            }, 350L)
+
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            assertEquals("the picker should open once the existing Bed3D becomes valid",
+                Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+        } finally {
+            launchers[requestCode] = previousLauncher
+            val restored = CountDownLatch(1)
+            glView.queueEvent {
+                originalRendererBed.get()?.let { glView.renderer.bed = it }
+                invalidRendererBed.release()
+                restored.countDown()
+            }
+            assertTrue("the test must restore the production bed", restored.await(10, TimeUnit.SECONDS))
+        }
+    }
+
+    @Test
     fun projectMenuImportsSelectedStlThroughTheActualResultHandler() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -2279,6 +2343,86 @@ class InitialProjectMenuDeviceTest {
                 requireNotNull(bed.currentModel).objectsCount)
             assertTrue("the actual result handler should copy the selected file into the model cache",
                 cachedImport.isFile && cachedImport.length() > 0L)
+        } finally {
+            launchers[requestCode] = previousLauncher
+            inputFile.delete()
+            cachedImport.delete()
+        }
+    }
+
+    @Test
+    fun projectMenuImportsSelectedStepAfterConfirmingMeshingOptions() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val inputFile = File(activity.cacheDir, "menu-step-import-${System.nanoTime()}.step")
+        val cachedImport = File(SliceBeam.getModelCacheDir(), inputFile.name)
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = java.util.concurrent.atomic.AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("step_cube_ccby4.step").use { source ->
+                inputFile.outputStream().use(source::copyTo)
+            }
+            assertEquals(0, bed.currentModel?.objectsCount ?: 0)
+
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            val request = requireNotNull(capturedIntent.get())
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, request.action)
+            assertEquals("*/*", request.type)
+
+            val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, Intent().setData(inputUri))
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertEquals("STEP geometry must wait for explicit meshing confirmation", 0,
+                bed.currentModel?.objectsCount ?: 0)
+            compose.onNodeWithTag("step-linear-deflection").performScrollTo().performTextReplacement("0.01")
+            compose.onNodeWithTag("step-angular-deflection").performScrollTo().performTextReplacement("0.7")
+            compose.onNodeWithTag("step-import-confirm").performClick()
+
+            compose.waitUntil(timeoutMillis = 90_000) {
+                val model = bed.currentModel
+                model != null && model.objectsCount == 1 && model.getTriangleCount(0) > 0
+            }
+            assertTrue("The selected STEP must be copied into app-owned cache before native import",
+                cachedImport.isFile && cachedImport.length() > 0L)
+            assertTrue("The imported STEP must produce renderable triangles",
+                requireNotNull(bed.currentModel).getTriangleCount(0) > 0)
         } finally {
             launchers[requestCode] = previousLauncher
             inputFile.delete()
@@ -5840,11 +5984,24 @@ class InitialProjectMenuDeviceTest {
 
         openModelMenu(activity)
         selectAllObjectsScope()
-        compose.onNodeWithContentDescription(activity.getString(R.string.TextModelCreateSeparate))
-            .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
-
-        compose.onNodeWithTag("emboss-standalone-mode").assertIsDisplayed().assertIsSelected()
-        compose.onNodeWithText(activity.getString(R.string.TextModelPlacementInstruction)).assertIsDisplayed()
+        val createTextAction = compose.onNodeWithContentDescription(activity.getString(R.string.TextModelCreateSeparate))
+            .performScrollTo().assertIsDisplayed().assertIsEnabled().fetchSemanticsNode()
+        val actionCenter = createTextAction.boundsInRoot.center
+        val workspaceRoot = requireNotNull(bed.getView())
+        val downTime = SystemClock.uptimeMillis()
+        val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN,
+            actionCenter.x, actionCenter.y, 0).apply { source = InputDevice.SOURCE_TOUCHSCREEN }
+        val up = MotionEvent.obtain(downTime, downTime + 80L, MotionEvent.ACTION_UP,
+            actionCenter.x, actionCenter.y, 0).apply { source = InputDevice.SOURCE_TOUCHSCREEN }
+        try {
+            compose.runOnUiThread {
+                workspaceRoot.dispatchTouchEvent(down)
+                workspaceRoot.dispatchTouchEvent(up)
+            }
+        } finally {
+            down.recycle()
+            up.recycle()
+        }
         assertTrue("standalone text placement must activate emboss click handling",
             readRendererBooleanOnGl(glView, "isInEmbossMode"))
         assertTrue("standalone placement must allow bed hits without selecting a model",
@@ -5882,24 +6039,35 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL click should finish", clickReady.await(10, TimeUnit.SECONDS))
         assertTrue("build-plate click should be consumed by standalone placement", requireNotNull(clickHandled.get()))
-        compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
+        val textCreationDeadline = SystemClock.uptimeMillis() + 30_000L
+        var createdObjectCount = readObjectCountOnGl(glView)
+        while (createdObjectCount != 1 && SystemClock.uptimeMillis() < textCreationDeadline) {
+            // Avoid Compose idle synchronization while the GL renderer continues to draw.
+            SystemClock.sleep(25L)
+            createdObjectCount = readObjectCountOnGl(glView)
+        }
         assertEquals("clicking the plate should create one independent printable object", 1,
-            readObjectCountOnGl(glView))
+            createdObjectCount)
         assertTrue("generated text must be real printable geometry", readTriangleCountOnGl(glView, 0) > 0)
         assertEquals("created text should become selected", 0, glView.renderer.selectedObject)
         val textTriangleCount = readTriangleCountOnGl(glView, 0)
         val textBounds = readExactBoundsOnGl(glView, 0).single()
 
         bed.onBackPressed()
-        compose.waitForIdle()
         assertFalse("exiting the tool should clear standalone placement mode",
             readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
 
         compose.runOnUiThread { bed.undoModelEdit() }
-        compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 0 }
+        val undoDeadline = SystemClock.uptimeMillis() + 10_000L
+        while (readObjectCountOnGl(glView) != 0 && SystemClock.uptimeMillis() < undoDeadline) {
+            SystemClock.sleep(25L)
+        }
         assertEquals("Undo should remove only the generated text object", 0, readObjectCountOnGl(glView))
         compose.runOnUiThread { bed.redoModelEdit() }
-        compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+        val redoDeadline = SystemClock.uptimeMillis() + 10_000L
+        while (readObjectCountOnGl(glView) != 1 && SystemClock.uptimeMillis() < redoDeadline) {
+            SystemClock.sleep(25L)
+        }
         assertEquals("Redo should restore the printable text mesh", textTriangleCount,
             readTriangleCountOnGl(glView, 0))
         val redoneTextBounds = readExactBoundsOnGl(glView, 0).single()

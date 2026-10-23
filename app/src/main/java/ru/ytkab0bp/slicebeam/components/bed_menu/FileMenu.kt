@@ -150,7 +150,7 @@ class FileMenu : ListBedMenu() {
             val bedIsValid = rendererBed?.isValid() == true
             ViewUtils.postOnMainThread {
                 if (fragment !== bed || bed.glView !== glView) return@postOnMainThread
-                if (rendererBed == null && attempt < OPEN_MODEL_BED_READY_RETRIES) {
+                if (!bedIsValid && attempt < OPEN_MODEL_BED_READY_RETRIES) {
                     ViewUtils.postOnMainThread(
                         { openModelWhenBedReady(bed, glView, attempt + 1) },
                         OPEN_MODEL_BED_READY_RETRY_DELAY_MS,

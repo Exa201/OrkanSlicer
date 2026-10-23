@@ -9,7 +9,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ru.ytkab0bp.slicebeam.R
@@ -24,22 +27,25 @@ internal fun ModelBooleanDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ModelMenuBoolean)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(
                     stringResource(R.string.ModelBooleanHelp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 TextButton(
                     onClick = { onChoose(BooleanOperation.UNION) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("model-boolean-union"),
                 ) { Text(stringResource(R.string.ModelBooleanUnion)) }
                 TextButton(
                     onClick = { onChoose(BooleanOperation.DIFFERENCE) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("model-boolean-difference"),
                 ) { Text(stringResource(R.string.ModelBooleanDifference)) }
                 TextButton(
                     onClick = { onChoose(BooleanOperation.INTERSECTION) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("model-boolean-intersection"),
                 ) { Text(stringResource(R.string.ModelBooleanIntersection)) }
             }
         },

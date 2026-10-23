@@ -1343,6 +1343,9 @@ currentGlView.queueEvent({ currentGlView.renderer.isInEmbossMode = true
 currentGlView.renderer.isStandaloneTextPlacementMode = standaloneText
 currentGlView.requestRender() })
 embossModeController = EmbossModeController(ctx, currentGlView, ::updateModel, standaloneText)
+// Register the surface-click callback before the panel is presented. A tap can arrive
+// as soon as its Compose content becomes visible, especially during a landscape resize.
+embossModeController?.start()
 showWorkspaceToolPanel(
     toolId = "emboss-mode",
     panelSize = WorkspacePanelSize(
@@ -1394,6 +1397,7 @@ return false
 private fun exitEmbossMode() {
 if (isEmbossMode)
 {
+embossModeController?.stop()
 embossModeController = null
 glView?.queueEvent({ glView?.renderer?.isInEmbossMode = false
 glView?.renderer?.isStandaloneTextPlacementMode = false

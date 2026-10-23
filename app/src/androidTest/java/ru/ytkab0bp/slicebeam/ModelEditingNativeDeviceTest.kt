@@ -3,7 +3,10 @@ package ru.ytkab0bp.slicebeam
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -602,20 +605,19 @@ class ModelEditingNativeDeviceTest {
     }
 
     @Test fun booleanDialogOffersUnionDifferenceAndIntersectionAsSeparateActions() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        var selected: BooleanOperation? = null
+        val selected = AtomicReference<BooleanOperation?>(null)
         compose.setContent {
             BeamComposeTheme {
-                ModelBooleanDialog(onDismiss = {}, onChoose = { selected = it })
+                ModelBooleanDialog(onDismiss = {}, onChoose = selected::set)
             }
         }
 
-        compose.onNodeWithText(context.getString(R.string.ModelBooleanUnion)).performClick()
-        compose.runOnIdle { assertEquals(BooleanOperation.UNION, selected) }
-        compose.onNodeWithText(context.getString(R.string.ModelBooleanDifference)).performClick()
-        compose.runOnIdle { assertEquals(BooleanOperation.DIFFERENCE, selected) }
-        compose.onNodeWithText(context.getString(R.string.ModelBooleanIntersection)).performClick()
-        compose.runOnIdle { assertEquals(BooleanOperation.INTERSECTION, selected) }
+        compose.onNodeWithTag("model-boolean-union").performScrollTo().assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(BooleanOperation.UNION, selected.get()) }
+        compose.onNodeWithTag("model-boolean-difference").performScrollTo().assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(BooleanOperation.DIFFERENCE, selected.get()) }
+        compose.onNodeWithTag("model-boolean-intersection").performScrollTo().assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(BooleanOperation.INTERSECTION, selected.get()) }
     }
 
     private fun assertBooleanResult(operation: BooleanOperation, expectedVolumeFactor: Double) {

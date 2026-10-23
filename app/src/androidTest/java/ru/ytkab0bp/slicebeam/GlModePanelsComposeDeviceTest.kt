@@ -116,8 +116,13 @@ class GlModePanelsComposeDeviceTest {
         }
 
         compose.onNodeWithText(context.getString(R.string.EmbossInstruction)).assertIsDisplayed()
-        compose.onNodeWithText(context.getString(R.string.EmbossRaise)).assertIsDisplayed()
-        compose.onNodeWithText(context.getString(R.string.EmbossEngrave)).assertIsDisplayed().performClick()
+        compose.onNodeWithText(context.getString(R.string.EmbossRaise))
+            .performScrollTo()
+            .assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.EmbossEngrave))
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
         compose.onNodeWithTag("emboss-done")
             .performScrollTo()
             .assertIsDisplayed()

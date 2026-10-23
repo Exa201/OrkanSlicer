@@ -16,23 +16,29 @@ internal class EmbossModeController(
     initialStandaloneMode: Boolean = false,
 ) {
     private val initialText = context.getString(R.string.AppName)
-    private var parameters: EmbossTextInputValidator.Result = EmbossTextInputValidator.validate(
+    @Volatile private var parameters: EmbossTextInputValidator.Result = EmbossTextInputValidator.validate(
         initialText,
         context.getString(R.string.EmbossDefaultFontSize),
         context.getString(R.string.EmbossDefaultDepth),
     )
-    private var addMode: Boolean = true
-    private var standaloneMode: Boolean = initialStandaloneMode
-    private var followSurface: Boolean = false
-    private var fontFilePath: String? = null
+    @Volatile private var addMode: Boolean = true
+    @Volatile private var standaloneMode: Boolean = initialStandaloneMode
+    @Volatile private var followSurface: Boolean = false
+    @Volatile private var fontFilePath: String? = null
+    private var started = false
     private val eventBridge = EmbossModeEventBridge(::onSurfaceClicked)
 
     fun start() {
+        if (started) return
+        started = true
+        fontFilePath = prepareFontFile()
         glView.renderer.isStandaloneTextPlacementMode = standaloneMode
         SliceBeam.EVENT_BUS.registerListener(eventBridge)
     }
 
     fun stop() {
+        if (!started) return
+        started = false
         glView.renderer.isStandaloneTextPlacementMode = false
         SliceBeam.EVENT_BUS.unregisterListener(eventBridge)
     }
@@ -58,12 +64,14 @@ internal class EmbossModeController(
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossInvalidParameters))
             return
         }
-        val selectedObject = glView.renderer.selectedObject
+        // The bridge runs on the EventBus worker thread. The clicked object index is
+        // captured by GLRenderer and avoids reading mutable renderer state off-GL.
+        val selectedObject = event.targetObjectIndex
         if ((!standaloneMode && selectedObject == -1) || (event.isBuildPlatePlacement && !standaloneMode)) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.SelectObjectFirst))
             return
         }
-        val fontPath = fontFilePath ?: prepareFontFile()?.also { fontFilePath = it }
+        val fontPath = fontFilePath
         if (fontPath == null) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossFailed, "Schriftart konnte nicht geladen werden"))
             return
