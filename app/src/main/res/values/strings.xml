@@ -1199,6 +1199,7 @@
     <string name="EmbossEngrave">Engrave</string>
     <string name="TextModelCreateSeparate">Create a separate 3D text object</string>
     <string name="TextFollowCurvedSurface">Follow curved model surface</string>
+    <string name="TextModelSurfaceFitError">The text does not fit on the tapped surface. Reduce its size or tap closer to the middle of the face.</string>
     <string name="TextFollowSurfaceHelp">The text is fitted to the tapped model and added as a printable part of it.</string>
     <string name="TextModelCreated">Separate text object created</string>
     <string name="SelectObjectFirst">Select an object first.</string>

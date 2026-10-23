@@ -286,6 +286,112 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuBooleanDifferenceAppliesMultipleCuttersAndSupportsUndoRedo() {
+        runModelMenuBooleanRoundTrip(
+            operationLabel = R.string.ModelBooleanDifference,
+            fileName = "model-menu-boolean-difference-two-cutters.stl",
+            expectedVolumeRatio = 0.946,
+        ) { model, _, width ->
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val centerX = (min.x + max.x) / 2.0
+            val centerY = (min.y + max.y) / 2.0
+            val centerZ = (min.z + max.z) / 2.0
+            for (index in 1..2) {
+                model.scale(index, 0.3, 0.3, 0.3)
+                val cutterMin = Vec3d(); val cutterMax = Vec3d()
+                model.getBoundingBoxExact(index, cutterMin, cutterMax)
+                val offsetX = if (index == 1) -width * 0.2 else width * 0.2
+                model.translate(
+                    index,
+                    centerX + offsetX - (cutterMin.x + cutterMax.x) / 2.0,
+                    centerY - (cutterMin.y + cutterMax.y) / 2.0,
+                    centerZ - (cutterMin.z + cutterMax.z) / 2.0,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun modelMenuBooleanIntersectionCombinesThreeObjectsAndSupportsUndoRedo() {
+        runModelMenuBooleanRoundTrip(
+            operationLabel = R.string.ModelBooleanIntersection,
+            fileName = "model-menu-boolean-intersection-three-objects.stl",
+            expectedVolumeRatio = 0.216,
+        ) { model, _, width ->
+            model.translate(1, width * 0.2, width * 0.2, width * 0.2)
+            model.translate(2, -width * 0.2, -width * 0.2, -width * 0.2)
+        }
+    }
+
+    private fun runModelMenuBooleanRoundTrip(
+        operationLabel: Int,
+        fileName: String,
+        expectedVolumeRatio: Double,
+        configure: (Model, GLRenderer, Double) -> Unit,
+    ) {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, fileName)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val sourceVolume = AtomicReference<Double>()
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val width = max.x - min.x
+                sourceVolume.set(model.getObjectVolume(0))
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                configure(model, renderer, width)
+                renderer.selectAllObjects()
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("Boolean sources should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuBoolean)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithText(activity.getString(operationLabel)).performClick()
+            compose.waitUntil(timeoutMillis = 30_000) { bed.currentModel?.objectsCount == 1 }
+
+            fun volumeOnGl(): Double {
+                val value = AtomicReference<Double>()
+                val finished = CountDownLatch(1)
+                glView.queueEvent {
+                    value.set(requireNotNull(glView.renderer.model).getObjectVolume(0))
+                    finished.countDown()
+                }
+                assertTrue("Boolean result volume should be read on the GL thread", finished.await(10, TimeUnit.SECONDS))
+                return requireNotNull(value.get())
+            }
+
+            assertEquals("the selected Boolean action should produce the expected solid volume",
+                expectedVolumeRatio, volumeOnGl() / requireNotNull(sourceVolume.get()), 0.025)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            assertEquals("Undo should restore all Boolean source objects", 3, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals("Redo should retain the chosen Boolean solid volume", expectedVolumeRatio,
+                volumeOnGl() / requireNotNull(sourceVolume.get()), 0.025)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun booleanDialogRejectsAStaleObjectSelectionWithoutChangingTheModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -5724,6 +5830,124 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuStandaloneTextCanFollowASelectedModelSurfaceAndUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-curved-standalone-text.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.setUniformFilament(0, 1)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("surface text target should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val baseTriangleCount = readTriangleCountOnGl(glView, 0)
+
+            openModelMenu(activity)
+            // Standalone text can create a new object independently of the current selection.
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.TextModelCreateSeparate)
+            compose.onNodeWithContentDescription(activity.getString(R.string.TextModelCreateSeparate))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("emboss-standalone-mode").assertIsSelected()
+            val followSurface = compose.onNodeWithTag("emboss-follow-surface")
+            followSurface.performScrollTo().assertIsDisplayed().performClick()
+            followSurface.assertIsSelected()
+            assertTrue("standalone surface text mode must be active in the renderer",
+                readRendererBooleanOnGl(glView, "isInEmbossMode"))
+            assertTrue("standalone text placement must be active in the renderer",
+                readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
+            val textField = compose.onNodeWithTag("emboss-text-input").performScrollTo()
+            textField.performTextClearance()
+            textField.performTextInput("A")
+            val activeController = BedFragment::class.java.getDeclaredField("embossModeController")
+                .apply { isAccessible = true }.get(bed)
+            val activeParameters = activeController.javaClass.getDeclaredField("parameters")
+                .apply { isAccessible = true }.get(activeController)
+            val validatedText = activeParameters.javaClass.getDeclaredField("value")
+                .apply { isAccessible = true }.get(activeParameters)
+            assertEquals("the controller must receive the current text field value", "A",
+                validatedText?.javaClass?.getDeclaredField("text")
+                    ?.apply { isAccessible = true }?.get(validatedText))
+            assertEquals("the default surface-text size must reach native generation", 10.0f,
+                validatedText?.javaClass?.getDeclaredField("size")
+                    ?.apply { isAccessible = true }?.getFloat(validatedText) ?: Float.NaN, 0.001f)
+            assertTrue("the controller must retain the surface-following choice",
+                activeController.javaClass.getDeclaredField("followSurface")
+                    .apply { isAccessible = true }.getBoolean(activeController))
+            // Keep the GL build plate unobstructed, just as when a user dismisses the
+            // keyboard before placing text on the model.
+            compose.runOnUiThread {
+                val imm = activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                    as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(glView.windowToken, 0)
+                activity.currentFocus?.clearFocus()
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+            val point = findUncoveredPreciseSurfacePoint(glView, bed, requireUpwardFace = true)
+            tapGlViewAt(glView, point.first, point.second)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.TextModelSurfaceFitError))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+
+            // The full-size default is rejected with actionable guidance. Reducing the
+            // text then allows the same real GL-surface gesture to complete successfully.
+            val sizeField = compose.onNodeWithTag("emboss-font-size").performScrollTo()
+            sizeField.performTextClearance()
+            sizeField.performTextInput("1")
+            compose.runOnUiThread {
+                val imm = activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                    as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(glView.windowToken, 0)
+                activity.currentFocus?.clearFocus()
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            tapGlViewAt(glView, point.first, point.second)
+            compose.waitUntil(timeoutMillis = 30_000) {
+                readTriangleCountOnGl(glView, 0) > baseTriangleCount || readObjectCountOnGl(glView) > 1
+            }
+            assertEquals("surface-following standalone text remains part of the printable target object", 1,
+                readObjectCountOnGl(glView))
+            assertTrue("conforming the new text must add actual printable mesh triangles",
+                readTriangleCountOnGl(glView, 0) > baseTriangleCount)
+            assertEquals("new surface text inherits the target object's filament", listOf(1),
+                readUsedFilamentsOnGl(glView, 0).toList())
+            val editedTriangleCount = readTriangleCountOnGl(glView, 0)
+
+            bed.onBackPressed()
+            compose.waitForIdle()
+            assertFalse("leaving text placement must clear the mode",
+                readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readTriangleCountOnGl(glView, 0) == baseTriangleCount
+            }
+            assertEquals("Undo should remove the conforming text part only", baseTriangleCount,
+                readTriangleCountOnGl(glView, 0))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readTriangleCountOnGl(glView, 0) == editedTriangleCount
+            }
+            assertEquals("Redo should restore the conforming printable text", editedTriangleCount,
+                readTriangleCountOnGl(glView, 0))
+        } finally {
+            if (bed.isEmbossMode) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editPaintActionsOpenTheirGlModesAndBackCancelsWithoutMeshMutation() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -6777,6 +7001,7 @@ class InitialProjectMenuDeviceTest {
         glView: ru.ytkab0bp.slicebeam.view.GLView,
         bed: BedFragment,
         avoid: Pair<Float, Float>? = null,
+        requireUpwardFace: Boolean = false,
     ): Pair<Float, Float> {
         val modePanelBounds = compose.onAllNodesWithTag("workspace-mode-panel")
             .fetchSemanticsNodes().firstOrNull()?.boundsInRoot
@@ -6828,7 +7053,7 @@ class InitialProjectMenuDeviceTest {
                             menuPanelBounds?.contains(Offset(rootX, rootY)) == true
                         ) continue
                         mesh.raycaster.raycast(renderer, hits, x.toFloat(), y.toFloat())
-                        if (hits.any { !it.approximate }) {
+                        if (hits.any { !it.approximate && (!requireUpwardFace || it.normal.z > 0.7) }) {
                             result.set((glLocation[0] + localX) to (glLocation[1] + localY))
                             return@queueEvent
                         }

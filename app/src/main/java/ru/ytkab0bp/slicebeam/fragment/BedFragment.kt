@@ -1343,7 +1343,17 @@ currentGlView.queueEvent({ currentGlView.renderer.isInEmbossMode = true
 currentGlView.renderer.isStandaloneTextPlacementMode = standaloneText
 currentGlView.requestRender() })
 embossModeController = EmbossModeController(ctx, currentGlView, ::updateModel, standaloneText)
-showWorkspaceModePanel("emboss-mode", ::exitEmbossMode) {
+showWorkspaceToolPanel(
+    toolId = "emboss-mode",
+    panelSize = WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.ClampedFraction(0.42f, minDp = 280f, maxDp = 380f),
+        landscape = WorkspacePanelDimension.ClampedFraction(0.48f, minDp = 300f, maxDp = 460f),
+    ),
+    // Emboss and text placement are driven by tapping the GL model. Keep a compact
+    // control sheet so its scrim and panel do not swallow the surface-selection gesture.
+    allowBackgroundInteraction = true,
+    onDismiss = ::exitEmbossMode,
+) {
     EmbossModePanel(
         requireNotNull(embossModeController),
         startInStandaloneMode = standaloneText,

@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## Modellierungs-Abnahmegruppe — 2026-10-23
+
+- Ausgangs-HEAD: `a3a5aaf7`. Drei weitere Bedienabläufe wurden auf Honor PTP-N49 / Android 16 ausgeführt: Boolean-Differenz mit zwei Werkzeugobjekten inklusive Undo/Redo (1/1), Boolean-Schnittmenge aus drei Objekten inklusive Undo/Redo (1/1) und gekrümmter, eigenständiger Oberflächentext (1/1).
+- Beim Textversuch mit 10 mm auf einer begrenzten Modellfläche lehnte der native Geometriecode korrekt ab, weil der vollständige Text nicht auf die angetippte Fläche passte. Die Oberfläche zeigte bislang den rohen englischen nativen Fehler. Jetzt erhält der Benutzer eine lokalisierte Anleitung, die Schrift zu verkleinern oder näher zur Flächenmitte zu tippen. Der Honor-Test prüft den abgelehnten Versuch, die Meldung, den erfolgreichen Wiederholungsversuch mit 1 mm, Textgeometrie als Teil des Zielobjekts, Filamentübernahme sowie Undo/Redo.
+- Das Textwerkzeug verwendet jetzt ein kompaktes Compose-Bedienfeld mit Hintergrundinteraktion, sodass der sichtbare Modellbereich angetippt werden kann. Die Probe nutzt tatsächliche `GLView`-Touchereignisse.
+- Vollständige JVM-Suiten nach den Änderungen: Debug 621/621, Slice 621/621. `:app:assembleDebug` erfolgreich; `git diff --check` sauber. APK aus dem noch ungecommitten Arbeitsbaum: `OrkanSlicer_a3a5aaf701.apk`, 242.328.578 Byte, SHA-256 `4F9B99395EA117C08A8D5078B94A8233EE9304317614572BAECBBC69F62D54F6`. Vor einer Verteilung nach dem Commit neu bauen, damit Version/Commit-Metadaten exakt stimmen.
+- Noch kein Release. Nächster Schritt: Änderung committen und PR #2 aktualisieren; danach die nächste zusammengehörige Gruppe aus mindestens drei Modellierungsaktionen untersuchen und auf dem Gerät verifizieren.
+
 ## Modellaktions-Abnahmegruppe — 2026-10-23
 
 - Aktueller Code-HEAD: `f4a0486e`; keine Quellcodeänderungen in diesem Abnahmedurchgang.

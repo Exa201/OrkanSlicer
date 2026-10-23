@@ -67,7 +67,7 @@ internal fun EmbossModePanel(
             singleLine = true,
             isError = validation.error == EmbossTextInputValidator.Error.EMPTY_TEXT ||
                 validation.error == EmbossTextInputValidator.Error.TEXT_TOO_LONG,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("emboss-text-input"),
         )
         OutlinedTextField(
             value = size,

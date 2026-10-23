@@ -100,7 +100,12 @@ internal class EmbossModeController(
                 }
             } catch (error: Exception) {
                 ViewUtils.postOnMainThread {
-                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossFailed, error.message))
+                    val errorMessage = error.message
+                    if (errorMessage?.contains("complete text must fit on the visible model surface") == true) {
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.TextModelSurfaceFitError))
+                    } else {
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossFailed, errorMessage))
+                    }
                 }
             }
         }
