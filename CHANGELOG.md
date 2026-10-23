@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.359
+
+- Protect source STEP/STP files during meshing/import so cancelling or failing an import cannot delete the user's original document.
+- Bind simplification and model-edit actions to the model and selection captured on the GL thread; reject stale actions after a model or selection change.
+- Verify Z positioning, object joining, placement on model surfaces, standalone 3D text, SVG solids, Boolean operations, 3MF roundtrips, and resulting G-code on Honor PTP-N49 / Android 16.
+
 ## 0.8.356
 
 - Move all selected model objects to another build plate together, preserving separate objects, their filament assignments, and relative placement.
