@@ -26,6 +26,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
@@ -147,10 +148,36 @@ fun duplicateSelectedModels(copies: Int, onComplete: (Int) -> Unit) {
         ViewUtils.postOnMainThread { onComplete(added) }
     }
 }
+internal fun duplicateSelectedModelsIfCurrent(
+    copies: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val added = renderer.duplicateSelectedObjects(copies.coerceIn(1, 50), expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(added) }
+    }
+}
 fun selectModel(objectIndex:Int, onComplete:Runnable) {
 queueEvent({ renderer.setSelectedObject(objectIndex)
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+}
+internal fun selectModelIfCurrent(
+    objectIndex: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = when {
+            !renderer.isSelectionSnapshotCurrent(expectedSelection) -> MODEL_EDIT_STALE_SELECTION
+            objectIndex !in 0 until (renderer.model?.objectsCount ?: 0) -> 0
+            else -> { renderer.setSelectedObject(objectIndex); 1 }
+        }
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
 }
 fun deleteSelectedModel(onComplete:Runnable) {
 queueEvent({ val sel = renderer.selectedObject
@@ -188,6 +215,34 @@ fun selectModels(objectIndices: IntArray, onComplete: Runnable? = null) {
 queueEvent({ renderer.setSelectedObjects(objectIndices)
 requestRender()
 ViewUtils.postOnMainThread({ onComplete?.run() }) })
+}
+internal fun selectModelsIfCurrent(
+    objectIndices: IntArray,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val model = renderer.model
+        val result = when {
+            !renderer.isSelectionSnapshotCurrent(expectedSelection) -> MODEL_EDIT_STALE_SELECTION
+            objectIndices.any { it !in 0 until (model?.objectsCount ?: 0) } -> 0
+            else -> { renderer.setSelectedObjects(objectIndices); 1 }
+        }
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
+internal fun setObjectUniformFilamentIfCurrent(
+    objectIndex: Int,
+    filament: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.setObjectUniformFilamentIfCurrent(objectIndex, filament, expectedSelection)
+        if (result == 1) requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
 }
 internal fun combineSelectedObjectsAsParts(
     expectedSelection: ModelSelectionSnapshot? = null,

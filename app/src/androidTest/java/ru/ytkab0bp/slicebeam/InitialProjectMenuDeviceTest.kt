@@ -66,6 +66,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
+import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.ListBedMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPresetGeometry
@@ -334,6 +335,117 @@ class InitialProjectMenuDeviceTest {
             beforeBounds.zip(readExactBoundsOnGl(glView, 0, 1)).forEachIndexed { index, (before, after) ->
                 assertArrayEquals("stale Boolean selection must preserve object $index", before, after, 0.001)
             }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun objectListAssignmentAndDuplicateDialogsRejectStaleSelections() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "object-actions-stale-selection-test.stl")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        val testSlots = listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "Stale Guard PLA"),
+            FilamentSlot(0xFF3366CC.toInt(), "Stale Guard PETG"),
+        )
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 16.0, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("object action fixtures should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            Prefs.setStoredFilamentSlots(testSlots)
+            val actions = FileMenuObjectActions(bed)
+
+            // Selecting a row from an object-list snapshot must not overwrite a newer selection.
+            compose.runOnUiThread { actions.showObjectsDialog(glView) }
+            compose.onNodeWithTag("model-object-row-0").assertIsDisplayed()
+            val selectedOne = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(1)
+                selectedOne.countDown()
+            }
+            assertTrue("object selection change should finish on GL", selectedOne.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("model-object-row-0").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertEquals("stale object-list selection must preserve the newer selection", 1, readSelectedObjectOnGl(glView))
+
+            // Assigning an individual object's filament is also bound to the opening selection.
+            clearWorkspaceSnackbars(bed)
+            compose.runOnUiThread { actions.showObjectsDialog(glView) }
+            compose.onAllNodesWithText(activity.getString(R.string.ObjectActionAssignFilamentShort))[0]
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed()
+            val selectedZero = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(0)
+                selectedZero.countDown()
+            }
+            assertTrue("second object selection change should finish on GL", selectedZero.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("model-choice-option-0").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertTrue("stale filament assignment must leave object 1 unchanged",
+                model.getUsedFilaments(0).contentEquals(intArrayOf(1)))
+
+            // A delayed duplicate confirmation must never duplicate the replacement selection.
+            clearWorkspaceSnackbars(bed)
+            compose.runOnUiThread { actions.showDuplicateDialog(glView) }
+            compose.onNodeWithTag("duplicate-model-confirm").assertIsDisplayed()
+            val selectedForDuplicate = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(1)
+                selectedForDuplicate.countDown()
+            }
+            assertTrue("duplicate selection change should finish on GL", selectedForDuplicate.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("duplicate-model-confirm").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertEquals("stale duplicate confirmation must not add objects", 2, readObjectCountOnGl(glView))
+            assertEquals("stale duplicate confirmation must preserve newer selection", 1, readSelectedObjectOnGl(glView))
+        } finally {
+            Prefs.setStoredFilamentSlots(previousSlots)
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun objectListAndDuplicateConfirmationStillApplyToTheirCapturedSelection() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "object-actions-current-selection-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val selectInitialObject = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(0)
+                selectInitialObject.countDown()
+            }
+            assertTrue("initial object selection should finish on GL", selectInitialObject.await(10, TimeUnit.SECONDS))
+            val actions = FileMenuObjectActions(bed)
+
+            compose.runOnUiThread { actions.showObjectsDialog(glView) }
+            compose.onNodeWithTag("model-object-row-0").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { readSelectedObjectOnGl(glView) == 0 }
+
+            compose.runOnUiThread { actions.showDuplicateDialog(glView) }
+            compose.onNodeWithTag("duplicate-model-confirm").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 2 }
+            assertEquals("the current confirmed selection should be duplicated once", 2, readObjectCountOnGl(glView))
         } finally {
             modelFile.delete()
         }
@@ -6495,6 +6607,12 @@ class InitialProjectMenuDeviceTest {
             val snackbar = entry?.javaClass?.getMethod("getSnackbar")?.invoke(entry)
             snackbar?.javaClass?.getField("title")?.get(snackbar) == expectedTitle
         }
+    }
+
+    private fun clearWorkspaceSnackbars(bed: BedFragment) {
+        val snackbarController = BedFragment::class.java.getDeclaredField("snackbarController")
+            .apply { isAccessible = true }.get(bed)
+        snackbarController.javaClass.getMethod("clear").invoke(snackbarController)
     }
 
     private fun readVectorOnGl(

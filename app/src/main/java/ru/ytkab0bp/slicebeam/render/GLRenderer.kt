@@ -1929,8 +1929,15 @@ sourceModel.release()
 }
 /** Duplicates the current multi-selection as complete groups and arranges once. */
 fun duplicateSelectedObjects(copies: Int): Int {
+    return duplicateSelectedObjects(copies, null)
+}
+
+/** Duplicates only when the selection captured by the confirmation dialog is still current. */
+internal fun duplicateSelectedObjects(copies: Int, expectedSelection: ModelSelectionSnapshot?): Int {
     val activeModel = model ?: return 0
     val activeBed = bed ?: return 0
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection))
+        return MODEL_EDIT_STALE_SELECTION
     if (!activeBed.isValid() || isViewerEnabled) return 0
     val sourceIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
     if (sourceIndices.isEmpty()) return 0
@@ -2029,6 +2036,19 @@ fun setObjectUniformFilament(i: Int, filament: Int) {
 if (this.model == null) return
 this.model!!.setUniformFilament(i, filament)
 invalidateCommittedOverlays(i)
+}
+/** Applies a delayed per-object assignment only if its opening model/selection is unchanged. */
+internal fun setObjectUniformFilamentIfCurrent(
+    i: Int,
+    filament: Int,
+    expectedSelection: ModelSelectionSnapshot,
+): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return 0
+    if (i !in 0 until activeModel.objectsCount || filament <= 0) return 0
+    activeModel.setUniformFilament(i, filament)
+    invalidateCommittedOverlays(i)
+    return 1
 }
 /** Clear the session's imported facet draft before committing a uniform filament choice. */
 fun clearPaintDraftForUniformFilament() {
