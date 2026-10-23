@@ -3576,6 +3576,94 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun mirrorPanelReflectsTheWholeSelectedGroupAndKeepsPlacementAndFilaments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-mirror-group-test.stl")
+        try {
+            activity.assets.open("models/pyramid.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 37.0, 19.0, 0.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("both disposable objects should be prepared as a GL selection", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            val initialBounds = readExactBoundsOnGl(glView, 0, 1)
+            val initialCenters = initialBounds.map { bounds ->
+                (0..2).map { axis -> (bounds[axis] + bounds[axis + 3]) / 2.0 }
+            }
+            val initialFilaments = (0..1).map { readUsedFilamentsOnGl(glView, it).toList() }
+            openSelectedObjectMenu(activity)
+            scrollMenuToIndex(12)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+
+            val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
+                .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<*>
+            val initialUndoSize = undoHistory.size
+            compose.onNodeWithTag("scale-mirror-x").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                (0..1).all { objectIndex ->
+                    hasExpectedLinearTransform(glView, objectIndex, doubleArrayOf(-1.0, 1.0, 1.0))
+                } && undoHistory.size > initialUndoSize
+            }
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                (0..1).all { objectIndex ->
+                    hasExpectedLinearTransform(glView, objectIndex, doubleArrayOf(1.0, 1.0, 1.0))
+                }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                (0..1).all { objectIndex ->
+                    hasExpectedLinearTransform(glView, objectIndex, doubleArrayOf(-1.0, 1.0, 1.0))
+                }
+            }
+            compose.onNodeWithTag("scale-mirror-y").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                (0..1).all { objectIndex ->
+                    hasExpectedLinearTransform(glView, objectIndex, doubleArrayOf(-1.0, -1.0, 1.0))
+                }
+            }
+            compose.onNodeWithTag("scale-mirror-z").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                (0..1).all { objectIndex ->
+                    hasExpectedLinearTransform(glView, objectIndex, doubleArrayOf(-1.0, -1.0, -1.0))
+                }
+            }
+
+            val finalBounds = readExactBoundsOnGl(glView, 0, 1)
+            finalBounds.forEachIndexed { objectIndex, bounds ->
+                (0..2).forEach { axis ->
+                    assertEquals(
+                        "mirroring must retain object $objectIndex's world-space center on axis $axis",
+                        initialCenters[objectIndex][axis], (bounds[axis] + bounds[axis + 3]) / 2.0, 0.05,
+                    )
+                }
+            }
+            assertEquals("all selected objects must keep their own filament assignment",
+                initialFilaments, (0..1).map { readUsedFilamentsOnGl(glView, it).toList() })
+            assertEquals("group mirroring must not add or remove objects", 2, readObjectCountOnGl(glView))
+            assertTrue("both mirrored objects must remain renderable",
+                (0..1).all { readTriangleCountOnGl(glView, it) > 0 })
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editPositionActionIsUndoableAndRedoableAfterConfirmation() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

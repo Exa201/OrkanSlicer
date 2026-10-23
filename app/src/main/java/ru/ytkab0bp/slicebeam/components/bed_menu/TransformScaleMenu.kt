@@ -237,21 +237,21 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
     private fun mirrorSelected(axis: ModelMirrorAxis) {
         val glView = bed.glView ?: return
         val index = glView.renderer.selectedObject
-        if (index < 0 || index != selectedObjectForScale) return
+        val expectedSelection = selectedObjectsForScale.copyOf()
+        if (index < 0 || index != selectedObjectForScale || expectedSelection.isEmpty()) return
         glView.queueEvent {
             val renderer = glView.renderer
-            if (renderer.selectedObject != index) return@queueEvent
-            val model = renderer.model ?: return@queueEvent
-            if (index !in 0 until model.objectsCount) return@queueEvent
+            if (renderer.selectedObject != index ||
+                !renderer.selectedObjectIndices().contentEquals(expectedSelection)
+            ) return@queueEvent
             runCatching {
-                model.mirror(index, axis)
-                model.ensureOnBed(index)
-                renderer.setSelectionScale(1.0, 1.0, 1.0)
-                renderer.invalidateGlModel(index)
-                glView.requestRender()
-                ViewUtils.postOnMainThread {
-                    bed.updateModel()
-                    loadSelectionValues()
+                if (renderer.mirrorSelectedObjects(axis)) {
+                    renderer.setSelectionScale(1.0, 1.0, 1.0)
+                    glView.requestRender()
+                    ViewUtils.postOnMainThread {
+                        bed.updateModel()
+                        loadSelectionValues()
+                    }
                 }
             }
         }

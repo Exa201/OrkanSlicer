@@ -25,6 +25,7 @@ import ru.ytkab0bp.slicebeam.slic3r.GLShaderProgram
 import ru.ytkab0bp.slicebeam.slic3r.GLShadersManager
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacementDelta
@@ -284,6 +285,35 @@ fun scaleSelectedObjects(targetX: Double, targetY: Double, targetZ: Double): Boo
     }
     placeSelectionOnBed(activeModel, indices)
     setSelectionScale(1.0, 1.0, 1.0)
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Mirror each selected object in place while keeping the selection's relative placement intact. */
+fun mirrorSelectedObjects(axis: ModelMirrorAxis): Boolean {
+    val activeModel = model ?: return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return false
+
+    // Snapshot all bounds before touching native geometry. Mirroring is centered per object,
+    // so X/Y placement and group spacing remain unchanged; Z is corrected for the group as
+    // a whole to keep every object's relative height intact.
+    for (index in indices) {
+        activeModel.mirror(index, axis)
+        invalidateGlModel(index)
+    }
+    val mirroredBounds = indices.map { selectionObjectBounds(activeModel, it) }
+    val groupMinZ = mirroredBounds.minOf { it.min.z }
+    val bedZ = bed?.getVolumeMin()?.z ?: 0.0
+    val deltaZ = bedZ - groupMinZ
+    if (deltaZ.isFinite() && kotlin.math.abs(deltaZ) > 1e-9) {
+        indices.forEach { index ->
+            activeModel.translate(index, 0.0, 0.0, deltaZ)
+            invalidateGlModel(index)
+        }
+    }
+    // Let the next transform preview use the current multi-selection pivot.
     prepareSelectionTransformPreview()
     glView.requestRender()
     return true
