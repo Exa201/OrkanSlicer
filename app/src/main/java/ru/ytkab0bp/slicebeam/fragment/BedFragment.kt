@@ -573,42 +573,76 @@ SnackbarsLayout.Type.ERROR, R.string.ModelSimplifyFailed)) })
 }
 })
 }
-fun moveSelectedObjectToPlate(targetPlateIndex:Int, onComplete:Runnable) {
-val sourcePlateIndex = currentPlateIndex
-val selectedObject = glView!!.renderer.selectedObject
-val source = currentModel
-if ((source == null || selectedObject < 0 || targetPlateIndex < 0
-|| targetPlateIndex >= platesModels.size || targetPlateIndex == sourcePlateIndex))
-    return
-var target = platesModels.get(targetPlateIndex)
-if (target == null)
-{
-if (getProjectPlateId(targetPlateIndex) > 0 && currentProjectFile != null)
-{
-val sourceModel = source
-val sourceObject = selectedObject
-switchPlate(targetPlateIndex, true, { loadedTarget, firstObject, addedObjects->
-if (loadedTarget == null || sourceModel.objectsCount <= sourceObject) return@switchPlate
-glView!!.queueEvent({ val movedObject = loadedTarget.objectsCount
-loadedTarget.addObject(sourceModel, sourceObject)
-sourceModel.deleteObject(sourceObject)
-glView!!.renderer.resetGlModels()
-glView!!.requestRender()
-ViewUtils.postOnMainThread({ glView!!.selectModel(movedObject, { updateModel()
-if (onComplete != null) onComplete.run() }) }) }) })
-return
-}
-target = Model()
-platesModels.set(targetPlateIndex, target)
-}
-val finalTarget = target
-glView!!.queueEvent({ finalTarget.addObject(source, selectedObject)
-glView!!.renderer.deleteObject(selectedObject)
-glView!!.requestRender()
-ViewUtils.postOnMainThread({ switchPlate(targetPlateIndex)
-val movedObject = finalTarget.objectsCount - 1
-glView!!.selectModel(movedObject, { updateModel()
-if (onComplete != null) onComplete.run() }) }) })
+fun moveSelectedObjectToPlate(targetPlateIndex:Int, onComplete:Runnable) =
+    moveSelectedObjectsToPlate(targetPlateIndex, onComplete)
+
+/** Move the complete current selection to another workspace plate without flattening its objects. */
+fun moveSelectedObjectsToPlate(targetPlateIndex:Int, onComplete:Runnable) {
+    val viewport = glView ?: return
+    val sourcePlateIndex = currentPlateIndex
+    val sourceModel = currentModel ?: return
+    if (targetPlateIndex !in platesModels.indices || targetPlateIndex == sourcePlateIndex) return
+
+    // Selection is renderer state and must be read on the GL thread. Keep a stable copy while
+    // switchPlate clears the selection and may lazily load a project plate.
+    viewport.queueEvent {
+        if (viewport.renderer.model !== sourceModel) return@queueEvent
+        val selectedIndices = viewport.renderer.selectedObjectIndices()
+            .filter { it in 0 until sourceModel.objectsCount }
+            .toIntArray()
+        if (selectedIndices.isEmpty()) return@queueEvent
+        ViewUtils.postOnMainThread {
+            if (destroyed || glView !== viewport || currentPlateIndex != sourcePlateIndex ||
+                currentModel !== sourceModel || targetPlateIndex !in platesModels.indices) {
+                return@postOnMainThread
+            }
+            switchPlate(targetPlateIndex, true, object : ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    if (destroyed || glView !== viewport || viewport.renderer.model !== loadedModel ||
+                        selectedIndices.any { it !in 0 until sourceModel.objectsCount }) {
+                        if (!destroyed) ViewUtils.postOnMainThread { switchPlate(sourcePlateIndex) }
+                        return
+                    }
+
+                    val firstMovedIndex = loadedModel.objectsCount
+                    try {
+                        selectedIndices.forEach { loadedModel.addObject(sourceModel, it) }
+                    } catch (error: Exception) {
+                        while (loadedModel.objectsCount > firstMovedIndex) {
+                            loadedModel.deleteObject(loadedModel.objectsCount - 1)
+                        }
+                        loadedModel.resetBoundingBox()
+                        viewport.renderer.resetGlModels()
+                        viewport.requestRender()
+                        android.util.Log.e("BedFragment", "Could not transfer selected objects to plate", error)
+                        ViewUtils.postOnMainThread { switchPlate(sourcePlateIndex) }
+                        return
+                    }
+
+                    selectedIndices.sortedDescending().forEach(sourceModel::deleteObject)
+                    sourceModel.resetBoundingBox()
+                    viewport.renderer.resetGlModels()
+                    viewport.renderer.setSelectedObjects(IntArray(selectedIndices.size) { firstMovedIndex + it })
+                    viewport.requestRender()
+                    ViewUtils.postOnMainThread {
+                        if (destroyed || glView !== viewport || currentModel !== loadedModel) return@postOnMainThread
+                        updateModel()
+                        onComplete.run()
+                    }
+                }
+
+                override fun onFailed(error: Exception) {
+                    android.util.Log.e("BedFragment", "Could not load target plate for object transfer", error)
+                    ViewUtils.postOnMainThread { if (!destroyed) switchPlate(sourcePlateIndex) }
+                }
+
+                override fun onCancelled() {
+                    // A newer plate choice superseded the lazy load. No model objects have been
+                    // moved yet, so preserve that newer navigation instead of forcing the source plate.
+                }
+            })
+        }
+    }
 }
 override fun onCreate() {
 super.onCreate()

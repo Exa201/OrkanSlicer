@@ -1,3 +1,11 @@
+# Mehrfachauswahl zwischen Druckplatten — 2026-10-23
+
+- Änderung: „Auf andere Druckplatte verschieben“ überträgt jetzt die vollständige Mehrfachauswahl, erhält jedes Objekt separat samt Filamentzuweisung und relativer Position und selektiert die übertragenen Objekte auf dem Zielbett. Auswahl wird auf dem GL-Thread aufgenommen; Fehler beim Laden/Kopieren lassen den Quellzustand erhalten.
+- Tests auf Honor PTP-N49 / Android 16: `modelMenuMoveSelectedGroupToAnotherPlatePreservesObjectsAndFilaments` 1/1; `selectedGroupCanBeDuplicatedWithItsFilamentsAndDroppedTogetherOnBed` 1/1; `placedObjectGroupRemainsPrintableAfterSurfacePlacement` 1/1 mit Roundtrip und G-Code-Materialwechsel.
+- JVM-Suiten: Debug 621/621, Slice 621/621, keine Fehler oder übersprungenen Tests. `git diff --check` bestanden.
+- Aktueller Code-HEAD vor diesem Änderungssatz: `e0268805ad1bb60017636cf5ae49479364455f18`; Branch `codex/rinkhals-safe-start-audit`; PR #2 offen. Die drei Implementierungsdateien sind noch nicht committed.
+- Noch offen: gebündelter Debug-Build/Installation nach dem Patch, Commit und Push auf PR #2. UI 2.0 bleibt insgesamt in der Modellbearbeitungs-/Menüabnahme; nächste Aufgabe nach Sicherung: weitere Mehrfachauswahl-Aktionen und Undo/Redo-/3MF-Roundtrip-Regression prüfen.
+
 # STEP/STP-Öffnungsfix — 2026-10-23
 
 - Aktuelle Phase: Funktionsfehlerbehebung und Verifikation; OrkanSlicer UI 2.0 bleibt in der aktiven Modellbearbeitungs-/Menüabnahme.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.356
+
+- Move all selected model objects to another build plate together, preserving separate objects, their filament assignments, and relative placement.
+- Capture the selection on the GL thread and keep the source plate unchanged if the target plate cannot be loaded or copied.
+- Verify group transfer and plate reload on Honor PTP-N49 / Android 16; group duplication, bed placement, and multipart slicing to material-aware G-code remain covered.
+
 ## 0.8.355
 
 - Fix opening STEP/STP files shared by Android file apps that provide the URI only in `ClipData` instead of `EXTRA_STREAM`.

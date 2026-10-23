@@ -220,7 +220,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     dismiss()
                     val target = targets.getOrNull(which) ?: return@ModelChoiceDialog
                     if (target !in 0 until fragment.plateCount || target == fragment.currentPlateIndex) return@ModelChoiceDialog
-                    fragment.moveSelectedObjectToPlate(target) {
+                    fragment.moveSelectedObjectsToPlate(target) {
                         Toast.makeText(
                             context,
                             context.getString(R.string.MenuFileMovedToPlate, (target + 1).toString()),

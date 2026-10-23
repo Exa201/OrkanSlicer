@@ -3264,6 +3264,100 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuMoveSelectedGroupToAnotherPlatePreservesObjectsAndFilaments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-move-selected-group-to-plate-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.setUniformFilament(0, 2)
+                model.setUniformFilament(1, 3)
+                model.translate(1, 42.0, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("both objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            assertEquals(2, readObjectCountOnGl(glView))
+            val sourceBounds = readExactBoundsOnGl(glView, 0, 1)
+            assertArrayEquals(intArrayOf(2), readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals(intArrayOf(3), readUsedFilamentsOnGl(glView, 1))
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.plateCount == 2 && bed.currentPlateIndex == 1
+            }
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 2
+            }
+            glView.selectModels(intArrayOf(0, 1))
+            compose.waitUntil(timeoutMillis = 5_000) {
+                readSelectedIndicesOnGl(glView).contentEquals(intArrayOf(0, 1))
+            }
+
+            openModelMenu(activity)
+            revealMenuAction(activity, R.string.ModelMenuMoveToPlate)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuMoveToPlateShort))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithText(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                bed.currentPlateIndex == 1 && readObjectCountOnGl(glView) == 2 &&
+                    readSelectedIndicesOnGl(glView).contentEquals(intArrayOf(0, 1))
+            }
+
+            assertEquals("moving a group must keep the workspace plate count", 2, bed.plateCount)
+            assertArrayEquals("the first moved model keeps its filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("the second moved model keeps its own filament", intArrayOf(3),
+                readUsedFilamentsOnGl(glView, 1))
+            val targetBounds = readExactBoundsOnGl(glView, 0, 1)
+            assertEquals("the transfer must preserve the objects' relative X placement",
+                sourceBounds[1][0] - sourceBounds[0][0], targetBounds[1][0] - targetBounds[0][0], 0.03)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 0
+            }
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "2"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 1 && readObjectCountOnGl(glView) == 2
+            }
+            assertArrayEquals("both per-object material assignments survive a plate reload", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("the second material assignment survives a plate reload", intArrayOf(3),
+                readUsedFilamentsOnGl(glView, 1))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelMenuDeleteAllCancelAndBackPreserveTheLoadedModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
