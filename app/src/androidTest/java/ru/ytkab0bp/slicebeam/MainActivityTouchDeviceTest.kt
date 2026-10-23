@@ -25,6 +25,9 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.OrientationPositionMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelMenuItems
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceUploadController
+import ru.ytkab0bp.slicebeam.components.FastenerFormLogic
+import ru.ytkab0bp.slicebeam.utils.FastenerStandards
+import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
@@ -37,7 +40,7 @@ import ru.ytkab0bp.slicebeam.view.GLView
 @RunWith(AndroidJUnit4::class)
 class MainActivityTouchDeviceTest {
     @Test
-    fun tappingModelAndEmptyPlateDoesNotOpenModelMenuAndLongPressKeepsActionsCollapsed() {
+    fun tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val application = context.applicationContext as Application
@@ -61,11 +64,20 @@ class MainActivityTouchDeviceTest {
         }
         SliceBeam.CONFIG = config
 
-        val modelFile = File(context.cacheDir, "touch-test-cube.stl")
+        val modelFile = File(context.cacheDir, "touch-test-m12-bolt.stl")
         val loadedModelRef = AtomicReference<Model?>()
         val loadFailure = AtomicReference<Exception?>()
         val loadFinished = CountDownLatch(1)
-        context.assets.open("models/xyz_cube.stl").use { source -> modelFile.outputStream().use(source::copyTo) }
+        val fastenerValues = FastenerFormLogic.defaults(size = FastenerStandards.count() - 1)
+        assertEquals(null, FastenerFormLogic.validate(fastenerValues))
+        val expectedFacets = FastenerStlWriter.writeBolt(
+            modelFile,
+            FastenerStandards.diameter(fastenerValues.size),
+            FastenerFormLogic.parse(fastenerValues.second),
+            FastenerFormLogic.parse(fastenerValues.first),
+            FastenerFormLogic.parse(fastenerValues.fourth),
+            FastenerFormLogic.parse(fastenerValues.third),
+        )
 
         val scenario = ActivityScenario.launch(MainActivity::class.java)
         try {
@@ -90,6 +102,8 @@ class MainActivityTouchDeviceTest {
             assertTrue("The touch test model should finish loading", loadFinished.await(60, TimeUnit.SECONDS))
             val model = loadedModelRef.get() ?: throw AssertionError("The touch test model failed to load", loadFailure.get())
             assertEquals("The workspace should contain the touch target", 1, model.objectsCount)
+            assertEquals("The M12 touch target should retain its generated facets", expectedFacets,
+                model.getTriangleCount(0))
             var hitPoint: Pair<Float, Float>? = null
             var viewport: GLView? = null
             var viewportDescription = "not measured"
@@ -384,9 +398,16 @@ class MainActivityTouchDeviceTest {
                     .getDeclaredMethod("showSimplifyDialog", android.view.View::class.java)
                     .apply { isAccessible = true }
                 simplify.invoke(items, requireNotNull(viewport))
-                assertTrue("Simplification choices should attach as a Compose workspace dialog",
-                    workspace.isWorkspaceMessageDialogAttached())
             }
+            val simplifyDialogDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (!requireNotNull(bed).isWorkspaceMessageDialogAttached() &&
+                SystemClock.uptimeMillis() < simplifyDialogDeadline
+            ) {
+                instrumentation.waitForIdleSync()
+                SystemClock.sleep(40L)
+            }
+            assertTrue("Simplification choices should attach as a Compose workspace dialog",
+                requireNotNull(bed).isWorkspaceMessageDialogAttached())
             instrumentation.waitForIdleSync()
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             instrumentation.waitForIdleSync()
