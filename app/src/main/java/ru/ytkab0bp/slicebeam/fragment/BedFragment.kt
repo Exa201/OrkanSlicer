@@ -42,6 +42,7 @@ import ru.ytkab0bp.slicebeam.components.ModelContextMenuDialog
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.components.SliceProgressDialog
 import ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.components.KromacutEditorMenu
 import ru.ytkab0bp.slicebeam.components.WorkspaceFilamentPaletteSheet
@@ -577,7 +578,14 @@ fun moveSelectedObjectToPlate(targetPlateIndex:Int, onComplete:Runnable) =
     moveSelectedObjectsToPlate(targetPlateIndex, onComplete)
 
 /** Move the complete current selection to another workspace plate without flattening its objects. */
-fun moveSelectedObjectsToPlate(targetPlateIndex:Int, onComplete:Runnable) {
+fun moveSelectedObjectsToPlate(targetPlateIndex: Int, onComplete: Runnable) =
+    moveSelectedObjectsToPlateInternal(targetPlateIndex, onComplete, null)
+
+internal fun moveSelectedObjectsToPlateInternal(
+    targetPlateIndex: Int,
+    onComplete: Runnable,
+    expectedSelection: ModelSelectionSnapshot?,
+) {
     val viewport = glView ?: return
     val sourcePlateIndex = currentPlateIndex
     val sourceModel = currentModel ?: return
@@ -586,7 +594,14 @@ fun moveSelectedObjectsToPlate(targetPlateIndex:Int, onComplete:Runnable) {
     // Selection is renderer state and must be read on the GL thread. Keep a stable copy while
     // switchPlate clears the selection and may lazily load a project plate.
     viewport.queueEvent {
-        if (viewport.renderer.model !== sourceModel) return@queueEvent
+        if (viewport.renderer.model !== sourceModel ||
+            (expectedSelection != null && !viewport.renderer.isSelectionSnapshotCurrent(expectedSelection))
+        ) {
+            if (expectedSelection != null) ViewUtils.postOnMainThread {
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+            }
+            return@queueEvent
+        }
         val selectedIndices = viewport.renderer.selectedObjectIndices()
             .filter { it in 0 until sourceModel.objectsCount }
             .toIntArray()
@@ -2537,24 +2552,40 @@ glView!!.requestRender()
 ViewUtils.postOnMainThread({ SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent()) }) })
 }
 /** Split the selected object into separate objects while preserving the imported layout. */
- fun splitSelectedObject() {
-val idx = glView!!.renderer.selectedObject
-val model = glView!!.renderer.model
-if (model == null || idx == -1) return
-glView!!.queueEvent({ val count = model.split(idx)
-if (count <= 1)
-{
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuToolbarSplitNothing))
-return@queueEvent
-}
-glView!!.renderer.setSelectedObject(-1)
-glView!!.renderer.resetGlModels()
-glView!!.requestRender()
-ViewUtils.postOnMainThread({ updateModel()
-SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent())
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-SliceBeam.INSTANCE!!.getResources().getQuantityString(
-R.plurals.MenuToolbarSplitDone, count, count))) }) })
+fun splitSelectedObject() = splitSelectedObjectInternal(null)
+
+internal fun splitSelectedObjectInternal(expectedSelection: ModelSelectionSnapshot?) {
+    val viewport = glView ?: return
+    viewport.queueEvent {
+        val renderer = viewport.renderer
+        val snapshot = expectedSelection ?: renderer.captureSelectionSnapshot() ?: return@queueEvent
+        if (!renderer.isSelectionSnapshotCurrent(snapshot)) {
+            ViewUtils.postOnMainThread {
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+            }
+            return@queueEvent
+        }
+        val count = runCatching { snapshot.model.split(snapshot.primaryObject) }.getOrElse { error ->
+            Log.e("BedFragment", "Could not split selected model", error)
+            0
+        }
+        if (count <= 1) {
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuToolbarSplitNothing))
+            return@queueEvent
+        }
+        renderer.setSelectedObject(-1)
+        renderer.resetGlModels()
+        viewport.requestRender()
+        ViewUtils.postOnMainThread {
+            updateModel()
+            SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent())
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                SliceBeam.INSTANCE!!.getResources().getQuantityString(
+                    R.plurals.MenuToolbarSplitDone, count, count,
+                ),
+            ))
+        }
+    }
 }
 companion object {
 /** Printer-profile fallback used before the workspace GL surface has configured its native bed. */

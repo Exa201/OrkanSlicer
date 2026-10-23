@@ -16,9 +16,6 @@ import java.util.Locale
 
 /** Kotlin-owned object selection, duplication, filament and plate actions for the live File menu. */
 class FileMenuObjectActions(private val fragment: BedFragment) {
-    private fun hasSelection(): Boolean =
-        fragment.glView?.renderer?.let { it.selectedObject != -1 && it.model != null } == true
-
     private fun captureSelection(
         view: View,
         allowEmpty: Boolean = false,
@@ -46,20 +43,23 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
 
     fun showCopyMoveDialog(view: View) {
         val context = view.context
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelChoiceDialog(
-                title = context.getString(R.string.MenuFileCopyMove),
-                cancelLabel = context.getString(android.R.string.cancel),
-                choices = listOf(
-                    context.getString(R.string.MenuFileDuplicateCount),
-                    context.getString(R.string.MenuFileMoveToPlate),
-                ),
-                onDismiss = dismiss,
-                onSelect = { which ->
-                    dismiss()
-                    if (which == 0) showDuplicateDialog(view) else showMoveToPlateDialog(view)
-                },
-            )
+        captureSelection(view) { viewport, snapshot ->
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = context.getString(R.string.MenuFileCopyMove),
+                    cancelLabel = context.getString(android.R.string.cancel),
+                    choices = listOf(
+                        context.getString(R.string.MenuFileDuplicateCount),
+                        context.getString(R.string.MenuFileMoveToPlate),
+                    ),
+                    onDismiss = dismiss,
+                    onSelect = { which ->
+                        dismiss()
+                        if (which == 0) showDuplicateDialog(view, viewport, snapshot)
+                        else showMoveToPlateDialog(view, snapshot)
+                    },
+                )
+            }
         }
     }
 
@@ -119,29 +119,35 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
     }
 
     fun showSelectedObjectActions(view: View) {
-        if (!hasSelection()) return
         val context = view.context
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelChoiceDialog(
-                title = context.getString(R.string.MenuFileObjectActions),
-                cancelLabel = context.getString(android.R.string.cancel),
-                choices = listOf(
-                    context.getString(R.string.MenuFileDuplicateCount),
-                    context.getString(R.string.MenuFileMoveToPlate),
-                    context.getString(R.string.MenuToolbarSplit),
-                    context.getString(R.string.MenuFileDelete),
-                ),
-                onDismiss = dismiss,
-                onSelect = { which ->
-                    dismiss()
-                    when (which) {
-                        0 -> showDuplicateDialog(view)
-                        1 -> showMoveToPlateDialog(view)
-                        2 -> fragment.splitSelectedObject()
-                        3 -> fragment.glView?.deleteSelectedModels(fragment::updateModel)
-                    }
-                },
-            )
+        captureSelection(view) { viewport, snapshot ->
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = context.getString(R.string.MenuFileObjectActions),
+                    cancelLabel = context.getString(android.R.string.cancel),
+                    choices = listOf(
+                        context.getString(R.string.MenuFileDuplicateCount),
+                        context.getString(R.string.MenuFileMoveToPlate),
+                        context.getString(R.string.MenuToolbarSplit),
+                        context.getString(R.string.MenuFileDelete),
+                    ),
+                    onDismiss = dismiss,
+                    onSelect = { which ->
+                        dismiss()
+                        when (which) {
+                            0 -> showDuplicateDialog(view, viewport, snapshot)
+                            1 -> showMoveToPlateDialog(view, snapshot)
+                            2 -> fragment.splitSelectedObjectInternal(snapshot)
+                            3 -> viewport.deleteSelectedModelsIfCurrent(snapshot) { removed ->
+                                when {
+                                    removed == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                                    removed > 0 -> fragment.updateModel()
+                                }
+                            }
+                        }
+                    },
+                )
+            }
         }
     }
 
@@ -207,45 +213,55 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
     }
 
     fun showDuplicateDialog(view: View) {
-        val context = view.context
         captureSelection(view) { viewport, snapshot ->
-            fragment.showWorkspaceComposeDialog { dismiss ->
-                DuplicateModelDialog(
-                    title = context.getString(R.string.MenuFileDuplicateCount),
-                    hint = context.getString(R.string.MenuFileDuplicateCountHint),
-                    confirmLabel = context.getString(R.string.ModelContextDuplicate),
-                    cancelLabel = context.getString(android.R.string.cancel),
-                    onDismiss = dismiss,
-                    onConfirm = { copies ->
-                        dismiss()
-                        viewport.duplicateSelectedModelsIfCurrent(copies, snapshot) { addedCopies ->
-                            when {
-                                addedCopies == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
-                                addedCopies > 0 -> {
-                                    fragment.updateModel()
-                                    Toast.makeText(
-                                        context,
-                                        context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, addedCopies, addedCopies),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                }
-                                else -> Toast.makeText(context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+            showDuplicateDialog(view, viewport, snapshot)
+        }
+    }
+
+    private fun showDuplicateDialog(
+        view: View,
+        viewport: ru.ytkab0bp.slicebeam.view.GLView,
+        snapshot: ModelSelectionSnapshot,
+    ) {
+        val context = view.context
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            DuplicateModelDialog(
+                title = context.getString(R.string.MenuFileDuplicateCount),
+                hint = context.getString(R.string.MenuFileDuplicateCountHint),
+                confirmLabel = context.getString(R.string.ModelContextDuplicate),
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onConfirm = { copies ->
+                    dismiss()
+                    viewport.duplicateSelectedModelsIfCurrent(copies, snapshot) { addedCopies ->
+                        when {
+                            addedCopies == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                            addedCopies > 0 -> {
+                                fragment.updateModel()
+                                Toast.makeText(
+                                    context,
+                                    context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, addedCopies, addedCopies),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                             }
+                            else -> Toast.makeText(context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
                         }
-                    },
-                )
-            }
+                    }
+                },
+            )
         }
     }
 
     fun showMoveToPlateDialog(view: View) {
-        if (!hasSelection()) return
+        captureSelection(view) { _, snapshot -> showMoveToPlateDialog(view, snapshot) }
+    }
+
+    private fun showMoveToPlateDialog(view: View, snapshot: ModelSelectionSnapshot) {
         val plateCount = fragment.plateCount
         if (plateCount < 2) {
             Toast.makeText(view.context, R.string.MenuFileMoveNoOtherPlate, Toast.LENGTH_SHORT).show()
             return
         }
-
         val context = view.context
         val source = fragment.currentPlateIndex
         val targets = (0 until plateCount).filter { it != source }
@@ -260,13 +276,13 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     dismiss()
                     val target = targets.getOrNull(which) ?: return@ModelChoiceDialog
                     if (target !in 0 until fragment.plateCount || target == fragment.currentPlateIndex) return@ModelChoiceDialog
-                    fragment.moveSelectedObjectsToPlate(target) {
+                    fragment.moveSelectedObjectsToPlateInternal(target, Runnable {
                         Toast.makeText(
                             context,
                             context.getString(R.string.MenuFileMovedToPlate, (target + 1).toString()),
                             Toast.LENGTH_SHORT,
                         ).show()
-                    }
+                    }, snapshot)
                 },
             )
         }

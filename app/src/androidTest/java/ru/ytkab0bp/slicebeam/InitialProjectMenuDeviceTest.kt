@@ -452,6 +452,69 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun selectedObjectActionDialogRejectsStaleSplitAndDelete() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "selected-object-actions-stale-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 18.0, 0.0, 0.0)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two selected-action test objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            val actions = FileMenuObjectActions(bed)
+
+            compose.runOnUiThread { actions.showSelectedObjectActions(glView) }
+            compose.onNodeWithTag("model-choice-option-2").assertIsDisplayed()
+            val changedForSplit = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(1)
+                changedForSplit.countDown()
+            }
+            assertTrue("selection change before Split must complete on GL", changedForSplit.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("model-choice-option-2").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertEquals("stale Split must keep both objects", 2, readObjectCountOnGl(glView))
+            assertEquals("stale Split must keep the replacement selection", 1, readSelectedObjectOnGl(glView))
+
+            clearWorkspaceSnackbars(bed)
+            compose.runOnUiThread { actions.showSelectedObjectActions(glView) }
+            compose.onNodeWithTag("model-choice-option-3").assertIsDisplayed()
+            val changedForDelete = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(0)
+                changedForDelete.countDown()
+            }
+            assertTrue("selection change before Delete must complete on GL", changedForDelete.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("model-choice-option-3").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertEquals("stale Delete must keep both objects", 2, readObjectCountOnGl(glView))
+            assertEquals("stale Delete must keep the replacement selection", 0, readSelectedObjectOnGl(glView))
+
+            clearWorkspaceSnackbars(bed)
+            compose.runOnUiThread { actions.showSelectedObjectActions(glView) }
+            compose.onNodeWithTag("model-choice-option-3").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals("confirmed Delete should remove the captured object", 1, readObjectCountOnGl(glView))
+            assertEquals("confirmed Delete should clear the selected object", -1, readSelectedObjectOnGl(glView))
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun placeOnObjectDialogRejectsChangedSelectionWithoutMovingOrCombiningObjects() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
