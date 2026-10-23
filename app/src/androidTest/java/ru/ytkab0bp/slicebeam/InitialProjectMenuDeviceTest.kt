@@ -2051,6 +2051,8 @@ class InitialProjectMenuDeviceTest {
                 prepared.countDown()
             }
             assertTrue("multipart test objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            assertEquals("all three source objects should exist before opening the list", 3,
+                readObjectCountOnGl(glView))
             compose.runOnUiThread { bed.updateModel() }
             instrumentationWaitForGlIdle()
 
@@ -2060,8 +2062,8 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.WorkspaceObjects))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithTag("model-objects-group-selection-toggle").performClick()
-            compose.onNodeWithTag("model-object-row-1").performClick()
-            compose.onNodeWithTag("model-object-row-2").performClick()
+            compose.onNodeWithTag("model-object-row-1").performScrollTo().performClick()
+            compose.onNodeWithTag("model-object-row-2").performScrollTo().performClick()
             compose.onNodeWithTag("model-objects-selection-confirm").performClick()
             compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.selectedObjectsCount == 3 }
 
