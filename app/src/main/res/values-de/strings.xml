@@ -245,6 +245,13 @@
     <string name="ModelMenuAlignCenterY">Y-Mittelpunkte ausrichten</string>
     <string name="ModelMenuAlignBaseZ">Standflächen auf Z ausrichten</string>
     <string name="ModelMenuAlignDone">Ausgewählte Objekte ausgerichtet</string>
+    <string name="ModelMenuDistributeSelected">Ausgewählte Objekte verteilen</string>
+    <string name="ModelMenuDistributeX">Entlang X verteilen</string>
+    <string name="ModelMenuDistributeY">Entlang Y verteilen</string>
+    <string name="ModelMenuDistributeZ">Entlang Z verteilen</string>
+    <string name="ModelMenuDistributeHint">Die beiden äußeren Objekte bleiben an ihrer Position. Die übrigen erhalten gleiche Abstände. Z bewegt Modelle vertikal und kann sie über dem Druckbett schweben lassen; prüfe die Platzierung vor dem Slicen.</string>
+    <string name="ModelMenuDistributeDone">Ausgewählte Objekte verteilt</string>
+    <string name="ModelMenuDistributeNoSpace">Wähle mindestens drei Objekte mit genügend Platz zum Verteilen.</string>
     <string name="ModelMenuFillBed">Druckplatte mit Kopien dieses Modells füllen</string>
     <string name="ModelMenuArrange">Alle Modelle automatisch auf der Druckplatte anordnen</string>
     <string name="ModelMenuOrientAll">Alle Modelle automatisch ausrichten</string>

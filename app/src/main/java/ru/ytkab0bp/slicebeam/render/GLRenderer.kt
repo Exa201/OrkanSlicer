@@ -27,6 +27,8 @@ import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
+import ru.ytkab0bp.slicebeam.slic3r.ObjectGroupDistribution
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacementDelta
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
@@ -363,6 +365,35 @@ fun alignSelectedObjects(axis: ModelAlignmentAxis): Boolean {
         changed = true
     }
     if (!changed) return false
+    activeModel.resetBoundingBox()
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Distribute three or more selected objects with equal clear gaps along one axis. GL-thread only. */
+fun distributeSelectedObjects(axis: ObjectDistributionAxis): Boolean {
+    val activeModel = model ?: return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.size < 3) return false
+    val bounds = LinkedHashMap<Int, ObjectBounds3D>(indices.size)
+    for (index in indices) {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        val item = ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+        if (ObjectPlacement.enclosing(listOf(item)) == null) return false
+        bounds[index] = item
+    }
+    // Plan the entire operation before mutating native state, so invalid or crowded layouts
+    // cannot leave a partially distributed selection.
+    val deltas = ObjectGroupDistribution.plan(bounds, axis) ?: return false
+    val changed = deltas.filterValues { delta ->
+        kotlin.math.abs(delta.x) > 1e-9 || kotlin.math.abs(delta.y) > 1e-9 || kotlin.math.abs(delta.z) > 1e-9
+    }
+    if (changed.isEmpty()) return false
+    changed.forEach { (index, delta) ->
+        activeModel.translate(index, delta.x, delta.y, delta.z)
+        invalidateGlModel(index)
+    }
     activeModel.resetBoundingBox()
     prepareSelectionTransformPreview()
     glView.requestRender()

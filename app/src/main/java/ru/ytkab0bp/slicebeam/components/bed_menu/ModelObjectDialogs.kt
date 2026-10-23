@@ -129,6 +129,7 @@ internal fun ModelChoiceDialog(
     title: String,
     cancelLabel: String,
     choices: List<String>,
+    hint: String? = null,
     onDismiss: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
@@ -136,14 +137,17 @@ internal fun ModelChoiceDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            LazyColumn(
-                Modifier.fillMaxWidth().heightIn(max = 480.dp)
-                    .testTag("model-choice-dialog-options"),
-            ) {
-                itemsIndexed(choices) { index, label ->
-                    TextButton(onClick = { onSelect(index) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                        .testTag("model-choice-option-$index")) {
-                        Text(label, Modifier.fillMaxWidth())
+            Column {
+                hint?.let { Text(it, Modifier.padding(bottom = 8.dp)) }
+                LazyColumn(
+                    Modifier.fillMaxWidth().heightIn(max = 480.dp)
+                        .testTag("model-choice-dialog-options"),
+                ) {
+                    itemsIndexed(choices) { index, label ->
+                        TextButton(onClick = { onSelect(index) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                            .testTag("model-choice-option-$index")) {
+                            Text(label, Modifier.fillMaxWidth())
+                        }
                     }
                 }
             }

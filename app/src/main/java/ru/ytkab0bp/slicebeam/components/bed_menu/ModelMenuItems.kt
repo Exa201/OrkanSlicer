@@ -8,6 +8,7 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
+import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
 internal class ModelMenuItems(
@@ -57,6 +58,9 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuAlignSelected, R.drawable.grid_layout_outline_28, { anchor ->
                 showAlignmentDialog(anchor)
             }, enabled = selectedCount >= 2),
+            BedComposeMenuAction(R.string.ModelMenuDistributeSelected, R.drawable.grid_layout_outline_28, { anchor ->
+                showDistributionDialog(anchor)
+            }, enabled = selectedCount >= 3),
             BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
                 val glView = fragment.glView ?: return@BedComposeMenuAction
                 fragment.showWorkspaceMessageDialog(
@@ -238,6 +242,41 @@ internal class ModelMenuItems(
                         if (aligned) {
                             fragment.updateModel()
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuAlignDone))
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    private fun showDistributionDialog(anchor: android.view.View) {
+        val glView = fragment.glView ?: return
+        val labels = listOf(
+            anchor.context.getString(R.string.ModelMenuDistributeX),
+            anchor.context.getString(R.string.ModelMenuDistributeY),
+            anchor.context.getString(R.string.ModelMenuDistributeZ),
+        )
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = anchor.context.getString(R.string.ModelMenuDistributeSelected),
+                hint = anchor.context.getString(R.string.ModelMenuDistributeHint),
+                cancelLabel = anchor.context.getString(android.R.string.cancel),
+                choices = labels,
+                onDismiss = dismiss,
+                onSelect = { choice ->
+                    dismiss()
+                    val axis = when (choice) {
+                        0 -> ObjectDistributionAxis.X
+                        1 -> ObjectDistributionAxis.Y
+                        2 -> ObjectDistributionAxis.Z
+                        else -> return@ModelChoiceDialog
+                    }
+                    glView.distributeSelectedObjects(axis) { distributed ->
+                        if (distributed) {
+                            fragment.updateModel()
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuDistributeDone))
+                        } else {
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuDistributeNoSpace))
                         }
                     }
                 },

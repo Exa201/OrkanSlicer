@@ -255,6 +255,13 @@
     <string name="ModelMenuAlignCenterY">Align Y centers</string>
     <string name="ModelMenuAlignBaseZ">Align bases (Z)</string>
     <string name="ModelMenuAlignDone">Selected objects aligned</string>
+    <string name="ModelMenuDistributeSelected">Distribute selected objects</string>
+    <string name="ModelMenuDistributeX">Distribute along X</string>
+    <string name="ModelMenuDistributeY">Distribute along Y</string>
+    <string name="ModelMenuDistributeZ">Distribute along Z</string>
+    <string name="ModelMenuDistributeHint">Keeps the two outer objects in place and spaces the others evenly. Z moves models vertically and may leave them floating above the bed; check placement before slicing.</string>
+    <string name="ModelMenuDistributeDone">Selected objects distributed</string>
+    <string name="ModelMenuDistributeNoSpace">Select at least three objects with enough room to distribute them.</string>
     <string name="ModelMenuFillBed">Fill the plate with copies of this model</string>
     <string name="ModelMenuArrange">Automatically arrange all models on the plate</string>
     <string name="ModelMenuOrientAll">Auto-orient all models</string>

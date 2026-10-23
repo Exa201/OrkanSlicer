@@ -51,6 +51,13 @@
     <string name="ModelMenuAlignCenterY">Выровнять центры по Y</string>
     <string name="ModelMenuAlignBaseZ">Выровнять основания по Z</string>
     <string name="ModelMenuAlignDone">Выбранные объекты выровнены</string>
+    <string name="ModelMenuDistributeSelected">Распределить выбранные объекты</string>
+    <string name="ModelMenuDistributeX">Распределить по X</string>
+    <string name="ModelMenuDistributeY">Распределить по Y</string>
+    <string name="ModelMenuDistributeZ">Распределить по Z</string>
+    <string name="ModelMenuDistributeHint">Два крайних объекта остаются на месте, остальные распределяются равномерно. Ось Z перемещает модели по высоте и может оставить их над столом; проверьте положение перед нарезкой.</string>
+    <string name="ModelMenuDistributeDone">Выбранные объекты распределены</string>
+    <string name="ModelMenuDistributeNoSpace">Выберите не менее трёх объектов с достаточным местом для распределения.</string>
     <string name="ModelMenuArrange">Расположить модели на столе</string>
     <string name="ModelMenuOrientAll">Автоориентировать все модели</string>
     <string name="ModelMenuAutoOrientSelected">Автоориентировать выбранную модель</string>

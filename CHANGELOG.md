@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.354
+
+- Add equal-gap distribution of three or more selected objects along X, Y, and Z, keeping the outer objects in place and rejecting layouts without enough space.
+- Warn before Z distribution because it can leave models floating above the bed; no automatic print preparation or bed correction is applied.
+- Show an unsupported-file message for unknown file:// extensions instead of opening a document picker that cannot help with that file.
+- Verify geometry, unchanged off-axis coordinates, endpoints, no-room rejection, undo/redo, Honor/emulator UI interaction, and native X/Y slicing to extrusion G-code.
+
 ## 0.8.351
 
 - Fix numeric X/Y/Z position edits for multi-selected models: the confirmed move now commits the same translation to every selected object, matching the preview while preserving group spacing.

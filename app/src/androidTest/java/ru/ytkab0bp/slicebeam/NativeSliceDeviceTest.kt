@@ -18,6 +18,8 @@ import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
+import ru.ytkab0bp.slicebeam.slic3r.ObjectGroupDistribution
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
@@ -27,6 +29,56 @@ import java.util.zip.ZipFile
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun xAndYDistributedObjectsRemainOnBedAndProduceExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "distributed-group-slice.stl")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val depth = max.y - min.y
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, width * 2.0, depth * 2.0, 0.0)
+            model.translate(2, width * 6.0, depth * 6.0, 0.0)
+
+            for (axis in listOf(ObjectDistributionAxis.X, ObjectDistributionAxis.Y)) {
+                val bounds = linkedMapOf<Int, ObjectBounds3D>()
+                for (index in 0 until model.objectsCount) {
+                    model.getBoundingBoxExact(index, min, max)
+                    bounds[index] = ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+                }
+                val deltas = requireNotNull(ObjectGroupDistribution.plan(bounds, axis))
+                deltas.forEach { (index, delta) -> model.translate(index, delta.x, delta.y, delta.z) }
+                val dimension = if (axis == ObjectDistributionAxis.X) 0 else 1
+                val gapA = run {
+                    model.getBoundingBoxExact(0, min, max); val endFirst = if (dimension == 0) max.x else max.y
+                    model.getBoundingBoxExact(1, min, max); val startMiddle = if (dimension == 0) min.x else min.y
+                    startMiddle - endFirst
+                }
+                val gapB = run {
+                    model.getBoundingBoxExact(1, min, max); val endMiddle = if (dimension == 0) max.x else max.y
+                    model.getBoundingBoxExact(2, min, max); val startLast = if (dimension == 0) min.x else min.y
+                    startLast - endMiddle
+                }
+                assertEquals("equal clear gaps along $axis", gapA, gapB, 1e-6)
+                for (index in 0 until model.objectsCount) {
+                    model.getBoundingBoxExact(index, min, max)
+                    assertTrue("XY distribution must keep object $index on the bed", min.z >= -0.05)
+                }
+            }
+
+            val gcode = sliceToGcode(context, model, "distributed-group-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test
     fun splitMultipartObjectPreservesEachFilamentAndStillSlices() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

@@ -1,3 +1,21 @@
+# STEP-Dateiöffnung — ClipData-Freigabe, 2026-10-23
+
+- Reproduzierbarer Öffnungsfehler gefunden: Einige Datei-Apps senden `ACTION_SEND` mit einer URI nur in `Intent.clipData`, ohne `EXTRA_STREAM`. `ExternalModelOpenIntent` las für `ACTION_SEND` bislang ausschließlich `EXTRA_STREAM`; die App erhielt dadurch keine Datei.
+- Behoben: `ACTION_SEND` liest nun sowohl URIs aus `ClipData` als auch `EXTRA_STREAM` und dedupliziert sie weiterhin. Der STEP-Tessellierungsdialog bleibt vor dem nativen Import verpflichtend.
+- Verifikation auf Honor PTP-N49 / Android 16: neuer Regressionstest schlug vor dem Fix mit leerer URI-Liste fehl und danach `StepOpenIntentDeviceTest` 2/2 bestanden. Außerdem bestanden: SAF-/Workspace-Host-STEP-Import 1/1, externer VIEW/SEND mit Optionen-vor-Laden und renderbarem Netz 1/1, nativer STEP/STP-Meshimport 1/1; STEP-Options- und Dateinamen-Unittests erfolgreich.
+- Zusätzlich behoben: nicht vorhandene `file://`-Dateien mit unbekannter Endung zeigen jetzt direkt den verständlichen Dateityp-Fehler, statt einen Dokumentpicker ohne nutzbare Auswahl zu öffnen. Der Regressionstest besteht auf Honor.
+- Noch offen: Xiaomi-spezifische Dateimanager-Weitergabe ist nicht direkt auf Xiaomi verifiziert. Die aktuellen Änderungen werden als Version 0.8.354 veröffentlicht.
+
+# Native Slice-Regressionsprüfung der Modellbearbeitung — 2026-10-23
+
+- Neu implementiert: Modellmenü-Aktion „Ausgewählte Objekte verteilen“ für mindestens drei gewählte Objekte, gleichmäßige freie Abstände entlang X/Y/Z, äußere Objekte bleiben an Ort und Stelle. Ungültige/zu enge Auswahl wird vor der Mutation verworfen. Z erklärt vor Auswahl, dass Modelle über dem Bett schweben können.
+- Verifiziert: `ObjectGroupDistributionTest` in beiden JVM-Suiten; `modelMenuDistributesSelectedGroupOnXYZWithUndoRedoAndWarnsForZ` auf Honor PTP-N49 und Emulator je 1/1; `xAndYDistributedObjectsRemainOnBedAndProduceExtrusionGcode` auf Honor und Emulator je 1/1; `InitialProjectMenuDeviceTest` auf Honor 69/69; vollständige Honor-Instrumentierung 330 Tests, 0 fehlgeschlagen, 3 private KromaCut-Fixturetests übersprungen; Debug-Unit 621/621, Slice-Unit 621/621; Debug-Build erfolgreich.
+- Zusätzlich stabilisiert: Menütests suchen Aktionen über ihren Beschriftungstext statt über feste Rasterpositionen. Die zwei direkten `UiAutomation`-Tap-Aufrufe in Compose-Tests wurden durch Semantics-Klicks ersetzt, da Android 16 sonst den Instrumentierungsdienst doppelt verband. Ein temporärer Fehler beim Zwei-Platten-Test bestand isoliert und in der folgenden Gesamtsuite.
+- Aktueller Release-Kandidat: 0.8.354 / versionCode 389. Noch ausstehend: Commit/Push, Build mit endgültigem Commit-Hash, APK-SHA-256 und GitHub-Release. Der Android-16-Emulator ist derzeit offline; die volle Gerätesuite lief auf Honor PTP-N49.
+- Auf aktuellem Branch-HEAD `ebed18e8`: `combinedMultipartObjectKeepsBothFilamentsThroughSlicing`, `booleanResultUsesTargetObjectsFilamentAndStillSlices`, `booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice`, `placedObjectGroupRemainsPrintableAfterSurfacePlacement` und `standalonePrintableTextProducesExtrusionGcode` jeweils 5/5 auf Honor PTP-N49 (Android 16) und Emulator (Android 16), ohne Skip/Fehler. Damit wurden Multipart-Verbinden, Boolean Union/Difference/Intersection, Gruppen-Oberflächenplatzierung und eigenständiger 3D-Text bis zum nativen Slicing/G-Code erneut geprüft.
+- Keine Druckstarts. Der native Slice-/G-Code-Pfad ist durch diese Tests, nicht durch einen realen Druck, bestätigt.
+- Neu geprüft am 2026-10-23: `positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo` bestanden auf Honor PTP-N49 und Android-16-Emulator. Der Dialog **Bearbeiten → Verschieben** unterstützt damit numerische X/Y/Z-Verschiebung für Einzelobjekt und Mehrfachauswahl; Z ändert X/Y nicht und bleibt über Undo/Redo rücknehmbar. `:app:connectedSliceTestAndroidTest` erfolgreich, 1/1 pro Gerät.
+
 # Modellgruppen-Ausrichtung — 2026-10-23
 
 - Implementiert auf `codex/rinkhals-safe-start-audit`: Im Modellmenü kann eine Auswahl von mindestens zwei Objekten über X-Mittelpunkte, Y-Mittelpunkte oder gemeinsame Z-Standfläche ausgerichtet werden. Das primäre Objekt bleibt der Bezug; die jeweils anderen Achsen und Filamentzuweisungen bleiben unverändert. Änderung läuft über den GL-Thread und wird in Undo/Redo aufgenommen.

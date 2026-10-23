@@ -1816,6 +1816,16 @@ if (uri.scheme.equals(ContentResolver.SCHEME_FILE, ignoreCase = true)) {
         // App-private or otherwise readable file:// URLs can use the existing import path.
         loadFile(localFile, false)
     } else {
+        val fileName = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+        val hasExtension = fileName?.substringAfterLast('.', "")?.isNotEmpty() == true
+        if (fileName != null && hasExtension &&
+            !isSupportedModelFile(fileName) && !isGcodeFile(fileName)) {
+            showFileOperationError(
+                getString(R.string.MenuFileOpenFileFailed),
+                getString(R.string.UnsupportedFileType, fileName),
+            )
+            return
+        }
         // Android's scoped storage does not grant access to shared-storage file:// URLs.
         // Ask the user to pick the same document through SAF, which returns a readable content:// URI.
         Toast.makeText(this, R.string.FileUriNeedsDocumentPicker, Toast.LENGTH_LONG).show()
