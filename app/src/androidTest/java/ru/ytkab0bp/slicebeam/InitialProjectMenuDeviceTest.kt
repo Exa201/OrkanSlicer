@@ -5010,7 +5010,9 @@ class InitialProjectMenuDeviceTest {
                 compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDistributeSelected))
                     .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
                 compose.onNodeWithText(activity.getString(R.string.ModelMenuDistributeHint)).assertIsDisplayed()
-                compose.onNodeWithText(activity.getString(label)).assertIsDisplayed().performClick()
+                compose.onNodeWithTag("model-choice-dialog-options").performScrollToIndex(axis)
+                compose.onNodeWithText(activity.getString(label))
+                    .performScrollTo().assertIsDisplayed().performClick()
                 compose.waitUntil(timeoutMillis = 10_000) {
                     val current = bounds()
                     val firstGap = start(current[1], axis) - end(current[0], axis)
