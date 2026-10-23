@@ -1,3 +1,12 @@
+# OrkanSlicer 0.8.365 — Gruppenplatzierung rollback-sicher gemacht — 2026-10-23
+
+- Product build commit: `795f85ffbffad909233c920fd6af39fe74ce02cf`; enthält die getestete Platzierungstransaktion aus `37a1745c`. Version 0.8.365 / versionCode 400.
+- Debug- und Slice-JVM: je 625/625 bestanden, keine Fehler oder übersprungenen Tests. Vier `ModelPlacementTransactionTest`-Fälle verifizieren Commit-Erfolg, negativen Join-Rückgabewert, Exception-Rollback und Rollback bei fehlgeschlagener Bewegung.
+- Honor PTP-N49 / Android 16: Gruppen-Flächenplatzierung (nach abschließendem Cleanup-Fix erneut 1/1), Gruppenverbinden, Boolean-Differenz mit Undo/Redo und eigenständiger 3D-Text jeweils erfolgreich geprüft. STEP/STP auf unverändertem Importcode erneut: 8/8 Gerätefälle, dazu STEP-Dateinamen-/Optionen-JVM-Tests 7/7.
+- `:app:assembleDebug` erfolgreich. APK `OrkanSlicer_795f85ffbf.apk`, 239,425,221 Byte, SHA-256 `437f01187d9252f31d29d47c0bc113c9e3fad47993b848cfb4e83355f76086d6`. Auf Honor installiert; Paket meldet 0.8.365 / code 400; `MainActivity` war im Vordergrund; Logcat-Stichprobe ohne Crash, ANR, OOM oder Fatal Signal.
+- Regulärer GitHub-Release: [v0.8.365](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.365), Asset `OrkanSlicer_795f85ffbf.apk` samt SHA256-Sidecar. GitHub meldet denselben APK-SHA-256. **Tag-Hinweis:** `gh release create` legte den fehlenden Tag auf den Repository-Default-Branch und damit auf `e48f93a6c85ba17076cc20bc0e4f6a360708d762` (`master`), obwohl die APK nachweislich aus `795f85ff` gebaut wurde. Die Tag-Referenz wurde nicht gelöscht oder verschoben.
+- Branch `codex/rinkhals-safe-start-audit` ist auf `795f85ff`; PR #2 offen. Kein Merge, kein Druckstart.
+
 # GL-thread-sichere Reset- und Paint-Menüaktionen — 2026-10-23
 
 # OrkanSlicer 0.8.359 — 2026-10-23
