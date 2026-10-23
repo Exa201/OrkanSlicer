@@ -2,11 +2,11 @@
 
 ## Aktueller Durchgang — STEP/STP-Öffnung und Materialvererbung für Oberflächentext
 
-- Ausgangs-HEAD: `7b13b58788bb8818220e8c4fbc945422096e5618`, Branch `codex/rinkhals-safe-start-audit`, PR #2 offen. App-Version im Quellstand: 0.8.361 / Code 396.
+- Aktueller Code-Commit: `a45bb1f9` auf `codex/rinkhals-safe-start-audit` gepusht; PR #2 aktualisiert und offen. App-Version: 0.8.361 / Code 396.
 - STEP/STP-Ursache: Der ältere Release 0.8.354 verlor Datei-Apps, die bei `ACTION_SEND` die URI ausschließlich in `ClipData` statt `EXTRA_STREAM` übergaben. `ExternalModelOpenIntent` verarbeitet beides; die Korrektur ist ab 0.8.355 veröffentlicht. Aktueller Code deckt zusätzlich MIME-lose und generisch benannte Dokumente, `file://`-zu-SAF-Fallback und verzögert verfügbaren Compose-Dialoghost ab. Kein weiterer Produktcodefehler im STEP-Pfad nachgewiesen.
 - Honor PTP-N49 / Android 16, erneute gezielte Abnahme: Intent-Auflösung/-Extraktion 2/2; STEP/STP-nativer Netzimport 1/1; Projektmenü-Dateiauswahl und später verfügbarer Dialoghost 1/1; Dialogaktionen 2/2; externer `ACTION_VIEW`/ClipData-only-`ACTION_SEND`-Dialog-/Importpfad 1/1. Insgesamt 7/7 gezielte STEP-Fälle bestanden. Keine Druckaktion.
-- Arbeitsbaum enthält zusätzlich die geprüfte native Korrektur, durch die gekrümmter Text das Filament der tatsächlich angetippten Teilfläche eines Multipart-Objekts erbt; Regressionstest prüft 3MF-Rundlauf und T1-G-Code. Die zusammenhängenden nativen Gerätetests bestanden 50/50; Debug-/Slice-JVM-Suiten jeweils 621/621 und Debug-Build erfolgreich (Gradle meldete diese Läufe als aktuell/up-to-date).
-- Nächster Schritt: Änderung zur Filamentvererbung committen und auf Branch/PR #2 pushen; anschließend weitere drei Modellbearbeitungsfunktionen verifizieren. STEP/STP-Änderungen sind in diesem Durchgang nicht erforderlich, da der historische ClipData-Fehler bereits in den veröffentlichten Versionen ab 0.8.355 behoben ist. Xiaomi-Dateimanager bleibt auf Xiaomi selbst unbestätigt.
+- Commit `a45bb1f9` behebt zusätzlich, dass gekrümmter Text das Filament der tatsächlich angetippten Teilfläche eines Multipart-Objekts erbt; der Regressionstest prüft 3MF-Rundlauf und T1-G-Code. Native Modell-/Slicing-Gerätetests 50/50; Debug- und Slice-JVM jeweils 621/621; Debug-Build erfolgreich. APK `OrkanSlicer_a45bb1f9c7.apk`, 239.408.639 Byte, SHA-256 `4E02AB71A1D62D0095DDBFA3287D970ACC1A0AC32AD68F1012AB10F2D1D13ABE`.
+- Nächster Schritt: weitere drei Modellbearbeitungsfunktionen prüfen und testen. STEP/STP benötigt in diesem Durchgang keine neue Codeänderung; der historische ClipData-Fehler ist bereits ab Release 0.8.355 behoben. Der aktuelle STEP-Pfad wurde erneut mit 7/7 Honor-Tests verifiziert. Xiaomi-Dateimanager bleibt auf Xiaomi selbst unbestätigt.
 
 ## Modellierungsarbeit — flächenfolgender Text, 2026-10-23
 
