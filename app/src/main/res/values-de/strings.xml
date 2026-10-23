@@ -240,6 +240,11 @@
     <string name="ModelMenuPlaceGroupOnBed">Ausgewählte Objektgruppe auf die Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedShort">Auf Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Ausgewählte Objekte auf die Platte gestellt</string>
+    <string name="ModelMenuAlignSelected">Ausgewählte Objekte ausrichten</string>
+    <string name="ModelMenuAlignCenterX">X-Mittelpunkte ausrichten</string>
+    <string name="ModelMenuAlignCenterY">Y-Mittelpunkte ausrichten</string>
+    <string name="ModelMenuAlignBaseZ">Standflächen auf Z ausrichten</string>
+    <string name="ModelMenuAlignDone">Ausgewählte Objekte ausgerichtet</string>
     <string name="ModelMenuFillBed">Druckplatte mit Kopien dieses Modells füllen</string>
     <string name="ModelMenuArrange">Alle Modelle automatisch auf der Druckplatte anordnen</string>
     <string name="ModelMenuOrientAll">Alle Modelle automatisch ausrichten</string>

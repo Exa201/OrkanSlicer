@@ -38,6 +38,9 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
+
+enum class ModelAlignmentAxis { CENTER_X, CENTER_Y, BASE_Z }
+
 class GLRenderer(glView:GLView):GLSurfaceView.Renderer {
 var camera = Camera()
 var projectionMatrix = DoubleArray(16)
@@ -314,6 +317,53 @@ fun mirrorSelectedObjects(axis: ModelMirrorAxis): Boolean {
         }
     }
     // Let the next transform preview use the current multi-selection pivot.
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Align the selected group to the primary object's X/Y center or Z base. GL-thread only. */
+fun alignSelectedObjects(axis: ModelAlignmentAxis): Boolean {
+    val activeModel = model ?: return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.size < 2) return false
+    val primary = selectedObject.takeIf { it in indices } ?: indices.first()
+    val bounds = LinkedHashMap<Int, ObjectBounds3D>(indices.size)
+    for (index in indices) {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        val objectBounds = ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+        if (ObjectPlacement.enclosing(listOf(objectBounds)) == null) return false
+        bounds[index] = objectBounds
+    }
+    val reference = bounds[primary] ?: return false
+    val target = when (axis) {
+        ModelAlignmentAxis.CENTER_X -> (reference.minX + reference.maxX) / 2.0
+        ModelAlignmentAxis.CENTER_Y -> (reference.minY + reference.maxY) / 2.0
+        ModelAlignmentAxis.BASE_Z -> reference.minZ
+    }
+    val deltas = indices.associateWith { index ->
+        val item = bounds.getValue(index)
+        when (axis) {
+            ModelAlignmentAxis.CENTER_X -> target - (item.minX + item.maxX) / 2.0
+            ModelAlignmentAxis.CENTER_Y -> target - (item.minY + item.maxY) / 2.0
+            ModelAlignmentAxis.BASE_Z -> target - item.minZ
+        }
+    }
+    if (deltas.values.any { !it.isFinite() }) return false
+    var changed = false
+    for (index in indices) {
+        val delta = deltas.getValue(index)
+        if (kotlin.math.abs(delta) <= 1e-9) continue
+        when (axis) {
+            ModelAlignmentAxis.CENTER_X -> activeModel.translate(index, delta, 0.0, 0.0)
+            ModelAlignmentAxis.CENTER_Y -> activeModel.translate(index, 0.0, delta, 0.0)
+            ModelAlignmentAxis.BASE_Z -> activeModel.translate(index, 0.0, 0.0, delta)
+        }
+        invalidateGlModel(index)
+        changed = true
+    }
+    if (!changed) return false
+    activeModel.resetBoundingBox()
     prepareSelectionTransformPreview()
     glView.requestRender()
     return true

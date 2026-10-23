@@ -46,6 +46,11 @@
     <string name="ModelMenuMoveToPlate">Переместить модель на другую пластину</string>
     <string name="ModelMenuCenterOnBed">Центрировать модель на столе</string>
     <string name="ModelMenuFillBed">Заполнить стол копиями этой модели</string>
+    <string name="ModelMenuAlignSelected">Выровнять выбранные объекты</string>
+    <string name="ModelMenuAlignCenterX">Выровнять центры по X</string>
+    <string name="ModelMenuAlignCenterY">Выровнять центры по Y</string>
+    <string name="ModelMenuAlignBaseZ">Выровнять основания по Z</string>
+    <string name="ModelMenuAlignDone">Выбранные объекты выровнены</string>
     <string name="ModelMenuArrange">Расположить модели на столе</string>
     <string name="ModelMenuOrientAll">Автоориентировать все модели</string>
     <string name="ModelMenuAutoOrientSelected">Автоориентировать выбранную модель</string>

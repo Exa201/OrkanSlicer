@@ -26,6 +26,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.theme.IThemeView
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -212,6 +213,13 @@ fun placeSelectedObjectsOnBed(onComplete: (Boolean) -> Unit) {
         val placed = renderer.placeSelectedObjectsOnBed()
         requestRender()
         ViewUtils.postOnMainThread { onComplete(placed) }
+    }
+}
+fun alignSelectedObjects(axis: ModelAlignmentAxis, onComplete: (Boolean) -> Unit) {
+    queueEvent {
+        val aligned = renderer.alignSelectedObjects(axis)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(aligned) }
     }
 }
 fun deleteAllModels(onComplete:Runnable) {

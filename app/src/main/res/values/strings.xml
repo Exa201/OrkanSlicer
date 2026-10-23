@@ -250,6 +250,11 @@
     <string name="ModelMenuPlaceGroupOnBed">Place selected object group on the bed</string>
     <string name="ModelMenuPlaceGroupOnBedShort">Drop to bed</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Selected objects placed on the bed</string>
+    <string name="ModelMenuAlignSelected">Align selected objects</string>
+    <string name="ModelMenuAlignCenterX">Align X centers</string>
+    <string name="ModelMenuAlignCenterY">Align Y centers</string>
+    <string name="ModelMenuAlignBaseZ">Align bases (Z)</string>
+    <string name="ModelMenuAlignDone">Selected objects aligned</string>
     <string name="ModelMenuFillBed">Fill the plate with copies of this model</string>
     <string name="ModelMenuArrange">Automatically arrange all models on the plate</string>
     <string name="ModelMenuOrientAll">Auto-orient all models</string>

@@ -7,6 +7,7 @@ import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
+import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
 internal class ModelMenuItems(
@@ -53,6 +54,9 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuPlaceOnSurface, R.drawable.view_in_ar_24, { anchor ->
                 showPlaceOnSurfaceDialog(anchor)
             }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > selectedCount),
+            BedComposeMenuAction(R.string.ModelMenuAlignSelected, R.drawable.grid_layout_outline_28, { anchor ->
+                showAlignmentDialog(anchor)
+            }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
                 val glView = fragment.glView ?: return@BedComposeMenuAction
                 fragment.showWorkspaceMessageDialog(
@@ -202,6 +206,38 @@ internal class ModelMenuItems(
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnObjectDone))
                         } else {
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    private fun showAlignmentDialog(anchor: android.view.View) {
+        val glView = fragment.glView ?: return
+        val labels = listOf(
+            anchor.context.getString(R.string.ModelMenuAlignCenterX),
+            anchor.context.getString(R.string.ModelMenuAlignCenterY),
+            anchor.context.getString(R.string.ModelMenuAlignBaseZ),
+        )
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = anchor.context.getString(R.string.ModelMenuAlignSelected),
+                cancelLabel = anchor.context.getString(android.R.string.cancel),
+                choices = labels,
+                onDismiss = dismiss,
+                onSelect = { choice ->
+                    dismiss()
+                    val axis = when (choice) {
+                        0 -> ModelAlignmentAxis.CENTER_X
+                        1 -> ModelAlignmentAxis.CENTER_Y
+                        2 -> ModelAlignmentAxis.BASE_Z
+                        else -> return@ModelChoiceDialog
+                    }
+                    glView.alignSelectedObjects(axis) { aligned ->
+                        if (aligned) {
+                            fragment.updateModel()
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuAlignDone))
                         }
                     }
                 },

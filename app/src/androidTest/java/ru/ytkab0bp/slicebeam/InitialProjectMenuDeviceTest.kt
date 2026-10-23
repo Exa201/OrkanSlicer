@@ -3846,6 +3846,86 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuAlignsSelectedGroupOnXAndYCentersAndZBaseWithUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-group-align-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                model.addObject(model, 0)
+                model.translate(1, 43.0, 29.0, 18.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two objects should be prepared for alignment on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            fun bounds() = readExactBoundsOnGl(glView, 0, 1)
+            fun centersX(value: List<DoubleArray>) = value.map { (it[0] + it[3]) / 2.0 }
+            fun centersY(value: List<DoubleArray>) = value.map { (it[1] + it[4]) / 2.0 }
+            fun invokeAlignment(label: Int) {
+                openSelectedObjectMenu(activity)
+                revealMenuAction(activity, R.string.ModelMenuAlignSelected)
+                compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuAlignSelected))
+                    .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+                val option = activity.getString(label)
+                compose.onNodeWithText(option).assertIsDisplayed().performClick()
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    val current = bounds()
+                    when (label) {
+                        R.string.ModelMenuAlignCenterX -> kotlin.math.abs(centersX(current)[0] - centersX(current)[1]) < 0.02
+                        R.string.ModelMenuAlignCenterY -> kotlin.math.abs(centersY(current)[0] - centersY(current)[1]) < 0.02
+                        else -> kotlin.math.abs(current[0][2] - current[1][2]) < 0.02
+                    }
+                }
+            }
+
+            val initial = bounds()
+            invokeAlignment(R.string.ModelMenuAlignCenterX)
+            val afterX = bounds()
+            assertEquals("X alignment must only change the secondary object's X center",
+                centersX(afterX)[0], centersX(afterX)[1], 0.02)
+            assertEquals("X alignment must preserve Y", centersY(initial)[1], centersY(afterX)[1], 0.02)
+            assertEquals("X alignment must preserve Z", initial[1][2], afterX[1][2], 0.02)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { bounds().zip(initial).all { (a, b) -> a.contentEquals(b) } }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(centersX(bounds())[0] - centersX(bounds())[1]) < 0.02 }
+
+            val beforeY = bounds()
+            invokeAlignment(R.string.ModelMenuAlignCenterY)
+            val afterY = bounds()
+            assertEquals("Y alignment must preserve X", centersX(beforeY)[1], centersX(afterY)[1], 0.02)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(centersY(bounds())[0] - centersY(bounds())[1]) > 0.02 }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(centersY(bounds())[0] - centersY(bounds())[1]) < 0.02 }
+
+            val beforeZ = bounds()
+            invokeAlignment(R.string.ModelMenuAlignBaseZ)
+            val afterZ = bounds()
+            assertEquals("Z-base alignment must preserve X", centersX(beforeZ)[1], centersX(afterZ)[1], 0.02)
+            assertEquals("Z-base alignment must preserve Y", centersY(beforeZ)[1], centersY(afterZ)[1], 0.02)
+            assertEquals("Z-base alignment must align both minimum heights", afterZ[0][2], afterZ[1][2], 0.02)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(beforeZ[0][2] - bounds()[0][2]) < 0.02 }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(bounds()[0][2] - bounds()[1][2]) < 0.02 }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editMeasureMenuActionOpensComposeModeAndAndroidBackClosesIt() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
