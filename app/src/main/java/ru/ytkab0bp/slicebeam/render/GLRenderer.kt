@@ -540,47 +540,42 @@ internal fun placeSelectedObjectsOnSurface(
     position: Vec3d,
     expectedSelection: ModelSelectionSnapshot? = surfacePlacementSelection,
 ): Int {
-    val activeModel = model ?: return -1
-    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) {
+    return try {
+        val activeModel = model ?: return -1
+        if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) {
+            return MODEL_EDIT_STALE_SELECTION
+        }
+        val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+        if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices) {
+            return -1
+        }
+        val min = Vec3d(); val max = Vec3d()
+        fun bounds(index: Int): ObjectBounds3D {
+            activeModel.getBoundingBoxExact(index, min, max)
+            return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+        }
+        val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
+        val delta = ObjectPlacement.onSurface(movingBounds, position) ?: return -1
+        placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+    } finally {
         cancelSurfacePlacement()
-        return MODEL_EDIT_STALE_SELECTION
     }
-    val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
-    if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices) {
-        cancelSurfacePlacement()
-        return -1
-    }
-    val min = Vec3d(); val max = Vec3d()
-    fun bounds(index: Int): ObjectBounds3D {
-        activeModel.getBoundingBoxExact(index, min, max)
-        return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
-    }
-    val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: run {
-        cancelSurfacePlacement()
-        return -1
-    }
-    val delta = ObjectPlacement.onSurface(movingBounds, position) ?: run {
-        cancelSurfacePlacement()
-        return -1
-    }
-    val result = placeAndCombineWithTarget(targetIndex, movingIndices, delta)
-    cancelSurfacePlacement()
-    return result
 }
 
 private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>, delta: ObjectPlacementDelta): Int {
     val activeModel = model ?: return -1
 
-    movingIndices.forEach { index ->
-        activeModel.translate(index, delta.x, delta.y, delta.z)
-        invalidateGlModel(index)
-    }
-    val combined = activeModel.combineObjectsAsParts((movingIndices + targetIndex).toIntArray())
-    if (combined < 0) {
-        movingIndices.forEach { index ->
+    val combined = ModelPlacementTransaction.applyAndCommit(
+        items = movingIndices,
+        apply = { index -> activeModel.translate(index, delta.x, delta.y, delta.z) },
+        rollback = { index ->
             activeModel.translate(index, -delta.x, -delta.y, -delta.z)
             invalidateGlModel(index)
-        }
+        },
+        commit = { activeModel.combineObjectsAsParts((movingIndices + targetIndex).toIntArray()) },
+        onError = { error -> Log.e("GLRenderer", "Could not place and join selected objects; placement rolled back", error) },
+    )
+    if (combined < 0) {
         return combined
     }
     resetGlModels()
