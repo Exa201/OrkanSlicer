@@ -1987,8 +1987,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Installed and launched on Honor PTP-N49 / Android 16; `MainActivity` resumed and the captured Logcat contained no crash, ANR, OOM, or fatal signal. Xiaomi was not connected, so the device-specific reproduction remains pending.
 - PR #2 remains open; official release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.360.
 
-# Follow-up verification — OrkanSlicer 0.8.361
+# Verification — OrkanSlicer 0.8.361, 2026-10-23
 
-- The full Honor PTP-N49 / Android 16 instrumentation run for 0.8.360 executed 347 cases: 343 passed, 3 private KromaCut fixture tests skipped, and 1 failed. The sole failure was `ChangeLogComposeDeviceTest`: the dialog asserted app version 0.8.360 while bundled `app/src/main/assets/update.json` still displayed 0.8.359.
-- Corrected the shipped changelog and bumped to 0.8.361 / code 396. The M12 dense-mesh bounds-picking fix remains unchanged. The corrected changelog and M12 regression require focused re-verification before publishing 0.8.361.
+- Full Honor instrumentation on 0.8.360 executed 347 cases: 343 passed, 3 private KromaCut fixture tests skipped, 1 failed. The failure was a stale embedded changelog version (0.8.359 vs app 0.8.360); the fix updates `app/src/main/assets/update.json` and bumps app version to 0.8.361 / code 396.
+- On the corrected version, `ChangeLogComposeDeviceTest` 1/1 and generated M12 GLView-touch regression 1/1 passed on Honor PTP-N49 / Android 16. The dense-model bounds-picking change is unchanged. Debug/Slice JVM suites remain 621/621 each from the preceding code commit; only release metadata and changelog assets changed in 0.8.361.
+- `:app:assembleDebug` succeeded. APK `OrkanSlicer_4c47f8dd4f.apk`, 239,395,012 bytes, SHA-256 `1FD9436CF8554E1CC9E238C3952440F507D84637B0781934C2F40988B144C979`, built from `4c47f8dd4f761ea46a3d512a4eb5446b4b3503b4`.
+- Installed and cold-started on Honor; MainActivity resumed and captured Logcat contained no crash, ANR, OOM, or fatal signal. Xiaomi was not connected.
+- Official release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.361. PR #2 remains open.
 
