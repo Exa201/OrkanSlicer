@@ -2765,3 +2765,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: 8/8 gebündelte Geräteprüfungen bestanden. Neu: Einzelobjekt-Batch mit 3 Kopien, Filamentübernahme sowie atomarem Undo/Redo; weiterhin erfolgreich: Gruppenbatch, fehlgeschlagene Kontextkopie mit erhaltenem Redo, beide Anordnungsfälle sowie drei Bettfüllfälle.
 - Debug-Unit und Slice-Unit: jeweils 619/619; Debug-APK-Build erfolgreich, aber noch vor dem Commit dieses Kopierbatch-Schritts. `git diff --check` sauber.
 - Nächster Schritt: aktuellen Änderungssatz committen/pushen, APK unter dem resultierenden Commit neu bauen und danach weitere Modellaktionen prüfen. Es wurde kein Release erstellt.
+
+# Aktueller Ausführungsstatus — Modellaktionen (2026-10-23)
+
+- Letzter Code-Commit: `c7885a5a` auf `codex/rinkhals-safe-start-audit`; gepusht, dadurch PR #2 aktualisiert.
+- Debug-APK passend zum Produktionscode-Commit: `app/build/outputs/apk/debug/OrkanSlicer_c7885a5a2c.apk`, 239352791 Bytes, SHA-256 `23F02CACC51E7011D2C22895DDAE317430F5629A1358EDCA4A2E044A97A3086A`.
+- Verifikation des Modellbearbeitungsbündels: Debug-Unit 619/619, Slice-Unit 619/619; Honor PTP-N49 / Android 16: 8/8 gezielte Arrange-, Fill-, Kopier-, Filament-, Undo-/Redo-Tests. Anschließend der gezielte Einzelobjekt-Mehrfachkopie-Rollbacktest und der 3-Kopien-Undo-/Redo-Test: 2/2 bestanden. Platzierung, Verbinden, Text, Boolean und die Slice-/G-Code-Fälle im vorangehenden Paket ebenfalls auf Honor bestanden.
+- Offizieller Release: in diesem Änderungssatz nicht erstellt. Keine tatsächlichen Druckstarts ausgeführt.
+- Nächster konkreter Schritt: die übrigen Modellmenüaktionen auf tatsächliche Zustandsänderung, Undo/Redo und 3MF-/Slice-Auswirkung prüfen; danach den nächsten zusammenhängenden, verifizierten Änderungssatz auf PR #2 sichern.

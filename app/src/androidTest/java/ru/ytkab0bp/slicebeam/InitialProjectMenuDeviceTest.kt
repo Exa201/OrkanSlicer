@@ -944,7 +944,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun duplicateDoesNotKeepCopyWhenArrangeCannotFitTheModel() {
+    fun duplicateBatchDoesNotKeepPartialCopiesWhenArrangeCannotFitTheModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -973,11 +973,11 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.ModelMenuDuplicateShort))
                 .assertIsDisplayed().assertIsEnabled().performClick()
             compose.onNodeWithTag("duplicate-model-count").performTextClearance()
-            compose.onNodeWithTag("duplicate-model-count").performTextInput("1")
+            compose.onNodeWithTag("duplicate-model-count").performTextInput("3")
             compose.onNodeWithTag("duplicate-model-confirm").performClick()
 
             instrumentationWaitForGlIdle()
-            assertEquals("a failed bed arrangement must roll back the duplicate", 1, readObjectCountOnGl(glView))
+            assertEquals("a failed batch must roll back every requested copy", 1, readObjectCountOnGl(glView))
             assertArrayEquals("the failed operation must preserve the source geometry and position",
                 before, readExactBoundsOnGl(glView, 0).single(), 0.03)
         } finally {
