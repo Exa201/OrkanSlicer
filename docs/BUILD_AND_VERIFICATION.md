@@ -1979,3 +1979,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Debug-JVM und Slice-JVM jeweils 621/621 bestanden, 0 Fehler/Fehlschläge/Skips. `:app:assembleDebug` erfolgreich.
 - APK `OrkanSlicer_e411edb611.apk`, Version 0.8.358 / versionCode 393, 239.394.954 Byte, SHA-256 `50851CE1AD8839548A0D0BDB83FA59596166E72F9A07F57B0DA8B041D434AF5B`. Auf Honor installiert und gestartet; `MainActivity` war resumed. Geprüfter Logcat-Ausschnitt ohne Crash-, ANR-, OOM- oder Fatal-Signal-Treffer.
 - Keine echten Druckstarts und keine Firmwareänderung. Die nächste Modellaktionsgruppe ist Objektverbindung, Flächenplatzierung und Booleans.
+# Verification — OrkanSlicer 0.8.360, 2026-10-23
+
+- Fix: dense-model object picking switches to bounds hits above 20,000 triangles, avoiding synchronous native `create_face_neighbors_index` construction during touch. Precise surface paint/placement still requires a simplified mesh.
+- Debug JVM and Slice JVM: 621/621 each, 0 failures/errors/skips. Focused Honor PTP-N49 / Android 16 M12 GLView touch regression: 1/1; targeted `LargeModelPickTest` passed. STEP import/options 7/7 and three model group actions 3/3 had also passed on Honor in this work session.
+- `:app:assembleDebug`: successful. APK `OrkanSlicer_517c8ba39e.apk`, 239,394,884 bytes, SHA-256 `E0D5EA71E7220ACA24640AD64BEDC7FB1AA37D97C1E9743727A8C98F3C568DFFF`, built from code commit `517c8ba39e31b92a8c290503089f410acc5dc53b`.
+- Installed and launched on Honor PTP-N49 / Android 16; `MainActivity` resumed and the captured Logcat contained no crash, ANR, OOM, or fatal signal. Xiaomi was not connected, so the device-specific reproduction remains pending.
+- PR #2 remains open; official release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.360.
+

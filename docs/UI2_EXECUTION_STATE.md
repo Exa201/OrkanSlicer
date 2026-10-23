@@ -1,12 +1,13 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
-## Release-Kandidat — native M12-Touch-Absturzschutz, 2026-10-23
+## Release 0.8.360 — native M12-Touch-Absturzschutz, 2026-10-23
 
 - Änderung: Modelle über 20.000 Dreiecke verwenden zur Objektauswahl eine schnelle Begrenzungsbox statt den nativen Face-Neighbour-Raycaster synchron beim Antippen zu initialisieren. Präzise Flächenmalerei/-platzierung bleibt für solche Netze gesperrt, bis sie vereinfacht wurden.
 - Ursache aus Xiaomi-Fehlerbericht: nativer Absturz in `create_face_neighbors_index` während `GLModel.getRaycaster()` im Touch-Callback. Die bisherige Schwelle von 100.000 Dreiecken ließ die standardmäßig erzeugte M12-Schraube in den riskanten Pfad.
-- Honor PTP-N49 / Android 16: M12-Touchintegration 1/1 (einschließlich Assert, dass der native Index beim Auswählen nicht erstellt wird); `LargeModelPickTest` bestanden; Debug- und Slice-JVM-Suiten bestanden. Xiaomi-Gerät nicht verbunden, daher dort noch nicht bestätigt.
+- Honor PTP-N49 / Android 16: M12-Touchintegration 1/1 (einschließlich Assert, dass der native Index beim Auswählen nicht erstellt wird); `LargeModelPickTest` bestanden; Debug- und Slice-JVM-Suiten je 621/621 bestanden, 0 Fehler/Skips.
 - Zusätzlich in diesem Durchgang: STEP/STP-Picker/Optionen/Import 7/7 gezielt bestanden; Modellgruppe platzieren, XYZ-Ausrichtung und XYZ-Verteilung je 1/1 mit Slicing beziehungsweise Undo/Redo.
-- Release-Kandidat: Version 0.8.360 / Code 395. Vor Veröffentlichung noch Debug-APK bauen, auf Honor installieren/starten, SHA-256 erfassen und PR #2 aktualisieren.
+- Debug-Build erfolgreich. APK `OrkanSlicer_517c8ba39e.apk`, 239.394.884 Byte, SHA-256 `E0D5EA71E7220ACA24640AD64BEDC7FB1AA37D97C1E974372A8C98F3C568DFFF`, Code-Commit `517c8ba39e31b92a8c290503089f410acc5dc53b`. Auf Honor installiert und gestartet; Logcat-Prüfung ohne Crash/ANR/OOM.
+- Xiaomi-Gerät nicht verbunden, daher der gemeldete Xiaomi-Absturz dort noch nicht direkt nachgestellt. PR #2 bleibt offen; Release 0.8.360 soll auf den geprüften Code-Commit verweisen.
 
 - Aktuelle Arbeit: GL-sichere Modellbearbeitung; Branch `codex/rinkhals-safe-start-audit`, PR #2 offen. Offizieller Release `v0.8.359` / code 394 ist veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.359. Tag zeigt auf geprüften Code-Commit `18df3e8b`; Branch-/PR-Kopf ist `c173dd29`.
 - Vereinfachen erfasst Dreiecksanzahl, Modell und Objektwahl jetzt auf dem GL-Thread, bindet einfache und benutzerdefinierte Reduktion an diesen Auswahl-Schnappschuss und verwirft die Aktion, wenn sich Modell, Geometrie oder Auswahl vor der Ausführung geändert haben. Native Vereinfachung und vorhandene Undo/Redo-Historie bleiben erhalten.
