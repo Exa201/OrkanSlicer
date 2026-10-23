@@ -1813,8 +1813,35 @@ private fun loadFile(uri:Uri, stepDetectedFromContent:Boolean) {
 if (uri.scheme.equals(ContentResolver.SCHEME_FILE, ignoreCase = true)) {
     val localFile = uri.path?.let(::File)
     if (localFile?.isFile == true && localFile.canRead()) {
-        // App-private or otherwise readable file:// URLs can use the existing import path.
-        loadFile(localFile, false)
+        // Never pass an externally selected file:// document to the import lifecycle directly:
+        // STEP cancel/failure cleanup deletes its temporary input. Work on an app-owned copy so
+        // cancelling an import can never remove the user's source file.
+        val resolver = getContentResolver()
+        val fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.resolve(
+            localFile.name,
+            uri.path,
+            runCatching { resolver.getType(uri) }.getOrNull(),
+        ) ?: localFile.name
+        val cachedFile = getSafeCachedModelFile(fileName)
+        IOUtils.IO_POOL.submit {
+            try {
+                FileInputStream(localFile).use { input ->
+                    FileOutputStream(cachedFile).use { output -> input.copyTo(output) }
+                }
+                ViewUtils.postOnMainThread {
+                    if (isFinishing || isDestroyed) cachedFile.delete()
+                    else loadFile(cachedFile, false)
+                }
+            } catch (error: Exception) {
+                Log.e("MainActivity", "Failed to copy readable file URI into the model cache", error)
+                cachedFile.delete()
+                ViewUtils.postOnMainThread {
+                    if (!isFinishing && !isDestroyed) showFileOperationError(
+                        getString(R.string.MenuFileOpenFileFailed), error.toString(),
+                    )
+                }
+            }
+        }
     } else {
         val fileName = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
         val hasExtension = fileName?.substringAfterLast('.', "")?.isNotEmpty() == true

@@ -2203,6 +2203,54 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun readableStepFileUriImportsFromOwnedCacheAndNeverDeletesTheSource() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val source = File(activity.cacheDir, "readable-step-uri-${System.nanoTime()}.step")
+        val cached = File(SliceBeam.getModelCacheDir(), source.name)
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("step_cube_ccby4.step").use { input ->
+                source.outputStream().use(input::copyTo)
+            }
+            val openStep = {
+                activity.runOnUiThread {
+                    MainActivity::class.java.getDeclaredMethod("loadFile", Uri::class.java)
+                        .apply { isAccessible = true }
+                        .invoke(activity, Uri.fromFile(source))
+                }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isNotEmpty()
+                }
+            }
+
+            // Cancel proves cleanup only targets the app-owned copy, never the selected file URI.
+            openStep()
+            assertTrue("The original source must still be present while options are shown", source.isFile)
+            assertTrue("STEP import should operate on an app-owned cache copy", cached.isFile)
+            compose.onNodeWithTag("step-import-cancel").performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isEmpty()
+            }
+            assertTrue("Cancelling STEP import must preserve the original file", source.isFile)
+            assertFalse("The cancelled app-owned copy should be cleaned up", cached.exists())
+
+            // Confirm also imports through the cached copy while preserving the user's source.
+            openStep()
+            compose.onNodeWithTag("step-import-confirm").performClick()
+            compose.waitUntil(timeoutMillis = 90_000) {
+                val model = bed.currentModel
+                model != null && model.objectsCount == 1 && model.getTriangleCount(0) > 0
+            }
+            assertTrue("Successful import must leave the original file untouched", source.isFile)
+            assertTrue("The native importer should receive the cached STEP file", cached.isFile)
+        } finally {
+            source.delete()
+            cached.delete()
+        }
+    }
+
+    @Test
     fun externalStepDocumentUriShowsMeshingOptionsBeforeLoadingRenderableModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
