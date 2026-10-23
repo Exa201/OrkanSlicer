@@ -75,6 +75,8 @@ internal fun aiGenerationQuotaProgress(total: Int, generated: Int): Float =
 class FileMenu : ListBedMenu() {
     private var wasPortrait = false
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
+    private var observedBed: BedFragment? = null
+    private var selectionObserver: ModelMenuSelectionObserver? = null
 
     @Composable
     override fun WorkspaceContent(portrait: Boolean) {
@@ -108,17 +110,16 @@ class FileMenu : ListBedMenu() {
         composeActions.value = createComposeActions(wasPortrait)
     }
 
-    private fun hasModel(): Boolean =
-        fragment?.glView?.renderer?.model != null
-
-    private fun hasSelection(): Boolean {
-        val bed = fragment ?: return false
-        return bed.glView!!.renderer.model != null &&
-            bed.glView!!.renderer.selectedObject != -1
+    private fun modelSelectionState(): ModelMenuSelectionState {
+        val bed = fragment ?: return ModelMenuSelectionState()
+        if (observedBed !== bed) {
+            observedBed = bed
+            selectionObserver = ModelMenuSelectionObserver(bed, ::refreshComposeActions)
+        }
+        val observer = selectionObserver ?: return ModelMenuSelectionState()
+        observer.readIfNeeded()
+        return observer.state.value
     }
-
-    private fun hasObjects(): Boolean =
-        (fragment?.glView?.renderer?.model?.objectsCount ?: 0) > 0
 
     private fun showPositionMenu(view: View) {
         val bed = fragment ?: return
@@ -137,17 +138,23 @@ class FileMenu : ListBedMenu() {
 
     private fun openModel(view: View) {
         val bed = fragment ?: return
-        if (!bed.glView!!.renderer.bed!!.isValid()) {
-            Toast.makeText(bed.getContext(), R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
-            return
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            val bedIsValid = glView.renderer.bed?.isValid() == true
+            ViewUtils.postOnMainThread {
+                val activity = bed.getContext() as? Activity ?: return@postOnMainThread
+                if (!bedIsValid) {
+                    Toast.makeText(activity, R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
+                    return@postOnMainThread
+                }
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
+                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                }
+                activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_OPEN_FILE)
+            }
         }
-        val activity = bed.getContext() as? Activity ?: return
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-        }
-        activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_OPEN_FILE)
     }
 
     private fun objectActions(): FileMenuObjectActions? =
@@ -239,7 +246,7 @@ class FileMenu : ListBedMenu() {
             BedMenuItem(R.string.WorkspaceAddModelAction, R.drawable.folder_simple_plus_outline_28)
                 .onClick(::openModel),
             BedMenuItem(R.string.MenuFileExport3mf, R.drawable.arrow_down_to_square_outline_28)
-                .setEnabled(hasObjects())
+                .setEnabled(modelSelectionState().objectCount > 0)
                 .onClick { view ->
                     val launchExport = {
                         val activity = bed.getContext() as? Activity
@@ -331,11 +338,13 @@ class FileMenu : ListBedMenu() {
 
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {
+        selectionObserver?.invalidate()
         refreshComposeActions()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectionChanged(event: SelectedObjectChangedEvent) {
+        selectionObserver?.invalidate()
         refreshComposeActions()
     }
 

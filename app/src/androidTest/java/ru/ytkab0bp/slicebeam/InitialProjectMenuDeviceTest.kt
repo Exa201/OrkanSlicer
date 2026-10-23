@@ -2152,6 +2152,30 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun projectExportAvailabilityTracksModelLoadedOnGlThread() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "project-export-gl-state-test.stl")
+        try {
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            revealMenuAction(activity, R.string.MenuFileExport3mf)
+            val export = compose.onNodeWithContentDescription(activity.getString(R.string.MenuFileExport3mf))
+            export.assertIsDisplayed().assertIsNotEnabled()
+
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                runCatching { export.assertIsEnabled() }.isSuccess
+            }
+            export.assertIsEnabled()
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun projectMenuAddModelBuildsMultiSelectOpenDocumentRequest() {
         val activity = compose.activity
         val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
@@ -2181,6 +2205,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
                 .assertIsDisplayed().performClick()
 
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
             val request = requireNotNull(capturedIntent.get())
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, request.action)
             assertEquals("*/*", request.type)

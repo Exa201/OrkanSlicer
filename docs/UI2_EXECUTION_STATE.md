@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## Projektmenü und GL-Zustand — 2026-10-23
+
+- `FileMenu` liest die Anzahl der Modellobjekte nun aus demselben GL-Thread-Schnappschuss wie die Modellmenüs; der 3MF-Export wird nach Laden/Ändern eines Modells zuverlässig aktualisiert. Die Druckbett-Gültigkeit vor dem Dateiimport wird ebenfalls auf dem GL-Thread geprüft, bevor der Android-Dateipicker geöffnet wird.
+- Honor PTP-N49 / Android 16: Projekt-Export deaktiviert→aktiv nach Modellladen 1/1; Datei-Picker mit Mehrfachauswahl 1/1; außerdem Auto-Ausrichten (Auswahl/alle), Anordnen vom Druckbett und Flatten an/aus je 1/1 bestanden. Der Picker-Test wurde nach der GL-Thread-Prüfung auf die asynchrone Übergabe synchronisiert.
+- Debug-/Slice-JVM-Policytests 3/3 je Suite; Android-Testquellen kompiliert; `git diff --check` sauber. Letzter gepushter Code-Commit vor diesem Paket: `675daed2`.
+- Nächster Schritt: verbleibende modellnahe UI-Handler auf GL-Thread-Zugriffe prüfen, anschließend die aktualisierte Gruppe committen und den nächsten Satz von mindestens drei Modellfunktionen inklusive Ergebnisprüfung auf Honor abnehmen.
+
 ## GL-sicherer Menüauswahlzustand und Modellaktionen — 2026-10-23
 
 - Compose-Menüs lesen Modell-/Auswahlstatus nicht länger direkt aus GL-Renderer-Feldern auf dem UI-Thread. Ein gemeinsamer asynchroner Auswahl-Schnappschuss versorgt Modell-, Bearbeiten- und Ansicht-Menüaktionen; Modell-/Auswahlereignisse invalidieren ihn. Automatisierte Honor-Prüfung bestätigt deaktivierte Aktionen ohne Auswahl und korrekte Aktualisierung nach Auswahl.
