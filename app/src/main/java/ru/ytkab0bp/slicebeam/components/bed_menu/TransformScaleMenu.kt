@@ -67,8 +67,10 @@ import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
+import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
@@ -121,7 +123,8 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
     private val manualInMillimeters = mutableStateOf(Prefs.isScaleInputInMM())
     private var linkOffsets = TransformScalePolicy.linkOffsets(rulerValues.value)
     private var selectedObjectForScale = -1
-    private var selectedObjectsForScale = intArrayOf()
+    private var selectionSnapshot: ModelSelectionSnapshot? = null
+    private var selectionLoadGeneration = 0
     private var startedScrollObject = -1
     private var eventBusRegistered = false
 
@@ -151,14 +154,15 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
 
     private fun scaleVisual(target: TransformScaleValues) {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
         if (index < 0) return
         startedScrollObject = index
-        val expectedSelection = selectedObjectsForScale.copyOf()
-        val model = renderer.model ?: return
-
-        runCatching {
+        glView.queueEvent {
+            val renderer = glView.renderer
+            if (!renderer.isSelectionSnapshotCurrent(snapshot)) return@queueEvent
+            runCatching {
+            val model = snapshot.model
             val current = Vec3d()
             val rotation = Vec3d()
             model.getScale(index, current)
@@ -182,32 +186,26 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
             val dy = 1.0 / sy * target.y
             val dz = 1.0 / sz * target.z
             if (listOf(dx, dy, dz).all { it.isFinite() && it > 0.0 }) {
-                glView.queueEvent {
-                    if (glView.renderer.selectedObject == index &&
-                        glView.renderer.selectedObjectIndices().contentEquals(expectedSelection)) {
-                        glView.renderer.prepareSelectionTransformPreview()
-                        glView.renderer.setSelectionScale(dx, dy, dz)
-                        glView.requestRender()
-                    }
-                }
+                renderer.prepareSelectionTransformPreview()
+                renderer.setSelectionScale(dx, dy, dz)
+                glView.requestRender()
+            }
             }
         }
     }
 
     private fun commitScale() {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
-        val expectedSelection = selectedObjectsForScale.copyOf()
-        if (index < 0 || (selectedObjectForScale >= 0 && index != selectedObjectForScale) || expectedSelection.isEmpty()) return
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
+        if (index < 0 || (selectedObjectForScale >= 0 && index != selectedObjectForScale) || snapshot.selectedIndices.isEmpty()) return
         val target = actualScale.value
         if (listOf(target.x, target.y, target.z).any { !it.isFinite() || it <= 0.0 }) return
         startedScrollObject = -1
 
         glView.queueEvent {
             val activeRenderer = glView.renderer
-            if (activeRenderer.selectedObject != index ||
-                !activeRenderer.selectedObjectIndices().contentEquals(expectedSelection)) return@queueEvent
+            if (!activeRenderer.isSelectionSnapshotCurrent(snapshot)) return@queueEvent
             val model = activeRenderer.model ?: return@queueEvent
             runCatching {
                 val rotation = Vec3d()
@@ -236,13 +234,17 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
 
     private fun mirrorSelected(axis: ModelMirrorAxis) {
         val glView = bed.glView ?: return
-        val index = glView.renderer.selectedObject
-        val expectedSelection = selectedObjectsForScale.copyOf()
-        if (index < 0 || index != selectedObjectForScale || expectedSelection.isEmpty()) return
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
+        if (index < 0 || index != selectedObjectForScale || snapshot.selectedIndices.isEmpty()) return
         glView.queueEvent {
             val renderer = glView.renderer
-            if (renderer.selectedObject != index ||
-                !renderer.selectedObjectIndices().contentEquals(expectedSelection)
+            // Undo/redo legitimately changes the geometry revision while leaving the same
+            // selection active. Rebase only when the model and exact selected indices still
+            // match; a changed model or selection remains a hard stop.
+            if (renderer.model !== snapshot.model ||
+                renderer.selectedObject != index ||
+                !renderer.selectedObjectIndices().contentEquals(snapshot.selectedIndices)
             ) return@queueEvent
             runCatching {
                 if (renderer.mirrorSelectedObjects(axis)) {
@@ -315,57 +317,70 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
         manualAxis.value = null
     }
 
-    private fun loadSelectionValues() {
+    private data class LoadedSelection(
+        val snapshot: ModelSelectionSnapshot,
+        val scale: TransformScaleValues,
+        val rulers: TransformScaleRulerValues,
+        val dimensions: TransformScaleDimensions,
+    )
+
+    private fun loadSelectionValues(dismissWhenEmpty: Boolean = false) {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
-        val model = renderer.model
-        if (index < 0 || model == null) {
-            hasSelection.value = false
-            selectedObjectForScale = -1
-            selectedObjectsForScale = intArrayOf()
-            startedScrollObject = -1
-            return
-        }
-
-        runCatching {
-            selectedObjectsForScale = renderer.selectedObjectIndices()
-            glView.queueEvent {
-                if (glView.renderer.selectedObject == index &&
-                    glView.renderer.selectedObjectIndices().contentEquals(selectedObjectsForScale)) {
-                    glView.renderer.prepareSelectionTransformPreview()
-                    glView.renderer.setSelectionScale(1.0, 1.0, 1.0)
-                    glView.requestRender()
-                }
+        val generation = ++selectionLoadGeneration
+        glView.queueEvent {
+            val loaded = runCatching {
+                val renderer = glView.renderer
+                val snapshot = renderer.captureSelectionSnapshot() ?: return@runCatching null
+                val index = snapshot.primaryObject
+                val scale = Vec3d()
+                val minimum = Vec3d()
+                val maximum = Vec3d()
+                snapshot.model.getScale(index, scale)
+                snapshot.model.getBoundingBoxExact(index, minimum, maximum)
+                fun originalSize(low: Double, high: Double, factor: Double): Double =
+                    abs(high - low) / abs(factor).coerceAtLeast(1e-12)
+                val factors = TransformScaleValues(scale.x, scale.y, scale.z)
+                val rulers = TransformScaleRulerValues(
+                    TransformScalePolicy.roundedPercent(scale.x),
+                    TransformScalePolicy.roundedPercent(scale.y),
+                    TransformScalePolicy.roundedPercent(scale.z),
+                )
+                LoadedSelection(
+                    snapshot,
+                    factors,
+                    rulers,
+                    TransformScaleDimensions(
+                        originalSize(minimum.x, maximum.x, scale.x),
+                        originalSize(minimum.y, maximum.y, scale.y),
+                        originalSize(minimum.z, maximum.z, scale.z),
+                    ),
+                )
+            }.getOrNull()
+            val selectionStillCurrent = loaded != null && glView.renderer.isSelectionSnapshotCurrent(loaded.snapshot)
+            if (selectionStillCurrent) {
+                glView.renderer.prepareSelectionTransformPreview()
+                glView.renderer.setSelectionScale(1.0, 1.0, 1.0)
+                glView.requestRender()
             }
-            val scale = Vec3d()
-            val minimum = Vec3d()
-            val maximum = Vec3d()
-            model.getScale(index, scale)
-            model.getBoundingBoxExact(index, minimum, maximum)
-            fun originalSize(low: Double, high: Double, factor: Double): Double =
-                abs(high - low) / abs(factor).coerceAtLeast(1e-12)
-
-            val factors = TransformScaleValues(scale.x, scale.y, scale.z)
-            val nextRulers = TransformScaleRulerValues(
-                TransformScalePolicy.roundedPercent(scale.x),
-                TransformScalePolicy.roundedPercent(scale.y),
-                TransformScalePolicy.roundedPercent(scale.z),
-            )
-            actualScale.value = factors
-            rulerValues.value = nextRulers
-            dimensionsMm.value = TransformScaleDimensions(
-                originalSize(minimum.x, maximum.x, scale.x),
-                originalSize(minimum.y, maximum.y, scale.y),
-                originalSize(minimum.z, maximum.z, scale.z),
-            )
-            linkOffsets = TransformScalePolicy.linkOffsets(nextRulers)
-            selectedObjectForScale = index
-            hasSelection.value = true
-            startedScrollObject = -1
-        }.onFailure {
-            hasSelection.value = false
-            selectedObjectForScale = -1
+            ViewUtils.postOnMainThread {
+                if (generation != selectionLoadGeneration || bed.glView !== glView) return@postOnMainThread
+                if (loaded == null || !selectionStillCurrent) {
+                    selectionSnapshot = null
+                    hasSelection.value = false
+                    selectedObjectForScale = -1
+                    startedScrollObject = -1
+                    if (dismissWhenEmpty) dismiss()
+                    return@postOnMainThread
+                }
+                selectionSnapshot = loaded.snapshot
+                actualScale.value = loaded.scale
+                rulerValues.value = loaded.rulers
+                dimensionsMm.value = loaded.dimensions
+                linkOffsets = TransformScalePolicy.linkOffsets(loaded.rulers)
+                selectedObjectForScale = loaded.snapshot.primaryObject
+                hasSelection.value = true
+                startedScrollObject = -1
+            }
         }
     }
 
@@ -430,7 +445,16 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
     @EventHandler(runOnMainThread = true)
     fun onSelectedObjectChanged(event: SelectedObjectChangedEvent) {
         stopScroll()
-        if (bed.glView?.renderer?.selectedObject == -1) dismiss() else loadSelectionValues()
+        loadSelectionValues(dismissWhenEmpty = true)
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onObjectsListChanged(event: ObjectsListChangedEvent) {
+        // Undo/redo swaps the native Model instance and emits this event without changing the
+        // selected indices. Refresh the GL-thread snapshot so follow-up edits target the restored
+        // model instead of silently rejecting the scale/mirror action as stale.
+        stopScroll()
+        loadSelectionValues()
     }
 
     private fun TransformScaleValues.forAxis(axis: TransformScaleAxis): Double = when (axis) {
