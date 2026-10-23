@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.360
+
+- Use safe bounds-based selection for models over 20,000 triangles instead of building the native face-neighbour raycast index during a touch. This prevents slow-device native crashes on generated M12 fasteners and other dense meshes.
+- Keep surface painting and placement protected from approximate hits; simplify dense models first for precise surface editing.
+- Verify generated M12 touch selection and STEP/STP import, model grouping, XYZ alignment/distribution, and slicing regressions on Honor PTP-N49 / Android 16.
+
 ## 0.8.359
 
 - Protect source STEP/STP files during meshing/import so cancelling or failing an import cannot delete the user's original document.

@@ -31,6 +31,7 @@ import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -149,6 +150,19 @@ class MainActivityTouchDeviceTest {
             val hit = hitPoint ?: throw AssertionError("Could not find the loaded model in the 3D viewport ($viewportDescription)")
             val glView = requireNotNull(viewport)
             scenario.onActivity {
+                val meshesField = glView.renderer.javaClass.getDeclaredField("glModels").apply { isAccessible = true }
+                val generatedMesh = (meshesField.get(glView.renderer) as List<*>).first() as GLModel
+                val pickHits = arrayListOf<GLModel.HitResult>()
+                generatedMesh.raycaster.raycast(
+                    glView.renderer,
+                    pickHits,
+                    hit.first * Prefs.getRenderScale(),
+                    hit.second * Prefs.getRenderScale(),
+                )
+                assertTrue(
+                    "A standard M12 bolt must use safe bounds picking instead of constructing the native face-neighbour index on touch",
+                    pickHits.firstOrNull()?.approximate == true,
+                )
                 assertEquals("The GL renderer must track the actual surface width", glView.width, glView.renderer.viewportWidth)
                 assertEquals("The GL renderer must track the actual surface height", glView.height, glView.renderer.viewportHeight)
                 tap(glView, hit.first, hit.second)

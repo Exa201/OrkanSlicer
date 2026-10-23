@@ -5,7 +5,12 @@ import kotlin.math.abs
 
 /** Cheap selection for dense models; never changes the geometry used for slicing. */
 internal object LargeModelPick {
-    const val TRIANGLE_LIMIT = 100_000
+    // Building Orca's native face-neighbour index is both synchronous on the Android touch path
+    // and disproportionately expensive on lower-end devices. A generated standard M12 bolt is
+    // already around 40k facets and has caused native crashes while the index was being built.
+    // Keep the exact raycaster for small meshes; larger meshes use their bounds for selection and
+    // remain excluded from surface painting/placement until simplified.
+    const val TRIANGLE_LIMIT = 20_000
 
     fun needsPreciseSurfaceSimplification(triangleCount: Int): Boolean = triangleCount > TRIANGLE_LIMIT
 

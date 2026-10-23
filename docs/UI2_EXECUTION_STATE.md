@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## Release-Kandidat — native M12-Touch-Absturzschutz, 2026-10-23
+
+- Änderung: Modelle über 20.000 Dreiecke verwenden zur Objektauswahl eine schnelle Begrenzungsbox statt den nativen Face-Neighbour-Raycaster synchron beim Antippen zu initialisieren. Präzise Flächenmalerei/-platzierung bleibt für solche Netze gesperrt, bis sie vereinfacht wurden.
+- Ursache aus Xiaomi-Fehlerbericht: nativer Absturz in `create_face_neighbors_index` während `GLModel.getRaycaster()` im Touch-Callback. Die bisherige Schwelle von 100.000 Dreiecken ließ die standardmäßig erzeugte M12-Schraube in den riskanten Pfad.
+- Honor PTP-N49 / Android 16: M12-Touchintegration 1/1 (einschließlich Assert, dass der native Index beim Auswählen nicht erstellt wird); `LargeModelPickTest` bestanden; Debug- und Slice-JVM-Suiten bestanden. Xiaomi-Gerät nicht verbunden, daher dort noch nicht bestätigt.
+- Zusätzlich in diesem Durchgang: STEP/STP-Picker/Optionen/Import 7/7 gezielt bestanden; Modellgruppe platzieren, XYZ-Ausrichtung und XYZ-Verteilung je 1/1 mit Slicing beziehungsweise Undo/Redo.
+- Release-Kandidat: Version 0.8.360 / Code 395. Vor Veröffentlichung noch Debug-APK bauen, auf Honor installieren/starten, SHA-256 erfassen und PR #2 aktualisieren.
+
 - Aktuelle Arbeit: GL-sichere Modellbearbeitung; Branch `codex/rinkhals-safe-start-audit`, PR #2 offen. Offizieller Release `v0.8.359` / code 394 ist veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.359. Tag zeigt auf geprüften Code-Commit `18df3e8b`; Branch-/PR-Kopf ist `c173dd29`.
 - Vereinfachen erfasst Dreiecksanzahl, Modell und Objektwahl jetzt auf dem GL-Thread, bindet einfache und benutzerdefinierte Reduktion an diesen Auswahl-Schnappschuss und verwirft die Aktion, wenn sich Modell, Geometrie oder Auswahl vor der Ausführung geändert haben. Native Vereinfachung und vorhandene Undo/Redo-Historie bleiben erhalten.
 - Honor PTP-N49 / Android 16: fünf gezielte Prüfungen bestanden: Vereinfachen mit Abbrechen/Undo/Redo; stale selection wird ohne Änderung abgelehnt; Teilen getrennter Meshkomponenten mit Undo/Redo; Gruppenausrichtung mit Undo/Redo; ausgerichtetes Modell bleibt slicebar und erzeugt Extrusions-G-Code. Debug-JVM 621/621, Slice-JVM 621/621; Debug-Build erfolgreich.
@@ -2906,5 +2914,4 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Verifiziert auf Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 71/71, 0 Fehler, 0 Übersprünge; gezielter veraltete-Auswahl-Test 1/1; Slice/G-Code-Tests für multipartes Verbinden, Boolean-Filament und Difference/Intersection 3/3. Debug- und Slice-Unit-Suiten je 621/621.
 - Offizieller Release `v0.8.358` veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.358. Tag zeigt auf Code-Commit `1e5a352c4fcdedfd8f326f36afff653b2f2f6ef0`; APK `OrkanSlicer_1e5a352c4f.apk`, 239.377.998 Byte, SHA-256 `A60F7CD76E74A6FACADC321379EAC0B9264F6E0C361DC2BC23DFE02BE16CE468`. PR #2 offen und als mergefähig gemeldet.
 - Nächster Schritt: weitere Modellaktionen auf Mehrfachauswahl, Materialerhalt und Undo/Redo prüfen und die offene UI-2.0-Funktionsabnahme fortführen. Das Projekt ist nicht abgeschlossen.
-
 # Älterer Fortsetzungsstand — STEP/STP und sichere Modellmenüauswahl, 2026-10-23
