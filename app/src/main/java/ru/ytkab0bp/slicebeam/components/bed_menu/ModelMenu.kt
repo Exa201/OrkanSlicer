@@ -38,10 +38,12 @@ class ModelMenu : ListBedMenu() {
     override fun WorkspaceContent(portrait: Boolean) {
         val bed = fragment ?: return
         val items = remember(this, bed) { ModelMenuItems(bed, ::refreshActionItems) }
-        val transforms = remember(this, bed) { createTransformMenuItems(bed) }
+        val transforms = remember(this, bed) { createTransformMenuItems(bed, ::refreshActionItems) }
         LaunchedEffect(items, transforms) {
             menuItems = items
             transformItems = transforms
+            items.invalidateSelectionState()
+            transforms.invalidateSelectionState()
             refreshActionItems()
         }
         val selectedActions = composeActions.value.filter { ModelMenuActionScope.isSingleObject(it.titleRes) }
@@ -77,12 +79,16 @@ class ModelMenu : ListBedMenu() {
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {
         menuItems?.resetFlattenMode()
+        menuItems?.invalidateSelectionState()
+        transformItems?.invalidateSelectionState()
         refreshActionItems()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectionChanged(event: SelectedObjectChangedEvent) {
         menuItems?.resetFlattenMode()
+        menuItems?.invalidateSelectionState()
+        transformItems?.invalidateSelectionState()
         refreshActionItems()
     }
 

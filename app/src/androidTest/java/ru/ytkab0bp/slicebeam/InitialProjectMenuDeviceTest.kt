@@ -19,6 +19,7 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.FileProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -215,6 +216,54 @@ class InitialProjectMenuDeviceTest {
                 .assertIsDisplayed()
             revealMenuAction(activity, R.string.MenuToolbarMove)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
+                .assertIsDisplayed().assertIsEnabled()
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun modelMenuSelectionActionsFollowGlOwnedModelAndSelectionState() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-gl-state-test.stl")
+        try {
+            openModelMenu(activity)
+            revealMenuAction(activity, R.string.ModelMenuDuplicate)
+            val duplicate = compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDuplicate))
+                .performScrollTo()
+            duplicate.assertIsDisplayed().assertIsNotEnabled()
+
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            compose.runOnUiThread { glView.selectModel(0, Runnable {}) }
+            instrumentationWaitForGlIdle()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                runCatching {
+                    compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDuplicate))
+                        .fetchSemanticsNode().config[SemanticsProperties.Disabled]
+                }.getOrNull() == null
+            }
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDuplicate))
+                .assertIsEnabled()
+
+            compose.runOnUiThread { glView.selectModel(-1, Runnable {}) }
+            instrumentationWaitForGlIdle()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                runCatching {
+                    SemanticsProperties.Disabled in compose.onNodeWithContentDescription(
+                        activity.getString(R.string.ModelMenuDuplicate),
+                    ).fetchSemanticsNode().config
+                }.getOrDefault(false)
+            }
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDuplicate))
+                .assertIsNotEnabled()
+
+            selectAllObjectsScope()
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuArrange))
                 .assertIsDisplayed().assertIsEnabled()
         } finally {
             modelFile.delete()

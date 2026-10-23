@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## GL-sicherer Menüauswahlzustand und Modellaktionen — 2026-10-23
+
+- Compose-Menüs lesen Modell-/Auswahlstatus nicht länger direkt aus GL-Renderer-Feldern auf dem UI-Thread. Ein gemeinsamer asynchroner Auswahl-Schnappschuss versorgt Modell-, Bearbeiten- und Ansicht-Menüaktionen; Modell-/Auswahlereignisse invalidieren ihn. Automatisierte Honor-Prüfung bestätigt deaktivierte Aktionen ohne Auswahl und korrekte Aktualisierung nach Auswahl.
+- Honor PTP-N49 / Android 16: Auswahlzustandsregression 1/1, Duplizieren 1/1, Boolean-Vereinigung über drei ausgewählte Objekte 1/1 und Flächenplatzierung mit Undo/Redo 1/1 bestanden. Debug-/Slice-JVM-Auswahlpolicy jeweils 3/3 bestanden. STEP-Importnachweise desselben Arbeitstags: sechs gezielte Honor-Fälle bestanden.
+- `:app:compileSliceTestAndroidTestKotlin`, `git diff --check` erfolgreich. Ausgangs-HEAD vor dem Paket: `06d18628`.
+- Nächster Schritt: die übrigen aktiven Modellaktionen gruppenweise auf GL-Thread-/Auswahl-Snapshot-Sicherheit prüfen und jeweils mindestens drei tatsächliche Bearbeitungsabläufe einschließlich Undo/Redo oder Slicing auf Honor verifizieren.
+
 ## Modellierungs-Abnahmegruppe — 2026-10-23
 
 - Ausgangs-HEAD: `a3a5aaf7`. Drei weitere Bedienabläufe wurden auf Honor PTP-N49 / Android 16 ausgeführt: Boolean-Differenz mit zwei Werkzeugobjekten inklusive Undo/Redo (1/1), Boolean-Schnittmenge aus drei Objekten inklusive Undo/Redo (1/1) und gekrümmter, eigenständiger Oberflächentext (1/1).

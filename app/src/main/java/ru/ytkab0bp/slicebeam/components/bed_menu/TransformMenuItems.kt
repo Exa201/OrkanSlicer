@@ -18,10 +18,14 @@ internal class TransformMenuItems(
     private val showRotationMenu: Consumer<View>,
     private val showScaleMenu: Consumer<View>,
     private val showCutMenu: Consumer<View>,
+    private val onItemsChanged: () -> Unit = {},
 ) {
+    private val selectionObserver = ModelMenuSelectionObserver(fragment, onItemsChanged)
+
     fun createItems(): List<BedComposeMenuAction> {
-        val renderer = fragment.glView!!.renderer
-        val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
+        selectionObserver.readIfNeeded()
+        val selection = selectionObserver.state.value
+        val availability = modelSelectionAvailability(selection.modelLoaded, selection.selectedObject)
         return listOf(
             selectionAction(R.string.ModelContextResetRotation, R.drawable.menu_orientation_rotation_28, availability) {
                 // Resolve the active object only after the operation reaches the GL queue.
@@ -72,6 +76,8 @@ internal class TransformMenuItems(
             }),
         )
     }
+
+    fun invalidateSelectionState() = selectionObserver.invalidate()
 
     private fun selectionAction(
         titleRes: Int,
@@ -145,10 +151,14 @@ internal class TransformMenuItems(
 }
 
 /** Shared callbacks let the selected-object editor collect transforms without a second action host. */
-internal fun createTransformMenuItems(fragment: BedFragment): TransformMenuItems = TransformMenuItems(
+internal fun createTransformMenuItems(
+    fragment: BedFragment,
+    onItemsChanged: () -> Unit = {},
+): TransformMenuItems = TransformMenuItems(
     fragment,
     Consumer<View> { fragment.showWorkspaceComposeTool(OrientationPositionMenu(fragment)) },
     Consumer<View> { fragment.showWorkspaceComposeTool(OrientationRotationMenu(fragment)) },
     Consumer<View> { fragment.showWorkspaceComposeTool(TransformScaleMenu(fragment)) },
     Consumer<View> { fragment.showWorkspaceComposeTool(TransformCutMenu(fragment)) },
+    onItemsChanged,
 )

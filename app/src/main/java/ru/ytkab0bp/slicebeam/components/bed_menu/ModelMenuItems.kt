@@ -18,13 +18,22 @@ internal class ModelMenuItems(
     private val onItemsChanged: () -> Unit,
 ) {
     private var flattenEnabled = false
+    private val selectionObserver = ModelMenuSelectionObserver(fragment, onItemsChanged)
+
+    /** Selection and model metadata are owned by GLRenderer and must be sampled on its thread. */
+    fun invalidateSelectionState() {
+        selectionObserver.invalidate()
+    }
 
     fun createItems(): List<BedComposeMenuAction> {
-        val renderer = fragment.glView!!.renderer
-        val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
+        selectionObserver.readIfNeeded()
+        val currentSelection = selectionObserver.state.value
+        val availability = modelSelectionAvailability(currentSelection.modelLoaded, currentSelection.selectedObject)
         val objectActions = FileMenuObjectActions(fragment)
-        val model = renderer.model
-        val selectedCount = renderer.selectedObjectsCount
+        val selectedCount = currentSelection.selectedObjectCount
+        val objectCount = currentSelection.objectCount
+        val glView = fragment.glView
+        val renderer = glView?.renderer
         return listOf(
             BedComposeMenuAction(R.string.WorkspaceObjects, R.drawable.square_stack_up_outline_28, {
                 objectActions.showObjectsDialog(it)
@@ -53,10 +62,10 @@ internal class ModelMenuItems(
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuPlaceOnObject, R.drawable.view_in_ar_24, { anchor ->
                 showPlaceOnObjectDialog(anchor)
-            }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > selectedCount),
+            }, enabled = availability.hasSelectedObject && objectCount > selectedCount),
             BedComposeMenuAction(R.string.ModelMenuPlaceOnSurface, R.drawable.view_in_ar_24, { anchor ->
                 showPlaceOnSurfaceDialog(anchor)
-            }, enabled = availability.hasSelectedObject && (model?.objectsCount ?: 0) > selectedCount),
+            }, enabled = availability.hasSelectedObject && objectCount > selectedCount),
             BedComposeMenuAction(R.string.ModelMenuAlignSelected, R.drawable.grid_layout_outline_28, { anchor ->
                 showAlignmentDialog(anchor)
             }, enabled = selectedCount >= 2),
@@ -64,8 +73,8 @@ internal class ModelMenuItems(
                 showDistributionDialog(anchor)
             }, enabled = selectedCount >= 3),
             BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
-                val glView = fragment.glView ?: return@BedComposeMenuAction
-                captureSelectionSnapshot(glView) { snapshot ->
+                val activeGlView = glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(activeGlView) { snapshot ->
                     if (snapshot.selectedIndices.size < 2) return@captureSelectionSnapshot
                     fragment.showWorkspaceMessageDialog(
                         anchor.context.getString(R.string.ModelMenuCombineSelected),
@@ -73,7 +82,7 @@ internal class ModelMenuItems(
                         anchor.context.getString(R.string.ModelMenuCombineSelected),
                         anchor.context.getString(android.R.string.cancel),
                     ) {
-                        glView.combineSelectedObjectsAsParts(snapshot) { result ->
+                        activeGlView.combineSelectedObjectsAsParts(snapshot) { result ->
                             when {
                                 result >= 0 -> {
                                     fragment.updateModel()
@@ -103,28 +112,30 @@ internal class ModelMenuItems(
                 }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuArrange, R.drawable.grid_layout_outline_28, { anchor ->
-                val glView = fragment.glView ?: return@BedComposeMenuAction
-                glView.arrange { arranged ->
+                val activeGlView = glView ?: return@BedComposeMenuAction
+                activeGlView.arrange { arranged ->
                     if (!arranged) {
                         Toast.makeText(anchor.context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
                         return@arrange
                     }
-                    glView.queueEvent {
-                        if (renderer.invalidateFlattenMode()) glView.requestRender()
+                    activeGlView.queueEvent {
+                        if (renderer?.invalidateFlattenMode() == true) activeGlView.requestRender()
                     }
                     fragment.updateModel()
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
                 }
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuOrientAll, R.drawable.menu_orientation_auto_28, {
-                fragment.glView!!.queueEvent {
-                    val model = renderer.model ?: return@queueEvent
-                    if (renderer.invalidateFlattenMode()) fragment.glView!!.requestRender()
+                val activeGlView = fragment.glView ?: return@BedComposeMenuAction
+                activeGlView.queueEvent {
+                    val activeRenderer = activeGlView.renderer
+                    val model = activeRenderer.model ?: return@queueEvent
+                    if (activeRenderer.invalidateFlattenMode()) activeGlView.requestRender()
                     for (index in 0 until model.objectsCount) {
                         model.autoOrient(index)
-                        renderer.invalidateGlModel(index)
+                        activeRenderer.invalidateGlModel(index)
                     }
-                    fragment.glView!!.requestRender()
+                    activeGlView.requestRender()
                     ViewUtils.postOnMainThread {
                         fragment.updateModel()
                         SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientAllObjectsDone))
@@ -148,18 +159,19 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuFlatten, R.drawable.menu_orientation_flatten_28, {
                 flattenEnabled = !flattenEnabled
                 val flatten = flattenEnabled
-                val glView = fragment.glView ?: return@BedComposeMenuAction
-                glView.queueEvent {
-                    val model = renderer.model
-                    if (flatten && (model == null || renderer.selectedObject !in 0 until model.objectsCount)) {
+                val activeGlView = fragment.glView ?: return@BedComposeMenuAction
+                activeGlView.queueEvent {
+                    val activeRenderer = activeGlView.renderer
+                    val model = activeRenderer.model
+                    if (flatten && (model == null || activeRenderer.selectedObject !in 0 until model.objectsCount)) {
                         ViewUtils.postOnMainThread {
                             flattenEnabled = false
                             onItemsChanged()
                         }
                         return@queueEvent
                     }
-                    renderer.setInFlattenMode(flatten)
-                    glView.requestRender()
+                    activeRenderer.setInFlattenMode(flatten)
+                    activeGlView.requestRender()
                 }
                 onItemsChanged()
             }, selected = flattenEnabled, toggleable = true, enabled = availability.hasSelectedObject),
@@ -186,15 +198,15 @@ internal class ModelMenuItems(
                 fragment.glView!!.selectAllModels { fragment.updateModel() }
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
-                val glView = fragment.glView ?: return@BedComposeMenuAction
-                captureSelectionSnapshot(glView, allowEmptySelection = true) { snapshot ->
+                val activeGlView = glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(activeGlView, allowEmptySelection = true) { snapshot ->
                     fragment.showWorkspaceMessageDialog(
                         anchor.context.getString(R.string.ModelMenuDeleteAll),
                         anchor.context.getString(R.string.ModelDeleteAllConfirm),
                         anchor.context.getString(R.string.ModelMenuDeleteAll),
                         anchor.context.getString(android.R.string.cancel),
                     ) {
-                        glView.deleteAllModelsIfCurrent(snapshot) { removed ->
+                        activeGlView.deleteAllModelsIfCurrent(snapshot) { removed ->
                             if (removed == MODEL_EDIT_STALE_SELECTION) {
                                 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
                             } else if (removed > 0) {

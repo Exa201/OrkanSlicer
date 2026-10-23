@@ -18,9 +18,10 @@ class TransformMenu : ListBedMenu() {
     @Composable
     override fun WorkspaceContent(portrait: Boolean) {
         val bed = fragment ?: return
-        val items = remember(this, bed) { createTransformMenuItems(bed) }
+        val items = remember(this, bed) { createTransformMenuItems(bed, ::refreshActionItems) }
         LaunchedEffect(items, portrait) {
             menuItems = items
+            items.invalidateSelectionState()
             composeActions.value = items.createItems()
         }
         CustomizableBedMenuActionsContent("edit", composeActions.value, portrait, multiRow = true)
@@ -28,11 +29,13 @@ class TransformMenu : ListBedMenu() {
 
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {
+        menuItems?.invalidateSelectionState()
         refreshActionItems()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectionChanged(event: SelectedObjectChangedEvent) {
+        menuItems?.invalidateSelectionState()
         refreshActionItems()
     }
 
