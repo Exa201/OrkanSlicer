@@ -1171,7 +1171,10 @@ extern "C" {
             ref->mesh = TriangleMesh(its);
             ref->model.init_from(its);
             ref->flatten_normal = plane.normal;
-            ref->emesh = new AABBMesh(its, true);
+            // AABBMesh keeps references into the input triangle mesh. `its` is a local
+            // temporary here, so building the raycast index from it leaves dangling
+            // triangle storage that crashes as soon as a flatten plane is tapped.
+            ref->emesh = new AABBMesh(ref->mesh.its, true);
             ref->normals = its_face_normals(its);
 
             jlong ptr = reinterpret_cast<jlong>(ref);

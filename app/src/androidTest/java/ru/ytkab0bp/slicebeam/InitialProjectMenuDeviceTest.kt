@@ -2990,6 +2990,89 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun flatteningAnAngledFaceIsUndoableAndRedoable() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-flatten-history-test.stl")
+        try {
+            activity.assets.open("models/pyramid.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openSelectedObjectMenu(activity)
+            scrollMenuToIndex(6)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuFlattenShort))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { readRendererBooleanOnGl(glView, "isInFlattenMode") }
+            val rotationBefore = readRotationOnGl(glView, 0)
+
+            val applied = AtomicReference(false)
+            val completed = CountDownLatch(1)
+            val failure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val renderer = glView.renderer
+                    val flattenModeField = GLRenderer::class.java.getDeclaredField("isInFlattenMode")
+                        .apply { isAccessible = true }
+                    val planesField = GLRenderer::class.java.getDeclaredField("flattenPlanes")
+                        .apply { isAccessible = true }
+                    @Suppress("UNCHECKED_CAST")
+                    val planes = planesField.get(renderer) as List<GLModel>
+                    check(planes.isNotEmpty()) { "Flatten mode did not produce any face planes" }
+                    val hits = ArrayList<GLModel.HitResult>()
+                    planes.forEach { plane ->
+                        plane.raycaster.raycast(
+                            renderer, hits,
+                            renderer.viewportWidth / 2f,
+                            renderer.viewportHeight / 2f,
+                        )
+                    }
+                    check(flattenModeField.getBoolean(renderer)) {
+                        "raycast smoke check unexpectedly left Flatten mode"
+                    }
+                    // Plane 1 is a sloped face on the asymmetric pyramid fixture. The
+                    // renderer's production tap path calls this same commit after picking.
+                    applied.set(renderer.applyFlattenPlane(1))
+                } catch (error: Throwable) {
+                    failure.set(error)
+                } finally {
+                    completed.countDown()
+                }
+            }
+            assertTrue("GL thread did not finish face-plane hit search", completed.await(30, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("Could not apply flatten rotation", it) }
+            assertTrue("applying the angled plane should commit flatten rotation", applied.get())
+            compose.waitUntil(timeoutMillis = 10_000) { readModelHistorySize(bed, "undoHistory") > 0 }
+            val rotationAfter = readRotationOnGl(glView, 0)
+            assertTrue("flattening should change the native object rotation",
+                kotlin.math.abs(rotationAfter.x - rotationBefore.x) > 1e-4 ||
+                    kotlin.math.abs(rotationAfter.y - rotationBefore.y) > 1e-4 ||
+                    kotlin.math.abs(rotationAfter.z - rotationBefore.z) > 1e-4)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val rotation = readRotationOnGl(glView, 0)
+                kotlin.math.abs(rotation.x - rotationBefore.x) < 1e-4 &&
+                    kotlin.math.abs(rotation.y - rotationBefore.y) < 1e-4 &&
+                    kotlin.math.abs(rotation.z - rotationBefore.z) < 1e-4
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val rotation = readRotationOnGl(glView, 0)
+                kotlin.math.abs(rotation.x - rotationAfter.x) < 1e-4 &&
+                    kotlin.math.abs(rotation.y - rotationAfter.y) < 1e-4 &&
+                    kotlin.math.abs(rotation.z - rotationAfter.z) < 1e-4
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelMenuAutoOrientActionsRunForAllObjectsAndSelectedObject() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -4198,6 +4281,11 @@ class InitialProjectMenuDeviceTest {
                 readObjectCountOnGl(glView))
             assertFalse("the cut preview should close after applying",
                 readRendererBooleanOnGl(glView, "cutPlaneVisible"))
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
         } finally {
             modelFile.delete()
         }
@@ -4302,6 +4390,15 @@ class InitialProjectMenuDeviceTest {
             assertEquals("first split object should preserve its triangles", trianglesPerComponent,
                 readTriangleCountOnGl(glView, 0))
             assertEquals("second split object should preserve its triangles", trianglesPerComponent,
+                readTriangleCountOnGl(glView, 1))
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals("undo should restore the original compound mesh", importedTriangleCount,
+                readTriangleCountOnGl(glView, 0))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            assertEquals("redo should restore both disconnected components", trianglesPerComponent,
                 readTriangleCountOnGl(glView, 1))
         } finally {
             modelFile.delete()
@@ -5627,6 +5724,12 @@ class InitialProjectMenuDeviceTest {
         assertTrue("GL thread did not return model vector", finished.await(10, TimeUnit.SECONDS))
         failure.get()?.let { throw AssertionError("Could not read native model vector on GL thread", it) }
         return requireNotNull(value.get())
+    }
+
+    private fun readModelHistorySize(bed: BedFragment, fieldName: String): Int {
+        val history = BedFragment::class.java.getDeclaredField(fieldName).apply { isAccessible = true }
+            .get(bed) as java.util.ArrayDeque<*>
+        return history.size
     }
 
     private fun hasExpectedLinearTransform(

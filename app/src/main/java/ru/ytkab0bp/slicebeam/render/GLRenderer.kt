@@ -2120,22 +2120,7 @@ i++
 }
 if (minPlane != -1)
 {
-val glModel = flattenPlanes.get(minPlane)
-this.model!!.flattenRotate(selectedObject, glModel)
-this.model!!.ensureOnBed(selectedObject)
-invalidateGlModel(selectedObject)
-var k = 0
-val l = flattenPlanes.size
-while (k < l)
-{
-flattenPlanes.get(k).release()
-k++
-}
-flattenPlanes.clear()
-selectedObject = -1
-selectedObjects.clear()
-SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
-return true
+return applyFlattenPlane(minPlane)
 }
 return false
 }
@@ -2167,6 +2152,24 @@ selScaleX = selScaleY
 SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
 }
 return render
+}
+/** Applies a picked flatten plane. Must run on the GL thread. */
+fun applyFlattenPlane(planeIndex: Int): Boolean {
+    val currentModel = model ?: return false
+    if (!isInFlattenMode || selectedObject !in 0 until currentModel.objectsCount ||
+        planeIndex !in flattenPlanes.indices
+    ) return false
+
+    currentModel.flattenRotate(selectedObject, flattenPlanes[planeIndex])
+    currentModel.ensureOnBed(selectedObject)
+    invalidateGlModel(selectedObject)
+    flattenPlanes.forEach(GLModel::release)
+    flattenPlanes.clear()
+    selectedObject = -1
+    selectedObjects.clear()
+    SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ModelGeometryChangedEvent())
+    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+    return true
 }
 fun hover(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false

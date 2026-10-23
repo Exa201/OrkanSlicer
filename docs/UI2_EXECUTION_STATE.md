@@ -2785,3 +2785,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: weitere 5/5 gezielte Gerätetests bestanden. Geprüft wurden multipartes Verbinden aus dem Modellmenü, zwei Filamentzuweisungen bis in den Slice, Duplizieren mit angeforderter Kopienzahl, Bett füllen sowie Anordnen eines außerhalb liegenden Objekts zurück auf die Arbeitsfläche.
 - Zusammen mit dem vorherigen Paket dieses Durchgangs: 12/12 gezielte Android-Instrumentierungstests über Flächenplatzierung, 3D-Text, Boolean-Union/Difference/Intersection, Join/Multipart-Filamente, Duplizieren, Anordnen und Bett füllen bestanden. Verifikationen erfolgten auf Honor PTP-N49 / Android 16; keine Druckaufträge gestartet.
 - Nächste konkrete Arbeit: weitere native Geometrieaktionen auf Fehlerfälle und Material-/Undo-Historie prüfen; parallel offene UI-2.0-Abnahme fortführen. Vollständige UI-2.0-Abnahme ist noch nicht abgeschlossen.
+
+# Modellbearbeitung — Raycast-Lebensdauer und Undo/Redo für drei Geometrieaktionen (2026-10-23)
+
+- Ursache des Honor-Absturzes beim Abflachen: Der native Raycast-Index einer Abflachfläche wurde aus einer lokalen Dreiecksmesh-Variablen aufgebaut. Der AABB-Baum behielt Referenzen auf diese nach Funktionsende ungültige Geometrie; das Antippen führte auf GLThread zu `SIGSEGV` in `AABBTreeIndirect::intersect_triangle`.
+- Behoben: Der Raycast-Index wird nun aus dem dauerhaft im `GLModelRef` gespeicherten Mesh gebaut. Der Renderer-Abflachpfad signalisiert die bestätigte Geometrieänderung separat, damit `BedFragment` einen Undo-Snapshot erzeugt.
+- Tests erweitert: Abflachen einer schrägen Fläche plus Raycast und Undo/Redo; Schnitt sowie Trennen mit Undo/Redo.
+- Honor PTP-N49 / Android 16: alle 3 gezielten Instrumentierungstests bestanden (0 Fehler, 0 Übersprünge); der Raycast-Smoke-Test lief ohne nativen Absturz. Der erste Testlauf vor dem Lebensdauerfix reproduzierte den nativen Absturz; nach dem Fix bestanden alle drei Tests. `git diff --check` sauber.
+- Noch offen: vollständige Test-Suites und weitere Bearbeitungsaktionen. Nächster Schritt: Änderungssatz sichern/pushen, danach mindestens drei weitere Modellaktionen mit Slice-/Undo-Verifikation fortsetzen.

@@ -62,6 +62,7 @@ import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
 import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
 import ru.ytkab0bp.slicebeam.events.ObjectSurfacePlacementTapEvent
+import ru.ytkab0bp.slicebeam.events.ModelGeometryChangedEvent
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.SlicingProgressEvent
@@ -648,6 +649,10 @@ fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
         }
     }
+}
+@EventHandler(runOnMainThread = true)
+fun onModelGeometryChanged(event: ModelGeometryChangedEvent) {
+    updateModel()
 }
 @EventHandler(runOnMainThread = true)
 fun onCameraPresetRequested(event: CameraPresetRequestedEvent) {
