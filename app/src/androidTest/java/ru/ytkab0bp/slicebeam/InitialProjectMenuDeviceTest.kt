@@ -900,6 +900,50 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun singleObjectBatchDuplicateCreatesRequestedCopiesWithUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "single-object-batch-duplicate-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.setUniformFilament(0, 2)
+                glView.renderer.setSelectedObject(0)
+                prepared.countDown()
+            }
+            assertTrue("single object should be selected on GL thread", prepared.await(10, TimeUnit.SECONDS))
+            val added = AtomicReference<Int>()
+            val completed = CountDownLatch(1)
+            glView.duplicateSelectedModels(3) { copies ->
+                added.set(copies)
+                if (copies > 0) bed.updateModel()
+                completed.countDown()
+            }
+            assertTrue("batch duplicate should complete", completed.await(20, TimeUnit.SECONDS))
+            assertEquals("the requested number of copies should be created in one transaction", 3, added.get())
+            assertEquals(4, readObjectCountOnGl(glView))
+            (0..3).forEach { index ->
+                assertEquals("each copy preserves the assigned source filament", listOf(2),
+                    readUsedFilamentsOnGl(glView, index).toList())
+            }
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            instrumentationWaitForGlIdle()
+            assertEquals("undo removes the whole duplicate batch atomically", 1, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            instrumentationWaitForGlIdle()
+            assertEquals("redo restores the complete batch", 4, readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun duplicateDoesNotKeepCopyWhenArrangeCannotFitTheModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

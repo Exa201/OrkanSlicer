@@ -1749,7 +1749,7 @@ fun duplicateSelectedObjects(copies: Int): Int {
     val activeBed = bed ?: return 0
     if (!activeBed.isValid() || isViewerEnabled) return 0
     val sourceIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
-    if (sourceIndices.size < 2) return 0
+    if (sourceIndices.isEmpty()) return 0
     val groupCopies = copies.coerceIn(1, 50)
     val originalCount = activeModel.objectsCount
     val originalTranslations = ArrayList<Vec3d>(originalCount)

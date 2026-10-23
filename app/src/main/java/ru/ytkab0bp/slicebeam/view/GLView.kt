@@ -139,13 +139,7 @@ fun duplicateSelectedModelWithResult(onComplete: (Int) -> Unit) {
 fun duplicateSelectedModels(copies: Int, onComplete: (Int) -> Unit) {
     queueEvent {
         val count = copies.coerceIn(1, 50)
-        val added = if (renderer.selectedObjectsCount > 1) {
-            renderer.duplicateSelectedObjects(count)
-        } else {
-            var completed = 0
-            repeat(count) { completed += renderer.duplicateSelectedObject() }
-            completed
-        }
+        val added = renderer.duplicateSelectedObjects(count)
         requestRender()
         ViewUtils.postOnMainThread { onComplete(added) }
     }

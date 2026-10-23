@@ -2758,3 +2758,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Honor PTP-N49 / Android 16: 6/6 gezielte Gerätetests bestanden — normales Anordnen, Anordnungsfehler mit Positions-Rollback, normales Bettfüllen, übergroßes Modell, Bettfüllfehler mit Rollback und fehlgeschlagene Kontextmenü-Kopie bei erhaltenem Redo.
 - Zusätzlich unverändert gültig: Debug-/Slice-Unit 619/619 je Suite, 0 Fehler/Überspringungen; Surface-Platzierung + Undo/Redo, Verbinden, eigenständiger Text sowie deren Slice-/G-Code-Regressionen je 3/3 auf Honor.
 - Debug-APK aus dem noch uncommitteten Stand erfolgreich erstellt; der APK-Dateiname muss nach dem Commit neu erzeugt werden, damit die Commitkennung stimmt. Nächster Schritt: Änderungen sichern/pushen und danach weitere drei Bearbeitungsaktionen prüfen.
+
+# Modellbearbeitung — einzelne Objekte als Kopierbatch (2026-10-23)
+
+- Kopieren mehrerer Instanzen eines einzelnen ausgewählten Objekts läuft jetzt über dieselbe atomare Batch-Arrange-Logik wie Gruppen. Damit wird die gewünschte Kopienzahl als eine Operation angelegt; bei Platzmangel bleibt kein zufälliger Teilbatch zurück. Filamentzuweisungen der Quelle bleiben erhalten.
+- Honor PTP-N49 / Android 16: 8/8 gebündelte Geräteprüfungen bestanden. Neu: Einzelobjekt-Batch mit 3 Kopien, Filamentübernahme sowie atomarem Undo/Redo; weiterhin erfolgreich: Gruppenbatch, fehlgeschlagene Kontextkopie mit erhaltenem Redo, beide Anordnungsfälle sowie drei Bettfüllfälle.
+- Debug-Unit und Slice-Unit: jeweils 619/619; Debug-APK-Build erfolgreich, aber noch vor dem Commit dieses Kopierbatch-Schritts. `git diff --check` sauber.
+- Nächster Schritt: aktuellen Änderungssatz committen/pushen, APK unter dem resultierenden Commit neu bauen und danach weitere Modellaktionen prüfen. Es wurde kein Release erstellt.
