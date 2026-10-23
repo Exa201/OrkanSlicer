@@ -47,6 +47,10 @@ private var onePointerGesture:Boolean = false
 private var twoPointerGesture:Boolean = false
 private var longClickGesture:Boolean = false
 private var longClickMoved:Boolean = false
+@Volatile private var touchGestureGeneration:Long = 0L
+@Volatile private var pointerDownForLongClick:Boolean = false
+@Volatile private var longClickActivationPending:Boolean = false
+private var longPressDownTimeMs:Long = 0L
 private var isScaling:Boolean = false
 private var fillBedInProgress:Boolean = false
 private var primeTowerGesture:Boolean = false
@@ -65,25 +69,44 @@ private var longClickHitResults = ArrayList<GLModel.HitResult>()
 private var lastActionTime = System.currentTimeMillis()
 // A few devices report a very short accessibility long-press threshold; keep ordinary presses from opening actions.
 private val longPressTimeoutMs = maxOf(ViewConfiguration.getLongPressTimeout(), 500).toLong()
-private val longClick = Runnable { if (longClickTargetObject == -1 || renderer.model == null || renderer.bed == null) return@Runnable
-tapGestureGate.invalidate()
-val renderScale = Prefs.getRenderScale()
-renderer.bed!!.raycaster.raycast(renderer, longClickHitResults, lastX * renderScale, lastY * renderScale)
-if (!longClickHitResults.isEmpty())
-{
-performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-longClickGesture = true
-longClickMoved = false
-longClickTranslation.set((0).toDouble(), (0).toDouble(), (0).toDouble())
-if (renderer.focusForDrag(longClickTargetObject))
-{
-requestRender()
+private val longClick = Runnable {
+    val target = longClickTargetObject
+    val generation = touchGestureGeneration
+    if (!pointerDownForLongClick || target == -1) return@Runnable
+    longClickActivationPending = true
+    val x = lastX * Prefs.getRenderScale()
+    val y = lastY * Prefs.getRenderScale()
+    // Native mesh raycasting and model reads belong on the GL queue. Doing this from
+    // the Android input callback can block or crash the UI thread on large meshes.
+    queueEvent {
+        var hitFound = false
+        if (touchGestureGeneration == generation && pointerDownForLongClick) {
+            val activeModel = renderer.model
+            val bed = renderer.bed
+            if (activeModel != null && bed != null && target in 0 until activeModel.objectsCount) {
+                bed.raycaster.raycast(renderer, longClickHitResults, x, y)
+                val hit = longClickHitResults.firstOrNull()
+                if (hit != null) {
+                    activeModel.getTranslation(target, tempVec)
+                    longClickOffset.x = hit.position.x - tempVec.x
+                    longClickOffset.y = hit.position.y - tempVec.y
+                    if (renderer.focusForDrag(target)) requestRender()
+                    hitFound = true
+                }
+            }
+        }
+        ViewUtils.postOnMainThread {
+            if (touchGestureGeneration != generation || !pointerDownForLongClick) return@postOnMainThread
+            longClickActivationPending = false
+            if (!hitFound) return@postOnMainThread
+            tapGestureGate.invalidate()
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            longClickGesture = true
+            longClickMoved = false
+            longClickTranslation.set(0.0, 0.0, 0.0)
+        }
+    }
 }
-val result = longClickHitResults.get(0)
-renderer.model!!.getTranslation(longClickTargetObject, tempVec)
-longClickOffset.x = result.position.x - tempVec.x
-longClickOffset.y = result.position.y - tempVec.y
-} }
 private var path = Path()
 private var paint = Paint(Paint.ANTI_ALIAS_FLAG)
 private var xferPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -523,10 +546,18 @@ val action = e.getActionMasked()
 if (action == MotionEvent.ACTION_CANCEL) {
 tapGestureGate.invalidate()
 onePointerGesture = false
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
+removeCallbacks(longClick)
+longClickTargetObject = -1
 }
 if (e.getPointerCount() > 2)
 {
 tapGestureGate.invalidate()
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
 removeCallbacks(longClick)
 longClickGesture = false
 longClickMoved = false
@@ -548,9 +579,18 @@ return true
 if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN)
 {
     tapGestureGate.begin(e.getPointerCount(), e.getX(0), e.getY(0), e.getDownTime())
-if (action == MotionEvent.ACTION_DOWN) onePointerGesture = false
+if (action == MotionEvent.ACTION_DOWN) {
+    onePointerGesture = false
+    pointerDownForLongClick = true
+    longClickActivationPending = false
+    longPressDownTimeMs = e.getDownTime()
+    touchGestureGeneration++
+}
 if (e.getPointerCount() == 2)
 {
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
 if (primeTowerGesture)
 {
 renderer.finishPrimeTowerDrag(false)
@@ -581,11 +621,19 @@ primeTowerDownY = lastY
 requestRender()
 return true
 }
-val j = renderer.raycastObjectIndex(lastX * renderScale, lastY * renderScale)
-if (renderer.gcodeResult == null && j != -1)
-{
-longClickTargetObject = j
-postDelayed(longClick, longPressTimeoutMs)
+val generation = touchGestureGeneration
+val x = lastX * renderScale
+val y = lastY * renderScale
+queueEvent {
+    val target = if (renderer.gcodeResult == null) renderer.raycastObjectIndex(x, y) else -1
+    ViewUtils.postOnMainThread {
+        if (touchGestureGeneration != generation || !pointerDownForLongClick || onePointerGesture) return@postOnMainThread
+        if (target >= 0) {
+            longClickTargetObject = target
+            val elapsed = android.os.SystemClock.uptimeMillis() - longPressDownTimeMs
+            postDelayed(longClick, (longPressTimeoutMs - elapsed).coerceAtLeast(0L))
+        }
+    }
 }
 }
 return true
@@ -593,6 +641,9 @@ return true
 if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP || action == MotionEvent.ACTION_CANCEL)
 {
 removeCallbacks(longClick)
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
 if (primeTowerGesture)
 {
 tapGestureGate.invalidate()
@@ -767,6 +818,7 @@ onePointerGesture = true
 tapGestureGate.invalidate()
 startingGesture = true
 removeCallbacks(longClick)
+if (!longClickGesture && !longClickActivationPending) touchGestureGeneration++
 }
 }
 if (onePointerGesture)
@@ -777,17 +829,22 @@ if (longClickGesture)
 {
 longClickMoved = true
 val renderScale = Prefs.getRenderScale()
-renderer.model!!.getTranslation(renderer.selectedObject, tempVec)
-renderer.bed!!.raycaster.raycast(renderer, longClickHitResults, e.getX() * renderScale, e.getY() * renderScale)
-if (!longClickHitResults.isEmpty())
-{
-val result = longClickHitResults.get(0)
-longClickTranslation.x = result.position.x - tempVec.x - longClickOffset.x
-longClickTranslation.y = result.position.y - tempVec.y - longClickOffset.y
-renderer.setSelectionTranslation(longClickTranslation.x, longClickTranslation.y, (0).toDouble())
-SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, true))
+val x = e.getX() * renderScale
+val y = e.getY() * renderScale
+queueEvent {
+    val activeModel = renderer.model ?: return@queueEvent
+    val selected = renderer.selectedObject
+    val bed = renderer.bed ?: return@queueEvent
+    if (selected !in 0 until activeModel.objectsCount) return@queueEvent
+    activeModel.getTranslation(selected, tempVec)
+    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
+    val result = longClickHitResults.firstOrNull() ?: return@queueEvent
+    longClickTranslation.x = result.position.x - tempVec.x - longClickOffset.x
+    longClickTranslation.y = result.position.y - tempVec.y - longClickOffset.y
+    renderer.setSelectionTranslation(longClickTranslation.x, longClickTranslation.y, 0.0)
+    SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, true))
+    requestRender()
 }
-requestRender()
 }
 else
 {
