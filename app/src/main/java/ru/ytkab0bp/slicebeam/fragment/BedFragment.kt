@@ -1110,36 +1110,114 @@ internal fun dismissPrinterUploadProgress(progress: PrinterUploadProgressDialog)
 internal fun isPrinterUploadProgressAttached(): Boolean =
     workspaceController.activePanel == WorkspaceOverlayPanel.PRINTER_UPLOAD_PROGRESS
 @JvmOverloads fun enterPaintMode(objectIndex:Int, mode:Int = ru.ytkab0bp.slicebeam.render.GLRenderer.PAINT_MODE_COLOR) {
-val ctx = getContext()
-val currentGlView = glView
-if (ctx == null || currentGlView == null || overlayLayout == null || objectIndex == -1 || isPaintMode) return
-workspaceController.dismissActivePanel()
-if (!requirePreciseSurfaceModel(objectIndex)) return
-paintFinishPending.set(false)
-currentGlView.isPaintBrushActive = true
-currentGlView.queueEvent({ currentGlView.renderer.beginPaint(objectIndex, mode)
-currentGlView.requestRender() })
-showWorkspaceModePanel(
-    "paint-mode",
-    ::cancelPaintMode,
-    WorkspacePanelSize(
-        // Large system text makes the scrollable paint sheet taller in pixel terms.
-        // Keep the GL canvas centre reachable for brush strokes on compact phones.
-        portrait = WorkspacePanelDimension.Fraction(
-            if (ctx.resources.configuration.fontScale >= 1.3f) 0.30f else 0.40f,
-        ),
-        // Paint controls dock on the workspace's left edge in landscape. This keeps
-        // direct GL gestures on the build-plate center unobstructed.
-        landscape = WorkspacePanelDimension.Fixed(280f),
-    ),
-) {
-    PaintModePanel(
-        glView = currentGlView,
-        mode = mode,
-        onCommit = { baseFilament -> finishPaintMode(commit = true, uniformFilament = baseFilament) },
-        onCancel = { cancelPaintMode() },
-    )
+requestPaintMode(expectedObjectIndex = objectIndex, mode = mode)
 }
+/** Starts painting the active selection without reading native model state from the UI thread. */
+fun enterPaintModeForCurrentSelection(mode: Int) = requestPaintMode(expectedObjectIndex = null, mode = mode)
+
+private fun requestPaintMode(expectedObjectIndex: Int?, mode: Int) {
+    val view = glView ?: return
+    if (getContext() == null || overlayLayout == null || isPaintMode) return
+    workspaceController.dismissActivePanel()
+    view.queueEvent {
+        val renderer = view.renderer
+        val model = renderer.model ?: return@queueEvent
+        val selectionBound = expectedObjectIndex == null
+        val objectIndex = expectedObjectIndex ?: renderer.selectedObject
+        if (objectIndex !in 0 until model.objectsCount) return@queueEvent
+        val triangleCount = model.getTriangleCount(objectIndex)
+        ViewUtils.postOnMainThread {
+            if (destroyed || glView !== view || overlayLayout == null || isPaintMode) return@postOnMainThread
+            if (LargeModelPick.needsPreciseSurfaceSimplification(triangleCount)) {
+                val ctx = getContext() ?: return@postOnMainThread
+                showWorkspaceMessageDialog(
+                    ctx.getString(R.string.LargeModelSurfaceTitle),
+                    ctx.getString(R.string.LargeModelSurfaceMessage, triangleCount, LargeModelPick.TRIANGLE_LIMIT),
+                    ctx.getString(R.string.ModelSimplifyStart),
+                    ctx.getString(android.R.string.cancel),
+                ) {
+                    view.queueEvent {
+                        val activeRenderer = view.renderer
+                        if (activeRenderer.model !== model ||
+                            (selectionBound && activeRenderer.selectedObject != objectIndex)) {
+                            ViewUtils.postOnMainThread {
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                            }
+                            return@queueEvent
+                        }
+                        try {
+                            var after = model.simplify(objectIndex, LargeModelPick.suggestedKeepRatio(triangleCount))
+                            repeat(2) {
+                                if (after > LargeModelPick.TRIANGLE_LIMIT) {
+                                    after = model.simplify(objectIndex, LargeModelPick.suggestedKeepRatio(after))
+                                }
+                            }
+                            activeRenderer.invalidateGlModel(objectIndex)
+                            view.requestRender()
+                            ViewUtils.postOnMainThread {
+                                updateModel()
+                                if (after > LargeModelPick.TRIANGLE_LIMIT) {
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.LargeModelSurfaceStillDense))
+                                } else {
+                                    val message = ctx.resources.getQuantityString(
+                                        R.plurals.ModelSimplifyDone, after, triangleCount, after,
+                                    )
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(message))
+                                }
+                            }
+                        } catch (error: Exception) {
+                            Log.e("BedFragment", "Could not simplify paint target", error)
+                            ViewUtils.postOnMainThread {
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                                    SnackbarsLayout.Type.ERROR, R.string.ModelSimplifyFailed,
+                                ))
+                            }
+                        }
+                    }
+                }
+            } else {
+                view.queueEvent {
+                    val activeRenderer = view.renderer
+                    if (activeRenderer.model !== model ||
+                        (selectionBound && activeRenderer.selectedObject != objectIndex)) {
+                        ViewUtils.postOnMainThread {
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                        }
+                        return@queueEvent
+                    }
+                    activeRenderer.beginPaint(objectIndex, mode)
+                    view.requestRender()
+                    ViewUtils.postOnMainThread {
+                        if (!destroyed && glView === view && overlayLayout != null) {
+                            view.isPaintBrushActive = true
+                            paintFinishPending.set(false)
+                            showPaintModePanel(view, mode)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+private fun showPaintModePanel(currentGlView: GLView, mode: Int) {
+    val ctx = getContext() ?: return
+    showWorkspaceModePanel(
+        "paint-mode",
+        ::cancelPaintMode,
+        WorkspacePanelSize(
+            portrait = WorkspacePanelDimension.Fraction(
+                if (ctx.resources.configuration.fontScale >= 1.3f) 0.30f else 0.40f,
+            ),
+            landscape = WorkspacePanelDimension.Fixed(280f),
+        ),
+    ) {
+        PaintModePanel(
+            glView = currentGlView,
+            mode = mode,
+            onCommit = { baseFilament -> finishPaintMode(commit = true, uniformFilament = baseFilament) },
+            onCancel = { cancelPaintMode() },
+        )
+    }
 }
 private fun finishPaintMode(commit: Boolean, uniformFilament: Int? = null) {
     if (!paintFinishPending.compareAndSet(false, true)) return

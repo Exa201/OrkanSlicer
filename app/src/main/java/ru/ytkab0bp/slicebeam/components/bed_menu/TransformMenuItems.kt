@@ -23,11 +23,13 @@ internal class TransformMenuItems(
         val availability = modelSelectionAvailability(renderer.model != null, renderer.selectedObject)
         return listOf(
             selectionAction(R.string.ModelContextResetRotation, R.drawable.menu_orientation_rotation_28, availability) {
-                fragment.resetModelRotation(renderer.selectedObject) {
+                // Resolve the active object only after the operation reaches the GL queue.
+                fragment.resetModelRotation {
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetRotationDone))
                 }
             },
             selectionAction(R.string.ModelContextResetScale, R.drawable.arrow_up_right_corner_outline_24, availability) {
+                // Resolve the active object only after the operation reaches the GL queue.
                 fragment.resetModelScale {
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextResetScaleDone))
                 }
@@ -84,8 +86,7 @@ internal class TransformMenuItems(
 
     private fun paintAction(titleRes: Int, mode: Int, availability: ModelSelectionAvailability) =
         selectionAction(titleRes, R.drawable.paint_roller_outline_28, availability) {
-            val objectIndex = fragment.glView!!.renderer.selectedObject
-            if (objectIndex != -1) fragment.enterPaintMode(objectIndex, mode)
+            fragment.enterPaintModeForCurrentSelection(mode)
         }
 
     private fun showSimplifyDialog(view: View) {
