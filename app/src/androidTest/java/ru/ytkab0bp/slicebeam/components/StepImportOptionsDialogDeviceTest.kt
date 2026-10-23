@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -31,9 +32,9 @@ class StepImportOptionsDialogDeviceTest {
             }
         }
 
-        compose.onNodeWithTag("step-split-compound").assertIsOff().performClick()
+        compose.onNodeWithTag("step-split-compound").performScrollTo().assertIsOff().performClick()
         compose.onNodeWithTag("step-split-compound").assertIsOn()
-        compose.onNodeWithTag("step-save-defaults").assertIsOff().performClick()
+        compose.onNodeWithTag("step-save-defaults").performScrollTo().assertIsOff().performClick()
         compose.onNodeWithTag("step-save-defaults").assertIsOn()
         assertEquals(null, applied.get())
         compose.onNodeWithTag("step-import-confirm").performClick()

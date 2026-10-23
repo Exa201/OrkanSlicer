@@ -2367,7 +2367,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("STEP geometry must wait for the user's meshing choice", 0,
                 bed.currentModel?.objectsCount ?: 0)
             compose.onNodeWithTag("step-linear-deflection").assertIsDisplayed()
-            compose.onNodeWithTag("step-angular-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-angular-deflection").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("step-import-confirm").performClick()
 
             compose.waitUntil(timeoutMillis = 90_000) {
@@ -2462,7 +2462,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("External STEP open must wait for the user's meshing choice",
                 0, bed.currentModel?.objectsCount ?: 0)
             compose.onNodeWithTag("step-linear-deflection").assertIsDisplayed()
-            compose.onNodeWithTag("step-angular-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-angular-deflection").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("step-import-cancel").performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isEmpty()
