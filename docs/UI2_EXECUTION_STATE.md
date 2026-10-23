@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## STEP/STP-Abnahme und Cut-Connector-Auswahlbindung — 2026-10-23
+
+- Der aktuelle HEAD `52807364` enthält bereits die STEP/STP-Importoptionen vor dem nativen Import. Der bisherige gemeldete Öffnungsfehler war der Verlust der Datei-URI bei `ACTION_SEND`-Intents, wenn sie ausschließlich in `ClipData` lag; die Unterstützung dafür sowie der SAF-Fallback wurden bereits früher implementiert. In diesem Durchgang war kein zusätzlicher STEP-Produktcodefehler reproduzierbar.
+- Honor PTP-N49 / Android 16: 6 gezielte STEP-Fälle erneut bestanden: nativer STEP/STP-Import mit Tessellierungsoptionen (1), externe Datei-Intents einschließlich ClipData (2), Dialoge Übernehmen/Abbrechen (2), vollständiger externer URI→Dialog→renderbares Modell-Ablauf (1). Der separate Dateiauswahl-/Host-Verzögerungsfall war bereits im früheren 7/7-Nachweis bestanden.
+- Nebenbefund aus der begonnenen Modellbearbeitung: Cut-Connector-Vorschauen waren an die aktuelle Auswahl gebunden, obwohl Schnittebene und Zielobjekt beim Öffnen des Werkzeugs festgelegt werden. Der Renderer speichert nun den Zielobjektindex, und Übernehmen verwirft den Vorgang, wenn Modell oder Auswahl-Snapshot veraltet ist. Der Regressionstest prüft Vorschau, Undo, Wechsel auf ein anderes Objekt, Zuordnung zum ursprünglichen Ziel sowie Abbruch ohne Geometrie- oder Connector-Mutation.
+- Honor: neuer Cut-Connector-Auswahlbindungstest und bestehender erfolgreicher Cut-/Undo-Regressionsfall bestanden. Debug-JVM 621/621 und Slice-JVM 621/621; `assembleDebug` erfolgreich; `git diff --check` sauber. APK aus diesem ungecommitten Build: `OrkanSlicer_52807364e6.apk`, 239.408.630 Byte, SHA-256 `052CCF39296654B779AC131569AF1C4D289549EB874CC3D3305C2DA795E361AC`.
+- Nächster Schritt: Cut-Connector-Änderung committen und auf den bestehenden Branch pushen; danach drei weitere Modellbearbeitungsfunktionen mit Honor-Instrumentierung bewerten. Der Nutzerbericht, falls STEP weiterhin am konkreten Gerät nicht öffnet, benötigt zusätzlich den Datei-App-/Freigabeweg und die angezeigte Meldung; die aktuellen Android-Intent-, Optionen- und nativen Importtests sind grün.
+
 ## Aktueller Durchgang — STEP/STP-Öffnung und Materialvererbung für Oberflächentext
 
 - Aktueller Code-Commit: `a45bb1f9` auf `codex/rinkhals-safe-start-audit` gepusht; PR #2 aktualisiert und offen. App-Version: 0.8.361 / Code 396.

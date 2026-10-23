@@ -5469,6 +5469,92 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun cutConnectorEditingStaysBoundToItsObjectAndRejectsStaleCut() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-cut-connector-selection-binding.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 30.0, 0.0, 0.0)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two cut targets should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val originalTriangles = intArrayOf(
+                readTriangleCountOnGl(glView, 0),
+                readTriangleCountOnGl(glView, 1),
+            )
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuTransformCut)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformCut))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.CutAddConnector))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readRendererBooleanOnGl(glView, "cutConnectorPlacement")
+            }
+
+            val connectorPoint = findUncoveredPreciseSurfacePoint(glView, bed)
+            tapGlViewAt(glView, connectorPoint.first, connectorPoint.second)
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readCutConnectorCountOnGl(glView, 0) == 1
+            }
+
+            // Exercise Undo before checking that later selection changes cannot redirect the preview.
+            compose.onNodeWithText(activity.getString(R.string.CutUndoConnector))
+                .performScrollTo().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readCutConnectorCountOnGl(glView, 0) == 0
+            }
+
+            // Even if the active selection changes during background connector placement,
+            // connector previews remain attached to the object whose plane is being edited.
+            glView.selectModel(1, Runnable {})
+            instrumentationWaitForGlIdle()
+            tapGlViewAt(glView, connectorPoint.first, connectorPoint.second)
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readCutConnectorCountOnGl(glView, 0) == 1
+            }
+            assertEquals("selection changes must not redirect connectors to another object", 0,
+                readCutConnectorCountOnGl(glView, 1))
+
+            compose.onNodeWithText(activity.getString(R.string.CutApply))
+                .performScrollTo().assertIsEnabled().performClick()
+            val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
+                .apply { isAccessible = true }.get(bed)
+            compose.waitUntil(timeoutMillis = 10_000) {
+                workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController) == null &&
+                    !readRendererBooleanOnGl(glView, "cutPlaneVisible")
+            }
+            assertEquals("a stale cut must preserve both source objects", 2, readObjectCountOnGl(glView))
+            assertEquals("the changed selection should remain active", 1, readSelectedObjectOnGl(glView))
+            assertEquals("a stale cut must not alter source mesh 0", originalTriangles[0],
+                readTriangleCountOnGl(glView, 0))
+            assertEquals("a stale cut must not alter source mesh 1", originalTriangles[1],
+                readTriangleCountOnGl(glView, 1))
+            assertEquals("connector previews must be discarded with the stale operation", 0,
+                readCutConnectorCountOnGl(glView, 0))
+            assertEquals("no connector may leak onto the newly selected model", 0,
+                readCutConnectorCountOnGl(glView, 1))
+            assertEquals("preview connectors must never be committed to the model", 0,
+                model.getCutConnectorCount(0) + model.getCutConnectorCount(1))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -6690,6 +6776,7 @@ class InitialProjectMenuDeviceTest {
     private fun findUncoveredPreciseSurfacePoint(
         glView: ru.ytkab0bp.slicebeam.view.GLView,
         bed: BedFragment,
+        avoid: Pair<Float, Float>? = null,
     ): Pair<Float, Float> {
         val modePanelBounds = compose.onAllNodesWithTag("workspace-mode-panel")
             .fetchSemanticsNodes().firstOrNull()?.boundsInRoot
@@ -6733,6 +6820,10 @@ class InitialProjectMenuDeviceTest {
                         val localY = y / renderScale
                         val rootX = glLocation[0] + localX - composeLocation[0]
                         val rootY = glLocation[1] + localY - composeLocation[1]
+                        if (avoid != null &&
+                            kotlin.math.abs(glLocation[0] + localX - avoid.first) < 20f &&
+                            kotlin.math.abs(glLocation[1] + localY - avoid.second) < 20f
+                        ) continue
                         if (modePanelBounds?.contains(Offset(rootX, rootY)) == true ||
                             menuPanelBounds?.contains(Offset(rootX, rootY)) == true
                         ) continue

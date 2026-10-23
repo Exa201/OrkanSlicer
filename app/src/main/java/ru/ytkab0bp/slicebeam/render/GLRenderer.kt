@@ -589,6 +589,7 @@ private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>
 }
 
 private var paintModeKind = PAINT_MODE_COLOR
+private var cutConnectorTargetObjectIndex = -1
 private class CutConnectorPreview {
 internal lateinit var position:Vec3d
 internal var radius:Float = 0.toFloat()
@@ -597,8 +598,9 @@ internal var type:Int = 0
 internal var rotX:Double = 0.toDouble()
 internal var rotY:Double = 0.toDouble()
 }
-@Synchronized fun setCutConnectorPlacement(enabled:Boolean) {
+@Synchronized fun setCutConnectorPlacement(enabled:Boolean, targetObjectIndex:Int = -1) {
 cutConnectorPlacement = enabled
+cutConnectorTargetObjectIndex = if (enabled) targetObjectIndex else -1
 }
 @Synchronized fun setCutConnectorDefaults(radius:Float, height:Float, type:Int) {
 cutConnectorRadius = Math.max(0.1f, radius)
@@ -1407,13 +1409,16 @@ val enabled:Boolean
 val radius:Float
 val height:Float
 val type:Int
+val targetObjectIndex:Int
 synchronized (this) {
 enabled = cutConnectorPlacement
 radius = cutConnectorRadius
 height = cutConnectorHeight
 type = cutConnectorType
+targetObjectIndex = cutConnectorTargetObjectIndex
 }
-if (!enabled || this.model == null || selectedObject < 0 || selectedObject >= this.model!!.objectsCount) return false
+val activeModel = this.model
+if (!enabled || activeModel == null || targetObjectIndex < 0 || targetObjectIndex >= activeModel.objectsCount) return false
 val hit = raycastCutPlane(x, y)
 if (hit == null) return false
 val preview = CutConnectorPreview()
@@ -1424,11 +1429,11 @@ preview.type = type
 preview.rotX = cutPlaneRotX.toDouble()
 preview.rotY = cutPlaneRotY.toDouble()
 synchronized (this) {
-var list = cutConnectorPreviews.get(selectedObject)
+var list = cutConnectorPreviews.get(targetObjectIndex)
 if (list == null)
 {
 list = ArrayList()
-cutConnectorPreviews.put(selectedObject, list)
+cutConnectorPreviews.put(targetObjectIndex, list)
 }
 list.add(preview)
 cutConnectorsDirty = true
@@ -1447,7 +1452,8 @@ private fun drawCutConnectors() {
 var previews:List<CutConnectorPreview> = emptyList()
 val dirty:Boolean
 synchronized (this) {
-val current = cutConnectorPreviews.get(selectedObject)
+val displayObject = if (cutConnectorPlacement) cutConnectorTargetObjectIndex else selectedObject
+val current = cutConnectorPreviews.get(displayObject)
 if (current == null || current.isEmpty()) return
 previews = ArrayList(current)
 dirty = cutConnectorsDirty

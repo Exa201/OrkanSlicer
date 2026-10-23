@@ -36,8 +36,11 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
+import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -52,6 +55,7 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
     private val tempMin = Vec3d()
     private val tempMax = Vec3d()
     private var cutObject = -1
+    private var cutSelectionSnapshot: ModelSelectionSnapshot? = null
     private var connectorMode = false
     @Volatile private var isAttachedToWorkspace = false
     private val cutReady = mutableStateOf(false)
@@ -76,7 +80,8 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
         glView.queueEvent {
             if (!isAttachedToWorkspace) return@queueEvent
             val renderer = glView.renderer
-            val objectIndex = renderer.selectedObject
+            val selectionSnapshot = renderer.captureSelectionSnapshot()
+            val objectIndex = selectionSnapshot?.primaryObject ?: -1
             val min = Vec3d()
             val max = Vec3d()
             val range = runCatching {
@@ -88,6 +93,7 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
             ViewUtils.postOnMainThread {
                 if (!isAttachedToWorkspace) return@postOnMainThread
                 cutObject = if (range == null) -1 else objectIndex
+                cutSelectionSnapshot = selectionSnapshot.takeIf { range != null }
                 if (range != null) {
                     tempMin.set(min)
                     tempMax.set(max)
@@ -219,7 +225,7 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
         val glView = bed.glView ?: return
         glView.queueEvent {
             if (!isAttachedToWorkspace) return@queueEvent
-            glView.renderer.setCutConnectorPlacement(connectorMode)
+            glView.renderer.setCutConnectorPlacement(connectorMode, cutObject)
             glView.requestRender()
         }
     }
@@ -250,12 +256,26 @@ class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute
         val glView = bed.glView
         if (cutObject >= 0 && cutReady.value && glView != null) {
             val objectIndex = cutObject
+            val selectionSnapshot = cutSelectionSnapshot
             val z = cutZ.floatValue.toDouble()
             val rotX = TransformCutPolicy.degreesToRadians(rotationX.floatValue).toDouble()
             val rotY = TransformCutPolicy.degreesToRadians(rotationY.floatValue).toDouble()
             glView.queueEvent {
                 if (!isAttachedToWorkspace) return@queueEvent
                 val renderer = glView.renderer
+                if (selectionSnapshot == null || selectionSnapshot.primaryObject != objectIndex ||
+                    !renderer.isSelectionSnapshotCurrent(selectionSnapshot)
+                ) {
+                    renderer.setCutConnectorPlacement(false)
+                    renderer.discardCutConnectorPreviewsForObject(objectIndex)
+                    renderer.showCutPlane(false)
+                    glView.requestRender()
+                    ViewUtils.postOnMainThread {
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                        if (isAttachedToWorkspace) bed.dismissWorkspaceToolPanel()
+                    }
+                    return@queueEvent
+                }
                 val model = renderer.model ?: return@queueEvent
                 val connectorCountBeforeCommit = model.getCutConnectorCount(objectIndex)
                 renderer.commitCutConnectorsForObject(objectIndex)
