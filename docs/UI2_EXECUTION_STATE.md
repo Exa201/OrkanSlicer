@@ -6,8 +6,9 @@
 - Behoben in 0.8.361 / Code 396: eingebettete Release Notes und Build-Version stimmen überein. Der M12-Raycaster-Absturzschutz aus 0.8.360 bleibt enthalten.
 - Honor PTP-N49 / Android 16: `ChangeLogComposeDeviceTest` 1/1 und M12-GLView-Touchregression 1/1 bestanden. Debug- und Slice-JVM 621/621 je zuvor bestanden; der 0.8.361-Änderungsumfang beschränkt sich auf Releaseversion und Release-Notes-Asset.
 - Vollständige Honor-Instrumentierung auf 0.8.361: 344 Fälle, 341 bestanden, 3 wegen nicht vorhandener privater KromaCut-Fixtures übersprungen, 0 Fehler/Errors. Debug- und Slice-JVM auf demselben Versionsstand erneut je 621/621, 0 Fehler/Skips.
+- Die drei im Vollauf übersprungenen KromaCut-Tests wurden danach mit der bereitgestellten Nutzerdatei einzeln auf Honor PTP-N49 ausgeführt: 3/3 bestanden, keine Skips. Getestet: alle Drucker-/Druck-/Filament-Importwahlkombinationen, bestehende Profile unverändert, eigene Einstellungen plus Farbänderung und Paint mit echtem nativen Slicing sowie Auswahl T0→weiß/ACE 2 und T1→blau/ACE 4. G-Code enthält T0/T1 und `#FFFFFF;#0047BB`; G-Code-Vorschaupalette entspricht dem nativen Slicer-Ergebnis. Fixture-SHA-256 `9720EB903A6037C10F3179CA8F9557B99147660EB842A6570C6B1AE0FDC3469F`; nur temporär in SliceTest-Sandbox kopiert und danach entfernt, Original unverändert.
 - Debug-Build erfolgreich. APK `OrkanSlicer_4c47f8dd4f.apk`, 239.395.012 Byte, SHA-256 `1FD9436CF8554E1CC9E238C3952440F507D84637B0781934C2F40988B144C979`, Code-Commit `4c47f8dd4f761ea46a3d512a4eb5446b4b3503b4`. Auf Honor installiert und kalt gestartet; Logcat ohne Crash/ANR/OOM.
-- PR #2 bleibt offen. Xiaomi-spezifische Bestätigung des KromaCut-/M12-Problems ist nicht verfügbar, da kein Xiaomi-Gerät verbunden ist.
+- PR #2 bleibt offen. Xiaomi-spezifische Bestätigung des KromaCut-/M12-Problems ist nicht verfügbar, da kein Xiaomi-Gerät verbunden ist. Nächster konkreter Schritt: Xiaomi-WebView-Diagnose fortsetzen, sobald das Gerät oder ein Fehlerdialog/Log vom Xiaomi verfügbar ist; parallel offene Menü-/Accessibility-Abnahme weiterführen.
 
 ## Release 0.8.360 — native M12-Touch-Absturzschutz, 2026-10-23
 
