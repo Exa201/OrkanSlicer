@@ -2773,3 +2773,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Verifikation des Modellbearbeitungsbündels: Debug-Unit 619/619, Slice-Unit 619/619; Honor PTP-N49 / Android 16: 8/8 gezielte Arrange-, Fill-, Kopier-, Filament-, Undo-/Redo-Tests. Anschließend der gezielte Einzelobjekt-Mehrfachkopie-Rollbacktest und der 3-Kopien-Undo-/Redo-Test: 2/2 bestanden. Platzierung, Verbinden, Text, Boolean und die Slice-/G-Code-Fälle im vorangehenden Paket ebenfalls auf Honor bestanden.
 - Offizieller Release: in diesem Änderungssatz nicht erstellt. Keine tatsächlichen Druckstarts ausgeführt.
 - Nächster konkreter Schritt: die übrigen Modellmenüaktionen auf tatsächliche Zustandsänderung, Undo/Redo und 3MF-/Slice-Auswirkung prüfen; danach den nächsten zusammenhängenden, verifizierten Änderungssatz auf PR #2 sichern.
+
+# Fortsetzung — Modellbearbeitung: Rollback-Duplikation und drei Geometriepfade — 2026-10-23
+
+- Auf Honor PTP-N49 / Android 16 wurden 7 gezielte Instrumentierungstests bestanden: fehlgeschlagene Gruppen-Duplikation stellt Objektzahl, Positionen und Filamentzuweisungen wieder her; Flächenplatzierung einer Gruppe erhält Abstände und Materialien; Boolean-Union auf drei Objekten; eigenständiger 3D-Text; Boolean-Difference/Intersection über 3MF-Roundtrip mit anschließendem Slice; Text erzeugt Extrusions-G-Code; platzierte Gruppe bleibt slicebar.
+- Der neue Regressionstest `failedGroupDuplicateRestoresAllObjectsAndFilamentAssignments` ergänzt die Abdeckung für fehlgeschlagene gruppierte Kopien. Die Android-Testdatei hatte bereits eine lokale Änderung; diese wurde geprüft und zusammen mit dem Status gesichert. Keine Änderungen am Produktivcode, keine echte Druckaktion.
+- Nächste konkrete Arbeit: die drei Geometriepfade weiter gegen Undo/Redo und 3MF-Wiederladen unter Materialzuweisung prüfen; danach gezielt den nächsten UI-2.0-Block bearbeiten.

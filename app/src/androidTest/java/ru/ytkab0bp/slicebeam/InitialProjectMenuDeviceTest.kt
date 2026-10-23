@@ -944,6 +944,61 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun failedGroupDuplicateRestoresAllObjectsAndFilamentAssignments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "group-duplicate-no-room-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val extra = Model()
+                try {
+                    extra.addObject(model, 0)
+                    model.addObject(extra, 0)
+                } finally {
+                    extra.release()
+                }
+                model.translate(1, 18.0, 11.0, 6.0)
+                model.scale(1, 40.0, 40.0, 1.0)
+                model.setUniformFilament(0, 2)
+                model.setUniformFilament(1, 3)
+                glView.renderer.invalidateGlModel(0)
+                glView.renderer.invalidateGlModel(1)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("unarrangeable group should be prepared on GL thread", prepared.await(10, TimeUnit.SECONDS))
+            instrumentationWaitForGlIdle()
+            val beforeBounds = (0..1).map { readExactBoundsOnGl(glView, it).single() }
+            val beforeFilaments = (0..1).map { readUsedFilamentsOnGl(glView, it).toList() }
+            val copies = AtomicReference<Int>()
+            val done = CountDownLatch(1)
+            glView.queueEvent {
+                copies.set(glView.renderer.duplicateSelectedObjects(2))
+                glView.requestRender()
+                done.countDown()
+            }
+            assertTrue("group duplicate should return from GL thread", done.await(15, TimeUnit.SECONDS))
+            assertEquals("an unarrangeable group batch must create no partial copies", 0, copies.get())
+            assertEquals(2, readObjectCountOnGl(glView))
+            (0..1).forEach { index ->
+                assertArrayEquals("group rollback must restore object $index", beforeBounds[index],
+                    readExactBoundsOnGl(glView, index).single(), 0.03)
+                assertEquals("group rollback must preserve object $index filament", beforeFilaments[index],
+                    readUsedFilamentsOnGl(glView, index).toList())
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun duplicateBatchDoesNotKeepPartialCopiesWhenArrangeCannotFitTheModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
