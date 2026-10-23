@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — 2026-10-23, OrkanSlicer 0.8.365 veröffentlicht
 
+## Kernmodellierung erneut auf aktuellem HEAD verifiziert — 2026-10-23, `b879fd7f`
+
+- Honor PTP-N49 / Android 16, aktueller gepushter Code: 3/3 Gerätetests bestanden. Objektgruppe als Teilemodell verbinden (`objectListGroupCanBeCombinedAsPartsFromTheModelMenu`); ausgewählte Gruppe auf einer angeklickten Fläche platzieren und Abstand/Materialien bewahren (`modelMenuPlacesSelectedGroupOnTappedSurfaceAndPreservesSpacingAndMaterials`); Boolean-Vereinigung von drei ausgewählten Objekten (`modelMenuBooleanUnionRunsForAllThreeSelectedObjects`).
+- Zusammen mit der vorherigen Abnahme auf demselben Produktcode bleiben Teilen, Spiegeln X/Y/Z samt Undo/Redo, Vereinfachen samt Abbrechen/Undo/Redo und Z-Position samt Abbrechen/Undo bestanden.
+- Der Textpanel-Gerätetest bleibt offen: der Workspace zeigt Panel und Modell, Compose meldet beim Semantikzugriff aber dauerhaft `pending measure/layout`. Noch keine Ursache oder Produktkorrektur bestätigt. Nächster Schritt ist die laufende Mess-/Layoutquelle im Workspace-Host zu lokalisieren, nicht den Fehler als bestanden zu werten.
+- Keine Produktlogik in diesem Durchgang geändert; neue Geräteprüfung 3/3. Aktuelle Änderungen der vorherigen Testkorrektur sind auf dem Branch; dieser Statuseintrag muss noch mit eingecheckt werden.
+
 ## Geräteprüfung Modellaktionen — 2026-10-23, HEAD `ba053364`
 
 - Honor PTP-N49 / Android 16: Modell teilen (`editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects`) bestanden; Spiegeln X/Y/Z mit Undo/Redo (`mirrorPanelReflectsSelectedObjectOnEachAxisAndRecordsUndoRedo`) nach dem automatischen Scrollen zum im kompakten Panel zunächst außerhalb des Ausschnitts liegenden Spiegelbereich bestanden; Vereinfachen mit Abbrechen, Übernehmen und Undo/Redo (`editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone`) bestanden; Z-Position mit Abbrechen und Undo (`editPositionZIsVisibleCancelableAndUndoable`) bestanden.
