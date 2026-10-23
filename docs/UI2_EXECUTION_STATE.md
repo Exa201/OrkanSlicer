@@ -1,5 +1,11 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## Korrekturstand 0.8.361 — Release-Notiz-Versionsabgleich
+
+- Die vollständige Honor-Instrumentierung für 0.8.360 lief mit 347 ausgeführten Testfällen: 343 erfolgreich, 3 wegen privater KromaCut-Fixtures übersprungen, 1 fehlgeschlagen. Ursache des einzelnen Fehlers: `app/src/main/assets/update.json` stand noch auf 0.8.359, obwohl BuildConfig 0.8.360 meldete.
+- Korrektur: Version 0.8.361 / Code 396; eingebettete Release Notes werden auf 0.8.361 aktualisiert. Der M12-Raycaster-Schutz aus 0.8.360 bleibt enthalten.
+- Vor Veröffentlichung: Changelog-Compose-Test für Versionsgleichheit und M12-Touchregression auf Honor erneut ausführen; APK mit Code-Commit bauen, installieren, starten und Prüfsumme erfassen. Bestehender Release v0.8.360 bleibt unverändert.
+
 ## Release 0.8.360 — native M12-Touch-Absturzschutz, 2026-10-23
 
 - Änderung: Modelle über 20.000 Dreiecke verwenden zur Objektauswahl eine schnelle Begrenzungsbox statt den nativen Face-Neighbour-Raycaster synchron beim Antippen zu initialisieren. Präzise Flächenmalerei/-platzierung bleibt für solche Netze gesperrt, bis sie vereinfacht wurden.

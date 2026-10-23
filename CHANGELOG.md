@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.361
+
+- Synchronize the in-app release notes with the shipped version so the update dialog and changelog test show the current release.
+- Keep the dense-model touch crash protection from 0.8.360: meshes above 20,000 triangles use bounds-based object selection instead of synchronous native face-neighbour index construction.
+
 ## 0.8.360
 
 - Use safe bounds-based selection for models over 20,000 triangles instead of building the native face-neighbour raycast index during a touch. This prevents slow-device native crashes on generated M12 fasteners and other dense meshes.

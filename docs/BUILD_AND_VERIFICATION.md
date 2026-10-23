@@ -1987,3 +1987,8 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Installed and launched on Honor PTP-N49 / Android 16; `MainActivity` resumed and the captured Logcat contained no crash, ANR, OOM, or fatal signal. Xiaomi was not connected, so the device-specific reproduction remains pending.
 - PR #2 remains open; official release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.360.
 
+# Follow-up verification — OrkanSlicer 0.8.361
+
+- The full Honor PTP-N49 / Android 16 instrumentation run for 0.8.360 executed 347 cases: 343 passed, 3 private KromaCut fixture tests skipped, and 1 failed. The sole failure was `ChangeLogComposeDeviceTest`: the dialog asserted app version 0.8.360 while bundled `app/src/main/assets/update.json` still displayed 0.8.359.
+- Corrected the shipped changelog and bumped to 0.8.361 / code 396. The M12 dense-mesh bounds-picking fix remains unchanged. The corrected changelog and M12 regression require focused re-verification before publishing 0.8.361.
+
