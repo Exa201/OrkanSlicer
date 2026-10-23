@@ -27,6 +27,7 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.theme.IThemeView
@@ -168,6 +169,16 @@ fun deleteSelectedModels(onComplete: Runnable? = null) {
         ViewUtils.postOnMainThread { onComplete?.run() }
     }
 }
+internal fun deleteSelectedModelsIfCurrent(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val removed = renderer.deleteSelectedObjects(expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(removed) }
+    }
+}
 fun selectAllModels(onComplete:Runnable) {
 queueEvent({ renderer.selectAllObjects()
 requestRender()
@@ -178,23 +189,34 @@ queueEvent({ renderer.setSelectedObjects(objectIndices)
 requestRender()
 ViewUtils.postOnMainThread({ onComplete?.run() }) })
 }
-fun combineSelectedObjectsAsParts(onComplete:(Int)->Unit) {
+internal fun combineSelectedObjectsAsParts(
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete:(Int)->Unit,
+) {
 queueEvent({
-    val result = renderer.combineSelectedObjectsAsParts()
+    val result = renderer.combineSelectedObjectsAsParts(expectedSelection)
     requestRender()
     ViewUtils.postOnMainThread { onComplete(result) }
 })
 }
-fun placeSelectedObjectsOnObject(targetIndex: Int, onComplete: (Int) -> Unit) {
+internal fun placeSelectedObjectsOnObject(
+    targetIndex: Int,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete: (Int) -> Unit,
+) {
     queueEvent {
-        val result = renderer.placeSelectedObjectsOnObject(targetIndex)
+        val result = renderer.placeSelectedObjectsOnObject(targetIndex, expectedSelection)
         requestRender()
         ViewUtils.postOnMainThread { onComplete(result) }
     }
 }
-fun beginSurfacePlacement(targetIndex: Int, onStarted: (Boolean) -> Unit) {
+internal fun beginSurfacePlacement(
+    targetIndex: Int,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onStarted: (Int) -> Unit,
+) {
     queueEvent {
-        val started = renderer.beginSurfacePlacement(targetIndex)
+        val started = renderer.beginSurfacePlacement(targetIndex, expectedSelection)
         requestRender()
         ViewUtils.postOnMainThread { onStarted(started) }
     }
@@ -224,16 +246,32 @@ fun placeSelectedObjectsOnBed(onComplete: (Boolean) -> Unit) {
         ViewUtils.postOnMainThread { onComplete(placed) }
     }
 }
-fun alignSelectedObjects(axis: ModelAlignmentAxis, onComplete: (Boolean) -> Unit) {
+internal fun alignSelectedObjects(
+    axis: ModelAlignmentAxis,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete: (Int) -> Unit,
+) {
     queueEvent {
-        val aligned = renderer.alignSelectedObjects(axis)
+        val aligned = when {
+            expectedSelection != null && !renderer.isSelectionSnapshotCurrent(expectedSelection) -> -2
+            renderer.alignSelectedObjects(axis, expectedSelection) -> 1
+            else -> 0
+        }
         requestRender()
         ViewUtils.postOnMainThread { onComplete(aligned) }
     }
 }
-fun distributeSelectedObjects(axis: ObjectDistributionAxis, onComplete: (Boolean) -> Unit) {
+internal fun distributeSelectedObjects(
+    axis: ObjectDistributionAxis,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete: (Int) -> Unit,
+) {
     queueEvent {
-        val distributed = renderer.distributeSelectedObjects(axis)
+        val distributed = when {
+            expectedSelection != null && !renderer.isSelectionSnapshotCurrent(expectedSelection) -> -2
+            renderer.distributeSelectedObjects(axis, expectedSelection) -> 1
+            else -> 0
+        }
         requestRender()
         ViewUtils.postOnMainThread { onComplete(distributed) }
     }
@@ -249,6 +287,16 @@ fun deleteAllModels(onComplete:Runnable) {
 queueEvent({ renderer.deleteAllObjects()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+}
+internal fun deleteAllModelsIfCurrent(
+    expectedModel: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val removed = renderer.deleteAllObjects(expectedModel)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(removed) }
+    }
 }
 private val previewBadgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
 fun drawOverlay(canvas:Canvas, toBitmap:Boolean) {

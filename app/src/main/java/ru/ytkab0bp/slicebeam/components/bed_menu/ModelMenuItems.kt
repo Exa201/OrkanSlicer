@@ -8,6 +8,8 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
+import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
@@ -63,18 +65,24 @@ internal class ModelMenuItems(
             }, enabled = selectedCount >= 3),
             BedComposeMenuAction(R.string.ModelMenuCombineSelected, R.drawable.square_stack_up_outline_28, { anchor ->
                 val glView = fragment.glView ?: return@BedComposeMenuAction
-                fragment.showWorkspaceMessageDialog(
-                    anchor.context.getString(R.string.ModelMenuCombineSelected),
-                    anchor.context.getString(R.string.ModelMenuCombineWarning),
-                    anchor.context.getString(R.string.ModelMenuCombineSelected),
-                    anchor.context.getString(android.R.string.cancel),
-                ) {
-                    glView.combineSelectedObjectsAsParts { result ->
-                        if (result >= 0) {
-                            fragment.updateModel()
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineDone))
-                        } else {
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+                captureSelectionSnapshot(glView) { snapshot ->
+                    if (snapshot.selectedIndices.size < 2) return@captureSelectionSnapshot
+                    fragment.showWorkspaceMessageDialog(
+                        anchor.context.getString(R.string.ModelMenuCombineSelected),
+                        anchor.context.getString(R.string.ModelMenuCombineWarning),
+                        anchor.context.getString(R.string.ModelMenuCombineSelected),
+                        anchor.context.getString(android.R.string.cancel),
+                    ) {
+                        glView.combineSelectedObjectsAsParts(snapshot) { result ->
+                            when {
+                                result >= 0 -> {
+                                    fragment.updateModel()
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineDone))
+                                }
+                                result == MODEL_EDIT_STALE_SELECTION ->
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                                else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+                            }
                         }
                     }
                 }
@@ -156,23 +164,45 @@ internal class ModelMenuItems(
                 onItemsChanged()
             }, selected = flattenEnabled, toggleable = true, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuDeleteSelected, R.drawable.delete_outline_android_28, { anchor ->
-                fragment.showWorkspaceMessageDialog(
-                    anchor.context.getString(R.string.ModelMenuDeleteSelected),
-                    anchor.context.getString(R.string.ModelDeleteConfirm),
-                    anchor.context.getString(R.string.ModelMenuDeleteSelected),
-                    anchor.context.getString(android.R.string.cancel),
-                ) { fragment.glView!!.deleteSelectedModels(fragment::updateModel) }
+                val glView = fragment.glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(glView) { snapshot ->
+                    fragment.showWorkspaceMessageDialog(
+                        anchor.context.getString(R.string.ModelMenuDeleteSelected),
+                        anchor.context.getString(R.string.ModelDeleteConfirm),
+                        anchor.context.getString(R.string.ModelMenuDeleteSelected),
+                        anchor.context.getString(android.R.string.cancel),
+                    ) {
+                        glView.deleteSelectedModelsIfCurrent(snapshot) { removed ->
+                            if (removed == MODEL_EDIT_STALE_SELECTION) {
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                            } else if (removed > 0) {
+                                fragment.updateModel()
+                            }
+                        }
+                    }
+                }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuSelectAll, R.drawable.square_stack_up_outline_28, {
                 fragment.glView!!.selectAllModels { fragment.updateModel() }
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
-                fragment.showWorkspaceMessageDialog(
-                    anchor.context.getString(R.string.ModelMenuDeleteAll),
-                    anchor.context.getString(R.string.ModelDeleteAllConfirm),
-                    anchor.context.getString(R.string.ModelMenuDeleteAll),
-                    anchor.context.getString(android.R.string.cancel),
-                ) { fragment.glView!!.deleteAllModels { fragment.updateModel() } }
+                val glView = fragment.glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(glView, allowEmptySelection = true) { snapshot ->
+                    fragment.showWorkspaceMessageDialog(
+                        anchor.context.getString(R.string.ModelMenuDeleteAll),
+                        anchor.context.getString(R.string.ModelDeleteAllConfirm),
+                        anchor.context.getString(R.string.ModelMenuDeleteAll),
+                        anchor.context.getString(android.R.string.cancel),
+                    ) {
+                        glView.deleteAllModelsIfCurrent(snapshot) { removed ->
+                            if (removed == MODEL_EDIT_STALE_SELECTION) {
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                            } else if (removed > 0) {
+                                fragment.updateModel()
+                            }
+                        }
+                    }
+                }
             }, enabled = availability.canArrange),
         )
     }
@@ -183,33 +213,33 @@ internal class ModelMenuItems(
 
     private fun showPlaceOnObjectDialog(anchor: android.view.View) {
         val glView = fragment.glView ?: return
-        val model = glView.renderer.model ?: return
-        val movingIndices = glView.renderer.selectedObjectIndices()
-            .filter { it in 0 until model.objectsCount }
-        if (movingIndices.isEmpty()) return
-        val targetIndices = (0 until model.objectsCount).filter { it !in movingIndices }
-        val choices = targetIndices.map { index ->
-            model.getObjectName(index) ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1)
-        }
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelChoiceDialog(
-                title = anchor.context.getString(R.string.ModelMenuPlaceOnObject),
-                cancelLabel = anchor.context.getString(android.R.string.cancel),
-                choices = choices,
-                onDismiss = dismiss,
-                onSelect = { choice ->
-                    dismiss()
-                    val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
-                    glView.placeSelectedObjectsOnObject(target) { result ->
-                        if (result >= 0) {
-                            fragment.updateModel()
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnObjectDone))
-                        } else {
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+        captureTargetChoices { snapshot, targetIndices, names ->
+            val choices = names.mapIndexed { index, name ->
+                name ?: anchor.context.getString(R.string.MenuFileObjectNumber, targetIndices[index] + 1)
+            }
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = anchor.context.getString(R.string.ModelMenuPlaceOnObject),
+                    cancelLabel = anchor.context.getString(android.R.string.cancel),
+                    choices = choices,
+                    onDismiss = dismiss,
+                    onSelect = { choice ->
+                        dismiss()
+                        val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
+                        glView.placeSelectedObjectsOnObject(target, snapshot) { result ->
+                            when {
+                                result >= 0 -> {
+                                    fragment.updateModel()
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnObjectDone))
+                                }
+                                result == MODEL_EDIT_STALE_SELECTION ->
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                                else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
     }
 
@@ -220,28 +250,34 @@ internal class ModelMenuItems(
             anchor.context.getString(R.string.ModelMenuAlignCenterY),
             anchor.context.getString(R.string.ModelMenuAlignBaseZ),
         )
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelChoiceDialog(
-                title = anchor.context.getString(R.string.ModelMenuAlignSelected),
-                cancelLabel = anchor.context.getString(android.R.string.cancel),
-                choices = labels,
-                onDismiss = dismiss,
-                onSelect = { choice ->
-                    dismiss()
-                    val axis = when (choice) {
-                        0 -> ModelAlignmentAxis.CENTER_X
-                        1 -> ModelAlignmentAxis.CENTER_Y
-                        2 -> ModelAlignmentAxis.BASE_Z
-                        else -> return@ModelChoiceDialog
-                    }
-                    glView.alignSelectedObjects(axis) { aligned ->
-                        if (aligned) {
-                            fragment.updateModel()
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuAlignDone))
+        captureSelectionSnapshot(glView) { snapshot ->
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = anchor.context.getString(R.string.ModelMenuAlignSelected),
+                    cancelLabel = anchor.context.getString(android.R.string.cancel),
+                    choices = labels,
+                    onDismiss = dismiss,
+                    onSelect = { choice ->
+                        dismiss()
+                        val axis = when (choice) {
+                            0 -> ModelAlignmentAxis.CENTER_X
+                            1 -> ModelAlignmentAxis.CENTER_Y
+                            2 -> ModelAlignmentAxis.BASE_Z
+                            else -> return@ModelChoiceDialog
                         }
-                    }
-                },
-            )
+                        glView.alignSelectedObjects(axis, snapshot) { result ->
+                            when (result) {
+                                1 -> {
+                                    fragment.updateModel()
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuAlignDone))
+                                }
+                                MODEL_EDIT_STALE_SELECTION ->
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                            }
+                        }
+                    },
+                )
+            }
         }
     }
 
@@ -252,61 +288,94 @@ internal class ModelMenuItems(
             anchor.context.getString(R.string.ModelMenuDistributeY),
             anchor.context.getString(R.string.ModelMenuDistributeZ),
         )
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelChoiceDialog(
-                title = anchor.context.getString(R.string.ModelMenuDistributeSelected),
-                hint = anchor.context.getString(R.string.ModelMenuDistributeHint),
-                cancelLabel = anchor.context.getString(android.R.string.cancel),
-                choices = labels,
-                onDismiss = dismiss,
-                onSelect = { choice ->
-                    dismiss()
-                    val axis = when (choice) {
-                        0 -> ObjectDistributionAxis.X
-                        1 -> ObjectDistributionAxis.Y
-                        2 -> ObjectDistributionAxis.Z
-                        else -> return@ModelChoiceDialog
-                    }
-                    glView.distributeSelectedObjects(axis) { distributed ->
-                        if (distributed) {
-                            fragment.updateModel()
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuDistributeDone))
-                        } else {
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuDistributeNoSpace))
+        captureSelectionSnapshot(glView) { snapshot ->
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = anchor.context.getString(R.string.ModelMenuDistributeSelected),
+                    hint = anchor.context.getString(R.string.ModelMenuDistributeHint),
+                    cancelLabel = anchor.context.getString(android.R.string.cancel),
+                    choices = labels,
+                    onDismiss = dismiss,
+                    onSelect = { choice ->
+                        dismiss()
+                        val axis = when (choice) {
+                            0 -> ObjectDistributionAxis.X
+                            1 -> ObjectDistributionAxis.Y
+                            2 -> ObjectDistributionAxis.Z
+                            else -> return@ModelChoiceDialog
                         }
-                    }
-                },
-            )
+                        glView.distributeSelectedObjects(axis, snapshot) { result ->
+                            when (result) {
+                                1 -> {
+                                    fragment.updateModel()
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuDistributeDone))
+                                }
+                                MODEL_EDIT_STALE_SELECTION ->
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                                else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuDistributeNoSpace))
+                            }
+                        }
+                    },
+                )
+            }
         }
     }
 
     private fun showPlaceOnSurfaceDialog(anchor: android.view.View) {
         val glView = fragment.glView ?: return
-        val model = glView.renderer.model ?: return
-        val movingIndices = glView.renderer.selectedObjectIndices()
-            .filter { it in 0 until model.objectsCount }
-        if (movingIndices.isEmpty()) return
-        val targetIndices = (0 until model.objectsCount).filter { it !in movingIndices }
-        val choices = targetIndices.map { index ->
-            model.getObjectName(index) ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1)
+        captureTargetChoices { snapshot, targetIndices, names ->
+            val choices = names.mapIndexed { index, name ->
+                name ?: anchor.context.getString(R.string.MenuFileObjectNumber, targetIndices[index] + 1)
+            }
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = anchor.context.getString(R.string.ModelMenuPlaceOnSurface),
+                    cancelLabel = anchor.context.getString(android.R.string.cancel),
+                    choices = choices,
+                    onDismiss = dismiss,
+                    onSelect = { choice ->
+                        dismiss()
+                        val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
+                        glView.beginSurfacePlacement(target, snapshot) { result ->
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                                when (result) {
+                                    1 -> R.string.ModelSurfacePlacementInstruction
+                                    MODEL_EDIT_STALE_SELECTION -> R.string.ModelSelectionChanged
+                                    else -> R.string.ModelSurfacePlacementTargetUnavailable
+                                },
+                            ))
+                        }
+                    },
+                )
+            }
         }
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelChoiceDialog(
-                title = anchor.context.getString(R.string.ModelMenuPlaceOnSurface),
-                cancelLabel = anchor.context.getString(android.R.string.cancel),
-                choices = choices,
-                onDismiss = dismiss,
-                onSelect = { choice ->
-                    dismiss()
-                    val target = targetIndices.getOrNull(choice) ?: return@ModelChoiceDialog
-                    glView.beginSurfacePlacement(target) { started ->
-                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-                            if (started) R.string.ModelSurfacePlacementInstruction
-                            else R.string.ModelSurfacePlacementTargetUnavailable,
-                        ))
-                    }
-                },
-            )
+    }
+
+    private fun captureSelectionSnapshot(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        allowEmptySelection: Boolean = false,
+        onCaptured: (ModelSelectionSnapshot) -> Unit,
+    ) {
+        glView.queueEvent {
+            val snapshot = glView.renderer.captureSelectionSnapshot(allowEmptySelection) ?: return@queueEvent
+            ViewUtils.postOnMainThread {
+                if (fragment.canShowWorkspaceComposeDialog()) onCaptured(snapshot)
+            }
+        }
+    }
+
+    private fun captureTargetChoices(
+        onCaptured: (ModelSelectionSnapshot, List<Int>, List<String?>) -> Unit,
+    ) {
+        val glView = fragment.glView ?: return
+        glView.queueEvent {
+            val renderer = glView.renderer
+            val snapshot = renderer.captureSelectionSnapshot() ?: return@queueEvent
+            val targetIndices = (0 until snapshot.objectCount).filter { it !in snapshot.selectedIndices }
+            val names = targetIndices.map { snapshot.model.getObjectName(it) }
+            ViewUtils.postOnMainThread {
+                if (fragment.canShowWorkspaceComposeDialog()) onCaptured(snapshot, targetIndices, names)
+            }
         }
     }
 

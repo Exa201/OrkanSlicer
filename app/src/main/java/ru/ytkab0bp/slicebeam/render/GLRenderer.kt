@@ -42,6 +42,7 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
 
 enum class ModelAlignmentAxis { CENTER_X, CENTER_Y, BASE_Z }
+internal const val MODEL_EDIT_STALE_SELECTION = -2
 
 class GLRenderer(glView:GLView):GLSurfaceView.Renderer {
 var camera = Camera()
@@ -65,6 +66,7 @@ var model:Model? = null
 set(model) {
 field = model
 surfacePlacementTargetObject = -1
+surfacePlacementSelection = null
 if (previewPaletteModel !== model) {
     previewPaletteModel = null
     previewPalette = null
@@ -98,6 +100,7 @@ private var isViewerEnabled:Boolean = false
  var selectedObject = -1
 private val selectedObjects = LinkedHashSet<Int>()
 @Volatile private var surfacePlacementTargetObject = -1
+private var surfacePlacementSelection: ModelSelectionSnapshot? = null
 val isSurfacePlacementActive: Boolean
     get() = surfacePlacementTargetObject >= 0
 private var selX:Double = 0.toDouble()
@@ -199,6 +202,22 @@ return selectedObjects.size
 }
 /** Returns a stable snapshot of the current multi-selection. Must be called on the GL thread. */
 fun selectedObjectIndices(): IntArray = selectedObjects.sorted().toIntArray()
+
+/** Captures the model and selection for a delayed dialog or multi-step model edit. GL-thread only. */
+internal fun captureSelectionSnapshot(allowEmptySelection: Boolean = false): ModelSelectionSnapshot? {
+    val activeModel = model ?: return null
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }.toIntArray()
+    val primary = selectedObject
+    if ((!allowEmptySelection && indices.isEmpty()) || (indices.isNotEmpty() && primary !in indices)) return null
+    return ModelSelectionSnapshot(activeModel, activeModel.geometryRevision, activeModel.objectsCount, primary, indices)
+}
+
+/** Revalidates a captured selection immediately before a delayed edit. GL-thread only. */
+internal fun isSelectionSnapshotCurrent(snapshot: ModelSelectionSnapshot): Boolean = snapshot.matches(
+    model,
+    selectedObject,
+    selectedObjectIndices(),
+)
 
 /** Cache the common preview pivot while on the GL thread so group transforms preview as a unit. */
 fun prepareSelectionTransformPreview() {
@@ -325,8 +344,9 @@ fun mirrorSelectedObjects(axis: ModelMirrorAxis): Boolean {
 }
 
 /** Align the selected group to the primary object's X/Y center or Z base. GL-thread only. */
-fun alignSelectedObjects(axis: ModelAlignmentAxis): Boolean {
+internal fun alignSelectedObjects(axis: ModelAlignmentAxis, expectedSelection: ModelSelectionSnapshot? = null): Boolean {
     val activeModel = model ?: return false
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return false
     val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
     if (indices.size < 2) return false
     val primary = selectedObject.takeIf { it in indices } ?: indices.first()
@@ -372,8 +392,9 @@ fun alignSelectedObjects(axis: ModelAlignmentAxis): Boolean {
 }
 
 /** Distribute three or more selected objects with equal clear gaps along one axis. GL-thread only. */
-fun distributeSelectedObjects(axis: ObjectDistributionAxis): Boolean {
+internal fun distributeSelectedObjects(axis: ObjectDistributionAxis, expectedSelection: ModelSelectionSnapshot? = null): Boolean {
     val activeModel = model ?: return false
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return false
     val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
     if (indices.size < 3) return false
     val bounds = LinkedHashMap<Int, ObjectBounds3D>(indices.size)
@@ -456,7 +477,8 @@ private fun placeSelectionOnBed(activeModel: Model, indices: List<Int>) {
 }
 
 /** Replaces the selected models by one multipart object, retaining each source volume's material. */
-fun combineSelectedObjectsAsParts(): Int {
+internal fun combineSelectedObjectsAsParts(expectedSelection: ModelSelectionSnapshot? = null): Int {
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
     val source = model ?: return -1
     val indices = selectedObjectIndices()
     if (indices.size < 2) return -1
@@ -468,8 +490,12 @@ fun combineSelectedObjectsAsParts(): Int {
 }
 
 /** Places the current selection on a target and groups the assembly for printable slicing. */
-fun placeSelectedObjectsOnObject(targetIndex: Int): Int {
+internal fun placeSelectedObjectsOnObject(
+    targetIndex: Int,
+    expectedSelection: ModelSelectionSnapshot? = null,
+): Int {
     val activeModel = model ?: return -1
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
     val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
     if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices)
         return -1
@@ -485,33 +511,54 @@ fun placeSelectedObjectsOnObject(targetIndex: Int): Int {
 }
 
 /** Start a GL-thread-only interaction that seats the selected group at a picked top-surface point. */
-fun beginSurfacePlacement(targetIndex: Int): Boolean {
-    val activeModel = model ?: return false
-    if (targetIndex !in 0 until activeModel.objectsCount) return false
+internal fun beginSurfacePlacement(targetIndex: Int, expectedSelection: ModelSelectionSnapshot? = null): Int {
+    val activeModel = model ?: return 0
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    if (targetIndex !in 0 until activeModel.objectsCount) return 0
     val moving = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
-    if (moving.isEmpty() || targetIndex in moving || isInEmbossMode || isInMeasureMode || isPaintMode) return false
+    if (moving.isEmpty() || targetIndex in moving || isInEmbossMode || isInMeasureMode || isPaintMode) return 0
+    surfacePlacementSelection = expectedSelection ?: captureSelectionSnapshot() ?: return 0
     surfacePlacementTargetObject = targetIndex
-    return true
+    return 1
 }
 
-fun cancelSurfacePlacement() {
+internal fun cancelSurfacePlacement() {
     surfacePlacementTargetObject = -1
+    surfacePlacementSelection = null
 }
 
 /** Commits a surface-tap placement while keeping the moving group as one printable multipart object. */
-fun placeSelectedObjectsOnSurface(targetIndex: Int, position: Vec3d): Int {
+internal fun placeSelectedObjectsOnSurface(
+    targetIndex: Int,
+    position: Vec3d,
+    expectedSelection: ModelSelectionSnapshot? = surfacePlacementSelection,
+): Int {
     val activeModel = model ?: return -1
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) {
+        cancelSurfacePlacement()
+        return MODEL_EDIT_STALE_SELECTION
+    }
     val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
-    if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices)
+    if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices) {
+        cancelSurfacePlacement()
         return -1
+    }
     val min = Vec3d(); val max = Vec3d()
     fun bounds(index: Int): ObjectBounds3D {
         activeModel.getBoundingBoxExact(index, min, max)
         return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
     }
-    val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
-    val delta = ObjectPlacement.onSurface(movingBounds, position) ?: return -1
-    return placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+    val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: run {
+        cancelSurfacePlacement()
+        return -1
+    }
+    val delta = ObjectPlacement.onSurface(movingBounds, position) ?: run {
+        cancelSurfacePlacement()
+        return -1
+    }
+    val result = placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+    cancelSurfacePlacement()
+    return result
 }
 
 private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>, delta: ObjectPlacementDelta): Int {
@@ -2136,8 +2183,14 @@ fun onClick(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false
 val placementTarget = surfacePlacementTargetObject
 if (placementTarget >= 0) {
+    val placementSelection = surfacePlacementSelection
+    if (placementSelection != null && !isSelectionSnapshotCurrent(placementSelection)) {
+        cancelSurfacePlacement()
+        SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSelectionChanged))
+        return true
+    }
     if (placementTarget !in 0 until (this.model?.objectsCount ?: 0)) {
-        surfacePlacementTargetObject = -1
+        cancelSurfacePlacement()
         SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSurfacePlacementTargetUnavailable))
         return true
     }
@@ -2518,7 +2571,8 @@ fun placeSelectedObjectsOnBed(): Boolean {
     return true
 }
 /** Delete every selected object. Returns how many were removed. */
- fun deleteSelectedObjects():Int {
+ internal fun deleteSelectedObjects(expectedSelection: ModelSelectionSnapshot? = null):Int {
+if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
 if (this.model == null || selectedObjects.isEmpty()) return 0
 val indices = ArrayList<Int>(selectedObjects)
 Collections.sort(indices, Collections.reverseOrder())
@@ -2554,7 +2608,8 @@ SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return removed
 }
 /** Remove every object from the bed. Returns how many were removed. */
- fun deleteAllObjects():Int {
+ internal fun deleteAllObjects(expectedModel: ModelSelectionSnapshot? = null):Int {
+if (expectedModel != null && !isSelectionSnapshotCurrent(expectedModel)) return MODEL_EDIT_STALE_SELECTION
 if (this.model == null) return 0
 val removed = this.model!!.objectsCount
 for (i in 0 until glModels.size) glModels.get(i).release()

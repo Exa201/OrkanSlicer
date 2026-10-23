@@ -340,6 +340,332 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun placeOnObjectDialogRejectsChangedSelectionWithoutMovingOrCombiningObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "place-object-stale-selection-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 18.0, 0.0, 0.0)
+                glView.renderer.setSelectedObject(1)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("placement objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val boundsBefore = readExactBoundsOnGl(glView, 0, 1)
+            val revisionBefore = model.geometryRevision
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceOnObject)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnObject))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed()
+
+            val changedSelection = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(0)
+                changedSelection.countDown()
+            }
+            assertTrue("selection change should complete on GL", changedSelection.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("model-choice-option-0").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+
+            assertEquals("stale placement must keep both source objects", 2, readObjectCountOnGl(glView))
+            assertEquals("stale placement must not mutate geometry", revisionBefore, model.geometryRevision)
+            boundsBefore.zip(readExactBoundsOnGl(glView, 0, 1)).forEachIndexed { index, (before, after) ->
+                assertArrayEquals("object $index must stay at its original bounds", before, after, 0.001)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun surfacePlacementCancelsWhenSelectionChangesBeforeThePick() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "surface-placement-stale-selection-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 24.0, 0.0, 0.0)
+                glView.renderer.setSelectedObject(1)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("surface-placement objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val boundsBefore = readExactBoundsOnGl(glView, 0, 1)
+            val revisionBefore = model.geometryRevision
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceOnSurface)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnSurface))
+                .assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.isSurfacePlacementActive }
+
+            val changedSelection = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(0)
+                glView.renderer.onClick(100f, 100f)
+                glView.requestRender()
+                changedSelection.countDown()
+            }
+            assertTrue("stale surface-pick should be rejected on GL", changedSelection.await(10, TimeUnit.SECONDS))
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+
+            assertFalse("stale surface placement must leave pick mode", glView.renderer.isSurfacePlacementActive)
+            assertEquals("stale surface placement must preserve source objects", 2, readObjectCountOnGl(glView))
+            assertEquals("stale surface placement must not mutate geometry", revisionBefore, model.geometryRevision)
+            boundsBefore.zip(readExactBoundsOnGl(glView, 0, 1)).forEachIndexed { index, (before, after) ->
+                assertArrayEquals("object $index must stay at its original bounds", before, after, 0.001)
+            }
+        } finally {
+            if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun alignmentAndDistributionDialogsRejectStaleModelSelections() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "group-dialog-stale-selection-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                model.translate(1, 18.0, 0.0, 0.0)
+                model.translate(2, 36.0, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1, 2))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("group-action objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuAlignSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuAlignSelected))
+                .assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed()
+            val alignmentRevision = model.geometryRevision
+            val alignmentBounds = readExactBoundsOnGl(glView, 0, 1, 2)
+
+            val changeAlignmentSelection = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(2)
+                changeAlignmentSelection.countDown()
+            }
+            assertTrue("alignment selection change should finish on GL", changeAlignmentSelection.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("model-choice-option-0").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertEquals("stale alignment must not change geometry", alignmentRevision, model.geometryRevision)
+            alignmentBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2)).forEachIndexed { index, (before, after) ->
+                assertArrayEquals("alignment must preserve object $index", before, after, 0.001)
+            }
+
+            val restoreSelection = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1, 2))
+                restoreSelection.countDown()
+            }
+            assertTrue("distribution selection should be restored on GL", restoreSelection.await(10, TimeUnit.SECONDS))
+            compose.waitForIdle()
+            revealMenuAction(activity, R.string.ModelMenuDistributeSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDistributeSelected))
+                .assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed()
+            val distributionRevision = model.geometryRevision
+            val distributionBounds = readExactBoundsOnGl(glView, 0, 1, 2)
+
+            val changeDistributionGeometry = CountDownLatch(1)
+            glView.queueEvent {
+                model.translate(0, 0.0, 1.0, 0.0)
+                changeDistributionGeometry.countDown()
+            }
+            assertTrue("geometry change should finish on GL", changeDistributionGeometry.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithTag("model-choice-option-0").performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertEquals("stale distribution must not add a second geometry change",
+                distributionRevision + 1, model.geometryRevision)
+            distributionBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2)).forEachIndexed { index, (before, after) ->
+                val expected = before.copyOf().also { if (index == 0) it[1] += 1.0; if (index == 0) it[4] += 1.0 }
+                assertArrayEquals("distribution must preserve the externally moved object $index", expected, after, 0.001)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun combineConfirmationRejectsChangedSelectionWithoutCombiningObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "combine-stale-confirmation-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                model.translate(1, 15.0, 0.0, 0.0)
+                model.translate(2, 30.0, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("combine fixtures should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val revisionBefore = model.geometryRevision
+            val boundsBefore = readExactBoundsOnGl(glView, 0, 1, 2)
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuCombineSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+
+            val changed = CountDownLatch(1)
+            glView.selectModels(intArrayOf(0, 2)) { changed.countDown() }
+            assertTrue("selection change should finish on GL", changed.await(10, TimeUnit.SECONDS))
+            compose.onNode(hasText(activity.getString(R.string.ModelMenuCombineSelected)) and hasClickAction())
+                .performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+
+            assertEquals("stale confirmation must preserve every source object", 3, readObjectCountOnGl(glView))
+            assertEquals("stale confirmation must not mutate geometry", revisionBefore, model.geometryRevision)
+            boundsBefore.zip(readExactBoundsOnGl(glView, 0, 1, 2)).forEachIndexed { index, (before, after) ->
+                assertArrayEquals("stale confirmation must preserve object $index", before, after, 0.001)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun deleteSelectedConfirmationRejectsChangedSelectionWithoutDeletingObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "delete-selection-stale-confirmation-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 15.0, 0.0, 0.0)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("delete fixtures should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val revisionBefore = model.geometryRevision
+            val boundsBefore = readExactBoundsOnGl(glView, 0, 1)
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuDeleteSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteSelected))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+
+            val changed = CountDownLatch(1)
+            glView.selectModels(intArrayOf(1)) { changed.countDown() }
+            assertTrue("selection change should finish on GL", changed.await(10, TimeUnit.SECONDS))
+            compose.onNode(hasText(activity.getString(R.string.ModelMenuDeleteSelected)) and hasClickAction())
+                .performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+
+            assertEquals("stale confirmation must preserve both objects", 2, readObjectCountOnGl(glView))
+            assertEquals("stale confirmation must not mutate geometry", revisionBefore, model.geometryRevision)
+            boundsBefore.zip(readExactBoundsOnGl(glView, 0, 1)).forEachIndexed { index, (before, after) ->
+                assertArrayEquals("stale confirmation must preserve object $index", before, after, 0.001)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun deleteAllConfirmationRejectsChangedModelWithoutDeletingIt() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "delete-all-stale-confirmation-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            compose.runOnUiThread { bed.updateModel() }
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuDeleteAll)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteAll))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+
+            val mutated = CountDownLatch(1)
+            glView.queueEvent {
+                model.translate(0, 7.0, 0.0, 0.0)
+                glView.requestRender()
+                mutated.countDown()
+            }
+            assertTrue("test geometry change should finish on GL", mutated.await(10, TimeUnit.SECONDS))
+            val revisionAfterTestMutation = model.geometryRevision
+            compose.onNode(hasText(activity.getString(R.string.ModelMenuDeleteAll)) and hasClickAction())
+                .performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+
+            assertSame("stale delete-all must retain the same model", model, glView.renderer.model)
+            assertEquals("stale delete-all must preserve the model object", 1, readObjectCountOnGl(glView))
+            assertEquals("only the deliberate test mutation should change geometry", revisionAfterTestMutation,
+                model.geometryRevision)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListCanSelectAndPlaceAGroupOnAnotherModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

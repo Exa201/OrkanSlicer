@@ -679,6 +679,8 @@ fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
         if (result >= 0) {
             updateModel()
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnSurfaceDone))
+        } else if (result == ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION) {
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
         } else {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
         }
