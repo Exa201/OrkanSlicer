@@ -2742,3 +2742,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Modell-/Slice-Roundtrip auf Honor und Emulator je 3/3: multipartes Verbinden mit mehreren Filamenten, platzierte Gruppe nach 3MF-Reload mit G-Code sowie Boolean Difference/Intersection nach 3MF-Reload mit G-Code.
 - JVM: Debug 617/617 und Slice 617/617 bestanden, 0 Fehler/Überspringungen. `git diff --check` sauber. Kein APK-/Release-Build in diesem Schritt.
 - Nächster Schritt: Undo/Redo des erfolgreichen Duplizierens und Rollback bei nicht erfolgreicher Gruppenanordnung separat absichern; danach weitere drei Modellaktionen einschließlich 3MF-/Slice-Auswirkung abnehmen.
+
+# Modellbearbeitung — Bett füllen sicher begrenzen (2026-10-23)
+
+- Gefunden: Eine unbrauchbare Kapazitätsschätzung fiel auf das Maximum von 256 Objekten zurück. Bei Arrange-Fehlern wurden hinzugefügte Kopien schrittweise entfernt, vorhandene Platzierungen aber nicht explizit auf ihren Ausgangszustand zurückgesetzt.
+- Behoben: Die Schätzung gibt bei ungültigen oder übergroßen Modellen null zurück. „Bett füllen“ versucht höchstens die geschätzte Zahl (mit einem einzelnen begrenzten Versuch für heterogene Platten); nach fehlgeschlagenem Arrange werden Kopien entfernt und alle alten Positionen zurückgesetzt. GL-Meshes werden nach Erfolg und Abbruch erneuert.
+- Tests: FillBedPlanner unit tests; Honor PTP-N49 / Android 16: übergroßes Modell wird ohne Kopie/Positionsänderung abgelehnt (1/1), normales „Bett füllen“ erstellt Kopien innerhalb der Grenze (1/1). Zusätzlich auf Honor: Surface-Platzierung mit Undo/Redo, Gruppen-Verbinden und eigenständigen Text erstellen (3/3); platzierte Gruppe slicen, Boolean Difference/Intersection über 3MF-Roundtrip slicen und Text mit Extrusions-G-Code slicen (3/3).
+- Letzter geprüfter Quellstand: Änderungen lokal, noch nicht committet. Debug-Unit-Zieltest erfolgreich; vollständige Debug-/Slice-Unit-Suiten und APK-Build stehen noch aus.
+- Nächster Schritt: gebündelte Debug-/Slice-Unit-Suiten ausführen, danach Änderungen prüfen und auf dem bestehenden Branch sichern.
+- Abschließende Verifikation nach dem binären Kapazitätssuchlauf: Debug-Unit 619/619 und Slice-Unit 619/619, jeweils 0 Fehler/Überspringungen. Honor PTP-N49 / Android 16: normales Füllen plus beide Rollback-/Übergrößenfälle 3/3; zusätzliche Modellaktionen 3/3; Slice-Roundtrips für Platzierung, Boolean und eigenständigen Text 3/3. `git diff --check` sauber.

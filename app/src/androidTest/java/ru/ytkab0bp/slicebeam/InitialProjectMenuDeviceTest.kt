@@ -942,6 +942,92 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun fillBedRejectsOversizedObjectWithoutChangingItsPlacement() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-fill-bed-no-room-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.scale(0, 40.0, 40.0, 1.0)
+                glView.renderer.invalidateGlModel(0)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("oversized source should be prepared on GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val before = readExactBoundsOnGl(glView, 0).single()
+
+            openModelMenu(activity)
+            scrollMenuToIndex(4)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            instrumentationWaitForGlIdle()
+            assertEquals("an oversized object must not produce speculative copies", 1, readObjectCountOnGl(glView))
+            assertArrayEquals("a rejected fill action must preserve the source geometry and position",
+                before, readExactBoundsOnGl(glView, 0).single(), 0.03)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun fillBedArrangeFailureRollsBackCopiesAndExistingPositions() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-fill-bed-arrange-rollback-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val blocker = Model()
+                try {
+                    blocker.addObject(model, 0)
+                    model.addObject(blocker, 0)
+                } finally {
+                    blocker.release()
+                }
+                model.scale(1, 40.0, 40.0, 1.0)
+                glView.renderer.invalidateGlModel(0)
+                glView.renderer.invalidateGlModel(1)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("crowded plate should be prepared on GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val before = (0..1).map { readExactBoundsOnGl(glView, it).single() }
+
+            openModelMenu(activity)
+            scrollMenuToIndex(4)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            instrumentationWaitForGlIdle()
+            assertEquals("a failed native arrange must not leave speculative copies", 2, readObjectCountOnGl(glView))
+            (0..1).forEach { index ->
+                assertArrayEquals("failed arrange must restore object $index", before[index],
+                    readExactBoundsOnGl(glView, index).single(), 0.03)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

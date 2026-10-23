@@ -1588,57 +1588,74 @@ return true
  * then arranges a single time â€” much faster than the old one-at-a-time approach.
  */
  fun fillBedWithSelectedObject():Int {
-if (this.model == null || bed == null || !bed!!.isValid() || isViewerEnabled || selectedObject == -1) return 0
-val maxAttempts = FillBedPlanner.copyAttemptsForLimit(this.model!!.objectsCount, MAX_FILL_BED_OBJECTS)
-if (maxAttempts == 0) return 0
-// Calculate how many copies can fit using bounding box math
- val estimatedCapacity = estimateBedCapacity(selectedObject)
-var copiesToAdd = Math.min(Math.max(estimatedCapacity - this.model!!.objectsCount, 0), maxAttempts)
-if (copiesToAdd <= 0) copiesToAdd = maxAttempts // Fallback if estimate fails
-val sourceObject = selectedObject
-val sourceModel = Model()
-var added = 0
-try
-{
-sourceModel.addObject(this.model!!, sourceObject)
-// Batch-add all copies first
- for (i in 0 until copiesToAdd)
-{
-this.model!!.addObject(sourceModel, 0)
-added++
+    val activeModel = model ?: return 0
+    val activeBed = bed ?: return 0
+    if (!activeBed.isValid() || isViewerEnabled || selectedObject !in 0 until activeModel.objectsCount) return 0
+    val maxAttempts = FillBedPlanner.copyAttemptsForLimit(activeModel.objectsCount, MAX_FILL_BED_OBJECTS)
+    if (maxAttempts == 0) return 0
+    val estimatedCapacity = estimateBedCapacity(selectedObject)
+    if (estimatedCapacity == 0) return 0
+    // Allow one conservative trial for heterogeneous plates, but never add hundreds of
+    // speculative copies when an estimate is invalid or no grid capacity remains.
+    val copiesToAdd = Math.min(Math.max(estimatedCapacity - activeModel.objectsCount, 1), maxAttempts)
+    val originalCount = activeModel.objectsCount
+    val originalTranslations = ArrayList<Vec3d>(originalCount)
+    for (index in 0 until originalCount) {
+        val translation = Vec3d()
+        activeModel.getTranslation(index, translation)
+        originalTranslations.add(translation)
+    }
+    val sourceModel = Model()
+    var added = 0
+    try {
+        sourceModel.addObject(activeModel, selectedObject)
+        fun restoreOriginalState() {
+            while (activeModel.objectsCount > originalCount) {
+                activeModel.deleteObject(activeModel.objectsCount - 1)
+            }
+            originalTranslations.forEachIndexed { index, before ->
+                val after = Vec3d()
+                activeModel.getTranslation(index, after)
+                activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+            }
+            activeModel.resetBoundingBox()
+        }
+        fun canArrangeCopies(count: Int): Boolean {
+            repeat(count) { activeModel.addObject(sourceModel, 0) }
+            activeModel.resetBoundingBox()
+            val fits = activeBed.arrange(activeModel)
+            // Arrange may move originals on either success or failure; each probe is disposable.
+            restoreOriginalState()
+            return fits
+        }
+
+        // Search the largest working batch logarithmically instead of retrying every possible
+        // count. This keeps crowded plates responsive even when the grid estimate is optimistic.
+        var low = 0
+        var high = copiesToAdd
+        while (low < high) {
+            val candidate = low + (high - low + 1) / 2
+            if (canArrangeCopies(candidate)) low = candidate else high = candidate - 1
+        }
+        if (low > 0) {
+            repeat(low) { activeModel.addObject(sourceModel, 0) }
+            activeModel.resetBoundingBox()
+            if (activeBed.arrange(activeModel)) {
+                added = low
+            } else {
+                restoreOriginalState()
+            }
+        }
+    } finally {
+        sourceModel.release()
+    }
+    // Rebuild GL meshes after success and failure so the viewport matches model state.
+    activeModel.resetBoundingBox()
+    resetGlModels()
+    if (added > 0) SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
+    return added
 }
-this.model!!.resetBoundingBox()
-// Single arrange pass for all copies
- if (!bed!!.arrange(this.model!!))
-{
-// Arrange failed â€” remove copies that couldn't be placed
- // by trimming from the end until arrange succeeds
- while (added > 0)
-{
-this.model!!.deleteObject(this.model!!.objectsCount - 1)
-added--
-this.model!!.resetBoundingBox()
-if (bed!!.arrange(this.model!!)) break
-}
-}
-}
-finally
-{
-sourceModel.release()
-}
-if (added > 0)
-{
-this.model!!.resetBoundingBox()
-resetGlModels()
-SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
-}
-return added
-}
-/**
- * Batch-fill version that replaces the old step-by-step approach.
- * Adds all copies at once then arranges once, rather than arrange per copy.
- */
- fun fillBedWithSelectedObjectStep():Int {
+fun fillBedWithSelectedObjectStep():Int {
 // Delegate to the batch method â€” no more step-by-step needed
  return fillBedWithSelectedObject()
 }
@@ -1656,12 +1673,9 @@ val objMax = Vec3d()
 this.model!!.getBoundingBoxApprox(objectIndex, objMin, objMax)
 val objWidth = objMax.x - objMin.x
 val objDepth = objMax.y - objMin.y
-if (objWidth <= 0 || objDepth <= 0) return MAX_FILL_BED_OBJECTS
 // Add spacing between objects â€” must match the arrange min_obj_distance (6mm gap)
  val spacing = 6.0
-val cols = Math.max(1, ((bedWidth + spacing) / (objWidth + spacing)).toInt())
-val rows = Math.max(1, ((bedDepth + spacing) / (objDepth + spacing)).toInt())
-return cols * rows
+return FillBedPlanner.estimatedCapacity(bedWidth, bedDepth, objWidth, objDepth, spacing)
 }
 /**
  * Duplicate the currently selected object (single copy).
