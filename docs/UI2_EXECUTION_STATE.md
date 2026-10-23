@@ -1,4 +1,22 @@
-# Aktueller Fortsetzungsstand — STEP/STP und sichere Modellmenüauswahl, 2026-10-23
+# Aktueller Fortsetzungsstand — auswahlgebundene Modellaktionen, 2026-10-23
+
+- Branch `codex/rinkhals-safe-start-audit`; Code-Commit `957c88d6acb907e4e6167d15e471fde2e527579e` (`Bind object actions to captured selection`), PR #2 wird anschließend aktualisiert. Phase 4 funktional verifiziert; Phase 5 wird weiter abgearbeitet, Phase 6 ff. bleiben offen.
+- Objektaktionsdialoge erfassen die Auswahl beim Öffnen. Duplizieren, Teilen, Löschen und Verschieben zur Platte verwenden denselben GL-Thread-Schnappschuss; bei veränderter Auswahl wird die Aktion abgewiesen. Teilen und Plattenwechsel prüfen Modell und Auswahl im GL-Thread.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 80/80, 0 übersprungen, 0 fehlgeschlagen. Neu: veraltetes Teilen/Löschen wird blockiert; bestätigtes Löschen lässt sich rückgängig machen. Bestehender Mehrteil-Teilen-/Undo-/Redo-Test erfolgreich.
+- Debug-JVM 621/621 und Slice-JVM 621/621, beide ohne Fehler/Skips. Debug-Build erfolgreich. APK `OrkanSlicer_957c88d6ac.apk`, 239.394.939 Byte, SHA-256 `BF8EE4ED3F5715D00E5D314ED7D663C6330866813E7ACDFEFBC397CC58295953`; auf Honor installiert und Start ausgelöst. Paketversion 0.8.358 / Code 393. Im erfassten Logcat-Ausschnitt keine Crash-, ANR- oder OOM-Treffer.
+- Nächster konkreter Schritt: weitere noch aktive Modellmenü-Aktionen gegen Auswahlwechsel und Undo/Redo prüfen; danach globale Menüs sowie responsive/accessibility-Abnahme fortsetzen. Offen: manuelle TalkBack- und Xiaomi-Prüfung, vollständige Menüabnahme und Mehrplatten-Projektpersistenz. Kein echter Druckstart und keine Firmwareänderung.
+
+# Älterer Fortsetzungsstand — GL-sicheres Skalieren/Spiegeln, 2026-10-23
+
+
+- Branch: `codex/rinkhals-safe-start-audit`; neuer Code-Commit: `7804f9431a` (`Keep scale and mirror actions on GL thread`), PR #2 bleibt offen. Vorheriger STEP-/Objektauswahl-Commit `97823c2` ist bereits auf GitHub.
+- Änderung: `TransformScaleMenu` liest Auswahl, native Modellskalierung und Bounding-Box jetzt auf dem GL-Thread. Vorschau, Bestätigung und Spiegelung prüfen den Modell-/Auswahl-Schnappschuss. Bei Undo/Redo lädt das Werkzeug über `ObjectsListChangedEvent` den ersetzten nativen Modell-Schnappschuss neu; gleiche Auswahl bleibt danach bearbeitbar.
+- Verifikation: Debug-JVM 621/621 und Slice-JVM 621/621 bestanden (0 Fehler/Fehlschläge/Skips); Debug-Build erfolgreich. Auf Honor PTP-N49 / Android 16 bestanden: Gruppen-Skalierung mit Undo/Redo 1/1, manuelle Einzelachsen-Skalierung inkl. Abbrechen/Bestätigen/Undo/Redo 1/1, Einzelspiegelung 1/1 und Gruppenspiegelung nach Undo/Redo 1/1.
+- Die Workspace-Menü-Gerätesuite umfasste 79 Tests. Erster vollständiger Lauf: 77 bestanden, zwei Spiegeltests schlugen nach Undo/Redo fehl. Ursache war, dass Undo/Redo ein neues `Model`-Objekt setzt und nur `ObjectsListChangedEvent` sendet; das Werkzeug reagierte zuvor nur auf `SelectedObjectChangedEvent`. Nach dem Fix bestanden die beiden zuvor fehlgeschlagenen Tests gezielt und die vollständige Suite erneut 79/79 auf Honor (0 übersprungen, 0 fehlgeschlagen).
+- Debug-APK aus Code-Commit `7804f943`: `app/build/outputs/apk/debug/OrkanSlicer_7804f9431a.apk`, 239,394,950 Byte, SHA-256 `70524C0C523D616E88E8777344FD622B6BE292D3E9F9B59B93D26E10BABE2DAF`. Auf Honor installiert; Paketversion 0.8.358 / Code 393; Start ausgelöst und im erfassten Logcat keine Crash-, ANR- oder OOM-Treffer. Kein Release erstellt.
+- Nächste konkrete Arbeit: die nächste zusammenhängende Modellbearbeitungs-/UI-Abnahme fortsetzen. Xiaomi bleibt für gerätespezifische STEP-/Raycast-Prüfung unverbunden. Mehrplattenpersistenz und manuelle TalkBack-Abnahme bleiben getrennte offene UI-2.0-Aufgaben.
+
+# Älterer Fortsetzungsstand — STEP/STP und sichere Modellmenüauswahl, 2026-10-23
 
 - Branch-HEAD zu Beginn: `70a7ae9cd3ddfae12c94550d3c86c13c8505f573` (`codex/rinkhals-safe-start-audit`, Version 0.8.358); neuer Code-Commit: `5c3c4f59cd3d76e622bcc07f853c8e5209460392`. Der STEP/STP-Import einschließlich Tessellierungsdialog war bereits implementiert; es wurde in diesem Durchgang keine STEP-Importlogik geändert.
 - STEP-Verifikation auf Honor PTP-N49 / Android 16: externer Datei-Intent 2/2, SAF-/Workspace-Host-Fallback 1/1, nativer STEP/STP-Meshimport 1/1. Optionen erscheinen vor dem Laden; Abbrechen und Bestätigen sind abgedeckt. Kein Xiaomi-Gerätetest in diesem Durchgang.
@@ -2874,13 +2892,4 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Offizieller Release `v0.8.358` veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.358. Tag zeigt auf Code-Commit `1e5a352c4fcdedfd8f326f36afff653b2f2f6ef0`; APK `OrkanSlicer_1e5a352c4f.apk`, 239.377.998 Byte, SHA-256 `A60F7CD76E74A6FACADC321379EAC0B9264F6E0C361DC2BC23DFE02BE16CE468`. PR #2 offen und als mergefähig gemeldet.
 - Nächster Schritt: weitere Modellaktionen auf Mehrfachauswahl, Materialerhalt und Undo/Redo prüfen und die offene UI-2.0-Funktionsabnahme fortführen. Das Projekt ist nicht abgeschlossen.
 
-# Aktueller Fortsetzungsstand — GL-sicheres Skalieren/Spiegeln, 2026-10-23
-
-- Branch: `codex/rinkhals-safe-start-audit`; neuer Code-Commit: `7804f9431a` (`Keep scale and mirror actions on GL thread`), PR #2 bleibt offen. Vorheriger STEP-/Objektauswahl-Commit `97823c2` ist bereits auf GitHub.
-- Änderung: `TransformScaleMenu` liest Auswahl, native Modellskalierung und Bounding-Box jetzt auf dem GL-Thread. Vorschau, Bestätigung und Spiegelung prüfen den Modell-/Auswahl-Schnappschuss. Bei Undo/Redo lädt das Werkzeug über `ObjectsListChangedEvent` den ersetzten nativen Modell-Schnappschuss neu; gleiche Auswahl bleibt danach bearbeitbar.
-- Verifikation: Debug-JVM 621/621 und Slice-JVM 621/621 bestanden (0 Fehler/Fehlschläge/Skips); Debug-Build erfolgreich. Auf Honor PTP-N49 / Android 16 bestanden: Gruppen-Skalierung mit Undo/Redo 1/1, manuelle Einzelachsen-Skalierung inkl. Abbrechen/Bestätigen/Undo/Redo 1/1, Einzelspiegelung 1/1 und Gruppenspiegelung nach Undo/Redo 1/1.
-- Die Workspace-Menü-Gerätesuite umfasste 79 Tests. Erster vollständiger Lauf: 77 bestanden, zwei Spiegeltests schlugen nach Undo/Redo fehl. Ursache war, dass Undo/Redo ein neues `Model`-Objekt setzt und nur `ObjectsListChangedEvent` sendet; das Werkzeug reagierte zuvor nur auf `SelectedObjectChangedEvent`. Nach dem Fix bestanden die beiden zuvor fehlgeschlagenen Tests gezielt und die vollständige Suite erneut 79/79 auf Honor (0 übersprungen, 0 fehlgeschlagen).
-- Debug-APK aus Code-Commit `7804f943`: `app/build/outputs/apk/debug/OrkanSlicer_7804f9431a.apk`, 239,394,950 Byte, SHA-256 `70524C0C523D616E88E8777344FD622B6BE292D3E9F9B59B93D26E10BABE2DAF`. Auf Honor installiert; Paketversion 0.8.358 / Code 393; Start ausgelöst und im erfassten Logcat keine Crash-, ANR- oder OOM-Treffer. Kein Release erstellt.
-- Nächste konkrete Arbeit: die nächste zusammenhängende Modellbearbeitungs-/UI-Abnahme fortsetzen. Xiaomi bleibt für gerätespezifische STEP-/Raycast-Prüfung unverbunden. Mehrplattenpersistenz und manuelle TalkBack-Abnahme bleiben getrennte offene UI-2.0-Aufgaben.
-
-# Vorheriger Fortsetzungsstand — STEP/STP und sichere Modellmenüauswahl, 2026-10-23
+# Älterer Fortsetzungsstand — STEP/STP und sichere Modellmenüauswahl, 2026-10-23
