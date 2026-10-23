@@ -740,6 +740,72 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun curvedTextInheritsTheTappedMultipartVolumeFilament() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cylinderFile = createCylinderFixture("curved-text-filament-cylinder.stl", 25.0, 30.0, 96)
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "curved-text-filament-font.ttf")
+        val projectFile = File(context.cacheDir, "curved-text-filament-project.3mf")
+        var model: Model? = null
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cylinderFile)
+            model.addObject(model, 0)
+            model.translate(1, 60.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "ORCA",
+                8f,
+                1.0f,
+                Vec3d(85.0, 0.0, 15.0),
+                Vec3d(1.0, 0.0, 0.0),
+                targetObjectIndex = 0,
+            )
+            assertEquals("curved text remains part of the tapped multipart object", 0, textIndex)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+
+            val volumeFilamentTwoEntries = ZipFile(projectFile).use { archive ->
+                val entry = archive.getEntry("Metadata/Slic3r_PE_model.config")
+                val metadata = requireNotNull(entry).let {
+                    archive.getInputStream(it).bufferedReader().use { reader -> reader.readText() }
+                }
+                Regex("type=\\\"volume\\\" key=\\\"extruder\\\" value=\\\"2\\\"")
+                    .findAll(metadata).count()
+            }
+            assertEquals("the source part and its surface text must both use filament 2", 2, volumeFilamentTwoEntries)
+
+            restored = Model(projectFile, 1)
+            assertEquals(listOf(1, 2), restored.getUsedFilaments(0).toList())
+            val gcodeFile = File(context.cacheDir, "curved-text-filament-project.gcode")
+            try {
+                val gcode = sliceToGcode(context, restored, gcodeFile.name)
+                assertTrue("the tapped part's filament must reach emitted tool changes",
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                assertHasExtrusion(gcode)
+            } finally {
+                gcodeFile.delete()
+            }
+        } finally {
+            model?.release()
+            restored?.release()
+            cylinderFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun bundledKobraProfileSlicesBoxLocally() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application

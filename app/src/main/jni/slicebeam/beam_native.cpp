@@ -172,7 +172,8 @@ Transform3d conform_text_mesh_to_model_surface(
     indexed_triangle_set &text_mesh,
     const ModelObject &target,
     const Vec3d &world_position,
-    const Vec3d &world_normal)
+    const Vec3d &world_normal,
+    int &surface_extruder)
 {
     if (target.volumes.empty()) throw std::runtime_error("The target model has no printable surface");
     TriangleMesh target_mesh = target.raw_mesh();
@@ -216,6 +217,27 @@ Transform3d conform_text_mesh_to_model_surface(
     const Transform3d inverse = instance.inverse();
     const Vec3d inward = -(inverse.linear() * normal).normalized();
     const Vec3d outward = -inward;
+    // A multipart target can use different filaments per volume. Determine which part owns
+    // the tapped face so the newly appended text follows that part's tool, not the parent
+    // object's default filament.
+    double nearest_part_hit = std::numeric_limits<double>::infinity();
+    const Vec3d part_ray_origin = inverse * (world_position + normal * ray_distance);
+    for (const ModelVolume *volume : target.volumes) {
+        if (!volume->is_model_part()) continue;
+        TriangleMesh part_mesh = volume->mesh();
+        part_mesh.transform(volume->get_matrix());
+        if (part_mesh.its.vertices.empty() || part_mesh.its.indices.empty()) continue;
+        AABBMesh part_raycaster(part_mesh);
+        const auto part_hit = part_raycaster.query_ray_hit(part_ray_origin, inward);
+        if (!part_hit.is_hit()) continue;
+        const Vec3d part_world_hit = instance * part_hit.position();
+        const double distance = (part_world_hit - world_position).norm();
+        if (distance < nearest_part_hit) {
+            nearest_part_hit = distance;
+            surface_extruder = volume->extruder_id();
+        }
+    }
+    if (nearest_part_hit > 2.0) surface_extruder = -1;
     const double sink = 0.04; // A small overlap keeps raised text bonded to the model for slicing.
     for (Vec3f &vertex : text_mesh.vertices) {
         const Vec3d planar_world = tangent_frame * Vec3d(vertex.x(), vertex.y(), 0.);
@@ -1454,12 +1476,14 @@ extern "C" {
                 if (targetObjectIndex >= static_cast<jint>(model->model.objects.size()))
                     throw std::runtime_error("The target model is no longer available");
                 ModelObject *target = model->model.objects[targetObjectIndex];
+                int surfaceExtruder = -1;
                 const Transform3d instance = conform_text_mesh_to_model_surface(
-                    its, *target, Vec3d(px, py, pz), normal);
+                    its, *target, Vec3d(px, py, pz), normal, surfaceExtruder);
                 its_transform(its, instance.inverse(), true);
                 ModelVolume *volume = target->add_volume(
                     TriangleMesh(std::move(its)), ModelVolumeType::MODEL_PART, false);
                 if (volume == nullptr) throw std::runtime_error("Curved text could not be added to the target model");
+                if (surfaceExtruder > 0) volume->config.set("extruder", surfaceExtruder);
                 volume->name = text;
                 target->invalidate_bounding_box();
                 return targetObjectIndex;
