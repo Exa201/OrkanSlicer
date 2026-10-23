@@ -3348,18 +3348,46 @@ class InitialProjectMenuDeviceTest {
                 readUsedFilamentsOnGl(glView, 0))
             assertArrayEquals("the unselected source-plate object keeps its position", unselectedBounds,
                 readExactBoundsOnGl(glView, 0).single(), 0.03)
+            glView.selectModels(intArrayOf(0))
+            compose.waitUntil(timeoutMillis = 5_000) {
+                readSelectedIndicesOnGl(glView).contentEquals(intArrayOf(0))
+            }
+            openModelMenu(activity)
+            revealMenuAction(activity, R.string.ModelMenuMoveToPlate)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuMoveToPlateShort))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithText(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                bed.currentPlateIndex == 1 && readObjectCountOnGl(glView) == 3 &&
+                    readSelectedIndicesOnGl(glView).contentEquals(intArrayOf(2))
+            }
+            assertArrayEquals("moving one selected object preserves its filament", intArrayOf(4),
+                readUsedFilamentsOnGl(glView, 2))
+            assertArrayEquals("moving one selected object preserves its position", unselectedBounds,
+                readExactBoundsOnGl(glView, 2).single(), 0.03)
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 0
+            }
             compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.PlatePickerSelectDescription, "2"),
             ).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
-                bed.currentPlateIndex == 1 && readObjectCountOnGl(glView) == 2
+                bed.currentPlateIndex == 1 && readObjectCountOnGl(glView) == 3
             }
             assertArrayEquals("both per-object material assignments survive a plate reload", intArrayOf(2),
                 readUsedFilamentsOnGl(glView, 0))
             assertArrayEquals("the second material assignment survives a plate reload", intArrayOf(3),
                 readUsedFilamentsOnGl(glView, 1))
+            assertArrayEquals("the individually moved object survives a plate reload", intArrayOf(4),
+                readUsedFilamentsOnGl(glView, 2))
         } finally {
             modelFile.delete()
         }
