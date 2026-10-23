@@ -330,6 +330,39 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun standaloneTextCanConformToCurvedCylinderAndRemainsPrintable() {
+        val modelFile = createCylinderFixture("text-curved-cylinder.stl", radius = 25f, height = 30f, segments = 96)
+        val fontFile = copyAsset("font/roboto_medium.ttf", "text-curved-surface-font.ttf")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val position = Vec3d(max.x, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0)
+            val flatIndex = model.createTextObject(
+                fontFile.absolutePath, "ORCA", 10f, 1.2f, position, Vec3d(1.0, 0.0, 0.0),
+            )
+            assertEquals(1, flatIndex)
+            val flatTriangles = model.getTriangleCount(flatIndex)
+            val cylinderTriangles = model.getTriangleCount(0)
+            val curvedIndex = model.createTextObject(
+                fontFile.absolutePath, "ORCA", 10f, 1.2f, position, Vec3d(1.0, 0.0, 0.0),
+                targetObjectIndex = 0,
+            )
+            assertEquals("curved text should be added as a part of the target printable object", 0, curvedIndex)
+            assertEquals("surface text must not introduce a floating plate object", 2, model.objectsCount)
+            assertTrue("surface following must refine the mesh before bending it",
+                model.getTriangleCount(curvedIndex) - cylinderTriangles > flatTriangles)
+            assertTrue("the target and curved text must remain a closed printable solid", model.getObjectVolume(curvedIndex) > 0.0)
+            val curvedMin = Vec3d(); val curvedMax = Vec3d()
+            model.getBoundingBoxExact(curvedIndex, curvedMin, curvedMax)
+            assertTrue("text should protrude from the curved cylinder surface", curvedMax.x > max.x + 1.0)
+            assertTrue("conforming text remains attached to the surface rather than floating", curvedMin.z <= min.z + 0.01)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun svgImportCreatesStandalonePrintableGeometry() {
         val svgFile = File(
             InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
@@ -762,6 +795,38 @@ class ModelEditingNativeDeviceTest {
         triangles.forEach { triangle ->
             repeat(3) { stl.putFloat(0f) }
             triangle.forEach { vertex -> vertices[vertex].forEach { stl.putFloat(it) } }
+            stl.putShort(0)
+        }
+        file.writeBytes(stl.array())
+        return file
+    }
+
+    private fun createCylinderFixture(name: String, radius: Float, height: Float, segments: Int): File {
+        val triangles = ArrayList<Array<FloatArray>>(segments * 4)
+        fun point(angle: Double, z: Float) = floatArrayOf(
+            radius * kotlin.math.cos(angle).toFloat(),
+            radius * kotlin.math.sin(angle).toFloat(),
+            z,
+        )
+        val bottomCenter = floatArrayOf(0f, 0f, 0f)
+        val topCenter = floatArrayOf(0f, 0f, height)
+        for (index in 0 until segments) {
+            val a0 = 2.0 * Math.PI * index / segments
+            val a1 = 2.0 * Math.PI * (index + 1) / segments
+            val bottom0 = point(a0, 0f); val bottom1 = point(a1, 0f)
+            val top0 = point(a0, height); val top1 = point(a1, height)
+            triangles += arrayOf(bottom0, bottom1, top1)
+            triangles += arrayOf(bottom0, top1, top0)
+            triangles += arrayOf(bottomCenter, bottom1, bottom0)
+            triangles += arrayOf(topCenter, top0, top1)
+        }
+        val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        val stl = ByteBuffer.allocate(84 + triangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
+        stl.position(80)
+        stl.putInt(triangles.size)
+        triangles.forEach { triangle ->
+            repeat(3) { stl.putFloat(0f) }
+            triangle.forEach { vertex -> vertex.forEach(stl::putFloat) }
             stl.putShort(0)
         }
         file.writeBytes(stl.array())

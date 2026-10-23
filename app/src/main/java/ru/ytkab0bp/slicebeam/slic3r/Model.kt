@@ -327,7 +327,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
         resetBoundingBox()
     }
 
-    /** Creates an independent printable text object oriented onto a picked surface. */
+    /** Creates printable text; with a target index, conforms it to that surface and adds it as a target part. */
     open fun createTextObject(
         fontPath: String,
         text: String,
@@ -335,10 +335,12 @@ open class Model private constructor(@JvmField var pointer: Long) {
         depth: Float,
         position: Vec3d,
         normal: Vec3d,
+        targetObjectIndex: Int = -1,
     ): Int {
         val index = Native.model_create_text_object(
             pointer, fontPath, text, size, depth,
             position.x, position.y, position.z, normal.x, normal.y, normal.z,
+            targetObjectIndex,
         )
         if (index >= 0) resetBoundingBox()
         return index

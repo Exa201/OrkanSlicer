@@ -2250,7 +2250,7 @@ if (preciseHit != null)
 {
 val position = preciseHit.position
 val normal = preciseHit.normal
-SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(position, normal))
+SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(position, normal, targetObjectIndex = targetObj))
 return true
 }
 }

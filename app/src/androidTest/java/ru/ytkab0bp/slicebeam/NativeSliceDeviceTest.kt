@@ -684,6 +684,62 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun curvedSurfaceTextSurvivesThreeMfReloadAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cylinderFile = createCylinderFixture("curved-text-slice-cylinder.stl", 25.0, 40.0, 96)
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "curved-text-slice-font.ttf")
+        val projectFile = File(context.cacheDir, "curved-text-surface-project.3mf")
+        val gcodeFile = File(context.cacheDir, "curved-text-surface.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cylinderFile)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val cylinderTriangles = model.getTriangleCount(0)
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "ORCA",
+                10f,
+                1.2f,
+                Vec3d(max.x, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0),
+                Vec3d(1.0, 0.0, 0.0),
+                targetObjectIndex = 0,
+            )
+            assertEquals("surface-conforming text should join the target printable object", 0, textIndex)
+            assertEquals("the text operation must not add a floating object", 1, model.objectsCount)
+            assertTrue(model.getTriangleCount(0) - cylinderTriangles > cylinderTriangles)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("surface text stays a part of its printable target", 1, restored.objectsCount)
+            assertTrue("the conforming text volume must survive 3MF reload",
+                restored.getTriangleCount(0) - cylinderTriangles > cylinderTriangles)
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            assertHasExtrusion(gcodeFile.readText())
+            Log.i("NativeSliceDeviceTest", "PASS curved surface text G-code bytes=${gcodeFile.length()}")
+        } finally {
+            result?.release()
+            restored?.release()
+            model?.release()
+            cylinderFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun bundledKobraProfileSlicesBoxLocally() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
@@ -890,6 +946,32 @@ class NativeSliceDeviceTest {
         File(context.cacheDir, name).also { target ->
             context.assets.open(assetPath).use { input -> target.outputStream().use(input::copyTo) }
         }
+
+    private fun createCylinderFixture(name: String, radius: Double, height: Double, segments: Int): File {
+        val target = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        fun point(angle: Double, z: Double) = doubleArrayOf(radius * kotlin.math.cos(angle), radius * kotlin.math.sin(angle), z)
+        fun vertexLine(point: DoubleArray) = "vertex ${point[0]} ${point[1]} ${point[2]}\n"
+        val stl = StringBuilder("solid curved_text_cylinder\n")
+        for (index in 0 until segments) {
+            val a0 = 2.0 * Math.PI * index / segments
+            val a1 = 2.0 * Math.PI * (index + 1) / segments
+            val b0 = point(a0, 0.0); val b1 = point(a1, 0.0)
+            val t0 = point(a0, height); val t1 = point(a1, height)
+            val bottomCenter = doubleArrayOf(0.0, 0.0, 0.0)
+            val topCenter = doubleArrayOf(0.0, 0.0, height)
+            listOf(
+                arrayOf(b0, b1, t1), arrayOf(b0, t1, t0),
+                arrayOf(bottomCenter, b1, b0), arrayOf(topCenter, t0, t1),
+            ).forEach { triangle ->
+                stl.append("facet normal 0 0 0\nouter loop\n")
+                triangle.forEach { stl.append(vertexLine(it)) }
+                stl.append("endloop\nendfacet\n")
+            }
+        }
+        stl.append("endsolid curved_text_cylinder\n")
+        target.writeText(stl.toString())
+        return target
+    }
 
     private fun sliceToGcode(context: Context, model: Model, name: String): String {
         val gcodeFile = File(context.cacheDir, name)

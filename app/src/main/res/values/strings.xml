@@ -1198,6 +1198,8 @@
     <string name="EmbossRaise">Raise</string>
     <string name="EmbossEngrave">Engrave</string>
     <string name="TextModelCreateSeparate">Create a separate 3D text object</string>
+    <string name="TextFollowCurvedSurface">Follow curved model surface</string>
+    <string name="TextFollowSurfaceHelp">The text is fitted to the tapped model and added as a printable part of it.</string>
     <string name="TextModelCreated">Separate text object created</string>
     <string name="SelectObjectFirst">Select an object first.</string>
     <string name="EmbossSuccess">Text added successfully.</string>

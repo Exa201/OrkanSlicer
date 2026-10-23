@@ -122,6 +122,120 @@ jmethodID shadersManagerGetCurrent = nullptr;
 
 static JavaVM* staticVM;
 
+namespace {
+
+void subdivide_text_mesh_for_surface(indexed_triangle_set &mesh)
+{
+    constexpr double max_edge_length = 1.25;
+    constexpr size_t max_faces = 300000;
+    for (int level = 0; level < 5 && mesh.indices.size() < max_faces; ++level) {
+        double longest = 0.;
+        for (const Vec3i32 &face : mesh.indices) {
+            for (int edge = 0; edge < 3; ++edge) {
+                const Vec3f &a = mesh.vertices[face[edge]];
+                const Vec3f &b = mesh.vertices[face[(edge + 1) % 3]];
+                longest = std::max(longest, double((a - b).norm()));
+            }
+        }
+        if (longest <= max_edge_length || mesh.indices.size() * 4 > max_faces) break;
+
+        std::unordered_map<uint64_t, int32_t> midpoint_indices;
+        std::vector<Vec3f> vertices = mesh.vertices;
+        std::vector<Vec3i32> faces;
+        midpoint_indices.reserve(mesh.indices.size());
+        faces.reserve(mesh.indices.size() * 4);
+        auto midpoint = [&](int32_t a, int32_t b) {
+            const uint32_t lo = static_cast<uint32_t>(std::min(a, b));
+            const uint32_t hi = static_cast<uint32_t>(std::max(a, b));
+            const uint64_t key = (uint64_t(lo) << 32) | uint64_t(hi);
+            auto found = midpoint_indices.find(key);
+            if (found != midpoint_indices.end()) return found->second;
+            const int32_t index = static_cast<int32_t>(vertices.size());
+            vertices.emplace_back((mesh.vertices[a] + mesh.vertices[b]) * 0.5f);
+            midpoint_indices.emplace(key, index);
+            return index;
+        };
+        for (const Vec3i32 &face : mesh.indices) {
+            const int32_t a = face.x(), b = face.y(), c = face.z();
+            const int32_t ab = midpoint(a, b), bc = midpoint(b, c), ca = midpoint(c, a);
+            faces.emplace_back(a, ab, ca);
+            faces.emplace_back(ab, b, bc);
+            faces.emplace_back(ca, bc, c);
+            faces.emplace_back(ab, bc, ca);
+        }
+        mesh.vertices = std::move(vertices);
+        mesh.indices = std::move(faces);
+    }
+}
+
+Transform3d conform_text_mesh_to_model_surface(
+    indexed_triangle_set &text_mesh,
+    const ModelObject &target,
+    const Vec3d &world_position,
+    const Vec3d &world_normal)
+{
+    if (target.volumes.empty()) throw std::runtime_error("The target model has no printable surface");
+    TriangleMesh target_mesh = target.raw_mesh();
+    if (target_mesh.its.vertices.empty() || target_mesh.its.indices.empty())
+        throw std::runtime_error("The target model has no printable surface");
+    AABBMesh raycaster(target_mesh);
+
+    const Vec3d normal = world_normal.normalized();
+    const Transform3d tangent_frame = Emboss::create_transformation_onto_surface(world_position, normal);
+    const BoundingBoxf3 bounds = bounding_box(target_mesh.its);
+    const double ray_distance = std::max(100., 4. * (bounds.max - bounds.min).norm() + 10.);
+    std::vector<Transform3d> instances;
+    if (target.instances.empty()) instances.emplace_back(Transform3d::Identity());
+    else {
+        instances.reserve(target.instances.size());
+        for (const ModelInstance *instance : target.instances)
+            if (instance != nullptr) instances.emplace_back(instance->get_matrix());
+    }
+    if (instances.empty()) throw std::runtime_error("The target model has no placed instance");
+
+    size_t selected_instance = instances.size();
+    double closest_hit_distance = std::numeric_limits<double>::infinity();
+    for (size_t index = 0; index < instances.size(); ++index) {
+        const Transform3d inverse = instances[index].inverse();
+        Vec3d inward = -(inverse.linear() * normal).normalized();
+        const Vec3d origin = inverse * (world_position + normal * ray_distance);
+        auto hit = raycaster.query_ray_hit(origin, inward);
+        if (!hit.is_hit()) continue;
+        const Vec3d candidate_world = instances[index] * hit.position();
+        const double distance = (candidate_world - world_position).norm();
+        if (distance < closest_hit_distance) {
+            closest_hit_distance = distance;
+            selected_instance = index;
+        }
+    }
+    if (selected_instance == instances.size() || closest_hit_distance > 2.0)
+        throw std::runtime_error("Tap the text onto a visible model surface");
+
+    subdivide_text_mesh_for_surface(text_mesh);
+    const Transform3d &instance = instances[selected_instance];
+    const Transform3d inverse = instance.inverse();
+    const Vec3d inward = -(inverse.linear() * normal).normalized();
+    const Vec3d outward = -inward;
+    const double sink = 0.04; // A small overlap keeps raised text bonded to the model for slicing.
+    for (Vec3f &vertex : text_mesh.vertices) {
+        const Vec3d planar_world = tangent_frame * Vec3d(vertex.x(), vertex.y(), 0.);
+        const Vec3d origin = inverse * (planar_world + normal * ray_distance);
+        const auto hit = raycaster.query_ray_hit(origin, inward);
+        if (!hit.is_hit())
+            throw std::runtime_error("The complete text must fit on the visible model surface");
+        Vec3d surface_normal = instance.linear().inverse().transpose() * hit.normal();
+        if (surface_normal.squaredNorm() < 1e-12)
+            throw std::runtime_error("The target surface has an invalid normal");
+        surface_normal.normalize();
+        if (surface_normal.dot(normal) < 0.) surface_normal = -surface_normal;
+        const Vec3d world_surface = instance * hit.position();
+        vertex = (world_surface + surface_normal * (double(vertex.z()) - sink)).cast<float>();
+    }
+    return instance;
+}
+
+} // namespace
+
 GLShaderProgram* get_current_shader() {
     JNIEnv* env;
     if (staticVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
@@ -1307,7 +1421,7 @@ extern "C" {
 
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create_1text_1object(
         JNIEnv* env, jclass, jlong ptr, jstring fontPath, jstring textStr, jfloat size, jfloat depth,
-        jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz) {
+        jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz, jint targetObjectIndex) {
         try {
             ModelRef* model = (ModelRef*) (intptr_t) ptr;
             if (model == nullptr || size <= 0.f || depth <= 0.f) return -1;
@@ -1336,9 +1450,24 @@ extern "C" {
             its_translate(its, Vec3f((float) -bb.center().x(), (float) -bb.center().y(), 0.f));
             Vec3d normal(nx, ny, nz);
             if (normal.norm() < 1e-9) normal = Vec3d::UnitZ(); else normal.normalize();
-            const Transform3d surface = Emboss::create_transformation_onto_surface(Vec3d(px, py, pz), normal);
+            if (targetObjectIndex >= 0) {
+                if (targetObjectIndex >= static_cast<jint>(model->model.objects.size()))
+                    throw std::runtime_error("The target model is no longer available");
+                ModelObject *target = model->model.objects[targetObjectIndex];
+                const Transform3d instance = conform_text_mesh_to_model_surface(
+                    its, *target, Vec3d(px, py, pz), normal);
+                its_transform(its, instance.inverse(), true);
+                ModelVolume *volume = target->add_volume(
+                    TriangleMesh(std::move(its)), ModelVolumeType::MODEL_PART, false);
+                if (volume == nullptr) throw std::runtime_error("Curved text could not be added to the target model");
+                volume->name = text;
+                target->invalidate_bounding_box();
+                return targetObjectIndex;
+            } else {
+                const Transform3d surface = Emboss::create_transformation_onto_surface(Vec3d(px, py, pz), normal);
+                its_transform(its, surface, true);
+            }
             TriangleMesh mesh(std::move(its));
-            mesh.transform(surface, true);
 
             ModelObject* object = model->model.add_object();
             object->name = text;

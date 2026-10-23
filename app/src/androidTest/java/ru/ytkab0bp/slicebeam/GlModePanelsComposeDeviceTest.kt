@@ -137,6 +137,9 @@ class GlModePanelsComposeDeviceTest {
         compose.onNodeWithText(context.getString(R.string.EmbossRaise)).assertIsNotDisplayed()
         compose.onNodeWithText(context.getString(R.string.EmbossEngrave)).assertIsNotDisplayed()
         compose.onNodeWithTag("emboss-standalone-mode").assertIsDisplayed()
+        compose.onNodeWithTag("emboss-follow-surface").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("emboss-follow-surface").assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.TextFollowSurfaceHelp)).assertIsDisplayed()
     }
 
     @Test

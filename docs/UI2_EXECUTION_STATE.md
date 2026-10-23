@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## Modellierungsarbeit — flächenfolgender Text, 2026-10-23
+
+- Commit `8f63ff62` ergänzt den optionalen Modus „Gekrümmter Oberfläche folgen“ für eigenständigen Text. Der Text wird unterteilt, auf das angetippte Modell geraycastet und als `MODEL_PART`-Volumen an das Zielmodell angefügt. Der bisherige ebene eigenständige Text bleibt erhalten.
+- Honor PTP-N49 / Android 16: 49/49 gebündelte Instrumentierungstests bestanden (Modellbearbeitung, Compose-Werkzeugpanel und Slicing). Der neue gekrümmte Text übersteht 3MF-Rundlauf und erzeugt beim Slicing Extrusions-G-Code. Debug-JVM und Slice-JVM jeweils 621/621; beide Aufgaben waren auf dem aktuellen Stand `UP-TO-DATE`. `:app:assembleDebug` erfolgreich.
+- In der ersten Slicingprüfung wurde der gekrümmte Text als separates Objekt angelegt und wegen leerer erster Schicht abgelehnt. Behoben, indem das gekrümmte Volumen Teil des ausgewählten Zielobjekts wird.
+- Nächster Schritt: Debug-APK für Commit `8f63ff62` neu erzeugen, Branch/PR #2 aktualisieren und anschließend mindestens drei weitere Modellbearbeitungsfunktionen verifizieren. Kein Release dieser Zwischenänderung erstellt.
+
 ## Release 0.8.361 — Changelog-Versionsabgleich, 2026-10-23
 
 - Vollständige Honor-Instrumentierung für 0.8.360: 347 Testfälle, 343 bestanden, 3 wegen privater KromaCut-Fixtures übersprungen, 1 fehlgeschlagen. Fehlerursache: `update.json` stand noch auf 0.8.359, obwohl BuildConfig 0.8.360 meldete.

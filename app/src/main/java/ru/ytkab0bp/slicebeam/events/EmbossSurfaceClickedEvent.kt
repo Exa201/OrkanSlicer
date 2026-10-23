@@ -6,4 +6,5 @@ open class EmbossSurfaceClickedEvent(
     @JvmField val position: Vec3d,
     @JvmField val normal: Vec3d,
     @JvmField val isBuildPlatePlacement: Boolean = false,
+    @JvmField val targetObjectIndex: Int = -1,
 )

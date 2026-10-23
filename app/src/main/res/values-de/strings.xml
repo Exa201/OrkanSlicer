@@ -1163,6 +1163,8 @@
     <string name="EmbossInstruction">Werte eingeben und anschließend auf die Modelloberfläche tippen, um den Text zu platzieren.</string>
     <string name="TextModelPlacementInstruction">Text und Größe festlegen, dann auf die Druckplatte oder eine Modellfläche tippen.</string>
     <string name="TextModelCreateSeparate">Eigenständigen 3D-Text platzieren</string>
+    <string name="TextFollowCurvedSurface">Gekrümmter Oberfläche folgen</string>
+    <string name="TextFollowSurfaceHelp">Der Text folgt dem angetippten Modell und wird als druckbarer Bestandteil hinzugefügt.</string>
     <string name="EmbossTextHint">Einzuprägender Text</string>
     <string name="EmbossTextLabel">Text:</string>
     <string name="EmbossDefaultFontSize">10,0</string>

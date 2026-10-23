@@ -43,9 +43,10 @@ internal fun EmbossModePanel(
     var depth by remember { mutableStateOf(initialDepth) }
     var addMode by remember { mutableStateOf(true) }
     var standaloneMode by remember { mutableStateOf(startInStandaloneMode) }
+    var followSurface by remember { mutableStateOf(false) }
     val validation = EmbossTextInputValidator.validate(text, size, depth)
 
-    fun sync() = controller.update(text, size, depth, addMode, standaloneMode)
+    fun sync() = controller.update(text, size, depth, addMode, standaloneMode, followSurface)
     DisposableEffect(controller) {
         controller.start()
         sync()
@@ -98,6 +99,20 @@ internal fun EmbossModePanel(
             label = { Text(stringResource(R.string.TextModelCreateSeparate)) },
             modifier = Modifier.testTag("emboss-standalone-mode"),
         )
+        if (standaloneMode) {
+            FilterChip(
+                selected = followSurface,
+                onClick = { followSurface = !followSurface; sync() },
+                label = { Text(stringResource(R.string.TextFollowCurvedSurface)) },
+                modifier = Modifier.testTag("emboss-follow-surface"),
+            )
+            if (followSurface) {
+                Text(
+                    stringResource(R.string.TextFollowSurfaceHelp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
         if (!standaloneMode) {
             Text(stringResource(R.string.EmbossOperation), style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
