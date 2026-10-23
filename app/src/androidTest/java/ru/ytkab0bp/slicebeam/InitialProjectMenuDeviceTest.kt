@@ -285,6 +285,61 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun booleanDialogRejectsAStaleObjectSelectionWithoutChangingTheModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "boolean-stale-selection-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val current = requireNotNull(glView.renderer.model)
+                current.addObject(current, 0)
+                current.translate(1, 12.0, 0.0, 0.0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("Boolean fixtures should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val beforeBounds = readExactBoundsOnGl(glView, 0, 1)
+            val beforeRevision = model.geometryRevision
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuBoolean)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelBooleanUnion)).assertIsDisplayed()
+
+            val changedSelection = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(1)
+                glView.requestRender()
+                changedSelection.countDown()
+            }
+            assertTrue("selection change should complete on the GL thread", changedSelection.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithText(activity.getString(R.string.ModelBooleanUnion)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelBooleanSelectionChanged) }
+
+            assertEquals("a stale Boolean dialog must not replace either source object", 2,
+                readObjectCountOnGl(glView))
+            assertEquals("stale selection rejection must not mutate native geometry", beforeRevision,
+                model.geometryRevision)
+            beforeBounds.zip(readExactBoundsOnGl(glView, 0, 1)).forEachIndexed { index, (before, after) ->
+                assertArrayEquals("stale Boolean selection must preserve object $index", before, after, 0.001)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListCanSelectAndPlaceAGroupOnAnotherModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

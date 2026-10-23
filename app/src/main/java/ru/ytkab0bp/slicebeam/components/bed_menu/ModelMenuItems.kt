@@ -312,45 +312,67 @@ internal class ModelMenuItems(
 
     private fun showBooleanDialog(anchor: android.view.View) {
         val glView = fragment.glView ?: return
-        val renderer = glView.renderer
-        val model = renderer.model ?: return
-        val selected = renderer.selectedObjectIndices()
-        if (selected.size < 2) return
-        val targetIndex = renderer.selectedObject.takeIf { it in selected } ?: selected[0]
-        val orderedIndices = intArrayOf(targetIndex) + selected.filter { it != targetIndex }
-        val toolIndices = orderedIndices.drop(1)
-        val targetName = model.getObjectName(targetIndex)
-            ?: anchor.context.getString(R.string.MenuFileObjectNumber, targetIndex + 1)
-        val toolNames = toolIndices.map { index -> model.getObjectName(index)
-            ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1) }
+        glView.queueEvent {
+            val renderer = glView.renderer
+            val model = renderer.model ?: return@queueEvent
+            val selected = renderer.selectedObjectIndices()
+            if (selected.size < 2) return@queueEvent
+            val targetIndex = renderer.selectedObject.takeIf { it in selected } ?: selected[0]
+            val orderedIndices = intArrayOf(targetIndex) + selected.filter { it != targetIndex }
+            val targetName = model.getObjectName(targetIndex)
+            val toolNames = orderedIndices.drop(1).map { index -> index to model.getObjectName(index) }
+            val sourceRevision = model.geometryRevision
+            val sourceObjectCount = model.objectsCount
 
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelBooleanDialog(
-                onDismiss = dismiss,
-                onChoose = { operation ->
-                    dismiss()
-                    glView.queueEvent {
-                        val currentRenderer = glView.renderer
-                        val currentModel = currentRenderer.model ?: return@queueEvent
-                        val result = currentModel.booleanObjects(orderedIndices, operation)
-                        if (result >= 0) {
-                            currentRenderer.resetGlModels()
-                            currentRenderer.setSelectedObject(result)
-                            glView.requestRender()
-                            ViewUtils.postOnMainThread {
-                                fragment.updateModel()
-                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelBooleanDone))
+            ViewUtils.postOnMainThread {
+                if (!fragment.canShowWorkspaceComposeDialog()) return@postOnMainThread
+                val displayTargetName = targetName
+                    ?: anchor.context.getString(R.string.MenuFileObjectNumber, targetIndex + 1)
+                val displayToolNames = toolNames.map { (index, name) ->
+                    name ?: anchor.context.getString(R.string.MenuFileObjectNumber, index + 1)
+                }
+                fragment.showWorkspaceComposeDialog { dismiss ->
+                    ModelBooleanDialog(
+                        onDismiss = dismiss,
+                        onChoose = { operation ->
+                            dismiss()
+                            glView.queueEvent {
+                                val currentRenderer = glView.renderer
+                                val currentModel = currentRenderer.model
+                                val selectionUnchanged = currentModel != null && currentModel === model &&
+                                    currentModel.objectsCount == sourceObjectCount &&
+                                    currentModel.geometryRevision == sourceRevision &&
+                                    currentRenderer.selectedObject == targetIndex &&
+                                    currentRenderer.selectedObjectIndices().contentEquals(selected)
+                                if (!selectionUnchanged) {
+                                    ViewUtils.postOnMainThread {
+                                        SliceBeam.EVENT_BUS.fireEvent(
+                                            NeedSnackbarEvent(R.string.ModelBooleanSelectionChanged),
+                                        )
+                                    }
+                                    return@queueEvent
+                                }
+                                val result = currentModel.booleanObjects(orderedIndices, operation)
+                                if (result >= 0) {
+                                    currentRenderer.resetGlModels()
+                                    currentRenderer.setSelectedObject(result)
+                                    glView.requestRender()
+                                    ViewUtils.postOnMainThread {
+                                        fragment.updateModel()
+                                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelBooleanDone))
+                                    }
+                                } else {
+                                    ViewUtils.postOnMainThread {
+                                        SliceBeam.EVENT_BUS.fireEvent(
+                                            NeedSnackbarEvent(R.string.ModelBooleanFailed, displayTargetName, displayToolNames.joinToString()),
+                                        )
+                                    }
+                                }
                             }
-                        } else {
-                            ViewUtils.postOnMainThread {
-                                SliceBeam.EVENT_BUS.fireEvent(
-                                    NeedSnackbarEvent(R.string.ModelBooleanFailed, targetName, toolNames.joinToString()),
-                                )
-                            }
-                        }
-                    }
-                },
-            )
+                        },
+                    )
+                }
+            }
         }
     }
 }

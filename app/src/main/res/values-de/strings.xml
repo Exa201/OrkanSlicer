@@ -193,6 +193,7 @@
     <string name="ModelBooleanDifference">Abziehen · ausgewählte Körper abziehen</string>
     <string name="ModelBooleanIntersection">Schnittmenge · Überlappung behalten</string>
     <string name="ModelBooleanDone">Boolesches Ergebnis erstellt</string>
+    <string name="ModelBooleanSelectionChanged">Modell oder Auswahl hat sich geändert. Starte die Boolean-Funktion erneut.</string>
     <string name="ModelBooleanFailed">Aus „%1$s“ und „%2$s“ konnte kein gültiger Körper erstellt werden. Prüfe, ob beide Netze geschlossen sind und sich wie erforderlich überschneiden.</string>
     <string name="MenuModelCompact">Modell</string>
     <string name="MenuPlates">Druckplatten</string>

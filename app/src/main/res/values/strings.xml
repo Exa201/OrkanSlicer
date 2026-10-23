@@ -203,6 +203,7 @@
     <string name="ModelBooleanDifference">Difference · subtract selected solids</string>
     <string name="ModelBooleanIntersection">Intersection · keep the overlap</string>
     <string name="ModelBooleanDone">Boolean result created</string>
+    <string name="ModelBooleanSelectionChanged">The model or selection changed. Start the Boolean operation again.</string>
     <string name="ModelBooleanFailed">Could not create a valid solid from “%1$s” and “%2$s”. Check that both meshes are closed and intersect as required.</string>
     <string name="MenuModelCompact">Model</string>
     <string name="MenuPlates">Plates</string>

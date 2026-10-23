@@ -2856,3 +2856,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Offizieller Release `v0.8.357` veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.357. Release-Tag zeigt auf Code-Commit `8702fd2459e9a3a078aa268817619d829c3d558b`; APK `OrkanSlicer_8702fd2459.apk`, 239.377.464 Byte, SHA-256 `C28D5CCDB4B8ABEAA8BD42CA39C8616A67038A321C77C462FB853CB17A048B1D`. PR #2 offen und als mergeable gemeldet.
 - Nächster Schritt: weitere aktive Modellmenüaktionen auf richtige Mehrfachauswahl, Undo/Redo und Slice-/G-Code-Auswirkung prüfen; anschließend die UI-2.0-Funktionsabnahme fortsetzen. Projekt nicht abgeschlossen.
 
+# Aktueller Durchgang — Boolean-Auswahl absichern (2026-10-23)
+
+- Aktive Modellbearbeitungsphase. Letzter veröffentlichter Stand `v0.8.357`; der Z-Positionseditor bleibt enthalten.
+- Fehler behoben: Der Boolean-Dialog erfasste Auswahl und Modellstatus auf dem UI-Thread und konnte nach einer zwischenzeitlichen Auswahl-/Geometrieänderung mit veralteten Objektindizes fortfahren. Aufnahme und native Prüfung laufen jetzt auf dem GL-Thread; Bestätigung wird abgewiesen, falls Modellidentität, Geometrieversion oder Auswahl abweicht. UI-Texte werden auf dem Hauptthread erzeugt.
+- Verifiziert auf Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 71/71, 0 Fehler, 0 Übersprünge; gezielter veraltete-Auswahl-Test 1/1; Slice/G-Code-Tests für multipartes Verbinden, Boolean-Filament und Difference/Intersection 3/3. Debug- und Slice-Unit-Suiten je 621/621.
+- Nächster Schritt: `0.8.358` bauen, auf Honor installieren/starten, APK-Prüfsumme erfassen und offiziellen Release veröffentlichen; danach UI-2.0-/Modellbearbeitungsabnahme fortsetzen.
+
