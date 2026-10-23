@@ -5861,6 +5861,57 @@ class InitialProjectMenuDeviceTest {
         }
     }
 
+    @Test
+    fun editSimplifyRejectsSelectionChangedAfterTargetCapture() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-simplify-stale-selection-${System.nanoTime()}.stl")
+        try {
+            activity.assets.open("models/sphere.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            val duplicateDone = CountDownLatch(1)
+            glView.duplicateSelectedModel(1, Runnable { duplicateDone.countDown() })
+            assertTrue("second test object should finish duplicating", duplicateDone.await(15, TimeUnit.SECONDS))
+            instrumentationWaitForGlIdle()
+            assertEquals(2, readObjectCountOnGl(glView))
+            val trianglesBefore = (0..1).map { readTriangleCountOnGl(glView, it) }
+
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val captured = AtomicReference<Pair<ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot, Int>?>()
+            val capturedDone = CountDownLatch(1)
+            bed.captureSelectedObjectForSimplification { snapshot, triangleCount ->
+                captured.set(snapshot to triangleCount)
+                capturedDone.countDown()
+            }
+            assertTrue("simplify dialog should capture its native target on GL",
+                capturedDone.await(10, TimeUnit.SECONDS))
+            assertTrue("captured simplify selection should refer to the first object",
+                captured.get()!!.first.primaryObject == 0 && captured.get()!!.second == trianglesBefore[0])
+
+            // The delayed confirmation is tied to object 0. Switching selection must not redirect
+            // the native edit to object 1, even though both objects are valid and have same mesh.
+            val switchedSelection = CountDownLatch(1)
+            glView.selectModel(1, Runnable { switchedSelection.countDown() })
+            assertTrue("selection should switch while the simplify prompt is open",
+                switchedSelection.await(10, TimeUnit.SECONDS))
+            assertEquals("the newer selection should be object 1", 1, readSelectedObjectOnGl(glView))
+            bed.simplifySelectedObject(requireNotNull(captured.get()).first, 0.5f)
+            instrumentationWaitForGlIdle()
+            assertEquals("stale simplify confirmation must leave object 0 unchanged",
+                trianglesBefore[0], readTriangleCountOnGl(glView, 0))
+            assertEquals("stale simplify confirmation must not mutate newly selected object 1",
+                trianglesBefore[1], readTriangleCountOnGl(glView, 1))
+            assertEquals("stale selection must not change object count", 2, model.objectsCount)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
     private fun loadSingleTestModel(bed: BedFragment, modelFile: File): Model {
         val testGlView = requireNotNull(bed.glView)
         compose.waitUntil(timeoutMillis = 10_000) {

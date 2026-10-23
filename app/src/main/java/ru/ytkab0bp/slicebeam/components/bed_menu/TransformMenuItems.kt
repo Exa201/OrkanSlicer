@@ -6,6 +6,7 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import java.util.function.Consumer
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -90,38 +91,39 @@ internal class TransformMenuItems(
         }
 
     private fun showSimplifyDialog(view: View) {
-        val triangles = fragment.selectedTriangleCount
-        if (triangles <= 4) return
         val context = view.context
-        val ratios = floatArrayOf(0.75f, 0.50f, 0.25f)
-        val targetCounts = ratios.map { max(4, (triangles * it).roundToInt()) }
-        val choices = listOf(
-            context.resources.getQuantityString(R.plurals.ModelSimplifyLight, targetCounts[0], targetCounts[0]),
-            context.resources.getQuantityString(R.plurals.ModelSimplifyMedium, targetCounts[1], targetCounts[1]),
-            context.resources.getQuantityString(R.plurals.ModelSimplifyStrong, targetCounts[2], targetCounts[2]),
-            context.getString(R.string.ModelSimplifyCustom),
-        )
-        fragment.showWorkspaceComposeDialog { dismiss ->
-            ModelSimplifyChoiceDialog(
-                title = context.getString(R.string.ModelSimplify),
-                currentTriangles = context.resources.getQuantityString(R.plurals.ModelSimplifyCurrent, triangles, triangles),
-                choices = choices,
-                startLabel = context.getString(R.string.ModelSimplifyStart),
-                cancelLabel = context.getString(android.R.string.cancel),
-                onDismiss = dismiss,
-                onStart = { choice ->
-                    dismiss()
-                    if (choice < ratios.size) {
-                        fragment.simplifySelectedObject(ratios[choice])
-                    } else {
-                        showCustomSimplifyDialog(view, triangles)
-                    }
-                },
+        fragment.captureSelectedObjectForSimplification { snapshot, triangles ->
+            if (triangles <= 4) return@captureSelectedObjectForSimplification
+            val ratios = floatArrayOf(0.75f, 0.50f, 0.25f)
+            val targetCounts = ratios.map { max(4, (triangles * it).roundToInt()) }
+            val choices = listOf(
+                context.resources.getQuantityString(R.plurals.ModelSimplifyLight, targetCounts[0], targetCounts[0]),
+                context.resources.getQuantityString(R.plurals.ModelSimplifyMedium, targetCounts[1], targetCounts[1]),
+                context.resources.getQuantityString(R.plurals.ModelSimplifyStrong, targetCounts[2], targetCounts[2]),
+                context.getString(R.string.ModelSimplifyCustom),
             )
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelSimplifyChoiceDialog(
+                    title = context.getString(R.string.ModelSimplify),
+                    currentTriangles = context.resources.getQuantityString(R.plurals.ModelSimplifyCurrent, triangles, triangles),
+                    choices = choices,
+                    startLabel = context.getString(R.string.ModelSimplifyStart),
+                    cancelLabel = context.getString(android.R.string.cancel),
+                    onDismiss = dismiss,
+                    onStart = { choice ->
+                        dismiss()
+                        if (choice < ratios.size) {
+                            fragment.simplifySelectedObject(snapshot, ratios[choice])
+                        } else {
+                            showCustomSimplifyDialog(view, snapshot, triangles)
+                        }
+                    },
+                )
+            }
         }
     }
 
-    private fun showCustomSimplifyDialog(view: View, triangles: Int) {
+    private fun showCustomSimplifyDialog(view: View, snapshot: ModelSelectionSnapshot, triangles: Int) {
         val context = view.context
         fragment.showWorkspaceComposeDialog { dismiss ->
             ModelSimplifyCustomDialog(
@@ -135,7 +137,7 @@ internal class TransformMenuItems(
                 onDismiss = dismiss,
                 onStart = { target ->
                     dismiss()
-                    fragment.simplifySelectedObject(target.toFloat() / triangles.toFloat())
+                    fragment.simplifySelectedObject(snapshot, target.toFloat() / triangles.toFloat())
                 },
             )
         }

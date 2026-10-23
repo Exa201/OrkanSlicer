@@ -530,49 +530,98 @@ ViewUtils.postOnMainThread({
 }
 }).start()
 }
-fun simplifySelectedObject(keepRatio:Float, maxTriangles:Int? = null) {
-val model = currentModel
-val selected = if (glView != null) glView!!.renderer.selectedObject else -1
-if (model == null || selected < 0) return
-val view = glView ?: return
-val tag = "model-simplify"
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-SnackbarsLayout.Type.LOADING, R.string.ModelSimplifyRunning).tag(tag))
-view.queueEvent({ try
-{
-if (destroyed || view.renderer.model !== model) {
-    ViewUtils.postOnMainThread { SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag)) }
-    return@queueEvent
-}
-val before = model.getTriangleCount(selected)
-var after = model.simplify(selected, keepRatio)
-if (maxTriangles != null) {
-    repeat(2) {
-        if (after > maxTriangles) {
-            after = model.simplify(selected, LargeModelPick.suggestedKeepRatio(after))
+internal fun captureSelectedObjectForSimplification(onCaptured: (ModelSelectionSnapshot, Int) -> Unit) {
+    val viewport = glView ?: return
+    viewport.queueEvent {
+        val snapshot = viewport.renderer.captureSelectionSnapshot() ?: return@queueEvent
+        val triangles = runCatching { snapshot.model.getTriangleCount(snapshot.primaryObject) }
+            .getOrElse { error ->
+                Log.e("BedFragment", "Could not inspect selected model for simplification", error)
+                return@queueEvent
+            }
+        ViewUtils.postOnMainThread {
+            if (!destroyed && glView === viewport && canShowWorkspaceComposeDialog()) {
+                onCaptured(snapshot, triangles)
+            }
         }
     }
 }
-view.renderer.invalidateGlModel(selected)
-view.requestRender()
-ViewUtils.postOnMainThread({ updateModel()
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-if (maxTriangles != null && after > maxTriangles) {
-    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-        SnackbarsLayout.Type.ERROR, R.string.LargeModelSurfaceStillDense))
-} else {
-    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-        SliceBeam.INSTANCE!!.getResources().getQuantityString(
-            R.plurals.ModelSimplifyDone, after, before, after)))
-} })
+
+fun simplifySelectedObject(keepRatio:Float, maxTriangles:Int? = null) {
+    val viewport = glView ?: return
+    viewport.queueEvent {
+        val snapshot = viewport.renderer.captureSelectionSnapshot() ?: return@queueEvent
+        simplifySelectedObjectOnGl(viewport, snapshot, keepRatio, maxTriangles)
+    }
 }
-catch (e:Exception) {
-Log.e("BedFragment", "Could not simplify model", e)
-ViewUtils.postOnMainThread({ SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-SnackbarsLayout.Type.ERROR, R.string.ModelSimplifyFailed)) })
+
+internal fun simplifySelectedObject(
+    expectedSelection: ModelSelectionSnapshot,
+    keepRatio: Float,
+    maxTriangles: Int? = null,
+) {
+    val viewport = glView ?: return
+    viewport.queueEvent {
+        if (!viewport.renderer.isSelectionSnapshotCurrent(expectedSelection)) {
+            ViewUtils.postOnMainThread {
+                SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent("model-simplify"))
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+            }
+            return@queueEvent
+        }
+        simplifySelectedObjectOnGl(viewport, expectedSelection, keepRatio, maxTriangles)
+    }
 }
-})
+
+private fun simplifySelectedObjectOnGl(
+    view: GLView,
+    snapshot: ModelSelectionSnapshot,
+    keepRatio: Float,
+    maxTriangles: Int?,
+) {
+    val model = snapshot.model
+    val selected = snapshot.primaryObject
+    val tag = "model-simplify"
+    if (destroyed || view !== glView || !view.renderer.isSelectionSnapshotCurrent(snapshot)) {
+        ViewUtils.postOnMainThread {
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+        }
+        return
+    }
+    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+        SnackbarsLayout.Type.LOADING, R.string.ModelSimplifyRunning).tag(tag))
+    try {
+        val before = model.getTriangleCount(selected)
+        var after = model.simplify(selected, keepRatio)
+        if (maxTriangles != null) {
+            repeat(2) {
+                if (after > maxTriangles) {
+                    after = model.simplify(selected, LargeModelPick.suggestedKeepRatio(after))
+                }
+            }
+        }
+        view.renderer.invalidateGlModel(selected)
+        view.requestRender()
+        ViewUtils.postOnMainThread {
+            updateModel()
+            SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+            if (maxTriangles != null && after > maxTriangles) {
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                    SnackbarsLayout.Type.ERROR, R.string.LargeModelSurfaceStillDense))
+            } else {
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                    SliceBeam.INSTANCE!!.getResources().getQuantityString(
+                        R.plurals.ModelSimplifyDone, after, before, after)))
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("BedFragment", "Could not simplify model", e)
+        ViewUtils.postOnMainThread {
+            SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                SnackbarsLayout.Type.ERROR, R.string.ModelSimplifyFailed))
+        }
+    }
 }
 fun moveSelectedObjectToPlate(targetPlateIndex:Int, onComplete:Runnable) =
     moveSelectedObjectsToPlate(targetPlateIndex, onComplete)
