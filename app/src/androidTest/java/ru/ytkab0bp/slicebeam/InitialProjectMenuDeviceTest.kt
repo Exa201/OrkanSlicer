@@ -515,6 +515,69 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun selectedObjectActionMoveRejectsStaleSelectionBeforeChangingPlate() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "selected-object-actions-stale-move-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 18.0, 0.0, 0.0)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two selected-action test objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { bed.plateCount == 2 && bed.currentPlateIndex == 1 }
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 2 }
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            compose.runOnUiThread { FileMenuObjectActions(bed).showSelectedObjectActions(glView) }
+            compose.onNodeWithTag("model-choice-option-1").assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.PlateNumber, "2")).assertIsDisplayed()
+
+            val changedSelection = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(1)
+                changedSelection.countDown()
+            }
+            assertTrue("selection change before plate confirmation must complete on GL", changedSelection.await(10, TimeUnit.SECONDS))
+            compose.onNodeWithText(activity.getString(R.string.PlateNumber, "2")).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            assertEquals("stale move must stay on the source plate", 0, bed.currentPlateIndex)
+            assertEquals("stale move must preserve both source objects", 2, readObjectCountOnGl(glView))
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "2"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { bed.currentPlateIndex == 1 }
+            assertEquals("stale move must leave target plate empty", 0, readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun placeOnObjectDialogRejectsChangedSelectionWithoutMovingOrCombiningObjects() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
