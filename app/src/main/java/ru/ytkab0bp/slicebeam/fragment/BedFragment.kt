@@ -2681,7 +2681,10 @@ SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(emptyMessage))
 return
 }
 glView!!.queueEvent({ val current = glView!!.renderer.model
-if (current != null) destination.addLast(Model.merge(current))
+// Keep an explicit empty-model snapshot as well. Deleting the final object sets the
+// renderer model to null; without an empty snapshot Undo could restore that object,
+// but Redo had nothing to restore and silently stopped at the non-empty state.
+destination.addLast(current?.let { Model.merge(it) } ?: Model())
 while (destination.size > MAX_HISTORY) destination.removeFirst().release()
 val restored = source.removeLast()
 glView!!.renderer.model = restored

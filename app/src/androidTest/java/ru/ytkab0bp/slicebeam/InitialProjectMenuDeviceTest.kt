@@ -4490,6 +4490,15 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("GL thread should confirm delete-all completion", modelRemoved.await(10, TimeUnit.SECONDS))
             assertTrue("confirm should remove the model from the native renderer", requireNotNull(rendererIsEmpty.get()))
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals("Undo should restore the object removed by Delete All", 1,
+                readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 0 }
+            assertEquals("Redo should restore the empty state after Delete All", 0,
+                readObjectCountOnGl(glView))
         } finally {
             modelFile.delete()
         }
@@ -4584,6 +4593,25 @@ class InitialProjectMenuDeviceTest {
             assertEquals("undo should restore the deleted selection", 3, readObjectCountOnGl(glView))
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+
+            // Deleting the final remaining object produces a null renderer model. Undo and Redo
+            // must still round-trip between that empty state and the restored object.
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.ModelMenuDeleteSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteSelected))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelDeleteConfirm)).assertIsDisplayed()
+            compose.onNode(hasText(activity.getString(R.string.ModelMenuDeleteSelected)) and hasClickAction())
+                .performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 0 }
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 0 }
+            assertEquals("Redo should delete the final restored object again", 0,
+                readObjectCountOnGl(glView))
         } finally {
             modelFile.delete()
         }
@@ -7089,7 +7117,7 @@ class InitialProjectMenuDeviceTest {
         val finished = CountDownLatch(1)
         val count = AtomicReference<Int>()
         glView.queueEvent {
-            count.set(requireNotNull(glView.renderer.model).objectsCount)
+            count.set(glView.renderer.model?.objectsCount ?: 0)
             finished.countDown()
         }
         assertTrue("GL thread did not return model object count", finished.await(10, TimeUnit.SECONDS))
