@@ -1997,3 +1997,12 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Installed and cold-started on Honor; MainActivity resumed and captured Logcat contained no crash, ANR, OOM, or fatal signal. Xiaomi was not connected.
 - Official release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.361. PR #2 remains open.
 
+
+## OrkanSlicer 0.8.362 — 2026-10-23
+
+- Code commit `310c2f0f9674974337509ebd87785ad22d34cc34`; regular non-prerelease GitHub release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.362.
+- Debug APK `OrkanSlicer_0.8.362.apk`, 239,425,493 bytes; SHA-256 `BA443B6B23852980E893AFFBD14E9F3CF0F697FFBB6F19ABD17B0CE146CC8C87`. GitHub reports the same digest for the APK asset.
+- Change: object-picking raycasts, model access and long-press drag previews now run on the GL queue, not in Android's touch callback. Dense meshes retain bounds-based picking. A stale pending-long-press state is cleared when the GL raycast misses.
+- Debug and Slice JVM suites each passed 621/621. Six focused Honor PTP-N49 / Android 16 device checks each passed 1/1: M12 touch/long-press, Boolean difference with Undo/Redo, selected-group surface placement, standalone text mesh creation, standalone text UI placement, and generated text G-code. The final long-press miss-state cleanup was followed by another passing M12 integration run.
+- Version 0.8.362 / code 397 installed on Honor and MainActivity resumed. The sampled app log contained no fatal exception or native fatal signal. Xiaomi was unavailable, so its exact device-specific crash remains unverified.
+- APK is debug-signed because no production signing keystore is configured. No print was started and no firmware was changed. PR #2 remains open.

@@ -1,3 +1,10 @@
+# Aktueller Fortsetzungsstand — 2026-10-23, OrkanSlicer 0.8.362
+
+- Letzter Code-Commit: `310c2f0f9674974337509ebd87785ad22d34cc34`; PR #2 offen. Offizieller Release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.362.
+- GLView verschiebt Objekt-Raycasts und Long-Press-Vorschauarbeit aus Androids Touch-Callback auf die GL-Warteschlange. Grobe Auswahl dichter Meshes bleibt begrenzungsboxbasiert. M12-Touchtest nach der letzten Zustandskorrektur auf Honor bestanden.
+- Prüfstand in diesem Durchgang: Debug-JVM 621/621 und Slice-JVM 621/621; gezielte Honor-Prüfungen bestanden für M12-Touch/Long-Press, Boolean-Differenz mit Undo/Redo, Gruppen-Oberflächenplatzierung, eigenständige Textgeometrie, Textplatzierung auf der Platte und Text-G-Code. APK installiert und gestartet.
+- Xiaomi war nicht angeschlossen. Der bekannte Querformat-Hänger beim Compose-Test zur Erzeugung eines eigenständigen Textmodells wurde in diesem Durchgang nicht erneut ausgeführt oder behoben.
+- Nächster konkreter Schritt: den Querformat-Text-Erzeugungstest getrennt von Geräte- und GL-Thread-Ursachen reproduzieren und beheben; danach die 0.8.362-Auswahl-/Touchänderung auf dem Xiaomi mit dem zuvor gemeldeten Modell prüfen. UI-2.0-Abnahme insgesamt bleibt offen.
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
 ## Modellbearbeitung: Boolean, Text, Kombinieren und M12 — 2026-10-23
@@ -3005,3 +3012,4 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Offizieller Release `v0.8.358` veröffentlicht: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.358. Tag zeigt auf Code-Commit `1e5a352c4fcdedfd8f326f36afff653b2f2f6ef0`; APK `OrkanSlicer_1e5a352c4f.apk`, 239.377.998 Byte, SHA-256 `A60F7CD76E74A6FACADC321379EAC0B9264F6E0C361DC2BC23DFE02BE16CE468`. PR #2 offen und als mergefähig gemeldet.
 - Nächster Schritt: weitere Modellaktionen auf Mehrfachauswahl, Materialerhalt und Undo/Redo prüfen und die offene UI-2.0-Funktionsabnahme fortführen. Das Projekt ist nicht abgeschlossen.
 # Älterer Fortsetzungsstand — STEP/STP und sichere Modellmenüauswahl, 2026-10-23
+
