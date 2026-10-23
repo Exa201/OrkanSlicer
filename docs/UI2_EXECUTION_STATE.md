@@ -1,3 +1,10 @@
+# Modellgruppen-Ausrichtung — 2026-10-23
+
+- Implementiert auf `codex/rinkhals-safe-start-audit`: Im Modellmenü kann eine Auswahl von mindestens zwei Objekten über X-Mittelpunkte, Y-Mittelpunkte oder gemeinsame Z-Standfläche ausgerichtet werden. Das primäre Objekt bleibt der Bezug; die jeweils anderen Achsen und Filamentzuweisungen bleiben unverändert. Änderung läuft über den GL-Thread und wird in Undo/Redo aufgenommen.
+- Verifiziert: `modelMenuAlignsSelectedGroupOnXAndYCentersAndZBaseWithUndoRedo` 1/1 auf Honor PTP-N49 (Android 16) und 1/1 auf Emulator (Android 16). Debug-Unit 619/619, Slice-Unit 619/619; `git diff --check` erfolgreich.
+- Code-Commit: `bae03337` (`Add selected model group alignment`). Der offizielle Release `v0.8.353` enthält weiterhin die Z-Verschiebung; die hier ergänzte Gruppenausrichtung ist noch nicht veröffentlicht.
+- Nächster konkreter Schritt: nächste drei Modellaktionen anhand vorhandener Implementierung und Tests auswählen; insbesondere Mehrfachauswahl, verlustfreie Filamentzuweisung und Slicing-Ausgabe weiter absichern. Kein echter Druckstart.
+
 # STEP/STP-Dateifreigabe und Modellgruppen-Spiegelung — 2026-10-23
 
 - Ursache des weiter gemeldeten Öffnungsfehlers: Der veröffentlichte Release 0.8.352 registrierte `ACTION_VIEW`, aber nicht alle Datei-Apps übergeben Dateien damit. Die Übergabe als `ACTION_SEND`/`ACTION_SEND_MULTIPLE` fehlte in diesem Release; die aktuelle Branch-Fassung verarbeitet diese Aktionen und erhält URI-Lesegrants sowie ClipData beim Activity-Weiterreichen.
