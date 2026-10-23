@@ -2259,6 +2259,9 @@ class InitialProjectMenuDeviceTest {
             }
             compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
                 .assertIsDisplayed().performClick()
+            // FileMenu validates the print bed from the renderer's GL thread before it launches
+            // the SAF picker, so the registered result launcher is intentionally asynchronous.
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
 
             val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
@@ -2329,6 +2332,7 @@ class InitialProjectMenuDeviceTest {
             }
             compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
                 .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { capturedIntent.get() != null }
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
 
             // A file manager may send a shared-storage file:// URL, which targetSdk 36 cannot read

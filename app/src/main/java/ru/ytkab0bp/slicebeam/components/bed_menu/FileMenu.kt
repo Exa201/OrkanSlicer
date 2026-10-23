@@ -64,6 +64,7 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.view.GLView
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 import java.io.File
 import java.io.IOException
@@ -139,9 +140,23 @@ class FileMenu : ListBedMenu() {
     private fun openModel(view: View) {
         val bed = fragment ?: return
         val glView = bed.glView ?: return
+        openModelWhenBedReady(bed, glView, 0)
+    }
+
+    /** The workspace can become visible a moment before GLRenderer finishes creating its bed. */
+    private fun openModelWhenBedReady(bed: BedFragment, glView: GLView, attempt: Int) {
         glView.queueEvent {
-            val bedIsValid = glView.renderer.bed?.isValid() == true
+            val rendererBed = glView.renderer.bed
+            val bedIsValid = rendererBed?.isValid() == true
             ViewUtils.postOnMainThread {
+                if (fragment !== bed || bed.glView !== glView) return@postOnMainThread
+                if (rendererBed == null && attempt < OPEN_MODEL_BED_READY_RETRIES) {
+                    ViewUtils.postOnMainThread(
+                        { openModelWhenBedReady(bed, glView, attempt + 1) },
+                        OPEN_MODEL_BED_READY_RETRY_DELAY_MS,
+                    )
+                    return@postOnMainThread
+                }
                 val activity = bed.getContext() as? Activity ?: return@postOnMainThread
                 if (!bedIsValid) {
                     Toast.makeText(activity, R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
@@ -155,6 +170,11 @@ class FileMenu : ListBedMenu() {
                 activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_OPEN_FILE)
             }
         }
+    }
+
+    private companion object {
+        const val OPEN_MODEL_BED_READY_RETRIES = 50
+        const val OPEN_MODEL_BED_READY_RETRY_DELAY_MS = 100L
     }
 
     private fun objectActions(): FileMenuObjectActions? =

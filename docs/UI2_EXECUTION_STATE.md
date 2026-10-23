@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## STEP/STP-Dateiöffnung und GL-Startzustand — 2026-10-23
+
+- Reproduzierter Fehler im Projektmenü: Beim unmittelbar frühen Tippen auf „Modell hinzufügen“ konnte der Compose-Workspace bereits sichtbar sein, bevor `GLRenderer.bed` initialisiert war. `FileMenu.openModel` behandelte diesen kurzen Startzustand wie eine ungültige Druckbettkonfiguration und öffnete den Android-Dateiauswahldialog nicht. Der Handler wartet jetzt bis zu fünf Sekunden auf die GL-Druckbettinitialisierung und startet den Picker erst danach; eine dauerhaft ungültige Druckbettkonfiguration zeigt weiterhin den bisherigen Hinweis.
+- STEP/STP-Import selbst ist im vorhandenen Pfad bereits unterstützt: Android-URI/SAF-Kopie, `.step`/`.stp`-Erkennung, Compose-Abfrage der linearen und Winkelabweichung sowie nativer Orca-Tessellierungsimport. Auf Honor PTP-N49 / Android 16 bestanden die sechs gezielten STEP-Fälle nach dem Picker-Wartefix: Dokumentpicker-/Datei-URI-Fallback mit verzögertem Workspace-Host, Import aus lesbarer URI samt Quellschutz, externer `ACTION_VIEW`-/`ACTION_SEND`-Pfad einschließlich Abbrechen, nativer STEP- und STP-Netzimport sowie Intent-Zuordnung und Extraktion.
+- Honor: drei Kamera-/Ansichtstests bestanden (alle Presets, schnelle Presetwechsel, View-Cube-Tap und -Drag). Debug-JVM 621/621 und Slice-JVM 621/621 bestanden; `git diff --check` sauber. Vor diesem Paket letzter Remote-HEAD: `7b96b5de`; Änderungen noch nicht committet.
+- Nächster Schritt: den verifizierten Picker-Bereitschaftsfix und die GL-sichere Kamera-Bounds-Abfrage committen und auf `codex/rinkhals-safe-start-audit` pushen. Die STEP-Öffnung auf dem Xiaomi-Dateimanager ist mit dem Nutzergerät noch nicht direkt bestätigt.
+
 ## Projektmenü und GL-Zustand — 2026-10-23
 
 - `FileMenu` liest die Anzahl der Modellobjekte nun aus demselben GL-Thread-Schnappschuss wie die Modellmenüs; der 3MF-Export wird nach Laden/Ändern eines Modells zuverlässig aktualisiert. Die Druckbett-Gültigkeit vor dem Dateiimport wird ebenfalls auf dem GL-Thread geprüft, bevor der Android-Dateipicker geöffnet wird.

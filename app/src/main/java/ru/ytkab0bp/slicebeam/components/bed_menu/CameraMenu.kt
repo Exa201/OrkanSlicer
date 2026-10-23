@@ -74,45 +74,71 @@ open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu {
 
     internal fun selectCameraPreset(preset: CameraPreset) {
         val bedFragment = fragment ?: return
-        val bed = bedFragment.glView?.renderer?.bed
-        if (bed == null || !bed.isValid()) {
-            Toast.makeText(bedFragment.getContext(), R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
-            return
+        withBedBounds(showConfigurationError = true) { min, max, generation ->
+            val target = CameraPresetGeometry.resolve(preset, min, max)
+            animateTo(
+                Vec3d(target.origin.x, target.origin.y, target.origin.z),
+                Vec3d(target.position.x, target.position.y, target.position.z),
+                generation,
+            )
         }
-
-        val min = bed.getVolumeMin() ?: return
-        val max = bed.getVolumeMax() ?: return
-        val target = CameraPresetGeometry.resolve(
-            preset,
-            CameraVector(min.x, min.y, min.z),
-            CameraVector(max.x, max.y, max.z),
-        )
-        animateTo(
-            Vec3d(target.origin.x, target.origin.y, target.origin.z),
-            Vec3d(target.position.x, target.position.y, target.position.z),
-        )
     }
 
     /** Rotated view-cube drags map to a free camera direction while preserving the bed center. */
     fun selectCameraDirection(x: Double, y: Double, z: Double) {
-        val bed = fragment?.glView?.renderer?.bed ?: return
-        if (!bed.isValid()) return
-        val min = bed.getVolumeMin() ?: return
-        val max = bed.getVolumeMax() ?: return
-        val center = Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0)
-        val length = kotlin.math.sqrt(x * x + y * y + z * z).coerceAtLeast(0.001)
-        val extent = maxOf(max.x - min.x, max.y - min.y, max.z - min.z, 10.0)
-        val distance = extent * 1.8
-        animateTo(center, Vec3d(
-            center.x + x / length * distance,
-            center.y + y / length * distance,
-            center.z + z / length * distance,
-        ))
+        withBedBounds(showConfigurationError = false) { min, max, generation ->
+            val center = Vec3d(
+                (min.x + max.x) / 2.0,
+                (min.y + max.y) / 2.0,
+                (min.z + max.z) / 2.0,
+            )
+            val length = kotlin.math.sqrt(x * x + y * y + z * z).coerceAtLeast(0.001)
+            val extent = maxOf(max.x - min.x, max.y - min.y, max.z - min.z, 10.0)
+            val distance = extent * 1.8
+            animateTo(center, Vec3d(
+                center.x + x / length * distance,
+                center.y + y / length * distance,
+                center.z + z / length * distance,
+            ), generation)
+        }
     }
 
-    private fun animateTo(toOrigin: Vec3d, toPosition: Vec3d) {
-        val glView: GLView = fragment?.glView ?: return
+    private fun withBedBounds(
+        showConfigurationError: Boolean,
+        onReady: (CameraVector, CameraVector, generation: Int) -> Unit,
+    ) {
+        val bedFragment = fragment ?: return
+        val glView: GLView = bedFragment.glView ?: return
         val generation = cameraAnimationGeneration.incrementAndGet()
+        glView.queueEvent {
+            if (generation != cameraAnimationGeneration.get()) return@queueEvent
+            val bed = glView.renderer.bed
+            val bounds = if (bed?.isValid() == true) {
+                val min = bed.getVolumeMin()
+                val max = bed.getVolumeMax()
+                if (min != null && max != null) {
+                    CameraVector(min.x, min.y, min.z) to CameraVector(max.x, max.y, max.z)
+                } else null
+            } else null
+            ViewUtils.postOnMainThread {
+                if (generation != cameraAnimationGeneration.get()) return@postOnMainThread
+                if (bounds == null) {
+                    if (showConfigurationError) {
+                        Toast.makeText(
+                            bedFragment.getContext(),
+                            R.string.BedConfigurationError,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                    return@postOnMainThread
+                }
+                onReady(bounds.first, bounds.second, generation)
+            }
+        }
+    }
+
+    private fun animateTo(toOrigin: Vec3d, toPosition: Vec3d, generation: Int) {
+        val glView: GLView = fragment?.glView ?: return
         glView.queueEvent {
             if (generation != cameraAnimationGeneration.get()) return@queueEvent
             val camera: Camera = glView.renderer.camera
