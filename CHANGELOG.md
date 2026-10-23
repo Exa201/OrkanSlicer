@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.355
+
+- Fix opening STEP/STP files shared by Android file apps that provide the URI only in `ClipData` instead of `EXTRA_STREAM`.
+- Keep the STEP meshing options dialog ahead of geometry import; verify cancel leaves the model untouched and confirm imports a renderable mesh.
+
 ## 0.8.354
 
 - Add equal-gap distribution of three or more selected objects along X, Y, and Z, keeping the outer objects in place and rejecting layouts without enough space.

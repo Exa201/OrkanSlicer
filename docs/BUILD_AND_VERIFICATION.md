@@ -1,3 +1,10 @@
+# STEP/STP-Öffnung — 2026-10-23
+
+- Ursache des auf einigen Datei-Apps fortbestehenden Fehlers: Der offizielle Release `v0.8.354` stammt von Commit `170ec587` und liegt vor der Korrektur `f3dd9d6a`. Bestimmte Apps senden `ACTION_SEND` und übergeben die Datei-URI ausschließlich über `ClipData`, nicht `EXTRA_STREAM`; der ältere Release extrahierte diese URI deshalb nicht.
+- Der aktuelle Branch extrahiert `ClipData` und `EXTRA_STREAM`. Die End-to-End-Geräteregression verwendet jetzt ausdrücklich eine ClipData-only-Übergabe, zeigt den STEP-Meshingdialog vor dem Import, prüft Abbrechen ohne Modelländerung und lädt nach Bestätigung ein renderbares Netz.
+- Honor PTP-N49 / Android 16: `StepOpenIntentDeviceTest` 2/2 bestanden; `externalStepDocumentUriShowsMeshingOptionsBeforeLoadingRenderableModel` 1/1 mit `ACTION_VIEW` und ClipData-only `ACTION_SEND` bestanden. Kein Druckstart.
+- Version 0.8.355 / code 390 wird nach dem vollständigen Build und finaler Verifikation veröffentlicht.
+
 # STEP/STP-Dateifreigabe — 2026-10-23
 
 - Datei-Apps können neben `ACTION_VIEW` auch `ACTION_SEND`/`ACTION_SEND_MULTIPLE` nutzen. Die Activity registriert und verarbeitet diese Übergaben jetzt einschließlich `EXTRA_STREAM` und `ClipData`; STEP-Dateien öffnen weiterhin zuerst den Meshing-Optionsdialog.

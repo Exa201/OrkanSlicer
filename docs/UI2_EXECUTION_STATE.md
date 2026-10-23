@@ -1,3 +1,12 @@
+# STEP/STP-Öffnungsfix — 2026-10-23
+
+- Aktuelle Phase: Funktionsfehlerbehebung und Verifikation; OrkanSlicer UI 2.0 bleibt in der aktiven Modellbearbeitungs-/Menüabnahme.
+- Ursache: Der letzte offizielle Release `v0.8.354` (Code-Commit `170ec587`) kam vor dem Branch-Fix `f3dd9d6a` heraus. Xiaomi-/Dateimanager können `ACTION_SEND` mit URI nur in `ClipData` senden; der alte Release las für diesen Intent nur `EXTRA_STREAM`.
+- Fix im Branch: `ExternalModelOpenIntent` extrahiert jetzt beide URI-Quellen; STEP/STP öffnet vor dem nativen Tessellieren den Compose-Dialog für lineare/winklige Abweichung und Compound-Aufteilung.
+- Regressionstest aktualisiert: ClipData-only `ACTION_SEND` durch tatsächlichen Dialog, Abbrechen, Bestätigen und renderbares Netz.
+- Verifiziert auf Honor PTP-N49 / Android 16: `StepOpenIntentDeviceTest` 2/2 und externer Workspace-Importtest 1/1; Debug-Build der SliceTest-App erfolgreich.
+- Nächste Schritte: Version 0.8.355 / code 390 bauen, Unit-Suiten und relevante Instrumentierung abschließen, APK-Hash notieren und den Release auf GitHub veröffentlichen. Xiaomi selbst war für diese Prüfung nicht verbunden.
+
 # STEP-Dateiöffnung — ClipData-Freigabe, 2026-10-23
 
 - Reproduzierbarer Öffnungsfehler gefunden: Einige Datei-Apps senden `ACTION_SEND` mit einer URI nur in `Intent.clipData`, ohne `EXTRA_STREAM`. `ExternalModelOpenIntent` las für `ACTION_SEND` bislang ausschließlich `EXTRA_STREAM`; die App erhielt dadurch keine Datei.

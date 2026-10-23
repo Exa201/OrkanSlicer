@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.Instrumentation.ActivityResult
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.ClipData
 import android.net.Uri
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -1602,7 +1603,9 @@ class InitialProjectMenuDeviceTest {
                     .apply { isAccessible = true }
                     .invoke(activity, Intent(Intent.ACTION_SEND).apply {
                         type = "model/step"
-                        putExtra(Intent.EXTRA_STREAM, uri)
+                        // Reproduce file providers that omit EXTRA_STREAM and expose the
+                        // shared STEP URI only through ClipData.
+                        clipData = ClipData.newRawUri("step model", uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     })
             }
