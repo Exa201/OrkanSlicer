@@ -1,5 +1,12 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## Modellaktions-Abnahmegruppe — 2026-10-23
+
+- Aktueller Code-HEAD: `f4a0486e`; keine Quellcodeänderungen in diesem Abnahmedurchgang.
+- Honor PTP-N49 / Android 16: 14/14 aktuelle gezielte Instrumentierungsläufe bestanden. Geprüft: Objektgruppe als Multipart verbinden (Materialien/Undo/Redo); Gruppe auf angeklickter Modellfläche platzieren (Abstände/Materialien/Undo/Redo); Boolean-Vereinigung dreier Objekte über das Modellmenü mit Undo/Redo; Boolean-Differenz/-Schnitt nach 3MF-Rundlauf und Slicing; disjunkte Boolean-Vereinigung mit G-Code; Objekt zentrieren; Fläche ablegen mit Undo/Redo; Auto-Ausrichten für Auswahl und alle Objekte; Mehrfachduplikat mit Undo/Redo; Bettfüllung erfolgreich und Rollback bei Arrange-Fehler; XYZ-Gruppenausrichtung mit Undo/Redo; gekrümmter Oberflächentext nach 3MF-Rundlauf mit Extrusions-G-Code; verbundenes Multipart-Modell mit zwei Filamenten nach 3MF-Rundlauf und T1-G-Code.
+- Die vollständigen Debug-/Slice-JVM-Suiten bleiben für denselben Produktcode bei 621/621 je Suite (zuletzt nach Commit `2c360282` gelaufen). Vorheriger Durchgangscommit `2c360282` enthält die Cut-Connector-Auswahlbindung; PR #2 wurde mit Statuscommit `f4a0486e` aktualisiert. Kein Release erstellt.
+- Nächster Schritt: native und UI-gebundene Boolean-Differenz mit mehreren Werkzeugobjekten, Drei-Objekt-Schnittmenge und coplanaren Flächen erneut als zusammenhängende Spezialgruppe ausführen; G-Code und Undo/Redo mit abdecken. Danach verbleibende modellbezogene Menüaktionen priorisieren.
+
 ## STEP/STP-Abnahme und Cut-Connector-Auswahlbindung — 2026-10-23
 
 - Der aktuelle HEAD `52807364` enthält bereits die STEP/STP-Importoptionen vor dem nativen Import. Der bisherige gemeldete Öffnungsfehler war der Verlust der Datei-URI bei `ACTION_SEND`-Intents, wenn sie ausschließlich in `ClipData` lag; die Unterstützung dafür sowie der SAF-Fallback wurden bereits früher implementiert. In diesem Durchgang war kein zusätzlicher STEP-Produktcodefehler reproduzierbar.
