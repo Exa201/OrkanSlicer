@@ -2793,3 +2793,9 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Tests erweitert: Abflachen einer schrägen Fläche plus Raycast und Undo/Redo; Schnitt sowie Trennen mit Undo/Redo.
 - Honor PTP-N49 / Android 16: alle 3 gezielten Instrumentierungstests bestanden (0 Fehler, 0 Übersprünge); der Raycast-Smoke-Test lief ohne nativen Absturz. Der erste Testlauf vor dem Lebensdauerfix reproduzierte den nativen Absturz; nach dem Fix bestanden alle drei Tests. `git diff --check` sauber.
 - Noch offen: vollständige Test-Suites und weitere Bearbeitungsaktionen. Nächster Schritt: Änderungssatz sichern/pushen, danach mindestens drei weitere Modellaktionen mit Slice-/Undo-Verifikation fortsetzen.
+
+# Gesicherter Modellbearbeitungsstand — 2026-10-23
+
+- Letzter relevanter Commit: `094e7794`, auf `codex/rinkhals-safe-start-audit` gepusht; PR #2 aktualisiert.
+- Honor PTP-N49 / Android 16: `flatteningAnAngledFaceIsUndoableAndRedoable`, `applyingCutRunsOnGlThreadAndSplitsTheSelectedModel` und `editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects` bestanden, 3/3; keine Übersprünge oder Fehler.
+- Nächste konkrete Aufgabe: drei weitere Modellmenüaktionen auf echte Geometrieänderung, Undo/Redo und anschließende Slice-/Exportwirkung prüfen; anschließend betroffene Regressionen beheben.
