@@ -827,6 +827,7 @@
     <string name="MenuOrientationFlatten">On face</string>
     <string name="MenuOrientationAutoOrient">Auto\nOrient.</string>
     <string name="MenuOrientationAutoOrientDone">Aligned automatically.</string>
+    <string name="ModelMenuAutoOrientGroupDone">Selected models auto-oriented; positions preserved.</string>
     <string name="MenuOrientationPosition">Position</string>
     <string name="MenuOrientationPositionX">X</string>
     <string name="MenuOrientationPositionY">Y</string>

@@ -2847,3 +2847,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Letzter relevanter Commit: `094e7794`, auf `codex/rinkhals-safe-start-audit` gepusht; PR #2 aktualisiert.
 - Honor PTP-N49 / Android 16: `flatteningAnAngledFaceIsUndoableAndRedoable`, `applyingCutRunsOnGlThreadAndSplitsTheSelectedModel` und `editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects` bestanden, 3/3; keine Übersprünge oder Fehler.
 - Nächste konkrete Aufgabe: drei weitere Modellmenüaktionen auf echte Geometrieänderung, Undo/Redo und anschließende Slice-/Exportwirkung prüfen; anschließend betroffene Regressionen beheben.
+# Aktueller Durchgang — Z-Position und Mehrfachauswahl (2026-10-23)
+
+- Die Z-Verschiebung war bereits im Branch und offiziellen Release `v0.8.356` vorhanden. Der numerische Positionseditor und die Regler decken X/Y/Z ab; Honor-Gerätetests prüfen Z-Einzel- und Mehrfachauswahl inklusive Abbrechen sowie Undo/Redo.
+- In diesem Durchgang behoben: „Ausgewählte löschen“ entfernte nur ein Objekt. Modell- und Kontextaktionen löschen jetzt die gesamte GL-seitig ausgewählte Gruppe. „Ausgewählte automatisch ausrichten“ richtet alle ausgewählten Objekte aus und hält deren jeweilige Positionen fest.
+- Verifiziert auf Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest` 70/70, 0 Fehler, 0 Übersprünge; darin Z-Positionseditor, Z-Mehrfachverschiebung, Gruppenlöschung mit Abbrechen/Zurück/Undo/Redo und Gruppen-Auto-Orientierung. Debug- und Slice-Unit-Suiten je 621/621. `git diff --check` sauber.
+- Nächster Schritt: Version auf `0.8.357` erhöhen, geprüften Code committen und pushen, Debug-APK aus genau diesem Commit bauen, Prüfsumme dokumentieren und offiziellen Release veröffentlichen. Danach weitere offene UI-2.0-/Modellaktionen fortsetzen.
+

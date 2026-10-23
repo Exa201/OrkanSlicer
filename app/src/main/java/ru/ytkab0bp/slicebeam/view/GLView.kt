@@ -160,6 +160,14 @@ renderer.deleteObject(sel)
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
+/** Delete the complete current selection on the GL thread and report completion on main. */
+fun deleteSelectedModels(onComplete: Runnable? = null) {
+    queueEvent {
+        renderer.deleteSelectedObjects()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete?.run() }
+    }
+}
 fun selectAllModels(onComplete:Runnable) {
 queueEvent({ renderer.selectAllObjects()
 requestRender()
@@ -228,6 +236,13 @@ fun distributeSelectedObjects(axis: ObjectDistributionAxis, onComplete: (Boolean
         val distributed = renderer.distributeSelectedObjects(axis)
         requestRender()
         ViewUtils.postOnMainThread { onComplete(distributed) }
+    }
+}
+fun autoOrientSelectedObjects(onComplete: (Int) -> Unit) {
+    queueEvent {
+        val oriented = renderer.autoOrientSelectedObjects()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(oriented) }
     }
 }
 fun deleteAllModels(onComplete:Runnable) {

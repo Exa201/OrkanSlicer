@@ -127,17 +127,13 @@ internal class ModelMenuItems(
                 fragment.enterEmbossMode(standaloneText = true)
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuAutoOrientSelected, R.drawable.menu_orientation_auto_28, {
-                fragment.glView!!.queueEvent {
-                    val model = renderer.model ?: return@queueEvent
-                    val index = renderer.selectedObject
-                    if (index >= 0) {
-                        model.autoOrient(index)
-                        renderer.invalidateGlModel(index)
-                        fragment.glView!!.requestRender()
-                        ViewUtils.postOnMainThread {
-                            fragment.updateModel()
-                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationAutoOrientDone))
-                        }
+                fragment.glView!!.autoOrientSelectedObjects { orientedCount ->
+                    if (orientedCount > 0) {
+                        fragment.updateModel()
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                            if (orientedCount == 1) R.string.MenuOrientationAutoOrientDone
+                            else R.string.ModelMenuAutoOrientGroupDone,
+                        ))
                     }
                 }
             }, enabled = availability.hasSelectedObject),
@@ -165,7 +161,7 @@ internal class ModelMenuItems(
                     anchor.context.getString(R.string.ModelDeleteConfirm),
                     anchor.context.getString(R.string.ModelMenuDeleteSelected),
                     anchor.context.getString(android.R.string.cancel),
-                ) { fragment.glView!!.deleteSelectedModel(fragment::updateModel) }
+                ) { fragment.glView!!.deleteSelectedModels(fragment::updateModel) }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuSelectAll, R.drawable.square_stack_up_outline_28, {
                 fragment.glView!!.selectAllModels { fragment.updateModel() }

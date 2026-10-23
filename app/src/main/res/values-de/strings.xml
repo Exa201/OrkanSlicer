@@ -810,6 +810,7 @@
     <string name="MenuOrientationFlatten">Auf Fläche legen</string>
     <string name="MenuOrientationAutoOrient">Auto-\nausrichten</string>
     <string name="MenuOrientationAutoOrientDone">Automatisch ausgerichtet.</string>
+    <string name="ModelMenuAutoOrientGroupDone">Ausgewählte Modelle automatisch ausgerichtet; Positionen beibehalten.</string>
     <string name="MenuOrientationPosition">Position</string>
     <string name="MenuOrientationPositionX">X</string>
     <string name="MenuOrientationPositionY">Y</string>

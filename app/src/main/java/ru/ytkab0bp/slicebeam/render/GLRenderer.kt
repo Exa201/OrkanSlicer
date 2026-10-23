@@ -400,6 +400,32 @@ fun distributeSelectedObjects(axis: ObjectDistributionAxis): Boolean {
     return true
 }
 
+/** Auto-orient every selected object individually while keeping each object's position fixed. GL-thread only. */
+fun autoOrientSelectedObjects(): Int {
+    val activeModel = model ?: return 0
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return 0
+    indices.forEach { index ->
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        val centerX = (bbMin.x + bbMax.x) / 2.0
+        val centerY = (bbMin.y + bbMax.y) / 2.0
+        val centerZ = (bbMin.z + bbMax.z) / 2.0
+        activeModel.autoOrient(index)
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        activeModel.translate(
+            index,
+            centerX - (bbMin.x + bbMax.x) / 2.0,
+            centerY - (bbMin.y + bbMax.y) / 2.0,
+            centerZ - (bbMin.z + bbMax.z) / 2.0,
+        )
+        invalidateGlModel(index)
+    }
+    activeModel.resetBoundingBox()
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return indices.size
+}
+
 private data class SelectionBounds(val min: Vec3d, val max: Vec3d) {
     fun center() = Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0)
 }

@@ -105,7 +105,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                         0 -> showDuplicateDialog(view)
                         1 -> showMoveToPlateDialog(view)
                         2 -> fragment.splitSelectedObject()
-                        3 -> fragment.glView?.deleteSelectedModel(fragment::updateModel)
+                        3 -> fragment.glView?.deleteSelectedModels(fragment::updateModel)
                     }
                 },
             )

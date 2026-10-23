@@ -3106,25 +3106,36 @@ class InitialProjectMenuDeviceTest {
                 model.geometryRevision)
 
             selectSingleObjectScope()
-            glView.selectModel(0, Runnable {})
+            glView.selectModels(intArrayOf(0, 1)) { bed.updateModel() }
             instrumentationWaitForGlIdle()
             scrollMenuToIndex(5)
             revealMenuAction(activity, R.string.ModelMenuAutoOrientSelected)
             val beforeOrientSelected = model.geometryRevision
-            val beforeSelectedOrientBounds = readBoundsOnGl(glView, 0)
+            val beforeSelectedOrientBounds = readExactBoundsOnGl(glView, 0, 1)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuAutoOrientSelected))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision > beforeOrientSelected }
-            assertEquals("Auto Orient Selected should process only the selected object", beforeOrientSelected + 1,
-                model.geometryRevision)
+            compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision >= beforeOrientSelected + 2 }
+            assertTrue("Auto Orient Selected should update the selected group",
+                model.geometryRevision >= beforeOrientSelected + 2)
             assertEquals("orientation actions must preserve the object count", 2, readObjectCountOnGl(glView))
-            val afterSelectedOrientBounds = readBoundsOnGl(glView, 0)
+            val afterSelectedOrientBounds = readExactBoundsOnGl(glView, 0, 1)
+            beforeSelectedOrientBounds.zip(afterSelectedOrientBounds).forEachIndexed { index, (before, after) ->
+                for (axis in 0..2) {
+                    assertEquals("auto-orient should preserve object $index center on axis $axis",
+                        (before[axis] + before[axis + 3]) / 2.0,
+                        (after[axis] + after[axis + 3]) / 2.0, 0.02)
+                }
+            }
             compose.runOnUiThread { bed.undoModelEdit() }
-            assertEquals("Undo after Auto Orient Selected must restore the previous bounds",
-                beforeSelectedOrientBounds, readBoundsOnGl(glView, 0))
+            compose.waitUntil(timeoutMillis = 10_000) {
+                beforeSelectedOrientBounds.zip(readExactBoundsOnGl(glView, 0, 1))
+                    .all { (before, current) -> before.contentEquals(current) }
+            }
             compose.runOnUiThread { bed.redoModelEdit() }
-            assertEquals("Redo after Auto Orient Selected must restore the oriented bounds",
-                afterSelectedOrientBounds, readBoundsOnGl(glView, 0))
+            compose.waitUntil(timeoutMillis = 10_000) {
+                afterSelectedOrientBounds.zip(readExactBoundsOnGl(glView, 0, 1))
+                    .all { (after, current) -> after.contentEquals(current) }
+            }
         } finally {
             modelFile.delete()
         }
@@ -3480,7 +3491,19 @@ class InitialProjectMenuDeviceTest {
             val glView = requireNotNull(bed.glView)
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
-            assertEquals("the disposable selected model should be loaded", 1, readObjectCountOnGl(glView))
+            val copiesAdded = CountDownLatch(1)
+            val addedCopies = AtomicReference<Int>()
+            glView.duplicateSelectedModels(2) {
+                addedCopies.set(it)
+                bed.updateModel()
+                copiesAdded.countDown()
+            }
+            assertTrue("GL thread should create the two selected test copies", copiesAdded.await(10, TimeUnit.SECONDS))
+            assertEquals(2, requireNotNull(addedCopies.get()))
+            glView.selectModels(intArrayOf(0, 2))
+            instrumentationWaitForGlIdle()
+            assertEquals("the disposable test group should contain three objects", 3, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.updateModel() }
             val controller = BedFragment::class.java.getDeclaredField("workspaceController")
                 .apply { isAccessible = true }.get(bed)
             val modelSlot = WorkspaceDestination.MODEL.ordinal
@@ -3508,7 +3531,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(android.R.string.cancel)).performClick()
             compose.waitForIdle()
             assertFalse("cancel should dismiss the selected-model confirmation", bed.isWorkspaceMessageDialogAttached())
-            assertEquals("cancel should preserve the selected model", 1, readObjectCountOnGl(glView))
+            assertEquals("cancel should preserve all objects", 3, readObjectCountOnGl(glView))
 
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteSelected))
                 .performScrollTo().performClick()
@@ -3516,7 +3539,7 @@ class InitialProjectMenuDeviceTest {
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
             assertFalse("Back should dismiss the selected-model confirmation", bed.isWorkspaceMessageDialogAttached())
-            assertEquals("Back should preserve the selected model", 1, readObjectCountOnGl(glView))
+            assertEquals("Back should preserve all objects", 3, readObjectCountOnGl(glView))
 
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDeleteSelected)).performClick()
             compose.onNodeWithText(activity.getString(R.string.ModelDeleteConfirm)).assertIsDisplayed()
@@ -3525,13 +3548,25 @@ class InitialProjectMenuDeviceTest {
             ).performClick()
             compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
             val removed = CountDownLatch(1)
-            val rendererIsEmpty = AtomicReference<Boolean>()
+            val remainingCount = AtomicReference<Int>()
             glView.queueEvent {
-                rendererIsEmpty.set(glView.renderer.model == null)
+                remainingCount.set(glView.renderer.model?.objectsCount ?: 0)
                 removed.countDown()
             }
-            assertTrue("GL thread should confirm selected-model deletion", removed.await(10, TimeUnit.SECONDS))
-            assertTrue("confirm should delete only the selected model", requireNotNull(rendererIsEmpty.get()))
+            assertTrue("GL thread should confirm selected-group deletion", removed.await(10, TimeUnit.SECONDS))
+            assertEquals("confirm should delete both selected objects and keep the unselected one",
+                1, requireNotNull(remainingCount.get()))
+
+            val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
+                .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<*>
+            assertTrue("a committed group deletion should be undoable", undoHistory.isNotEmpty())
+            assertEquals("undo snapshot should contain the pre-delete group", 3,
+                (undoHistory.peekLast() as Model).objectsCount)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) != 1 }
+            assertEquals("undo should restore the deleted selection", 3, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
         } finally {
             modelFile.delete()
         }
