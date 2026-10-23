@@ -942,6 +942,60 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun failedContextDuplicateKeepsRedoHistoryIntact() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-context-duplicate-redo-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            val duplicateCount = AtomicReference<Int>()
+            val duplicated = CountDownLatch(1)
+            glView.duplicateSelectedModelWithResult { count ->
+                duplicateCount.set(count)
+                if (count > 0) bed.updateModel()
+                duplicated.countDown()
+            }
+            assertTrue("successful duplicate should finish", duplicated.await(15, TimeUnit.SECONDS))
+            assertEquals(1, duplicateCount.get())
+            assertEquals(2, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.undoModelEdit() }
+            instrumentationWaitForGlIdle()
+            assertEquals("undo should restore the original model", 1, readObjectCountOnGl(glView))
+
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val current = requireNotNull(glView.renderer.model)
+                current.scale(0, 40.0, 40.0, 1.0)
+                glView.renderer.invalidateGlModel(0)
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("oversized model should be prepared", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.showSelectedModelContextMenu() }
+            compose.onNodeWithText(activity.getString(R.string.ModelContextDuplicate))
+                .assertIsDisplayed().performClick()
+            instrumentationWaitForGlIdle()
+            Thread.sleep(300)
+            assertEquals("failed duplicate must not add an object", 1, readObjectCountOnGl(glView))
+
+            compose.runOnUiThread { bed.redoModelEdit() }
+            instrumentationWaitForGlIdle()
+            assertEquals("failed duplicate must not clear the previous redo snapshot", 2,
+                readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun fillBedRejectsOversizedObjectWithoutChangingItsPlacement() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -1020,6 +1074,56 @@ class InitialProjectMenuDeviceTest {
             assertEquals("a failed native arrange must not leave speculative copies", 2, readObjectCountOnGl(glView))
             (0..1).forEach { index ->
                 assertArrayEquals("failed arrange must restore object $index", before[index],
+                    readExactBoundsOnGl(glView, index).single(), 0.03)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun arrangeFailureRestoresEveryObjectAndDoesNotCommitAChangedLayout() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-arrange-rollback-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val extra = Model()
+                try {
+                    extra.addObject(model, 0)
+                    model.addObject(extra, 0)
+                } finally {
+                    extra.release()
+                }
+                model.translate(0, 29.0, 17.0, 4.0)
+                model.translate(1, -24.0, -13.0, 9.0)
+                model.scale(1, 40.0, 40.0, 1.0)
+                glView.renderer.invalidateGlModel(0)
+                glView.renderer.invalidateGlModel(1)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("unarrangeable plate should be prepared on GL thread", prepared.await(10, TimeUnit.SECONDS))
+            instrumentationWaitForGlIdle()
+            val before = (0..1).map { readExactBoundsOnGl(glView, it).single() }
+            val arranged = AtomicReference<Boolean>()
+            val done = CountDownLatch(1)
+            glView.queueEvent {
+                arranged.set(glView.renderer.arrangeObjects())
+                glView.requestRender()
+                done.countDown()
+            }
+            assertTrue("arrange result should return from GL thread", done.await(10, TimeUnit.SECONDS))
+            assertEquals("oversized blocker should reject the full arrangement", false, arranged.get())
+            assertEquals(2, readObjectCountOnGl(glView))
+            (0..1).forEach { index ->
+                assertArrayEquals("failed arrange must keep object $index unchanged", before[index],
                     readExactBoundsOnGl(glView, index).single(), 0.03)
             }
         } finally {

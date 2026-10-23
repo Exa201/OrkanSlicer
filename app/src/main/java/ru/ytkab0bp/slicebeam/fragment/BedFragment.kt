@@ -824,8 +824,14 @@ val actions = listOf(
     ctx.getString(R.string.ModelContextDeleteAll),
 )
 val handlers = listOf<() -> Unit>(
-    { glView?.duplicateSelectedModel({ updateModel()
-Toast.makeText(ctx, R.string.ModelContextDuplicated, Toast.LENGTH_SHORT).show() })
+    { glView?.duplicateSelectedModelWithResult { addedCopies ->
+        if (addedCopies > 0) {
+            updateModel()
+            Toast.makeText(ctx, R.string.ModelContextDuplicated, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(ctx, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+        }
+    }
     },
     { splitSelectedObject() },
     { glView?.let { ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions(this).showMoveToPlateDialog(it) } },
@@ -833,7 +839,7 @@ Toast.makeText(ctx, R.string.ModelContextDuplicated, Toast.LENGTH_SHORT).show() 
 Toast.makeText(ctx, R.string.ModelContextDeleted, Toast.LENGTH_SHORT).show() })
     },
     { glView?.fillBedWithSelectedModel({ addedCopies->
-updateModel()
+if (addedCopies > 0) updateModel()
 Toast.makeText(ctx,
 if (addedCopies > 0)
 ctx.getResources().getQuantityString(

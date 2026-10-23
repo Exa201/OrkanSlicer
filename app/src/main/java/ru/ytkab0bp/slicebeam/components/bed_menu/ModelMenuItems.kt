@@ -76,7 +76,7 @@ internal class ModelMenuItems(
             }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuFillBed, R.drawable.picture_stack_outline_28, { anchor ->
                 fragment.glView!!.fillBedWithSelectedModel { addedCopies ->
-                    fragment.updateModel()
+                    if (addedCopies > 0) fragment.updateModel()
                     Toast.makeText(
                         anchor.context,
                         if (addedCopies > 0) anchor.resources.getQuantityString(
@@ -86,9 +86,13 @@ internal class ModelMenuItems(
                     ).show()
                 }
             }, enabled = availability.hasSelectedObject),
-            BedComposeMenuAction(R.string.ModelMenuArrange, R.drawable.grid_layout_outline_28, {
+            BedComposeMenuAction(R.string.ModelMenuArrange, R.drawable.grid_layout_outline_28, { anchor ->
                 val glView = fragment.glView ?: return@BedComposeMenuAction
-                glView.arrange {
+                glView.arrange { arranged ->
+                    if (!arranged) {
+                        Toast.makeText(anchor.context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+                        return@arrange
+                    }
                     glView.queueEvent {
                         if (renderer.invalidateFlattenMode()) glView.requestRender()
                     }

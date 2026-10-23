@@ -2751,3 +2751,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Letzter geprüfter Quellstand: Änderungen lokal, noch nicht committet. Debug-Unit-Zieltest erfolgreich; vollständige Debug-/Slice-Unit-Suiten und APK-Build stehen noch aus.
 - Nächster Schritt: gebündelte Debug-/Slice-Unit-Suiten ausführen, danach Änderungen prüfen und auf dem bestehenden Branch sichern.
 - Abschließende Verifikation nach dem binären Kapazitätssuchlauf: Debug-Unit 619/619 und Slice-Unit 619/619, jeweils 0 Fehler/Überspringungen. Honor PTP-N49 / Android 16: normales Füllen plus beide Rollback-/Übergrößenfälle 3/3; zusätzliche Modellaktionen 3/3; Slice-Roundtrips für Platzierung, Boolean und eigenständigen Text 3/3. `git diff --check` sauber.
+
+# Modellbearbeitung — Anordnen atomar machen und Verlauf erhalten (2026-10-23)
+
+- Erweiterung nach `c611d5e4`: Auch „Anordnen“ übergibt jetzt sein tatsächliches Ergebnis. Bei Platzmangel stellt der Renderer alle ursprünglichen X/Y/Z-Positionen wieder her; Compose-Menüs aktualisieren die Undo-Historie nur bei einer erfolgreichen Modelländerung. Fehlgeschlagene Kopie- und Bettfüllaktionen löschen nicht mehr den Redo-Verlauf.
+- Honor PTP-N49 / Android 16: 6/6 gezielte Gerätetests bestanden — normales Anordnen, Anordnungsfehler mit Positions-Rollback, normales Bettfüllen, übergroßes Modell, Bettfüllfehler mit Rollback und fehlgeschlagene Kontextmenü-Kopie bei erhaltenem Redo.
+- Zusätzlich unverändert gültig: Debug-/Slice-Unit 619/619 je Suite, 0 Fehler/Überspringungen; Surface-Platzierung + Undo/Redo, Verbinden, eigenständiger Text sowie deren Slice-/G-Code-Regressionen je 3/3 auf Honor.
+- Debug-APK aus dem noch uncommitteten Stand erfolgreich erstellt; der APK-Dateiname muss nach dem Commit neu erzeugt werden, damit die Commitkennung stimmt. Nächster Schritt: Änderungen sichern/pushen und danach weitere drei Bearbeitungsaktionen prüfen.

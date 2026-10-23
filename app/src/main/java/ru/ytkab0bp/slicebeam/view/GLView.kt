@@ -108,12 +108,13 @@ setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY)
 touchSlop = ViewConfiguration.get(context).getScaledTouchSlop()
 setWillNotDraw(false)
 }
-@JvmOverloads fun arrange(onComplete:Runnable? = null) {
-if (renderer.model == null) return
-queueEvent({ renderer.bed!!.arrange(renderer.model!!)
-renderer.resetGlModels()
-requestRender()
-if (onComplete != null) ViewUtils.postOnMainThread(onComplete) })
+fun arrange(onComplete: ((Boolean) -> Unit)? = null) {
+    if (renderer.model == null) return
+    queueEvent {
+        val arranged = renderer.arrangeObjects()
+        requestRender()
+        if (onComplete != null) ViewUtils.postOnMainThread { onComplete(arranged) }
+    }
 }
 fun fillBedWithSelectedModel(callback:FillBedCallback) {
 if (renderer.model == null || fillBedInProgress) return
@@ -126,17 +127,14 @@ if (callback != null)
 callback.onFillBedComplete(addedCopies)
 } }) })
 }
-fun duplicateSelectedModel(onComplete:Runnable) {
-duplicateSelectedModel(1, onComplete)
+fun duplicateSelectedModel(onComplete: Runnable) {
+    duplicateSelectedModelWithResult { if (onComplete != null) onComplete.run() }
 }
-fun duplicateSelectedModel(copies:Int, onComplete:Runnable) {
-queueEvent({ val count = Math.max(1, Math.min(copies, 50))
-for (i in 0 until count)
-{
-renderer.duplicateSelectedObject()
+fun duplicateSelectedModel(copies: Int, onComplete: Runnable) {
+    duplicateSelectedModels(copies) { if (onComplete != null) onComplete.run() }
 }
-requestRender()
-ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+fun duplicateSelectedModelWithResult(onComplete: (Int) -> Unit) {
+    duplicateSelectedModels(1, onComplete)
 }
 fun duplicateSelectedModels(copies: Int, onComplete: (Int) -> Unit) {
     queueEvent {

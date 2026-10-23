@@ -1655,6 +1655,28 @@ return true
     if (added > 0) SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
     return added
 }
+fun arrangeObjects(): Boolean {
+    val activeModel = model ?: return false
+    val activeBed = bed ?: return false
+    if (!activeBed.isValid() || isViewerEnabled || activeModel.objectsCount == 0) return false
+    val translations = ArrayList<Vec3d>(activeModel.objectsCount)
+    for (index in 0 until activeModel.objectsCount) {
+        val translation = Vec3d()
+        activeModel.getTranslation(index, translation)
+        translations.add(translation)
+    }
+    val arranged = activeBed.arrange(activeModel)
+    if (!arranged) {
+        translations.forEachIndexed { index, before ->
+            val after = Vec3d()
+            activeModel.getTranslation(index, after)
+            activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+        }
+    }
+    activeModel.resetBoundingBox()
+    resetGlModels()
+    return arranged
+}
 fun fillBedWithSelectedObjectStep():Int {
 // Delegate to the batch method â€” no more step-by-step needed
  return fillBedWithSelectedObject()

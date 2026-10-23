@@ -26,11 +26,18 @@ internal class OrientationMenuItems(
                 R.string.MenuOrientationArrange,
                 R.drawable.grid_layout_outline_28,
                 {
-                    fragment.glView!!.arrange()
-                    fragment.glView!!.queueEvent {
-                        if (renderer.invalidateFlattenMode()) fragment.glView!!.requestRender()
+                    val glView = fragment.glView ?: return@BedComposeMenuAction
+                    glView.arrange { arranged ->
+                        if (arranged) {
+                            glView.queueEvent {
+                                if (renderer.invalidateFlattenMode()) glView.requestRender()
+                            }
+                            fragment.updateModel()
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
+                        } else {
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelContextFillBedNoRoom))
+                        }
                     }
-                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
                 },
                 enabled = availability.canArrange,
             ),
