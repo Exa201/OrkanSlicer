@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam.ui.workspace
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -53,7 +54,10 @@ internal fun EmbossModePanel(
         onDispose { controller.stop() }
     }
 
-    Column(Modifier.fillMaxWidth().heightIn(max = 640.dp).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text(stringResource(R.string.EmbossTitle), style = MaterialTheme.typography.titleMedium)
         Text(
             stringResource(if (standaloneMode) R.string.TextModelPlacementInstruction else R.string.EmbossInstruction),
