@@ -1,5 +1,13 @@
 # GL-thread-sichere Reset- und Paint-Menüaktionen — 2026-10-23
 
+# OrkanSlicer 0.8.359 — 2026-10-23
+
+- Release-Code-Commit: `18df3e8b206b030ea2cbf5643098b25be97080e8`; Version `0.8.359` / code `394`.
+- Debug-Unit: 621/621; Slice-Unit: 621/621; Honor PTP-N49 / Android 16: 14 gezielte Modellaktions-/Slicing-Tests bestanden (Z-Position, Objektverbindung, Flächenplatzierung, Boolean-Union/Difference/Intersection, Text, SVG, 3MF-Roundtrip/G-Code). Changelog-Instrumentierung mit neuer Versionsanzeige: 1/1.
+- Debug-APK `OrkanSlicer_18df3e8b20.apk`, 239.394.907 Byte, SHA-256 `003557E3F08031909F1A0CE65FEA611C775DDF09734BE9547C5D478A85BD2358`. Auf Honor installiert und gestartet; MainActivity war im Vordergrund. Der geprüfte Logcat-Ausschnitt enthielt keine Crash-, ANR- oder OOM-Treffer.
+- Signierung: Debug-Schlüssel, weil im Projekt kein Produktions-Release-Schlüssel konfiguriert ist. Kein Druck wurde gestartet.
+- GitHub-Veröffentlichung und PR-Push werden nach dieser Verifikation abgeschlossen.
+
 - Reset-Drehung und Reset-Skalierung lösen die Objekt-ID jetzt im GL-Queue aus. Stützstruktur-, Naht-, Fuzzy- und Farbmalen lesen Modell, Zielobjekt und Polygonzahl ebenfalls auf GL; bei späterem Modell-/Auswahlwechsel wird kein falsches Objekt gestartet. Explizite Aufrufe mit festem Objektindex bleiben kompatibel.
 - Honor PTP-N49 / Android 16: Reset-Drehung inkl. Undo/Redo, Reset-Skalierung inkl. Abbrechen/Bestätigen/Undo/Redo und alle vier Paint-Modi inkl. Back-Abbruch ohne Meshmutation bestanden (3/3). Direkter Paint-Lifecycle/Workspace-Host nach Kompatibilitätsfix zusätzlich 1/1 bestanden.
 - Debug-JVM 621/621, Slice-JVM 621/621, Debug-Build erfolgreich. APK `OrkanSlicer_2a401883a4.apk` aus Code-Commit `2a401883`, 239.394.959 Byte, SHA-256 `BE001543D2CBE725C0A851C86CA65137FD5BD14B40895064618E4899B12D0D47`; auf Honor installiert und gestartet. Im erfassten Logcat keine Crash-, ANR- oder OOM-Treffer. Kein Druck gestartet.
