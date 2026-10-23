@@ -1954,3 +1954,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Version 0.8.348 / versionCode 383. Debug build succeeded. Debug and Slice JVM suites each passed 605/605 with zero failures/errors/skips. On Honor PTP-N49 / Android 16, standalone plate text 1/1, surface-text/back regression 1/1, model editing 19/19, printable text slicing/G-code 1/1, and Z-position regression 1/1 passed.
 - APK installed successfully; Android reports version 0.8.348 / code 383 and the app launch succeeded. The sampled fresh startup log had no fatal exception, ANR, OOM, or fatal signal.
 - Signing: debug-signed APK; repository has no production release keystore. Xiaomi is not connected, so direct Xiaomi validation remains open. No print was started and no firmware was changed.
+
+## STEP/STP-Dateiimport abgesichert — 2026-10-23
+
+- Code-Commit: `d8b7eea7dea9e573dfd88427d1bff6b142077773` (`Protect STEP source files during import`). Bei lesbaren `file://`-Dokumenten wird zuerst eine app-eigene Cachekopie erstellt. Das STEP-Dialog-Cleanup kann dadurch die ausgewählte Originaldatei beim Abbrechen oder Fehler nicht mehr löschen.
+- Honor PTP-N49 / Android 16: fokussierte STEP/STP-Instrumentierung 4/4 bestanden, 0 Fehler, 0 übersprungen. Der neue Test prüft sowohl Abbruch als auch erfolgreichen nativen Import aus einer lesbaren `file://`-Quelle und bestätigt, dass das Original erhalten bleibt. Zusätzlich bestanden: SAF-Fallback, externer VIEW/SEND samt Einstellungsdialog vor dem Laden und nativer STEP/STP-Meshimport.
+- Debug-JVM und Slice-JVM jeweils 621/621 bestanden, 0 Fehler/Fehlschläge/Skips. `:app:assembleDebug` erfolgreich.
+- APK: `OrkanSlicer_d8b7eea7de.apk`, Version 0.8.358 / versionCode 393, 239.394.949 Byte, SHA-256 `16B082E7432B9CF305BC1BDB804BFEBC6EFD6582B573D7513B436C438E58B626`. APK auf Honor installiert und gestartet; `MainActivity` war resumed. Geprüfter Logcat-Ausschnitt ohne Crash-, ANR-, OOM- oder Fatal-Signal-Treffer.
+- Keine Benutzerdatei außerhalb des Tests geändert oder gelöscht. Kein Drucker kontaktiert, kein Druck gestartet, keine Firmwareänderung. Xiaomi-Geräteprüfung bleibt offen.
