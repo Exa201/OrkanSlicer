@@ -1962,3 +1962,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Debug-JVM und Slice-JVM jeweils 621/621 bestanden, 0 Fehler/Fehlschläge/Skips. `:app:assembleDebug` erfolgreich.
 - APK: `OrkanSlicer_d8b7eea7de.apk`, Version 0.8.358 / versionCode 393, 239.394.949 Byte, SHA-256 `16B082E7432B9CF305BC1BDB804BFEBC6EFD6582B573D7513B436C438E58B626`. APK auf Honor installiert und gestartet; `MainActivity` war resumed. Geprüfter Logcat-Ausschnitt ohne Crash-, ANR-, OOM- oder Fatal-Signal-Treffer.
 - Keine Benutzerdatei außerhalb des Tests geändert oder gelöscht. Kein Drucker kontaktiert, kein Druck gestartet, keine Firmwareänderung. Xiaomi-Geräteprüfung bleibt offen.
+
+## GL-sichere Vereinfachen-, Teilen- und Ausrichten-Aktionen — 2026-10-23
+
+- Code-Commit: `e411edb611fbc585e86ae548695915196f5ac38a` (`Bind simplify edits to captured model selection`). Die Vereinfachungsoberfläche liest Dreiecksanzahl auf GL und reicht den Auswahl-Schnappschuss an die native Änderung weiter. Bei geänderter Modellgeometrie oder Objektauswahl wird die verzögerte Vereinfachung abgewiesen.
+- Honor PTP-N49 / Android 16: fünf gezielte Tests bestanden, 0 Fehler/Skips: normale Vereinfachung inklusive Abbrechen/Undo/Redo; Auswahlwechsel vor dem Vereinfachen ohne Mutation; Mesh-Teilen inklusive Undo/Redo; Gruppenausrichten inklusive Undo/Redo; natives Slicing des ausgerichteten Modells mit Extrusions-G-Code.
+- Debug-JVM und Slice-JVM jeweils 621/621 bestanden, 0 Fehler/Fehlschläge/Skips. `:app:assembleDebug` erfolgreich.
+- APK `OrkanSlicer_e411edb611.apk`, Version 0.8.358 / versionCode 393, 239.394.954 Byte, SHA-256 `50851CE1AD8839548A0D0BDB83FA59596166E72F9A07F57B0DA8B041D434AF5B`. Auf Honor installiert und gestartet; `MainActivity` war resumed. Geprüfter Logcat-Ausschnitt ohne Crash-, ANR-, OOM- oder Fatal-Signal-Treffer.
+- Keine echten Druckstarts und keine Firmwareänderung. Die nächste Modellaktionsgruppe ist Objektverbindung, Flächenplatzierung und Booleans.
