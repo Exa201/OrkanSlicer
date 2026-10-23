@@ -46,9 +46,10 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
+import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
@@ -168,56 +169,56 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
     private val hasSelection = mutableStateOf(false)
     private var selectedObjectForPreview = -1
     private var selectedObjectsForPreview = intArrayOf()
+    private var selectionSnapshot: ModelSelectionSnapshot? = null
+    private var selectionLoadGeneration = 0
     private var eventBusRegistered = false
 
     fun translateVisual(x: Double?, y: Double?, z: Double?) {
-        val glView = bed.glView ?: return
-        val index = glView.renderer.selectedObject
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
         if (index < 0) return
         selectedObjectForPreview = index
         val current = position.value
         val target = OrientationVector3(x ?: current.x, y ?: current.y, z ?: current.z)
         position.value = target
-        previewTranslation(index, target)
+        previewTranslation(snapshot, target)
     }
 
     private fun previewFromRuler(axis: OrientationAxis, values: OrientationAxisValues) {
-        val index = bed.glView?.renderer?.selectedObject ?: return
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
         if (index < 0) return
         val target = OrientationTransformPolicy.positionFromRuler(position.value, values, axis)
         position.value = target
         selectedObjectForPreview = index
-        previewTranslation(index, target)
+        previewTranslation(snapshot, target)
     }
 
-    private fun previewTranslation(index: Int, target: OrientationVector3) {
+    private fun previewTranslation(snapshot: ModelSelectionSnapshot, target: OrientationVector3) {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val model = renderer.model ?: return
-        val selectedIndices = renderer.selectedObjectIndices().filter { it in 0 until model.objectsCount }.toIntArray()
-        if (index !in selectedIndices) return
-        runCatching {
-            val current = Vec3d()
-            model.getTranslation(index, current)
-            renderer.setSelectionTranslation(
-                target.x - current.x,
-                target.y - current.y,
-                target.z - current.z,
-            )
-            selectedObjectForPreview = index
-            selectedObjectsForPreview = selectedIndices
-            glView.requestRender()
+        val index = snapshot.primaryObject
+        if (index !in snapshot.selectedIndices) return
+        glView.queueEvent {
+            val renderer = glView.renderer
+            if (!renderer.isSelectionBindingCurrent(snapshot)) return@queueEvent
+            runCatching {
+                val current = Vec3d()
+                snapshot.model.getTranslation(index, current)
+                renderer.setSelectionTranslation(
+                    target.x - current.x,
+                    target.y - current.y,
+                    target.z - current.z,
+                )
+                glView.requestRender()
+            }
         }
     }
 
     private fun commitTranslation() {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
-        val modelAtCommit = renderer.model ?: return
-        val selectedIndices = renderer.selectedObjectIndices()
-            .filter { it in 0 until modelAtCommit.objectsCount }
-            .toIntArray()
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
+        val selectedIndices = snapshot.selectedIndices.copyOf()
         if (index < 0 || index !in selectedIndices ||
             (selectedObjectForPreview >= 0 && index != selectedObjectForPreview) ||
             (selectedObjectsForPreview.isNotEmpty() && !selectedObjectsForPreview.contentEquals(selectedIndices))
@@ -230,15 +231,14 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
         selectedObjectsForPreview = intArrayOf()
         glView.queueEvent {
             val renderer = glView.renderer
-            if (renderer.selectedObject != index || !renderer.selectedObjectIndices().contentEquals(selectedIndices)) {
+            if (!renderer.isSelectionBindingCurrent(snapshot)) {
                 renderer.setSelectionTranslation(0.0, 0.0, 0.0)
                 glView.requestRender()
                 return@queueEvent
             }
-            val model: Model = renderer.model ?: return@queueEvent
             runCatching {
                 val current = Vec3d()
-                model.getTranslation(index, current)
+                snapshot.model.getTranslation(index, current)
                 val dx = target.x - current.x
                 val dy = target.y - current.y
                 val dz = target.z - current.z
@@ -251,7 +251,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
                     return@runCatching
                 }
                 for (selectedIndex in selectedIndices) {
-                    model.translate(selectedIndex, dx, dy, dz)
+                    snapshot.model.translate(selectedIndex, dx, dy, dz)
                     renderer.invalidateGlModel(selectedIndex)
                 }
                 renderer.setSelectionTranslation(0.0, 0.0, 0.0)
@@ -285,7 +285,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
             position.value = target
             val next = OrientationTransformPolicy.setAxis(rulerValues.value, axis, value.toInt())
             rulerValues.value = next
-            bed.glView?.renderer?.selectedObject?.takeIf { it >= 0 }?.let { previewTranslation(it, target) }
+            selectionSnapshot?.let { previewTranslation(it, target) }
             commitTranslation()
         }
     }
@@ -342,36 +342,47 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
     }
 
     private fun loadSelectionValues() {
-        val renderer = bed.glView?.renderer ?: return
-        val index = renderer.selectedObject
-        val model = renderer.model
-        if (index < 0 || model == null) {
-            hasSelection.value = false
-            selectedObjectForPreview = -1
-            return
-        }
-        runCatching {
-            renderer.setSelectionTranslation(0.0, 0.0, 0.0)
-            val translated = Vec3d()
-            model.getTranslation(index, translated)
-            val target = OrientationVector3(translated.x, translated.y, translated.z)
-            position.value = target
-            rulerValues.value = OrientationAxisValues(
-                translated.x.toInt(), translated.y.toInt(), translated.z.toInt(),
-            )
-            selectedObjectForPreview = -1
-            hasSelection.value = true
-        }.onFailure {
-            hasSelection.value = false
-            selectedObjectForPreview = -1
+        val glView = bed.glView ?: return
+        val generation = ++selectionLoadGeneration
+        glView.queueEvent {
+            val loaded = runCatching {
+                val renderer = glView.renderer
+                val snapshot = renderer.captureSelectionSnapshot() ?: return@runCatching null
+                val translated = Vec3d()
+                snapshot.model.getTranslation(snapshot.primaryObject, translated)
+                renderer.setSelectionTranslation(0.0, 0.0, 0.0)
+                snapshot to OrientationVector3(translated.x, translated.y, translated.z)
+            }.getOrNull()
+            val current = loaded != null && glView.renderer.isSelectionSnapshotCurrent(loaded.first)
+            ViewUtils.postOnMainThread {
+                if (generation != selectionLoadGeneration || bed.glView !== glView) return@postOnMainThread
+                if (loaded == null || !current) {
+                    selectionSnapshot = null
+                    hasSelection.value = false
+                    selectedObjectForPreview = -1
+                    selectedObjectsForPreview = intArrayOf()
+                    return@postOnMainThread
+                }
+                val (snapshot, translated) = loaded
+                selectionSnapshot = snapshot
+                position.value = translated
+                rulerValues.value = OrientationAxisValues(
+                    translated.x.toInt(), translated.y.toInt(), translated.z.toInt(),
+                )
+                selectedObjectForPreview = -1
+                selectedObjectsForPreview = intArrayOf()
+                hasSelection.value = true
+            }
         }
     }
 
     private fun stopPreview() {
         val glView = bed.glView ?: return
         if (selectedObjectForPreview >= 0) {
-            glView.renderer.setSelectionTranslation(0.0, 0.0, 0.0)
-            glView.requestRender()
+            glView.queueEvent {
+                glView.renderer.setSelectionTranslation(0.0, 0.0, 0.0)
+                glView.requestRender()
+            }
         }
         selectedObjectForPreview = -1
         selectedObjectsForPreview = intArrayOf()
@@ -384,29 +395,38 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
             loadSelectionValues()
             return
         }
-        val renderer = bed.glView?.renderer ?: return
-        val index = renderer.selectedObject
-        if (index < 0) return
-        val model = renderer.model ?: return
-        runCatching {
-            val current = Vec3d()
-            model.getTranslation(index, current)
-            position.value = OrientationVector3(current.x + event.x, current.y + event.y, current.z)
-            rulerValues.value = OrientationAxisValues(
-                position.value.x.toInt(),
-                position.value.y.toInt(),
-                position.value.z.toInt(),
-            )
-            selectedObjectForPreview = index
-            selectedObjectsForPreview = renderer.selectedObjectIndices()
-            hasSelection.value = true
+        val glView = bed.glView ?: return
+        glView.queueEvent {
+            val renderer = glView.renderer
+            val snapshot = renderer.captureSelectionSnapshot() ?: return@queueEvent
+            val generation = selectionLoadGeneration
+            runCatching {
+                val current = Vec3d()
+                snapshot.model.getTranslation(snapshot.primaryObject, current)
+                val target = OrientationVector3(current.x + event.x, current.y + event.y, current.z)
+                ViewUtils.postOnMainThread {
+                    if (bed.glView !== glView || generation != selectionLoadGeneration) return@postOnMainThread
+                    selectionSnapshot = snapshot
+                    position.value = target
+                    rulerValues.value = OrientationAxisValues(target.x.toInt(), target.y.toInt(), target.z.toInt())
+                    selectedObjectForPreview = snapshot.primaryObject
+                    selectedObjectsForPreview = snapshot.selectedIndices.copyOf()
+                    hasSelection.value = true
+                }
+            }
         }
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectedObjectChanged(event: SelectedObjectChangedEvent) {
         stopPreview()
-        if (bed.glView?.renderer?.selectedObject == -1) dismiss() else loadSelectionValues()
+        loadSelectionValues()
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onObjectsListChanged(event: ObjectsListChangedEvent) {
+        stopPreview()
+        loadSelectionValues()
     }
 }
 
@@ -415,18 +435,18 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
     private val rulerValues = mutableStateOf(OrientationAxisValues(0, 0, 0))
     private val rotation = mutableStateOf(OrientationVector3(0.0, 0.0, 0.0))
     private val hasSelection = mutableStateOf(false)
-    private var selectedObjectsForPreview = intArrayOf()
+    private var selectionSnapshot: ModelSelectionSnapshot? = null
+    private var selectionLoadGeneration = 0
     private var eventBusRegistered = false
 
     private fun setRotationPreview(values: OrientationVector3) {
         val glView = bed.glView ?: return
-        if (glView.renderer.selectedObject < 0 || selectedObjectsForPreview.isEmpty()) return
+        val snapshot = selectionSnapshot ?: return
         rotation.value = values
         val normalized = OrientationTransformPolicy.normalizedDegrees(values)
-        val expectedSelection = selectedObjectsForPreview.copyOf()
         glView.queueEvent {
             val renderer = glView.renderer
-            if (!renderer.selectedObjectIndices().contentEquals(expectedSelection)) return@queueEvent
+            if (!renderer.isSelectionBindingCurrent(snapshot)) return@queueEvent
             renderer.prepareSelectionTransformPreview()
             renderer.setSelectionRotation(normalized.x, normalized.y, normalized.z)
             glView.requestRender()
@@ -459,16 +479,12 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
 
     private fun applyRotation() {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
-        val expectedSelection = selectedObjectsForPreview.copyOf()
-        if (index < 0 || renderer.model == null || expectedSelection.isEmpty()) return
+        val snapshot = selectionSnapshot ?: return
+        if (snapshot.primaryObject < 0 || snapshot.selectedIndices.isEmpty()) return
         val target = OrientationTransformPolicy.normalizedDegrees(rotation.value)
         glView.queueEvent {
             val activeRenderer = glView.renderer
-            if (activeRenderer.selectedObject != index ||
-                !activeRenderer.selectedObjectIndices().contentEquals(expectedSelection)) return@queueEvent
-            val model: Model = activeRenderer.model ?: return@queueEvent
+            if (!activeRenderer.isSelectionBindingCurrent(snapshot)) return@queueEvent
             runCatching {
                 if (activeRenderer.rotateSelectedObjects(
                     Math.toRadians(target.x),
@@ -538,17 +554,29 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
     }
 
     private fun loadSelectionValues() {
-        val renderer = bed.glView?.renderer ?: return
-        if (renderer.selectedObject < 0 || renderer.model == null) {
-            hasSelection.value = false
-            selectedObjectsForPreview = intArrayOf()
-            return
+        val glView = bed.glView ?: return
+        val generation = ++selectionLoadGeneration
+        glView.queueEvent {
+            val snapshot = glView.renderer.captureSelectionSnapshot()
+            val current = snapshot != null && glView.renderer.isSelectionSnapshotCurrent(snapshot)
+            if (current) {
+                glView.renderer.prepareSelectionTransformPreview()
+                glView.renderer.setSelectionRotation(0.0, 0.0, 0.0)
+                glView.requestRender()
+            }
+            ViewUtils.postOnMainThread {
+                if (generation != selectionLoadGeneration || bed.glView !== glView) return@postOnMainThread
+                if (snapshot == null || !current) {
+                    selectionSnapshot = null
+                    hasSelection.value = false
+                    return@postOnMainThread
+                }
+                selectionSnapshot = snapshot
+                rotation.value = OrientationVector3(0.0, 0.0, 0.0)
+                rulerValues.value = OrientationAxisValues(0, 0, 0)
+                hasSelection.value = true
+            }
         }
-        selectedObjectsForPreview = renderer.selectedObjectIndices()
-        glViewQueuePrepare(renderer)
-        rotation.value = OrientationVector3(0.0, 0.0, 0.0)
-        rulerValues.value = OrientationAxisValues(0, 0, 0)
-        hasSelection.value = true
     }
 
     private fun stopPreview() {
@@ -556,17 +584,6 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
         glView.queueEvent {
             glView.renderer.setSelectionRotation(0.0, 0.0, 0.0)
             glView.requestRender()
-        }
-    }
-
-    private fun glViewQueuePrepare(renderer: ru.ytkab0bp.slicebeam.render.GLRenderer) {
-        val glView = bed.glView ?: return
-        glView.queueEvent {
-            if (glView.renderer === renderer) {
-                renderer.prepareSelectionTransformPreview()
-                renderer.setSelectionRotation(0.0, 0.0, 0.0)
-                glView.requestRender()
-            }
         }
     }
 
@@ -578,7 +595,13 @@ open class OrientationRotationMenu(fragment: BedFragment) : OrientationTransform
     @EventHandler(runOnMainThread = true)
     fun onSelectedObjectChanged(event: SelectedObjectChangedEvent) {
         stopPreview()
-        if (bed.glView?.renderer?.selectedObject == -1) dismiss() else loadSelectionValues()
+        loadSelectionValues()
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onObjectsListChanged(event: ObjectsListChangedEvent) {
+        stopPreview()
+        loadSelectionValues()
     }
 }
 

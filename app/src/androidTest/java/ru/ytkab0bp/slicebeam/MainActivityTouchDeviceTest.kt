@@ -231,9 +231,16 @@ class MainActivityTouchDeviceTest {
                 })
                 assertTrue("Delete selected should be available for the selected object", deleteSelected.enabled)
                 deleteSelected.onClick(requireNotNull(viewport))
-                assertTrue("Model menu delete confirmation should use the Compose workspace dialog",
-                    requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
+            val deleteDialogDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (!requireNotNull(bed).isWorkspaceMessageDialogAttached() &&
+                SystemClock.uptimeMillis() < deleteDialogDeadline
+            ) {
+                instrumentation.waitForIdleSync()
+                SystemClock.sleep(40L)
+            }
+            assertTrue("Model menu delete confirmation should use the Compose workspace dialog",
+                requireNotNull(bed).isWorkspaceMessageDialogAttached())
             instrumentation.waitForIdleSync()
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             instrumentation.waitForIdleSync()
@@ -285,9 +292,16 @@ class MainActivityTouchDeviceTest {
                 val workspace = requireNotNull(bed)
                 val actions = FileMenuObjectActions(workspace)
                 actions.showObjectsDialog(requireNotNull(viewport))
-                assertTrue("The object list should attach as a Compose workspace dialog",
-                    workspace.isWorkspaceMessageDialogAttached())
             }
+            val objectListDialogDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (!requireNotNull(bed).isWorkspaceMessageDialogAttached() &&
+                SystemClock.uptimeMillis() < objectListDialogDeadline
+            ) {
+                instrumentation.waitForIdleSync()
+                SystemClock.sleep(40L)
+            }
+            assertTrue("The object list should attach as a Compose workspace dialog",
+                requireNotNull(bed).isWorkspaceMessageDialogAttached())
             instrumentation.waitForIdleSync()
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             instrumentation.waitForIdleSync()
@@ -298,9 +312,16 @@ class MainActivityTouchDeviceTest {
 
             scenario.onActivity {
                 FileMenuObjectActions(requireNotNull(bed)).showDuplicateDialog(requireNotNull(viewport))
-                assertTrue("Duplicate count input should attach as a Compose workspace dialog",
-                    requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
+            val duplicateDialogDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (!requireNotNull(bed).isWorkspaceMessageDialogAttached() &&
+                SystemClock.uptimeMillis() < duplicateDialogDeadline
+            ) {
+                instrumentation.waitForIdleSync()
+                SystemClock.sleep(40L)
+            }
+            assertTrue("Duplicate count input should attach as a Compose workspace dialog",
+                requireNotNull(bed).isWorkspaceMessageDialogAttached())
             instrumentation.waitForIdleSync()
             var duplicateKeyboardVisible = false
             val duplicateImeDeadline = SystemClock.uptimeMillis() + 5_000L

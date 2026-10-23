@@ -219,6 +219,13 @@ internal fun isSelectionSnapshotCurrent(snapshot: ModelSelectionSnapshot): Boole
     selectedObjectIndices(),
 )
 
+/** Revalidates model and selected objects while allowing consecutive edits to advance geometry. */
+internal fun isSelectionBindingCurrent(snapshot: ModelSelectionSnapshot): Boolean =
+    model === snapshot.model &&
+        snapshot.model.objectsCount == snapshot.objectCount &&
+        selectedObject == snapshot.primaryObject &&
+        selectedObjectIndices().contentEquals(snapshot.selectedIndices)
+
 /** Cache the common preview pivot while on the GL thread so group transforms preview as a unit. */
 fun prepareSelectionTransformPreview() {
     val activeModel = model ?: run { selectionTransformIsGroup = false; return }
