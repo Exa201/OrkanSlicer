@@ -4751,7 +4751,9 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.MenuTransformScale)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithTag("scale-mirror-x").assertIsDisplayed()
+            // The compact phone panel keeps all three scale axes and the mirror controls in
+            // one scroll column. On shorter devices the mirror row starts below the viewport.
+            compose.onNodeWithTag("scale-mirror-x").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("scale-mirror-y").assertIsDisplayed()
             compose.onNodeWithTag("scale-mirror-z").assertIsDisplayed()
 

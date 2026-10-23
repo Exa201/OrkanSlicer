@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-23, OrkanSlicer 0.8.365 veröffentlicht
 
+## Geräteprüfung Modellaktionen — 2026-10-23, HEAD `ba053364`
+
+- Honor PTP-N49 / Android 16: Modell teilen (`editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects`) bestanden; Spiegeln X/Y/Z mit Undo/Redo (`mirrorPanelReflectsSelectedObjectOnEachAxisAndRecordsUndoRedo`) nach dem automatischen Scrollen zum im kompakten Panel zunächst außerhalb des Ausschnitts liegenden Spiegelbereich bestanden; Vereinfachen mit Abbrechen, Übernehmen und Undo/Redo (`editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone`) bestanden; Z-Position mit Abbrechen und Undo (`editPositionZIsVisibleCancelableAndUndoable`) bestanden.
+- Spiegeltest-Anpassung: der Test scrollt nun zum Spiegelbereich, statt anzunehmen, dass dieser bei jeder Gerätehöhe initial im sichtbaren Teil des Werkzeugpanels liegt. Keine Änderung an der Modelllogik.
+- Textwerkzeug-Restfehler erneut auf Honor reproduziert: `editEmbossActionEntersComposeGlModeAndBackExitsWithoutMeshMutation` scheitert beim Compose-`assertIsDisplayed` mit `ComposeNotIdleException` (ausstehendes Measure/Layout). Ein währenddessen aufgenommenes Gerätebild zeigt das geöffnete Textpanel und das Modell, ohne sichtbaren Absturz. Die Bedienbarkeit per Compose-Test ist damit nicht verifiziert; Ursache zwischen Compose-/Workspace-Messung und Test-Synchronisierung bleibt offen.
+- Die vier Modellaktionsprüfungen bestehen; Debug-/Slice-JVM-Suiten wurden in diesem Durchgang nicht erneut ausgeführt. `ANDROID_HOME` war für Gradle auf den installierten SDK-Pfad zu setzen. Aktuelle Änderung enthält einen Gerätetest und diesen Status, keine Produktcodeänderung.
+- Nächster konkreter Schritt: Compose-Messungsaktivität während des Textpanel-Tests instrumentieren und ermitteln, ob der Workspace kontinuierlich neu gemessen wird; anschließend den Textpanel-Back-/Abbruchablauf mit einem verlässlichen Interaktionstest absichern. Erst nach weiteren Produktänderungen und deren gebündelter Regression ist ein neuer Release sinnvoll.
+
 ## Letzte Fortsetzung — Undo/Redo und Modellierungsaktionen
 
 - Branch-HEAD `8e9b195e` (`Preserve redo state after deleting final model`), auf `codex/rinkhals-safe-start-audit` gepusht; PR #2 bleibt offen. Der leere Rendererzustand wird jetzt als Undo-/Redo-Snapshot gespeichert. Honor PTP-N49: Löschen aller Objekte und Löschen des letzten ausgewählten Objekts round-trippt jeweils per Undo/Redo; drei gezielte Gerätetests bestanden. Debug- und Slice-Unit-Suiten liefen danach erfolgreich durch.
