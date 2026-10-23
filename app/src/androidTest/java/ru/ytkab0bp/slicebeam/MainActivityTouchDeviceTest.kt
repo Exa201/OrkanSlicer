@@ -201,6 +201,8 @@ class MainActivityTouchDeviceTest {
             // intentionally cancelled with Android Back; persisted model coordinates must stay put.
             val translationBeforeEdit = Vec3d().also { model.getTranslation(0, it) }
             val positionToolRef = AtomicReference<OrientationPositionMenu?>()
+            val selectionSnapshotReady = CountDownLatch(1)
+            val transformItemsRef = AtomicReference<TransformMenuItems?>()
             scenario.onActivity {
                 val workspace = requireNotNull(bed)
                 val openPosition: java.util.function.Consumer<android.view.View> =
@@ -211,7 +213,20 @@ class MainActivityTouchDeviceTest {
                         }
                     }
                 val noOp: java.util.function.Consumer<android.view.View> = java.util.function.Consumer { }
-                val moveAction = TransformMenuItems(workspace, openPosition, noOp, noOp, noOp)
+                val items = TransformMenuItems(workspace, openPosition, noOp, noOp, noOp) {
+                    selectionSnapshotReady.countDown()
+                }
+                transformItemsRef.set(items)
+                // The selection summary is read asynchronously on GL; wait for the real
+                // renderer snapshot before asserting the action's enabled state.
+                items.createItems()
+            }
+            assertTrue(
+                "The edit action should receive the selected model snapshot from GL",
+                selectionSnapshotReady.await(5, TimeUnit.SECONDS),
+            )
+            scenario.onActivity {
+                val moveAction = requireNotNull(transformItemsRef.get())
                     .createItems().single { it.titleRes == R.string.MenuToolbarMove }
                 assertTrue("Move should be enabled for the selected model", moveAction.enabled)
                 moveAction.onClick(requireNotNull(viewport))
@@ -252,8 +267,19 @@ class MainActivityTouchDeviceTest {
             SystemClock.sleep(350L)
 
             val objectCountBeforeDeleteCancel = model.objectsCount
+            val deleteSelectionReady = CountDownLatch(1)
+            val modelItemsRef = AtomicReference<ModelMenuItems?>()
             scenario.onActivity {
-                val menuItems = ModelMenuItems(requireNotNull(bed)) {}.createItems()
+                val items = ModelMenuItems(requireNotNull(bed)) { deleteSelectionReady.countDown() }
+                modelItemsRef.set(items)
+                items.createItems()
+            }
+            assertTrue(
+                "The model menu should receive the selected model snapshot from GL",
+                deleteSelectionReady.await(5, TimeUnit.SECONDS),
+            )
+            scenario.onActivity {
+                val menuItems = requireNotNull(modelItemsRef.get()).createItems()
                 val deleteSelected = requireNotNull(menuItems.firstOrNull {
                     it.titleRes == R.string.ModelMenuDeleteSelected
                 })

@@ -1,5 +1,17 @@
 # Aktueller Fortsetzungsstand — nächste stabile Veröffentlichung, 2026-10-23
 
+## Modellbearbeitung: Boolean, Text, Kombinieren und M12 — 2026-10-23
+
+- Produktcode-HEAD: `64dae0b2`. Honor PTP-N49 / Android 16: sechs native Kombinier-/Booleanfälle bestanden; fünf Slice-Rundläufe bestanden (Mehrmaterial-Kombination sowie Union, Difference und Intersection nach 3MF-Neuladen mit erzeugtem G-Code, dazu disjunkte Union und eigenständiger Text); drei Boolean-Randfälle bestanden (coplanare Flächen, sicherer Rollback und geschlossene Höhlung); drei weitere Text-/SVG-Rundläufe bestanden; drei Platzierungs-/Spiegel-/Rollbackfälle bestanden.
+- M12-Raycaster: nativer M12-Pick und paralleler Mesh-Neuaufbau bestanden. Der erste gebündelte Oberflächentest scheiterte an einer synchronen Testabfrage vor Abschluss des absichtlich asynchronen GL-Auswahl-Schnappschusses. `MainActivityTouchDeviceTest` wartet jetzt auf diesen Schnappschuss; danach bestanden M12-Touch, Move-Preview-Abbruch und Objektlöschungs-Abbruch gemeinsam 3/3. Es wurde kein Fehler in der Produktlogik reproduziert.
+- Nächster konkreter Schritt: die Objektgruppen-Bedienoberfläche für Verbinden, Auf-ein-Objekt-Setzen und Boolean-Aktionen weiter im Compose-Menü abnehmen; anschließend den erweiterten M12-/Modellbearbeitungssatz gebündelt regressionsprüfen. Keine echten Druckstarts.
+
+## Modellbearbeitung: Z, Gruppenrotation, Gruppenskalierung und 3MF-Rundlauf — 2026-10-23
+
+- Aktueller Code-HEAD: `64dae0b2`. Honor PTP-N49 / Android 16: vier tatsächliche Compose-/GL-Modellabläufe bestanden: Z-Achsenposition mit Abbruch, Bestätigung, Undo/Redo und Linealvorschau; Rotation einer ausgewählten Objektgruppe um den gemeinsamen Drehpunkt mit Undo/Redo; Skalierung der Gruppenobjekte und ihrer Abstände mit Undo/Redo; Gruppenrotation/-skalierung nach 3MF-Export und erneutem Laden mit anschließend erzeugtem G-Code. Der Test erzeugte nur lokale Dateien und startete keinen Druck.
+- Ergebnis: Z-, Dreh- und Skalierungswerte blieben in den nativen Modellabfragen konsistent; Gruppenabstände und Größen skalierten/rotierten wie erwartet; die 3MF-Wiederherstellung und Slice-Ausgabe bestanden. Vier von vier Honor-Gerätetests bestanden.
+- Die danach geprüften Multipart-Kombinationen, Boolean-Operationen, Materialzuweisungen sowie 3MF-/G-Code-Rundläufe sind im folgenden Abschnitt dokumentiert.
+
 ## STEP/STP-Dateiöffnung und GL-Startzustand — 2026-10-23
 
 - Reproduzierter Fehler im Projektmenü: Beim unmittelbar frühen Tippen auf „Modell hinzufügen“ konnte der Compose-Workspace bereits sichtbar sein, bevor `GLRenderer.bed` initialisiert war. `FileMenu.openModel` behandelte diesen kurzen Startzustand wie eine ungültige Druckbettkonfiguration und öffnete den Android-Dateiauswahldialog nicht. Der Handler wartet jetzt bis zu fünf Sekunden auf die GL-Druckbettinitialisierung und startet den Picker erst danach; eine dauerhaft ungültige Druckbettkonfiguration zeigt weiterhin den bisherigen Hinweis.
