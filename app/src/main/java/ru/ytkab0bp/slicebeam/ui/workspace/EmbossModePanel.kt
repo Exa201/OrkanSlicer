@@ -59,6 +59,26 @@ internal fun EmbossModePanel(
             stringResource(if (standaloneMode) R.string.TextModelPlacementInstruction else R.string.EmbossInstruction),
             style = MaterialTheme.typography.bodySmall,
         )
+        FilterChip(
+            selected = standaloneMode,
+            onClick = { standaloneMode = !standaloneMode; sync() },
+            label = { Text(stringResource(R.string.TextModelCreateSeparate)) },
+            modifier = Modifier.testTag("emboss-standalone-mode"),
+        )
+        if (standaloneMode) {
+            FilterChip(
+                selected = followSurface,
+                onClick = { followSurface = !followSurface; sync() },
+                label = { Text(stringResource(R.string.TextFollowCurvedSurface)) },
+                modifier = Modifier.testTag("emboss-follow-surface"),
+            )
+            if (followSurface) {
+                Text(
+                    stringResource(R.string.TextFollowSurfaceHelp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
         OutlinedTextField(
             value = text,
             onValueChange = { text = it; sync() },
@@ -92,26 +112,6 @@ internal fun EmbossModePanel(
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.testTag("emboss-input-error"),
             )
-        }
-        FilterChip(
-            selected = standaloneMode,
-            onClick = { standaloneMode = !standaloneMode; sync() },
-            label = { Text(stringResource(R.string.TextModelCreateSeparate)) },
-            modifier = Modifier.testTag("emboss-standalone-mode"),
-        )
-        if (standaloneMode) {
-            FilterChip(
-                selected = followSurface,
-                onClick = { followSurface = !followSurface; sync() },
-                label = { Text(stringResource(R.string.TextFollowCurvedSurface)) },
-                modifier = Modifier.testTag("emboss-follow-surface"),
-            )
-            if (followSurface) {
-                Text(
-                    stringResource(R.string.TextFollowSurfaceHelp),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
         }
         if (!standaloneMode) {
             Text(stringResource(R.string.EmbossOperation), style = MaterialTheme.typography.labelLarge)
