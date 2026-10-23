@@ -55,6 +55,14 @@ class StepOpenIntentDeviceTest {
             listOf(step),
             ExternalModelOpenIntent.uris(Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, step)),
         )
+        val clipOnlySend = Intent(Intent.ACTION_SEND).apply {
+            clipData = ClipData.newRawUri("model", step)
+        }
+        assertEquals(
+            "Some document providers deliver the shared URI through ClipData only",
+            listOf(step),
+            ExternalModelOpenIntent.uris(clipOnlySend),
+        )
 
         val second = Uri.parse("content://documents.example/second.step")
         val multi = Intent(Intent.ACTION_SEND_MULTIPLE).apply {

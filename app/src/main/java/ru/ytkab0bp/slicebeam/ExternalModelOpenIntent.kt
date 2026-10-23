@@ -10,7 +10,14 @@ internal object ExternalModelOpenIntent {
         intent.data?.let(result::add)
 
         when (intent.action) {
-            Intent.ACTION_SEND -> (intent.extras?.get(Intent.EXTRA_STREAM) as? Uri)?.let(result::add)
+            Intent.ACTION_SEND -> {
+                // Some Android document providers grant and deliver shared files through
+                // ClipData without populating EXTRA_STREAM. Read both representations.
+                intent.clipData?.let { clip ->
+                    for (index in 0 until clip.itemCount) clip.getItemAt(index).uri?.let(result::add)
+                }
+                (intent.extras?.get(Intent.EXTRA_STREAM) as? Uri)?.let(result::add)
+            }
             Intent.ACTION_SEND_MULTIPLE -> {
                 intent.clipData?.let { clip ->
                     for (index in 0 until clip.itemCount) clip.getItemAt(index).uri?.let(result::add)
