@@ -5,6 +5,7 @@
 - Vollständige Honor-Instrumentierung für 0.8.360: 347 Testfälle, 343 bestanden, 3 wegen privater KromaCut-Fixtures übersprungen, 1 fehlgeschlagen. Fehlerursache: `update.json` stand noch auf 0.8.359, obwohl BuildConfig 0.8.360 meldete.
 - Behoben in 0.8.361 / Code 396: eingebettete Release Notes und Build-Version stimmen überein. Der M12-Raycaster-Absturzschutz aus 0.8.360 bleibt enthalten.
 - Honor PTP-N49 / Android 16: `ChangeLogComposeDeviceTest` 1/1 und M12-GLView-Touchregression 1/1 bestanden. Debug- und Slice-JVM 621/621 je zuvor bestanden; der 0.8.361-Änderungsumfang beschränkt sich auf Releaseversion und Release-Notes-Asset.
+- Vollständige Honor-Instrumentierung auf 0.8.361: 344 Fälle, 341 bestanden, 3 wegen nicht vorhandener privater KromaCut-Fixtures übersprungen, 0 Fehler/Errors. Debug- und Slice-JVM auf demselben Versionsstand erneut je 621/621, 0 Fehler/Skips.
 - Debug-Build erfolgreich. APK `OrkanSlicer_4c47f8dd4f.apk`, 239.395.012 Byte, SHA-256 `1FD9436CF8554E1CC9E238C3952440F507D84637B0781934C2F40988B144C979`, Code-Commit `4c47f8dd4f761ea46a3d512a4eb5446b4b3503b4`. Auf Honor installiert und kalt gestartet; Logcat ohne Crash/ANR/OOM.
 - PR #2 bleibt offen. Xiaomi-spezifische Bestätigung des KromaCut-/M12-Problems ist nicht verfügbar, da kein Xiaomi-Gerät verbunden ist.
 
