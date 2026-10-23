@@ -1,3 +1,13 @@
+# Aktueller Fortsetzungsstand — STEP/STP und sichere Modellmenüauswahl, 2026-10-23
+
+- Branch-HEAD zu Beginn: `70a7ae9cd3ddfae12c94550d3c86c13c8505f573` (`codex/rinkhals-safe-start-audit`, Version 0.8.358); neuer Code-Commit: `5c3c4f59cd3d76e622bcc07f853c8e5209460392`. Der STEP/STP-Import einschließlich Tessellierungsdialog war bereits implementiert; es wurde in diesem Durchgang keine STEP-Importlogik geändert.
+- STEP-Verifikation auf Honor PTP-N49 / Android 16: externer Datei-Intent 2/2, SAF-/Workspace-Host-Fallback 1/1, nativer STEP/STP-Meshimport 1/1. Optionen erscheinen vor dem Laden; Abbrechen und Bestätigen sind abgedeckt. Kein Xiaomi-Gerätetest in diesem Durchgang.
+- Zusätzliche Modellmenü-Korrektur: Verzögerte Aktionen „Auf Objekt“, „Auf Oberfläche“, „Ausrichten“, „Verteilen“, „Zusammenfügen“, „Auswahl löschen“ und „Alle löschen“ sind jetzt an eine GL-Thread-Momentaufnahme von Modell, Geometrieversion und Auswahl gebunden. Bei zwischenzeitlichem Modell-/Auswahlwechsel wird die Aktion abgebrochen und gemeldet; ein offener Dialog kann somit keine inzwischen andere Auswahl oder Geometrie verändern.
+- Verifikation auf Honor PTP-N49 / Android 16: sieben gezielte Stale-Dialog-Regressionen bestanden; vollständige `InitialProjectMenuDeviceTest` danach 77/77 bestanden, 0 übersprungen, 0 fehlgeschlagen. Debug-JVM 621/621 und Slice-JVM 621/621 bestanden; `:app:assembleDebug` und `git diff --check` erfolgreich.
+- Debug-APK aus genau dem Code-Commit `5c3c4f59cd3d76e622bcc07f853c8e5209460392`: `app/build/outputs/apk/debug/OrkanSlicer_5c3c4f59cd.apk`, 239.378.557 Byte, SHA-256 `6C3034D190F4C844D0ED50F6D0420132D7252193559231838F991BE4156F0D73`. Auf Honor installiert und gestartet; MainActivity war resumed, Prozess aktiv, im erfassten Logcat kein Crash, ANR oder OOM. Versionsnummer bleibt 0.8.358 / Code 393; kein Release erstellt.
+- Code-Commit `5c3c4f59` wurde auf `codex/rinkhals-safe-start-audit` gepusht; PR #2 ist offen und unverändert ungemergt. Kein Release erstellt.
+- Nächster konkreter Schritt: weiter an der nächsten zusammenhängenden Modellbearbeitungsgruppe arbeiten; Xiaomi-spezifische STEP-Weitergabe auf dem Xiaomi-Gerät nachprüfen, sobald dieses per ADB verfügbar ist.
+
 # Mehrfachauswahl zwischen Druckplatten — 2026-10-23
 
 - Änderung: „Auf andere Druckplatte verschieben“ überträgt jetzt die vollständige Mehrfachauswahl, erhält jedes Objekt separat samt Filamentzuweisung und relativer Position und selektiert die übertragenen Objekte auf dem Zielbett. Nicht ausgewählte Quellobjekte bleiben mit Position und Filamentzuweisung auf ihrer Platte. Auswahl wird auf dem GL-Thread aufgenommen; Fehler beim Laden/Kopieren lassen den Quellzustand erhalten.
