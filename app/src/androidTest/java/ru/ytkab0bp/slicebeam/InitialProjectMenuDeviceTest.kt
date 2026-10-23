@@ -880,6 +880,16 @@ class InitialProjectMenuDeviceTest {
                 (beforeCenter[1][0] + beforeCenter[1][3] - beforeCenter[0][0] - beforeCenter[0][3]) / 2.0,
                 (centeredBounds[1][0] + centeredBounds[1][3] - centeredBounds[0][0] - centeredBounds[0][3]) / 2.0,
                 0.03)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                beforeCenter.zip(readExactBoundsOnGl(glView, 0, 1, 2, 3))
+                    .all { (before, current) -> before.contentEquals(current) }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                centeredBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2, 3))
+                    .all { (centered, current) -> centered.contentEquals(current) }
+            }
 
             openModelMenu(activity)
             selectSingleObjectScope()
@@ -894,6 +904,16 @@ class InitialProjectMenuDeviceTest {
                 centeredBounds[1][2] - centeredBounds[0][2], droppedBounds[1][2] - droppedBounds[0][2], 0.03)
             assertArrayEquals("unselected group copies stay untouched", centeredBounds[2], droppedBounds[2], 0.03)
             assertArrayEquals("the second unselected group copy stays untouched", centeredBounds[3], droppedBounds[3], 0.03)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                centeredBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2, 3))
+                    .all { (centered, current) -> centered.contentEquals(current) }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                droppedBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2, 3))
+                    .all { (dropped, current) -> dropped.contentEquals(current) }
+            }
         } finally {
             modelFile.delete()
         }
