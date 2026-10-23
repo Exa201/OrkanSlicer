@@ -5,7 +5,9 @@
 - Fix im Branch: `ExternalModelOpenIntent` extrahiert jetzt beide URI-Quellen; STEP/STP öffnet vor dem nativen Tessellieren den Compose-Dialog für lineare/winklige Abweichung und Compound-Aufteilung.
 - Regressionstest aktualisiert: ClipData-only `ACTION_SEND` durch tatsächlichen Dialog, Abbrechen, Bestätigen und renderbares Netz.
 - Verifiziert auf Honor PTP-N49 / Android 16: `StepOpenIntentDeviceTest` 2/2 und externer Workspace-Importtest 1/1; Debug-Build der SliceTest-App erfolgreich.
-- Nächste Schritte: Version 0.8.355 / code 390 bauen, Unit-Suiten und relevante Instrumentierung abschließen, APK-Hash notieren und den Release auf GitHub veröffentlichen. Xiaomi selbst war für diese Prüfung nicht verbunden.
+- Release abgeschlossen: `v0.8.355` (0.8.355 / code 390), APK `OrkanSlicer_c028aa77c6.apk`, 239.376.924 Byte, SHA-256 `FBA1F4FF75885B30F59A19EEFFC6FA65D5D740B1233BB4CC0F14B75F4EC226E3`, Code-Commit `c028aa77c63e090f3fb152f4b7a69cf054e2af3c`; https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.355.
+- Verifikation: Debug-Unit 621/621; Slice-Unit 621/621; Honor PTP-N49 / Android 16 `StepOpenIntentDeviceTest` 2/2 und tatsächlicher Dialog-/Abbruch-/ClipData-only-Importtest 1/1; Debug-APK installiert und gestartet. Keine Xiaomi-ADB-Prüfung in diesem Durchgang.
+- Nächster konkreter Schritt: im UI-2.0-/Modellbearbeitungsziel fortfahren und die nächste zusammenhängende Funktionengruppe implementieren und testen. Den nun veröffentlichten STEP-ClipData-Fix auf dem Xiaomi verifizieren, sobald das Gerät verfügbar ist.
 
 # STEP-Dateiöffnung — ClipData-Freigabe, 2026-10-23
 

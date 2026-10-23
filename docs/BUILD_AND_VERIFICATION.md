@@ -3,7 +3,10 @@
 - Ursache des auf einigen Datei-Apps fortbestehenden Fehlers: Der offizielle Release `v0.8.354` stammt von Commit `170ec587` und liegt vor der Korrektur `f3dd9d6a`. Bestimmte Apps senden `ACTION_SEND` und übergeben die Datei-URI ausschließlich über `ClipData`, nicht `EXTRA_STREAM`; der ältere Release extrahierte diese URI deshalb nicht.
 - Der aktuelle Branch extrahiert `ClipData` und `EXTRA_STREAM`. Die End-to-End-Geräteregression verwendet jetzt ausdrücklich eine ClipData-only-Übergabe, zeigt den STEP-Meshingdialog vor dem Import, prüft Abbrechen ohne Modelländerung und lädt nach Bestätigung ein renderbares Netz.
 - Honor PTP-N49 / Android 16: `StepOpenIntentDeviceTest` 2/2 bestanden; `externalStepDocumentUriShowsMeshingOptionsBeforeLoadingRenderableModel` 1/1 mit `ACTION_VIEW` und ClipData-only `ACTION_SEND` bestanden. Kein Druckstart.
-- Version 0.8.355 / code 390 wird nach dem vollständigen Build und finaler Verifikation veröffentlicht.
+- Debug- und Slice-Unit-Suiten: jeweils 621/621 bestanden, 0 übersprungen/fehlgeschlagen. `:app:assembleDebug` erfolgreich. APK `OrkanSlicer_c028aa77c6.apk`, 239.376.924 Byte, SHA-256 `FBA1F4FF75885B30F59A19EEFFC6FA65D5D740B1233BB4CC0F14B75F4EC226E3`, BuildConfig-Code-Commit `c028aa77c63e090f3fb152f4b7a69cf054e2af3c`.
+- Auf Honor PTP-N49 installiert und gestartet; Paket meldet Version 0.8.355 / code 390. STEP/STP-Auflösung durch Android bestätigt. Geprüfter Logcat-Ausschnitt enthält keinen App-Crash, ANR oder OOM.
+- Offizieller GitHub-Release `v0.8.355`: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.355. PR #2 bleibt offen und zeigt Commit `c028aa77c63e090f3fb152f4b7a69cf054e2af3c`.
+- Xiaomi-Dateimanager-Verhalten bleibt auf Xiaomi selbst unbestätigt; der veröffentlichte Release enthält nun den ClipData-Fix. Keine echte Druckaktion.
 
 # STEP/STP-Dateifreigabe — 2026-10-23
 
