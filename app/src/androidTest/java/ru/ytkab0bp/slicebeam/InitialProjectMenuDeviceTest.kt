@@ -3277,8 +3277,10 @@ class InitialProjectMenuDeviceTest {
             val prepared = CountDownLatch(1)
             glView.queueEvent {
                 model.addObject(model, 0)
+                model.addObject(model, 0)
                 model.setUniformFilament(0, 2)
                 model.setUniformFilament(1, 3)
+                model.setUniformFilament(2, 4)
                 model.translate(1, 42.0, 0.0, 0.0)
                 glView.renderer.setSelectedObjects(intArrayOf(0, 1))
                 glView.requestRender()
@@ -3287,10 +3289,12 @@ class InitialProjectMenuDeviceTest {
             assertTrue("both objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
             compose.runOnUiThread { bed.updateModel() }
             instrumentationWaitForGlIdle()
-            assertEquals(2, readObjectCountOnGl(glView))
+            assertEquals(3, readObjectCountOnGl(glView))
             val sourceBounds = readExactBoundsOnGl(glView, 0, 1)
+            val unselectedBounds = readExactBoundsOnGl(glView, 2).single()
             assertArrayEquals(intArrayOf(2), readUsedFilamentsOnGl(glView, 0))
             assertArrayEquals(intArrayOf(3), readUsedFilamentsOnGl(glView, 1))
+            assertArrayEquals(intArrayOf(4), readUsedFilamentsOnGl(glView, 2))
 
             compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
                 .assertIsDisplayed().performClick()
@@ -3305,7 +3309,7 @@ class InitialProjectMenuDeviceTest {
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
             ).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
-                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 2
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 3
             }
             glView.selectModels(intArrayOf(0, 1))
             compose.waitUntil(timeoutMillis = 5_000) {
@@ -3338,8 +3342,12 @@ class InitialProjectMenuDeviceTest {
                 activity.getString(R.string.PlatePickerSelectDescription, "1"),
             ).assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
-                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 0
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 1
             }
+            assertArrayEquals("the unselected source-plate object keeps its filament", intArrayOf(4),
+                readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("the unselected source-plate object keeps its position", unselectedBounds,
+                readExactBoundsOnGl(glView, 0).single(), 0.03)
             compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
                 .assertIsDisplayed().performClick()
             compose.onNodeWithContentDescription(
