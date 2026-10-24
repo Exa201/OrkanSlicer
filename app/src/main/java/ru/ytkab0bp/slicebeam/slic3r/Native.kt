@@ -173,6 +173,8 @@ class Native {
     @JvmStatic
     external fun model_get_extruder(ptr: Long, i: Int): Int
     @JvmStatic
+    external fun model_get_volume_extruder(ptr: Long, objectIndex: Int, volumeIndex: Int): Int
+    @JvmStatic
     external fun model_set_extruder(ptr: Long, i: Int, extruder: Int): Unit
     @JvmStatic
     external fun model_get_used_filaments(ptr: Long, i: Int): IntArray

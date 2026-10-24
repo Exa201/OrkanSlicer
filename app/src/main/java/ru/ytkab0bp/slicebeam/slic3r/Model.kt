@@ -283,6 +283,10 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun getExtruder(i: Int): Int = Native.model_get_extruder(pointer, i)
 
+    /** One-based filament assigned to a specific volume, including object-level fallback. */
+    open fun getVolumeExtruder(objectIndex: Int, volumeIndex: Int): Int =
+        if (pointer == 0L) -1 else Native.model_get_volume_extruder(pointer, objectIndex, volumeIndex)
+
     open fun setExtruder(i: Int, extruder: Int) {
         Native.model_set_extruder(pointer, i, extruder)
     }

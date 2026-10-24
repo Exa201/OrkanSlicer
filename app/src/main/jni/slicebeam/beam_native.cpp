@@ -206,6 +206,37 @@ size_t find_instance_for_world_surface(
     return closest_hit_distance <= 2.0 ? selected : instances.size();
 }
 
+int find_surface_extruder(
+    const ModelObject &target,
+    const Transform3d &instance,
+    const Vec3d &world_position,
+    const Vec3d &world_normal,
+    double ray_distance)
+{
+    const Transform3d inverse = instance.inverse();
+    const Vec3d normal = world_normal.normalized();
+    const Vec3d inward = -(inverse.linear() * normal).normalized();
+    const Vec3d origin = inverse * (world_position + normal * ray_distance);
+    double nearest_part_hit = std::numeric_limits<double>::infinity();
+    int surface_extruder = -1;
+    for (const ModelVolume *volume : target.volumes) {
+        if (volume == nullptr || !volume->is_model_part()) continue;
+        TriangleMesh part_mesh = volume->mesh();
+        part_mesh.transform(volume->get_matrix());
+        if (part_mesh.its.vertices.empty() || part_mesh.its.indices.empty()) continue;
+        AABBMesh part_raycaster(part_mesh);
+        const auto hit = part_raycaster.query_ray_hit(origin, inward);
+        if (!hit.is_hit()) continue;
+        const Vec3d world_hit = instance * hit.position();
+        const double distance = (world_hit - world_position).norm();
+        if (distance < nearest_part_hit) {
+            nearest_part_hit = distance;
+            surface_extruder = volume->extruder_id();
+        }
+    }
+    return nearest_part_hit <= 2.0 ? surface_extruder : -1;
+}
+
 Transform3d conform_text_mesh_to_model_surface(
     indexed_triangle_set &text_mesh,
     const ModelObject &target,
@@ -235,27 +266,9 @@ Transform3d conform_text_mesh_to_model_surface(
     const Transform3d inverse = instance.inverse();
     const Vec3d inward = -(inverse.linear() * normal).normalized();
     const Vec3d outward = -inward;
-    // A multipart target can use different filaments per volume. Determine which part owns
-    // the tapped face so the newly appended text follows that part's tool, not the parent
-    // object's default filament.
-    double nearest_part_hit = std::numeric_limits<double>::infinity();
-    const Vec3d part_ray_origin = inverse * (world_position + normal * ray_distance);
-    for (const ModelVolume *volume : target.volumes) {
-        if (!volume->is_model_part()) continue;
-        TriangleMesh part_mesh = volume->mesh();
-        part_mesh.transform(volume->get_matrix());
-        if (part_mesh.its.vertices.empty() || part_mesh.its.indices.empty()) continue;
-        AABBMesh part_raycaster(part_mesh);
-        const auto part_hit = part_raycaster.query_ray_hit(part_ray_origin, inward);
-        if (!part_hit.is_hit()) continue;
-        const Vec3d part_world_hit = instance * part_hit.position();
-        const double distance = (part_world_hit - world_position).norm();
-        if (distance < nearest_part_hit) {
-            nearest_part_hit = distance;
-            surface_extruder = volume->extruder_id();
-        }
-    }
-    if (nearest_part_hit > 2.0) surface_extruder = -1;
+    // A multipart target can use different filaments per volume. Follow the tapped part's
+    // extruder rather than silently inheriting the parent object's default tool.
+    surface_extruder = find_surface_extruder(target, instance, world_position, normal, ray_distance);
     const double sink = 0.04; // A small overlap keeps raised text bonded to the model for slicing.
     for (Vec3f &vertex : text_mesh.vertices) {
         const Vec3d planar_world = tangent_frame * Vec3d(vertex.x(), vertex.y(), 0.);
@@ -1359,6 +1372,16 @@ extern "C" {
         return obj->config.has("extruder") ? obj->config.opt_int("extruder") : -1;
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1volume_1extruder(
+        JNIEnv* env, jclass, jlong ptr, jint object_index, jint volume_index) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || object_index >= static_cast<jint>(model->model.objects.size())) return -1;
+        const ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || volume_index < 0 || volume_index >= static_cast<jint>(object->volumes.size())) return -1;
+        const ModelVolume* volume = object->volumes[volume_index];
+        return volume == nullptr ? -1 : std::max(1, volume->extruder_id());
+    }
+
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1set_1extruder(JNIEnv* env, jclass, jlong ptr, jint i, jint extruder) {
         ModelRef* model = (ModelRef*) (intptr_t) ptr;
         ModelObject* obj = model->model.objects[i];
@@ -1600,28 +1623,42 @@ extern "C" {
             Transform3d world_tr = Emboss::create_transformation_onto_surface(position, normal);
             const std::vector<Transform3d> instances = model_instance_transforms(*obj);
             if (instances.empty()) throw std::runtime_error("The target model has no placed instance");
+            const ModelVolumeType vol_type = static_cast<ModelVolumeType>(type);
+            std::vector<const ModelVolume*> model_parts;
+            if (vol_type == ModelVolumeType::MODEL_PART) {
+                for (const ModelVolume *volume : obj->volumes)
+                    if (volume != nullptr && volume->is_model_part()) model_parts.push_back(volume);
+            }
             size_t selected_instance = 0;
-            if (instances.size() > 1) {
-                // The surface hit is in world coordinates. Resolve which repeated copy was
-                // tapped before converting the text transform back into the shared object's
-                // local coordinates; using instances.front() offsets the emboss on every copy.
+            int surface_extruder = model_parts.size() == 1 ? model_parts.front()->extruder_id() : -1;
+            if (instances.size() > 1 || (vol_type == ModelVolumeType::MODEL_PART && model_parts.size() > 1)) {
+                // Resolve the tapped copy and material in world space. Using the first instance
+                // misplaces text on repeated models; using the parent object's default extruder
+                // can recolor text placed on a differently assigned multipart surface.
                 TriangleMesh target_mesh = obj->raw_mesh();
                 if (target_mesh.its.vertices.empty() || target_mesh.its.indices.empty())
                     throw std::runtime_error("The target model has no printable surface");
-                AABBMesh raycaster(target_mesh);
                 const BoundingBoxf3 bounds = bounding_box(target_mesh.its);
                 const double ray_distance = std::max(100., 4. * (bounds.max - bounds.min).norm() + 10.);
-                selected_instance = find_instance_for_world_surface(
-                    instances, raycaster, position, normal, ray_distance);
-                if (selected_instance == instances.size())
-                    throw std::runtime_error("Tap the text onto a visible model surface");
+                if (instances.size() > 1) {
+                    AABBMesh raycaster(target_mesh);
+                    selected_instance = find_instance_for_world_surface(
+                        instances, raycaster, position, normal, ray_distance);
+                    if (selected_instance == instances.size())
+                        throw std::runtime_error("Tap the text onto a visible model surface");
+                }
+                if (vol_type == ModelVolumeType::MODEL_PART && model_parts.size() > 1) {
+                    surface_extruder = find_surface_extruder(
+                        *obj, instances[selected_instance], position, normal, ray_distance);
+                }
             }
             const Transform3d inst_tr = instances[selected_instance];
 
             // 6) Add as a volume with its own transformation (geometry stays centered at origin).
-            ModelVolumeType vol_type = static_cast<ModelVolumeType>(type);
             ModelVolume* vol = obj->add_volume(TriangleMesh(std::move(its)), vol_type, false);
             vol->set_transformation(Geometry::Transformation(inst_tr.inverse() * world_tr));
+            if (vol_type == ModelVolumeType::MODEL_PART && surface_extruder > 0)
+                vol->config.set("extruder", surface_extruder);
             vol->name = text;
             obj->invalidate_bounding_box();
         } catch (const std::exception& e) {

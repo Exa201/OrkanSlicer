@@ -530,6 +530,68 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun standaloneSurfaceTextInheritsTheFilamentOfTheHitMultipartSurface() {
+        val modelFile = copyAsset("models/two-color-project.3mf", "surface-text-part-filament.3mf")
+        val fontFile = copyAsset("font/roboto_medium.ttf", "surface-text-part-filament.ttf")
+        val model = Model(modelFile)
+        try {
+            assertEquals(2, model.objectsCount)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("the second target surface must retain its imported filament", 2,
+                model.getVolumeExtruder(0, 1))
+            model.setExtruder(0, 4) // Deliberately differs from either part's material.
+
+            val index = model.createTextObject(
+                fontFile.absolutePath,
+                "A",
+                3f,
+                1f,
+                Vec3d(61.0, 43.0, 3.0),
+                Vec3d(1.0, 0.0, 0.0),
+                targetObjectIndex = 0,
+            )
+
+            assertEquals(0, index)
+            assertEquals("surface text must use the hit part's filament, not parent default 4",
+                2, model.getVolumeExtruder(0, 2))
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
+    @Test fun embossOnMultipartSurfaceInheritsTheFilamentOfTheHitPart() {
+        val modelFile = copyAsset("models/two-color-project.3mf", "emboss-part-filament.3mf")
+        val fontFile = copyAsset("font/roboto_medium.ttf", "emboss-part-filament.ttf")
+        val model = Model(modelFile)
+        try {
+            assertEquals(2, model.objectsCount)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("the second target surface must retain its imported filament", 2,
+                model.getVolumeExtruder(0, 1))
+            model.setExtruder(0, 4) // The tapped second part remains explicitly assigned to filament 2.
+
+            model.embossText(
+                0,
+                fontFile.absolutePath,
+                "A",
+                3f,
+                1f,
+                0,
+                Vec3d(61.0, 43.0, 3.0),
+                Vec3d(1.0, 0.0, 0.0),
+            )
+
+            assertEquals("emboss must use the hit part's filament, not parent default 4",
+                2, model.getVolumeExtruder(0, 2))
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
     @Test fun svgImportCreatesStandalonePrintableGeometry() {
         val svgFile = File(
             InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
