@@ -15,7 +15,6 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -400,9 +399,11 @@ object FastenerStlWriter {
             val vx = c[cOffset] - a[aOffset]
             val vy = c[cOffset + 1] - a[aOffset + 1]
             val vz = c[cOffset + 2] - a[aOffset + 2]
-            val area2 = sqrt((uy * vz - uz * vy).toDouble().pow(2) +
-                (uz * vx - ux * vz).toDouble().pow(2) + (ux * vy - uy * vx).toDouble().pow(2))
-            if (area2 < 1e-7) return
+            val crossX = (uy * vz - uz * vy).toDouble()
+            val crossY = (uz * vx - ux * vz).toDouble()
+            val crossZ = (ux * vy - uy * vx).toDouble()
+            // Compare squared area directly: sqrt/pow per facet is unnecessary here.
+            if (crossX * crossX + crossY * crossY + crossZ * crossZ < 1e-14) return
             val required = (count + 1) * 9
             if (required > coordinates.size) {
                 var capacity = coordinates.size
