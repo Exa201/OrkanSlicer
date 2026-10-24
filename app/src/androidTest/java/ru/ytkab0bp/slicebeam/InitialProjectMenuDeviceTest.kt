@@ -6796,6 +6796,96 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun supportSeamAndFuzzyPaintCommitRealCanvasStrokesAndUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-special-paint-touch-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            val paintActions = listOf(
+                Triple(R.string.MenuToolbarSupportPaint, GLRenderer.PAINT_MODE_SUPPORT, R.string.PaintEnforce),
+                Triple(R.string.MenuToolbarSeamPaint, GLRenderer.PAINT_MODE_SEAM, R.string.PaintEnforce),
+                Triple(R.string.MenuToolbarFuzzyPaint, GLRenderer.PAINT_MODE_FUZZY, R.string.PaintFuzzy),
+            )
+            paintActions.forEach { (actionLabel, expectedMode, paintState) ->
+                val state = if (paintState == R.string.PaintBlock) 2 else 1
+                assertEquals("mode $expectedMode should start with an empty native annotation channel", 0,
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state))
+                openSelectedObjectMenu(activity)
+                revealMenuAction(activity, actionLabel)
+                compose.onNodeWithContentDescription(activity.getString(actionLabel))
+                    .performScrollTo().assertIsDisplayed().performClick()
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+                }
+                assertEquals("the menu action must activate its expected GL paint mode",
+                    expectedMode, readRendererIntOnGl(glView, "paintModeKind"))
+                compose.onNodeWithText(activity.getString(paintState)).assertIsDisplayed().performClick()
+                instrumentationWaitForGlIdle()
+
+                val point = findUncoveredPreciseSurfacePoint(glView, bed)
+                injectCanvasStroke(glView, point.first, point.second)
+                val previewTriangles = readPaintPreviewTriangleCountOnGl(glView, state)
+                assertTrue("$expectedMode stroke should create a native preview; point=$point", previewTriangles > 0)
+                assertEquals("special paint remains a preview until it is confirmed", 0,
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state))
+
+                assertTrue("Android Back should cancel a staged mode-$expectedMode paint stroke",
+                    bed.onBackPressed())
+                compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+                assertEquals("cancelling mode-$expectedMode paint must discard the staged stroke", 0,
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state))
+
+                openSelectedObjectMenu(activity)
+                revealMenuAction(activity, actionLabel)
+                compose.onNodeWithContentDescription(activity.getString(actionLabel))
+                    .performScrollTo().assertIsDisplayed().performClick()
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+                }
+                compose.onNodeWithText(activity.getString(paintState)).assertIsDisplayed().performClick()
+                instrumentationWaitForGlIdle()
+                val confirmPoint = findUncoveredPreciseSurfacePoint(glView, bed)
+                injectCanvasStroke(glView, confirmPoint.first, confirmPoint.second)
+                assertTrue("mode-$expectedMode should rebuild its preview after reopening",
+                    readPaintPreviewTriangleCountOnGl(glView, state) > 0)
+                assertEquals("reopening a mode after Back must not restore the cancelled draft", 0,
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state))
+
+                compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
+                compose.onNodeWithText(activity.getString(R.string.ActionDone))
+                    .performScrollTo().assertIsDisplayed().performClick()
+                compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state) > 0
+                }
+                compose.runOnUiThread { bed.undoModelEdit() }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state) == 0
+                }
+                compose.runOnUiThread { bed.redoModelEdit() }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state) > 0
+                }
+                compose.runOnUiThread { bed.undoModelEdit() }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state) == 0
+                }
+            }
+            assertTrue("finishing special paint tools should preserve the live renderer", bed.glView === glView)
+        } finally {
+            if (bed.isPaintMode) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun editSimplifyRequiresConfirmationAndCanBeUndoneAndRedone() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -7683,6 +7773,36 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return paint preview triangles", finished.await(10, TimeUnit.SECONDS))
         failure.get()?.let { throw AssertionError("Could not inspect active paint preview", it) }
+        return requireNotNull(value.get())
+    }
+
+    /** Reads a persisted non-color facet channel by opening a disposable native paint session. */
+    private fun readCommittedPaintModeTriangleCountOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        mode: Int,
+        state: Int,
+    ): Int {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Int>()
+        val failure = AtomicReference<Throwable?>()
+        glView.queueEvent {
+            var session: PaintSession? = null
+            var overlay: GLModel? = null
+            try {
+                session = PaintSession(requireNotNull(glView.renderer.model), 0, mode)
+                if (!session.isValid()) error("Could not inspect committed paint mode $mode")
+                overlay = GLModel()
+                value.set(session.buildOverlay(overlay, state))
+            } catch (error: Throwable) {
+                failure.set(error)
+            } finally {
+                overlay?.release()
+                session?.end()
+                finished.countDown()
+            }
+        }
+        assertTrue("GL thread did not return committed paint mode $mode", finished.await(10, TimeUnit.SECONDS))
+        failure.get()?.let { throw AssertionError("Could not inspect committed paint mode $mode", it) }
         return requireNotNull(value.get())
     }
 

@@ -1,3 +1,9 @@
+# GL-Paint-Modi: echte Canvas-Bearbeitung — 2026-10-24
+
+- Auf Honor PTP-N49 / Android 16 bestanden `InitialProjectMenuDeviceTest#supportSeamAndFuzzyPaintCommitRealCanvasStrokesAndUndoRedo` (1/1) und `InitialProjectMenuDeviceTest#colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments` (1/1).
+- Der neue Test führt einen echten GL-Canvas-Pinselstrich für Support-, Naht- und Fuzzy-Malen aus, prüft die Vorschau, verwirft den Pinselstrich mit Android-Back, öffnet das Werkzeug erneut, bestätigt die Änderung und liest danach den jeweiligen nativen Facettenkanal über eine temporäre `PaintSession`. Undo entfernt die Markierung, Redo stellt sie wieder her. Der Farbmaltest bestätigt weiterhin die Farbzuweisung und Undo/Redo.
+- `Model.hasPaint()` wird hier nicht als Prüforakel genutzt: Der native Helfer meldet ausschließlich Mehrfarben-Segmentierung, nicht die Support-/Seam-/Fuzzy-Annotationen. Es wurde kein Produktionscode geändert. Vollständige JVM-Suiten und APK-Build wurden in diesem Durchgang nicht ausgeführt.
+
 # STEP/STP-Import auf Release-Stand gebracht — 2026-10-24
 
 - Ursache der weiter gemeldeten Nichtöffnung: GitHub führte `v0.8.366` als neuestes offizielles Release. Die bereits behobene native STEP-Threadstabilisierung aus Commit `88733d62` lag nach dem im Release eingebauten Code-Commit `82540095` und war deshalb noch nicht in der herunterladbaren App enthalten.

@@ -3173,6 +3173,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Das sind gezielte Instrumentierungstests; vollständige Unit-Suiten und ein Release-Build wurden in diesem Durchgang nicht ausgeführt. Die bestehenden Arbeitsbaumänderungen bleiben uncommitted.
 - Nächster konkreter Schritt: die drei Aktionen mit 3MF-Neuladen und Slicing/G-Code-Rundlauf prüfen, dann die nächsten noch nicht vollständig abgenommenen Modellaktionen fortsetzen.
 
+# Fortsetzung — Spezialwerkzeug-Pinseltests, 2026-10-24
+
+- Die zuvor vorhandenen GL-Painttests öffneten Support-, Naht- und Fuzzy-Modi und prüften Back-Abbruch, aber keinen echten Pinselstrich mit Bestätigung.
+- Ergänzt wurde ein echter Canvas-Touchtest für alle drei Modi. Er prüft GL-Modus, sichtbare native Vorschau, Android-Back mit Verwerfen des realen Pinselstrichs, erneutes Öffnen, Bestätigen, Speicherung im jeweiligen Support-/Seam-/Fuzzy-Facettenkanal sowie Undo und Redo. Zur Prüfung des persistierten Kanals wird ein kurzlebiger nativer `PaintSession` geöffnet; `Model.hasPaint()` ist hierfür ungeeignet, da es ausschließlich Farbsegmentierung meldet.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest#supportSeamAndFuzzyPaintCommitRealCanvasStrokesAndUndoRedo` bestanden 1/1; bestehender `colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments` bestanden 1/1. Der erste neue Prüfversuch verwendete fälschlich `Model.hasPaint()` und wartete deshalb vergeblich; der Test wurde auf direkte Abfrage des jeweiligen nativen Facettenkanals korrigiert. Kein Produktfehler dabei nachgewiesen.
+- Es wurde kein Produktcode verändert und kein Build einer Nutzer-APK erstellt. Nächster konkreter Schritt: weitere unabhängige GL-Bearbeitungsaktionen funktional mit Preview/Abbruch/Undo prüfen; Projekt und UI-2.0-Abnahme bleiben offen.
+
 # Fortsetzung — Gruppenbearbeitung auf Honor (2026-10-24)
 
 - Auf Honor PTP-N49 / Android 16 bestanden: Gruppenspiegeln über die sichtbare Transformationsoberfläche mit X/Y/Z, Erhalt der Weltpositionen und Filamentzuweisungen sowie Undo/Redo; numerische Z-Position einschließlich Abbrechen, Regler, Undo/Redo; gemeinsame XYZ-Positionierung zweier ausgewählter Objekte einschließlich Abbrechen und Undo/Redo. 3/3 gezielte Instrumentierungstests.
