@@ -3168,3 +3168,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Nachfolgender vollständiger `NativeSliceDeviceTest`-Lauf auf Honor PTP-N49 / Android 16: 19/19 bestanden, 0 Übersprünge und 0 Fehler. Enthalten sind Mehrfarben-Remapping und G-Code-Slotwechsel, gruppierte Flächenplatzierung, Boolean-Operationen einschließlich 3MF-Neuladen, druckbarer eigenständiger/oberflächenfolgender Text sowie weitere native Slice-Regressionsfälle.
 - Vollständige `ModelEditingNativeDeviceTest`-Klasse auf Honor PTP-N49 / Android 16: 27/27 bestanden, 0 Übersprünge und 0 Fehler. Abgedeckt sind Kombinieren und Fehler-Rollback, Flächenplatzierung einzelner Objekte und Gruppen, eigenständiger und flächenfolgender 3D-Text sowie native Boolean-Union/Difference/Intersection einschließlich Mehrfachkörpern.
 
+# STEP/STP-Import — native Worker-Synchronisierung (2026-10-24)
+
+- Aktueller Code-Commit `88733d627d4552b72bdb6d6baa730f3c56e4121f`, auf `codex/rinkhals-safe-start-audit` gepusht. PR #2 zeigt denselben HEAD und meldet `MERGEABLE`; der PR bleibt offen.
+- Der STEP/STP-Dialog mit Tessellierungsparametern war bereits vorhanden und wird vor dem Laden angezeigt. Der zusätzlich gefundene native Fehler lag in nicht synchronisierten Fortschritts-/Abbruchzuständen und einer gleichzeitig veränderten Solid-Liste; CAD-Worker-Ausnahmen konnten außerdem den Prozess beenden. Flags/Zähler sind nun atomar, Workerfehler werden kontrolliert zurückgegeben und partielle Meshes verworfen.
+- Honor PTP-N49 / Android 16: native gültige/beschädigte STEP/STP-Dateien 2/2; Projektmenü-Import mit geänderten Netzparametern und renderbarem Mesh 1/1; externer Datei-App-Intent mit Optionen vor dem Laden und renderbarem Mesh 1/1. Fokussierte Debug- und Slice-JVM-Tests je 13/13. `git diff --check` erfolgreich.
+- PR-Nachweis: https://github.com/Exa201/OrkanSlicer/pull/2#issuecomment-6379983525. Kein APK-Build und kein Release in diesem Durchgang. Xiaomi-Gerät und konkrete Nutzerdatei waren nicht verfügbar.
+- Nächster Schritt: UI-2.0-Funktionsabnahme anhand des vorhandenen Status fortsetzen; keine offene STEP-Codeänderung aus diesem Fehlerbericht.
+
