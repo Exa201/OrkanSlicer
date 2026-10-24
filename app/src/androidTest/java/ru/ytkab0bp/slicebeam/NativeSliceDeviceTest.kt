@@ -32,6 +32,46 @@ import java.util.zip.ZipFile
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun invalidTransformAndSimplifyRequestsPreserveNativeModel() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "invalid-transform-edits.stl")
+        val model = Model(modelFile)
+        try {
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val originalBounds = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+
+            model.translate(-1, 10.0, 0.0, 0.0)
+            model.translate(0, Double.NaN, 0.0, 0.0)
+            model.scale(model.objectsCount, 2.0, 2.0, 2.0)
+            model.scale(0, 1.0, Double.POSITIVE_INFINITY, 1.0)
+            model.rotate(-1, 0.0, 0.0, 1.0)
+            model.rotate(0, 0.0, Double.NaN, 0.0)
+            model.ensureOnBed(model.objectsCount)
+            model.resetRotation(-1)
+            model.autoOrient(model.objectsCount)
+            model.translate(Double.NaN, 0.0, 0.0)
+            model.simplify(-1, 0.5f)
+            assertEquals("invalid simplify ratio is rejected", 0, model.simplify(0, Float.NaN))
+            assertEquals("out-of-range simplify ratio is rejected", 0, model.simplify(0, 1.1f))
+
+            assertEquals(1, model.objectsCount)
+            assertEquals(originalTriangles, model.getTriangleCount(0))
+            assertEquals(originalVolume, model.getObjectVolume(0), 1e-6)
+            model.getBoundingBoxExact(0, min, max)
+            doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z).forEachIndexed { axis, value ->
+                assertEquals("invalid edits preserve bounds on axis $axis", originalBounds[axis], value, 1e-6)
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun invalidDuplicateDeleteAndSplitRequestsPreserveNativeModel() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "invalid-object-index-edits.stl")

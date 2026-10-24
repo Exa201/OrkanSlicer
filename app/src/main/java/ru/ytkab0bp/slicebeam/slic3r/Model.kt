@@ -110,37 +110,44 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     open fun translate(i: Int, x: Double, y: Double, z: Double) {
+        if (!hasObject(i) || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_translate(pointer, i, x, y, z)
         resetBoundingBox()
     }
 
     open fun translate(x: Double, y: Double, z: Double) {
+        if (pointer == 0L || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_translate_global(pointer, x, y, z)
         resetBoundingBox()
     }
 
     open fun ensureOnBed(i: Int) {
+        if (!hasObject(i)) return
         Native.model_ensure_on_bed(pointer, i)
         resetBoundingBox()
     }
 
     open fun scale(i: Int, x: Double, y: Double, z: Double) {
+        if (!hasObject(i) || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_scale(pointer, i, x, y, z)
         resetBoundingBox()
     }
 
     open fun rotate(i: Int, x: Double, y: Double, z: Double) {
+        if (!hasObject(i) || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_rotate(pointer, i, x, y, z)
         resetBoundingBox()
     }
 
     /** Reset rotations on all object volumes without changing their translations or scales. */
     open fun resetRotation(i: Int) {
+        if (!hasObject(i)) return
         Native.model_reset_rotation(pointer, i)
         resetBoundingBox()
     }
 
     open fun flattenRotate(i: Int, surface: GLModel) {
+        if (!hasObject(i) || surface.pointer == 0L) return
         Native.model_flatten_rotate(pointer, i, surface.pointer)
         resetBoundingBox()
     }
@@ -168,6 +175,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
         if (pointer == 0L) 0 else Native.model_get_triangle_count(pointer, i)
 
     open fun simplify(i: Int, keepRatio: Float): Int {
+        if (!hasObject(i) || !keepRatio.isFinite() || keepRatio <= 0f || keepRatio > 1f) return 0
         val result = Native.model_simplify(pointer, i, keepRatio)
         resetBoundingBox()
         return result
@@ -460,6 +468,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
         }
 
     open fun autoOrient(i: Int) {
+        if (!hasObject(i)) return
         Native.model_auto_orient(pointer, i)
         resetBoundingBox()
     }
