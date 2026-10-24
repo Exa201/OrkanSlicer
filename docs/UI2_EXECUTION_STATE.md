@@ -5,8 +5,9 @@
 - Aktueller Branch-HEAD: `ab949f90c135ed5dfee647e220fa28413ef01fe4`; keine Quellcodeänderung in diesem Lauf.
 - Honor PTP-N49 / Android 16: Anordnen, Auf Druckplatte zentrieren und automatisches Ausrichten 3/3 bestanden. Boolean-Union, -Differenz und -Schnittmenge mit jeweiligem Menüablauf 3/3 bestanden.
 - Honor PTP-N49 / Android 16: Objektgruppe als Multipart verbinden, Gruppe auf Modellfläche platzieren und eigenständigen Text auf Modellfläche im echten Workspace erzeugen 3/3 bestanden.
+- Die bereitgestellte KromaCut-3MF wurde erneut auf Honor getestet: unabhängige Auswahl von Druck-/Filament-/Druckereinstellungen, Slice mit eigener Objekt-Neuzuweisung und Prüfung der blauen sowie weißen ACE-Slots bestanden, 3/3. Die private Fixture wurde nicht in Git aufgenommen.
 - Eine alte Testreferenz `InitialProjectMenuDeviceTest.modelMenuStandaloneTextCanFollowASelectedModelSurfaceAndUndoRedo` existiert im aktuellen Testquelltext nicht; der fehlgeleitete Filter führte deshalb 0 Tests aus und zählt nicht als Verifikation. Der aktuelle reale Hosttest `WorkspaceRuntimeCompositionDeviceTest.standaloneTextCanFollowModelSurfaceAndUndoRedoInPlatformComposition` bestand im vorherigen Dreiertestlauf 1/1.
-- Zusammengefasster aktueller Honor-Nachweis dieses Laufs: 9 echte Instrumentierungstests bestanden, 0 Fehler, 0 Übersprünge; zusätzlich ein Filter mit 0 ausgeführten Tests ausdrücklich nicht gezählt. Kein Druckstart.
+- Zusammengefasster aktueller Honor-Nachweis dieses Laufs: 12 echte Instrumentierungstests bestanden, 0 Fehler, 0 Übersprünge; zusätzlich ein Filter mit 0 ausgeführten Tests ausdrücklich nicht gezählt. Kein Druckstart.
 - Nächster konkreter Schritt: Phase-5-Menüaktionen weiter mit sichtbarer UI und fachlichem Resultat abgleichen; danach ausstehende Responsive-/Accessibility-Pfade abnehmen. UI 2.0 bleibt offen. Aktueller offizieller Release bleibt `v0.8.367`; kein neuer APK-Build oder Release, da kein Produktcode geändert wurde.
 
 ## STEP/STP-Korrektur für Nutzer bereitstellen — 2026-10-24
