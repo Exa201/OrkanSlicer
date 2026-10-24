@@ -198,7 +198,9 @@
     <string name="ModelMenuCombineDone">Objects combined as multipart object</string>
     <string name="ModelMenuCombineUnsupported">Select at least two single-instance objects to combine.</string>
     <string name="ModelMenuBoolean">Boolean operation</string>
-    <string name="ModelBooleanHelp">Select two or more objects first. The selected object is the base; the other selected objects are applied in selection order. Difference subtracts them, Intersection keeps the shared overlap. The result takes the base object’s material.</string>
+    <string name="ModelBooleanHelp">Select two or more objects first. The highlighted object is the base; the other selected objects are applied in object-list order. Difference subtracts them, Intersection keeps the shared overlap. The result takes the base object’s material.</string>
+    <string name="ModelBooleanTargetSummary">Base object: %1$s</string>
+    <string name="ModelBooleanToolsSummary">Tool objects, in object-list order: %1$s</string>
     <string name="ModelBooleanUnion">Union · merge selected solids</string>
     <string name="ModelBooleanDifference">Difference · subtract selected solids</string>
     <string name="ModelBooleanIntersection">Intersection · keep the overlap</string>

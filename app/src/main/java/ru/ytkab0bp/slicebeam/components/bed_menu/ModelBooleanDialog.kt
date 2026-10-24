@@ -20,6 +20,8 @@ import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 
 @Composable
 internal fun ModelBooleanDialog(
+    targetName: String,
+    toolNames: List<String>,
     onDismiss: () -> Unit,
     onChoose: (BooleanOperation) -> Unit,
 ) {
@@ -33,6 +35,15 @@ internal fun ModelBooleanDialog(
             ) {
                 Text(
                     stringResource(R.string.ModelBooleanHelp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    stringResource(R.string.ModelBooleanTargetSummary, targetName),
+                    modifier = Modifier.testTag("model-boolean-target"),
+                )
+                Text(
+                    stringResource(R.string.ModelBooleanToolsSummary, toolNames.joinToString()),
+                    modifier = Modifier.testTag("model-boolean-tools"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 TextButton(

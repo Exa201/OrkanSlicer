@@ -416,6 +416,8 @@ internal class ModelMenuItems(
                 }
                 fragment.showWorkspaceComposeDialog { dismiss ->
                     ModelBooleanDialog(
+                        targetName = displayTargetName,
+                        toolNames = displayToolNames,
                         onDismiss = dismiss,
                         onChoose = { operation ->
                             dismiss()

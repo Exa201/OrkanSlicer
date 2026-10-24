@@ -188,7 +188,9 @@
     <string name="ModelSurfacePlacementCancelled">Flächenplatzierung abgebrochen.</string>
     <string name="ModelMenuPlaceOnSurfaceDone">Am gewählten Flächenpunkt platziert und als druckbare Baugruppe verbunden.</string>
     <string name="ModelMenuBoolean">Boolesche Funktion</string>
-    <string name="ModelBooleanHelp">Wähle mindestens zwei Objekte. Das aktuell ausgewählte Objekt ist die Basis; die übrigen ausgewählten Objekte werden der Reihe nach angewendet. Abziehen entfernt sie, Schnittmenge behält die gemeinsame Überlappung. Das Ergebnis übernimmt das Filament des Basisobjekts.</string>
+    <string name="ModelBooleanHelp">Wähle mindestens zwei Objekte. Das hervorgehobene Objekt ist die Basis; die übrigen ausgewählten Objekte werden in Objektlisten-Reihenfolge angewendet. Abziehen entfernt sie, Schnittmenge behält die gemeinsame Überlappung. Das Ergebnis übernimmt das Filament des Basisobjekts.</string>
+    <string name="ModelBooleanTargetSummary">Basisobjekt: %1$s</string>
+    <string name="ModelBooleanToolsSummary">Werkzeuge in Objektlisten-Reihenfolge: %1$s</string>
     <string name="ModelBooleanUnion">Vereinigung · ausgewählte Körper verbinden</string>
     <string name="ModelBooleanDifference">Abziehen · ausgewählte Körper abziehen</string>
     <string name="ModelBooleanIntersection">Schnittmenge · Überlappung behalten</string>

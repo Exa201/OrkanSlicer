@@ -736,10 +736,20 @@ class ModelEditingNativeDeviceTest {
         val selected = AtomicReference<BooleanOperation?>(null)
         compose.setContent {
             BeamComposeTheme {
-                ModelBooleanDialog(onDismiss = {}, onChoose = selected::set)
+                ModelBooleanDialog(
+                    targetName = "Base object",
+                    toolNames = listOf("Tool A", "Tool B"),
+                    onDismiss = {},
+                    onChoose = selected::set,
+                )
             }
         }
 
+        compose.onNodeWithTag("model-boolean-target").assertIsDisplayed()
+        compose.onNodeWithTag("model-boolean-tools").assertIsDisplayed()
+        compose.onNodeWithText("Base object", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Tool A", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Tool B", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("model-boolean-union").performScrollTo().assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(BooleanOperation.UNION, selected.get()) }
         compose.onNodeWithTag("model-boolean-difference").performScrollTo().assertIsDisplayed().performClick()
