@@ -5,8 +5,9 @@
 - Reproduzierbarer Reihenfolgefehler bei Modellimporten behoben: `BedFragment` richtet Undo/Redo jetzt auf den importierten Rendererzustand aus, bevor `ModelLoadCallback.onLoaded` Erfolg signalisiert. STL-Autoausrichtung rebased anschließend die Undo-Basis, damit Importkorrekturen nicht als separate Nutzeraktion erscheinen.
 - Honor PTP-N49 / Android 16: gezielter Test für „Alle löschen → Abbrechen/Zurück → Undo“ bestanden (1/1); vollständige `InitialProjectMenuDeviceTest`-Klasse bestanden (91/91) und `WorkspaceModePanelHostDeviceTest` bestanden (7/7), jeweils ohne Fehler oder Übersprünge.
 - Debug- und Slice-Unit-Suiten bestanden (je 625/625, keine Fehler oder Übersprünge). Der erste parallele Lauf deckte außerdem eine falsche neue Landscape-Panel-Test-Erwartung auf (180 statt richtiger 200 dp); korrigiert. Ein temporäres STL-Fixture scheiterte in diesem parallelen Lauf beim Schreiben; der sequenzielle vollständige Slice-Lauf bestand.
-- `git diff --check` bestanden. Der Branch-HEAD bleibt `32b22d5bcee7`; Änderungen sind lokal und noch nicht committet/veröffentlicht.
-- Nächster Schritt: weitere auf dem Xiaomi-/Honor-Gerät angeforderte Modellierungs- und Importpfade fortsetzen; anschließend gezielte Gesamtabnahme, Debug-APK und Veröffentlichung gemäß aktivem Projektauftrag.
+- `git diff --check` bestanden. Der Code-Commit `82540095` enthält die verifizierte Änderung; Version `0.8.366` / Code `401` baut erfolgreich. Die Debug-APK wurde auf Honor installiert und gestartet; `dumpsys` bestätigt Version `0.8.366`, im erfassten Logcat-Ausschnitt kein Crash/ANR/OOM.
+- Release-Artefakt: `OrkanSlicer_825400959e.apk`, 239,425,214 Bytes, SHA-256 `68E29BCF5167243BEA2DEC91B25D3FD1BE207C174EA7EB11F754A63ED4C0F71A`. Der APK-Build referenziert Code-Commit `82540095`.
+- Nächster Schritt: den geprüften Stand als regulären GitHub-Release veröffentlichen, danach die noch offenen Xiaomi-/Honor-Modellierungs- und Importpfade fortsetzen; UI-2.0-Gesamtziel bleibt offen.
 
 ## Modellierungsfortschritt — 2026-10-24
 
