@@ -7,6 +7,7 @@
 #include "nanosvg/nanosvg.h"
 
 #include <string>
+#include <map>
 
 #include <boost/log/trivial.hpp>
 
@@ -384,6 +385,10 @@ bool load_svg(const char *path, Model *model, std::string &message)
     ModelObject *new_object = model->add_object();
     // new_object->name ?
     new_object->input_file = path;
+    // Keep each distinct SVG fill color on its own slicer tool. The SVG importer
+    // already creates one model volume per NanoSVG shape; assigning the color
+    // here lets the normal per-volume extruder and 3MF paths preserve that split.
+    std::map<unsigned int, int> extruder_by_color;
     auto stage_unit3 = stl.size() / LOAD_STEP_STAGE_UNIT_NUM + 1;
     for (size_t i = 0; i < stl.size(); i++) {
         // BBS: maybe mesh is empty from step file. Don't add
@@ -395,6 +400,9 @@ bool load_svg(const char *path, Model *model, std::string &message)
             new_volume->source.input_file = path;
             new_volume->source.object_idx = (int) model->objects.size() - 1;
             new_volume->source.volume_idx = (int) new_object->volumes.size() - 1;
+            auto extruder = extruder_by_color.emplace(
+                namedSolids[i].color, static_cast<int>(extruder_by_color.size() + 1));
+            new_volume->config.set("extruder", extruder.first->second);
         }
     }
     return true;

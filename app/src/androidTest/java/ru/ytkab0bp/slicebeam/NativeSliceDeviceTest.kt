@@ -972,6 +972,8 @@ class NativeSliceDeviceTest {
             assertEquals("the source SVG should load as one workspace model", 1, model.objectsCount)
             assertTrue("the source SVG should contain printable mesh facets", model.getTriangleCount(0) > 0)
             assertTrue("the source SVG should create a closed printable body", model.getObjectVolume(0) > 0.0)
+            assertEquals("the SVG's red, white, and black fill groups should map to three tools",
+                listOf(1, 2, 3), model.getUsedFilaments(0).toList())
 
             SliceBeam.genCurrentConfig(model)
             generatedConfig = SliceBeam.getCurrentConfigFile()
@@ -984,12 +986,17 @@ class NativeSliceDeviceTest {
             assertTrue("the 3MF round trip should retain printable geometry", restored.getTriangleCount(0) > 0)
             assertEquals("the SVG's filament assignments should survive the project round trip",
                 model.getUsedFilaments(0).toList(), restored.getUsedFilaments(0).toList())
+            assertEquals("the 3MF round trip must preserve all three SVG color tools",
+                listOf(1, 2, 3), restored.getUsedFilaments(0).toList())
 
             SliceBeam.genCurrentConfig(restored)
             generatedConfig = SliceBeam.getCurrentConfigFile()
             sliceResult = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
             val gcode = gcodeFile.readText()
             assertHasExtrusion(gcode)
+            for (tool in 0..2) {
+                assertTrue("the multicolor SVG should emit tool T$tool", Regex("(?m)^T$tool(?:\\s|$)").containsMatchIn(gcode))
+            }
             Log.i("NativeSliceDeviceTest", "PASS supplied multicolor SVG G-code bytes=${gcodeFile.length()}, " +
                 "facets=${restored.getTriangleCount(0)}, filaments=${restored.getUsedFilaments(0).toList()}")
         } finally {
