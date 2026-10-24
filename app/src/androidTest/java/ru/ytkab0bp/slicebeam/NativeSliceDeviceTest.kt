@@ -772,6 +772,64 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanUnionHandlesLinkedTargetAndCutterCopiesAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val targetFile = copyCube(context, "boolean-linked-target.stl")
+        val cutterFile = copyCube(context, "boolean-linked-cutter.stl")
+        val outputFile = File(context.cacheDir, "boolean-linked-copies.gcode")
+        val model = Model(targetFile)
+        val cutter = Model(cutterFile)
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val oneCubeVolume = model.getObjectVolume(0)
+            assertTrue("the target should have a second linked placement", model.duplicateInstance(
+                0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+            ) >= 0)
+            cutter.translate(0, width * 0.5, 0.0, 0.0)
+            assertTrue("the cutter should have a second linked placement", cutter.duplicateInstance(
+                0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+            ) >= 0)
+            model.addObject(cutter, 0)
+
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            val cutterMin = Vec3d(); val cutterMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            model.getBoundingBoxExact(1, cutterMin, cutterMax)
+            val expectedMinX = minOf(targetMin.x, cutterMin.x)
+            val expectedMaxX = maxOf(targetMax.x, cutterMax.x)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+            assertEquals("all selected linked copies should be combined", 0, result)
+            assertEquals("Boolean output should be one printable object", 1, model.objectsCount)
+            assertEquals("two half-overlapping pairs should preserve the combined volume",
+                oneCubeVolume * 3.0, model.getObjectVolume(result), oneCubeVolume * 0.03)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals("Boolean result should retain all linked-copy bounds", expectedMinX,
+                resultMin.x, 0.03)
+            assertEquals("Boolean result should retain all linked-copy bounds", expectedMaxX,
+                resultMax.x, 0.03)
+
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            sliceResult = model.slice(configFile.absolutePath, outputFile.absolutePath, null)
+            val gcode = outputFile.readText()
+            assertTrue("the linked-copy Boolean result should slice", gcode.isNotBlank())
+            assertHasExtrusion(gcode)
+        } finally {
+            sliceResult?.release()
+            cutter.release()
+            model.release()
+            targetFile.delete()
+            cutterFile.delete()
+            outputFile.delete()
+        }
+    }
+
+    @Test
     fun standalonePrintableTextProducesExtrusionGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application

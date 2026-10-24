@@ -1799,8 +1799,13 @@ extern "C" {
             }
 
             ModelObject* target = ref->model.objects[indices.front()];
-            if (target == nullptr || target->instances.size() != 1 || target->instances.front() == nullptr)
-                return -2;
+            auto has_valid_instances = [](const ModelObject* object) {
+                return object != nullptr && !object->instances.empty() &&
+                    std::none_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) {
+                        return instance == nullptr;
+                    });
+            };
+            if (!has_valid_instances(target)) return -2;
 
             auto valid_operand = [](const TriangleMesh& mesh) {
                 if (mesh.empty() || mesh.stats().open_edges != 0 ||
@@ -1835,7 +1840,7 @@ extern "C" {
                 auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
                 if (!resultCgal) return -3;
                 ModelObject* tool = ref->model.objects[indices[1]];
-                if (tool == nullptr || tool->instances.size() != 1 || tool->instances.front() == nullptr) return -2;
+                if (!has_valid_instances(tool)) return -2;
                 TriangleMesh toolMesh = tool->mesh();
                 if (!valid_operand(toolMesh)) return -3;
                 auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
@@ -1853,7 +1858,7 @@ extern "C" {
                 if (!resultCgal) return -3;
                 for (size_t n = 1; n < indices.size(); ++n) {
                     ModelObject* tool = ref->model.objects[indices[n]];
-                    if (tool == nullptr || tool->instances.size() != 1 || tool->instances.front() == nullptr) return -2;
+                    if (!has_valid_instances(tool)) return -2;
                     TriangleMesh toolMesh = tool->mesh();
                     if (!valid_operand(toolMesh)) return -3;
                     auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
