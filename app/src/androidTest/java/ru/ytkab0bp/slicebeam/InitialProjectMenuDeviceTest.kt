@@ -438,7 +438,7 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
-            compose.onNodeWithText(activity.getString(operationLabel))
+            compose.onNodeWithText(activity.getString(operationLabel), useUnmergedTree = true)
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
 
@@ -5024,6 +5024,103 @@ class InitialProjectMenuDeviceTest {
                 readUsedFilamentsOnGl(glView, 1))
             assertArrayEquals("the individually moved object survives a plate reload", intArrayOf(4),
                 readUsedFilamentsOnGl(glView, 2))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun combiningObjectsOnSecondaryPlateKeepsHistoryAndOtherPlateUnchanged() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-combine-secondary-plate-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            val sourceBounds = readExactBoundsOnGl(glView, 0).single()
+            val sourceFilaments = readUsedFilamentsOnGl(glView, 0)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuAddPlate))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.plateCount == 2 && bed.currentPlateIndex == 1
+            }
+
+            // Load a controlled model on the secondary plate. A second import creates a separate
+            // object while avoiding self-copying a native model after a plate switch.
+            loadSingleTestModel(bed, modelFile)
+            loadSingleTestModel(bed, modelFile)
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                model.setUniformFilament(0, 1)
+                model.translate(1, 38.0, 0.0, 0.0)
+                model.setUniformFilament(1, 2)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("secondary plate objects should be prepared on the GL thread",
+                prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            assertEquals("both objects should remain on the secondary plate before combine", 2,
+                readObjectCountOnGl(glView))
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuCombineSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("workspace-message-confirm").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
+            assertArrayEquals("secondary plate combine retains both source materials", intArrayOf(1, 2),
+                readUsedFilamentsOnGl(glView, 0))
+            val joinedBounds = readExactBoundsOnGl(glView, 0).single()
+            assertTrue("joined parts should preserve the moved component's world extent",
+                joinedBounds[3] - joinedBounds[0] > sourceBounds[3] - sourceBounds[0] + 30.0)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            assertArrayEquals("Undo restores the first secondary plate material", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("Undo restores the second secondary plate material", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 1))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "2"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "1"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 0 && readObjectCountOnGl(glView) == 1
+            }
+            assertArrayEquals("the primary plate's original filament assignment remains unchanged",
+                sourceFilaments, readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("the primary plate's original object bounds remain unchanged",
+                sourceBounds, readExactBoundsOnGl(glView, 0).single(), 0.03)
+
+            compose.onNodeWithContentDescription(activity.getString(R.string.PlateNumber, "1"))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.PlatePickerSelectDescription, "2"),
+            ).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.currentPlateIndex == 1 && readObjectCountOnGl(glView) == 1
+            }
+            assertArrayEquals("the combined assembly and both materials survive returning to plate 2",
+                intArrayOf(1, 2), readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("the combined assembly retains its position after plate switching",
+                joinedBounds, readExactBoundsOnGl(glView, 0).single(), 0.03)
         } finally {
             modelFile.delete()
         }
