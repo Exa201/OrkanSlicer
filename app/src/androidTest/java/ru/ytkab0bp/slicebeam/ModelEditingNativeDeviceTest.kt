@@ -1168,6 +1168,13 @@ class ModelEditingNativeDeviceTest {
         try {
             assertTrue("generated STL should retain its screw triangles", model.getTriangleCount(0) > 0)
             assertEquals(written, model.getTriangleCount(0))
+            assertTrue("generated M12 bolt should remain a printable solid with positive volume",
+                model.getObjectVolume(0) > 0.0)
+            val boltMin = Vec3d(); val boltMax = Vec3d()
+            model.getBoundingBoxExact(0, boltMin, boltMax)
+            val expectedHeight = FastenerFormLogic.parse(values.first) + FastenerFormLogic.parse(values.third)
+            assertEquals("packed ring generation must preserve the bolt's designed total height",
+                expectedHeight.toDouble(), boltMax.z - boltMin.z, 0.02)
             assertTrue(
                 "a standard M12 bolt must stay on the safe bounds-picking path",
                 LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),

@@ -40,9 +40,20 @@ object FastenerStlWriter {
         if (minor <= 0f) throw IOException("Gewindesteigung passt nicht zum Durchmesser.")
         val steps = axialSteps(length, pitch)
         val z0 = headHeight
-        val rings = Array(steps + 1) { Array(SIDES) { FloatArray(3) } }
+        // Pack ring vertices into primitive arrays. The previous per-vertex FloatArray
+        // representation created tens of thousands of short-lived objects for a standard
+        // M12 bolt, causing avoidable GC pressure on phones while keeping identical facets.
+        val rings = Array(steps + 1) { FloatArray(SIDES * 3) }
+        val cosines = DoubleArray(SIDES)
+        val sines = DoubleArray(SIDES)
+        for (a in 0 until SIDES) {
+            val angle = Math.PI * 2 * a / SIDES
+            cosines[a] = cos(angle)
+            sines[a] = sin(angle)
+        }
         for (z in 0..steps) {
             val axial = length * z / steps
+            val ring = rings[z]
             for (a in 0 until SIDES) {
                 val angle = Math.PI * 2 * a / SIDES
                 val phase = axial / pitch - angle / (Math.PI * 2)
@@ -50,17 +61,20 @@ object FastenerStlWriter {
                 val ridge = if (f < .5) f * 2 else (1 - f) * 2
                 // Trapezoidal approximation to a printable ISO-style external thread.
                 val radius = minor / 2 + (diameter / 2 - minor / 2) * min(1.0, ridge * 1.35)
-                rings[z][a][0] = (radius * cos(angle)).toFloat()
-                rings[z][a][1] = (radius * sin(angle)).toFloat()
-                rings[z][a][2] = z0 + axial
+                val offset = a * 3
+                ring[offset] = (radius * cosines[a]).toFloat()
+                ring[offset + 1] = (radius * sines[a]).toFloat()
+                ring[offset + 2] = z0 + axial
             }
         }
         for (z in 0 until steps) for (a in 0 until SIDES) {
             val b = (a + 1) % SIDES
-            mesh.quad(rings[z][a], rings[z + 1][a], rings[z + 1][b], rings[z][b])
+            mesh.quad(rings[z], a * 3, rings[z + 1], a * 3,
+                rings[z + 1], b * 3, rings[z], b * 3)
         }
-        mesh.fan(rings[steps], floatArrayOf(0f, 0f, z0 + length), true)
-        addHexHead(mesh, headAcrossFlats, headHeight, rings[0])
+        val topRing = unpackRing(rings[steps])
+        mesh.fan(topRing, floatArrayOf(0f, 0f, z0 + length), true)
+        addHexHead(mesh, headAcrossFlats, headHeight, unpackRing(rings[0]))
         mesh.write(file, "OrkanSlicer threaded bolt")
         return mesh.count
     }
@@ -338,6 +352,11 @@ object FastenerStlWriter {
 
     private fun point(x: Double, y: Double, z: Double) = floatArrayOf(x.toFloat(), y.toFloat(), z.toFloat())
 
+    private fun unpackRing(ring: FloatArray): Array<FloatArray> = Array(SIDES) { index ->
+        val offset = index * 3
+        floatArrayOf(ring[offset], ring[offset + 1], ring[offset + 2])
+    }
+
     @Throws(IOException::class)
     private fun requireDimension(value: Float, min: Float, max: Float, label: String) {
         if (!value.isFinite() || value < min || value > max) {
@@ -356,6 +375,12 @@ object FastenerStlWriter {
             tri(a, c, d)
         }
 
+        fun quad(a: FloatArray, aOffset: Int, b: FloatArray, bOffset: Int,
+                 c: FloatArray, cOffset: Int, d: FloatArray, dOffset: Int) {
+            tri(a, aOffset, b, bOffset, c, cOffset)
+            tri(a, aOffset, c, cOffset, d, dOffset)
+        }
+
         fun fan(ring: Array<FloatArray>, center: FloatArray, up: Boolean) {
             for (i in ring.indices) {
                 val next = (i + 1) % ring.size
@@ -364,8 +389,17 @@ object FastenerStlWriter {
         }
 
         private fun tri(a: FloatArray, b: FloatArray, c: FloatArray) {
-            val ux = b[0] - a[0]; val uy = b[1] - a[1]; val uz = b[2] - a[2]
-            val vx = c[0] - a[0]; val vy = c[1] - a[1]; val vz = c[2] - a[2]
+            tri(a, 0, b, 0, c, 0)
+        }
+
+        private fun tri(a: FloatArray, aOffset: Int, b: FloatArray, bOffset: Int,
+                        c: FloatArray, cOffset: Int) {
+            val ux = b[bOffset] - a[aOffset]
+            val uy = b[bOffset + 1] - a[aOffset + 1]
+            val uz = b[bOffset + 2] - a[aOffset + 2]
+            val vx = c[cOffset] - a[aOffset]
+            val vy = c[cOffset + 1] - a[aOffset + 1]
+            val vz = c[cOffset + 2] - a[aOffset + 2]
             val area2 = sqrt((uy * vz - uz * vy).toDouble().pow(2) +
                 (uz * vx - ux * vz).toDouble().pow(2) + (ux * vy - uy * vx).toDouble().pow(2))
             if (area2 < 1e-7) return
@@ -376,9 +410,15 @@ object FastenerStlWriter {
                 coordinates = coordinates.copyOf(capacity)
             }
             val offset = count * 9
-            coordinates[offset] = a[0]; coordinates[offset + 1] = a[1]; coordinates[offset + 2] = a[2]
-            coordinates[offset + 3] = b[0]; coordinates[offset + 4] = b[1]; coordinates[offset + 5] = b[2]
-            coordinates[offset + 6] = c[0]; coordinates[offset + 7] = c[1]; coordinates[offset + 8] = c[2]
+            coordinates[offset] = a[aOffset]
+            coordinates[offset + 1] = a[aOffset + 1]
+            coordinates[offset + 2] = a[aOffset + 2]
+            coordinates[offset + 3] = b[bOffset]
+            coordinates[offset + 4] = b[bOffset + 1]
+            coordinates[offset + 5] = b[bOffset + 2]
+            coordinates[offset + 6] = c[cOffset]
+            coordinates[offset + 7] = c[cOffset + 1]
+            coordinates[offset + 8] = c[cOffset + 2]
             count++
         }
 
