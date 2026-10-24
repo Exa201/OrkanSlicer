@@ -4617,7 +4617,7 @@ class InitialProjectMenuDeviceTest {
             activity.assets.open("models/pyramid.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
             }
-            val model = loadSingleTestModel(bed, modelFile)
+            var model = loadSingleTestModel(bed, modelFile)
             val glView = requireNotNull(bed.glView)
             glView.selectModel(0, Runnable {})
             val duplicateDone = CountDownLatch(1)
@@ -4630,12 +4630,36 @@ class InitialProjectMenuDeviceTest {
             openModelMenu(activity)
             selectAllObjectsScope()
             val beforeOrientAll = model.geometryRevision
+            val historyBeforeOrientAll = readModelHistorySize(bed, "undoHistory")
+            val beforeOrientAllBounds = readExactBoundsOnGl(glView, 0, 1)
             revealMenuAction(activity, R.string.ModelMenuOrientAll)
             compose.onNodeWithText(activity.getString(R.string.ModelMenuOrientAllShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision >= beforeOrientAll + 2 }
             assertEquals("Orient All should process both workspace objects", beforeOrientAll + 2,
                 model.geometryRevision)
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readModelHistorySize(bed, "undoHistory") > historyBeforeOrientAll
+            }
+            val afterOrientAllBounds = readExactBoundsOnGl(glView, 0, 1)
+            beforeOrientAllBounds.zip(afterOrientAllBounds).forEachIndexed { index, (before, after) ->
+                for (axis in 0..2) {
+                    assertEquals("Orient All should preserve object $index center on axis $axis",
+                        (before[axis] + before[axis + 3]) / 2.0,
+                        (after[axis] + after[axis + 3]) / 2.0, 0.02)
+                }
+            }
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                beforeOrientAllBounds.zip(readExactBoundsOnGl(glView, 0, 1))
+                    .all { (before, current) -> before.contentEquals(current) }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                afterOrientAllBounds.zip(readExactBoundsOnGl(glView, 0, 1))
+                    .all { (after, current) -> after.contentEquals(current) }
+            }
+            model = requireNotNull(bed.currentModel)
 
             selectSingleObjectScope()
             glView.selectModels(intArrayOf(0, 1)) { bed.updateModel() }

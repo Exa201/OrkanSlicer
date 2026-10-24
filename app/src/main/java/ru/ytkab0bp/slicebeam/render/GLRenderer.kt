@@ -428,10 +428,8 @@ internal fun distributeSelectedObjects(axis: ObjectDistributionAxis, expectedSel
     return true
 }
 
-/** Auto-orient every selected object individually while keeping each object's position fixed. GL-thread only. */
-fun autoOrientSelectedObjects(): Int {
-    val activeModel = model ?: return 0
-    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+/** Auto-orient the given objects individually while keeping each object's center fixed. GL-thread only. */
+private fun autoOrientObjectsAtFixedCenters(activeModel: Model, indices: List<Int>): Int {
     if (indices.isEmpty()) return 0
     indices.forEach { index ->
         activeModel.getBoundingBoxExact(index, bbMin, bbMax)
@@ -452,6 +450,19 @@ fun autoOrientSelectedObjects(): Int {
     prepareSelectionTransformPreview()
     glView.requestRender()
     return indices.size
+}
+
+/** Auto-orient every selected object individually while keeping each object's position fixed. GL-thread only. */
+fun autoOrientSelectedObjects(): Int {
+    val activeModel = model ?: return 0
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    return autoOrientObjectsAtFixedCenters(activeModel, indices)
+}
+
+/** Auto-orient every workspace object individually without changing their placement. GL-thread only. */
+fun autoOrientAllObjects(): Int {
+    val activeModel = model ?: return 0
+    return autoOrientObjectsAtFixedCenters(activeModel, (0 until activeModel.objectsCount).toList())
 }
 
 private data class SelectionBounds(val min: Vec3d, val max: Vec3d) {

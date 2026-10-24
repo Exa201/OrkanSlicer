@@ -428,6 +428,14 @@ fun autoOrientSelectedObjects(onComplete: (Int) -> Unit) {
         ViewUtils.postOnMainThread { onComplete(oriented) }
     }
 }
+fun autoOrientAllObjects(onComplete: (Int) -> Unit) {
+    queueEvent {
+        if (renderer.invalidateFlattenMode()) requestRender()
+        val oriented = renderer.autoOrientAllObjects()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(oriented) }
+    }
+}
 fun deleteAllModels(onComplete:Runnable) {
 queueEvent({ renderer.deleteAllObjects()
 requestRender()

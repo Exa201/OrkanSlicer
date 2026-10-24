@@ -127,16 +127,8 @@ internal class ModelMenuItems(
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuOrientAll, R.drawable.menu_orientation_auto_28, {
                 val activeGlView = fragment.glView ?: return@BedComposeMenuAction
-                activeGlView.queueEvent {
-                    val activeRenderer = activeGlView.renderer
-                    val model = activeRenderer.model ?: return@queueEvent
-                    if (activeRenderer.invalidateFlattenMode()) activeGlView.requestRender()
-                    for (index in 0 until model.objectsCount) {
-                        model.autoOrient(index)
-                        activeRenderer.invalidateGlModel(index)
-                    }
-                    activeGlView.requestRender()
-                    ViewUtils.postOnMainThread {
+                activeGlView.autoOrientAllObjects { orientedCount ->
+                    if (orientedCount > 0) {
                         fragment.updateModel()
                         SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientAllObjectsDone))
                     }
