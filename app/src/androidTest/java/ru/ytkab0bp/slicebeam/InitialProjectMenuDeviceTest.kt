@@ -384,6 +384,7 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
             assertArrayEquals("Redo should retain the primary target's material", intArrayOf(2),
                 readUsedFilamentsOnGl(glView, 0))
+            assertCurrentWorkspaceModelRoundTripsAndSlices("boolean-primary-target-material")
         } finally {
             modelFile.delete()
         }
