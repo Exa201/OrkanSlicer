@@ -220,6 +220,80 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun combiningLinkedCopiesWithAnotherObjectMaterializesAllInstancesAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "combine-linked-copies.stl")
+        val sourceFile = copyCube(context, "combine-linked-source.stl")
+        val projectFile = File(context.cacheDir, "combine-linked-roundtrip.3mf")
+        val outputFile = File(context.cacheDir, "combine-linked-roundtrip.gcode")
+        val model = Model(modelFile)
+        val linkedSource = Model(sourceFile)
+        var restored: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            val initialMin = Vec3d(); val initialMax = Vec3d()
+            model.getBoundingBoxExact(0, initialMin, initialMax)
+            val width = initialMax.x - initialMin.x
+            val trianglesPerCopy = model.getTriangleCount(0)
+            assertTrue("the linked copy should be created", model.duplicateInstance(
+                0, 0, Vec3d(width + 7.0, 0.0, 0.0),
+            ) >= 0)
+            linkedSource.setUniformFilament(0, 2)
+            model.addObject(linkedSource, 0)
+            model.translate(1, width * 2.0 + 14.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+
+            fun combinedWorldBounds(source: Model, index: Int): Pair<DoubleArray, DoubleArray> {
+                val min = Vec3d(); val max = Vec3d()
+                source.getBoundingBoxExact(index, min, max)
+                return doubleArrayOf(min.x, min.y, min.z) to doubleArrayOf(max.x, max.y, max.z)
+            }
+            val sourceBounds = listOf(combinedWorldBounds(model, 0), combinedWorldBounds(model, 1))
+            val expectedMin = DoubleArray(3) { axis -> sourceBounds.minOf { it.first[axis] } }
+            val expectedMax = DoubleArray(3) { axis -> sourceBounds.maxOf { it.second[axis] } }
+
+            assertEquals("linked object and separately placed object should combine", 0,
+                model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("all three world copies should become one printable object", 1, model.objectsCount)
+            assertEquals("the linked copy must be materialized as its own part",
+                trianglesPerCopy * 3, model.getTriangleCount(0))
+            assertEquals("each source tool assignment should survive grouping", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+            val joinedBounds = combinedWorldBounds(model, 0)
+            for (axis in 0..2) {
+                assertEquals("joined world minimum on axis $axis", expectedMin[axis], joinedBounds.first[axis], 0.02)
+                assertEquals("joined world maximum on axis $axis", expectedMax[axis], joinedBounds.second[axis], 0.02)
+            }
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, projectFile.absolutePath)
+            restored = Model(projectFile, 1)
+            assertEquals("the grouped project should reload as one object", 1, restored.objectsCount)
+            assertEquals("both materials should survive the 3MF round trip", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+            val restoredBounds = combinedWorldBounds(restored, 0)
+            for (axis in 0..2) {
+                assertEquals("reloaded world minimum on axis $axis", expectedMin[axis], restoredBounds.first[axis], 0.02)
+                assertEquals("reloaded world maximum on axis $axis", expectedMax[axis], restoredBounds.second[axis], 0.02)
+            }
+            sliceResult = restored.slice(SliceBeam.getCurrentConfigFile().absolutePath, outputFile.absolutePath, null)
+            val gcode = outputFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the original target should emit T0", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the joined source should emit T1", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            sliceResult?.release()
+            restored?.release()
+            linkedSource.release()
+            model.release()
+            modelFile.delete()
+            sourceFile.delete()
+            projectFile.delete()
+            outputFile.delete()
+        }
+    }
+
+    @Test
     fun uniformReassignmentOfMultipart3mfSurvivesReloadAndSlicesWithNewSlot() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val sourceFile = copyCube(context, "multipart-reassignment-source.stl")

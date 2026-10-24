@@ -1712,23 +1712,29 @@ extern "C" {
 
             const int target_index = indices.front();
             ModelObject* target = ref->model.objects[target_index];
-            if (target == nullptr || target->instances.size() != 1 || target->instances.front() == nullptr) return -2;
+            if (target == nullptr || target->instances.empty() || target->instances.front() == nullptr) return -2;
             const Transform3d target_world = target->instances.front()->get_matrix();
             const Transform3d world_to_target = target_world.inverse();
-            // Validate the entire operation before mutating the destination object.
+            // Validate the entire operation before mutating the destination object. Linked
+            // instances are materialized as parts below, so every placed copy remains visible
+            // after the joined object is reduced to one instance.
             for (size_t n = 1; n < indices.size(); ++n) {
                 ModelObject* source = ref->model.objects[indices[n]];
-                if (source == nullptr || source->instances.size() != 1 || source->instances.front() == nullptr) return -2;
+                if (source == nullptr || source->instances.empty() ||
+                    std::any_of(source->instances.begin(), source->instances.end(), [](const ModelInstance* instance) {
+                        return instance == nullptr;
+                    })) return -2;
             }
+            if (std::any_of(target->instances.begin(), target->instances.end(), [](const ModelInstance* instance) {
+                    return instance == nullptr;
+                })) return -2;
             // Build all copied volumes off-object first. Appending incrementally would expose a
             // partial join if copying/configuration throws; deleting those volumes as rollback is
             // also unsafe because ModelObject::delete_volume collapses the last volume transform
             // into the instance. Reserve and prepare the new name before the no-throw commit.
             std::vector<std::unique_ptr<ModelVolume>> prepared_volumes;
-            for (size_t n = 1; n < indices.size(); ++n) {
-                ModelObject* source = ref->model.objects[indices[n]];
-                const Transform3d source_world = source->instances.front()->get_matrix();
-                for (const ModelVolume* volume : source->volumes) {
+            auto append_instance_volumes = [&](const ModelObject& source, const Transform3d& source_world) {
+                for (const ModelVolume* volume : source.volumes) {
                     auto copied = target->prepare_volume_copy(*volume);
                     // The parent object changes during grouping; pin the source's effective tool
                     // on its copied volume so it does not inherit the target object's tool.
@@ -1740,14 +1746,28 @@ extern "C" {
                     copied->source.volume_idx = (int) (target->volumes.size() + prepared_volumes.size());
                     prepared_volumes.push_back(std::move(copied));
                 }
+            };
+            // The target's first instance already exists as the destination object's transform.
+            // Convert each additional linked copy into new volumes before dropping those instances.
+            for (size_t instance_index = 1; instance_index < target->instances.size(); ++instance_index)
+                append_instance_volumes(*target, target->instances[instance_index]->get_matrix());
+            for (size_t n = 1; n < indices.size(); ++n) {
+                ModelObject* source = ref->model.objects[indices[n]];
+                for (const ModelInstance* instance : source->instances)
+                    append_instance_volumes(*source, instance->get_matrix());
             }
-            std::string combined_name = target->name + " + " + std::to_string(indices.size() - 1);
+            size_t absorbed_instances = target->instances.size() - 1;
+            for (size_t n = 1; n < indices.size(); ++n)
+                absorbed_instances += ref->model.objects[indices[n]]->instances.size();
+            std::string combined_name = target->name + " + " + std::to_string(absorbed_instances);
             target->volumes.reserve(target->volumes.size() + prepared_volumes.size());
             // Keep the existing project-backup behavior while taking the snapshot before the
             // mutation, so a failed backup cannot leave a partially committed join.
             Slic3r::save_object_mesh(*target);
             for (auto& volume : prepared_volumes)
                 target->volumes.push_back(volume.release());
+            while (target->instances.size() > 1)
+                target->delete_last_instance();
             target->name.swap(combined_name);
             target->invalidate_bounding_box();
             for (auto it = indices.rbegin(); it != indices.rend(); ++it)

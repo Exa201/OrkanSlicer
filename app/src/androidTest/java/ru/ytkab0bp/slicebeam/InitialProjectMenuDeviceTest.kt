@@ -2289,9 +2289,10 @@ class InitialProjectMenuDeviceTest {
                 model.getBoundingBoxExact(0, min, max)
                 val partWidth = max.x - min.x
                 model.addObject(model, 0)
-                model.addObject(model, 0)
                 model.translate(1, partWidth * 1.4, 0.0, 0.0)
-                model.translate(2, partWidth * 2.8, 0.0, 0.0)
+                model.duplicateInstance(1, 0, Vec3d(partWidth * 1.4, 0.0, 0.0))
+                model.addObject(model, 0)
+                model.translate(2, partWidth * 4.2, 0.0, 0.0)
                 model.setUniformFilament(0, 1)
                 model.setUniformFilament(1, 2)
                 model.setUniformFilament(2, 3)
@@ -2300,7 +2301,7 @@ class InitialProjectMenuDeviceTest {
                 prepared.countDown()
             }
             assertTrue("multipart test objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
-            assertEquals("all three source objects should exist before opening the list", 3,
+            assertEquals("three selected source objects should exist before opening the list", 3,
                 readObjectCountOnGl(glView))
             compose.runOnUiThread { bed.updateModel() }
             instrumentationWaitForGlIdle()
@@ -2331,7 +2332,7 @@ class InitialProjectMenuDeviceTest {
                 combinedReady.countDown()
             }
             assertTrue("combined part filaments should be read on the GL thread", combinedReady.await(10, TimeUnit.SECONDS))
-            assertArrayEquals("combining the selected group preserves all three source materials",
+            assertArrayEquals("combining the selected group preserves all source materials",
                 intArrayOf(1, 2, 3), requireNotNull(combinedFilaments.get()))
 
             compose.runOnUiThread { bed.undoModelEdit() }
@@ -2351,7 +2352,7 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.MenuToolbarSplit)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
-            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 3 }
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 4 }
             // The native split completes on the GL thread and posts updateModel() to Main.
             compose.runOnUiThread { }
             @Suppress("UNCHECKED_CAST")
@@ -2360,16 +2361,16 @@ class InitialProjectMenuDeviceTest {
             assertTrue("splitting the joined object should add an undo snapshot", undoHistory.isNotEmpty())
             assertEquals("split undo snapshot should restore the multipart joined object", 1,
                 undoHistory.peekLast().objectsCount)
-            assertEquals("splitting a multipart object should preserve each source filament", listOf(1, 2, 3),
-                (0 until 3).map { index -> readUsedFilamentsOnGl(glView, index).single() })
+            assertEquals("splitting a multipart object should preserve each source filament", listOf(1, 2, 2, 3),
+                (0 until 4).map { index -> readUsedFilamentsOnGl(glView, index).single() })
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
             assertArrayEquals("Undo split must restore the joined multipart assembly", intArrayOf(1, 2, 3),
                 readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
-            assertEquals("Redo split must restore all independent source bodies", listOf(1, 2, 3),
-                (0 until 3).map { index -> readUsedFilamentsOnGl(glView, index).single() })
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 4 }
+            assertEquals("Redo split must restore all independent source bodies", listOf(1, 2, 2, 3),
+                (0 until 4).map { index -> readUsedFilamentsOnGl(glView, index).single() })
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
 
