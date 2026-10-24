@@ -358,9 +358,16 @@ open class Model private constructor(@JvmField var pointer: Long) {
         position: Vec3d,
         normal: Vec3d,
     ) {
+        if (pointer == 0L || type !in 0..1) return
+        val placement = ModelEditRequestValidation.snapshotTextPlacement(position, normal)
+        if (!ModelEditRequestValidation.isValidTextRequest(
+                fontPath, text, size, depth, placement.position, placement.normal, i, objectsCount,
+            )
+        ) return
         Native.model_emboss_text(
             pointer, i, fontPath, text, size, depth, type,
-            position.x, position.y, position.z, normal.x, normal.y, normal.z,
+            placement.position.x, placement.position.y, placement.position.z,
+            placement.normal.x, placement.normal.y, placement.normal.z,
         )
         resetBoundingBox()
     }

@@ -138,6 +138,32 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun embossRejectsMalformedNativeRequestsWithoutChangingTheModel() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "invalid-emboss-cube.stl")
+        val fontFile = copyAsset("font/roboto_medium.ttf", "invalid-emboss-font.ttf")
+        val model = Model(modelFile)
+        try {
+            val triangleCount = model.getTriangleCount(0)
+            val volume = model.getObjectVolume(0)
+            val position = Vec3d(0.0, 0.0, 0.0)
+            val normal = Vec3d(0.0, 0.0, 1.0)
+
+            model.embossText(0, fontFile.absolutePath, "Text", Float.NaN, 1f, 0, position, normal)
+            model.embossText(0, fontFile.absolutePath, "Text", 10f, Float.POSITIVE_INFINITY, 1, position, normal)
+            model.embossText(0, fontFile.absolutePath, "Text", 10f, 1f, 0, position, Vec3d())
+            model.embossText(1, fontFile.absolutePath, "Text", 10f, 1f, 0, position, normal)
+            model.embossText(0, fontFile.absolutePath, "Text", 10f, 1f, 2, position, normal)
+
+            assertEquals("invalid emboss requests must keep the original mesh", triangleCount, model.getTriangleCount(0))
+            assertEquals("invalid emboss requests must keep the original solid volume", volume, model.getObjectVolume(0), 0.001)
+            assertEquals("invalid object indices must not add geometry", 1, model.objectsCount)
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
     @Test fun mirrorXyZKeepsObjectCenterMeshAndCanBeToggledBack() {
         val modelFile = copyAsset("models/xyz_cube.stl", "mirror-axes-cube.stl")
         val model = Model(modelFile)
