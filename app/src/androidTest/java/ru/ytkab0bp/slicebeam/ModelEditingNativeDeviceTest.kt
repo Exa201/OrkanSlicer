@@ -644,6 +644,52 @@ class ModelEditingNativeDeviceTest {
             model.release()
             svgFile.delete()
         }
+
+        val unsafeSvg = File(svgFile.parentFile, "svg-dtd-must-be-rejected.svg").apply {
+            writeText(
+                "<!DOCTYPE svg [<!ENTITY x SYSTEM \"file:///data/local/tmp/not-readable\">]>" +
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\"><text>&x;</text></svg>",
+            )
+        }
+        try {
+            val unsafeResult = runCatching {
+                ru.ytkab0bp.slicebeam.components.SvgImportGuard.validate(unsafeSvg)
+            }
+            assertTrue("DTD/entity declarations must be rejected on Android", unsafeResult.isFailure)
+        } finally {
+            unsafeSvg.delete()
+        }
+    }
+
+    @Test fun detailedMulticolorSvgImportsAsPrintableGeometry() {
+        val svgFile = copyAsset(
+            "models/Beste_Oma_Kind_Herz_3D_Druck.svg",
+            "detailed-multicolor-svg.svg",
+        )
+        val validationProblem = try {
+            ru.ytkab0bp.slicebeam.components.SvgImportGuard.validate(svgFile)
+        } catch (error: Exception) {
+            throw AssertionError("SVG safety validation threw unexpectedly", error)
+        }
+        assertTrue(
+            "the supplied SVG should pass the app's import safety guard; problem=$validationProblem",
+            validationProblem == null,
+        )
+        val model = Model(svgFile)
+        try {
+            assertEquals("the three SVG color groups should import as one model object", 1, model.objectsCount)
+            assertTrue("the imported color groups should produce mesh triangles", model.getTriangleCount(0) > 0)
+            assertTrue("the imported SVG should have printable volume", model.getObjectVolume(0) > 0.0)
+
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            assertTrue("the source artwork should retain a useful width", max.x - min.x > 100.0)
+            assertTrue("the source artwork should retain a useful height", max.y - min.y > 50.0)
+            assertTrue("the SVG should be extruded into a 3D body", max.z - min.z >= 9.9)
+        } finally {
+            model.release()
+            svgFile.delete()
+        }
     }
 
     @Test fun nativeBooleanUnionCreatesOneClosedObjectWithCombinedVolume() = assertBooleanResult(
