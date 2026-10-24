@@ -5688,7 +5688,9 @@ class InitialProjectMenuDeviceTest {
                 before[1].x, readTranslationOnGl(glView, 1).x, 0.01)
 
             enterAxisValue("X", before[0].x + 11.0, confirm = true)
+            val afterX = (0..1).map { readTranslationOnGl(glView, it) }
             enterAxisValue("Y", before[0].y + 13.0, confirm = true)
+            val afterY = (0..1).map { readTranslationOnGl(glView, it) }
             enterAxisValue("Z", before[0].z + 17.0, confirm = true)
             val after = (0..1).map { readTranslationOnGl(glView, it) }
             for (index in 0..1) {
@@ -5702,14 +5704,36 @@ class InitialProjectMenuDeviceTest {
             assertEquals("group move must preserve X spacing", before[1].x - before[0].x,
                 after[1].x - after[0].x, 0.02)
 
+            fun assertGroupTranslations(expected: List<Vec3d>, action: String) {
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    (0..1).all { index ->
+                        val actual = readTranslationOnGl(glView, index)
+                        kotlin.math.abs(actual.x - expected[index].x) < 0.02 &&
+                            kotlin.math.abs(actual.y - expected[index].y) < 0.02 &&
+                            kotlin.math.abs(actual.z - expected[index].z) < 0.02
+                    }
+                }
+                (0..1).forEach { index ->
+                    val actual = readTranslationOnGl(glView, index)
+                    assertEquals("$action should restore object $index X", expected[index].x, actual.x, 0.02)
+                    assertEquals("$action should restore object $index Y", expected[index].y, actual.y, 0.02)
+                    assertEquals("$action should restore object $index Z", expected[index].z, actual.z, 0.02)
+                }
+            }
+
             compose.runOnUiThread { bed.undoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) {
-                (0..1).all { kotlin.math.abs(readTranslationOnGl(glView, it).z - before[it].z) < 0.02 }
-            }
+            assertGroupTranslations(afterY, "Undo Z")
+            compose.runOnUiThread { bed.undoModelEdit() }
+            assertGroupTranslations(afterX, "Undo Y")
+            compose.runOnUiThread { bed.undoModelEdit() }
+            assertGroupTranslations(before, "Undo X")
+
             compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) {
-                (0..1).all { kotlin.math.abs(readTranslationOnGl(glView, it).z - after[it].z) < 0.02 }
-            }
+            assertGroupTranslations(afterX, "Redo X")
+            compose.runOnUiThread { bed.redoModelEdit() }
+            assertGroupTranslations(afterY, "Redo Y")
+            compose.runOnUiThread { bed.redoModelEdit() }
+            assertGroupTranslations(after, "Redo Z")
         } finally {
             modelFile.delete()
         }
