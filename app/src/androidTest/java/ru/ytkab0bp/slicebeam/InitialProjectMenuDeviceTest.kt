@@ -6201,6 +6201,50 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun adaptiveLayerHeightApplyAndClearSupportUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-adaptive-layer-height-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            assertFalse("the fixture should begin with constant layer height",
+                readAdaptiveLayerHeightOnGl(glView, 0))
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuToolbarVariableLayerHeight)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarVariableLayerHeight))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.VariableLayerTitle)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.VariableLayerAdaptive))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 30_000) { readAdaptiveLayerHeightOnGl(glView, 0) }
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { !readAdaptiveLayerHeightOnGl(glView, 0) }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readAdaptiveLayerHeightOnGl(glView, 0) }
+
+            compose.onNodeWithText(activity.getString(R.string.ActionClear))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { !readAdaptiveLayerHeightOnGl(glView, 0) }
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readAdaptiveLayerHeightOnGl(glView, 0) }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { !readAdaptiveLayerHeightOnGl(glView, 0) }
+            assertSame("adaptive profile edits should retain the renderer host", glView, bed.glView)
+        } finally {
+            if (bed.isVariableLayerHeightMode) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun applyingCutRunsOnGlThreadAndSplitsTheSelectedModel() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -7723,6 +7767,20 @@ class InitialProjectMenuDeviceTest {
             finished.countDown()
         }
         assertTrue("GL thread did not return model paint state", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun readAdaptiveLayerHeightOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        index: Int,
+    ): Boolean {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Boolean>()
+        glView.queueEvent {
+            value.set(requireNotNull(glView.renderer.model).hasAdaptiveLayerHeight(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return adaptive layer-height state", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(value.get())
     }
 

@@ -1,3 +1,9 @@
+# Adaptive Schichthöhenprofile unterstützen Undo/Redo — 2026-10-24
+
+- Korrektur: Nach erfolgreichem Anwenden oder Löschen des nativen adaptiven Layer-Height-Profils ruft das Panel jetzt den bestehenden BedFragment-Verlaufssnapshot auf. Damit sind beide Operationen rückgängig und wiederherstellbar; Fehlerfälle werden nicht als abgeschlossene Änderung verbucht.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest#adaptiveLayerHeightApplyAndClearSupportUndoRedo` 1/1; `GlModePanelsComposeDeviceTest#variableLayerHeightPanelShowsStatusAndReturnsFromMode` 1/1. Zusätzlich Support-/Naht-/Fuzzy-Pinsel 1/1 und Mehrfarben-Pinsel 1/1 bestanden.
+- Debug-JVM 625/625 bestanden. Slice-JVM: 625 Tests ausgeführt, 624 bestanden, einer wegen fehlendem Plattenplatz beim Erzeugen des 25-MB-Fixtures in `StlImportPreflightTest` fehlgeschlagen; Laufwerk C: meldete 0 Byte frei. Kein APK-Build, keine 3MF-Rundlauf-/Slice-Prüfung dieser Funktion in diesem Durchgang.
+
 # GL-Paint-Modi: echte Canvas-Bearbeitung — 2026-10-24
 
 - Auf Honor PTP-N49 / Android 16 bestanden `InitialProjectMenuDeviceTest#supportSeamAndFuzzyPaintCommitRealCanvasStrokesAndUndoRedo` (1/1) und `InitialProjectMenuDeviceTest#colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments` (1/1).

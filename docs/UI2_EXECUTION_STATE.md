@@ -3173,6 +3173,14 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Das sind gezielte Instrumentierungstests; vollständige Unit-Suiten und ein Release-Build wurden in diesem Durchgang nicht ausgeführt. Die bestehenden Arbeitsbaumänderungen bleiben uncommitted.
 - Nächster konkreter Schritt: die drei Aktionen mit 3MF-Neuladen und Slicing/G-Code-Rundlauf prüfen, dann die nächsten noch nicht vollständig abgenommenen Modellaktionen fortsetzen.
 
+# Adaptive Schichthöhenprofile — Undo/Redo abgesichert, 2026-10-24
+
+- Beim Prüfen weiterer Modellaktionen wurde eine echte Verlaufslücke gefunden: „Adaptive layer height“ und „Clear“ änderten das native Profil, aktualisierten danach aber nicht den BedFragment-Modellverlauf. Dadurch waren diese Änderungen nicht durch Undo/Redo wiederherstellbar.
+- Beide erfolgreichen Panelaktionen rufen jetzt nach der GL-Änderung die bestehende `BedFragment.updateModel()`-Sicherung auf. Fehler und Fälle ohne ausgewähltes Modell werden nicht als Änderung verbucht. Der bestehende Paneltest wurde an den neuen Callback angepasst.
+- Honor PTP-N49 / Android 16: `InitialProjectMenuDeviceTest#adaptiveLayerHeightApplyAndClearSupportUndoRedo` 1/1 bestanden; Profil anwenden → Undo → Redo → Profil löschen → Undo → Redo, nativer Profilzustand jeweils geprüft. `GlModePanelsComposeDeviceTest#variableLayerHeightPanelShowsStatusAndReturnsFromMode` 1/1 bestanden. Die erweiterten Support-/Naht-/Fuzzy-Pinseltests bestanden 1/1, der bestehende Mehrfarben-Pinseltest 1/1.
+- Debug-JVM: 625/625 bestanden. Slice-JVM: 625 ausgeführt, 624 bestanden, 1 fehlgeschlagen; `StlImportPreflightTest.warnsOnlyForLargeValidBinaryStl` konnte sein 25-MB-Fixture wegen 0 Byte freiem Speicherplatz auf Laufwerk C: nicht anlegen. Dies ist ein Ressourcenfehler, kein bestätigter Produktfehler. Vollständige erneute Slice-Suite, adaptive-Profil-3MF-Rundlauf/-Slice und Debug-APK-Build stehen deshalb aus.
+- Nächster Schritt: nach Wiederherstellung von freiem Speicher die Slice-Suite wiederholen, danach adaptives Profil exportieren, in 3MF erneut laden und tatsächliches Slice-Ergebnis prüfen. Die UI-2.0-/Modellierungsziele bleiben offen.
+
 # Fortsetzung — Spezialwerkzeug-Pinseltests, 2026-10-24
 
 - Die zuvor vorhandenen GL-Painttests öffneten Support-, Naht- und Fuzzy-Modi und prüften Back-Abbruch, aber keinen echten Pinselstrich mit Bestätigung.

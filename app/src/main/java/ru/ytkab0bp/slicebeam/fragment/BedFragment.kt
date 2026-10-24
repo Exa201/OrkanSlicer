@@ -1323,7 +1323,7 @@ val currentGlView = glView
 if (ctx == null || currentGlView == null || overlayLayout == null || isVariableLayerHeightMode) return
 workspaceController.dismissActivePanel()
 showWorkspaceModePanel("variable-layer-height", ::exitVariableLayerHeightMode) {
-    VariableLayerHeightPanel(currentGlView, ::exitVariableLayerHeightMode)
+    VariableLayerHeightPanel(currentGlView, ::exitVariableLayerHeightMode, ::updateModel)
 }
 }
 private fun exitVariableLayerHeightMode() {

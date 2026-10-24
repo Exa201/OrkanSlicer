@@ -96,7 +96,9 @@ class GlModePanelsComposeDeviceTest {
         var exited = false
         compose.runOnUiThread { glView = GLView(context) }
         compose.setContent {
-            BeamComposeTheme { VariableLayerHeightPanel(glView) { exited = true } }
+            BeamComposeTheme {
+                VariableLayerHeightPanel(glView, onExit = { exited = true }, onModelChanged = {})
+            }
         }
 
         compose.onNodeWithText(context.getString(R.string.VariableLayerTitle)).assertIsDisplayed()

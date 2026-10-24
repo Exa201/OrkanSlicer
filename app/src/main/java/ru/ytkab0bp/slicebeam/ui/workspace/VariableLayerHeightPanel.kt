@@ -28,7 +28,11 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
 
 @Composable
-internal fun VariableLayerHeightPanel(glView: GLView, onExit: () -> Unit) {
+internal fun VariableLayerHeightPanel(
+    glView: GLView,
+    onExit: () -> Unit,
+    onModelChanged: () -> Unit,
+) {
     var quality by remember { mutableFloatStateOf(0.5f) }
     var status by remember { mutableIntStateOf(R.string.NoObjectSelected) }
 
@@ -65,6 +69,7 @@ internal fun VariableLayerHeightPanel(glView: GLView, onExit: () -> Unit) {
                             if (result == null) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.NoObjectSelected))
                             else {
                                 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.VariableLayerCleared))
+                                onModelChanged()
                                 refreshStatus()
                                 glView.requestRender()
                             }
@@ -94,6 +99,7 @@ internal fun VariableLayerHeightPanel(glView: GLView, onExit: () -> Unit) {
                                 NeedSnackbarEvent(R.string.VariableLayerFailed, result.exceptionOrNull()?.message),
                             ) else {
                                 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.VariableLayerApplied))
+                                onModelChanged()
                                 refreshStatus()
                                 glView.requestRender()
                             }
