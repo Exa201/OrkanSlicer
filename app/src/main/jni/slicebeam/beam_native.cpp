@@ -1783,8 +1783,22 @@ extern "C" {
     // CGAL reports a valid, closed solid. This avoids mutating project state on failed CSG.
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1boolean_1objects(
         JNIEnv* env, jclass, jlong ptr, jintArray indices_arr, jint operation) {
+        ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+        const size_t original_object_count = ref == nullptr ? 0 : ref->model.objects.size();
+        bool source_objects_replaced = false;
+        auto rollback_uncommitted_result = [&]() noexcept {
+            if (ref == nullptr || source_objects_replaced) return;
+            try {
+                // add_object() appends before all per-object configuration is finished. If any
+                // later setup throws, remove only objects appended by this Boolean transaction.
+                while (ref->model.objects.size() > original_object_count)
+                    ref->model.delete_object(ref->model.objects.size() - 1);
+            } catch (...) {
+                __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean",
+                    "Could not roll back an incomplete Boolean result object");
+            }
+        };
         try {
-            ModelRef* ref = (ModelRef*) (intptr_t) ptr;
             if (ref == nullptr || indices_arr == nullptr || operation < 0 || operation > 2) return -1;
             const jsize count = env->GetArrayLength(indices_arr);
             if (count < 2) return -1;
@@ -1887,7 +1901,10 @@ extern "C" {
             // A CSG result is newly generated geometry, not a mesh from one source
             // object. Do not serialize the target's source path/object index onto it.
             ModelObject* replacement = ref->model.add_object(resultName.c_str(), "", std::move(resultMesh));
-            if (replacement == nullptr || replacement->volumes.empty()) return -5;
+            if (replacement == nullptr || replacement->volumes.empty()) {
+                rollback_uncommitted_result();
+                return -5;
+            }
             // resultMesh is already in world coordinates (ModelObject::mesh applies
             // each source instance). A replacement ModelObject created by add_object
             // has no instances, so add an identity instance to keep it visible and
@@ -1902,11 +1919,14 @@ extern "C" {
 
             std::sort(indices.begin(), indices.end(), std::greater<int>());
             for (int index : indices) ref->model.delete_object((size_t) index);
+            source_objects_replaced = true;
             return (jint) ref->model.objects.size() - 1;
         } catch (const std::exception& e) {
+            rollback_uncommitted_result();
             __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean", "Boolean operation failed without replacing inputs: %s", e.what());
             return -6;
         } catch (...) {
+            rollback_uncommitted_result();
             __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean", "Boolean operation failed without replacing inputs");
             return -6;
         }
