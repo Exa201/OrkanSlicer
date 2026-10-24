@@ -174,6 +174,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     open fun addObject(from: Model, i: Int) {
+        if (pointer == 0L || from.pointer == 0L || i !in 0 until from.objectsCount) {
+            android.util.Log.w(
+                "Model",
+                "Ignoring object copy with invalid native model or source index (index=$i, sourceCount=${from.objectsCount})",
+            )
+            return
+        }
         Native.model_add_object_from_another(pointer, from.pointer, i)
         resetBoundingBox()
     }

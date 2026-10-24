@@ -31,6 +31,36 @@ import java.util.zip.ZipFile
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun copyingAnObjectFromEmptyOrReleasedModelIsIgnoredSafely() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val targetFile = copyCube(context, "safe-invalid-object-copy-target.stl")
+        val sourceFile = copyCube(context, "safe-invalid-object-copy-source.stl")
+        val target = Model(targetFile)
+        val empty = Model()
+        val released = Model(sourceFile)
+        try {
+            empty.addObject(empty, 0)
+            assertEquals("an empty model must not self-copy an unavailable object", 0, empty.objectsCount)
+
+            target.addObject(empty, 0)
+            assertEquals("an empty source must not append a native object", 1, target.objectsCount)
+
+            released.release()
+            target.addObject(released, 0)
+            assertEquals("a released source must not append a native object", 1, target.objectsCount)
+
+            target.addObject(target, target.objectsCount)
+            assertEquals("an out-of-range index must not append a native object", 1, target.objectsCount)
+        } finally {
+            target.release()
+            empty.release()
+            released.release()
+            targetFile.delete()
+            sourceFile.delete()
+        }
+    }
+
+    @Test
     fun xAndYDistributedObjectsRemainOnBedAndProduceExtrusionGcode() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "distributed-group-slice.stl")
