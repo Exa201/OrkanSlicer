@@ -10,8 +10,9 @@ class ModelPlacementTransactionTest {
         val positions = mutableMapOf(1 to 4.0, 2 to 8.0)
         val result = ModelPlacementTransaction.applyAndCommit(
             items = listOf(1, 2),
+            snapshot = positions::getValue,
             apply = { positions[it] = positions.getValue(it) + 10.0 },
-            rollback = { positions[it] = positions.getValue(it) - 10.0 },
+            restore = { item, before -> positions[item] = before },
             commit = { 0 },
         )
 
@@ -25,10 +26,11 @@ class ModelPlacementTransactionTest {
         val rollbackOrder = mutableListOf<Int>()
         val result = ModelPlacementTransaction.applyAndCommit(
             items = listOf(1, 2),
+            snapshot = positions::getValue,
             apply = { positions[it] = positions.getValue(it) + 10.0 },
-            rollback = {
-                rollbackOrder += it
-                positions[it] = positions.getValue(it) - 10.0
+            restore = { item, before ->
+                rollbackOrder += item
+                positions[item] = before
             },
             commit = { -1 },
         )
@@ -44,8 +46,9 @@ class ModelPlacementTransactionTest {
         val errors = mutableListOf<Exception>()
         val result = ModelPlacementTransaction.applyAndCommit(
             items = listOf(1, 2),
+            snapshot = positions::getValue,
             apply = { positions[it] = positions.getValue(it) + 10.0 },
-            rollback = { positions[it] = positions.getValue(it) - 10.0 },
+            restore = { item, before -> positions[item] = before },
             commit = { throw IllegalStateException("native join rejected the placement") },
             onError = errors::add,
         )
@@ -57,16 +60,43 @@ class ModelPlacementTransactionTest {
     }
 
     @Test
-    fun failedSecondMoveRollsBackEarlierMoves() {
+    fun partiallyAppliedSecondMoveRestoresCurrentAndEarlierMoves() {
+        val positions = mutableMapOf(1 to 4.0, 2 to 8.0)
+        val errors = mutableListOf<Exception>()
+        val restoreOrder = mutableListOf<Int>()
+        val result = ModelPlacementTransaction.applyAndCommit(
+            items = listOf(1, 2),
+            snapshot = positions::getValue,
+            apply = {
+                positions[it] = positions.getValue(it) + 10.0
+                if (it == 2) throw IllegalStateException("second move failed after partial mutation")
+            },
+            restore = { item, before ->
+                restoreOrder += item
+                positions[item] = before
+            },
+            commit = { 0 },
+            onError = errors::add,
+        )
+
+        assertEquals(-1, result)
+        assertEquals(mapOf(1 to 4.0, 2 to 8.0), positions)
+        assertEquals(listOf(2, 1), restoreOrder)
+        assertEquals(1, errors.size)
+    }
+
+    @Test
+    fun snapshotFailureDoesNotBeginAnyPlacement() {
         val positions = mutableMapOf(1 to 4.0, 2 to 8.0)
         val errors = mutableListOf<Exception>()
         val result = ModelPlacementTransaction.applyAndCommit(
             items = listOf(1, 2),
-            apply = {
-                if (it == 2) throw IllegalStateException("second move failed before mutation")
-                positions[it] = positions.getValue(it) + 10.0
+            snapshot = { item ->
+                if (item == 2) throw IllegalStateException("could not snapshot target")
+                positions.getValue(item)
             },
-            rollback = { positions[it] = positions.getValue(it) - 10.0 },
+            apply = { positions[it] = positions.getValue(it) + 10.0 },
+            restore = { item, before -> positions[item] = before },
             commit = { 0 },
             onError = errors::add,
         )

@@ -2,19 +2,26 @@ package ru.ytkab0bp.slicebeam.render
 
 /** Applies a group placement only if the follow-up model join succeeds. */
 internal object ModelPlacementTransaction {
-    fun <T> applyAndCommit(
+    fun <T, S> applyAndCommit(
         items: List<T>,
+        snapshot: (T) -> S,
         apply: (T) -> Unit,
-        rollback: (T) -> Unit,
+        restore: (T, S) -> Unit,
         commit: () -> Int,
         onError: (Exception) -> Unit = {},
     ): Int {
-        val applied = ArrayList<T>(items.size)
-        fun restoreApplied() {
+        val snapshots = try {
+            items.map { item -> item to snapshot(item) }
+        } catch (error: Exception) {
+            runCatching { onError(error) }
+            return -1
+        }
+        var attemptedCount = 0
+        fun restoreAttempted() {
             var rollbackFailure: Exception? = null
-            applied.asReversed().forEach { item ->
+            snapshots.take(attemptedCount).asReversed().forEach { (item, before) ->
                 try {
-                    rollback(item)
+                    restore(item, before)
                 } catch (error: Exception) {
                     val first = rollbackFailure
                     if (first == null) rollbackFailure = error else first.addSuppressed(error)
@@ -24,15 +31,16 @@ internal object ModelPlacementTransaction {
         }
 
         try {
-            items.forEach { item ->
+            snapshots.forEach { (item, _) ->
+                // Restore from a snapshot even if apply mutates and then throws.
+                attemptedCount++
                 apply(item)
-                applied += item
             }
             val result = commit()
-            if (result < 0) restoreApplied()
+            if (result < 0) restoreAttempted()
             return result
         } catch (error: Exception) {
-            restoreApplied()
+            restoreAttempted()
             runCatching { onError(error) }
             return -1
         }

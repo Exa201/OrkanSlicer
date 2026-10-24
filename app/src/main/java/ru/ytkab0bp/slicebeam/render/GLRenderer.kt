@@ -568,9 +568,12 @@ private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>
 
     val combined = ModelPlacementTransaction.applyAndCommit(
         items = movingIndices,
+        snapshot = { index -> Vec3d().also { activeModel.getTranslation(index, it) } },
         apply = { index -> activeModel.translate(index, delta.x, delta.y, delta.z) },
-        rollback = { index ->
-            activeModel.translate(index, -delta.x, -delta.y, -delta.z)
+        restore = { index, before ->
+            val after = Vec3d()
+            activeModel.getTranslation(index, after)
+            activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
             invalidateGlModel(index)
         },
         commit = { activeModel.combineObjectsAsParts((movingIndices + targetIndex).toIntArray()) },
