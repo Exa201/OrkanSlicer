@@ -1234,6 +1234,82 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanTextPlacementAndMultipartJoinKeepBothFilamentsThroughThreeMfAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-text-placement-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-text-placement-font.ttf")
+        val projectFile = File(context.cacheDir, "boolean-text-placement-project.3mf")
+        val gcodeFile = File(context.cacheDir, "boolean-text-placement.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cubeFile)
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            val baseMin = Vec3d(); val baseMax = Vec3d()
+            model.getBoundingBoxExact(0, baseMin, baseMax)
+            model.translate(1, (baseMax.x - baseMin.x) / 2.0, 0.0, 0.0)
+
+            val booleanIndex = model.booleanObjects(0, 1, BooleanOperation.UNION)
+            assertEquals("Boolean union should replace the overlapping solids", 0, booleanIndex)
+            assertEquals("Boolean result should retain target material", listOf(1), model.getUsedFilaments(0).toList())
+            assertTrue("Boolean union should create a printable solid", model.getObjectVolume(0) > 0.0)
+
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath, "A", 8f, 1.2f,
+                Vec3d(80.0, 80.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("standalone text should be a distinct object", 1, textIndex)
+            model.setUniformFilament(textIndex, 2)
+            val textMin = Vec3d(); val textMax = Vec3d()
+            model.getBoundingBoxExact(textIndex, textMin, textMax)
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            val textBounds = ObjectBounds3D(textMin.x, textMin.y, textMin.z, textMax.x, textMax.y, textMax.z)
+            val targetBounds = ObjectBounds3D(targetMin.x, targetMin.y, targetMin.z, targetMax.x, targetMax.y, targetMax.z)
+            val delta = requireNotNull(ObjectPlacement.onTop(textBounds, targetBounds))
+            model.translate(textIndex, delta.x, delta.y, delta.z)
+
+            assertEquals("text should join the printable target as a separate material part", 0,
+                model.combineObjectsAsParts(intArrayOf(0, textIndex)))
+            assertEquals(1, model.objectsCount)
+            assertTrue("joined Boolean body and text retain both assigned materials",
+                model.getUsedFilaments(0).toSet().containsAll(setOf(1, 2)))
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("round-trip keeps the joined assembly as one printable object", 1, restored.objectsCount)
+            assertTrue("round-trip retains body and text material assignments",
+                restored.getUsedFilaments(0).toSet().containsAll(setOf(1, 2)))
+            assertTrue("round-trip retains printable geometry", restored.getObjectVolume(0) > 0.0)
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the Boolean body material should use extruder T0", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the placed text material should use extruder T1", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            restored?.release()
+            model?.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun curvedSurfaceTextSurvivesThreeMfReloadAndProducesExtrusionGcode() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val cylinderFile = createCylinderFixture("curved-text-slice-cylinder.stl", 25.0, 40.0, 96)
