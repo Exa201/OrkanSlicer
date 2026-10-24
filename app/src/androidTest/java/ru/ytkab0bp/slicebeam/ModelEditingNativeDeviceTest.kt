@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -1061,6 +1062,7 @@ class ModelEditingNativeDeviceTest {
             FastenerFormLogic.parse(values.third),
         )
         val model = Model(file)
+        val glModel = GLModel()
         try {
             assertTrue("generated STL should retain its screw triangles", model.getTriangleCount(0) > 0)
             assertEquals(written, model.getTriangleCount(0))
@@ -1078,7 +1080,13 @@ class ModelEditingNativeDeviceTest {
             )
             assertTrue("ray through the bolt bounds should select the generated model", hit != null)
             assertTrue("bounds selection must be marked approximate", hit!!.approximate)
+
+            // Exercise the production picking entry point: a dense generated screw must
+            // use its bounds and avoid building Orca's native face-neighbour index.
+            glModel.initFrom(model, 0)
+            assertNotNull("dense M12 geometry should still expose a selectable raycaster", glModel.raycaster)
         } finally {
+            glModel.release()
             model.release()
             file.delete()
         }
