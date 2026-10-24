@@ -108,9 +108,13 @@ internal class EmbossModeController(
                 }
                 glView.renderer.invalidateGlModel(affectedObject)
                 if (createSeparateObject) glView.renderer.setSelectedObject(affectedObject)
+                // Queue the model-history commit from the GL thread before the new object
+                // becomes observable to UI actions such as Undo. Posting this callback to
+                // the main thread first allowed a fast Undo to run before updateModel had
+                // queued the pre-edit snapshot.
+                onModelChanged()
                 glView.requestRender()
                 ViewUtils.postOnMainThread {
-                    onModelChanged()
                     SliceBeam.EVENT_BUS.fireEvent(
                         NeedSnackbarEvent(if (createSeparateObject) R.string.TextModelCreated else R.string.EmbossSuccess),
                     )
