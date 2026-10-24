@@ -36,9 +36,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import java.util.zip.ZipEntry
-import java.util.zip.ZipFile
-import java.util.zip.ZipOutputStream
 
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
@@ -222,6 +219,38 @@ class ModelEditingNativeDeviceTest {
             assertTrue("both source placements should be retained", max.x - min.x > 30.0)
         } finally {
             model.release()
+        }
+    }
+
+    @Test fun linkedInstanceDuplicationValidatesInputsAndPreservesTheSourceMesh() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "duplicate-linked-instance-cube.stl")
+        val model = Model(modelFile)
+        try {
+            val minBefore = Vec3d(); val maxBefore = Vec3d()
+            model.getBoundingBoxExact(0, minBefore, maxBefore)
+            val width = maxBefore.x - minBefore.x
+            val volumeBefore = model.getObjectVolume(0)
+            val trianglesBefore = model.getTriangleCount(0)
+
+            assertEquals(-1, model.duplicateInstance(-1, 0, Vec3d(30.0, 0.0, 0.0)))
+            assertEquals(-1, model.duplicateInstance(0, -1, Vec3d(30.0, 0.0, 0.0)))
+            assertEquals(-1, model.duplicateInstance(0, 0, Vec3d(Double.NaN, 0.0, 0.0)))
+            val minUnchanged = Vec3d(); val maxUnchanged = Vec3d()
+            model.getBoundingBoxExact(0, minUnchanged, maxUnchanged)
+            assertEquals(minBefore.x, minUnchanged.x, 0.001)
+            assertEquals(maxBefore.x, maxUnchanged.x, 0.001)
+
+            assertEquals(1, model.duplicateInstance(0, 0, Vec3d(width + 9.0, 0.0, 0.0)))
+            val minAfter = Vec3d(); val maxAfter = Vec3d()
+            model.getBoundingBoxExact(0, minAfter, maxAfter)
+            assertEquals(2.0 * width + 9.0, maxAfter.x - minAfter.x, 0.02)
+            assertEquals("linked copies share the source mesh instead of duplicating triangle data",
+                trianglesBefore, model.getTriangleCount(0))
+            assertEquals("each linked instance keeps the original solid volume", volumeBefore,
+                model.getObjectVolume(0), 0.001)
+        } finally {
+            model.release()
+            modelFile.delete()
         }
     }
 
@@ -469,45 +498,44 @@ class ModelEditingNativeDeviceTest {
     }
 
     @Test fun standaloneSurfaceTextUsesTheTappedRepeatedInstance() {
-        val modelFile = createRepeatedInstanceProject("standalone-text-repeated-instance.3mf")
+        val model = createRepeatedInstanceModel("standalone-text-repeated-instance.stl")
         val fontFile = copyAsset("font/roboto_medium.ttf", "repeated-instance-text-font.ttf")
-        val model = Model(modelFile)
         try {
             assertEquals("the repeated build items should remain instances of one object", 1, model.objectsCount)
             val min = Vec3d(); val max = Vec3d()
             model.getBoundingBoxExact(0, min, max)
-            assertEquals("fixture must contain both translated instances", 21.0, max.x - min.x, 0.02)
+            assertTrue("fixture must contain both translated instances", max.x - min.x > 40.0)
+            val tapX = max.x
 
             val index = model.createTextObject(
                 fontFile.absolutePath,
                 "A",
                 3f,
                 1f,
-                Vec3d(61.0, 43.0, 3.0),
+                Vec3d(max.x, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0),
                 Vec3d(1.0, 0.0, 0.0),
                 targetObjectIndex = 0,
             )
 
             assertEquals("surface text should be added to the shared model object", 0, index)
             model.getBoundingBoxExact(0, min, max)
-            assertTrue("text placed on the second copy must not jump to a remote copy", max.x < 63.0)
-            assertTrue("text must protrude from the tapped outer face", max.x > 61.0)
+            assertTrue("text placed on the second copy must not jump to a remote copy", max.x < tapX + 2.0)
+            assertTrue("text must protrude from the tapped outer face", max.x > tapX)
         } finally {
             model.release()
-            modelFile.delete()
             fontFile.delete()
         }
     }
 
     @Test fun embossOnSecondRepeatedInstanceUsesItsWorldToLocalTransform() {
-        val modelFile = createRepeatedInstanceProject("emboss-repeated-instance.3mf")
+        val model = createRepeatedInstanceModel("emboss-repeated-instance.stl")
         val fontFile = copyAsset("font/roboto_medium.ttf", "repeated-instance-emboss-font.ttf")
-        val model = Model(modelFile)
         try {
             assertEquals("the repeated build items should remain instances of one object", 1, model.objectsCount)
             val min = Vec3d(); val max = Vec3d()
             model.getBoundingBoxExact(0, min, max)
-            assertEquals("fixture must contain both translated instances", 21.0, max.x - min.x, 0.02)
+            assertTrue("fixture must contain both translated instances", max.x - min.x > 40.0)
+            val tapX = max.x
 
             model.embossText(
                 0,
@@ -516,16 +544,15 @@ class ModelEditingNativeDeviceTest {
                 3f,
                 1f,
                 0,
-                Vec3d(61.0, 43.0, 3.0),
+                Vec3d(max.x, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0),
                 Vec3d(1.0, 0.0, 0.0),
             )
 
             model.getBoundingBoxExact(0, min, max)
-            assertTrue("emboss must stay attached to the tapped second copy", max.x < 63.0)
-            assertTrue("emboss must extend beyond the tapped face", max.x > 61.0)
+            assertTrue("emboss must stay attached to the tapped second copy", max.x < tapX + 2.0)
+            assertTrue("emboss must extend beyond the tapped face", max.x > tapX)
         } finally {
             model.release()
-            modelFile.delete()
             fontFile.delete()
         }
     }
@@ -1124,41 +1151,37 @@ class ModelEditingNativeDeviceTest {
     }
 
     private fun copyAsset(asset: String, name: String): File {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
         return File(context.cacheDir, name).also { file ->
-            context.assets.open(asset).use { input -> file.outputStream().use(input::copyTo) }
+            // Test-only fixtures live in the instrumentation APK; shared application assets live
+            // in the target APK. Prefer the former, then fall back to the latter.
+            val input = try {
+                instrumentation.context.assets.open(asset)
+            } catch (_: java.io.IOException) {
+                context.assets.open(asset)
+            }
+            input.use { file.outputStream().use(it::copyTo) }
         }
     }
 
-    /** Rewrites the project build to place the first mesh resource twice as one model object. */
-    private fun createRepeatedInstanceProject(name: String): File {
-        val source = copyAsset("models/two-color-project.3mf", "$name-source.3mf")
-        val destination = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
-        val firstItem = """<item objectid="1" transform="1 0 0 0 1 0 0 0 1 40 40 0"/>"""
-        val secondItem = """<item objectid="2" transform="1 0 0 0 1 0 0 0 1 55 40 0"/>"""
-        val repeatedItem = """<item objectid="1" transform="1 0 0 0 1 0 0 0 1 55 40 0"/>"""
-        try {
-            ZipFile(source).use { input ->
-                ZipOutputStream(destination.outputStream()).use { output ->
-                    input.entries().asSequence().forEach { entry ->
-                        val bytes = input.getInputStream(entry).use { it.readBytes() }
-                        val rewritten = if (entry.name == "3D/3dmodel.model") {
-                            val xml = bytes.toString(Charsets.UTF_8)
-                            check(xml.contains(firstItem) && xml.contains(secondItem)) {
-                                "Repeated-instance fixture source changed unexpectedly"
-                            }
-                            xml.replace(secondItem, repeatedItem).toByteArray(Charsets.UTF_8)
-                        } else bytes
-                        output.putNextEntry(ZipEntry(entry.name))
-                        output.write(rewritten)
-                        output.closeEntry()
-                    }
-                }
-            }
+    /** Creates a true linked copy in the native model, rather than two 3MF build objects. */
+    private fun createRepeatedInstanceModel(name: String): Model {
+        val source = copyAsset("models/xyz_cube.stl", name)
+        val model = try {
+            Model(source)
         } finally {
             source.delete()
         }
-        return destination
+        val min = Vec3d(); val max = Vec3d()
+        model.getBoundingBoxExact(0, min, max)
+        val offset = max.x - min.x + 9.0
+        val instanceIndex = model.duplicateInstance(0, 0, Vec3d(offset, 0.0, 0.0))
+        if (instanceIndex != 1) {
+            model.release()
+            throw AssertionError("native model should create a second linked instance")
+        }
+        return model
     }
 
     private fun createCubeFixture(name: String, side: Float): File {

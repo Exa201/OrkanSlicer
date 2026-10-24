@@ -115,6 +115,8 @@ class Native {
     @JvmStatic
     external fun model_add_object_from_another(ptr: Long, from: Long, i: Int): Unit
     @JvmStatic
+    external fun model_duplicate_instance(ptr: Long, objectIndex: Int, sourceInstanceIndex: Int, dx: Double, dy: Double, dz: Double): Int
+    @JvmStatic
     external fun model_delete_object(ptr: Long, i: Int): Unit
     @JvmStatic
     external fun model_split(ptr: Long, i: Int): Int

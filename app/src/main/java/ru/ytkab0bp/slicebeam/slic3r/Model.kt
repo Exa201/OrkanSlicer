@@ -167,6 +167,16 @@ open class Model private constructor(@JvmField var pointer: Long) {
         resetBoundingBox()
     }
 
+    /** Adds a linked instance of an object while preserving the source instance transform. */
+    open fun duplicateInstance(i: Int, sourceInstanceIndex: Int, offset: Vec3d): Int {
+        if (pointer == 0L || !offset.x.isFinite() || !offset.y.isFinite() || !offset.z.isFinite()) return -1
+        val instanceIndex = Native.model_duplicate_instance(
+            pointer, i, sourceInstanceIndex, offset.x, offset.y, offset.z,
+        )
+        if (instanceIndex >= 0) resetBoundingBox()
+        return instanceIndex
+    }
+
     open fun deleteObject(i: Int) {
         Native.model_delete_object(pointer, i)
         resetBoundingBox()

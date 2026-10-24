@@ -760,6 +760,24 @@ extern "C" {
         model->model.add_object(*from->model.objects[i]);
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1duplicate_1instance(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint source_instance_index,
+        jdouble dx, jdouble dy, jdouble dz) {
+        ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+        if (ref == nullptr || object_index < 0 || object_index >= static_cast<jint>(ref->model.objects.size()) ||
+            !std::isfinite(dx) || !std::isfinite(dy) || !std::isfinite(dz)) return -1;
+        ModelObject* object = ref->model.objects[object_index];
+        if (object == nullptr || source_instance_index < 0 ||
+            source_instance_index >= static_cast<jint>(object->instances.size())) return -1;
+        const ModelInstance* source = object->instances[source_instance_index];
+        if (source == nullptr) return -1;
+
+        ModelInstance* duplicate = object->add_instance(*source);
+        duplicate->set_offset(source->get_offset() + Vec3d(dx, dy, dz));
+        object->invalidate_bounding_box();
+        return static_cast<jint>(object->instances.size() - 1);
+    }
+
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1delete_1object(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         model->model.delete_object(i);
