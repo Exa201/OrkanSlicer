@@ -57,6 +57,17 @@ class NativeSliceDeviceTest {
             model.simplify(-1, 0.5f)
             assertEquals("invalid simplify ratio is rejected", 0, model.simplify(0, Float.NaN))
             assertEquals("out-of-range simplify ratio is rejected", 0, model.simplify(0, 1.1f))
+            assertEquals("invalid object triangle query is safe", 0, model.getTriangleCount(model.objectsCount))
+            assertEquals("invalid object volume query is safe", 0.0, model.getObjectVolume(-1), 0.0)
+            assertFalse("invalid object paint query is safe", model.hasPaint(model.objectsCount))
+            assertEquals("invalid object paint-tool query is safe", 0, model.paintMaxFilament(-1))
+            val overlay = ru.ytkab0bp.slicebeam.slic3r.GLModel()
+            try {
+                assertEquals("invalid object paint overlay is safe", 0,
+                    model.buildPaintOverlay(model.objectsCount, overlay, 1))
+            } finally {
+                overlay.release()
+            }
 
             assertEquals(1, model.objectsCount)
             assertEquals(originalTriangles, model.getTriangleCount(0))

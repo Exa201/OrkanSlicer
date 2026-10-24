@@ -172,7 +172,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     open fun getTriangleCount(i: Int): Int =
-        if (pointer == 0L) 0 else Native.model_get_triangle_count(pointer, i)
+        if (!hasObject(i)) 0 else Native.model_get_triangle_count(pointer, i)
 
     open fun simplify(i: Int, keepRatio: Float): Int {
         if (!hasObject(i) || !keepRatio.isFinite() || keepRatio <= 0f || keepRatio > 1f) return 0
@@ -445,17 +445,20 @@ open class Model private constructor(@JvmField var pointer: Long) {
         booleanObjects(intArrayOf(targetIndex, toolIndex), operation)
 
     /** Absolute mesh volume in mm³ for one object, including its instance transform. */
-    open fun getObjectVolume(i: Int): Double = Native.model_get_object_volume(pointer, i)
+    open fun getObjectVolume(i: Int): Double =
+        if (!hasObject(i)) 0.0 else Native.model_get_object_volume(pointer, i)
 
     /** True if object i has any committed multi-color painting. */
-    open fun hasPaint(i: Int): Boolean = Native.model_has_paint(pointer, i)
+    open fun hasPaint(i: Int): Boolean = hasObject(i) && Native.model_has_paint(pointer, i)
 
     /** Fill a GLModel with object i's committed painting for the given filament; returns triangle count. */
     open fun buildPaintOverlay(i: Int, gl: GLModel, filamentIdx: Int): Int =
-        Native.model_build_paint_overlay(pointer, i, gl.pointer, filamentIdx)
+        if (!hasObject(i) || gl.pointer == 0L || filamentIdx < 1) 0
+        else Native.model_build_paint_overlay(pointer, i, gl.pointer, filamentIdx)
 
     /** Highest filament index (1-based) painted on object i, or 0 if none. */
-    open fun paintMaxFilament(i: Int): Int = Native.model_paint_max_filament(pointer, i)
+    open fun paintMaxFilament(i: Int): Int =
+        if (!hasObject(i)) 0 else Native.model_paint_max_filament(pointer, i)
 
     /** Highest 1-based tool referenced by the model's base assignments or painted facets. */
     open val requiredFilamentCount: Int
