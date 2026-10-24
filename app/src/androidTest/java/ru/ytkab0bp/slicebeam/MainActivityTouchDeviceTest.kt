@@ -178,7 +178,7 @@ class MainActivityTouchDeviceTest {
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
-                assertModelSelectedWithoutModal(activity)
+                assertModelSelectedWithoutModal(requireNotNull(bed))
             }
 
             val emptyPlatePointRef = AtomicReference<Pair<Float, Float>?>()
@@ -192,7 +192,10 @@ class MainActivityTouchDeviceTest {
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertEquals("Tapping an empty plate area should clear the model selection", -1, glView.renderer.selectedObject)
-                assertTrue("Tapping the empty plate must not open a modal action dialog", activity.hasWindowFocus())
+                assertFalse("Tapping the empty plate must not open the model context menu",
+                    requireNotNull(bed).isModelContextMenuAttached())
+                assertFalse("Tapping the empty plate must not open a workspace message dialog",
+                    requireNotNull(bed).isWorkspaceMessageDialogAttached())
             }
 
             // A deliberate tap on the model restores its selection without opening a dialog.
@@ -203,7 +206,7 @@ class MainActivityTouchDeviceTest {
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
-                assertModelSelectedWithoutModal(activity)
+                assertModelSelectedWithoutModal(requireNotNull(bed))
             }
 
             // Exercise the real Edit-menu Move action with a loaded model. The preview is
@@ -306,7 +309,13 @@ class MainActivityTouchDeviceTest {
                 requireNotNull(bed).isWorkspaceMessageDialogAttached())
             instrumentation.waitForIdleSync()
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            instrumentation.waitForIdleSync()
+            val deleteDismissDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (requireNotNull(bed).isWorkspaceMessageDialogAttached() &&
+                SystemClock.uptimeMillis() < deleteDismissDeadline
+            ) {
+                instrumentation.waitForIdleSync()
+                SystemClock.sleep(40L)
+            }
             scenario.onActivity { activity ->
                 assertTrue("Back cancellation must keep the workspace active", !activity.isFinishing)
                 assertFalse("Back should cancel model deletion", requireNotNull(bed).isWorkspaceMessageDialogAttached())
@@ -327,7 +336,7 @@ class MainActivityTouchDeviceTest {
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
-                assertModelSelectedWithoutModal(activity)
+                assertModelSelectedWithoutModal(requireNotNull(bed))
             }
 
             // Explicitly opening the model action list should use the modal Compose surface;
@@ -649,9 +658,10 @@ class MainActivityTouchDeviceTest {
         assertEquals("The touched model should remain the selected object", 0, current.glView!!.renderer.selectedObject)
     }
 
-    private fun assertModelSelectedWithoutModal(activity: MainActivity) {
-        // Object actions live in the fixed workspace menu; a tap must not open a modal dialog.
-        assertTrue("Tapping the model must not open a modal action dialog", activity.hasWindowFocus())
+    private fun assertModelSelectedWithoutModal(bed: BedFragment) {
+        // Workspace panels are authoritative; Activity focus may be owned by instrumentation.
+        assertFalse("Tapping the model must not open the model context menu", bed.isModelContextMenuAttached())
+        assertFalse("Tapping the model must not open a workspace message dialog", bed.isWorkspaceMessageDialogAttached())
     }
 
     private fun tap(view: GLView, x: Float, y: Float) {
