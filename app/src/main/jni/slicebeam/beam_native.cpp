@@ -1446,11 +1446,21 @@ extern "C" {
         jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz, jint targetObjectIndex) {
         try {
             ModelRef* model = (ModelRef*) (intptr_t) ptr;
-            if (model == nullptr || size <= 0.f || depth <= 0.f) return -1;
+            if (model == nullptr || fontPath == nullptr || textStr == nullptr ||
+                !std::isfinite(size) || !std::isfinite(depth) || size <= 0.f || depth <= 0.f ||
+                !std::isfinite(px) || !std::isfinite(py) || !std::isfinite(pz) ||
+                !std::isfinite(nx) || !std::isfinite(ny) || !std::isfinite(nz) ||
+                targetObjectIndex < -1) return -1;
+            const double normalLengthSquared = nx * nx + ny * ny + nz * nz;
+            if (!std::isfinite(normalLengthSquared) || normalLengthSquared <= 1e-18 ||
+                (targetObjectIndex >= 0 && targetObjectIndex >= static_cast<jint>(model->model.objects.size())))
+                return -1;
             const char* font_chars = env->GetStringUTFChars(fontPath, JNI_FALSE);
+            if (font_chars == nullptr) return -1;
             std::string font_path(font_chars);
             env->ReleaseStringUTFChars(fontPath, font_chars);
             const char* text_chars = env->GetStringUTFChars(textStr, JNI_FALSE);
+            if (text_chars == nullptr) return -1;
             std::string text(text_chars);
             env->ReleaseStringUTFChars(textStr, text_chars);
             if (text.empty()) return -1;
@@ -1473,8 +1483,6 @@ extern "C" {
             Vec3d normal(nx, ny, nz);
             if (normal.norm() < 1e-9) normal = Vec3d::UnitZ(); else normal.normalize();
             if (targetObjectIndex >= 0) {
-                if (targetObjectIndex >= static_cast<jint>(model->model.objects.size()))
-                    throw std::runtime_error("The target model is no longer available");
                 ModelObject *target = model->model.objects[targetObjectIndex];
                 int surfaceExtruder = -1;
                 const Transform3d instance = conform_text_mesh_to_model_surface(
@@ -1594,6 +1602,7 @@ extern "C" {
             const jsize count = env->GetArrayLength(indices_arr);
             if (count < 2) return -1;
             jint* raw = env->GetIntArrayElements(indices_arr, JNI_FALSE);
+            if (raw == nullptr) return -1;
             std::vector<int> indices(raw, raw + count);
             env->ReleaseIntArrayElements(indices_arr, raw, JNI_ABORT);
             std::sort(indices.begin(), indices.end());
@@ -1603,13 +1612,13 @@ extern "C" {
 
             const int target_index = indices.front();
             ModelObject* target = ref->model.objects[target_index];
-            if (target->instances.size() != 1 || target->instances.front() == nullptr) return -2;
+            if (target == nullptr || target->instances.size() != 1 || target->instances.front() == nullptr) return -2;
             const Transform3d target_world = target->instances.front()->get_matrix();
             const Transform3d world_to_target = target_world.inverse();
             // Validate the entire operation before mutating the destination object.
             for (size_t n = 1; n < indices.size(); ++n) {
                 ModelObject* source = ref->model.objects[indices[n]];
-                if (source->instances.size() != 1 || source->instances.front() == nullptr) return -2;
+                if (source == nullptr || source->instances.size() != 1 || source->instances.front() == nullptr) return -2;
             }
             // Build all copied volumes off-object first. Appending incrementally would expose a
             // partial join if copying/configuration throws; deleting those volumes as rollback is

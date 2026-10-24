@@ -76,6 +76,67 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun nativeJoinBooleanAndTextEntryPointsRejectInvalidRequestsWithoutMutation() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "invalid-native-edit-cube.stl")
+        val model = Model(modelFile)
+        try {
+            val triangleCount = model.getTriangleCount(0)
+            val volume = model.getObjectVolume(0)
+
+            assertTrue(Native.model_combine_objects_as_parts(model.pointer, intArrayOf(0, 0)) < 0)
+            assertTrue(Native.model_boolean_objects(model.pointer, intArrayOf(0, 0), BooleanOperation.UNION.nativeValue) < 0)
+            assertTrue(Native.model_create_text_object(
+                model.pointer,
+                "missing-font.ttf",
+                "Text",
+                Float.NaN,
+                1f,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                -1,
+            ) < 0)
+            assertTrue(Native.model_create_text_object(
+                model.pointer,
+                "missing-font.ttf",
+                "Text",
+                10f,
+                1f,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                -1,
+            ) < 0)
+            assertTrue(Native.model_create_text_object(
+                model.pointer,
+                "missing-font.ttf",
+                "Text",
+                10f,
+                1f,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                1,
+            ) < 0)
+
+            assertEquals(1, model.objectsCount)
+            assertEquals(triangleCount, model.getTriangleCount(0))
+            assertEquals(volume, model.getObjectVolume(0), 0.001)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun mirrorXyZKeepsObjectCenterMeshAndCanBeToggledBack() {
         val modelFile = copyAsset("models/xyz_cube.stl", "mirror-axes-cube.stl")
         val model = Model(modelFile)
