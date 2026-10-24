@@ -47,12 +47,22 @@ open class Model private constructor(@JvmField var pointer: Long) {
         this(readModelPointer(file.absolutePath, plateId, progress, stepOptions))
 
     open fun getBoundingBoxExact(i: Int, min: Vec3d, max: Vec3d) {
+        if (!hasObject(i)) {
+            min.set(0.0, 0.0, 0.0)
+            max.set(0.0, 0.0, 0.0)
+            return
+        }
         val data = Native.model_get_bounding_box_exact(pointer, i)
         min.set(data[0], data[1], data[2])
         max.set(data[3], data[4], data[5])
     }
 
     open fun getBoundingBoxApprox(i: Int, min: Vec3d, max: Vec3d) {
+        if (!hasObject(i)) {
+            min.set(0.0, 0.0, 0.0)
+            max.set(0.0, 0.0, 0.0)
+            return
+        }
         val data = Native.model_get_bounding_box_approx(pointer, i)
         min.set(data[0], data[1], data[2])
         max.set(data[3], data[4], data[5])

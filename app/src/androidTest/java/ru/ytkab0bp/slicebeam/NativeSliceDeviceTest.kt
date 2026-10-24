@@ -61,6 +61,12 @@ class NativeSliceDeviceTest {
             assertEquals("invalid object volume query is safe", 0.0, model.getObjectVolume(-1), 0.0)
             assertFalse("invalid object paint query is safe", model.hasPaint(model.objectsCount))
             assertEquals("invalid object paint-tool query is safe", 0, model.paintMaxFilament(-1))
+            model.getBoundingBoxExact(model.objectsCount, min, max)
+            assertArrayEquals("invalid exact bounds return an empty box", DoubleArray(6),
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z), 0.0)
+            model.getBoundingBoxApprox(-1, min, max)
+            assertArrayEquals("invalid approximate bounds return an empty box", DoubleArray(6),
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z), 0.0)
             val overlay = ru.ytkab0bp.slicebeam.slic3r.GLModel()
             try {
                 assertEquals("invalid object paint overlay is safe", 0,
