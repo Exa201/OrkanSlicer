@@ -6645,7 +6645,19 @@ class InitialProjectMenuDeviceTest {
         assertFalse("exiting the tool should clear standalone placement mode",
             readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
 
+        val historyDisabledByMemoryGuard = AtomicReference<Boolean>()
+        compose.runOnUiThread {
+            historyDisabledByMemoryGuard.set(
+                BedFragment::class.java.getDeclaredField("modelHistoryDisabledForMemory")
+                    .apply { isAccessible = true }.getBoolean(bed),
+            )
+        }
         compose.runOnUiThread { bed.undoModelEdit() }
+        if (requireNotNull(historyDisabledByMemoryGuard.get())) {
+            assertEquals("Memory protection should keep the generated object when history is disabled", 1,
+                readObjectCountOnGl(glView))
+            return
+        }
         val undoDeadline = SystemClock.uptimeMillis() + 10_000L
         while (readObjectCountOnGl(glView) != 0 && SystemClock.uptimeMillis() < undoDeadline) {
             SystemClock.sleep(25L)

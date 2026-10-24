@@ -1342,7 +1342,7 @@ if (!standaloneText && selected >= 0 && !requirePreciseSurfaceModel(selected)) r
 currentGlView.queueEvent({ currentGlView.renderer.isInEmbossMode = true
 currentGlView.renderer.isStandaloneTextPlacementMode = standaloneText
 currentGlView.requestRender() })
-embossModeController = EmbossModeController(ctx, currentGlView, ::updateModel, standaloneText)
+embossModeController = EmbossModeController(ctx, currentGlView, { updateModel() }, standaloneText)
 // Register the surface-click callback before the panel is presented. A tap can arrive
 // as soon as its Compose content becomes visible, especially during a landscape resize.
 embossModeController?.start()
@@ -2624,9 +2624,13 @@ warnLargeModelLimitOnce()
 return
 }
 modelHistoryDisabledForMemory = false
-if (stableModelSnapshot != null)
+val undoSnapshot = stableModelSnapshot ?: if (currentModel != null) Model() else null
+if (undoSnapshot != null)
 {
-undoHistory.addLast(stableModelSnapshot)
+    // A fresh workspace has no native Model pointer, but the empty workspace is still a
+    // real undo state. Capture it when the first generated/added object is committed so
+    // Undo can remove that first object instead of treating it as the new baseline.
+undoHistory.addLast(undoSnapshot)
 while (undoHistory.size > MAX_HISTORY) undoHistory.removeFirst().release()
 }
 clearHistoryDeque(redoHistory)
