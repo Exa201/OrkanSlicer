@@ -855,12 +855,16 @@ class ModelEditingNativeDeviceTest {
             val sourceVolume = model.getObjectVolume(0)
             assertTrue("fixture cube must have finite positive volume", sourceVolume > 0.0)
             model.addObject(model, 0)
+            model.setUniformFilament(0, 3)
+            model.setUniformFilament(1, 4)
             model.translate(1, (max.x - min.x) / 2.0, 0.0, 0.0)
 
             val resultIndex = model.booleanObjects(0, 1, operation)
 
             assertEquals("boolean replaces both source objects only after success", 0, resultIndex)
             assertEquals(1, model.objectsCount)
+            assertEquals("Boolean result must retain the target object's filament assignment",
+                listOf(3), model.getUsedFilaments(resultIndex).toList())
             val resultVolume = model.getObjectVolume(resultIndex)
             assertEquals(expectedVolumeFactor, resultVolume / sourceVolume, 0.02)
             assertTrue("boolean output must be a non-empty printable mesh", model.getTriangleCount(resultIndex) > 0)

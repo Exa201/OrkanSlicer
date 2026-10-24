@@ -1455,6 +1455,7 @@ extern "C" {
             if (!std::isfinite(normalLengthSquared) || normalLengthSquared <= 1e-18 ||
                 (targetObjectIndex >= 0 && targetObjectIndex >= static_cast<jint>(model->model.objects.size())))
                 return -1;
+            if (targetObjectIndex >= 0 && model->model.objects[targetObjectIndex] == nullptr) return -1;
             const char* font_chars = env->GetStringUTFChars(fontPath, JNI_FALSE);
             if (font_chars == nullptr) return -1;
             std::string font_path(font_chars);
