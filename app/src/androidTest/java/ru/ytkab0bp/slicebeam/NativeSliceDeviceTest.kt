@@ -788,6 +788,56 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanOnMultipartBaseUsesItsFirstPartMaterialAndSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-multipart-base.stl")
+        val projectFile = File(context.cacheDir, "boolean-multipart-base-roundtrip.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+            model.translate(1, 50.0, 0.0, 0.0)
+            model.translate(2, 55.0, 0.0, 0.0)
+
+            assertEquals("the target should combine into a two-material multipart object", 0,
+                model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+            assertEquals("the cutter remains a separate third object", 2, model.objectsCount)
+
+            assertEquals("Boolean union should accept the disconnected multipart base", 0,
+                model.booleanObjects(0, 1, BooleanOperation.UNION))
+            assertEquals("Boolean produces one single-material solid", listOf(1), model.getUsedFilaments(0).toList())
+            assertTrue("multipart-base Boolean output remains printable", model.getObjectVolume(0) > 0.0)
+
+            SliceBeam.genCurrentConfig(model)
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals("the CSG output survives 3MF reload", 1, restored.objectsCount)
+            assertEquals("the documented base-part material survives reload", listOf(1),
+                restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "boolean-multipart-base.gcode")
+            assertHasExtrusion(gcode)
+            // Orca omits a T0 command when the active printer profile has only one tool.
+            assertFalse("the discarded base-part and cutter tools must not be emitted",
+                Regex("(?m)^(?:T1|T2)(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
     fun booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "boolean-operations-roundtrip.stl")
