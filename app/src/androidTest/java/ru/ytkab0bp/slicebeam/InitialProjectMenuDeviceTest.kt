@@ -2098,7 +2098,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun fillBedPlacesMaximumAvailableCopiesAndSupportsUndoRedo() {
+    fun fillBedCopiesPreserveFilamentsAndDistinctPlacementsWithUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -2107,9 +2107,10 @@ class InitialProjectMenuDeviceTest {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
             }
-            loadSingleTestModel(bed, modelFile)
+            val model = loadSingleTestModel(bed, modelFile)
             val selectionReady = CountDownLatch(1)
             glView.queueEvent {
+                model.setUniformFilament(0, 2)
                 glView.renderer.setSelectedObject(0)
                 glView.requestRender()
                 selectionReady.countDown()
@@ -2128,6 +2129,16 @@ class InitialProjectMenuDeviceTest {
             instrumentationWaitForGlIdle()
             val filledCount = readObjectCountOnGl(glView)
             assertTrue("fill-bed must use remaining printable plate area", filledCount > 1)
+            (0 until filledCount).forEach { index ->
+                assertArrayEquals("copy $index must preserve the source filament assignment",
+                    intArrayOf(2), readUsedFilamentsOnGl(glView, index))
+            }
+            val uniquePlacements = (0 until filledCount).map { index ->
+                val translation = readTranslationOnGl(glView, index)
+                listOf(translation.x, translation.y, translation.z)
+            }.distinct()
+            assertEquals("every copy should be arranged at a distinct position", filledCount,
+                uniquePlacements.size)
 
             compose.runOnUiThread { bed.undoModelEdit() }
             instrumentationWaitForGlIdle()
