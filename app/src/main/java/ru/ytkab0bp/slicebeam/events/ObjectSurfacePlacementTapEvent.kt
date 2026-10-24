@@ -6,4 +6,5 @@ import ru.ytkab0bp.slicebeam.utils.Vec3d
 open class ObjectSurfacePlacementTapEvent(
     @JvmField val targetObjectIndex: Int,
     @JvmField val position: Vec3d,
+    @JvmField val normal: Vec3d,
 )

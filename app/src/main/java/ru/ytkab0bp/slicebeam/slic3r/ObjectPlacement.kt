@@ -38,19 +38,50 @@ internal object ObjectPlacement {
         )
     }
 
-    /** Centers a moving assembly on a picked point and seats its lowest point on that surface. */
-    fun onSurface(moving: ObjectBounds3D, point: Vec3d): ObjectPlacementDelta? {
+    /** Centers a moving assembly on a picked point and keeps its bounds above the tapped plane. */
+    fun onSurface(
+        moving: ObjectBounds3D,
+        point: Vec3d,
+        surfaceNormal: Vec3d = Vec3d(0.0, 0.0, 1.0),
+    ): ObjectPlacementDelta? {
         val values = listOf(
             moving.minX, moving.minY, moving.minZ, moving.maxX, moving.maxY, moving.maxZ,
-            point.x, point.y, point.z,
+            point.x, point.y, point.z, surfaceNormal.x, surfaceNormal.y, surfaceNormal.z,
         )
         if (values.any { !it.isFinite() } || moving.maxX < moving.minX ||
             moving.maxY < moving.minY || moving.maxZ < moving.minZ
         ) return null
+        val normalLength = kotlin.math.sqrt(
+            surfaceNormal.x * surfaceNormal.x + surfaceNormal.y * surfaceNormal.y + surfaceNormal.z * surfaceNormal.z,
+        )
+        if (!normalLength.isFinite() || normalLength <= 1e-9) return null
+        val nx = surfaceNormal.x / normalLength
+        val ny = surfaceNormal.y / normalLength
+        val nz = surfaceNormal.z / normalLength
+        // Surface placement only supports upward-facing surfaces. The renderer applies the
+        // same slope limit before dispatching the tap; keep this pure geometry helper safe too.
+        if (nz < 0.7) return null
+        val dx = point.x - (moving.minX + moving.maxX) / 2.0
+        val dy = point.y - (moving.minY + moving.maxY) / 2.0
+        var dz = Double.NEGATIVE_INFINITY
+        for (x in listOf(moving.minX, moving.maxX)) {
+            for (y in listOf(moving.minY, moving.maxY)) {
+                for (z in listOf(moving.minZ, moving.maxZ)) {
+                    val relativeX = x + dx - point.x
+                    val relativeY = y + dy - point.y
+                    val relativeZWithoutTranslation = z - point.z
+                    dz = maxOf(
+                        dz,
+                        -(nx * relativeX + ny * relativeY + nz * relativeZWithoutTranslation) / nz,
+                    )
+                }
+            }
+        }
+        if (!dz.isFinite()) return null
         return ObjectPlacementDelta(
-            x = point.x - (moving.minX + moving.maxX) / 2.0,
-            y = point.y - (moving.minY + moving.maxY) / 2.0,
-            z = point.z - moving.minZ,
+            x = dx,
+            y = dy,
+            z = dz,
         )
     }
 

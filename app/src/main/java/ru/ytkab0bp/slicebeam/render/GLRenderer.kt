@@ -538,6 +538,7 @@ internal fun cancelSurfacePlacement() {
 internal fun placeSelectedObjectsOnSurface(
     targetIndex: Int,
     position: Vec3d,
+    normal: Vec3d,
     expectedSelection: ModelSelectionSnapshot? = surfacePlacementSelection,
 ): Int {
     return try {
@@ -555,7 +556,7 @@ internal fun placeSelectedObjectsOnSurface(
             return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
         }
         val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
-        val delta = ObjectPlacement.onSurface(movingBounds, position) ?: return -1
+        val delta = ObjectPlacement.onSurface(movingBounds, position, normal) ?: return -1
         placeAndCombineWithTarget(targetIndex, movingIndices, delta)
     } finally {
         cancelSurfacePlacement()
@@ -2232,7 +2233,9 @@ if (placementTarget >= 0) {
         return true
     }
     surfacePlacementTargetObject = -1
-    SliceBeam.EVENT_BUS.fireEvent(ObjectSurfacePlacementTapEvent(placementTarget, Vec3d(hit.position)))
+    SliceBeam.EVENT_BUS.fireEvent(
+        ObjectSurfacePlacementTapEvent(placementTarget, Vec3d(hit.position), Vec3d(hit.normal)),
+    )
     return true
 }
 if (isInEmbossMode)

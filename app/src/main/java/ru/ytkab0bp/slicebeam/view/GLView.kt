@@ -305,9 +305,9 @@ fun cancelSurfacePlacement() {
         requestRender()
     }
 }
-fun placeSelectedObjectsOnSurface(targetIndex: Int, position: Vec3d, onComplete: (Int) -> Unit) {
+fun placeSelectedObjectsOnSurface(targetIndex: Int, position: Vec3d, normal: Vec3d, onComplete: (Int) -> Unit) {
     queueEvent {
-        val result = renderer.placeSelectedObjectsOnSurface(targetIndex, position)
+        val result = renderer.placeSelectedObjectsOnSurface(targetIndex, position, normal)
         requestRender()
         ViewUtils.postOnMainThread { onComplete(result) }
     }

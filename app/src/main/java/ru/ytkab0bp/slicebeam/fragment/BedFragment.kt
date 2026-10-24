@@ -739,7 +739,7 @@ fun onCameraProjectionChanged(event: CameraProjectionChangedEvent) {
 @EventHandler(runOnMainThread = true)
 fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
     val viewport = glView ?: return
-    viewport.placeSelectedObjectsOnSurface(event.targetObjectIndex, event.position) { result ->
+    viewport.placeSelectedObjectsOnSurface(event.targetObjectIndex, event.position, event.normal) { result ->
         if (result >= 0) {
             updateModel()
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnSurfaceDone))

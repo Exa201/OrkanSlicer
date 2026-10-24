@@ -38,6 +38,38 @@ class ObjectPlacementTest {
         assertEquals(28.5, delta.z, 0.0)
     }
 
+    @Test fun tiltedSurfacePlacementKeepsEveryGroupBoundsCornerAboveThePlane() {
+        val moving = ObjectBounds3D(-4.0, 2.0, 3.0, 8.0, 12.0, 15.0)
+        val point = Vec3d(20.0, -5.0, 31.5)
+        val normal = Vec3d(0.6, 0.0, 0.8)
+        val delta = requireNotNull(ObjectPlacement.onSurface(moving, point, normal))
+        assertEquals(18.0, delta.x, 0.0)
+        assertEquals(-12.0, delta.y, 0.0)
+
+        val length = kotlin.math.sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z)
+        val minSignedDistance = listOf(moving.minX, moving.maxX).minOf { x ->
+            listOf(moving.minY, moving.maxY).minOf { y ->
+                listOf(moving.minZ, moving.maxZ).minOf { z ->
+                    normal.x / length * (x + delta.x - point.x) +
+                        normal.y / length * (y + delta.y - point.y) +
+                        normal.z / length * (z + delta.z - point.z)
+                }
+            }
+        }
+        assertEquals(0.0, minSignedDistance, 1e-9)
+    }
+
+    @Test fun surfacePlacementNormalIsNormalizedAndRejectsNonUpwardOrInvalidNormals() {
+        val moving = ObjectBounds3D(0.0, 0.0, 0.0, 2.0, 2.0, 1.0)
+        val point = Vec3d(10.0, 10.0, 5.0)
+        val unitNormal = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(0.6, 0.0, 0.8)))
+        val scaledNormal = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(6.0, 0.0, 8.0)))
+        assertEquals(unitNormal, scaledNormal)
+        assertNull(ObjectPlacement.onSurface(moving, point, Vec3d(1.0, 0.0, 0.0)))
+        assertNull(ObjectPlacement.onSurface(moving, point, Vec3d(Double.NaN, 0.0, 1.0)))
+        assertNull(ObjectPlacement.onSurface(moving, point, Vec3d(0.0, 0.0, 0.0)))
+    }
+
     @Test fun surfacePlacementRejectsInvalidPointAndBounds() {
         val valid = ObjectBounds3D(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
         assertNull(ObjectPlacement.onSurface(valid, Vec3d(Double.NaN, 0.0, 0.0)))
