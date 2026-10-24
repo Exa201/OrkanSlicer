@@ -359,9 +359,11 @@ class NativeSliceDeviceTest {
             fixtureAvailable,
         )
         val remappedProject = File(context.cacheDir, "kromacut-shared-filament.3mf")
+        val originalGcodeFile = File(context.cacheDir, "kromacut-original-colors.gcode")
         val gcodeFile = File(context.cacheDir, "kromacut-shared-filament.gcode")
         val model = Model(fixture, 1)
         var reloaded: Model? = null
+        var originalSliceResult: GCodeProcessorResult? = null
         var sliceResult: GCodeProcessorResult? = null
         try {
             assertEquals("KromaCut's two colored layers should import as one assembled object", 1, model.objectsCount)
@@ -371,6 +373,19 @@ class NativeSliceDeviceTest {
                 model.getVolumeExtruder(0, 0))
             assertEquals("the second source color should use its second logical filament", 2,
                 model.getVolumeExtruder(0, 1))
+
+            SliceBeam.genCurrentConfig(model)
+            originalSliceResult = model.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath,
+                originalGcodeFile.absolutePath,
+                null,
+            )
+            val originalGcode = originalGcodeFile.readText()
+            assertHasExtrusion(originalGcode)
+            assertTrue("the original two-color KromaCut slice must switch to its second tool",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(originalGcode))
+            assertFalse("the original KromaCut project must not reference a third tool",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(originalGcode))
 
             // A user may intentionally print both source colors with one physical slot.
             model.remapFilaments(intArrayOf(1, 2), intArrayOf(2, 2))
@@ -398,11 +413,13 @@ class NativeSliceDeviceTest {
             assertFalse("unassigned slot 3 must not be emitted",
                 Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
         } finally {
+            originalSliceResult?.release()
             sliceResult?.release()
             reloaded?.release()
             model.release()
             fixture.delete()
             remappedProject.delete()
+            originalGcodeFile.delete()
             gcodeFile.delete()
             SliceBeam.getCurrentConfigFile().delete()
         }
