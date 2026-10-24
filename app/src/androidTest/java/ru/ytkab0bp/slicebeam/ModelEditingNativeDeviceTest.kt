@@ -38,6 +38,17 @@ import java.util.concurrent.atomic.AtomicReference
 class ModelEditingNativeDeviceTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun releasedModelRejectsTextJoinAndBooleanRequestsBeforeNativeCalls() {
+        val model = Model()
+        model.release()
+
+        assertTrue("released model must reject multipart join", model.combineObjectsAsParts(intArrayOf(0, 1)) < 0)
+        assertTrue("released model must reject Boolean operation", model.booleanObjects(0, 1, BooleanOperation.UNION) < 0)
+        assertTrue("released model must reject standalone text creation", model.createTextObject(
+            "font.ttf", "Label", 10f, 1f, Vec3d(0.0, 0.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+        ) < 0)
+    }
+
     @Test fun mirrorXyZKeepsObjectCenterMeshAndCanBeToggledBack() {
         val modelFile = copyAsset("models/xyz_cube.stl", "mirror-axes-cube.stl")
         val model = Model(modelFile)

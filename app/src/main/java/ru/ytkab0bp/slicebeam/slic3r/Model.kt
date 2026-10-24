@@ -337,6 +337,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
         normal: Vec3d,
         targetObjectIndex: Int = -1,
     ): Int {
+        if (pointer == 0L) return -1
         if (!ModelEditRequestValidation.isValidTextRequest(
                 fontPath, text, size, depth, position, normal, targetObjectIndex, objectsCount,
             )
@@ -352,6 +353,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     /** Combines selected single-instance objects into a multipart object while preserving volume materials. */
     open fun combineObjectsAsParts(objectIndices: IntArray): Int {
+        if (pointer == 0L) return -1
         if (!ModelEditRequestValidation.hasDistinctObjectIndices(objectIndices, objectsCount)) return -1
         val index = Native.model_combine_objects_as_parts(pointer, objectIndices)
         if (index >= 0) resetBoundingBox()
@@ -364,6 +366,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
      * replacement object's index, or a negative status without changing inputs.
      */
     open fun booleanObjects(objectIndices: IntArray, operation: BooleanOperation): Int {
+        if (pointer == 0L) return -1
         if (!ModelEditRequestValidation.hasDistinctObjectIndices(objectIndices, objectsCount)) return -1
         val index = Native.model_boolean_objects(pointer, objectIndices, operation.nativeValue)
         if (index >= 0) resetBoundingBox()
