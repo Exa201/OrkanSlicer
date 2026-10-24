@@ -13,6 +13,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -543,6 +544,68 @@ class MainActivityTouchDeviceTest {
                 arrayOf(Long::class.javaPrimitiveType!!),
                 arrayOf(1_000_000L),
             )
+
+            // Dense objects still support safe object-to-object placement without asking the
+            // native surface raycaster for its expensive face-neighbour index. The placement
+            // uses exact object bounds, then combines the assembly as printable multipart data.
+            val cubeFile = File(context.cacheDir, "touch-test-placement-cube.stl")
+            val cubeSourceFile = File(context.cacheDir, "touch-test-placement-cube-source.stl")
+            var cubeSource: Model? = null
+            try {
+                context.assets.open("models/xyz_cube.stl").use { input ->
+                    cubeSourceFile.outputStream().use(input::copyTo)
+                }
+                cubeSource = Model(cubeSourceFile)
+                val placementReady = CountDownLatch(1)
+                val placementResult = AtomicReference<Int>()
+                val selectionAccepted = AtomicReference<Boolean>()
+                val targetBefore = AtomicReference<DoubleArray>()
+                val movingHeight = AtomicReference<Double>()
+                val assemblyAfter = AtomicReference<DoubleArray>()
+                val assignedFilaments = AtomicReference<IntArray>()
+                val glView = requireNotNull(bed).glView!!
+                glView.queueEvent {
+                    val renderer = glView.renderer
+                    val activeModel = requireNotNull(renderer.model)
+                    val min = Vec3d(); val max = Vec3d()
+                    activeModel.getBoundingBoxExact(0, min, max)
+                    targetBefore.set(doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z))
+                    val sourceMin = Vec3d(); val sourceMax = Vec3d()
+                    requireNotNull(cubeSource).getBoundingBoxExact(0, sourceMin, sourceMax)
+                    movingHeight.set(sourceMax.z - sourceMin.z)
+                    activeModel.addObject(requireNotNull(cubeSource), 0)
+                    val movingIndex = activeModel.objectsCount - 1
+                    activeModel.setUniformFilament(0, 1)
+                    activeModel.setUniformFilament(movingIndex, 2)
+                    selectionAccepted.set(renderer.setSelectedObject(movingIndex))
+                    placementResult.set(renderer.placeSelectedObjectsOnObject(0))
+                    val resultMin = Vec3d(); val resultMax = Vec3d()
+                    activeModel.getBoundingBoxExact(0, resultMin, resultMax)
+                    assemblyAfter.set(doubleArrayOf(resultMin.x, resultMin.y, resultMin.z,
+                        resultMax.x, resultMax.y, resultMax.z))
+                    assignedFilaments.set(activeModel.getUsedFilaments(0))
+                    glView.requestRender()
+                    placementReady.countDown()
+                }
+                assertTrue("dense-target placement should finish on the GL thread",
+                    placementReady.await(20, TimeUnit.SECONDS))
+                assertTrue("the generated object should become the selected moving object",
+                    requireNotNull(selectionAccepted.get()))
+                assertEquals("the M12 and selected cube should combine into one object", 0,
+                    requireNotNull(placementResult.get()))
+                val before = requireNotNull(targetBefore.get())
+                val after = requireNotNull(assemblyAfter.get())
+                assertEquals("the placed cube must sit on the M12 bounding top without overlap",
+                    before[5] + requireNotNull(movingHeight.get()), after[5], 0.03)
+                assertEquals("the assembly must retain the M12 bottom", before[2], after[2], 0.03)
+                assertArrayEquals("the printable multipart assembly must retain assigned materials",
+                    intArrayOf(1, 2), requireNotNull(assignedFilaments.get()))
+                scenario.onActivity { requireNotNull(bed).updateModel() }
+            } finally {
+                cubeSource?.release()
+                cubeFile.delete()
+                cubeSourceFile.delete()
+            }
         } finally {
             scenario.close()
             modelFile.delete()
