@@ -27,20 +27,18 @@ internal class EmbossModeController(
         followSurface = false,
     )
     @Volatile private var fontFilePath: String? = null
-    private var started = false
+    private val sessionGate = EmbossSessionGate()
     private val eventBridge = EmbossModeEventBridge(::onSurfaceClicked)
 
     fun start() {
-        if (started) return
-        started = true
+        if (sessionGate.begin() == null) return
         fontFilePath = prepareFontFile()
         glView.renderer.isStandaloneTextPlacementMode = options.standaloneMode
         SliceBeam.EVENT_BUS.registerListener(eventBridge)
     }
 
     fun stop() {
-        if (!started) return
-        started = false
+        if (!sessionGate.end()) return
         glView.renderer.isStandaloneTextPlacementMode = false
         SliceBeam.EVENT_BUS.unregisterListener(eventBridge)
     }
@@ -63,6 +61,7 @@ internal class EmbossModeController(
     }
 
     private fun onSurfaceClicked(event: EmbossSurfaceClickedEvent) {
+        val session = sessionGate.current() ?: return
         // One immutable snapshot prevents a GL tap from combining old and new UI modes.
         val editOptions = options
         val validParameters = editOptions.parameters
@@ -89,6 +88,8 @@ internal class EmbossModeController(
         val safeDepth = validParameters.value.depth
         val createSeparateObject = editOptions.standaloneMode
         glView.queueEvent {
+            // Back or a tool switch invalidates taps already queued for the GL thread.
+            if (!sessionGate.isCurrent(session)) return@queueEvent
             try {
                 val model = glView.renderer.model ?: return@queueEvent
                 val affectedObject = if (createSeparateObject) {
@@ -136,6 +137,28 @@ internal class EmbossModeController(
         }
         fontFile.absolutePath
     }.getOrNull()
+}
+
+/** Invalidates callbacks already queued on GL when the text tool leaves the workspace. */
+internal class EmbossSessionGate {
+    @Volatile private var activeSession: Any? = null
+
+    @Synchronized
+    fun begin(): Any? {
+        if (activeSession != null) return null
+        return Any().also { activeSession = it }
+    }
+
+    @Synchronized
+    fun end(): Boolean {
+        if (activeSession == null) return false
+        activeSession = null
+        return true
+    }
+
+    fun current(): Any? = activeSession
+
+    fun isCurrent(session: Any): Boolean = activeSession === session
 }
 
 /** Immutable options published as one volatile reference to the GL/EventBus callback. */

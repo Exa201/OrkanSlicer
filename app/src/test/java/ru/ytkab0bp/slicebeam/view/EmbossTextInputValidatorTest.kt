@@ -2,9 +2,27 @@ package ru.ytkab0bp.slicebeam.view
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class EmbossTextInputValidatorTest {
+    @Test
+    fun leavingTextToolInvalidatesQueuedGlCallbacksAcrossRestart() {
+        val gate = EmbossSessionGate()
+        val firstSession = requireNotNull(gate.begin())
+
+        assertTrue(gate.isCurrent(firstSession))
+        assertEquals(null, gate.begin())
+        assertEquals(true, gate.end())
+        assertEquals(false, gate.isCurrent(firstSession))
+
+        val secondSession = requireNotNull(gate.begin())
+        assertTrue(gate.isCurrent(secondSession))
+        assertEquals(false, gate.isCurrent(firstSession))
+        assertEquals(true, gate.end())
+        assertEquals(false, gate.end())
+    }
+
     @Test
     fun embossModesKeepStandaloneAndSurfaceFollowingAsOneConsistentSnapshot() {
         val parameters = EmbossTextInputValidator.validate("Label", "10", "1")
