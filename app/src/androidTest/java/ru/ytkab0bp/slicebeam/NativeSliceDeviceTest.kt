@@ -797,8 +797,9 @@ class NativeSliceDeviceTest {
         try {
             model.addObject(model, 0)
             model.addObject(model, 0)
-            model.setUniformFilament(0, 1)
-            model.setUniformFilament(1, 2)
+            // The first base volume is deliberately not the lowest used filament.
+            model.setUniformFilament(0, 2)
+            model.setUniformFilament(1, 1)
             model.setUniformFilament(2, 3)
             model.translate(1, 50.0, 0.0, 0.0)
             model.translate(2, 55.0, 0.0, 0.0)
@@ -810,7 +811,8 @@ class NativeSliceDeviceTest {
 
             assertEquals("Boolean union should accept the disconnected multipart base", 0,
                 model.booleanObjects(0, 1, BooleanOperation.UNION))
-            assertEquals("Boolean produces one single-material solid", listOf(1), model.getUsedFilaments(0).toList())
+            assertEquals("Boolean uses the first base volume's material, even when it is not the lowest slot",
+                listOf(2), model.getUsedFilaments(0).toList())
             assertTrue("multipart-base Boolean output remains printable", model.getObjectVolume(0) > 0.0)
 
             SliceBeam.genCurrentConfig(model)
@@ -822,13 +824,14 @@ class NativeSliceDeviceTest {
             }
             restored = Model(projectFile, 1)
             assertEquals("the CSG output survives 3MF reload", 1, restored.objectsCount)
-            assertEquals("the documented base-part material survives reload", listOf(1),
+            assertEquals("the documented first base-part material survives reload", listOf(2),
                 restored.getUsedFilaments(0).toList())
             val gcode = sliceToGcode(context, restored, "boolean-multipart-base.gcode")
             assertHasExtrusion(gcode)
-            // Orca omits a T0 command when the active printer profile has only one tool.
-            assertFalse("the discarded base-part and cutter tools must not be emitted",
-                Regex("(?m)^(?:T1|T2)(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the first base volume's filament should use T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("other base-part and cutter tools must not be emitted",
+                Regex("(?m)^(?:T0|T2)(?:\\s|$)").containsMatchIn(gcode))
         } finally {
             restored?.release()
             model.release()
