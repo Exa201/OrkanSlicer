@@ -63,6 +63,26 @@ class ModelEditingNativeDeviceTest {
         assertTrue("late raycasts must clear stale hits and ignore the released native handle", hits.isEmpty())
     }
 
+    @Test fun modelSnapshotsPreserveUniformFilamentAssignments() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "snapshot-filament-cube.stl")
+        val model = Model(modelFile)
+        var snapshot: Model? = null
+        try {
+            model.setUniformFilament(0, 2)
+            assertEquals(listOf(2), model.getUsedFilaments(0).toList())
+
+            snapshot = Model.merge(model)
+
+            assertEquals("native model snapshot must retain the object's assigned filament",
+                listOf(2), snapshot.getUsedFilaments(0).toList())
+        } finally {
+            snapshot?.release()
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+
     @Test fun delayedModelEditSelectionSnapshotCannotBeMutatedThroughInputOrGetter() {
         val modelFile = copyAsset("models/xyz_cube.stl", "selection-snapshot-cube.stl")
         val model = Model(modelFile)

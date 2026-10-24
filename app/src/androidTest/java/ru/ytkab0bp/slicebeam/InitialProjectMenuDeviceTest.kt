@@ -4273,7 +4273,10 @@ class InitialProjectMenuDeviceTest {
             viewport.requestRender()
         }
         instrumentationWaitForGlIdle()
+        assertArrayEquals("source filament assignment should apply on the GL thread", intArrayOf(2),
+            readUsedFilamentsOnGl(viewport, 0))
         compose.runOnUiThread { bed.updateModel() }
+        instrumentationWaitForGlIdle()
         viewport.selectModel(0, Runnable {})
         instrumentationWaitForGlIdle()
         compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))

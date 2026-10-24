@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
-import android.os.Debug
 import android.os.Process
 import android.text.TextUtils
 import android.util.Log
@@ -258,9 +257,18 @@ val isEmbossMode:Boolean
 get() {
 return workspaceController.activeToolId == "emboss-mode"
 }
-private val isLargeModelInMemory:Boolean
-get() {
-return Debug.getNativeHeapAllocatedSize() >= LARGE_MODEL_NATIVE_HEAP_BYTES
+private fun isLargeModelInMemory(model: Model?): Boolean {
+ // The process-wide native heap also contains the renderer, fonts and other app state.
+ // Using that total as a model-size proxy disabled Undo on devices that had a busy
+ // renderer even for a tiny mesh. Bound history by the active mesh instead: every
+ // retained snapshot duplicates the triangle data, so include the active model and
+ // the maximum number of undo snapshots in the estimate.
+ if (model == null) return false
+ var triangleCount = 0L
+ for (index in 0 until model.objectsCount) {
+     triangleCount += model.getTriangleCount(index).coerceAtLeast(0)
+ }
+ return modelHistoryWouldExceedBudget(triangleCount)
 }
 private fun getProjectPlateId(index:Int):Int {
 return if (index >= 0 && index < projectPlateIds.size) projectPlateIds.get(index) else 0
@@ -1677,11 +1685,13 @@ if (panelWebViewContainer != null) panelWebViewContainer!!.setVisibility(View.GO
 override fun onPause() {
 super.onPause()
 destroyPrinterWebView()
-// The current model stays in memory while backgrounded; cold starts begin cleanly.
- if (isLargeModelInMemory) warnLargeModelLimitOnce()
 // Free render meshes while Android hosts another activity (for example, the file
  // picker). Keep the native model; GLRenderer recreates the mesh buffers on demand.
- glView!!.queueEvent({ glView!!.renderer.releaseMeshResources() })
+  glView!!.queueEvent({
+      // The current model stays in memory while backgrounded; cold starts begin cleanly.
+      if (isLargeModelInMemory(glView!!.renderer.model)) warnLargeModelLimitOnce()
+      glView!!.renderer.releaseMeshResources()
+  })
 glView!!.onPause()
 }
 private fun updateProfileStatus() {
@@ -2612,29 +2622,38 @@ workspaceThemeRevision++
 fun updateModel() {
 if (platesModels.isEmpty()) return
 platePreviewRevision++
-val currentModel = glView!!.renderer.model
-platesModels.set(currentPlateIndex, currentModel)
-updatePlateIndicator()
-if (!modelLoadInProgress && platesModels.all { it != null && it.objectsCount == 0 }) TemporaryProjectSettings.clear()
-if (isLargeModelInMemory)
-{
-clearModelHistory()
-modelHistoryDisabledForMemory = true
-warnLargeModelLimitOnce()
-return
+val viewport = glView ?: return
+val targetPlate = currentPlateIndex
+viewport.queueEvent {
+    if (destroyed || targetPlate !in platesModels.indices) return@queueEvent
+    val currentModel = viewport.renderer.model
+    platesModels.set(targetPlate, currentModel)
+    if (isLargeModelInMemory(currentModel)) {
+        clearModelHistory()
+        modelHistoryDisabledForMemory = true
+        warnLargeModelLimitOnce()
+    } else {
+        modelHistoryDisabledForMemory = false
+        val undoSnapshot = stableModelSnapshot ?: if (currentModel != null) Model() else null
+        if (undoSnapshot != null) {
+            // A fresh workspace has no native Model pointer, but the empty workspace is still a
+            // real undo state. Capture it when the first generated/added object is committed so
+            // Undo can remove that first object instead of treating it as the new baseline.
+            undoHistory.addLast(undoSnapshot)
+            while (undoHistory.size > MAX_HISTORY) undoHistory.removeFirst().release()
+        }
+        clearHistoryDeque(redoHistory)
+        stableModelSnapshot = if (currentModel != null) Model.merge(currentModel) else null
+    }
+    val shouldClearTemporarySettings = !modelLoadInProgress &&
+        platesModels.all { it != null && it.objectsCount == 0 }
+    ViewUtils.postOnMainThread {
+        if (destroyed) return@postOnMainThread
+        updatePlateIndicator()
+        if (shouldClearTemporarySettings) TemporaryProjectSettings.clear()
+    }
 }
-modelHistoryDisabledForMemory = false
-val undoSnapshot = stableModelSnapshot ?: if (currentModel != null) Model() else null
-if (undoSnapshot != null)
-{
-    // A fresh workspace has no native Model pointer, but the empty workspace is still a
-    // real undo state. Capture it when the first generated/added object is committed so
-    // Undo can remove that first object instead of treating it as the new baseline.
-undoHistory.addLast(undoSnapshot)
-while (undoHistory.size > MAX_HISTORY) undoHistory.removeFirst().release()
-}
-clearHistoryDeque(redoHistory)
-stableModelSnapshot = if (currentModel != null) Model.merge(currentModel) else null
+viewport.requestRender()
 }
 private fun syncCurrentModel() {
 if (!platesModels.isEmpty() && glView != null)
@@ -2644,13 +2663,13 @@ platesModels.set(currentPlateIndex, glView!!.renderer.model)
 }
 private fun resetModelHistory() {
 clearModelHistory()
-modelHistoryDisabledForMemory = isLargeModelInMemory
+val current = if (glView != null) glView!!.renderer.model else null
+modelHistoryDisabledForMemory = isLargeModelInMemory(current)
 if (modelHistoryDisabledForMemory)
 {
 warnLargeModelLimitOnce()
 return
 }
-val current = if (glView != null) glView!!.renderer.model else null
 stableModelSnapshot = if (current != null) Model.merge(current) else null
 }
 private fun warnLargeModelLimitOnce() {
@@ -2754,7 +2773,11 @@ configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
 }
 private val SESSION_PLATE_COUNT = "last_session_plate_count"
 private val MAX_HISTORY = 5
-private val LARGE_MODEL_NATIVE_HEAP_BYTES = 256L * 1024L * 1024L
+private fun modelHistoryWouldExceedBudget(triangleCount: Long): Boolean =
+    triangleCount.coerceAtLeast(0L) > MODEL_HISTORY_MEMORY_BUDGET_BYTES /
+        ESTIMATED_BYTES_PER_TRIANGLE / (MAX_HISTORY + 1)
+private const val ESTIMATED_BYTES_PER_TRIANGLE = 64L
+private const val MODEL_HISTORY_MEMORY_BUDGET_BYTES = 128L * 1024L * 1024L
 private const val IMPORT_TRIANGLE_LIMIT = 500_000
 private const val IMPORT_TRIANGLE_TARGET = 400_000
 var tempFileName: String? = null
