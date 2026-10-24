@@ -36,6 +36,9 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
@@ -462,6 +465,68 @@ class ModelEditingNativeDeviceTest {
         } finally {
             model.release()
             modelFile.delete()
+        }
+    }
+
+    @Test fun standaloneSurfaceTextUsesTheTappedRepeatedInstance() {
+        val modelFile = createRepeatedInstanceProject("standalone-text-repeated-instance.3mf")
+        val fontFile = copyAsset("font/roboto_medium.ttf", "repeated-instance-text-font.ttf")
+        val model = Model(modelFile)
+        try {
+            assertEquals("the repeated build items should remain instances of one object", 1, model.objectsCount)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            assertEquals("fixture must contain both translated instances", 21.0, max.x - min.x, 0.02)
+
+            val index = model.createTextObject(
+                fontFile.absolutePath,
+                "A",
+                3f,
+                1f,
+                Vec3d(61.0, 43.0, 3.0),
+                Vec3d(1.0, 0.0, 0.0),
+                targetObjectIndex = 0,
+            )
+
+            assertEquals("surface text should be added to the shared model object", 0, index)
+            model.getBoundingBoxExact(0, min, max)
+            assertTrue("text placed on the second copy must not jump to a remote copy", max.x < 63.0)
+            assertTrue("text must protrude from the tapped outer face", max.x > 61.0)
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
+    @Test fun embossOnSecondRepeatedInstanceUsesItsWorldToLocalTransform() {
+        val modelFile = createRepeatedInstanceProject("emboss-repeated-instance.3mf")
+        val fontFile = copyAsset("font/roboto_medium.ttf", "repeated-instance-emboss-font.ttf")
+        val model = Model(modelFile)
+        try {
+            assertEquals("the repeated build items should remain instances of one object", 1, model.objectsCount)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            assertEquals("fixture must contain both translated instances", 21.0, max.x - min.x, 0.02)
+
+            model.embossText(
+                0,
+                fontFile.absolutePath,
+                "A",
+                3f,
+                1f,
+                0,
+                Vec3d(61.0, 43.0, 3.0),
+                Vec3d(1.0, 0.0, 0.0),
+            )
+
+            model.getBoundingBoxExact(0, min, max)
+            assertTrue("emboss must stay attached to the tapped second copy", max.x < 63.0)
+            assertTrue("emboss must extend beyond the tapped face", max.x > 61.0)
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
         }
     }
 
@@ -1001,6 +1066,37 @@ class ModelEditingNativeDeviceTest {
         return File(context.cacheDir, name).also { file ->
             context.assets.open(asset).use { input -> file.outputStream().use(input::copyTo) }
         }
+    }
+
+    /** Rewrites the project build to place the first mesh resource twice as one model object. */
+    private fun createRepeatedInstanceProject(name: String): File {
+        val source = copyAsset("models/two-color-project.3mf", "$name-source.3mf")
+        val destination = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        val firstItem = """<item objectid="1" transform="1 0 0 0 1 0 0 0 1 40 40 0"/>"""
+        val secondItem = """<item objectid="2" transform="1 0 0 0 1 0 0 0 1 55 40 0"/>"""
+        val repeatedItem = """<item objectid="1" transform="1 0 0 0 1 0 0 0 1 55 40 0"/>"""
+        try {
+            ZipFile(source).use { input ->
+                ZipOutputStream(destination.outputStream()).use { output ->
+                    input.entries().asSequence().forEach { entry ->
+                        val bytes = input.getInputStream(entry).use { it.readBytes() }
+                        val rewritten = if (entry.name == "3D/3dmodel.model") {
+                            val xml = bytes.toString(Charsets.UTF_8)
+                            check(xml.contains(firstItem) && xml.contains(secondItem)) {
+                                "Repeated-instance fixture source changed unexpectedly"
+                            }
+                            xml.replace(secondItem, repeatedItem).toByteArray(Charsets.UTF_8)
+                        } else bytes
+                        output.putNextEntry(ZipEntry(entry.name))
+                        output.write(rewritten)
+                        output.closeEntry()
+                    }
+                }
+            }
+        } finally {
+            source.delete()
+        }
+        return destination
     }
 
     private fun createCubeFixture(name: String, side: Float): File {

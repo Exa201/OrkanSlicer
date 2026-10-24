@@ -168,6 +168,44 @@ void subdivide_text_mesh_for_surface(indexed_triangle_set &mesh)
     }
 }
 
+std::vector<Transform3d> model_instance_transforms(const ModelObject &object)
+{
+    std::vector<Transform3d> instances;
+    if (object.instances.empty()) instances.emplace_back(Transform3d::Identity());
+    else {
+        instances.reserve(object.instances.size());
+        for (const ModelInstance *instance : object.instances)
+            if (instance != nullptr) instances.emplace_back(instance->get_matrix());
+    }
+    return instances;
+}
+
+size_t find_instance_for_world_surface(
+    const std::vector<Transform3d> &instances,
+    const AABBMesh &raycaster,
+    const Vec3d &world_position,
+    const Vec3d &world_normal,
+    double ray_distance)
+{
+    size_t selected = instances.size();
+    double closest_hit_distance = std::numeric_limits<double>::infinity();
+    const Vec3d normal = world_normal.normalized();
+    for (size_t index = 0; index < instances.size(); ++index) {
+        const Transform3d inverse = instances[index].inverse();
+        const Vec3d inward = -(inverse.linear() * normal).normalized();
+        const Vec3d origin = inverse * (world_position + normal * ray_distance);
+        const auto hit = raycaster.query_ray_hit(origin, inward);
+        if (!hit.is_hit()) continue;
+        const Vec3d candidate_world = instances[index] * hit.position();
+        const double distance = (candidate_world - world_position).norm();
+        if (distance < closest_hit_distance) {
+            closest_hit_distance = distance;
+            selected = index;
+        }
+    }
+    return closest_hit_distance <= 2.0 ? selected : instances.size();
+}
+
 Transform3d conform_text_mesh_to_model_surface(
     indexed_triangle_set &text_mesh,
     const ModelObject &target,
@@ -185,31 +223,11 @@ Transform3d conform_text_mesh_to_model_surface(
     const Transform3d tangent_frame = Emboss::create_transformation_onto_surface(world_position, normal);
     const BoundingBoxf3 bounds = bounding_box(target_mesh.its);
     const double ray_distance = std::max(100., 4. * (bounds.max - bounds.min).norm() + 10.);
-    std::vector<Transform3d> instances;
-    if (target.instances.empty()) instances.emplace_back(Transform3d::Identity());
-    else {
-        instances.reserve(target.instances.size());
-        for (const ModelInstance *instance : target.instances)
-            if (instance != nullptr) instances.emplace_back(instance->get_matrix());
-    }
+    const std::vector<Transform3d> instances = model_instance_transforms(target);
     if (instances.empty()) throw std::runtime_error("The target model has no placed instance");
-
-    size_t selected_instance = instances.size();
-    double closest_hit_distance = std::numeric_limits<double>::infinity();
-    for (size_t index = 0; index < instances.size(); ++index) {
-        const Transform3d inverse = instances[index].inverse();
-        Vec3d inward = -(inverse.linear() * normal).normalized();
-        const Vec3d origin = inverse * (world_position + normal * ray_distance);
-        auto hit = raycaster.query_ray_hit(origin, inward);
-        if (!hit.is_hit()) continue;
-        const Vec3d candidate_world = instances[index] * hit.position();
-        const double distance = (candidate_world - world_position).norm();
-        if (distance < closest_hit_distance) {
-            closest_hit_distance = distance;
-            selected_instance = index;
-        }
-    }
-    if (selected_instance == instances.size() || closest_hit_distance > 2.0)
+    const size_t selected_instance = find_instance_for_world_surface(
+        instances, raycaster, world_position, normal, ray_distance);
+    if (selected_instance == instances.size())
         throw std::runtime_error("Tap the text onto a visible model surface");
 
     subdivide_text_mesh_for_surface(text_mesh);
@@ -1580,9 +1598,25 @@ extern "C" {
             Vec3d normal(nx, ny, nz);
             if (normal.norm() < 1e-9) normal = Vec3d::UnitZ(); else normal.normalize();
             Transform3d world_tr = Emboss::create_transformation_onto_surface(position, normal);
-            Transform3d inst_tr = Transform3d::Identity();
-            if (!obj->instances.empty() && obj->instances.front() != nullptr)
-                inst_tr = obj->instances.front()->get_matrix();
+            const std::vector<Transform3d> instances = model_instance_transforms(*obj);
+            if (instances.empty()) throw std::runtime_error("The target model has no placed instance");
+            size_t selected_instance = 0;
+            if (instances.size() > 1) {
+                // The surface hit is in world coordinates. Resolve which repeated copy was
+                // tapped before converting the text transform back into the shared object's
+                // local coordinates; using instances.front() offsets the emboss on every copy.
+                TriangleMesh target_mesh = obj->raw_mesh();
+                if (target_mesh.its.vertices.empty() || target_mesh.its.indices.empty())
+                    throw std::runtime_error("The target model has no printable surface");
+                AABBMesh raycaster(target_mesh);
+                const BoundingBoxf3 bounds = bounding_box(target_mesh.its);
+                const double ray_distance = std::max(100., 4. * (bounds.max - bounds.min).norm() + 10.);
+                selected_instance = find_instance_for_world_surface(
+                    instances, raycaster, position, normal, ray_distance);
+                if (selected_instance == instances.size())
+                    throw std::runtime_error("Tap the text onto a visible model surface");
+            }
+            const Transform3d inst_tr = instances[selected_instance];
 
             // 6) Add as a volume with its own transformation (geometry stays centered at origin).
             ModelVolumeType vol_type = static_cast<ModelVolumeType>(type);
