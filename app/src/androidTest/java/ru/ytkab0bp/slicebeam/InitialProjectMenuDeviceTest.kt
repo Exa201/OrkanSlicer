@@ -2353,14 +2353,14 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
             compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 4 }
-            // The native split completes on the GL thread and posts updateModel() to Main.
-            compose.runOnUiThread { }
-            @Suppress("UNCHECKED_CAST")
-            val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
-                .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<Model>
-            assertTrue("splitting the joined object should add an undo snapshot", undoHistory.isNotEmpty())
+            // Split posts updateModel() to Main, which then queues its history snapshot on GL.
+            // Wait for that GL-owned write before inspecting the snapshot; reading the deque on
+            // Main immediately after the native split races the posted history update.
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readLastUndoSnapshotObjectCountOnGl(bed, glView) == 1
+            }
             assertEquals("split undo snapshot should restore the multipart joined object", 1,
-                undoHistory.peekLast().objectsCount)
+                readLastUndoSnapshotObjectCountOnGl(bed, glView))
             assertEquals("splitting a multipart object should preserve each source filament", listOf(1, 2, 2, 3),
                 (0 until 4).map { index -> readUsedFilamentsOnGl(glView, index).single() })
             compose.runOnUiThread { bed.undoModelEdit() }
@@ -8365,6 +8365,23 @@ class InitialProjectMenuDeviceTest {
         val history = BedFragment::class.java.getDeclaredField(fieldName).apply { isAccessible = true }
             .get(bed) as java.util.ArrayDeque<*>
         return history.size
+    }
+
+    private fun readLastUndoSnapshotObjectCountOnGl(
+        bed: BedFragment,
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+    ): Int {
+        val finished = CountDownLatch(1)
+        val objectCount = AtomicReference<Int>()
+        glView.queueEvent {
+            @Suppress("UNCHECKED_CAST")
+            val history = BedFragment::class.java.getDeclaredField("undoHistory")
+                .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<Model>
+            objectCount.set(history.peekLast()?.objectsCount ?: 0)
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return the latest undo snapshot", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(objectCount.get())
     }
 
     private fun hasExpectedLinearTransform(
