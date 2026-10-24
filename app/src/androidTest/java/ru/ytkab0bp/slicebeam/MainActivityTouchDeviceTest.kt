@@ -171,8 +171,8 @@ class MainActivityTouchDeviceTest {
                 assertEquals("The GL renderer must track the actual surface width", glView.width, glView.renderer.viewportWidth)
                 assertEquals("The GL renderer must track the actual surface height", glView.height, glView.renderer.viewportHeight)
                 tap(glView, hit.first, hit.second)
-                SystemClock.sleep(90L)
                 tap(glView, hit.first, hit.second)
+                awaitRendererQueue(glView)
             }
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
@@ -185,8 +185,8 @@ class MainActivityTouchDeviceTest {
             val emptyPlatePoint = requireNotNull(emptyPlatePointRef.get())
             scenario.onActivity {
                 tap(glView, emptyPlatePoint.first, emptyPlatePoint.second)
-                SystemClock.sleep(90L)
                 tap(glView, emptyPlatePoint.first, emptyPlatePoint.second)
+                awaitRendererQueue(glView)
             }
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
@@ -195,7 +195,10 @@ class MainActivityTouchDeviceTest {
             }
 
             // A deliberate tap on the model restores its selection without opening a dialog.
-            scenario.onActivity { tap(glView, hit.first, hit.second) }
+            scenario.onActivity {
+                tap(glView, hit.first, hit.second)
+                awaitRendererQueue(glView)
+            }
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
@@ -592,6 +595,12 @@ class MainActivityTouchDeviceTest {
         dispatch(view, MotionEvent.ACTION_DOWN, x, y, downTime, downTime)
         SystemClock.sleep(50L)
         dispatch(view, MotionEvent.ACTION_UP, x, y, downTime, SystemClock.uptimeMillis())
+    }
+
+    private fun awaitRendererQueue(view: GLView) {
+        val rendered = CountDownLatch(1)
+        view.queueEvent { rendered.countDown() }
+        assertTrue("Queued GL touch events should finish", rendered.await(5, TimeUnit.SECONDS))
     }
 
     private fun findEmptyPlatePoint(view: GLView): Pair<Float, Float> {
