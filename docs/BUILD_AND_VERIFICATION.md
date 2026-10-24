@@ -1,3 +1,8 @@
+# STL-Preflight-Test benötigt kein großes Fixture mehr — 2026-10-24
+
+- Der Grenztest für `StlImportPreflight` legt keine 25-MB-Binär-STL mehr an. Eine pure interne Policy-Prüfung testet 500.000/500.001 Dreiecke und die erwartete deklarierte Binärlänge; zusätzlich prüft eine 6-Dreiecke-Datei den echten Headerlesepfad.
+- `StlImportPreflightTest` gezielt bestanden. Vollständige Slice-JVM-Suite **625/625 bestanden**, XML `2026-10-24T06:05:05.760Z`. Im danach folgenden Debug-Kotlin-Task scheiterte der zusammengefasste Gradle-Aufruf wegen fehlendem Speicherplatz beim Auflösen der Plugin-/Classpath-Snapshot-Abhängigkeiten. Deshalb keine aktuelle Debug-Suite-Verifikation und kein APK-Build.
+
 # Adaptive Schichthöhenprofile unterstützen Undo/Redo — 2026-10-24
 
 - Korrektur: Nach erfolgreichem Anwenden oder Löschen des nativen adaptiven Layer-Height-Profils ruft das Panel jetzt den bestehenden BedFragment-Verlaufssnapshot auf. Damit sind beide Operationen rückgängig und wiederherstellbar; Fehlerfälle werden nicht als abgeschlossene Änderung verbucht.

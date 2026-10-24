@@ -3173,6 +3173,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Das sind gezielte Instrumentierungstests; vollständige Unit-Suiten und ein Release-Build wurden in diesem Durchgang nicht ausgeführt. Die bestehenden Arbeitsbaumänderungen bleiben uncommitted.
 - Nächster konkreter Schritt: die drei Aktionen mit 3MF-Neuladen und Slicing/G-Code-Rundlauf prüfen, dann die nächsten noch nicht vollständig abgenommenen Modellaktionen fortsetzen.
 
+# Slice-Test-Fixture verkleinert, vollständige Slice-Suite wieder grün — 2026-10-24
+
+- Der `StlImportPreflightTest` erzeugte zuvor eine 25-MB-Datei, um die Grenzwerte 500.000/500.001 zu prüfen. Das war unnötig: Die Größen-/Header-Policy lässt sich direkt mit deklarierter Länge testen. Die Testdatei nutzt nun nur sechs Dreiecke; eine interne pure Prüffunktion verifiziert zusätzlich exakt den Default-Grenzwert und fehlerhafte deklarierte Längen. Ein beim Schreiben fehlschlagendes Fixture wird sofort entfernt.
+- Verifikation: gezielter Slice-Unit-Test `StlImportPreflightTest` bestanden. Vollständige Slice-JVM-Suite anschließend ausgeführt: **625/625 bestanden**, XML-Zeitstempel `2026-10-24T06:05:05.760Z`. Der zusammengefasste Gradle-Aufruf endete danach beim separaten Debug-Kotlin-Task mit „kein Speicherplatz“; die Slice-Task/XML ist erfolgreich und vollständig.
+- Debug-JVM-Suite und Debug-APK wurden mit dem aktuellen Quellstand nicht erneut erfolgreich gebaut: Gradle konnte wegen 0 Byte freiem Platz auf C: Abhängigkeiten/Kotlin-Plugin-Snapshots nicht auflösen. Die zuvor vorhandenen 625/625 Debug-Ergebnisse stammen von vor dieser reinen STL-Testfixture-Änderung und gelten nicht als neue Verifikation.
+- Noch offen: Debug-Suite/Build nach verfügbarem Speicher; adaptives Layerprofil über 3MF exportieren, laden und tatsächlich slicen; danach nächste Modellbearbeitungsgruppe weiter prüfen. Keine neue APK oder Release.
+
 # Adaptive Schichthöhenprofile — Undo/Redo abgesichert, 2026-10-24
 
 - Beim Prüfen weiterer Modellaktionen wurde eine echte Verlaufslücke gefunden: „Adaptive layer height“ und „Clear“ änderten das native Profil, aktualisierten danach aber nicht den BedFragment-Modellverlauf. Dadurch waren diese Änderungen nicht durch Undo/Redo wiederherstellbar.
