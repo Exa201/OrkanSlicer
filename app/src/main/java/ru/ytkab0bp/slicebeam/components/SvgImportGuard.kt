@@ -4,7 +4,9 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
+import org.xml.sax.EntityResolver
 import org.xml.sax.SAXException
+import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
@@ -12,6 +14,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.ArrayList
 import java.util.regex.Pattern
+import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.ParserConfigurationException
 import javax.xml.transform.OutputKeys
@@ -54,14 +57,7 @@ class SvgImportGuard private constructor() {
         fun simplify(source: File, destination: File): Int {
             val document: Document = try {
                 FileInputStream(source).use { input ->
-                    val factory = DocumentBuilderFactory.newInstance()
-                    factory.isNamespaceAware = true
-                    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-                    factory.setFeature("http://xml.org/sax/features/external-general-entities", false)
-                    factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-                    factory.isExpandEntityReferences = false
-                    factory.isXIncludeAware = false
-                    factory.newDocumentBuilder().parse(input)
+                    secureDocumentBuilder(source).parse(input)
                 }
             } catch (error: Exception) {
                 if (error is IOException) throw error
@@ -118,14 +114,7 @@ class SvgImportGuard private constructor() {
         private fun countPathCommands(file: File): Int {
             try {
                 FileInputStream(file).use { input ->
-                    val factory = DocumentBuilderFactory.newInstance()
-                    factory.isNamespaceAware = true
-                    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-                    factory.setFeature("http://xml.org/sax/features/external-general-entities", false)
-                    factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-                    factory.isExpandEntityReferences = false
-                    factory.isXIncludeAware = false
-                    val document = factory.newDocumentBuilder().parse(input)
+                    val document = secureDocumentBuilder(file).parse(input)
                     var root = document.documentElement.localName
                     if (root == null) root = document.documentElement.tagName
                     if (!"svg".equals(root, ignoreCase = true)) {
@@ -148,6 +137,56 @@ class SvgImportGuard private constructor() {
                     throw IOException("Die Datei enthält kein lesbares SVG-Bild.", error)
                 }
                 throw error
+            }
+        }
+
+        /**
+         * Android's platform XML parser does not implement Xerces' disallow-doctype feature.
+         * Keep the same fail-closed behavior there by rejecting DTD/entity declarations from the
+         * bounded input stream before parsing; an entity resolver is also installed as a second
+         * barrier. This lets ordinary SVG files pass validation on Android without enabling XXE.
+         */
+        @Throws(IOException::class, ParserConfigurationException::class)
+        private fun secureDocumentBuilder(file: File): DocumentBuilder {
+            val factory = DocumentBuilderFactory.newInstance()
+            factory.isNamespaceAware = true
+            var mustRejectDtdInInput = false
+            for ((feature, value) in arrayOf(
+                "http://apache.org/xml/features/disallow-doctype-decl" to true,
+                "http://xml.org/sax/features/external-general-entities" to false,
+                "http://xml.org/sax/features/external-parameter-entities" to false,
+            )) {
+                try {
+                    factory.setFeature(feature, value)
+                } catch (_: ParserConfigurationException) {
+                    mustRejectDtdInInput = true
+                }
+            }
+            factory.isExpandEntityReferences = false
+            // XInclude is disabled by default. Android's platform factory throws
+            // UnsupportedOperationException for setXIncludeAware(false), so don't call it.
+            if (mustRejectDtdInInput) rejectDtdDeclarations(file)
+            return factory.newDocumentBuilder().apply {
+                setEntityResolver(EntityResolver { _, _ ->
+                    throw SAXException("Externe XML-Entitäten sind deaktiviert.")
+                })
+            }
+        }
+
+        private fun rejectDtdDeclarations(file: File) {
+            val markers = listOf("<!DOCTYPE", "<!ENTITY")
+            var tail = ""
+            BufferedInputStream(FileInputStream(file)).use { input ->
+                val bytes = ByteArray(8192)
+                while (true) {
+                    val count = input.read(bytes)
+                    if (count < 0) break
+                    val text = (tail + String(bytes, 0, count, Charsets.US_ASCII)).uppercase(java.util.Locale.ROOT)
+                    if (markers.any(text::contains)) {
+                        throw IOException("Die Datei enthält kein lesbares SVG-Bild (DOCTYPE/ENTITY-Deklarationen sind nicht erlaubt).")
+                    }
+                    tail = text.takeLast(markers.maxOf(String::length) - 1)
+                }
             }
         }
 

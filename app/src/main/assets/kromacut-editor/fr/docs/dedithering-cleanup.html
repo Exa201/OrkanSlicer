@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Nettoyage du voisinage par couleurs exactes et effets sur les points isolés, les bords, la transparence et les îlots imprimables." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Détramage et nettoyage | Documentation Kromacut" />
+        <meta property="og:description" content="Nettoyage du voisinage par couleurs exactes et effets sur les points isolés, les bords, la transparence et les îlots imprimables." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/fr/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="fr_FR" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Détramage et nettoyage | Documentation Kromacut" />
+        <meta name="twitter:description" content="Nettoyage du voisinage par couleurs exactes et effets sur les points isolés, les bords, la transparence et les îlots imprimables." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Détramage et nettoyage | Documentation Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/fr/">Aller à l’accueil</a>
+                    <a href="/app">Ouvrir Kromacut</a>
+                    <ul><li><a href="/fr/docs/overview">Présentation</a></li><li><a href="/fr/docs/quick-start">Démarrage rapide</a></li><li><a href="/fr/docs/loading-images">Chargement des images</a></li><li><a href="/fr/docs/image-adjustments">Réglages d’image</a></li><li><a href="/fr/docs/reducing-colors">Réduction des couleurs</a></li><li><a href="/fr/docs/dedithering-cleanup">Détramage et nettoyage</a></li><li><a href="/fr/docs/3d-mode">Mode 3D</a></li><li><a href="/fr/docs/auto-paint">Commandes de peinture automatique</a></li><li><a href="/fr/docs/calibration-theory">Théorie de l’étalonnage</a></li><li><a href="/fr/docs/flat-paint">Peinture à plat</a></li><li><a href="/fr/docs/calibration-workflows">Méthodes d’étalonnage</a></li><li><a href="/fr/docs/generating-exporting-output">Génération et export</a></li><li><a href="/fr/docs/settings-and-controls">Paramètres et commandes</a></li><li><a href="/fr/docs/troubleshooting">Dépannage</a></li><li><a href="/fr/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Détramage et nettoyage</h1>
+<p>Le <strong>Détramage</strong> remplace les pixels insuffisamment représentés localement par des couleurs voisines. Il s’agit d’une passe de nettoyage distincte, et non d’un algorithme de quantification ou d’une simulation de ce que votre buse peut imprimer.</p>
+<p>Utilisez-le sur des motifs tramés à couleurs répétées ou sur une image réduite comportant des points isolés. Il peut intervenir avant la quantification si la source contient déjà ces motifs, ou après sur les zones réduites. Ce n’est pas un filtre de réduction du bruit photographique : les pixels voisins d’une photo ont souvent des couleurs exactes légèrement différentes.</p>
+<h2 id="how-a-pixel-is-chosen">Comment un pixel est choisi</h2>
+<p><a href="/localized/fr/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Les huit pixels voisins votent par couleur exacte. Le poids fixe le nombre de voisins identiques nécessaire pour conserver le centre ; chaque passe reprend le résultat précédent."><img src="/localized/fr/diagrams/36_dedither_neighbors.svg" alt="Les huit pixels voisins votent par couleur exacte. Le poids fixe le nombre de voisins identiques nécessaire pour conserver le centre ; chaque passe reprend le résultat précédent." loading="lazy"></a></p>
+<p>Chaque pixel examine ses huit voisins immédiats, diagonales incluses. Si un nombre suffisant possède exactement les mêmes <strong>valeurs RVB et alpha</strong>, il reste inchangé. Sinon, il adopte la couleur différente la plus fréquente parmi ses voisins. Les ex æquo sont départagés aléatoirement : des réglages identiques peuvent donc produire des résultats différents.</p>
+<p>Seules les couleurs voisines existantes, y compris les pixels transparents, sont utilisées. Elles ne sont pas moyennées pour créer une nouvelle nuance.</p>
+<h2 id="weight">Poids</h2>
+<p>Le <strong>Poids</strong> est le nombre de voisins identiques nécessaire pour conserver le pixel original. Plage : <strong>1 à 9</strong> ; valeur par défaut : <strong>4</strong>.</p>
+<table><thead><tr><th>Exemple</th><th>Résultat</th></tr></thead><tbody><tr><td>Aucun voisin identique</td><td>Change si une autre couleur voisine existe, même avec un poids de 1.</td></tr><tr><td>Trois voisins identiques</td><td>Reste avec un poids de 3 ; peut être remplacé avec un poids de 4.</td></tr><tr><td>Le centre et les huit voisins sont identiques</td><td>Reste même avec un poids de 9, car aucun voisin différent n’existe.</td></tr></tbody></table>
+<p>Les valeurs faibles préservent davantage les détails ; les valeurs élevées rendent davantage de pixels remplaçables. Avec seulement huit voisins, le seuil de conservation de 9 ne peut jamais être atteint. C’est un réglage de bord agressif, pas un rayon plus grand. Les pixels en bordure disposent aussi de moins de voisins.</p>
+<h2 id="passes">Passes</h2>
+<p><strong>Passes</strong> répète le nettoyage de <strong>1 à 10</strong> fois, avec <strong>1</strong> par défaut. Chaque passe lit l’intégralité du résultat précédent. Des passes supplémentaires peuvent retirer des points persistants, mais aussi déplacer des bords, couper des connexions étroites ou supprimer du petit texte.</p>
+<p>Les flèches de réinitialisation rétablissent le poids à 4 ou les passes à 1. La réinitialisation du panneau rétablit les deux. Aucune ne restaure l’image précédente ; utilisez Annuler pour cela.</p>
+<h2 id="apply-and-inspect">Appliquer et examiner</h2>
+<ol><li><strong>Appliquez</strong> d’abord les réglages actifs. Le détramage lit la vue ajustée ; les incorporer d’abord évite de laisser des réglages en direct actifs sur le résultat nettoyé.</li><li>Commencez avec une seule passe. Le poids est de 4 par défaut ; essayez des valeurs inférieures si les détails fins sont importants.</li><li>Cliquez sur <strong>Appliquer</strong>, puis examinez les contours, les lettres et les bords transparents avec un fort zoom.</li><li>Annulez avant de comparer un autre réglage sur la même image de départ.</li></ol>
+<p>Des clics répétés sur Appliquer poursuivent le nettoyage de l’image déjà nettoyée. Ce ne sont pas des comparaisons indépendantes avec l’original.</p>
+<h2 id="effect-on-the-print">Effet sur l’impression</h2>
+<p>Retirer les pixels isolés d’une autre couleur peut supprimer de minuscules îlots, mais aussi des détails voulus. L’alpha participe au vote : le détramage peut donc élargir ou réduire la silhouette et ouvrir ou fermer des trous.</p>
+<p>Il travaille en <strong>pixels de l’image</strong>, pas en millimètres. Un détail de trois pixels à 0,1 mm/pixel mesure 0,3 mm avant les décisions ultérieures de maillage ou de découpe. Le détramage n’a pas de paramètre de diamètre de buse. Utilisez les <a href="/fr/docs/3d-mode">commandes de détails imprimables en 3D</a> et l’aperçu du logiciel de découpe pour vérifier les détails physiques.</p>
+<h2 id="dedither-versus-height-dithering">Détramage et tramage de hauteur</h2>
+<table><thead><tr><th>Outil</th><th>Où</th><th>Ce qui change</th></tr></thead><tbody><tr><td>Détramage</td><td>2D</td><td>Les zones de couleur exacte et, éventuellement, le contour transparent de l’image source.</td></tr><tr><td>Tramage de hauteur</td><td>Peinture automatique en 3D</td><td>Le motif des hauteurs de surface générées pour approcher les couleurs cibles.</td></tr></tbody></table>
+<p>Utiliser l’un n’active pas l’autre. N’appliquez pas le détramage si vous souhaitez conserver un pixel art ou un pointillisme intentionnel.</p>
+<p>Suite : <a href="/fr/docs/3d-mode">Mode 3D</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

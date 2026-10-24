@@ -17,6 +17,7 @@ import android.util.Base64
 import android.util.Log
 import android.util.SparseArray
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
 import android.widget.ArrayAdapter
@@ -25,11 +26,17 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.FrameLayout
 import androidx.annotation.NonNull
 import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,8 +69,14 @@ import ru.ytkab0bp.sapil.APICallback
 import ru.ytkab0bp.slicebeam.cloud.CloudAPI
 import ru.ytkab0bp.slicebeam.cloud.CloudController
 import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
-import ru.ytkab0bp.slicebeam.components.ChangeLogBottomSheet
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.ChangeLogDialog
+import ru.ytkab0bp.slicebeam.components.ProfileConfigImportDialog
+import ru.ytkab0bp.slicebeam.components.ProfileImportCategory
+import ru.ytkab0bp.slicebeam.components.ProfileImportKey
+import ru.ytkab0bp.slicebeam.components.ProfileImportOption
+import ru.ytkab0bp.slicebeam.components.ThreeMfImportChoiceDialog
+import ru.ytkab0bp.slicebeam.components.SvgSimplifyConsentDialog
+import ru.ytkab0bp.slicebeam.components.StepImportOptionsDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
@@ -72,34 +85,57 @@ import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.config.ProfileConfigImportValidator
 import ru.ytkab0bp.slicebeam.config.ProfileConfigLoadWarning
 import ru.ytkab0bp.slicebeam.config.ProfileConfigSnapshot
-import ru.ytkab0bp.slicebeam.events.NeedDismissAIGeneratorMenu
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
+import ru.ytkab0bp.slicebeam.navigation.MobileNavigationPolicy
 import ru.ytkab0bp.slicebeam.navigation.NavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
+import ru.ytkab0bp.slicebeam.slic3r.StepImportOptions
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.IOUtils
+import ru.ytkab0bp.slicebeam.utils.ImageDecodePolicy
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
 class MainActivity:AppCompatActivity() {
+private var changeLogDialog by mutableStateOf<ChangeLogDialog?>(null)
 private var id:Int = 0
 @get:NonNull
 val navigationDelegate:NavigationDelegate
 get() = delegate ?: throw IllegalStateException("Navigation is not initialized")
 private var delegate: NavigationDelegate? = null
-private var unfoldMenu: UnfoldMenu? = null
 private var exitConfirmationDialog: AlertDialog? = null
+private var dismissWorkspaceExitConfirmation: (() -> Unit)? = null
 private val activityResultLaunchers = HashMap<Int, ActivityResultLauncher<Intent>>()
+/** Shows file-operation errors in the workspace when it is active, retaining the platform fallback
+ * for activity states that do not currently host a BedFragment. */
+internal fun showFileOperationError(title: String, message: String) {
+    if (isFinishing || isDestroyed) return
+    val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+    if (bed?.canShowWorkspaceComposeDialog() == true) {
+        bed.showWorkspaceMessageDialog(
+            title = title,
+            message = message,
+            confirmLabel = getString(android.R.string.ok),
+        )
+        return
+    }
+    BeamAlertDialogBuilder(this)
+        .setTitle(title)
+        .setMessage(message)
+        .setPositiveButton(android.R.string.ok, null)
+        .show()
+}
 private fun interface BundleProfileFinder {
 fun find(name:String):ConfigObject?
 }
@@ -125,14 +161,10 @@ activeInstance = this
 }
 else
 {
-val i = Intent(this, MainActivity::class.java)
+// Copy the complete incoming intent so temporary content:// read grants, ClipData,
+// categories and provider metadata survive the activity hand-off.
+val i = Intent(getIntent()).setClass(this, MainActivity::class.java)
 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-if (getIntent() != null)
-{
-i.setAction(getIntent().getAction())
-i.putExtras(getIntent())
-i.setDataAndType(getIntent().getData(), getIntent().getType())
-}
 startActivity(i)
 finish()
 return
@@ -163,15 +195,32 @@ ViewCompat.setOnApplyWindowInsetsListener(v, { v2, insets->
 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
 v2.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
 insets })
+val composeDialogHost = ComposeView(this).apply {
+    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+    isClickable = false
+    isFocusable = false
+    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+    setContent {
+        changeLogDialog?.let { dialog ->
+            dialog.Content {
+                if (changeLogDialog === dialog) changeLogDialog = null
+            }
+        }
+    }
+}
+(v as ViewGroup).addView(
+    composeDialogHost,
+    ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
+)
 setContentView(v)
 onBackPressedDispatcher.addCallback(this, object:OnBackPressedCallback(true) {
 override fun handleOnBackPressed() {
 if (!handleAppBack()) finishAfterTransition()
 }
 })
-if (getIntent() != null && getIntent().getAction() != null && getIntent().getAction().equals(Intent.ACTION_VIEW))
+if (getIntent() != null && ExternalModelOpenIntent.uris(getIntent()).isNotEmpty())
 {
-getIntent().getData()?.let { loadFile(it) }
+handleExternalModelOpen(getIntent())
 setIntent(null)
 }
 val decorView = getWindow().getDecorView()
@@ -195,13 +244,72 @@ if (!Objects.equals(Prefs.getLastCommit(), BuildConfig.COMMIT) && SliceBeam.hasU
 {
 Prefs.setLastCommit()
 BeamServerData.load()
-ChangeLogBottomSheet(this).show()
+changeLogDialog = ChangeLogDialog(this)
 }
 }
 protected override fun onNewIntent(@NonNull intent:Intent) {
 super.onNewIntent(intent)
-intent.getData()?.let { loadFile(it) }
+handleExternalModelOpen(intent)
 setIntent(null)
+}
+
+private fun handleExternalModelOpen(intent: Intent) {
+    val uris = ExternalModelOpenIntent.uris(intent)
+    if (uris.isEmpty()) return
+    if (uris.size == 1) {
+        runInWorkspaceBed { loadFile(uris.single()) }
+        return
+    }
+
+    val stlFiles = uris.filter { uri ->
+        IOUtils.getDisplayName(uri)?.lowercase(Locale.ROOT)?.endsWith(".stl") == true
+    }
+    if (stlFiles.size != uris.size) {
+        Toast.makeText(this, R.string.MenuFileOpenMultipleStlOnly, Toast.LENGTH_LONG).show()
+    }
+    if (stlFiles.isEmpty()) {
+        showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.MenuFileOpenMultipleStlOnly),
+        )
+    } else {
+        runInWorkspaceBed { loadMultipleStlFiles(stlFiles) }
+    }
+}
+
+/** External file intents can arrive while a global page (for example App or Filament) is active.
+ * Model loading and the STEP options dialog belong to BedFragment, so switch back to the workspace
+ * first and wait until its Compose overlay host is attached before dispatching the import. */
+private fun runInWorkspaceBed(attempt: Int = 0, action: () -> Unit) {
+    if (isFinishing || isDestroyed) return
+    val mobileNavigation = navigationDelegate as? MobileNavigationDelegate
+    if (navigationDelegate.getCurrentFragment() !is BedFragment) {
+        if (mobileNavigation == null) {
+            showFileOperationError(
+                getString(R.string.MenuFileOpenFileFailed),
+                getString(R.string.StepImportWorkspaceUnavailable),
+            )
+            return
+        }
+        mobileNavigation.switchToSlot(MobileNavigationPolicy.PREVIEW_SLOT)
+    }
+
+    val bed = navigationDelegate.getCurrentFragment() as? BedFragment
+    if (bed?.canShowWorkspaceComposeDialog() == true) {
+        action()
+        return
+    }
+    if (attempt >= STEP_DIALOG_HOST_MAX_ATTEMPTS) {
+        showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.StepImportWorkspaceUnavailable),
+        )
+        return
+    }
+    window.decorView.postDelayed(
+        { runInWorkspaceBed(attempt + 1, action) },
+        STEP_DIALOG_HOST_RETRY_DELAY_MS,
+    )
 }
 private fun dispatchActivityResult(requestCode:Int, resultCode:Int, data:Intent?) {
 if (ru.ytkab0bp.slicebeam.components.KromacutEditorMenu.handleActivityResult(requestCode, resultCode, data))
@@ -362,18 +470,22 @@ Toast.makeText(this, R.string.MenuFileOpenMultipleStlOnly, Toast.LENGTH_LONG).sh
 }
 if (stlFiles.isEmpty())
 {
-BeamAlertDialogBuilder(this).setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(R.string.MenuFileOpenMultipleStlOnly)
-.setPositiveButton(android.R.string.ok, null).show()
+showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed),
+    getString(R.string.MenuFileOpenMultipleStlOnly),
+)
 }
 else
 {
-loadMultipleStlFiles(stlFiles)
+runInWorkspaceBed { loadMultipleStlFiles(stlFiles) }
 }
 }
 else if (!selectedFiles.isEmpty())
 {
-loadFile(selectedFiles.get(0))
+// The document picker can return after workspace navigation has changed (for example
+// from an external file handoff or a restored global page). Model import and the STEP
+// meshing-options dialog are hosted by BedFragment, so restore that host before loading.
+runInWorkspaceBed { loadFile(selectedFiles.get(0)) }
 }
 }
 else if (requestCode == MainActivity.REQUEST_CODE_EXPORT_PROFILES)
@@ -415,11 +527,10 @@ val uri = data?.getData() ?: return
 val fileName = IOUtils.getDisplayName(uri)
 if (fileName == null)
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.MenuFileOpenFileFailedNullName)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.MenuFileOpenFileFailedNullName),
+)
 return
 }
 if (isOrcaBundleFile(fileName))
@@ -429,11 +540,10 @@ return
 }
 if (!fileName.endsWith(".ini"))
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.MenuFileImportProfilesFailedNotIni)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.MenuFileImportProfilesFailedNotIni),
+)
 return
 }
 try
@@ -441,35 +551,57 @@ try
 loadIniForImport(getContentResolver().openInputStream(uri) ?: return)
 }
 catch (e:FileNotFoundException) {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(getString(R.string.MenuFileImportProfilesFailed), e.toString())
 }
 }
 else if (requestCode == REQUEST_CODE_AI_GENERATOR_TAKE_PHOTO)
 {
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissAIGeneratorMenu())
-val bm = BitmapFactory.decodeFile(aiTempFile!!.getAbsolutePath())
-generateAiModel(bm)
-aiTempFile!!.delete()
+val photo = aiTempFile
 aiTempFile = null
+try {
+    val bitmap = photo?.let(::decodeAiBitmap)
+    if (bitmap == null) throw IOException("Captured image could not be decoded")
+    generateAiModel(bitmap)
+} catch (e: Exception) {
+    Log.e("ai_generator", "Failed to decode captured image", e)
+    Toast.makeText(this, R.string.MenuFileAIGeneratorError, Toast.LENGTH_SHORT).show()
+} finally {
+    photo?.delete()
+}
 }
 else if (requestCode == REQUEST_CODE_AI_GENERATOR_CHOOSE_PHOTO)
 {
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissAIGeneratorMenu())
 try
 {
-val `in` = getContentResolver().openInputStream(data?.getData() ?: return)
-val bm = BitmapFactory.decodeStream(`in`)
+val uri = data?.getData() ?: return
+val bm = decodeAiBitmap(uri) ?: throw IOException("Selected image could not be decoded")
 generateAiModel(bm)
 }
 catch (e:Exception) {
 Log.e("ai_generator", "Failed to write to downloads", e)
+Toast.makeText(this, R.string.MenuFileAIGeneratorError, Toast.LENGTH_SHORT).show()
 }
 }
 }
+}
+private fun decodeAiBitmap(file: File): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.absolutePath, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = ImageDecodePolicy.sampleSize(bounds.outWidth, bounds.outHeight)
+    }
+    return BitmapFactory.decodeFile(file.absolutePath, options)
+}
+
+private fun decodeAiBitmap(uri: Uri): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = ImageDecodePolicy.sampleSize(bounds.outWidth, bounds.outHeight)
+    }
+    return contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
 }
 private fun registerActivityResultLaunchers() {
     ACTIVITY_RESULT_REQUEST_CODES.forEach { requestCode ->
@@ -518,11 +650,10 @@ val bundle = JSONObject(root.getString("bundle_structure_json"))
 if (!bundle.optString("bundle_type", "").endsWith("config bundle"))
 {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(R.string.OrcaConversionNotAConfigBundle)
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.OrcaConversionNotAConfigBundle),
+) })
 return@submit
 }
 importOrcaBundle(root)
@@ -530,27 +661,22 @@ SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 }
 catch (ep:IOUtils.MissingProfileException) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(getString(R.string.MenuFileImportProfilesFailedBaseProfileNotFound, ep.profile))
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed),
+    getString(R.string.MenuFileImportProfilesFailedBaseProfileNotFound, ep.profile),
+) })
 }
 catch (e:IOException) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed), e.toString(),
+) })
 }
 catch (e:Exception) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileImportProfilesFailed), e.toString(),
+) })
 }
 finally
 {
@@ -571,8 +697,8 @@ return lower.endsWith(".gcode") || lower.endsWith(".g") || lower.endsWith(".gco"
 }
 private fun isSupportedModelFile(fileName:String):Boolean {
 val lower = fileName.lowercase(Locale.ROOT)
-// Keep this list in sync with libslic3r::Model::read_from_file() on Android.
- return (lower.endsWith(".stl") || lower.endsWith(".oltp") || lower.endsWith(".obj") ||
+// Keep this list in sync with the native Model::read_from_file/read_from_step import routes.
+ return (StepImportOptions.isStepFile(lower) || lower.endsWith(".stl") || lower.endsWith(".oltp") || lower.endsWith(".obj") ||
 lower.endsWith(".3mf") || lower.endsWith(".amf") || lower.endsWith(".svg") ||
 lower.endsWith(".drc") || isGcodeFile(lower))
 }
@@ -763,6 +889,62 @@ private fun show3mfImportChoice(fragment: BedFragment, projectImport: Project3mf
     val filePrinterIndex = names.indexOf(filePrinter)
     val currentPrinter = config.presets?.get("printer")
     val ownPrinterIndex = names.indexOf(currentPrinter).coerceAtLeast(0)
+    if (fragment.canShowWorkspaceComposeDialog()) {
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ThreeMfImportChoiceDialog(
+                title = getString(R.string.Project3mfImportTitle),
+                explanation = getString(R.string.Project3mfImportExplanation),
+                printerLabel = getString(R.string.Project3mfTargetPrinter),
+                printerNames = names,
+                initialPrinterIndex = ownPrinterIndex,
+                filePrinterIndex = filePrinterIndex,
+                filePrinterLabel = getString(R.string.Project3mfUseFilePrinter, filePrinter),
+                unavailableFilePrinterLabel = getString(R.string.Project3mfFilePrinterUnavailable, filePrinter.ifBlank { "–" }),
+                printSettingsLabel = getString(R.string.Project3mfUsePrintSettings),
+                filamentSettingsLabel = getString(R.string.Project3mfUseFilamentSettings),
+                temporaryNote = getString(R.string.Project3mfImportTemporaryNote),
+                applyLabel = getString(R.string.Project3mfApplyChoice),
+                cancelLabel = getString(android.R.string.cancel),
+                canUsePrintSettings = projectImport.settings?.process?.any { it.key != "curr_bed_type" } == true,
+                canUseFilamentSettings = projectImport.hasFileFilaments,
+                onDismiss = dismiss,
+                onApply = { target, useFilePrinter, usePrintSettings, useFilamentSettings ->
+                    if (target != null && target != config.presets?.get("printer") && !SliceBeam.applyProfileSelection(printer = target)) {
+                        Toast.makeText(this, R.string.ConfigSaveFailed, Toast.LENGTH_LONG).show()
+                    } else {
+                        val selected = projectImport.settings?.let { source ->
+                            ThreeMfImportSelection.select(
+                                source,
+                                usePrintSettings,
+                                useFilamentSettings,
+                                Prefs.getStoredFilamentSlots(),
+                                useFilePrinter,
+                            )
+                        }
+                        TemporaryProjectSettings.activate(selected)
+                        fragment.refreshProfileStatus()
+                        fragment.glView?.requestRender()
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.Project3mfChoiceApplied))
+                        dismiss()
+                    }
+                },
+            )
+        }
+        return
+    }
+    show3mfImportChoicePlatform(fragment, projectImport, config, names, filePrinter, filePrinterIndex, ownPrinterIndex)
+}
+
+/** Platform fallback for rare activity states with no attached Bed workspace host. */
+private fun show3mfImportChoicePlatform(
+    fragment: BedFragment,
+    projectImport: Project3mfImportResult,
+    config: Slic3rConfigWrapper,
+    names: List<String>,
+    filePrinter: String,
+    filePrinterIndex: Int,
+    ownPrinterIndex: Int,
+) {
     val root = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(ViewUtils.dp(20), ViewUtils.dp(4), ViewUtils.dp(20), ViewUtils.dp(8))
@@ -1066,11 +1248,9 @@ IS_GENERATING_AI_MODEL = false
 }
 override fun onException(e:Exception) {
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(processTag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this@MainActivity)
-.setTitle(R.string.MenuFileAIGeneratorError)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({
+    showFileOperationError(getString(R.string.MenuFileAIGeneratorError), e.toString())
+})
 IS_GENERATING_AI_MODEL = false
 }
 })
@@ -1096,11 +1276,10 @@ IOUtils.IO_POOL.submit {
         ViewUtils.postOnMainThread {
             val current = SliceBeam.CONFIG
             if (current == null) {
-                BeamAlertDialogBuilder(this)
-                    .setTitle(R.string.MenuFileImportProfilesFailed)
-                    .setMessage(R.string.MenuFileImportProfilesFailedEmpty)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
+                showFileOperationError(
+                    getString(R.string.MenuFileImportProfilesFailed),
+                    getString(R.string.MenuFileImportProfilesFailedEmpty),
+                )
                 return@postOnMainThread
             }
 
@@ -1123,20 +1302,31 @@ IOUtils.IO_POOL.submit {
             val selectedPrinters = BooleanArray(printerLabels.size) { true }
 
             if (printLabels.isEmpty() && filamentLabels.isEmpty() && printerLabels.isEmpty()) {
-                BeamAlertDialogBuilder(this)
-                    .setTitle(R.string.MenuFileImportProfilesFailed)
-                    .setMessage(R.string.MenuFileImportProfilesFailedEmpty)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
+                showFileOperationError(
+                    getString(R.string.MenuFileImportProfilesFailed),
+                    getString(R.string.MenuFileImportProfilesFailedEmpty),
+                )
                 return@postOnMainThread
             }
 
-            val applyImport: (Boolean) -> Unit = applyImport@{ replaceExisting ->
+            fun selectedProfileKeys(): Set<ProfileImportKey> = buildSet {
+                selectedPrints.forEachIndexed { index, checked ->
+                    if (checked) add(ProfileImportKey(ConfigObject.PROFILE_LIST_PRINT, index))
+                }
+                selectedFilaments.forEachIndexed { index, checked ->
+                    if (checked) add(ProfileImportKey(ConfigObject.PROFILE_LIST_FILAMENT, index))
+                }
+                selectedPrinters.forEachIndexed { index, checked ->
+                    if (checked) add(ProfileImportKey(ConfigObject.PROFILE_LIST_PRINTER, index))
+                }
+            }
+
+            val applyImport: (Boolean, Set<ProfileImportKey>) -> Unit = applyImport@{ replaceExisting, selectedProfiles ->
                 val snapshot = ProfileConfigSnapshot(current)
                 var importedCount = 0
                 var skippedCount = 0
                 for (index in selectedPrints.indices) {
-                    if (!selectedPrints[index]) continue
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINT, index) !in selectedProfiles) continue
                     val profile = imported.printConfigs[index]
                     if (replaceExisting || current.findPrint(profile.title) == null) {
                         current.importPrint(profile)
@@ -1144,7 +1334,7 @@ IOUtils.IO_POOL.submit {
                     } else skippedCount++
                 }
                 for (index in selectedFilaments.indices) {
-                    if (!selectedFilaments[index]) continue
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_FILAMENT, index) !in selectedProfiles) continue
                     val profile = imported.filamentConfigs[index]
                     if (replaceExisting || current.findFilament(profile.title) == null) {
                         current.importFilament(profile)
@@ -1152,7 +1342,7 @@ IOUtils.IO_POOL.submit {
                     } else skippedCount++
                 }
                 for (index in selectedPrinters.indices) {
-                    if (!selectedPrinters[index]) continue
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINTER, index) !in selectedProfiles) continue
                     val profile = imported.printerConfigs[index]
                     if (replaceExisting || current.findPrinter(profile.title) == null) {
                         current.importPrinter(profile)
@@ -1193,33 +1383,34 @@ IOUtils.IO_POOL.submit {
             }
 
             val finish: () -> Unit = {
+                val selectedProfiles = selectedProfileKeys()
                 val conflicts = ArrayList<String>()
                 for (index in selectedPrints.indices) {
                     val profile = imported.printConfigs[index]
-                    if (selectedPrints[index] && current.findPrint(profile.title) != null) {
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINT, index) in selectedProfiles && current.findPrint(profile.title) != null) {
                         conflicts.add("${getString(R.string.MenuFileExportProfilesPrints)}: ${profile.title.orEmpty()}")
                     }
                 }
                 for (index in selectedFilaments.indices) {
                     val profile = imported.filamentConfigs[index]
-                    if (selectedFilaments[index] && current.findFilament(profile.title) != null) {
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_FILAMENT, index) in selectedProfiles && current.findFilament(profile.title) != null) {
                         conflicts.add("${getString(R.string.MenuFileExportProfilesFilaments)}: ${profile.title.orEmpty()}")
                     }
                 }
                 for (index in selectedPrinters.indices) {
                     val profile = imported.printerConfigs[index]
-                    if (selectedPrinters[index] && current.findPrinter(profile.title) != null) {
+                    if (ProfileImportKey(ConfigObject.PROFILE_LIST_PRINTER, index) in selectedProfiles && current.findPrinter(profile.title) != null) {
                         conflicts.add("${getString(R.string.MenuFileExportProfilesPrinters)}: ${profile.title.orEmpty()}")
                     }
                 }
                 if (conflicts.isEmpty()) {
-                    applyImport(false)
+                    applyImport(false, selectedProfiles)
                 } else {
                     BeamAlertDialogBuilder(this)
                         .setTitle(R.string.MenuFileImportProfilesConflictTitle)
                         .setMessage(getString(R.string.MenuFileImportProfilesConflictMessage, conflicts.joinToString("\n")))
-                        .setPositiveButton(R.string.MenuFileImportProfilesOverwrite) { _, _ -> applyImport(true) }
-                        .setNegativeButton(R.string.MenuFileImportProfilesSkipExisting) { _, _ -> applyImport(false) }
+                        .setPositiveButton(R.string.MenuFileImportProfilesOverwrite) { _, _ -> applyImport(true, selectedProfiles) }
+                        .setNegativeButton(R.string.MenuFileImportProfilesSkipExisting) { _, _ -> applyImport(false, selectedProfiles) }
                         .setNeutralButton(android.R.string.cancel, null)
                         .show()
                 }
@@ -1268,10 +1459,8 @@ IOUtils.IO_POOL.submit {
                 }
             }
 
-            if (imported.loadWarnings.isEmpty()) {
-                showSelection()
-            } else {
-                val warningLines = imported.loadWarnings.take(20).map { warning ->
+            val warningLines: List<String> = if (imported.loadWarnings.isEmpty()) emptyList() else {
+                val lines = imported.loadWarnings.take(20).map { warning ->
                     when (warning) {
                         is ProfileConfigLoadWarning.MissingParent -> getString(
                             R.string.MenuFileImportProfilesWarningMissingParent,
@@ -1309,7 +1498,7 @@ IOUtils.IO_POOL.submit {
                 }.toMutableList()
                 if (imported.loadWarnings.size > 20) {
                     val omittedWarningCount = imported.loadWarnings.size - 20
-                    warningLines.add(
+                    lines.add(
                         resources.getQuantityString(
                             R.plurals.MenuFileImportProfilesWarningsMore,
                             omittedWarningCount,
@@ -1317,6 +1506,69 @@ IOUtils.IO_POOL.submit {
                         ),
                     )
                 }
+                lines
+            }
+            val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+            if (bed?.canShowWorkspaceComposeDialog() == true) {
+                fun importOptions(profiles: List<ConfigObject>, kind: Int, labels: Array<CharSequence>) =
+                    profiles.mapIndexed { index, profile ->
+                        ProfileImportOption(
+                            key = ProfileImportKey(kind, index),
+                            name = profile.title.orEmpty(),
+                            label = labels[index].toString(),
+                            alreadyExists = when (kind) {
+                                ConfigObject.PROFILE_LIST_PRINT -> current.findPrint(profile.title) != null
+                                ConfigObject.PROFILE_LIST_FILAMENT -> current.findFilament(profile.title) != null
+                                else -> current.findPrinter(profile.title) != null
+                            },
+                        )
+                    }
+                val categories = listOf(
+                    ProfileImportCategory(
+                        getString(R.string.MenuFileExportProfilesPrints),
+                        importOptions(imported.printConfigs, ConfigObject.PROFILE_LIST_PRINT, printLabels),
+                    ),
+                    ProfileImportCategory(
+                        getString(R.string.MenuFileExportProfilesFilaments),
+                        importOptions(imported.filamentConfigs, ConfigObject.PROFILE_LIST_FILAMENT, filamentLabels),
+                    ),
+                    ProfileImportCategory(
+                        getString(R.string.MenuFileExportProfilesPrinters),
+                        importOptions(imported.printerConfigs, ConfigObject.PROFILE_LIST_PRINTER, printerLabels),
+                    ),
+                )
+                val warningMessage = if (warningLines.isEmpty()) "" else getString(
+                    R.string.MenuFileImportProfilesWarningsMessage,
+                    warningLines.joinToString("\n\n"),
+                )
+                bed.showWorkspaceComposeDialog { dismiss ->
+                    ProfileConfigImportDialog(
+                        title = getString(R.string.MenuFileImportProfiles),
+                        warningTitle = getString(R.string.MenuFileImportProfilesWarningsTitle),
+                        warningMessage = warningMessage,
+                        selectionTitle = getString(R.string.MenuFileImportProfiles),
+                        conflictTitle = getString(R.string.MenuFileImportProfilesConflictTitle),
+                        categories = categories,
+                        formatConflictMessage = { names -> getString(
+                            R.string.MenuFileImportProfilesConflictMessage,
+                            names.joinToString("\n"),
+                        ) },
+                        continueLabel = getString(android.R.string.ok),
+                        importLabel = getString(android.R.string.ok),
+                        overwriteLabel = getString(R.string.MenuFileImportProfilesOverwrite),
+                        skipExistingLabel = getString(R.string.MenuFileImportProfilesSkipExisting),
+                        cancelLabel = getString(android.R.string.cancel),
+                        warnings = warningLines,
+                        onDismiss = dismiss,
+                        onImport = { selectedProfiles, replaceExisting ->
+                            dismiss()
+                            applyImport(replaceExisting, selectedProfiles)
+                        },
+                    )
+                }
+            } else if (warningLines.isEmpty()) {
+                showSelection()
+            } else {
                 BeamAlertDialogBuilder(this)
                     .setTitle(R.string.MenuFileImportProfilesWarningsTitle)
                     .setMessage(getString(R.string.MenuFileImportProfilesWarningsMessage, warningLines.joinToString("\n\n")))
@@ -1328,11 +1580,7 @@ IOUtils.IO_POOL.submit {
     } catch (e: Exception) {
         Log.e("MainActivity", "Failed to read file", e)
         ViewUtils.postOnMainThread {
-            BeamAlertDialogBuilder(this)
-                .setTitle(R.string.MenuFileImportProfilesFailed)
-                .setMessage(e.toString())
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            showFileOperationError(getString(R.string.MenuFileImportProfilesFailed), e.toString())
         }
     }
 }
@@ -1349,7 +1597,13 @@ private fun showStlImportProgress(tag: String, step: Int, cancelled: java.util.c
         }))
 }
 
-private fun loadFile(f:File, autoorient:Boolean) {
+private fun loadFile(f:File, autoorient:Boolean) = loadFile(f, autoorient, null)
+
+private fun loadFile(f:File, autoorient:Boolean, stepOptions:StepImportOptions?) {
+if (StepImportOptions.isStepFile(f.name) && stepOptions == null) {
+    ViewUtils.postOnMainThread { showStepImportOptions(f, autoorient) }
+    return
+}
 val tag = UUID.randomUUID().toString()
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING, R.string.MenuFileOpenFileLoading).tag(tag))
 IOUtils.IO_POOL.submit({ Process.setThreadPriority(-20)
@@ -1425,6 +1679,7 @@ bigObject = true
 }
 if (autoorient && !project3mf)
 {
+fragment.rebaseModelHistoryAfterImportAdjustment()
 fragment.glView!!.requestRender()
 }
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
@@ -1464,57 +1719,98 @@ override fun onFailed(error: Exception) {
     SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
     f.delete()
     if (!isFinishing() && !isDestroyed()) {
-        BeamAlertDialogBuilder(this@MainActivity)
-            .setTitle(R.string.MenuFileOpenFileFailed)
-            .setMessage(error.message ?: getString(R.string.MenuFileOpenFileFailed))
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
+        showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            error.message ?: getString(R.string.MenuFileOpenFileFailed),
+        )
     }
 }
-})
+}, stepOptions)
 }
 }
 catch (e:Slic3rRuntimeError) {
 android.util.Log.e("MainActivity", "Failed to load model", e)
 f.delete()
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this@MainActivity)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+) })
 }
 catch (e:Exception) {
 android.util.Log.e("MainActivity", "Silent crash in loadFile", e)
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this@MainActivity)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+) })
 }
 } })
+}
+private fun showStepImportOptions(file:File, autoorient:Boolean, readinessAttempt:Int = 0) {
+    if (isFinishing || isDestroyed) { file.delete(); return }
+    val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+    if (bed?.canShowWorkspaceComposeDialog() != true) {
+        // ACTION_VIEW can arrive while the activity is still attaching its initial fragment.
+        // Do not discard the selected STEP file just because the Compose overlay host is not ready yet.
+        if (readinessAttempt < STEP_DIALOG_HOST_MAX_ATTEMPTS) {
+            window.decorView.postDelayed(
+                { showStepImportOptions(file, autoorient, readinessAttempt + 1) },
+                STEP_DIALOG_HOST_RETRY_DELAY_MS,
+            )
+            return
+        }
+        showFileOperationError(
+            getString(R.string.StepImportTitle),
+            getString(R.string.StepImportWorkspaceUnavailable),
+        )
+        file.delete()
+        return
+    }
+    bed.showWorkspaceComposeDialog(
+        onExternalDismiss = { file.delete() },
+    ) { dismiss ->
+        StepImportOptionsDialog(
+            initial = StepImportOptions.loadDefaults(),
+            onDismiss = { dismiss(); file.delete() },
+            onImport = { options, saveAsDefault ->
+                dismiss()
+                if (saveAsDefault) StepImportOptions.saveDefaults(options)
+                loadFile(file, autoorient, options)
+            },
+        )
+    }
 }
 private fun showSvgSimplifyPrompt(source:File, autoorient:Boolean, problem:String) {
 if (isFinishing() || isDestroyed()) return
 val canSimplify = ru.ytkab0bp.slicebeam.components.SvgImportGuard.canSimplify(source)
-val dialog = BeamAlertDialogBuilder(this)
-if (canSimplify)
-dialog.setTitle("SVG vereinfachen?")
-else
-    dialog.setTitle(R.string.MenuFileOpenFileFailed)
-dialog.setMessage(if (canSimplify)
-problem + "\n\nSoll die App die Konturen automatisch reduzieren und die vereinfachte Datei laden? Das Original bleibt unverÃ¤ndert."
-else
-problem + "\n\nDateien Ã¼ber 25 MB kÃ¶nnen auf dem GerÃ¤t nicht automatisch vereinfacht werden.")
-if (canSimplify)
-{
-dialog.setPositiveButton("Vereinfachen und laden", { d, w-> simplifyAndLoadSvg(source, autoorient) })
-dialog.setNegativeButton("Abbrechen", null)
+val title = if (canSimplify) getString(R.string.SvgSimplifyTitle) else getString(R.string.MenuFileOpenFileFailed)
+val message = getString(if (canSimplify) R.string.SvgSimplifyPrompt else R.string.SvgSimplifyUnavailable, problem)
+val bed = runCatching { navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull()
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    bed.showWorkspaceComposeDialog { dismiss ->
+        SvgSimplifyConsentDialog(
+            title = title,
+            message = message,
+            canSimplify = canSimplify,
+            simplifyLabel = getString(R.string.SvgSimplifyAction),
+            okLabel = getString(android.R.string.ok),
+            cancelLabel = getString(android.R.string.cancel),
+            onDismiss = dismiss,
+            onSimplify = {
+                dismiss()
+                simplifyAndLoadSvg(source, autoorient)
+            },
+        )
+    }
+    return
 }
-else
-{
-dialog.setPositiveButton(android.R.string.ok, null)
+val dialog = BeamAlertDialogBuilder(this)
+    .setTitle(title)
+    .setMessage(message)
+if (canSimplify) {
+    dialog.setPositiveButton(R.string.SvgSimplifyAction) { _, _ -> simplifyAndLoadSvg(source, autoorient) }
+    dialog.setNegativeButton(android.R.string.cancel, null)
+} else {
+    dialog.setPositiveButton(android.R.string.ok, null)
 }
 dialog.show()
 }
@@ -1544,27 +1840,96 @@ simplified.delete()
 android.util.Log.e("MainActivity", "Failed to simplify SVG", e)
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 ViewUtils.postOnMainThread({ if (isFinishing() || isDestroyed()) return@postOnMainThread
-BeamAlertDialogBuilder(this@MainActivity)
-.setTitle("SVG konnte nicht vereinfacht werden")
-.setMessage(if (e.message == null) "Die Konturen konnten nicht sicher reduziert werden." else e.message)
-.setPositiveButton(android.R.string.ok, null).show() })
+showFileOperationError(
+    getString(R.string.SvgSimplifyFailedTitle),
+    e.message ?: getString(R.string.SvgSimplifyFailedFallback),
+) })
 }
 })
 }
-private fun loadFile(uri:Uri) {
+private fun loadFile(uri:Uri) = loadFile(uri, stepDetectedFromContent = false)
+
+private fun loadFile(uri:Uri, stepDetectedFromContent:Boolean) {
+if (uri.scheme.equals(ContentResolver.SCHEME_FILE, ignoreCase = true)) {
+    val localFile = uri.path?.let(::File)
+    if (localFile?.isFile == true && localFile.canRead()) {
+        // Never pass an externally selected file:// document to the import lifecycle directly:
+        // STEP cancel/failure cleanup deletes its temporary input. Work on an app-owned copy so
+        // cancelling an import can never remove the user's source file.
+        val resolver = getContentResolver()
+        val fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.resolve(
+            localFile.name,
+            uri.path,
+            runCatching { resolver.getType(uri) }.getOrNull(),
+        ) ?: localFile.name
+        val cachedFile = getSafeCachedModelFile(fileName)
+        IOUtils.IO_POOL.submit {
+            try {
+                FileInputStream(localFile).use { input ->
+                    FileOutputStream(cachedFile).use { output -> input.copyTo(output) }
+                }
+                ViewUtils.postOnMainThread {
+                    if (isFinishing || isDestroyed) cachedFile.delete()
+                    else loadFile(cachedFile, false)
+                }
+            } catch (error: Exception) {
+                Log.e("MainActivity", "Failed to copy readable file URI into the model cache", error)
+                cachedFile.delete()
+                ViewUtils.postOnMainThread {
+                    if (!isFinishing && !isDestroyed) showFileOperationError(
+                        getString(R.string.MenuFileOpenFileFailed), error.toString(),
+                    )
+                }
+            }
+        }
+    } else {
+        val fileName = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+        val hasExtension = fileName?.substringAfterLast('.', "")?.isNotEmpty() == true
+        if (fileName != null && hasExtension &&
+            !isSupportedModelFile(fileName) && !isGcodeFile(fileName)) {
+            showFileOperationError(
+                getString(R.string.MenuFileOpenFileFailed),
+                getString(R.string.UnsupportedFileType, fileName),
+            )
+            return
+        }
+        // Android's scoped storage does not grant access to shared-storage file:// URLs.
+        // Ask the user to pick the same document through SAF, which returns a readable content:// URI.
+        Toast.makeText(this, R.string.FileUriNeedsDocumentPicker, Toast.LENGTH_LONG).show()
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        launchRegisteredActivityResult(intent, REQUEST_CODE_OPEN_FILE)
+    }
+    return
+}
 val resolver = getContentResolver()
-var fileName = IOUtils.getDisplayName(uri)
-if (fileName == null && "file".equals(uri.getScheme()))
-{
-fileName = uri.getLastPathSegment()
+var fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.resolve(
+    IOUtils.getDisplayName(uri),
+    uri.path,
+    runCatching { resolver.getType(uri) }.getOrNull(),
+)
+if (stepDetectedFromContent) {
+    fileName = ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.withStepExtension(fileName)
 }
 if (fileName == null)
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(R.string.MenuFileOpenFileFailedNullName)
-.setPositiveButton(android.R.string.ok, null)
-.show()
+if (!stepDetectedFromContent) {
+    probeStepContent(uri) { detected ->
+        if (detected) loadFile(uri, stepDetectedFromContent = true)
+        else showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.MenuFileOpenFileFailedNullName),
+        )
+    }
+    return
+}
+showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed),
+    getString(R.string.MenuFileOpenFileFailedNullName),
+)
 return
 }
 if (isOrcaBundleFile(fileName))
@@ -1579,53 +1944,75 @@ try
 loadIniForImport(resolver.openInputStream(uri) ?: return)
 }
 catch (e:FileNotFoundException) {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileImportProfilesFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show()
+showFileOperationError(getString(R.string.MenuFileImportProfilesFailed), e.toString())
 }
 return
 }
 if (!isSupportedModelFile(fileName))
 {
-BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(getString(R.string.UnsupportedFileType, fileName))
-.setPositiveButton(android.R.string.ok, null)
-.show()
+if (!stepDetectedFromContent) {
+    val unsupportedName = fileName
+    probeStepContent(uri) { detected ->
+        if (detected) loadFile(uri, stepDetectedFromContent = true)
+        else showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.UnsupportedFileType, unsupportedName),
+        )
+    }
+    return
+}
+showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed),
+    getString(R.string.UnsupportedFileType, fileName),
+)
 return
 }
 val f = getSafeCachedModelFile(fileName)
 IOUtils.IO_POOL.submit({ try
 {
-val `in` = resolver.openInputStream(uri)
-if (`in` == null)
-{
-throw FileNotFoundException(java.lang.String.valueOf(uri))
+val input = resolver.openInputStream(uri) ?: throw FileNotFoundException(java.lang.String.valueOf(uri))
+input.use { stream ->
+    FileOutputStream(f).use { output ->
+        val buffer = ByteArray(10240)
+        while (true) {
+            val count = stream.read(buffer)
+            if (count == -1) break
+            output.write(buffer, 0, count)
+        }
+    }
 }
-val fos = FileOutputStream(f)
-val buffer = ByteArray(10240)
-while (true)
-{
-val c = `in`.read(buffer)
-if (c == -1) break
-fos.write(buffer, 0, c)
-}
-fos.close()
-`in`.close()
 loadFile(f, false)
 }
 catch (e:Exception) {
 Log.e("MainActivity", "Failed to write cache file", e)
 f.delete()
-ViewUtils.postOnMainThread({ BeamAlertDialogBuilder(this)
-.setTitle(R.string.MenuFileOpenFileFailed)
-.setMessage(e.toString())
-.setPositiveButton(android.R.string.ok, null)
-.show() })
+ViewUtils.postOnMainThread({ showFileOperationError(
+    getString(R.string.MenuFileOpenFileFailed), e.toString(),
+) })
 }
 })
+}
+private fun probeStepContent(uri:Uri, onResult:(Boolean)->Unit) {
+    IOUtils.IO_POOL.submit {
+        val detected = try {
+            getContentResolver().openInputStream(uri)?.use { input ->
+                val prefix = ByteArray(256)
+                var length = 0
+                while (length < prefix.size) {
+                    val count = input.read(prefix, length, prefix.size - length)
+                    if (count <= 0) break
+                    length += count
+                }
+                ru.ytkab0bp.slicebeam.slic3r.ModelImportFileName.hasStepHeader(prefix, length)
+            } ?: false
+        } catch (error:Exception) {
+            Log.w("MainActivity", "Could not inspect an unknown document for STEP content", error)
+            false
+        }
+        ViewUtils.postOnMainThread {
+            if (!isFinishing && !isDestroyed) onResult(detected)
+        }
+    }
 }
 private fun loadMultipleStlFiles(files:List<Uri>) {
 if (files.isEmpty()) return
@@ -1783,20 +2170,35 @@ return true
 private fun onCreateDelegate():NavigationDelegate {
 return MobileNavigationDelegate()
 }
-fun showUnfoldMenu(menu:UnfoldMenu, v:View) {
-if (unfoldMenu != null) return
-menu.setOnDismiss({ unfoldMenu = null })
-menu.show(v, navigationDelegate.getOverlayView() ?: return)
-unfoldMenu = menu
-}
 private fun handleAppBack():Boolean {
-if (unfoldMenu != null)
-{
-unfoldMenu!!.dismiss()
-return true
-}
 if (delegate?.onBackPressed() == true) return true
 if (exitConfirmationDialog?.isShowing == true) return true
+if (dismissWorkspaceExitConfirmation != null) return true
+val bed = runCatching { delegate?.getCurrentFragment() as? BedFragment }.getOrNull()
+if (bed?.canShowWorkspaceComposeDialog() == true) {
+    dismissWorkspaceExitConfirmation = bed.showWorkspaceComposeDialog(
+        onExternalDismiss = { dismissWorkspaceExitConfirmation = null },
+    ) { dismiss ->
+        WorkspaceMessageDialog(
+            title = getString(R.string.AppCloseConfirmTitle),
+            message = getString(R.string.AppCloseConfirmMessage),
+            confirmLabel = getString(R.string.AppCloseConfirmYes),
+            dismissLabel = getString(android.R.string.cancel),
+            onDismiss = {
+                dismissWorkspaceExitConfirmation = null
+                dismiss()
+            },
+            onConfirm = {
+                dismissWorkspaceExitConfirmation = null
+                dismiss()
+                Prefs.getPrefs()!!.edit().putInt("last_session_plate_count", 0).apply()
+                TemporaryProjectSettings.clear()
+                finishAfterTransition()
+            },
+        )
+    }
+    return true
+}
 exitConfirmationDialog = BeamAlertDialogBuilder(this)
 .setTitle(R.string.AppCloseConfirmTitle)
 .setMessage(R.string.AppCloseConfirmMessage)
@@ -1840,6 +2242,7 @@ protected override fun onDestroy() {
 super.onDestroy()
 exitConfirmationDialog?.dismiss()
 exitConfirmationDialog = null
+dismissWorkspaceExitConfirmation = null
 if (activeInstance === this)
 {
 activeInstance = null
@@ -1887,6 +2290,8 @@ private val ACTIVITY_RESULT_REQUEST_CODES = intArrayOf(
     REQUEST_CODE_CONVERTER_ROOT_SAVE,
     ru.ytkab0bp.slicebeam.components.KromacutEditorMenu.REQUEST_CODE_FILE,
 )
+private val STEP_DIALOG_HOST_RETRY_DELAY_MS = 100L
+private val STEP_DIALOG_HOST_MAX_ATTEMPTS = 100
 private var activeInstance: MainActivity? = null
 @JvmField
 var EXPORTING_PRINTS: List<ConfigObject>? = null

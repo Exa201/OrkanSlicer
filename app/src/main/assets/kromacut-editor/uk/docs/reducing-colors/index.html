@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Дізнайтеся про двоетапне скорочення, фіксовані палітри й відмінність між перефарбуванням і прозорістю." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/uk/docs/reducing-colors">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Скорочення кольорів | Документація Kromacut" />
+        <meta property="og:description" content="Дізнайтеся про двоетапне скорочення, фіксовані палітри й відмінність між перефарбуванням і прозорістю." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/uk/docs/reducing-colors" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="uk_UA" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Скорочення кольорів | Документація Kromacut" />
+        <meta name="twitter:description" content="Дізнайтеся про двоетапне скорочення, фіксовані палітри й відмінність між перефарбуванням і прозорістю." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Скорочення кольорів | Документація Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/reducing-colors">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/reducing-colors">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/reducing-colors">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/reducing-colors">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/reducing-colors">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/reducing-colors">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/reducing-colors">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/reducing-colors">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/reducing-colors">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/reducing-colors">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/reducing-colors">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/reducing-colors">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/reducing-colors">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Документація">
+                    <a href="/uk/">На головну</a>
+                    <a href="/app">Відкрити Kromacut</a>
+                    <ul><li><a href="/uk/docs/overview">Огляд</a></li><li><a href="/uk/docs/quick-start">Швидкий старт</a></li><li><a href="/uk/docs/loading-images">Завантаження зображень</a></li><li><a href="/uk/docs/image-adjustments">Коригування зображення</a></li><li><a href="/uk/docs/reducing-colors">Скорочення кольорів</a></li><li><a href="/uk/docs/dedithering-cleanup">Усунення дизерингу й очищення</a></li><li><a href="/uk/docs/3d-mode">Режим 3D</a></li><li><a href="/uk/docs/auto-paint">Керування Auto-paint</a></li><li><a href="/uk/docs/calibration-theory">Теорія калібрування</a></li><li><a href="/uk/docs/flat-paint">Flat Paint</a></li><li><a href="/uk/docs/calibration-workflows">Процеси калібрування</a></li><li><a href="/uk/docs/generating-exporting-output">Створення й експорт результатів</a></li><li><a href="/uk/docs/settings-and-controls">Налаштування й керування</a></li><li><a href="/uk/docs/troubleshooting">Усунення несправностей</a></li><li><a href="/uk/docs/faq">Поширені запитання</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="reducing-colors">Скорочення кольорів</h1>
+<p>Квантизація замінює багато вихідних кольорів меншим набором, спрощуючи ділянки для ручного процесу й Auto-paint у 3D. Палітра 2D містить цільові кольори зображення, а не профіль філаментів Auto-paint чи виміряні передбачення друку.</p>
+<p>Спершу обріжте й змініть розмір. Якщо змінювали <a href="/uk/docs/image-adjustments">коригування зображення</a>, перед квантизацією натисніть Застосувати на тій панелі.</p>
+<h2 id="the-two-stage-pipeline">Двоетапний процес</h2>
+<p><a href="/localized/uk/diagrams/34_quantization_pipeline.svg" target="_blank" rel="noopener noreferrer" aria-label="Відкрити ілюстрацію в повному розмірі: Вага алгоритму обмежує проміжну палітру; Кількість кольорів або вибрана фіксована палітра керує другим етапом."><img src="/localized/uk/diagrams/34_quantization_pipeline.svg" alt="Вага алгоритму обмежує проміжну палітру; Кількість кольорів або вибрана фіксована палітра керує другим етапом." loading="lazy"></a></p>
+<p><strong>Вага алгоритму</strong> й <strong>Кількість кольорів</strong> виконують різні завдання. K-means із вагою 128 спершу групує джерело в не більш ніж 128 кольорів. Auto з кількістю кольорів 16 потім об’єднує результат до щонайбільше 16. Вага — не відсоток, не непрозорість і не кількість філаментів.</p>
+<table><thead><tr><th>Поле або дія</th><th>Значення</th></tr></thead><tbody><tr><td>Палітра: Auto</td><td>Знаходить залежні від зображення кольори, потім обмежує їхню кількість.</td></tr><tr><td>Палітра: вбудована, постачальника або власна</td><td>Зіставляє проміжне зображення з увімкненими кольорами вибраної палітри. Не кожен доступний колір обов’язково з’явиться.</td></tr><tr><td>Кількість кольорів</td><td>Кінцева верхня межа Auto: від 2 до 256, типово 16. Для фіксованої палітри вимкнено.</td></tr><tr><td>Вага алгоритму</td><td>Бюджет проміжної палітри: від 2 до 256, типово 128. Більше значення зазвичай зберігає більше проміжних деталей, але не обов’язково покращує кінцевий збіг.</td></tr><tr><td>Алгоритм</td><td>Метод скорочення першого етапу. Типово: K-means.</td></tr><tr><td>Застосувати</td><td>Обробляє основне зображення й створює крок скасування. Сама зміна параметра не перефарбовує його.</td></tr><tr><td>Стрілка скидання</td><td>Відновлює Auto, 16 кольорів, вагу 128 і K-means. Не повертає попереднє зображення.</td></tr></tbody></table>
+<p>Результат може містити менше кольорів, ніж запитано. Збільшення цілі після скорочення не поверне відкинуті кольори: спершу <strong>Скасуйте</strong> дію, щоб порівняти альтернативи з того самого джерела.</p>
+<p>Квантизація зберігає повністю прозорі пікселі, але робить <strong>усі частково прозорі пікселі повністю непрозорими</strong>. М’який альфа-край не є частково надрукованим краєм.</p>
+<h2 id="choose-an-algorithm">Виберіть алгоритм</h2>
+<p>Ці методи групують кольори. Жоден не додає просторовий дизеринговий візерунок і не гарантує, що дрібний елемент переживе ширину лінії сопла.</p>
+<table><thead><tr><th>Алгоритм</th><th>Що змінюється</th><th>Корисне порівняння</th></tr></thead><tbody><tr><td>Немає (лише постобробка)</td><td>Пропускає квантизатор першого етапу; Вага вимкнена. Кінцеве скорочення кількості або зіставлення з фіксованою палітрою досі працює.</td><td>Пряме зіставлення чистої графіки з відомою палітрою. Це не універсальний перемикач «не змінювати зображення».</td></tr><tr><td>Постеризація</td><td>Ділить канали RGB на дискретні кроки, потім застосовує обмеження Ваги.</td><td>Навмисно ступінчаста графіка; доступні рівні каналів змінюються дискретними стрибками.</td></tr><tr><td>Median-cut</td><td>Ділить розподіл кольорів на групи, представлені середніми кольорами.</td><td>Порівняйте, коли інший метод втрачає важливу тональну групу.</td></tr><tr><td>K-means</td><td>Знаходить колірні кластери, зважені за кількістю пікселів, із випадковою ініціалізацією.</td><td>Початкова точка для фотографій і змішаної графіки. Запуски з того самого джерела можуть трохи різнитися.</td></tr><tr><td>Wu</td><td>Використовує статистику розподілу кольорів для поділу з меншою внутрішньогруповою варіацією.</td><td>Порівняйте на градієнтах і фотографіях.</td></tr><tr><td>Octree</td><td>Групує кольори через поділи RGB й об’єднує групи, щоб укластися в бюджет.</td><td>Порівняйте на графіці з багатьма окремими ділянками.</td></tr></tbody></table>
+<p>Універсально найкращого алгоритму немає. Перевіряйте об’єкт, дрібні написи й важливі акценти в запланованому фізичному розмірі.</p>
+<h2 id="fixed-and-supplier-palettes">Фіксовані палітри й палітри постачальників</h2>
+<p>Фіксована палітра пропонує лише вибрані в ній кольори. Після скорочення першого етапу кожен непрозорий піксель зіставляється з найближчим доступним кольором у просторі Lab. Це добір кольорів зображення, не оптична симуляція філаменту.</p>
+<p><strong>Палітри постачальників</strong> — неофіційні довідкові набори назв філаментів і рекламованих hex-кольорів. Вони не гарантують актуальної наявності товару чи точності друкованого кольору. Наприклад, довідкові кольори Bambu використовують <a href="https://store.bblcdn.com/s7/default/1084369ef84345bbaa5d704a492954e0/Bambu_PLA_Basic_Hex_Code.pdf" target="_blank" rel="noopener noreferrer">таблицю hex-кольорів філаментів Bambu Lab</a>. Kromacut не пов’язаний із виробниками й не схвалений ними.</p>
+<p>Вбудовані палітри й палітри постачальників доступні лише для читання. Клонуйте палітру для налаштування. Окремо використовуйте <a href="/uk/docs/calibration-theory">калібрування філаментів</a> для фактичної поведінки котушок і шарів.</p>
+<h2 id="custom-palettes">Власні палітри</h2>
+<table><thead><tr><th>Елемент керування</th><th>Що робити</th></tr></thead><tbody><tr><td>Створити палітру</td><td>Назвіть її й додайте хоча б один увімкнений правильний колір. Вона стане вибраною.</td></tr><tr><td>Редагувати вибрану палітру</td><td>Змінює власну палітру, не пікселі поточного зображення. Потім застосуйте квантизацію.</td></tr><tr><td>Додати колір</td><td>Додає вибір кольору, hex-поле й необов’язкову назву. Правильні записи мають <code>#RGB</code> або <code>#RRGGBB</code>; неправильні рядки пропускаються під час збереження.</td></tr><tr><td>Необов’язкова назва кольору</td><td>Підписує колір, наприклад назвою котушки. Не змінює добір.</td></tr><tr><td>Перемикач з оком</td><td>Вимикає збережений колір без видалення. Має залишатися хоча б один увімкнений правильний колір.</td></tr><tr><td>Прибрати рядок</td><td>Видаляє рядок; останній рядок прибрати не можна.</td></tr><tr><td>Клонувати</td><td>Копіює не-Auto палітру у власну редаговану, зберігаючи назви й ознаки вимкнення.</td></tr><tr><td>Імпортувати</td><td>Читає файл <code>.kpal</code> і повідомляє про імпортовані, перезаписані, дубльовані або перейменовані записи. За потреби вибирає першу імпортовану палітру.</td></tr><tr><td>Експортувати</td><td>Зберігає вибрану власну палітру як <code>.kpal</code>, включно з назвами й вимкненими кольорами. Спершу клонуйте вбудовану, щоб експортувати редаговану копію.</td></tr><tr><td>Видалити вибрану палітру</td><td>Прибирає збережену палітру й повертає вибір до Auto. Не стирає пікселі зображення.</td></tr><tr><td>Зберегти / Скасувати</td><td>Підтверджує або відкидає чернетку редактора.</td></tr></tbody></table>
+<p>Підпис на зразок <strong>Мої котушки (5/8)</strong> означає п’ять увімкнених кольорів із восьми збережених записів. Беруть участь лише ввімкнені кольори. Палітри й вибір зберігаються локально; експортуйте резервні копії перед очищенням сховища застосунку/браузера. Вони відокремлені від <a href="/uk/docs/settings-and-controls#filament-profile-files">профілів філаментів</a>.</p>
+<h2 id="image-colors">Кольори зображення</h2>
+<p>Кольори зображення описують основне зображення, не живі незакріплені коригування. Значок не враховує повністю прозорі пікселі. Підказки показують hex, альфу й кількість пікселів. Різні значення альфи можуть створювати окремі записи з однаковим RGB. Дуже барвисті зображення мають обмежений список, а не кожен фотографічний колір.</p>
+<p>Клацніть зразок, щоб <strong>Редагувати колір</strong>. Використайте вибір RGBA або hex-поле, потім Застосувати. Шестизначний hex змінює RGB, зберігаючи поточну альфу; восьмизначний явно містить альфу. Коли важлива непрозорість, використовуйте регулятор прозорості або явний альфа-суфікс.</p>
+<p><a href="/localized/uk/diagrams/35_swatch_operations.svg" target="_blank" rel="noopener noreferrer" aria-label="Відкрити ілюстрацію в повному розмірі: Непрозора заміна перефарбовує кожен точний збіг, нульова альфа прибирає ці пікселі, а Видалити перепризначає кольори замість вирізання отворів."><img src="/localized/uk/diagrams/35_swatch_operations.svg" alt="Непрозора заміна перефарбовує кожен точний збіг, нульова альфа прибирає ці пікселі, а Видалити перепризначає кольори замість вирізання отворів." loading="lazy"></a></p>
+<table><thead><tr><th>Дія</th><th>Що змінюється</th></tr></thead><tbody><tr><td>Застосувати непрозорий колір</td><td>Замінює кожен точний збіг RGB та альфи по всьому зображенню, включно з нез’єднаними ділянками.</td></tr><tr><td>Застосувати повністю прозору альфу</td><td>Прибирає точні відповідні пікселі з видимого зображення й друкованого силуету. Відповідні пікселі об’єкта теж зникають.</td></tr><tr><td>Застосувати до прозорого зразка</td><td>Замінює всі повністю прозорі пікселі, потенційно додаючи тло або заповнюючи отвори.</td></tr><tr><td>Видалити</td><td>Повторно квантизує рештою цільової палітри. <strong>Не</strong> стирає пікселі. Вибраний алгоритм першого етапу досі працює, тому можуть змінитися й інші кольори.</td></tr><tr><td>Закрити / Escape</td><td>Відкидає непідтверджену правку.</td></tr></tbody></table>
+<p>Перед Видалити виберіть <strong>Немає (лише постобробка)</strong> для прямого зіставлення з рештою палітри. Для локальної зміни використовуйте <a href="/uk/docs/loading-images#touch-up-pixels">Заливку або Гумку</a>. Скасуйте, якщо змінилося більше зображення, ніж планували.</p>
+<p>Інструкції ручних замін вимкнено за понад 64 непрозорих кольорів. Менша палітра може спростити стос і нижче цієї межі, але менше цілей не означає автоматично менше замін філаменту Auto-paint.</p>
+<p>Далі: <a href="/uk/docs/dedithering-cleanup">Усунення дизерингу й очищення</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

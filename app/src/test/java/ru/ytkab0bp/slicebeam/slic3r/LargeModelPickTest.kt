@@ -44,10 +44,10 @@ class LargeModelPickTest {
     }
 
     @Test fun denseSurfaceToolSuggestionStaysBelowSafePickingLimit() {
-        assertFalse(LargeModelPick.needsPreciseSurfaceSimplification(100_000))
-        assertTrue(LargeModelPick.needsPreciseSurfaceSimplification(100_001))
-        assertEquals(1f, LargeModelPick.suggestedKeepRatio(100_000), 0f)
-        assertEquals(80_000f / 1_380_000f,
-            LargeModelPick.suggestedKeepRatio(1_380_000), 0.000001f)
+        assertFalse(LargeModelPick.needsPreciseSurfaceSimplification(20_000))
+        assertTrue(LargeModelPick.needsPreciseSurfaceSimplification(20_001))
+        assertEquals(1f, LargeModelPick.suggestedKeepRatio(20_000), 0f)
+        assertEquals(16_000f / 40_000f,
+            LargeModelPick.suggestedKeepRatio(40_000), 0.000001f)
     }
 }

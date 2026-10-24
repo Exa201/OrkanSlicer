@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Paint
 import android.view.HapticFeedbackConstants
 import android.view.View
-import android.widget.FrameLayout
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,6 +49,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
@@ -66,9 +66,12 @@ import androidx.compose.ui.unit.sp
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.WorkspaceComposeToolRoute
+import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
+import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
@@ -76,6 +79,8 @@ import ru.ytkab0bp.slicebeam.utils.DoubleMatrix
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
+import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -107,7 +112,7 @@ private data class TransformScaleDimensions(val x: Double, val y: Double, val z:
 }
 
 /** Compose-based, responsive scale editor for the selected model. */
-class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
+class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute() {
     private val rulerValues = mutableStateOf(TransformScaleRulerValues(100, 100, 100))
     private val actualScale = mutableStateOf(TransformScaleValues(1.0, 1.0, 1.0))
     private val dimensionsMm = mutableStateOf(TransformScaleDimensions(0.0, 0.0, 0.0))
@@ -118,6 +123,8 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
     private val manualInMillimeters = mutableStateOf(Prefs.isScaleInputInMM())
     private var linkOffsets = TransformScalePolicy.linkOffsets(rulerValues.value)
     private var selectedObjectForScale = -1
+    private var selectionSnapshot: ModelSelectionSnapshot? = null
+    private var selectionLoadGeneration = 0
     private var startedScrollObject = -1
     private var eventBusRegistered = false
 
@@ -147,13 +154,15 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
 
     private fun scaleVisual(target: TransformScaleValues) {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
         if (index < 0) return
         startedScrollObject = index
-        val model = renderer.model ?: return
-
-        runCatching {
+        glView.queueEvent {
+            val renderer = glView.renderer
+            if (!renderer.isSelectionSnapshotCurrent(snapshot)) return@queueEvent
+            runCatching {
+            val model = snapshot.model
             val current = Vec3d()
             val rotation = Vec3d()
             model.getScale(index, current)
@@ -177,24 +186,26 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
             val dy = 1.0 / sy * target.y
             val dz = 1.0 / sz * target.z
             if (listOf(dx, dy, dz).all { it.isFinite() && it > 0.0 }) {
+                renderer.prepareSelectionTransformPreview()
                 renderer.setSelectionScale(dx, dy, dz)
                 glView.requestRender()
+            }
             }
         }
     }
 
     private fun commitScale() {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
-        if (index < 0 || (selectedObjectForScale >= 0 && index != selectedObjectForScale)) return
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
+        if (index < 0 || (selectedObjectForScale >= 0 && index != selectedObjectForScale) || snapshot.selectedIndices.isEmpty()) return
         val target = actualScale.value
         if (listOf(target.x, target.y, target.z).any { !it.isFinite() || it <= 0.0 }) return
         startedScrollObject = -1
 
         glView.queueEvent {
             val activeRenderer = glView.renderer
-            if (activeRenderer.selectedObject != index) return@queueEvent
+            if (!activeRenderer.isSelectionSnapshotCurrent(snapshot)) return@queueEvent
             val model = activeRenderer.model ?: return@queueEvent
             runCatching {
                 val rotation = Vec3d()
@@ -210,22 +221,42 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
                 var dx = abs(values[0] / values[3])
                 var dy = abs(values[1] / values[3])
                 var dz = abs(values[2] / values[3])
-
                 model.getMirror(index, mirror)
-                dx *= mirror.x
-                dy *= mirror.y
-                dz *= mirror.z
-                if (listOf(dx, dy, dz).all { it.isFinite() && it > 0.0 }) {
-                    model.scale(index, dx, dy, dz)
-                    model.ensureOnBed(index)
-                    activeRenderer.invalidateSelectionObject()
-                    activeRenderer.setSelectionScale(1.0, 1.0, 1.0)
-                    activeRenderer.invalidateGlModel(index)
+                dx *= mirror.x; dy *= mirror.y; dz *= mirror.z
+                if (activeRenderer.scaleSelectedObjects(dx, dy, dz)) {
                     glView.requestRender()
+                    ViewUtils.postOnMainThread { bed.updateModel() }
                 }
             }
         }
         glView.requestRender()
+    }
+
+    private fun mirrorSelected(axis: ModelMirrorAxis) {
+        val glView = bed.glView ?: return
+        val snapshot = selectionSnapshot ?: return
+        val index = snapshot.primaryObject
+        if (index < 0 || index != selectedObjectForScale || snapshot.selectedIndices.isEmpty()) return
+        glView.queueEvent {
+            val renderer = glView.renderer
+            // Undo/redo legitimately changes the geometry revision while leaving the same
+            // selection active. Rebase only when the model and exact selected indices still
+            // match; a changed model or selection remains a hard stop.
+            if (renderer.model !== snapshot.model ||
+                renderer.selectedObject != index ||
+                !renderer.selectedObjectIndices().contentEquals(snapshot.selectedIndices)
+            ) return@queueEvent
+            runCatching {
+                if (renderer.mirrorSelectedObjects(axis)) {
+                    renderer.setSelectionScale(1.0, 1.0, 1.0)
+                    glView.requestRender()
+                    ViewUtils.postOnMainThread {
+                        bed.updateModel()
+                        loadSelectionValues()
+                    }
+                }
+            }
+        }
     }
 
     private fun openManualEditor(axis: TransformScaleAxis) {
@@ -286,92 +317,105 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
         manualAxis.value = null
     }
 
-    private fun loadSelectionValues() {
+    private data class LoadedSelection(
+        val snapshot: ModelSelectionSnapshot,
+        val scale: TransformScaleValues,
+        val rulers: TransformScaleRulerValues,
+        val dimensions: TransformScaleDimensions,
+    )
+
+    private fun loadSelectionValues(dismissWhenEmpty: Boolean = false) {
         val glView = bed.glView ?: return
-        val renderer = glView.renderer
-        val index = renderer.selectedObject
-        val model = renderer.model
-        if (index < 0 || model == null) {
-            hasSelection.value = false
-            selectedObjectForScale = -1
-            startedScrollObject = -1
-            return
-        }
-
-        runCatching {
-            renderer.setSelectionScale(1.0, 1.0, 1.0)
-            val scale = Vec3d()
-            val minimum = Vec3d()
-            val maximum = Vec3d()
-            model.getScale(index, scale)
-            model.getBoundingBoxExact(index, minimum, maximum)
-            fun originalSize(low: Double, high: Double, factor: Double): Double =
-                abs(high - low) / abs(factor).coerceAtLeast(1e-12)
-
-            val factors = TransformScaleValues(scale.x, scale.y, scale.z)
-            val nextRulers = TransformScaleRulerValues(
-                TransformScalePolicy.roundedPercent(scale.x),
-                TransformScalePolicy.roundedPercent(scale.y),
-                TransformScalePolicy.roundedPercent(scale.z),
-            )
-            actualScale.value = factors
-            rulerValues.value = nextRulers
-            dimensionsMm.value = TransformScaleDimensions(
-                originalSize(minimum.x, maximum.x, scale.x),
-                originalSize(minimum.y, maximum.y, scale.y),
-                originalSize(minimum.z, maximum.z, scale.z),
-            )
-            linkOffsets = TransformScalePolicy.linkOffsets(nextRulers)
-            selectedObjectForScale = index
-            hasSelection.value = true
-            startedScrollObject = -1
-        }.onFailure {
-            hasSelection.value = false
-            selectedObjectForScale = -1
-        }
-    }
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): View {
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                val values = rulerValues.value
-                val actual = actualScale.value
-                val sizes = dimensionsMm.value
-                val linked = linkedState.value
-                val selected = hasSelection.value
-                TransformScaleEditorContent(
-                    values = values,
-                    scale = actual,
-                    dimensionsMm = sizes,
-                    enabled = selected,
-                    linked = linked,
-                    portrait = portrait,
-                    xColor = Color(ThemesRepo.getColor(R.attr.xTrackColor)),
-                    yColor = Color(ThemesRepo.getColor(R.attr.yTrackColor)),
-                    zColor = Color(ThemesRepo.getColor(R.attr.zTrackColor)),
-                    manualAxis = manualAxis.value,
-                    manualValue = manualText.value,
-                    manualInMillimeters = manualInMillimeters.value,
-                    onManualAxisChanged = { manualAxis.value = it },
-                    onManualValueChanged = { manualText.value = it },
-                    onToggleManualUnits = ::toggleManualUnits,
-                    onConfirmManual = ::confirmManualEditor,
-                    onRulerChanged = ::setRulerValue,
-                    onCommitScale = ::commitScale,
-                    onOpenManual = ::openManualEditor,
-                    onLinkedChanged = ::setLinked,
-                    onBack = ::dismiss,
+        val generation = ++selectionLoadGeneration
+        glView.queueEvent {
+            val loaded = runCatching {
+                val renderer = glView.renderer
+                val snapshot = renderer.captureSelectionSnapshot() ?: return@runCatching null
+                val index = snapshot.primaryObject
+                val scale = Vec3d()
+                val minimum = Vec3d()
+                val maximum = Vec3d()
+                snapshot.model.getScale(index, scale)
+                snapshot.model.getBoundingBoxExact(index, minimum, maximum)
+                fun originalSize(low: Double, high: Double, factor: Double): Double =
+                    abs(high - low) / abs(factor).coerceAtLeast(1e-12)
+                val factors = TransformScaleValues(scale.x, scale.y, scale.z)
+                val rulers = TransformScaleRulerValues(
+                    TransformScalePolicy.roundedPercent(scale.x),
+                    TransformScalePolicy.roundedPercent(scale.y),
+                    TransformScalePolicy.roundedPercent(scale.z),
                 )
+                LoadedSelection(
+                    snapshot,
+                    factors,
+                    rulers,
+                    TransformScaleDimensions(
+                        originalSize(minimum.x, maximum.x, scale.x),
+                        originalSize(minimum.y, maximum.y, scale.y),
+                        originalSize(minimum.z, maximum.z, scale.z),
+                    ),
+                )
+            }.getOrNull()
+            val selectionStillCurrent = loaded != null && glView.renderer.isSelectionSnapshotCurrent(loaded.snapshot)
+            if (selectionStillCurrent) {
+                glView.renderer.prepareSelectionTransformPreview()
+                glView.renderer.setSelectionScale(1.0, 1.0, 1.0)
+                glView.requestRender()
+            }
+            ViewUtils.postOnMainThread {
+                if (generation != selectionLoadGeneration || bed.glView !== glView) return@postOnMainThread
+                if (loaded == null || !selectionStillCurrent) {
+                    selectionSnapshot = null
+                    hasSelection.value = false
+                    selectedObjectForScale = -1
+                    startedScrollObject = -1
+                    if (dismissWhenEmpty) dismiss()
+                    return@postOnMainThread
+                }
+                selectionSnapshot = loaded.snapshot
+                actualScale.value = loaded.scale
+                rulerValues.value = loaded.rulers
+                dimensionsMm.value = loaded.dimensions
+                linkOffsets = TransformScalePolicy.linkOffsets(loaded.rulers)
+                selectedObjectForScale = loaded.snapshot.primaryObject
+                hasSelection.value = true
+                startedScrollObject = -1
             }
         }
-        return themedView
     }
 
-    override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-        if (portrait) ViewUtils.dp(52) + ViewUtils.dp(64) + ViewUtils.dp(80 + 24) * 3 + ViewUtils.dp(12)
-        else (into.width * 0.5f).toInt()
+    @Composable
+    override fun ComposeContent(portrait: Boolean) {
+        TransformScaleEditorContent(
+            values = rulerValues.value,
+            scale = actualScale.value,
+            dimensionsMm = dimensionsMm.value,
+            enabled = hasSelection.value,
+            linked = linkedState.value,
+            portrait = portrait,
+            xColor = Color(ThemesRepo.getColor(R.attr.xTrackColor)),
+            yColor = Color(ThemesRepo.getColor(R.attr.yTrackColor)),
+            zColor = Color(ThemesRepo.getColor(R.attr.zTrackColor)),
+            manualAxis = manualAxis.value,
+            manualValue = manualText.value,
+            manualInMillimeters = manualInMillimeters.value,
+            onManualAxisChanged = { manualAxis.value = it },
+            onManualValueChanged = { manualText.value = it },
+            onToggleManualUnits = ::toggleManualUnits,
+            onConfirmManual = ::confirmManualEditor,
+            onRulerChanged = ::setRulerValue,
+            onCommitScale = ::commitScale,
+            onMirror = ::mirrorSelected,
+            onOpenManual = ::openManualEditor,
+            onLinkedChanged = ::setLinked,
+            onBack = ::dismiss,
+        )
+    }
+
+    internal override fun workspacePanelSize(): WorkspacePanelSize = WorkspacePanelSize(
+        portrait = WorkspacePanelDimension.Fixed(440f),
+        landscape = WorkspacePanelDimension.Fraction(0.5f),
+    )
 
     override fun onCreate() {
         super.onCreate()
@@ -390,8 +434,10 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
     private fun stopScroll() {
         val glView = bed.glView ?: return
         if (startedScrollObject >= 0) {
-            glView.renderer.setSelectionScale(1.0, 1.0, 1.0)
-            glView.requestRender()
+            glView.queueEvent {
+                glView.renderer.setSelectionScale(1.0, 1.0, 1.0)
+                glView.requestRender()
+            }
         }
         startedScrollObject = -1
     }
@@ -399,7 +445,16 @@ class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu() {
     @EventHandler(runOnMainThread = true)
     fun onSelectedObjectChanged(event: SelectedObjectChangedEvent) {
         stopScroll()
-        if (bed.glView?.renderer?.selectedObject == -1) dismiss() else loadSelectionValues()
+        loadSelectionValues(dismissWhenEmpty = true)
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onObjectsListChanged(event: ObjectsListChangedEvent) {
+        // Undo/redo swaps the native Model instance and emits this event without changing the
+        // selected indices. Refresh the GL-thread snapshot so follow-up edits target the restored
+        // model instead of silently rejecting the scale/mirror action as stale.
+        stopScroll()
+        loadSelectionValues()
     }
 
     private fun TransformScaleValues.forAxis(axis: TransformScaleAxis): Double = when (axis) {
@@ -429,6 +484,7 @@ private fun TransformScaleEditorContent(
     onConfirmManual: () -> Unit,
     onRulerChanged: (TransformScaleAxis, Int) -> Unit,
     onCommitScale: () -> Unit,
+    onMirror: (ModelMirrorAxis) -> Unit,
     onOpenManual: (TransformScaleAxis) -> Unit,
     onLinkedChanged: (Boolean) -> Unit,
     onBack: () -> Unit,
@@ -476,6 +532,7 @@ private fun TransformScaleEditorContent(
                 onCommit = onCommitScale,
                 onEdit = { onOpenManual(TransformScaleAxis.Z) },
             )
+            ScaleMirrorControls(enabled = enabled, onMirror = onMirror)
             if (portrait) {
                 ScaleLinkedControl(linked, enabled, onLinkedChanged)
             }
@@ -526,6 +583,29 @@ private fun TransformScaleEditorContent(
             onConfirm = onConfirmManual,
             onDismiss = { onManualAxisChanged(null) },
         )
+    }
+}
+
+@Composable
+private fun ScaleMirrorControls(enabled: Boolean, onMirror: (ModelMirrorAxis) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.MenuTransformMirror), style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(
+                ModelMirrorAxis.X to R.string.MenuTransformMirrorX,
+                ModelMirrorAxis.Y to R.string.MenuTransformMirrorY,
+                ModelMirrorAxis.Z to R.string.MenuTransformMirrorZ,
+            ).forEach { (axis, label) ->
+                OutlinedButton(
+                    onClick = { onMirror(axis) },
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("scale-mirror-${axis.name.lowercase(Locale.ROOT)}"),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Text(stringResource(label), maxLines = 1, fontSize = 13.sp)
+                }
+            }
+        }
     }
 }
 

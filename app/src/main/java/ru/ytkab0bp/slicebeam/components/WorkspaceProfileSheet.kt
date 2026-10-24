@@ -1,11 +1,12 @@
 package ru.ytkab0bp.slicebeam.components
 
 import android.content.Context
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -25,23 +26,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceChoiceField
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.OrkanUiTokens
 
 /** Quick profile selection using the same Orca configuration used by slicing and profile editors. */
-class WorkspaceProfileSheet(context: Context, private val onProfilesChanged: Runnable?) : BottomSheetDialog(context) {
+class WorkspaceProfileSheet(private val context: Context, private val onProfilesChanged: Runnable?) {
     private val config = SliceBeam.requireConfig()
     private val presets = requireNotNull(config.presets)
     private val printers = config.printerConfigs.filter { it.title != null }
@@ -57,37 +58,31 @@ class WorkspaceProfileSheet(context: Context, private val onProfilesChanged: Run
     private var filamentChosen = false
     private var processChosen = false
 
-    init {
-        val composeView = ComposeView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
-                BeamComposeTheme {
-                    WorkspaceProfileSheetContent(
-                        summary = settingsSummary,
-                        printerNames = printerNames,
-                        filamentNames = filamentNames,
-                        processNames = processNames,
-                        selectedPrinter = selectedPrinter.intValue,
-                        selectedFilament = selectedFilament.intValue,
-                        selectedProcess = selectedProcess.intValue,
-                        onPrinterSelected = ::selectPrinter,
-                        onFilamentSelected = { selectedFilament.intValue = it; filamentChosen = true },
-                        onProcessSelected = { selectedProcess.intValue = it; processChosen = true },
-                        onApply = ::applySelection,
-                    )
-                }
+    @Composable
+    fun Content(onDismiss: () -> Unit) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                WorkspaceProfileSheetContent(
+                    summary = settingsSummary,
+                    printerNames = printerNames,
+                    filamentNames = filamentNames,
+                    processNames = processNames,
+                    selectedPrinter = selectedPrinter.intValue,
+                    selectedFilament = selectedFilament.intValue,
+                    selectedProcess = selectedProcess.intValue,
+                    onPrinterSelected = ::selectPrinter,
+                    onFilamentSelected = { selectedFilament.intValue = it; filamentChosen = true },
+                    onProcessSelected = { selectedProcess.intValue = it; processChosen = true },
+                    onApply = { applySelection(onDismiss) },
+                )
             }
         }
-        setContentView(composeView)
     }
 
-    override fun show() {
-        super.show()
-        behavior.setState(BottomSheetBehavior.STATE_EXPANDED)
-    }
-
-    private fun applySelection() {
+    private fun applySelection(onDismiss: () -> Unit) {
         val chosen = WorkspaceProfileSelectionLogic.resolve(
             printerNames,
             selectedPrinter.intValue,
@@ -106,7 +101,7 @@ class WorkspaceProfileSheet(context: Context, private val onProfilesChanged: Run
             return
         }
         onProfilesChanged?.run()
-        dismiss()
+        onDismiss()
     }
 
     /** Commit the printer as soon as it is chosen, then display the profiles it made active. */
@@ -170,8 +165,11 @@ private fun WorkspaceProfileSheetContent(
     onProcessSelected: (Int) -> Unit,
     onApply: () -> Unit,
 ) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * 0.82f
-    val shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * OrkanUiTokens.sheetMaxHeightFraction
+    val shape = RoundedCornerShape(
+        topStart = OrkanUiTokens.sheetTopCornerRadius,
+        topEnd = OrkanUiTokens.sheetTopCornerRadius,
+    )
     Column(
         modifier = Modifier.fillMaxWidth()
             .heightIn(max = maxHeight)
@@ -182,7 +180,7 @@ private fun WorkspaceProfileSheetContent(
             modifier = Modifier.fillMaxWidth().weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(OrkanUiTokens.regularGap + OrkanUiTokens.compactGap),
         ) {
             Text(
                 text = stringResource(R.string.WorkspaceProfilesTitle),
@@ -199,7 +197,7 @@ private fun WorkspaceProfileSheetContent(
             )
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -239,8 +237,9 @@ private fun WorkspaceProfileSheetContent(
         Surface(color = MaterialTheme.colorScheme.surface) {
             Button(
                 onClick = onApply,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp).heightIn(min = 48.dp),
-                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
+                    .heightIn(min = OrkanUiTokens.touchTarget),
+                shape = RoundedCornerShape(OrkanUiTokens.cornerRadius),
             ) {
                 Text(stringResource(R.string.WorkspaceProfilesApply), fontSize = 14.sp)
             }

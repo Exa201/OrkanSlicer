@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Modell erstellen, prüfen, Dateien exportieren und Druckanweisungen kopieren." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/de/docs/generating-exporting-output">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Ergebnisse erzeugen und exportieren | Kromacut-Dokumentation" />
+        <meta property="og:description" content="Modell erstellen, prüfen, Dateien exportieren und Druckanweisungen kopieren." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/de/docs/generating-exporting-output" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="de_DE" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Ergebnisse erzeugen und exportieren | Kromacut-Dokumentation" />
+        <meta name="twitter:description" content="Modell erstellen, prüfen, Dateien exportieren und Druckanweisungen kopieren." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Ergebnisse erzeugen und exportieren | Kromacut-Dokumentation</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/generating-exporting-output">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/generating-exporting-output">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/generating-exporting-output">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/generating-exporting-output">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/generating-exporting-output">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/generating-exporting-output">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/generating-exporting-output">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/generating-exporting-output">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/generating-exporting-output">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/generating-exporting-output">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/generating-exporting-output">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Dokumentation">
+                    <a href="/de/">Zur Startseite</a>
+                    <a href="/app">Kromacut öffnen</a>
+                    <ul><li><a href="/de/docs/overview">Überblick</a></li><li><a href="/de/docs/quick-start">Schnellstart</a></li><li><a href="/de/docs/loading-images">Bilder laden</a></li><li><a href="/de/docs/image-adjustments">Bildanpassungen</a></li><li><a href="/de/docs/reducing-colors">Farben reduzieren</a></li><li><a href="/de/docs/dedithering-cleanup">Rasterglättung und Bereinigung</a></li><li><a href="/de/docs/3d-mode">3D-Modus</a></li><li><a href="/de/docs/auto-paint">Auto-paint-Steuerung</a></li><li><a href="/de/docs/calibration-theory">Kalibrierungstheorie</a></li><li><a href="/de/docs/flat-paint">Flat Paint</a></li><li><a href="/de/docs/calibration-workflows">Kalibrierabläufe</a></li><li><a href="/de/docs/generating-exporting-output">Ergebnisse erzeugen und exportieren</a></li><li><a href="/de/docs/settings-and-controls">Einstellungen und Steuerung</a></li><li><a href="/de/docs/troubleshooting">Fehlerbehebung</a></li><li><a href="/de/docs/faq">Häufige Fragen</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="generating-and-exporting-output">Ergebnisse erzeugen und exportieren</h1>
+<p>Der Exportablauf beginnt, sobald das 2D-Bild und die 3D-Einstellungen fertig vorbereitet sind.</p>
+<p><a href="/localized/de/diagrams/40_build_export_snapshot.svg" target="_blank" rel="noopener noreferrer" aria-label="Illustration in voller Größe öffnen: Bild und Einstellungen vorbereiten, einen Modellstand erstellen, prüfen und anschließend den vollständigen Stapel exportieren. Geänderte Einstellungen erfordern eine neue Erstellung; eine begrenzte Vorschau begrenzt den Export nicht."><img src="/localized/de/diagrams/40_build_export_snapshot.svg" alt="Bild und Einstellungen vorbereiten, einen Modellstand erstellen, prüfen und anschließend den vollständigen Stapel exportieren. Geänderte Einstellungen erfordern eine neue Erstellung; eine begrenzte Vorschau begrenzt den Export nicht." loading="lazy"></a></p>
+<h2 id="before-you-export">Vor dem Export</h2>
+<p>Prüfe folgende Punkte:</p>
+<ol><li>Reduziere das Bild im 2D-Modus auf eine praktikable Anzahl von Farben.</li><li>Lege unter <strong>3D-Druckeinstellungen</strong> die physischen Abmessungen mit <strong>Pixelgröße (XY)</strong> fest. Gleiche <strong>Schichthöhe</strong> und <strong>Höhe der ersten Schicht</strong> mit deinem Slicer ab. Setze <strong>Effektive Linienbreite</strong> auf die geplante Extrusionsbreite für die Prüfung druckbarer Details und das Höhen-Dithering in Auto-paint.</li><li>Wähle <strong>Manuell</strong> oder <strong>Auto-paint</strong>.</li><li>Klicke auf <strong>3D-Modell erstellen</strong>.</li><li>Prüfe das Modell und die <strong>Schichtvorschau</strong>.</li></ol>
+<p>Zeigt Kromacut eine <strong>Leistungswarnung</strong>, kann die Erstellung wegen Bildgröße, Pixelanzahl, Schichtanzahl oder ähnlicher Last langsam sein. Du kannst mit <strong>Trotzdem erstellen</strong> fortfahren oder abbrechen und den Auftrag vereinfachen.</p>
+<h2 id="build-3d-model">3D-Modell erstellen</h2>
+<p>Klicke auf <strong>3D-Modell erstellen</strong>, wenn Vorschau und Exportgeometrie die aktuellen 3D-Einstellungen widerspiegeln sollen.</p>
+<p>Während der Erstellung zeigt Kromacut Fortschritte wie das Einlesen von Bildfarbschichten, Zuordnen von Bildfarben oder Erstellen von Farbschichten. Die Exportfunktionen sind wieder sinnvoll nutzbar, sobald die Fortschrittsanzeige verschwindet und das aktualisierte Modell geprüft werden kann.</p>
+<p>Ein neu berechneter Auto-paint-Stapel ist nicht dasselbe wie ein neu erstelltes Netz. Der Export verwendet das zuletzt erstellte Modell; die Druckanweisungen bleiben an diesen Modellstand gebunden. Warte nach Bildänderungen, Profilwechseln, gespeicherter Kalibrierung oder geänderten Druckeinstellungen auf die aktuelle Berechnung und erstelle das Modell vor dem Export erneut. Eine ältere Vorschau kann sichtbar bleiben, während neue Einstellungen berechnet oder verworfen werden. Ihre Anzeige beweist nicht, dass die neuen Einstellungen erfolgreich waren.</p>
+<h2 id="choose-stl-or-3mf">STL oder 3MF wählen</h2>
+<p>Öffne das 3D-Downloadmenü und wähle:</p>
+<table><thead><tr><th>Format</th><th>Geeignet, wenn</th></tr></thead><tbody><tr><td>STL</td><td>Du ein breit unterstütztes Modell mit einer einzigen Geometrie möchtest und Filamentwechsel manuell behandelst.</td></tr><tr><td>3MF</td><td>Du eine farbfähige Ausgabe für Slicer möchtest, die mehrere farbige Objekte erhalten können.</td></tr></tbody></table>
+<p>Der 3MF-Export erhält in Auto-paint möglichst die tatsächlichen Filamentfarben. Prüfe vor dem Drucken trotzdem die Zuweisungen im Slicer.</p>
+<p>Eine Auto-paint-Vorschau kann Dutzende Mischfarben aus nur wenigen tatsächlichen Spulen zeigen. Die 3MF-Datei weist den physischen Schichten diese echten Filamente zu, nicht je ein Material pro vorhergesagter Mischung. Deshalb kann die normale Filamentfarbansicht eines Slicers anders aussehen als Kromacuts Ansicht <strong>Simuliert</strong>, ohne dass Materialzuweisungen falsch sind. Vergleiche zur Kontrolle der Zuweisungen mit den <strong>physischen</strong> Farben.</p>
+<p>STL enthält keine Filamentfarben oder automatischen Spulenzuweisungen. Verwende den kopierten Wechselplan mit den Farbwechselfunktionen des Slicers. Auch eine 3MF-Datei ist weiterhin ein Modell und kein direkt ausführbarer G-Code: Wähle Drucker, Düse, Filamentprofile, Temperaturen und Geschwindigkeiten selbst und slice das Modell anschließend.</p>
+<p>Bei <strong>Flat Paint</strong> bietet das Downloadmenü nur 3MF an: Das Modell enthält je ein Objekt pro tatsächlichem Filament sowie in der Standardanordnung mit Bildseite unten ein transparentes Trägerobjekt. Die optionale Anordnung mit Bildseite oben lässt diesen Träger weg. Eine farblose STL mit nur einer Geometrie wäre bei beiden flachen Platten nutzlos. Beide Ausrichtungen unterstützen alle Stärken der <strong>Glatten Vernetzung</strong>. Baue das Modell nach einer Änderung der Stärke neu, um sie auf die Vorschau und die exportierte Geometrie anzuwenden.</p>
+<h2 id="print-instructions">Druckanweisungen</h2>
+<p>Der Bereich <strong>Druckanweisungen</strong> enthält:</p>
+<ul><li>Empfohlene Wandschleifen, Füllung, Schichthöhe und Höhe der ersten Schicht.</li><li><strong>Mit Farbe beginnen</strong>.</li><li>Einen <strong>Farbwechselplan</strong> mit Schichtnummern und ungefähren Höhen.</li><li>Eine Schaltfläche <strong>Kopieren</strong> für den vollständigen Plan als Klartext.</li></ul>
+<p>Nutze den kopierten Plan neben der Slicer-Vorschau. Die Schichtnummern hängen von <strong>Schichthöhe</strong> und <strong>Höhe der ersten Schicht</strong> ab; halte diese Werte daher konsistent.</p>
+<p><a href="/localized/de/diagrams/41_swap_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Illustration in voller Größe öffnen: Eine erste Schicht von 0,10 mm, gefolgt von 0,04-mm-Schichten. Ein Wechsel vor Schicht 4 liegt an einer Materialgrenze von 0,18 mm, während die neue Schicht bei 0,22 mm endet."><img src="/localized/de/diagrams/41_swap_layers.svg" alt="Eine erste Schicht von 0,10 mm, gefolgt von 0,04-mm-Schichten. Ein Wechsel vor Schicht 4 liegt an einer Materialgrenze von 0,18 mm, während die neue Schicht bei 0,22 mm endet." loading="lazy"></a></p>
+<p><strong>Wechsel bei Schicht N</strong> bedeutet, dass das neue Filament Schicht N druckt. Bei einer ersten Schicht von 0,10 mm und regulären Schichten von 0,04 mm enden die Schichten 1, 2 und 3 beispielsweise bei 0,10, 0,14 und 0,18 mm. Soll das nächste Filament mit Schicht 4 beginnen, wechsle es nach Schicht 3 und vor der Extrusion von Schicht 4. Diese neue Schicht endet bei 0,22 mm.</p>
+<p>Die ungefähre Höhenangabe im Plan erfordert Aufmerksamkeit: Der manuelle Ablauf zeigt die obere Z-Höhe der neuen Schicht, Auto-paint dagegen die Materialwechselgrenze. Verwende die Schichtnummer und prüfe den tatsächlichen geslicten Materialübergang, nicht nur eine scheinbar passende Z-Zahl. Slicer können die ausgewählte Schicht und den Einfügepunkt unterschiedlich beschriften.</p>
+<p>Im Flat-Paint-Modus gibt es keinen manuellen Wechselplan. Der Bereich fasst stattdessen den gewählten Mehrmaterialablauf zusammen: Weise jedes 3MF-Objekt seinem Filament zu. Nutze dann entweder transparentes Filament und drehe den standardmäßigen Druck mit Bildseite unten um, oder drucke die trägerlose Anordnung mit Bildseite oben. Keine der beiden Anordnungen darf im Slicer gespiegelt werden.</p>
+<h2 id="recommended-slicer-setup">Empfohlene Slicer-Einstellungen</h2>
+<p>Kromacut empfiehlt:</p>
+<ul><li>Wandschleifen: <code>1</code></li><li>Füllung: <code>100%</code></li><li>Schichthöhe: der unter <strong>Druckanweisungen</strong> angegebene Wert</li><li>Höhe der ersten Schicht: der unter <strong>Druckanweisungen</strong> angegebene Wert</li></ul>
+<p>Prüfe vor dem Drucken immer die Slicer-Vorschau. Höhen sind Näherungswerte, und Slicer können Schichtwechsel je nach Einstellung der ersten Schicht unterschiedlich darstellen.</p>
+<p>Lass den Export bei <strong>100 % Z-Skalierung</strong> und verwende eine konstante Schichthöhe passend zum Modell. Eine veränderte Z-Skalierung oder variable Schichthöhen verschieben die physischen Übergänge und machen den kopierten Plan ungültig. Benötigst du eine andere Schichthöhe, stelle sie in Kromacut ein und erstelle das Modell neu. Auch eine XY-Skalierung verändert druckbare Details im Verhältnis zur Düse. Stelle die gewünschte Größe in Kromacut ein, damit die Linienbreitenprüfung diese Größe verwendet.</p>
+<p>Prüfe kleine Inseln, Schrift, getrennte transparente Aussparungen, Grundschichten sowie Spül- und Priming-Anordnung im Slicer. Geglättete Konturen machen nicht jeden schmalen Strich druckbar. Die App kalibriert weder Fluss, Rückzug, Temperatur noch den mechanischen Aufbau deines Druckers.</p>
+<h2 id="saving-and-cancelling">Speichern und Abbrechen</h2>
+<p>Die Desktop-App öffnet für Dateiexporte einen Dialog <strong>Speichern unter</strong>. Im Browser gelten dessen Download-Einstellungen; ob nach einem Speicherort gefragt wird, hängt also vom Browser ab. Das Abbrechen eines Dateidialogs sendet nichts an den Drucker. Während des Exports können das Schreiben der Geometrie und die Archivkomprimierung Zeit beanspruchen. Warte vor dem Schließen der App, bis das Speichern abgeschlossen ist.</p>
+<h2 id="export-tips">Exporttipps</h2>
+<ul><li>Erstelle das Modell nach geänderten 3D-Einstellungen neu.</li><li>Verlasse dich nicht allein auf die Begrenzung der sichtbaren Schichtvorschau; der Export enthält das vollständige Modell.</li><li>Ist das Netz zum Erstellen oder Slicen zu aufwendig, schneide die Quelle in 2D zu oder verringere ihre Auflösung und reduziere unnötige Farbbereiche. Eine größere <strong>Pixelgröße (XY)</strong> vergrößert dieselben Pixel; sie verringert weder deren Anzahl noch vereinfacht sie das Netz.</li><li>Sind Wechselanweisungen wegen zu vieler Farben deaktiviert, gehe zurück zu <a href="/de/docs/reducing-colors#image-colors">Farben reduzieren</a>.</li></ul>
+<p>Weiter: <a href="/de/docs/settings-and-controls">Einstellungen und Steuerung</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

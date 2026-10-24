@@ -151,13 +151,6 @@ object TemporaryProjectSettings {
             if (key == "pressure_advance" && value.toDoubleOrNull()?.let { it > 0.0 } == true) {
                 filamentEdits[index]["enable_pressure_advance"] = "1"
             }
-            if (key == "hot_plate_temp" || key == "hot_plate_temp_initial_layer") {
-                val suffix = if (key.endsWith("_initial_layer")) "_initial_layer" else ""
-                for (surface in listOf("cool_plate", "eng_plate", "textured_plate", "textured_cool_plate", "supertack_plate")) {
-                    val surfaceKey = "${surface}_temp$suffix"
-                    if (surfaceKey in project.filamentTypes) filamentEdits[index][surfaceKey] = value
-                }
-            }
             if (key == "filament_colour" || key == "filament_type") {
                 val slots = slots() ?: mutableListOf(FilamentSlot(0x1AC5A2, "PLA"))
                 val slot = slots[index.coerceAtMost(slots.lastIndex)]
@@ -282,7 +275,12 @@ object TemporaryProjectSettings {
     }
 
     @Synchronized fun selectedGates(printer: String, count: Int): IntArray? = gateChoices[printer]?.takeIf { it.size >= count }?.copyOf(count)
-    @Synchronized fun setSelectedGates(printer: String, gates: IntArray) { gateChoices[printer] = gates.copyOf() }
+    @Synchronized fun setSelectedGates(printer: String, gates: IntArray) {
+        val previous = gateChoices[printer]
+        if (previous?.contentEquals(gates) == true) return
+        gateChoices[printer] = gates.copyOf()
+        if (active) changed()
+    }
     @Synchronized fun removeSelectedGate(index: Int) {
         gateChoices.keys.toList().forEach { printer ->
             gateChoices[printer] = gateChoices.getValue(printer).filterIndexed { tool, _ -> tool != index }.toIntArray()

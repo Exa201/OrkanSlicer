@@ -346,7 +346,9 @@ object FastenerStlWriter {
     }
 
     private class Mesh {
-        val triangles = ArrayList<FloatArray>()
+        // Keep triangle coordinates in one primitive array. One FloatArray object per triangle
+        // creates heavy GC pressure for threaded M12/M16 parts on mobile devices.
+        private var coordinates = FloatArray(9 * 1024)
         var count = 0
 
         fun quad(a: FloatArray, b: FloatArray, c: FloatArray, d: FloatArray) {
@@ -367,7 +369,16 @@ object FastenerStlWriter {
             val area2 = sqrt((uy * vz - uz * vy).toDouble().pow(2) +
                 (uz * vx - ux * vz).toDouble().pow(2) + (ux * vy - uy * vx).toDouble().pow(2))
             if (area2 < 1e-7) return
-            triangles.add(floatArrayOf(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]))
+            val required = (count + 1) * 9
+            if (required > coordinates.size) {
+                var capacity = coordinates.size
+                while (capacity < required) capacity = (capacity * 2).coerceAtLeast(required)
+                coordinates = coordinates.copyOf(capacity)
+            }
+            val offset = count * 9
+            coordinates[offset] = a[0]; coordinates[offset + 1] = a[1]; coordinates[offset + 2] = a[2]
+            coordinates[offset + 3] = b[0]; coordinates[offset + 4] = b[1]; coordinates[offset + 5] = b[2]
+            coordinates[offset + 6] = c[0]; coordinates[offset + 7] = c[1]; coordinates[offset + 8] = c[2]
             count++
         }
 
@@ -379,28 +390,38 @@ object FastenerStlWriter {
                 System.arraycopy(label, 0, header, 0, min(label.size, header.size))
                 output.write(header)
                 writeInt(output, count)
-                for (triangle in triangles) {
-                    val ux = triangle[3] - triangle[0]; val uy = triangle[4] - triangle[1]; val uz = triangle[5] - triangle[2]
-                    val vx = triangle[6] - triangle[0]; val vy = triangle[7] - triangle[1]; val vz = triangle[8] - triangle[2]
+                // Reuse one fixed-size STL record; per-coordinate ByteBuffer allocations made
+                // large fasteners needlessly slow and memory intensive on Android.
+                val record = ByteArray(50)
+                val values = ByteBuffer.wrap(record).order(ByteOrder.LITTLE_ENDIAN)
+                for (index in 0 until count) {
+                    val offset = index * 9
+                    val ux = coordinates[offset + 3] - coordinates[offset]
+                    val uy = coordinates[offset + 4] - coordinates[offset + 1]
+                    val uz = coordinates[offset + 5] - coordinates[offset + 2]
+                    val vx = coordinates[offset + 6] - coordinates[offset]
+                    val vy = coordinates[offset + 7] - coordinates[offset + 1]
+                    val vz = coordinates[offset + 8] - coordinates[offset + 2]
                     val nx = uy * vz - uz * vy
                     val ny = uz * vx - ux * vz
                     val nz = ux * vy - uy * vx
                     val norm = sqrt(nx.toDouble() * nx + ny.toDouble() * ny + nz.toDouble() * nz)
-                    writeFloat(output, (nx / norm).toFloat())
-                    writeFloat(output, (ny / norm).toFloat())
-                    writeFloat(output, (nz / norm).toFloat())
-                    for (coordinate in triangle) writeFloat(output, coordinate)
-                    output.writeShort(0)
+                    values.clear()
+                    values.putFloat((nx / norm).toFloat())
+                    values.putFloat((ny / norm).toFloat())
+                    values.putFloat((nz / norm).toFloat())
+                    for (coordinate in offset until offset + 9) values.putFloat(coordinates[coordinate])
+                    values.putShort(0)
+                    output.write(record)
                 }
             }
         }
 
         private fun writeInt(output: DataOutputStream, value: Int) {
-            output.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(value).array())
-        }
-
-        private fun writeFloat(output: DataOutputStream, value: Float) {
-            output.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putFloat(value).array())
+            output.write(value)
+            output.write(value ushr 8)
+            output.write(value ushr 16)
+            output.write(value ushr 24)
         }
     }
 }

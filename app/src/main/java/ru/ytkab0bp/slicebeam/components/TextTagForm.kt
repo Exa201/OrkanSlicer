@@ -82,7 +82,7 @@ internal fun TextTagFormContent(
     onValuesChanged: (TextTagFormValues) -> Unit,
     onGenerate: (TextTagFormValues) -> Unit,
 ) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * .82f
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * .68f
     val previewText = if (values.text.isBlank()) stringResource(R.string.TextTagPreviewPlaceholder) else values.text
     Column(
         modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).padding(horizontal = 18.dp, vertical = 8.dp),

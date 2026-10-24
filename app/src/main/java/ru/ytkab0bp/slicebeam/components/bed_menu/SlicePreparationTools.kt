@@ -88,14 +88,21 @@ internal object SlicePreparationTools {
     @Throws(IOException::class)
     fun readUsedTools(gcode: File?): IntArray = readToolUsage(gcode).used
 
-    /** Older Rinkhals maps sparse physical ACE gates to dense paint indices. Return the empty slots. */
-    fun emptyAceSlotsBeforeUsedGate(activeTools: IntArray, selectedGates: IntArray?, loadedGates: IntArray): IntArray {
-        if (selectedGates == null || loadedGates.isEmpty()) return IntArray(0)
-        val highest = activeTools.map { tool -> selectedGates.getOrNull(tool)?.takeIf { it >= 0 } }
-            .filterNotNull()
-            .maxOrNull() ?: return IntArray(0)
+    /** Lists empty physical slots before the highest used tool without compacting the tool indices. */
+    fun emptyAceSlotsBeforeUsedGate(activeTools: IntArray, toolCount: Int, loadedGates: IntArray): IntArray {
+        if (loadedGates.isEmpty()) return IntArray(0)
+        val highest = activeTools.maxOrNull()?.takeIf { it >= 0 && it < toolCount } ?: return IntArray(0)
         val loaded = loadedGates.toSet()
         return (0 until highest).filter { gate -> gate !in loaded }.map { gate -> gate + 1 }.toIntArray()
+    }
+
+    /** Finds physical empty gates before the highest gate actually assigned to a used slicer tool. */
+    fun emptyAceSlotsBeforeUsedGate(activeTools: IntArray, selectedGates: IntArray?, loadedGates: IntArray): IntArray {
+        if (loadedGates.isEmpty() || selectedGates == null) return IntArray(0)
+        val usedGates = activeTools.map { selectedGates.getOrNull(it) ?: return IntArray(0) }
+        val highest = usedGates.maxOrNull() ?: return IntArray(0)
+        val loaded = loadedGates.toSet()
+        return (0 until highest).filter { gate -> gate !in loaded }.map { it + 1 }.toIntArray()
     }
 
     /** A previously selected gate can become empty or lose its firmware tool mapping after a new sync. */

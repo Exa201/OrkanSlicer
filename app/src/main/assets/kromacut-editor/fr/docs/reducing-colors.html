@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Comprendre la réduction en deux étapes, les palettes fixes et la différence entre recoloration et transparence." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/fr/docs/reducing-colors">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Réduction des couleurs | Documentation Kromacut" />
+        <meta property="og:description" content="Comprendre la réduction en deux étapes, les palettes fixes et la différence entre recoloration et transparence." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/fr/docs/reducing-colors" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="fr_FR" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Réduction des couleurs | Documentation Kromacut" />
+        <meta name="twitter:description" content="Comprendre la réduction en deux étapes, les palettes fixes et la différence entre recoloration et transparence." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Réduction des couleurs | Documentation Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/reducing-colors">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/reducing-colors">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/reducing-colors">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/reducing-colors">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/reducing-colors">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/reducing-colors">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/reducing-colors">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/reducing-colors">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/reducing-colors">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/reducing-colors">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/reducing-colors">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/reducing-colors">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/reducing-colors">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/fr/">Aller à l’accueil</a>
+                    <a href="/app">Ouvrir Kromacut</a>
+                    <ul><li><a href="/fr/docs/overview">Présentation</a></li><li><a href="/fr/docs/quick-start">Démarrage rapide</a></li><li><a href="/fr/docs/loading-images">Chargement des images</a></li><li><a href="/fr/docs/image-adjustments">Réglages d’image</a></li><li><a href="/fr/docs/reducing-colors">Réduction des couleurs</a></li><li><a href="/fr/docs/dedithering-cleanup">Détramage et nettoyage</a></li><li><a href="/fr/docs/3d-mode">Mode 3D</a></li><li><a href="/fr/docs/auto-paint">Commandes de peinture automatique</a></li><li><a href="/fr/docs/calibration-theory">Théorie de l’étalonnage</a></li><li><a href="/fr/docs/flat-paint">Peinture à plat</a></li><li><a href="/fr/docs/calibration-workflows">Méthodes d’étalonnage</a></li><li><a href="/fr/docs/generating-exporting-output">Génération et export</a></li><li><a href="/fr/docs/settings-and-controls">Paramètres et commandes</a></li><li><a href="/fr/docs/troubleshooting">Dépannage</a></li><li><a href="/fr/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="reducing-colors">Réduction des couleurs</h1>
+<p>La quantification remplace les nombreuses couleurs sources par un ensemble plus petit, simplifiant les zones utilisées par les parcours 3D Manuel et Peinture automatique. Une palette 2D contient les couleurs cibles de l’image, pas un profil de filaments de peinture automatique ni des prédictions d’impression mesurées.</p>
+<p>Recadrez et redimensionnez d’abord. Si vous avez modifié les <a href="/fr/docs/image-adjustments">réglages d’image</a>, cliquez sur Appliquer dans ce panneau avant de quantifier.</p>
+<h2 id="the-two-stage-pipeline">Le traitement en deux étapes</h2>
+<p><a href="/localized/fr/diagrams/34_quantization_pipeline.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Le poids de l’algorithme limite la palette intermédiaire ; le nombre de couleurs ou une palette fixe sélectionnée contrôle la deuxième étape."><img src="/localized/fr/diagrams/34_quantization_pipeline.svg" alt="Le poids de l’algorithme limite la palette intermédiaire ; le nombre de couleurs ou une palette fixe sélectionnée contrôle la deuxième étape." loading="lazy"></a></p>
+<p>Le <strong>Poids de l’algorithme</strong> et le <strong>Nombre de couleurs</strong> ont des fonctions différentes. K-means avec un poids de 128 regroupe d’abord la source en 128 couleurs au maximum. Auto avec un nombre de couleurs de 16 fusionne ensuite ce résultat en 16 couleurs au maximum. Le poids n’est ni un pourcentage, ni une opacité, ni un nombre de filaments.</p>
+<table><thead><tr><th>Champ ou action</th><th>Signification</th></tr></thead><tbody><tr><td>Palette : Auto</td><td>Trouve des couleurs adaptées à l’image, puis limite leur nombre.</td></tr><tr><td>Palette : intégrée, fournisseur ou personnalisée</td><td>Associe l’image intermédiaire aux couleurs activées de la palette choisie. Toutes les couleurs disponibles ne doivent pas nécessairement apparaître.</td></tr><tr><td>Nombre de couleurs</td><td>Limite finale d’Auto : de 2 à 256, avec 16 par défaut. Désactivé pour une palette fixe.</td></tr><tr><td>Poids de l’algorithme</td><td>Budget de palette intermédiaire : de 2 à 256, avec 128 par défaut. Une valeur supérieure conserve généralement davantage de détails intermédiaires, sans garantir une meilleure correspondance finale.</td></tr><tr><td>Algorithme</td><td>Méthode de réduction de première étape. Par défaut : K-means.</td></tr><tr><td>Appliquer</td><td>Traite l’image sous-jacente et crée une étape d’annulation. Changer un réglage seul ne recolore pas l’image.</td></tr><tr><td>Flèche de réinitialisation</td><td>Rétablit Auto, 16 couleurs, poids 128 et K-means. Ne restaure pas une image antérieure.</td></tr></tbody></table>
+<p>Le résultat peut contenir moins de couleurs que demandé. Augmenter la cible après réduction ne récupère pas les couleurs supprimées : <strong>annulez</strong> d’abord pour comparer des alternatives depuis la même source.</p>
+<p>La quantification conserve les pixels entièrement transparents, mais rend <strong>tous les pixels partiellement transparents entièrement opaques</strong>. Un bord à alpha progressif n’est pas un bord partiellement imprimé.</p>
+<h2 id="choose-an-algorithm">Choisir un algorithme</h2>
+<p>Ces méthodes regroupent les couleurs. Aucune n’ajoute de motif de tramage spatial ni ne garantit qu’un petit détail résistera à la largeur de ligne de votre buse.</p>
+<table><thead><tr><th>Algorithme</th><th>Ce qui change</th><th>Comparaison utile</th></tr></thead><tbody><tr><td>Aucun (post-traitement seul)</td><td>Saute la quantification de première étape ; le poids est désactivé. La réduction finale du nombre ou l’association à la palette fixe a toujours lieu.</td><td>Associer directement une illustration nette à une palette connue. Ce n’est pas une option universelle « laisser l’image inchangée ».</td></tr><tr><td>Postérisation</td><td>Divise les canaux RVB en paliers discrets, puis applique la limite du poids.</td><td>Graphismes volontairement en paliers ; les niveaux disponibles des canaux changent par sauts discrets.</td></tr><tr><td>Coupe médiane</td><td>Divise la distribution des couleurs en groupes représentés par des couleurs moyennes.</td><td>À comparer lorsqu’une autre méthode perd un groupe tonal important.</td></tr><tr><td>K-means</td><td>Recherche des groupes de couleurs pondérés par le nombre de pixels, avec une initialisation aléatoire.</td><td>Point de départ pour les photos et illustrations mixtes. Les essais depuis la même source peuvent varier légèrement.</td></tr><tr><td>Wu</td><td>Utilise les statistiques de distribution des couleurs pour choisir des divisions avec moins de variation interne.</td><td>À comparer sur les dégradés et les photographies.</td></tr><tr><td>Octree</td><td>Regroupe les couleurs par subdivisions RVB, puis fusionne les groupes pour respecter le budget.</td><td>À comparer sur les illustrations comportant de nombreuses zones distinctes.</td></tr></tbody></table>
+<p>Il n’existe pas d’algorithme universellement meilleur. Examinez le sujet, les petites lettres et les accents importants aux dimensions physiques prévues.</p>
+<h2 id="fixed-and-supplier-palettes">Palettes fixes et de fournisseurs</h2>
+<p>Une palette fixe ne propose que les couleurs choisies. Après l’éventuelle première réduction, chaque pixel non transparent est associé à la couleur disponible la plus proche dans l’espace Lab. Il s’agit d’une correspondance de couleurs d’image, pas d’une simulation optique de filament.</p>
+<p>Les <strong>Palettes de fournisseurs</strong> sont des ensembles de référence non officiels de noms de filaments et de couleurs hexadécimales annoncées. Elles ne garantissent ni la disponibilité actuelle des produits ni l’exactitude des couleurs imprimées. Les couleurs Bambu utilisent par exemple le <a href="https://store.bblcdn.com/s7/default/1084369ef84345bbaa5d704a492954e0/Bambu_PLA_Basic_Hex_Code.pdf" target="_blank" rel="noopener noreferrer">nuancier hexadécimal des filaments Bambu Lab</a>. Kromacut n’est affilié à aucun fabricant et n’est approuvé par aucun d’eux.</p>
+<p>Les palettes intégrées et de fournisseurs sont en lecture seule. Clonez-en une pour la personnaliser. Utilisez séparément l’<a href="/fr/docs/calibration-theory">étalonnage des filaments</a> pour le comportement réel des bobines et des couches.</p>
+<h2 id="custom-palettes">Palettes personnalisées</h2>
+<table><thead><tr><th>Commande</th><th>Marche à suivre</th></tr></thead><tbody><tr><td>Créer une palette</td><td>Nommez-la et ajoutez au moins une couleur valide activée. Elle devient la palette sélectionnée.</td></tr><tr><td>Modifier la palette sélectionnée</td><td>Modifie une palette personnalisée, pas les pixels actuels. Appliquez ensuite la quantification.</td></tr><tr><td>Ajouter une couleur</td><td>Ajoute un sélecteur, un champ hexadécimal et un nom facultatif. Les entrées valides utilisent <code>#RGB</code> ou <code>#RRGGBB</code> ; les lignes invalides sont omises à l’enregistrement.</td></tr><tr><td>Nom de couleur facultatif</td><td>Étiquette une couleur, par exemple avec un nom de bobine. Ne modifie pas la correspondance.</td></tr><tr><td>Icône œil</td><td>Désactive une couleur enregistrée sans la supprimer. Au moins une couleur valide doit rester activée.</td></tr><tr><td>Retirer une ligne</td><td>Supprime la ligne ; impossible de supprimer la dernière.</td></tr><tr><td>Cloner</td><td>Copie une palette autre qu’Auto en palette personnalisée modifiable, en conservant les noms et les couleurs désactivées.</td></tr><tr><td>Importer</td><td>Lit un fichier <code>.kpal</code> et indique les entrées importées, remplacées, en double ou renommées. Sélectionne la première palette importée le cas échéant.</td></tr><tr><td>Exporter</td><td>Enregistre la palette personnalisée sélectionnée en <code>.kpal</code>, avec noms et couleurs désactivées. Clonez d’abord les palettes intégrées pour exporter une copie modifiable.</td></tr><tr><td>Supprimer la palette sélectionnée</td><td>Retire la palette enregistrée et revient à Auto. N’efface pas les pixels de l’image.</td></tr><tr><td>Enregistrer / Annuler</td><td>Valide ou abandonne le brouillon de l’éditeur.</td></tr></tbody></table>
+<p>Une étiquette comme <strong>Mes bobines (5/8)</strong> indique cinq couleurs activées parmi huit entrées enregistrées. Seules les couleurs activées participent. Les palettes et la sélection sont enregistrées localement ; exportez des sauvegardes avant d’effacer les données de l’application ou du navigateur. Elles sont distinctes des <a href="/fr/docs/settings-and-controls#filament-profile-files">profils de filaments</a>.</p>
+<h2 id="image-colors">Couleurs de l’image</h2>
+<p>Couleurs de l’image décrit l’image sous-jacente, pas les réglages en direct non appliqués. Son badge exclut les pixels entièrement transparents. Les infobulles affichent code hexadécimal, alpha et nombre de pixels. Des alpha différents peuvent créer des entrées distinctes avec les mêmes valeurs RVB. Les images très colorées ont une liste d’affichage limitée plutôt que toutes leurs couleurs photographiques.</p>
+<p>Cliquez sur un échantillon pour <strong>Modifier la couleur</strong>. Utilisez le sélecteur RVBA ou le champ hexadécimal, puis appliquez. Six chiffres modifient le RVB en conservant l’alpha actuel du sélecteur ; huit chiffres incluent explicitement l’alpha. Utilisez la commande de transparence ou un suffixe alpha explicite lorsque l’opacité importe.</p>
+<p><a href="/localized/fr/diagrams/35_swatch_operations.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Un remplacement opaque recolore chaque correspondance exacte, un alpha nul retire ces pixels et Supprimer réassocie les couleurs au lieu de découper des trous."><img src="/localized/fr/diagrams/35_swatch_operations.svg" alt="Un remplacement opaque recolore chaque correspondance exacte, un alpha nul retire ces pixels et Supprimer réassocie les couleurs au lieu de découper des trous." loading="lazy"></a></p>
+<table><thead><tr><th>Action</th><th>Ce qui change</th></tr></thead><tbody><tr><td>Appliquer une couleur opaque</td><td>Remplace chaque correspondance exacte RVB et alpha dans toute l’image, y compris les zones déconnectées.</td></tr><tr><td>Appliquer un alpha entièrement transparent</td><td>Retire les pixels correspondants de l’image visible et de la silhouette imprimable. Les pixels correspondants du sujet disparaissent aussi.</td></tr><tr><td>Appliquer à l’échantillon transparent</td><td>Remplace tous les pixels entièrement transparents, avec la possibilité d’ajouter un fond ou de remplir des trous.</td></tr><tr><td>Supprimer</td><td>Requantifie avec la palette cible restante. Cela <strong>n’efface pas</strong> les pixels. L’algorithme de première étape sélectionné s’exécute toujours ; d’autres couleurs peuvent donc aussi changer.</td></tr><tr><td>Fermer / Échap</td><td>Abandonne la modification non validée.</td></tr></tbody></table>
+<p>Choisissez <strong>Aucun (post-traitement seul)</strong> avant Supprimer pour une association directe à la palette restante. Utilisez <a href="/fr/docs/loading-images#touch-up-pixels">Remplissage ou Gomme</a> pour une modification locale. Annulez si une trop grande partie de l’image change.</p>
+<p>Les instructions de changement manuel sont désactivées au-delà de 64 couleurs non transparentes. Une palette plus petite peut simplifier l’empilement même sous cette limite, mais moins de cibles ne signifie pas automatiquement moins de changements de filament en peinture automatique.</p>
+<p>Suite : <a href="/fr/docs/dedithering-cleanup">Détramage et nettoyage</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

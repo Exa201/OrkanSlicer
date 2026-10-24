@@ -1184,6 +1184,7 @@ add_library(slic3r
         src/main/jni/bbl/Orient.cpp
 
         src/main/jni/slicebeam/beam_native.cpp
+        src/main/jni/slicebeam/ModelFilamentRemap.cpp
         src/main/jni/slicebeam/engine_compat.cpp
         src/main/jni/slicebeam/GLModel.cpp
         src/main/jni/slicebeam/GLShader.cpp

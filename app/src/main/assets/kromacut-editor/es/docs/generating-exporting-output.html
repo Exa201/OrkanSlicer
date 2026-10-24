@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Genera el modelo, revísalo, exporta los archivos y copia las instrucciones de impresión." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/es/docs/generating-exporting-output">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Generación y exportación | Documentación de Kromacut" />
+        <meta property="og:description" content="Genera el modelo, revísalo, exporta los archivos y copia las instrucciones de impresión." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/es/docs/generating-exporting-output" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="es_ES" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Generación y exportación | Documentación de Kromacut" />
+        <meta name="twitter:description" content="Genera el modelo, revísalo, exporta los archivos y copia las instrucciones de impresión." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Generación y exportación | Documentación de Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/generating-exporting-output">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/generating-exporting-output">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/generating-exporting-output">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/generating-exporting-output">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/generating-exporting-output">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/generating-exporting-output">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/generating-exporting-output">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/generating-exporting-output">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/generating-exporting-output">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/generating-exporting-output">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/generating-exporting-output">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentación">
+                    <a href="/es/">Ir a la página de inicio</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/es/docs/overview">Visión general</a></li><li><a href="/es/docs/quick-start">Inicio rápido</a></li><li><a href="/es/docs/loading-images">Cargar imágenes</a></li><li><a href="/es/docs/image-adjustments">Ajustes de imagen</a></li><li><a href="/es/docs/reducing-colors">Reducir colores</a></li><li><a href="/es/docs/dedithering-cleanup">Eliminación de tramado y limpieza</a></li><li><a href="/es/docs/3d-mode">Modo 3D</a></li><li><a href="/es/docs/auto-paint">Controles de pintura automática</a></li><li><a href="/es/docs/calibration-theory">Teoría de calibración</a></li><li><a href="/es/docs/flat-paint">Pintura plana</a></li><li><a href="/es/docs/calibration-workflows">Flujos de calibración</a></li><li><a href="/es/docs/generating-exporting-output">Generación y exportación</a></li><li><a href="/es/docs/settings-and-controls">Ajustes y controles</a></li><li><a href="/es/docs/troubleshooting">Solución de problemas</a></li><li><a href="/es/docs/faq">Preguntas frecuentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="generating-and-exporting-output">Generación y exportación</h1>
+<p>El flujo de exportación empieza cuando la imagen 2D y los controles 3D están listos.</p>
+<p><a href="/localized/es/diagrams/40_build_export_snapshot.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustración a tamaño completo: Prepara imagen y ajustes, genera una instantánea, revísala y exporta todo el apilamiento. Cambiar un ajuste exige otra generación; limitar la vista no limita la exportación."><img src="/localized/es/diagrams/40_build_export_snapshot.svg" alt="Prepara imagen y ajustes, genera una instantánea, revísala y exporta todo el apilamiento. Cambiar un ajuste exige otra generación; limitar la vista no limita la exportación." loading="lazy"></a></p>
+<h2 id="before-you-export">Antes de exportar</h2>
+<p>Comprueba lo siguiente:</p>
+<ol><li>En 2D, reduce la imagen a un número práctico de colores.</li><li>En <strong>Ajustes de impresión 3D</strong>, elige las dimensiones con <strong>Tamaño de píxel (XY)</strong>. Haz coincidir <strong>Altura de capa</strong> y <strong>Altura de primera capa</strong> con el laminador, y <strong>Ancho de línea efectivo</strong> con la extrusión prevista para los controles de detalles imprimibles y el tramado de altura.</li><li>Elige <strong>Manual</strong> o <strong>Pintura automática</strong>.</li><li>Haz clic en <strong>Generar modelo 3D</strong>.</li><li>Inspecciona el modelo y la <strong>Vista previa de capas</strong>.</li></ol>
+<p>Si aparece una <strong>Advertencia de rendimiento</strong>, la generación puede ser lenta por tamaño de imagen, número de píxeles, capas u otra carga similar. Puedes <strong>Generar de todos modos</strong> o cancelar y simplificar el trabajo.</p>
+<h2 id="build-3d-model">Generar modelo 3D</h2>
+<p>Haz clic en <strong>Generar modelo 3D</strong> cuando quieras que la vista y la geometría exportada reflejen los ajustes 3D actuales.</p>
+<p>Durante la generación, Kromacut muestra avances como lectura de capas de color, asignación de colores o construcción de capas. Los controles de exportación vuelven a ser útiles cuando desaparece la superposición y el modelo actualizado está listo.</p>
+<p>Calcular un nuevo apilamiento de pintura automática no equivale a generar una nueva malla. La exportación usa el último modelo generado y las instrucciones siguen vinculadas a él. Después de editar la imagen, cambiar de perfil, guardar una calibración o modificar ajustes de impresión, espera al cálculo actual y vuelve a generar antes de exportar. Una vista anterior puede permanecer visible mientras se calculan o rechazan nuevos ajustes; su presencia no demuestra que estos hayan funcionado.</p>
+<h2 id="choose-stl-or-3mf">Elegir STL o 3MF</h2>
+<p>Abre el menú de descarga 3D y elige:</p>
+<table><thead><tr><th>Formato</th><th>Cuándo usarlo</th></tr></thead><tbody><tr><td>STL</td><td>Quieres un modelo de geometría única ampliamente compatible y gestionarás los cambios manualmente.</td></tr><tr><td>3MF</td><td>Quieres salida con colores para laminadores que conservan varios objetos coloreados.</td></tr></tbody></table>
+<p>La exportación 3MF conserva los colores físicos de los filamentos en pintura automática siempre que sea posible. Revisa igualmente las asignaciones antes de imprimir.</p>
+<p>Una vista automática puede mostrar docenas de mezclas hechas con pocas bobinas reales. El 3MF asigna esos filamentos reales a las capas físicas, no un material por mezcla prevista. Por eso, la vista habitual de colores del laminador puede diferir de la vista <strong>Simulados</strong> de Kromacut sin que las asignaciones estén mal. Compara con colores <strong>Físicos</strong> al comprobarlas.</p>
+<p>STL no contiene colores de filamento ni asignaciones automáticas de bobinas. Usa el plan copiado con los controles de cambio de color del laminador. Un 3MF sigue siendo un modelo, no G-code listo para ejecutar: elige impresora, boquilla, perfiles, temperaturas y velocidades, y después lamina.</p>
+<p>Para <strong>Pintura plana</strong>, el menú solo ofrece 3MF: contiene un objeto por filamento físico y, en la disposición predeterminada boca abajo, un soporte transparente. La disposición opcional boca arriba omite ese soporte. Un STL sin colores de una sola geometría de cualquiera de las placas no sería útil. Ambas orientaciones admiten todas las intensidades de <strong>Malla suavizada</strong>. Reconstruye el modelo después de cambiar la intensidad para aplicarla a la vista previa y a la geometría exportada.</p>
+<h2 id="print-instructions">Instrucciones de impresión</h2>
+<p>El panel <strong>Instrucciones de impresión</strong> proporciona:</p>
+<ul><li>Perímetros, relleno, altura de capa y primera capa recomendados.</li><li><strong>Empezar con el color</strong>.</li><li><strong>Plan de cambios de color</strong> con números de capa y alturas aproximadas.</li><li>Un botón <strong>Copiar</strong> para el plan completo en texto sin formato.</li></ul>
+<p>Usa el plan copiado junto a la vista del laminador. Los números dependen de <strong>Altura de capa</strong> y <strong>Altura de primera capa</strong>, así que mantén esos valores coherentes.</p>
+<p><a href="/localized/es/diagrams/41_swap_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustración a tamaño completo: Una primera capa de 0,10 mm seguida de capas de 0,04 mm. El cambio antes de la capa 4 está en la frontera de 0,18 mm, mientras la nueva capa termina a 0,22 mm."><img src="/localized/es/diagrams/41_swap_layers.svg" alt="Una primera capa de 0,10 mm seguida de capas de 0,04 mm. El cambio antes de la capa 4 está en la frontera de 0,18 mm, mientras la nueva capa termina a 0,22 mm." loading="lazy"></a></p>
+<p><strong>Cambiar en la capa N</strong> significa que el nuevo filamento imprime la capa N. Por ejemplo, con primera capa de 0,10 mm y capas normales de 0,04 mm, las capas 1, 2 y 3 terminan a 0,10, 0,14 y 0,18 mm. Para empezar el siguiente filamento en la capa 4, cámbialo después de la 3 y antes de extruir la 4. Esa nueva capa termina a 0,22 mm.</p>
+<p>Hay que interpretar con cuidado la altura aproximada: Manual muestra la Z superior de la nueva capa, mientras Pintura automática muestra la frontera del cambio de material. Usa el número de capa y comprueba la transición real laminada, no solo una Z que parezca coincidir. Los laminadores pueden etiquetar de forma distinta la capa seleccionada y el punto de inserción.</p>
+<p>En pintura plana no hay plan manual de cambios. El panel resume el flujo multimaterial elegido: asigna cada objeto 3MF a su filamento y usa transparente y voltea la impresión predeterminada boca abajo, o imprime boca arriba sin soporte. Ninguna disposición debe reflejarse en el laminador.</p>
+<h2 id="recommended-slicer-setup">Configuración recomendada del laminador</h2>
+<p>Kromacut recomienda:</p>
+<ul><li>Perímetros: <code>1</code></li><li>Relleno: <code>100%</code></li><li>Altura de capa: el valor de <strong>Instrucciones de impresión</strong></li><li>Altura de primera capa: el valor de <strong>Instrucciones de impresión</strong></li></ul>
+<p>Inspecciona siempre la vista del laminador antes de imprimir. Las alturas son aproximadas y los cambios pueden mostrarse de forma distinta según la primera capa.</p>
+<p>Mantén la exportación al <strong>100 % de escala Z</strong> y una altura constante igual a la del modelo. Cambiar la escala Z o activar capas variables desplaza las transiciones físicas e invalida el plan. Si necesitas otra altura, defínela en Kromacut y regenera. Cambiar la escala XY también altera los detalles respecto a la boquilla; define el tamaño previsto en Kromacut para que su comprobación use ese tamaño.</p>
+<p>Revisa islas pequeñas, texto, recortes transparentes desconectados, fundaciones y disposición de purga/cebado en el laminador. Suavizar contornos no hace imprimible cualquier trazo estrecho. La aplicación no calibra caudal, retracción, temperatura ni mecánica de la impresora.</p>
+<h2 id="saving-and-cancelling">Guardar y cancelar</h2>
+<p>Las exportaciones de escritorio abren <strong>Guardar como</strong>. En navegador siguen sus ajustes de descarga, así que la solicitud de ubicación depende de este. Cancelar un diálogo no envía nada a la impresora. Escribir geometría y comprimir el archivo puede tardar; espera a que termine el guardado antes de cerrar la aplicación.</p>
+<h2 id="export-tips">Consejos de exportación</h2>
+<ul><li>Genera el modelo después de cambiar ajustes 3D.</li><li>No te bases solo en el recorte visible de capas: se exporta el modelo completo.</li><li>Si la malla pesa demasiado para generarla o laminarla, recorta o reduce la resolución en 2D y elimina regiones de color innecesarias. Aumentar <strong>Tamaño de píxel (XY)</strong> agranda los mismos píxeles; no reduce su número ni simplifica la malla.</li><li>Si las instrucciones de cambios están desactivadas por demasiados colores, vuelve a <a href="/es/docs/reducing-colors#image-colors">Reducir colores</a>.</li></ul>
+<p>Siguiente: <a href="/es/docs/settings-and-controls">Ajustes y controles</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

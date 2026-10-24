@@ -17,8 +17,8 @@ android {
         applicationId "com.codemastercody3d.orcaslicermobile"
         minSdk 23
         targetSdk 36
-        versionCode 267
-        versionName "0.8.232"
+        versionCode 402
+        versionName "0.8.367"
         buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -70,7 +70,7 @@ android {
             initWith debug
             resValue "string", "AppName", "OrkanSlicer Tests"
             applicationIdSuffix ".slicetest"
-            manifestPlaceholders = [fileProviderAuthority: "${defaultConfig.applicationId}.slicermore.slicetest.files"]
+            manifestPlaceholders = [fileProviderAuthority: "${defaultConfig.applicationId}.slicetest.slicermore.files"]
             matchingFallbacks = ['debug']
         }
     }
@@ -174,7 +174,6 @@ dependencies {
 
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'com.github.instacart:truetime-android:4.0.0.alpha'
-    implementation 'com.github.mrudultora:Colorpicker:1.2.0'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     // Stay on the latest releases that retain minSdk 21 support.
     implementation 'androidx.appcompat:appcompat:1.7.1'
@@ -185,5 +184,9 @@ dependencies {
 
     androidTestImplementation 'androidx.test:runner:1.7.0'
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation platform('androidx.compose:compose-bom:2026.06.01')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+    sliceTestImplementation 'androidx.compose.ui:ui-test-manifest'
 
 }

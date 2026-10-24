@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ro">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Importă, decupează, redimensionează și retușează pixelii imaginii înainte de a deveni regiuni imprimate." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ro/docs/loading-images">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Încărcarea imaginilor | Documentație Kromacut" />
+        <meta property="og:description" content="Importă, decupează, redimensionează și retușează pixelii imaginii înainte de a deveni regiuni imprimate." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ro/docs/loading-images" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ro_RO" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Încărcarea imaginilor | Documentație Kromacut" />
+        <meta name="twitter:description" content="Importă, decupează, redimensionează și retușează pixelii imaginii înainte de a deveni regiuni imprimate." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Încărcarea imaginilor | Documentație Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/loading-images">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/loading-images">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/loading-images">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/loading-images">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/loading-images">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/loading-images">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/loading-images">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/loading-images">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/loading-images">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/loading-images">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/loading-images">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/loading-images">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/loading-images">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentație">
+                    <a href="/ro/">Mergi la pagina principală</a>
+                    <a href="/app">Deschide Kromacut</a>
+                    <ul><li><a href="/ro/docs/overview">Prezentare generală</a></li><li><a href="/ro/docs/quick-start">Ghid rapid</a></li><li><a href="/ro/docs/loading-images">Încărcarea imaginilor</a></li><li><a href="/ro/docs/image-adjustments">Ajustările imaginii</a></li><li><a href="/ro/docs/reducing-colors">Reducerea culorilor</a></li><li><a href="/ro/docs/dedithering-cleanup">Eliminarea ditheringului și curățarea</a></li><li><a href="/ro/docs/3d-mode">Modul 3D</a></li><li><a href="/ro/docs/auto-paint">Comenzi Auto-paint</a></li><li><a href="/ro/docs/calibration-theory">Teoria calibrării</a></li><li><a href="/ro/docs/flat-paint">Flat Paint</a></li><li><a href="/ro/docs/calibration-workflows">Fluxuri de calibrare</a></li><li><a href="/ro/docs/generating-exporting-output">Generarea și exportul rezultatului</a></li><li><a href="/ro/docs/settings-and-controls">Setări și comenzi</a></li><li><a href="/ro/docs/troubleshooting">Depanare</a></li><li><a href="/ro/docs/faq">Întrebări frecvente</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="loading-images">Încărcarea imaginilor</h1>
+<p>În modul <strong>2D</strong>, pregătești imaginea pe care o va folosi modelul 3D. Modificările de culoare afectează culorile țintă; editările pixelilor afectează formele și detaliile imprimării.</p>
+<h2 id="choose-a-source">Alege o sursă</h2>
+<p>Apasă <strong>Alege fișierul</strong> în bara de instrumente a previzualizării sau trage un fișier imagine în previzualizarea 2D. Se încarcă doar primul fișier dintr-o tragere. Folosește un format de imagine pe care browserul sau componenta web a aplicației desktop îl poate decoda; PNG este util când contează transparența. Developează mai întâi fișierele RAW ale camerei și exportă-le într-un format obișnuit de imagine.</p>
+<p>Kromacut pornește cu sigla sa ca exemplu. Încărcarea altei imagini înlocuiește imaginea de lucru curentă. Nu publică imaginea și nu descarcă o sursă dintr-un link web lipit.</p>
+<h2 id="inspect-without-changing-the-image">Inspectează fără să schimbi imaginea</h2>
+<table><thead><tr><th>Comandă</th><th>Efect</th></tr></thead><tbody><tr><td>Rotița mouse-ului</td><td>Mărește în jurul indicatorului. Schimbă doar vederea, nu rezoluția imaginii sau dimensiunea imprimării.</td></tr><tr><td>Tragere cu butonul stâng</td><td>Deplasează vederea când nu este activ niciun instrument de retușare.</td></tr><tr><td>Tragere cu butonul mijlociu</td><td>Deplasează vederea chiar și când este activ un instrument de retușare.</td></tr><tr><td>Comută tabla de șah</td><td>Afișează un model în spatele pixelilor transparenți. Modelul nu face parte din imagine sau imprimare.</td></tr><tr><td>Indicatorul dimensiunii imaginii</td><td>Afișează dimensiunile în pixeli. La decupare, arată și dimensiunile propuse ale decupajului.</td></tr></tbody></table>
+<p>Previzualizarea folosește margini clare ale pixelilor, fără netezire. Mărește pentru a găsi pixelii izolați și detaliile înguste.</p>
+<h2 id="crop-resize-or-change-print-size">Decupare, redimensionare sau schimbarea dimensiunii de imprimare?</h2>
+<p><a href="/localized/ro/diagrams/30_crop_resize_scale.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Decuparea elimină o parte din imagine, redimensionarea reduce rezoluția în pixeli, iar Dimensiunea pixelului schimbă scara fizică a fiecărui pixel."><img src="/localized/ro/diagrams/30_crop_resize_scale.svg" alt="Decuparea elimină o parte din imagine, redimensionarea reduce rezoluția în pixeli, iar Dimensiunea pixelului schimbă scara fizică a fiecărui pixel." loading="lazy"></a></p>
+<p><em>Dimensiunile schematice ilustrează relația, nu o dimensiune recomandată de imprimare.</em></p>
+<h3 id="crop">Decupare</h3>
+<p>Apasă <strong>Decupează</strong>, trage selecția sau mânerele colțurilor și marginilor, apoi alege <strong>Salvează decupajul</strong>. <strong>Anulează decuparea</strong> lasă imaginea neschimbată. Salvarea păstrează dreptunghiul selectat la rezoluția pixelilor imaginii.</p>
+<p>Decupează marginile nedorite înainte de reducerea culorilor, ca să nu concureze cu subiectul pentru paletă. Decuparea este dreptunghiulară; pentru un fundal neregulat folosește transparența.</p>
+<h3 id="resize-image">Redimensionarea imaginii</h3>
+<p><strong>Scară</strong> variază de la <strong>1% la 100%</strong>, implicit <strong>50%</strong>. <strong>Curent</strong> și <strong>După redimensionare</strong> arată dimensiunile înainte de confirmare. Apasă <strong>Aplică</strong> pentru micșorare. 100%, sau o valoare care se rotunjește la aceleași dimensiuni, nu face nimic. Săgeata de resetare resetează procentul, nu imaginea.</p>
+<p>Redimensionarea folosește netezire, deci poate introduce culori amestecate pe margini și transparență parțială. Redimensionează înainte de cuantizare sau redu din nou culorile după aceea. Aplicările repetate redimensionează imaginea deja redimensionată: două aplicări de 50% păstrează 25% din lățimea și înălțimea originale. Folosește Anulează pentru a recupera detaliile, nu încerca să mărești imaginea aici.</p>
+<h3 id="physical-size-in-3d">Dimensiunea fizică în 3D</h3>
+<p><strong>Dimensiunea pixelului (XY)</strong> reprezintă milimetri pe pixel al imaginii, nu rezoluția imaginii. O imagine complet opacă, lată de 1000 de pixeli, la 0,1 mm/pixel are lățimea de 100 mm. Redimensionarea la 500 de pixeli cu aceeași setare dă 50 mm. Schimbarea la 0,2 mm/pixel restaurează lățimea de 100 mm, dar nu detaliile eliminate. Marginile exterioare complet transparente nu intră în amprenta modelului.</p>
+<p>Reducerea dimensiunilor în pixeli reduce volumul de procesare și geometrie. Schimbarea exclusivă a dimensiunii pixelului nu elimină pixeli. Consultă <a href="/ro/docs/3d-mode">Modul 3D</a> pentru comenzile scării fizice.</p>
+<h2 id="touch-up-pixels">Retușează pixelii</h2>
+<p><strong>Pensulă</strong>, <strong>Radieră</strong>, <strong>Umplere</strong>, <strong>Text</strong> și <strong>Alege culoarea din imagine</strong> folosesc pixeli cu margini dure, fără antialiasing. O culoare personalizată poate totuși adăuga o culoare în paletă; marginile dure împiedică apariția nedorită a culorilor amestecate pe contur.</p>
+<p><a href="/localized/ro/diagrams/31_pixel_tools.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Pensula adaugă pixeli de culoare exactă, radiera elimină pixeli prin transparență, umplerea schimbă o regiune conectată, iar textul devine pixeli ai imaginii cu margini dure."><img src="/localized/ro/diagrams/31_pixel_tools.svg" alt="Pensula adaugă pixeli de culoare exactă, radiera elimină pixeli prin transparență, umplerea schimbă o regiune conectată, iar textul devine pixeli ai imaginii cu margini dure." loading="lazy"></a></p>
+<table><thead><tr><th>Instrument sau câmp</th><th>Cum funcționează</th><th>Efect asupra imprimării</th></tr></thead><tbody><tr><td>Pensulă</td><td>Trage pentru a picta pixeli opaci. Dimensiunea este un diametru de 1–64 pixeli ai imaginii, implicit 4.</td><td>Repară contururi, unește regiuni sau îngroașă detalii. Cursorul îi arată amprenta.</td></tr><tr><td>Radieră</td><td>Folosește aceeași comandă de dimensiune, dar scrie pixeli complet transparenți.</td><td>Elimină material din formă, putând crea găuri sau separa piese.</td></tr><tr><td>Umplere</td><td>Înlocuiește regiunea apăsată care are exact același RGB și alfa. Conexiunile sunt prin muchii, nu diagonale.</td><td>Recolorează o regiune conectată, nu toate aparițiile culorii. Nu există o toleranță fotografică a culorii.</td></tr><tr><td>Alege culoarea din imagine</td><td>Preia un pixel sursă netransparent și trece la Pensulă.</td><td>Refolosește o culoare din imaginea de bază, nu un efect de ajustare neaplicat.</td></tr><tr><td>Culoarea instrumentului</td><td>Alege din Culorile imaginii, folosește selectorul sau introdu un cod hexazecimal de șase cifre. Închiderea ferestrei confirmă selecția.</td><td>Stabilește culoarea opacă pentru Pensulă, Umplere sau Text.</td></tr><tr><td>Dimensiunea textului</td><td>Mărimea fontului de la 6 la 128 de pixeli ai imaginii, implicit 24.</td><td>Textul mai mare produce elemente mai mari la aceeași scară fizică; valoarea nu este în milimetri.</td></tr></tbody></table>
+<h3 id="place-text">Plasează textul</h3>
+<p>Selectează Text, apasă pe imagine și scrie. Enter adaugă un rând. Trage mânerul de deplasare de deasupra casetei pentru repoziționare sau mânerul din dreapta pentru ajustarea încadrării cuvintelor. Dimensiunea și culoarea actualizează ciorna.</p>
+<p>Apasă butonul de confirmare sau <strong>Ctrl+Enter</strong> (<strong>Command+Enter</strong> pe macOS) pentru aplicare. Apăsarea în alt loc al imaginii sau schimbarea instrumentului confirmă de asemenea textul. X sau <strong>Escape</strong> renunță la ciorna deschisă; încă un Escape iese din instrument. Textul aplicat devine pixeli, nu un obiect text editabil.</p>
+<p>Fiecare trasare, umplere sau plasare de text care schimbă imaginea este un pas în istoricul imaginii. O linie de 1 pixel la 0,1 mm/pixel are doar 0,1 mm lățime, oricât de mare pare la zoom. Inspectează literele înguste în slicer.</p>
+<h2 id="remove-a-background">Elimină un fundal</h2>
+<p>Nu există selecție automată a subiectului sau comandă AI de eliminare a fundalului. Pentru un fundal uniform, deschide mostra sa din Culorile imaginii, fă-o complet transparentă și aplică. Se elimină fiecare potrivire exactă, inclusiv pixelii similari ai subiectului. Folosește Radiera pentru eliminare locală și tabla de șah pentru inspectarea conturului.</p>
+<p>Nu folosi <strong>Șterge</strong> pe mostră în acest scop: remapează culorile, nu face pixelii transparenți. Consultă <a href="/ro/docs/reducing-colors#image-colors">Culorile imaginii</a>.</p>
+<h2 id="undo-download-and-clear">Anulare, descărcare și golire</h2>
+<p><strong>Anulează</strong> și <strong>Refă</strong> parcurg modificările confirmate ale imaginii: încărcare, decupare, redimensionare, integrarea ajustărilor, cuantizare, eliminarea ditheringului, editarea mostrelor și retușuri. Nu reprezintă istoricul fiecărei setări sau mișcări de glisor. O editare nouă șterge calea de refacere. Istoricul aparține sesiunii curente a aplicației, deci salvează imaginea dacă ai nevoie de ea ulterior.</p>
+<p><strong>Descarcă imaginea</strong> salvează imaginea de lucru de bază ca PNG, la rezoluția pixelilor imaginii. Nu include zoomul, tabla de șah, mânerele de decupare sau ciornele de text. Aplică textul și folosește <strong>Aplică ajustările</strong> înainte, pentru a le include. Aplicația desktop folosește un dialog de salvare; în browser, locația urmează setările sale de descărcare.</p>
+<p><strong>Elimină imaginea</strong> golește spațiul de lucru, nu setările. Nu te baza pe ea ca editare reversibilă: nu adaugă imaginea eliminată ca pas nou de anulare. Descarcă întâi o copie dacă trebuie să o păstrezi.</p>
+<p>În continuare: <a href="/ro/docs/image-adjustments">Ajustările imaginii</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

@@ -18,11 +18,14 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 /** Maps the app's selected light/dark palette into the shared Compose Material theme. */
 val LocalBeamThemeRevision = staticCompositionLocalOf { 0 }
 private val LocalBeamTextScaleApplied = staticCompositionLocalOf { false }
+/** System accessibility font scale for geometry decisions, excluding the app's text-only zoom. */
+val LocalBeamLayoutFontScale = staticCompositionLocalOf { 1f }
 
 @Composable
 fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
     val inheritedDensity = LocalDensity.current
     val textScaleAlreadyApplied = LocalBeamTextScaleApplied.current
+    val layoutFontScale = if (textScaleAlreadyApplied) LocalBeamLayoutFontScale.current else inheritedDensity.fontScale
     val textScale = Prefs.getPrefs()?.let { Prefs.getUiTextScale() } ?: 1.0f
     val appDensity = remember(inheritedDensity, textScale, textScaleAlreadyApplied) {
         if (textScaleAlreadyApplied) inheritedDensity
@@ -57,6 +60,7 @@ fun BeamComposeTheme(themeRevision: Int = 0, content: @Composable () -> Unit) {
     }
     CompositionLocalProvider(
         LocalDensity provides appDensity,
+        LocalBeamLayoutFontScale provides layoutFontScale,
         LocalBeamThemeRevision provides themeRevision,
         LocalBeamTextScaleApplied provides true,
     ) {

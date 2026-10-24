@@ -1,6 +1,5 @@
 package ru.ytkab0bp.slicebeam.components
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -12,10 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,78 +29,79 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.FilamentTypes
 
 /** Editor for one filament: choose its material type and color, or delete it. */
-open class FilamentSlotSheet(
-    context: Context,
+class FilamentSlotSheet(
     private val slot: FilamentSlot,
     private val canDelete: Boolean,
     private val listener: Listener?,
-) : BottomSheetDialog(context) {
+) {
 
     interface Listener {
         fun onChanged(slot: FilamentSlot)
         fun onDelete()
     }
-
-    init {
-        val composeView = ComposeView(context).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            setContent {
+    @Composable
+    fun Content(onDismiss: () -> Unit) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                 BeamComposeTheme {
                     FilamentSlotContent(
                         slot = slot,
                         canDelete = canDelete,
-                        onChanged = { listener?.onChanged(slot) },
+                        onSave = {
+                            listener?.onChanged(slot)
+                            onDismiss()
+                        },
+                        onCancel = onDismiss,
                         onDelete = {
                             listener?.onDelete()
-                            dismiss()
+                            onDismiss()
                         },
                     )
                 }
             }
         }
-        setContentView(
-            composeView,
-            android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
     }
+
 }
 
 @Composable
 private fun FilamentSlotContent(
     slot: FilamentSlot,
     canDelete: Boolean,
-    onChanged: () -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val context = LocalContext.current
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var color by remember(slot) { mutableStateOf(slot.color) }
     var material by remember(slot) { mutableStateOf(slot.type.orEmpty()) }
     var showMaterialPicker by remember { mutableStateOf(false) }
+    var showColorPicker by remember { mutableStateOf(false) }
     val materialTypes = remember { FilamentTypes.ALL.asList() }
     val previewShape = RoundedCornerShape(12.dp)
     val previewNeedsOutline = ColorUtils.calculateLuminance(color) > 0.85
@@ -136,13 +138,7 @@ private fun FilamentSlotContent(
         )
 
         TextButton(
-            onClick = {
-                ColorChooserSheet(context, color) { selectedColor ->
-                    color = selectedColor
-                    slot.color = selectedColor
-                    onChanged()
-                }.show()
-            },
+            onClick = { showColorPicker = true },
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
         ) {
             Row(
@@ -197,6 +193,35 @@ private fun FilamentSlotContent(
                 Text(stringResource(R.string.RemoveFilament), fontSize = 16.sp)
             }
         }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(android.R.string.cancel))
+            }
+            Spacer(Modifier.weight(1f))
+            Button(
+                onClick = {
+                    slot.color = color
+                    slot.type = material
+                    onSave()
+                },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("filament-slot-save"),
+            ) { Text(stringResource(R.string.FilamentSlotSave)) }
+        }
+    }
+
+    if (showColorPicker) {
+        ColorChooserDialog(
+            initialColor = color,
+            onDismiss = { showColorPicker = false },
+            onColorChosen = { selectedColor ->
+                color = selectedColor
+            },
+        )
     }
 
     if (showMaterialPicker) {
@@ -209,8 +234,6 @@ private fun FilamentSlotContent(
                         TextButton(
                             onClick = {
                                 material = option
-                                slot.type = option
-                                onChanged()
                                 showMaterialPicker = false
                             },
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),

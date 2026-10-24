@@ -293,6 +293,22 @@ bool PrusaFileParser::check_3mf_from_prusa(const std::string filename)
         return false;
     }
 
+    // Standalone store_3mf exports use Prusa-compatible per-volume metadata while
+    // retaining the application's own Application label. BBS project exports also
+    // include this file, though, alongside model_settings.config and plate metadata.
+    // Keep those on the BBS importer so multi-plate data and project presets survive.
+    const std::string model_config_file = "Metadata/Slic3r_PE_model.config";
+    const std::string bbs_model_config_file = "Metadata/model_settings.config";
+    const bool has_prusa_volume_metadata =
+        mz_zip_reader_locate_file(&archive, model_config_file.c_str(), nullptr, 0) != -1;
+    const bool has_bbs_project_metadata =
+        mz_zip_reader_locate_file(&archive, bbs_model_config_file.c_str(), nullptr, 0) != -1;
+    if (has_prusa_volume_metadata && !has_bbs_project_metadata) {
+        m_from_prusa = true;
+        close_zip_reader(&archive);
+        return true;
+    }
+
     const std::string sub_relationship_file = "3D/_rels/3dmodel.model.rels";
     int               sub_index             = mz_zip_reader_locate_file(&archive, sub_relationship_file.c_str(), nullptr, 0);
     if (sub_index == -1) {

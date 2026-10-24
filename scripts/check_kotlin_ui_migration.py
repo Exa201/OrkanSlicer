@@ -224,11 +224,11 @@ def check_main_activity_uses_one_back_dispatch_route() -> None:
     if "override fun onBackPressed()" in activity:
         raise AssertionError("MainActivity must not bypass AndroidX with a deprecated back override")
     for contract in (
-        "dispatcherBackShowsOneExitConfirmationWithoutFinishingActivity",
+        "dispatcherBackShowsWorkspaceConfirmationAndCancelKeepsActivityOpen",
         "activity.onBackPressedDispatcher.onBackPressed()",
         "switchToSlot(0)",
-        "exitConfirmationDialog",
-        "Repeated back input must not stack a second exit dialog",
+        "registeredRequestCodes",
+        "A second cancel must also leave the activity open",
         "AppCloseConfirmTitle",
         "AppCloseConfirmMessage",
     ):
@@ -426,21 +426,24 @@ def main() -> None:
                 raise AssertionError(f"{key} must have a concise description in {resource_dir}")
     bed_fragment = (JAVA / "fragment/BedFragment.kt").read_text(encoding="utf-8")
     printer_web_controls = (JAVA / "ui/workspace/PrinterWebControls.kt").read_text(encoding="utf-8")
+    printer_web_panel = (JAVA / "ui/workspace/PrinterWebWorkspacePanel.kt").read_text(encoding="utf-8")
     for contract in (
-        "private var printerWebButton: ComposeView?",
-        "private var printerWebCloseButton: ComposeView?",
+        "private var printerWebAvailable by mutableStateOf(false)",
         "printerWebAvailable = enable",
         "PrinterWebOpenButton(hostConfigured = printerWebAvailable, onOpen = ::openPrinterWebView)",
-        "PrinterWebCloseButton(onClose = ::destroyPrinterWebView)",
+        "printerWebButtonContent = {",
         "printerWebThemeRevision++",
     ):
         if contract not in bed_fragment:
             raise AssertionError(f"Printer dashboard controls lost their Compose host or state route: {contract}")
+    if "printerWebButtonContent: @Composable () -> Unit" not in (JAVA / "ui/workspace/WorkspaceShell.kt").read_text(encoding="utf-8"):
+        raise AssertionError("The printer dashboard control is not owned by the workspace shell")
+    if "PrinterWebCloseButton(onClose)" not in printer_web_panel:
+        raise AssertionError("The workspace printer web panel lost its Compose close control")
     for contract in (
         "internal fun PrinterWebOpenButton(",
         "R.string.PrinterOpenWebDescription",
         "R.string.PrinterWebConfigureDescription",
-        "R.string.PrinterWebShortLabel",
         "internal fun PrinterWebCloseButton(",
         "R.string.ClosePanel",
         "size(48.dp)",
@@ -450,50 +453,23 @@ def main() -> None:
             raise AssertionError(f"Compose printer dashboard controls lost an accessible UI contract: {contract}")
     if 'printerWebButton = TextView(ctx)' in bed_fragment or 'printerWebCloseButton = TextView(ctx)' in bed_fragment:
         raise AssertionError("The printer dashboard controls still use legacy native text buttons")
-    selected_actions = (JAVA / "ui/workspace/SelectedObjectActionsCompose.kt").read_text(encoding="utf-8")
-    selected_actions_test = (ROOT / "app/src/test/java/ru/ytkab0bp/slicebeam/ui/workspace/SelectedObjectQuickActionPolicyTest.kt").read_text(encoding="utf-8")
     for contract in (
-        "selectedObjectBar = composeView",
-        "BeamComposeTheme(themeRevision = revision)",
-        "title = selectedObjectBarTitle",
-        "val selectionRevision = selectedObjectBarSelectionRevision",
-        "selectedObjectBarSelectionRevision++",
-        "selectionKey = selectionRevision",
-        "onAction = ::runObjectQuickAction",
-        "selectedObjectBarVisible = visible",
-        "selectedObjectBarThemeRevision++",
-        "SelectedObjectQuickAction.MOVE",
-        "SelectedObjectQuickAction.ROTATE",
-        "SelectedObjectQuickAction.SCALE",
-        "SelectedObjectQuickAction.DUPLICATE",
-        "SelectedObjectQuickAction.MORE",
+        "workspaceController.activatePanel(",
+        "panel = WorkspaceOverlayPanel.MODEL_CONTEXT_MENU",
+        "ModelContextMenuDialog(",
+        "actions = actions",
+        "handlers.getOrNull(index)?.invoke()",
     ):
         if contract not in bed_fragment:
-            raise AssertionError(f"Selected-object quick-action behavior is missing after Compose migration: {contract}")
-    for contract in (
-        "androidx.compose.runtime.key(selectionKey)",
-        "SelectedObjectQuickActionPolicy.actions.forEach",
-        "horizontalScroll(rememberScrollState())",
-        "defaultMinSize(minWidth = 48.dp, minHeight = 40.dp)",
-        "clickable(role = Role.Button",
-        "stringResource(action.labelRes)",
-        "MaterialTheme.colorScheme.surfaceVariant",
-    ):
-        if contract not in selected_actions:
-            raise AssertionError(f"Selected-object Compose action bar is missing: {contract}")
-    if "private fun objectActionButton" in bed_fragment or "private lateinit var selectedObjectTitle" in bed_fragment:
-        raise AssertionError("The selected-object toolbar still contains the legacy native view implementation")
-    for contract in (
-        "selectionToolbarKeepsEveryActionInTheExpectedOrder",
-        "actionsKeepTheirLocalizedLabels",
-    ):
-        if contract not in selected_actions_test:
-            raise AssertionError(f"Selected-object action regression coverage is missing: {contract}")
+            raise AssertionError(f"Selected-object actions must use the active Compose context panel: {contract}")
+    context_menu_test = (ROOT / "app/src/androidTest/java/ru/ytkab0bp/slicebeam/MainActivityTouchDeviceTest.kt").read_text(encoding="utf-8")
+    if "showSelectedModelContextMenu()" not in context_menu_test or "Back should dismiss the model action dialog" not in context_menu_test:
+        raise AssertionError("The active model context action panel lacks a route/back device regression")
     plate_tabs = (JAVA / "ui/workspace/PlateTabsCompose.kt").read_text(encoding="utf-8")
     bed_menu_compose = (JAVA / "components/bed_menu/BedMenuComposeContent.kt").read_text(encoding="utf-8")
     plate_tabs_test = (ROOT / "app/src/test/java/ru/ytkab0bp/slicebeam/ui/workspace/PlateTabsPolicyTest.kt").read_text(encoding="utf-8")
     for contract in (
-        "plateTabsScroll = ComposeView(ctx)",
+        "platePickerContent = {",
         "PlateTabs(",
         "onSelect = { index -> if (index != currentPlateIndex) switchPlate(index) }",
         "onClose = { index -> removePlate(index) }",
@@ -507,13 +483,12 @@ def main() -> None:
         if contract not in bed_fragment:
             raise AssertionError(f"Compose plate management route or empty-last-plate behavior is missing: {contract}")
     for contract in (
-        "LazyColumn(",
-        ".width(72.dp)",
-        "Role.Tab",
+        "LazyVerticalGrid(",
+        ".size(width = 88.dp, height = 110.dp)",
         "PlateCloseDescription",
         "MenuAddPlate",
-        "defaultMinSize(minHeight = 48.dp)",
-        "listState.animateScrollToItem",
+        ".heightIn(min = OrkanUiTokens.touchTarget)",
+        "rememberLazyGridState(initialFirstVisibleItemIndex = selectedIndex",
     ):
         if contract not in plate_tabs:
             raise AssertionError(f"Compose plate tab is missing an accessible touch interaction: {contract}")
@@ -537,7 +512,7 @@ def main() -> None:
     profile_status = (JAVA / "ui/workspace/WorkspaceProfileStatus.kt").read_text(encoding="utf-8")
     for contract in (
         "WorkspaceProfileStatus(",
-        "profileStatusText = ComposeView(ctx)",
+        "profileStatusContent = {",
         "profileStatusThemeRevision++",
         "R.string.WorkspaceSettingsUnknown",
         "Role.Button",
@@ -547,7 +522,7 @@ def main() -> None:
     if 'profileStatusText = TextView(ctx)' in bed_fragment or '"â€“"' in bed_fragment:
         raise AssertionError("Workspace profile status still uses its legacy text view or a mis-encoded placeholder")
     for contract in (
-        "Modifier\n            .fillMaxWidth()\n            .heightIn(min = 48.dp)",
+        ".heightIn(min = OrkanUiTokens.touchTarget)",
         "MaterialTheme.colorScheme.surfaceVariant",
         "R.string.WorkspaceProfilesOpenLabel",
         "R.drawable.printer_outline_28",
@@ -562,34 +537,32 @@ def main() -> None:
             raise AssertionError(f"Adaptive workspace profile header is missing: {contract}")
     if "BedProfileStatus" in bed_fragment or "BedProfileStatus" in profile_status:
         raise AssertionError("The multi-line workspace profile summary still occupies the model viewport")
-    if "header.addView(profileStatusText" not in bed_fragment:
+    if "profileStatusContent = {" not in bed_fragment:
         raise AssertionError("The workspace header is missing its profile control")
-    unfold_menu = (JAVA / "components/UnfoldMenu.kt").read_text(encoding="utf-8")
-    for contract in (
-        "snackbarsLayout = SnackbarsLayout(ctx)",
-        "overlayLayout!!.addView(snackbarsLayout,",
-    ):
-        if contract not in bed_fragment:
-            raise AssertionError(f"Workspace snackbar overlay is not retained on BedFragment: {contract}")
-    if "snackbars!!." in unfold_menu or "glView!!." in unfold_menu:
-        raise AssertionError("Unfold-menu animation must tolerate a detached or partially initialized workspace overlay")
-    for contract in ("snackbars?.translationY", "glView?.translationX", "snackbars?.layoutParams as? ViewGroup.MarginLayoutParams"):
-        if contract not in unfold_menu:
-            raise AssertionError(f"Unfold-menu animation is missing its lifecycle-safe workspace guard: {contract}")
-    snackbar_host = (JAVA / "view/SnackbarsLayout.kt").read_text(encoding="utf-8")
+    if (JAVA / "components/UnfoldMenu.kt").exists() or (JAVA / "components/UnfoldMenu.java").exists():
+        raise AssertionError("The removed UnfoldMenu host must not be reintroduced")
+    if "snackbarController = snackbarController" not in bed_fragment:
+        raise AssertionError("BedFragment must provide its workspace snackbar controller to Compose")
+    if "WorkspaceSnackbarHost(" not in (JAVA / "ui/workspace/WorkspaceShell.kt").read_text(encoding="utf-8"):
+        raise AssertionError("WorkspaceShell must render the Compose snackbar host")
+    snackbar_model = (JAVA / "view/SnackbarsLayout.kt").read_text(encoding="utf-8")
+    snackbar_controller = (JAVA / "ui/workspace/WorkspaceSnackbarController.kt").read_text(encoding="utf-8")
+    snackbar_host = (JAVA / "ui/workspace/WorkspaceSnackbarHost.kt").read_text(encoding="utf-8")
     snackbar_card = (JAVA / "ui/components/SnackbarCard.kt").read_text(encoding="utf-8")
     for contract in (
-        "fun show(snackbar: Snackbar)", "fun dismiss(tag: String?)",
-        "private inner class SnackbarView(context: Context) : FrameLayout(context)",
-        "ThemeAwareComposeView(context)", "SnackbarCard(", "modelTag(): String? = snackbar.tag",
-        "@JvmField var lifetime", "@JvmField var tag: String?",
-        "@JvmField var buttonTitle: CharSequence?", "@JvmField var buttonClick: View.OnClickListener?",
-        ".addEndListener", "enum class Type",
+        "fun show(snackbar: SnackbarsLayout.Snackbar)", "fun dismiss(tag: String?)",
+        "fun remove(id: Long)", "fun clear()",
     ):
-        if contract not in snackbar_host:
-            raise AssertionError(f"Compose snackbar host lost a lifecycle/event contract: {contract}")
+        if contract not in snackbar_controller:
+            raise AssertionError(f"Workspace snackbar controller lost a lifecycle/event contract: {contract}")
+    for contract in (
+        "@JvmField var lifetime", "@JvmField var tag: String?",
+        "@JvmField var buttonTitle: CharSequence?", "@JvmField var buttonClick: View.OnClickListener?", "enum class Type",
+    ):
+        if contract not in snackbar_model:
+            raise AssertionError(f"Snackbar event compatibility model lost a contract: {contract}")
     for legacy_widget in ("LinearLayout(", "ImageView(", "ProgressBar(", "TextView("):
-        if legacy_widget in snackbar_host:
+        if legacy_widget in snackbar_card:
             raise AssertionError(f"Snackbar card still builds its visual content with {legacy_widget}")
     for contract in (
         "Surface(", "CircularProgressIndicator(", "TextButton(",
@@ -597,6 +570,8 @@ def main() -> None:
     ):
         if contract not in snackbar_card:
             raise AssertionError(f"Compose snackbar presentation is missing: {contract}")
+    if "controller.entries.forEach" not in snackbar_host or "SnackbarCard(" not in snackbar_host:
+        raise AssertionError("Workspace snackbar Compose host does not render controller entries")
     snackbar_policy_tests = (ROOT / "app/src/test/java/ru/ytkab0bp/slicebeam/view/SnackbarSwipePolicyTest.kt").read_text(encoding="utf-8")
     for contract in (
         "aFastRightFlingDismissesPastTheVisibleCard", "aFastLeftFlingDismissesPastTheVisibleCard",
@@ -604,26 +579,27 @@ def main() -> None:
     ):
         if contract not in snackbar_policy_tests:
             raise AssertionError(f"Snackbar swipe regression coverage is missing: {contract}")
+    workspace_shell = (JAVA / "ui/workspace/WorkspaceShell.kt").read_text(encoding="utf-8")
     for contract in (
-        "private var navigationView: ComposeView? = null",
-        "private var selectedMenuNavigationSlot by mutableIntStateOf(0)",
-        "private fun createMenuNavigationView(ctx: Context, bottomNavigation: Boolean): ComposeView",
-        "AdaptiveWorkspaceNavigation(",
-        "selectedSlot = selectedMenuNavigationSlot",
-        "onSelected = { slot -> onMenuNavigationSelected(ctx, bottomNavigation, slot) }",
-        "navigationView = createMenuNavigationView(ctx, bottomNavigation = portrait)",
-        "configureMenuNavigation()",
+        "WorkspaceShell(",
+        "selectedNavigationSlot = workspaceController.selectedDestinationSlot",
+        "onNavigationSelected = { slot -> onMenuNavigationSelected(portrait, slot) }",
+        "activeMenuSlot = workspaceController.selectedDestinationSlot",
     ):
         if contract not in bed_fragment:
-            raise AssertionError(f"Adaptive Compose workspace navigation is missing its rotation-safe contract: {contract}")
+            raise AssertionError(f"BedFragment does not delegate its visible workspace route to Compose: {contract}")
+    for contract in ("AdaptiveWorkspaceNavigation(", "WorkspaceNavigationItem(", "activeMenuSlot"):
+        if contract not in workspace_shell:
+            raise AssertionError(f"WorkspaceShell lost its shared destination navigation: {contract}")
     if "ThemeRailNavigationView" in bed_fragment or "ThemeBottomNavigationView" in bed_fragment:
         raise AssertionError("The workspace category navigation must not fall back to legacy Material navigation views")
     for contract in (
-        "BedFragment.MenuCategory.CAMERA -> menu = CameraMenu()",
-        "BedFragment.MenuCategory.TRANSFORM -> menu = TransformMenu()",
-        "BedFragment.MenuCategory.OPTIONS -> menu = OptionsMenu()",
-        "FILE(R.string.MenuFile", "CAMERA(R.string.MenuCamera", "OPTIONS(R.string.MenuOptions",
-        "SLICE_AND_EXPORT(R.string.MenuSlice",
+        "WorkspaceDestination.PROJECT -> menu = FileMenu()",
+        "WorkspaceDestination.MODEL -> menu = ModelMenu()",
+        "WorkspaceDestination.CAMERA -> menu = CameraMenu()",
+        "WorkspaceDestination.EDIT -> menu = TransformMenu()",
+        "WorkspaceDestination.TOOLS -> menu = OptionsMenu()",
+        "WorkspaceDestination.SLICE -> menu = SliceMenu()",
     ):
         if contract not in bed_fragment:
             raise AssertionError(f"SliceBeam-style five-area workspace menu is missing: {contract}")
@@ -665,7 +641,7 @@ def main() -> None:
     bed_screen = (JAVA / "fragment/BedFragment.kt").read_text(encoding="utf-8")
     if "tryStartPrimeTowerDrag" not in bed_touch or "dragPrimeTower" not in bed_touch or "onPrimeTowerTap?.invoke()" not in bed_touch:
         raise AssertionError("The prime tower must support direct dragging and a tap for exact positioning")
-    if "PrimeTowerPositionEditor(" not in bed_screen or "onPrimeTowerTap = { showPrimeTowerPositionDialogForCurrentPlate() }" not in bed_screen:
+    if "PrimeTowerPositionDialog(" not in bed_screen or "onPrimeTowerTap = { showPrimeTowerPositionDialogForCurrentPlate() }" not in bed_screen:
         raise AssertionError("The build-plate tower tap must open the active plate's X/Y editor")
     if "PrimeTowerDragLogic.position(" not in bed_renderer:
         raise AssertionError("Dragging the prime tower must use bed-bounded coordinates")
@@ -696,9 +672,9 @@ def main() -> None:
     navigation_delegate = (JAVA / "navigation/MobileNavigationDelegate.kt").read_text(encoding="utf-8")
     for contract in (
         "Row(Modifier.fillMaxWidth().selectableGroup())", "Column(",
-        "item.slot == selectedSlot", "accessibilityLabel", "maxLines = 1",
-        "softWrap = false", "fontSize = if (compactRail) 10.sp else 11.sp",
-        "Modifier.width(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP.dp)",
+        "item.slot == selectedSlot", "accessibilityLabel", "maxLines = 2",
+        "softWrap = true", "fontSize = OrkanUiTokens.navigationLabelSize",
+        ".width(AdaptiveNavigationPolicy.navigationRailWidthDp(LocalDensity.current.fontScale).dp)",
         ".selectable(selected = selected, role = Role.Tab",
     ):
         if contract not in navigation_source:
@@ -707,7 +683,7 @@ def main() -> None:
         "ComposeView(ctx)", "ViewCompositionStrategy.DisposeOnDetachedFromWindow",
         "AdaptiveWorkspaceNavigation(", "navigationThemeRevision++", "selectedNavigationSlot",
         "lastPrimarySlot", "onConfigurationChanged(configuration: Configuration)",
-        "ViewUtils.dp(AdaptiveNavigationPolicy.NAVIGATION_RAIL_WIDTH_DP)",
+        "ViewUtils.dp(AdaptiveNavigationPolicy.navigationRailWidthDp(configuration.fontScale))",
     ):
         if contract not in navigation_delegate:
             raise AssertionError(f"Adaptive navigation state/rotation handling is missing: {contract}")
@@ -716,7 +692,7 @@ def main() -> None:
     for contract in ("getSlotNavigationTitle(slot)", "NavigationFilament"):
         if contract not in navigation_delegate and contract not in (JAVA / "navigation/DelegateSlotImpl.kt").read_text(encoding="utf-8"):
             raise AssertionError(f"Compact phone navigation label is missing: {contract}")
-    bed_menu_navigation = (JAVA / "fragment/BedFragment.kt").read_text(encoding="utf-8")
+    bed_menu_navigation = (JAVA / "ui/navigation/WorkspaceDestination.kt").read_text(encoding="utf-8")
     if "R.string.MenuToolbarNavigation" not in bed_menu_navigation:
         raise AssertionError("The editing workspace navigation needs its compact localized label")
     navigation_policy = (JAVA / "navigation/MobileNavigationPolicy.kt").read_text(encoding="utf-8")
@@ -784,38 +760,22 @@ def main() -> None:
 
     converter_legacy = JAVA / "components/bed_menu/ConverterMenu.java"
     converter_path = JAVA / "components/bed_menu/ConverterMenu.kt"
-    if converter_legacy.exists():
-        raise AssertionError("The local converter menu still has a Java implementation")
-    if not converter_path.exists():
-        raise AssertionError("The Kotlin local converter menu is missing")
-    converter_source = converter_path.read_text(encoding="utf-8")
-    converter_routes = (
-        "class ConverterMenu : BedMenu()", "ThemeAwareComposeView(ctx)",
-        "BeamComposeTheme(themeRevision = themedView.themeRevision)",
-        "BedMenuActionsContent(createActions(), portrait)", "ImageToStlConverter.pickImage",
-        "KromacutEditorMenu()", "ImageToStlConverter.pickLithophane", "TextTagGenerator.show",
-        "UtilityBoxGenerator.show", "CableClipGenerator.show", "CableGrommetGenerator.show",
-        "WallToolHolderGenerator.show", "PlanterPotGenerator.show", "PlantLabelSetGenerator.show",
-        "PhoneStandGenerator.show", "PowerStripTrayGenerator.show",
-    )
-    missing_converter_routes = [route for route in converter_routes if route not in converter_source]
-    if missing_converter_routes:
-        raise AssertionError("Converter actions were lost during migration: " + ", ".join(missing_converter_routes))
-    if "ListBedMenu" in converter_source or "BedMenuItem" in converter_source:
-        raise AssertionError("Converter menu still depends on legacy RecyclerView rows")
+    if converter_legacy.exists() or converter_path.exists():
+        raise AssertionError("The unreachable legacy ConverterMenu host must stay removed")
     responsive_menu_path = JAVA / "components/bed_menu/BedMenuComposeContent.kt"
     if not responsive_menu_path.exists():
         raise AssertionError("Shared responsive Compose bed-menu actions are missing")
     responsive_menu_source = responsive_menu_path.read_text(encoding="utf-8")
     for contract in (
         "data class BedComposeMenuAction(", "fun BedMenuActionsContent(",
-        "horizontalScroll(rememberScrollState())", "verticalScroll(rememberScrollState())",
+        "LazyHorizontalGrid(", "LazyRow(", "verticalScroll(rememberScrollState())",
         "action.sectionBreakBefore", "role = Role.Switch", "stringResource(action.titleRes)",
     ):
         if contract not in responsive_menu_source:
             raise AssertionError(f"Shared responsive Compose menu is missing {contract}")
-    if "BedMenuActionsContent(actions, portrait, multiRow = true)" not in (JAVA / "components/bed_menu/CameraMenu.kt").read_text(encoding="utf-8"):
-        raise AssertionError("Camera menu no longer uses the shared responsive Compose action layout")
+    camera_menu_actions = (JAVA / "components/bed_menu/CameraMenu.kt").read_text(encoding="utf-8")
+    if 'CustomizableBedMenuActionsContent("view", actions, portrait, multiRow = true)' not in camera_menu_actions:
+        raise AssertionError("Camera menu must use the shared customizable responsive Compose action layout")
 
     converter_progress = (JAVA / "components/ConverterProgressDialog.kt").read_text(encoding="utf-8")
     progress_model = (JAVA / "components/ConverterProgressModel.kt").read_text(encoding="utf-8")
@@ -854,7 +814,7 @@ def main() -> None:
         if contract not in litogen_generator:
             raise AssertionError(f"LitoGEN lost a multi-image or STL workflow contract: {contract}")
     for contract in (
-        "ComposeView(activity)", "BeamComposeTheme", "LitoGenOptionsContent(", "Slider(",
+        "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.LitoGenTitle", "LitoGenOptionsContent(", "Slider(",
         "OutlinedTextField(", "stringResource(R.string.LithophaneGenerate)",
         "stringResource(R.string.LithophaneGenerateAndSave)", "ColorFilter.colorMatrix(",
         "ImageToStlConverter.decodeBitmap(activity.contentResolver, uri, 160)",
@@ -874,7 +834,7 @@ def main() -> None:
     fastener_path = JAVA / "components/FastenerGenerator.kt"
     fastener_source = fastener_path.read_text(encoding="utf-8")
     fastener_contracts = (
-        "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "FastenerFormContent(",
+        "fun show(activity: Activity, bed: BedFragment)", "GeneratorWorkspaceDialog(R.string.FastenerTitle", "FastenerFormContent(",
         "SliceChoiceField(", "OutlinedTextField(", "FastenerFormLogic.validate(values)",
         "FastenerFormLogic.validateFitSample(values)", "FastenerStlWriter.writeBolt(",
         "FastenerStlWriter.writeThreadedNut(", "FastenerStlWriter.writeWasher(",
@@ -909,7 +869,7 @@ def main() -> None:
             "GeneratorDimensionField(", "R.string.ConverterConvertSave",
         ),
         "CableClipGenerator.kt": (
-            "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "CableClipFormContent(",
+            "fun show(activity: Activity, bed: BedFragment)", "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.CableClipTitle", "CableClipFormContent(",
             "CableClipFormLogic.validate(submitted)", "LithophaneStlWriter.writeCableClip(",
             "ImageToStlConverter.saveGeneratedStl(activity, output, bed)",
         ),
@@ -918,7 +878,7 @@ def main() -> None:
             "GeneratorDimensionField(", "R.string.ConverterConvertSave",
         ),
         "CableGrommetGenerator.kt": (
-            "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "CableGrommetFormContent(",
+            "fun show(activity: Activity, bed: BedFragment)", "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.CableGrommetTitle", "CableGrommetFormContent(",
             "CableGrommetFormLogic.validate(submitted)", "LithophaneStlWriter.writeCableGrommet(",
             "ImageToStlConverter.saveGeneratedStl(activity, output, bed)",
         ),
@@ -927,7 +887,7 @@ def main() -> None:
             "GeneratorDimensionField(", "R.string.ConverterConvertSave",
         ),
         "PlantLabelSetGenerator.kt": (
-            "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "PlantTagsFormContent(",
+            "fun show(activity: Activity, bed: BedFragment)", "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.PlantTagsTitle", "PlantTagsFormContent(",
             "PlantTagsFormLogic.validate(submitted)", "TextTagGenerator.rasterize(",
             "LithophaneStlWriter.writeTextTagBatch(", "ImageToStlConverter.saveGeneratedStl(activity, output, bed)",
         ),
@@ -936,7 +896,7 @@ def main() -> None:
             "GeneratorDimensionField(", "R.string.ConverterConvertSave",
         ),
         "PowerStripTrayGenerator.kt": (
-            "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "PowerStripFormContent(",
+            "fun show(activity: Activity, bed: BedFragment)", "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.PowerStripTitle", "PowerStripFormContent(",
             "PowerStripFormLogic.validate(submitted)", "LithophaneStlWriter.writePowerStripTray(",
             "ImageToStlConverter.saveGeneratedStl(activity, output, bed)",
         ),
@@ -945,7 +905,7 @@ def main() -> None:
             "GeneratorDimensionField(", "R.string.ConverterConvertSave",
         ),
         "WallToolHolderGenerator.kt": (
-            "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "WallToolHolderFormContent(",
+            "fun show(activity: Activity, bed: BedFragment)", "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.WallToolHolderTitle", "WallToolHolderFormContent(",
             "WallToolHolderFormLogic.validate(submitted)", "LithophaneStlWriter.writeWallToolHolder(",
             "ImageToStlConverter.saveGeneratedStl(activity, output, bed)",
         ),
@@ -954,7 +914,7 @@ def main() -> None:
             "KeyboardType.Number", "GeneratorDimensionField(", "R.string.ConverterConvertSave",
         ),
         "TextTagGenerator.kt": (
-            "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "TextTagFormContent(",
+            "fun show(activity: Activity, bed: BedFragment)", "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.TextTagTitle", "TextTagFormContent(",
             "TextTagFormLogic.validate(submitted)", "TextTagFormLogic.normalized(submitted)",
             "fun rasterize(", "LithophaneStlWriter.writeTextTag(",
             "ImageToStlConverter.saveGeneratedStl(activity, output, bed)",
@@ -964,7 +924,7 @@ def main() -> None:
             "Checkbox(", "GeneratorDimensionField(", "R.string.TextTagPreviewPlaceholder",
         ),
         "UtilityBoxGenerator.kt": (
-            "fun show(activity: Activity, bed: BedFragment)", "BeamComposeTheme", "UtilityBoxFormContent(",
+            "fun show(activity: Activity, bed: BedFragment)", "bed.showWorkspaceComposeDialog", "GeneratorWorkspaceDialog(R.string.UtilityBoxTitle", "UtilityBoxFormContent(",
             "UtilityBoxFormLogic.normalized(submitted)", "LithophaneStlWriter.writeUtilityBox(",
             "ImageToStlConverter.saveGeneratedStl(activity, output, bed)",
         ),
@@ -1013,11 +973,10 @@ def main() -> None:
     print_config_tools_path = JAVA / "fragment/PrintConfigToolsCompose.kt"
     print_config_tools = print_config_tools_path.read_text(encoding="utf-8")
     print_config_contracts = (
-        "PrintConfigToolsBar(", "showPrimeTowerPositionDialog(context)", "showFlushVolumesDialog(context)",
+        "PrintConfigToolsBar(", "onPrimeTower = ::showPrimeTowerPositionDialog", "onFlushVolumes = ::showFlushVolumesDialog",
         "override fun onResume()", "toolsThemeRevision++", "override fun BelowFilamentPaletteContent(modifier: Modifier)",
-        'config.presets?.get("printer")?.let(config::findPrinter)',
-        "PrintConfigToolsLogic.canSyncFilaments(printer?.get(\"print_host\"))", "key(revision)",
-        "MmuFilamentSync.synchronizeAll(printer)", "filamentSyncing = true", "filamentSyncing = false",
+        "key(revision)", "activeToolDialog by mutableStateOf<PrintConfigToolDialogState?>",
+        "PrintConfigToolDialogState.FlushVolumes", "PrintConfigToolDialogState.PrimeTower",
         'applyOptionValue("flush_volumes_matrix", serialized)',
         'applyOptionValue("wipe_tower_x", serialized.first)',
         'applyOptionValue("wipe_tower_y", serialized.second)',
@@ -1026,7 +985,7 @@ def main() -> None:
     if missing_print_config_contracts:
         raise AssertionError("Print-profile quick controls lost Compose or profile-update routes: " + ", ".join(missing_print_config_contracts))
     quick_tools_start = print_config_source.find("override fun BelowFilamentPaletteContent(modifier: Modifier)")
-    quick_tools_end = print_config_source.find("private fun syncMmuFilaments(", quick_tools_start)
+    quick_tools_end = print_config_source.find("private fun optionValue(", quick_tools_start)
     if quick_tools_start < 0 or quick_tools_end < 0:
         raise AssertionError("Print-profile quick controls are missing their direct Compose host")
     quick_tools_host = print_config_source[quick_tools_start:quick_tools_end]
@@ -1095,7 +1054,7 @@ def main() -> None:
     palette_source = palette_path.read_text(encoding="utf-8")
     for contract in (
         "class FilamentPaletteController", "@Composable\n    fun Content(modifier: Modifier = Modifier)",
-        "FilamentPaletteContent(", "horizontalScroll(rememberScrollState())",
+        "FilamentPaletteContent(", "LazyRow(",
         "FilamentSlotSheet(", "Prefs.getFilamentSlots()", "Prefs.setFilamentSlots(slots)",
         "FilamentPalettePolicy.canAddSlot", "FilamentPalettePolicy.canDeleteAt", "Role.Button",
     ):
@@ -1116,9 +1075,10 @@ def main() -> None:
         for translated_label in ("FilamentPaletteAdd", "FilamentPaletteSlotDescription"):
             if f'name="{translated_label}"' not in resource_source:
                 raise AssertionError(f"The {language} translation is missing {translated_label}")
-    print_config_tools_test = (ROOT / "app/src/test/java/ru/ytkab0bp/slicebeam/fragment/PrintConfigToolsLogicTest.kt").read_text(encoding="utf-8")
-    if "filamentSyncRequiresAConfiguredPrinterHost()" not in print_config_tools_test:
-        raise AssertionError("Print-profile sync visibility must be covered for missing and configured printer hosts")
+    palette_sync_test = (ROOT / "app/src/androidTest/java/ru/ytkab0bp/slicebeam/FilamentPaletteComposeDeviceTest.kt").read_text(encoding="utf-8")
+    mmu_sync_test = (ROOT / "app/src/androidTest/java/ru/ytkab0bp/slicebeam/utils/MmuFilamentSyncDeviceTest.kt").read_text(encoding="utf-8")
+    if "fun syncActionLivesInFilamentPaletteAndReportsCompletion()" not in palette_sync_test or "class MmuFilamentSyncDeviceTest" not in mmu_sync_test:
+        raise AssertionError("MMU sync must remain tested at the visible palette action and synchronization policy")
 
     profile_rows = JAVA / "fragment/ProfileSettingsComposeList.kt"
     profile_row_source = profile_rows.read_text(encoding="utf-8")
@@ -1199,10 +1159,10 @@ def main() -> None:
         if f"fun {action}(view: View)" not in object_actions_source:
             raise AssertionError(f"Kotlin object actions are missing {action}")
     object_action_contracts = (
-        "model?.getObjectName(index)", "MenuFileObjectNumber", "setSingleChoiceItems(objects, selected)",
-        "SelectedObjectChangedEvent()", "coerceIn(1, 50)", "minOf(4, slots.size)",
-        "setObjectBaseFilament(selected, filament)", "(0 until plateCount).filter { it != current }",
-        "moveSelectedObjectToPlate(target)", "centerSelectedOnBed", "deleteSelectedModel", "arrange()",
+        "model?.getObjectName(index)", "MenuFileObjectNumber", "ModelObjectsDialog(",
+        "SelectedObjectChangedEvent()", "slots.indices.map { tool ->",
+        "setObjectUniformFilament(objectIndex, filament)", "(0 until plateCount).filter { it != source }",
+        "moveSelectedObjectToPlate(target)", "duplicateSelectedModel(copies)", "deleteSelectedModel",
     )
     missing_object_contracts = [contract for contract in object_action_contracts if contract not in object_actions_source]
     if missing_object_contracts:
@@ -1210,18 +1170,17 @@ def main() -> None:
 
     file_menu_contracts = (
         "class FileMenu : ListBedMenu()", "Intent.EXTRA_ALLOW_MULTIPLE, true",
-        "override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView",
-        "BedMenuActionsContent(composeActions.value, portrait)", "private fun createComposeActions",
-        "R.string.WorkspaceAddModel", "R.string.WorkspaceObjects", "R.string.WorkspaceArrange",
+        "CustomizableBedMenuActionsContent(\"project\", composeActions.value, portrait)", "private fun createComposeActions",
+        "R.string.WorkspaceAddModelAction", "R.string.MenuFileExport3mf",
         "internal fun createOptionsItems",
         "R.string.MenuFileCalibrations", "R.string.MenuFileImportProfiles",
         "R.string.MenuFileExportProfiles", "R.string.MenuFileExport3mf",
         "TransformScaleMenu(bed)", "OrientationPositionMenu(bed)", "OrientationRotationMenu(bed)",
-        "@EventHandler(runOnMainThread = true)", "class AIGeneratorMenu : UnfoldMenu()",
+        "@EventHandler(runOnMainThread = true)", "showAIGeneratorWorkspace(bed)",
         "MediaStore.ACTION_IMAGE_CAPTURE", "Intent.ACTION_GET_CONTENT",
         "AIGeneratorMenuContent(", "AIGeneratorActionRow(", "LinearProgressIndicator(",
-        "remainingLabel = remainingLabel", "quotaProgress = quotaProgress",
-        "NeedDismissAIGeneratorMenu", "CloudModelsRemainingCountUpdatedEvent",
+        "remainingLabel = quota.remainingLabel", "quotaProgress = quota.progress",
+        "NeedDismissSnackbarEvent", "CloudModelsRemainingCountUpdatedEvent",
         "SliceBeam.EVENT_BUS.registerListener(this)", "SliceBeam.EVENT_BUS.unregisterListener(this)",
         "if (total <= 0) 0f", "aiGenerationQuotaProgress(total, generated)",
     )
@@ -1237,7 +1196,7 @@ def main() -> None:
     options_menu_source = options_menu_path.read_text(encoding="utf-8")
     for contract in (
         "class OptionsMenu : ListBedMenu()", "actionSource.createOptionsItems()",
-        "BedMenuActionsContent(composeActions.value, portrait)",
+        "CustomizableBedMenuActionsContent(\"tools\", composeActions.value, portrait)",
         "fun onSelectionChanged(event: SelectedObjectChangedEvent)",
         "fun onObjectsChanged(event: ObjectsListChangedEvent)",
     ):
@@ -1247,39 +1206,20 @@ def main() -> None:
         if legacy_ai_view in file_menu_source:
             raise AssertionError(f"The AI-generator submenu still uses the legacy {legacy_ai_view} UI")
 
-    calibration_menus_path = JAVA / "components/bed_menu/CalibrationMenus.kt"
-    if not calibration_menus_path.exists():
-        raise AssertionError("Kotlin calibration menus are missing")
-    calibration_menus_source = calibration_menus_path.read_text(encoding="utf-8")
-    for legacy_nested_menu in (
-        "public final class CalibrationsMenu",
-        "public final static class CalibrationModelsMenu",
-    ):
-        if legacy_nested_menu in file_menu_source:
-            raise AssertionError("Calibration UI remains embedded in the Java File menu")
-    calibration_contracts = (
-        "class CalibrationsMenu : UnfoldMenu()", "R.string.CalibrationPressureAdvance",
-        "SliceBeam.PENDING_CALIB_MODE = 1", "SliceBeam.PENDING_CALIB_START = 0.0",
-        "SliceBeam.PENDING_CALIB_END = 0.1", "SliceBeam.PENDING_CALIB_STEP = 0.002",
-        "model.objectsCount == 0", "class CalibrationModelsMenu : UnfoldMenu()",
-        "OrcaCube_v2.stl", "OrcaPlug_v2.stl", "BedFragment.ModelLoadCallback",
-        "loadNextModel(bed, files, index + 1)", "SliceBeam.EVENT_BUS.registerListener(this)",
-        "SliceBeam.EVENT_BUS.unregisterListener(this)",
-    )
-    missing_calibration_contracts = [item for item in calibration_contracts if item not in calibration_menus_source]
-    if missing_calibration_contracts:
-        raise AssertionError("Calibration behavior changed during Kotlin migration: " + ", ".join(missing_calibration_contracts))
+    calibration_workspace = (JAVA / "components/bed_menu/CalibrationWorkspace.kt").read_text(encoding="utf-8")
+    calibration_test = (ROOT / "app/src/androidTest/java/ru/ytkab0bp/slicebeam/components/bed_menu/CalibrationWorkspaceDeviceTest.kt").read_text(encoding="utf-8")
     for contract in (
-        "ThemeAwareComposeView(ctx)", "CalibrationsMenuContent(", "CalibrationModelsContent(",
-        "@Composable\nprivate fun CalibrationsMenuContent(",
-        "@Composable\nprivate fun CalibrationModelsContent(",
-        "CalibrationBackBar(onBack)",
+        "showCalibrationWorkspace(bed)", "CalibrationWorkspaceDialog(bed, dismiss)",
+        "CalibrationConfigurationContent(", "CalibrationResultContent(", "CalibrationModelsContent(",
+        "startCalibration(context, bed, preset",
     ):
-        if contract not in calibration_menus_source:
-            raise AssertionError(f"Calibration Compose UI is missing {contract}")
+        if contract not in calibration_workspace and contract not in file_menu_source:
+            raise AssertionError(f"Workspace calibration route is missing: {contract}")
+    if "calibrationActionsFormsAndBundledModelListStayInWorkspace()" not in calibration_test:
+        raise AssertionError("Workspace calibration actions lack their device interaction test")
     for legacy_view in ("FadeRecyclerView", "SimpleRecyclerAdapter", "RecyclerView", "createBackBar"):
-        if legacy_view in calibration_menus_source:
-            raise AssertionError(f"Calibration menus still use the legacy {legacy_view} view scaffolding")
+        if legacy_view in calibration_workspace:
+            raise AssertionError(f"Calibration workspace still uses legacy scaffolding: {legacy_view}")
     list_bed_menu_source = (JAVA / "components/bed_menu/ListBedMenu.kt").read_text(encoding="utf-8")
     for legacy_view in ("FadeRecyclerView", "SimpleRecyclerAdapter", "RecyclerView"):
         if legacy_view in list_bed_menu_source:
@@ -1298,15 +1238,15 @@ def main() -> None:
     transform_items_source = transform_items_path.read_text(encoding="utf-8")
     if "composeActions.value = items.createItems()" not in transform_menu_source:
         raise AssertionError("The active Transform menu no longer delegates Compose item creation to Kotlin")
-    if "BedMenuActionsContent(composeActions.value, portrait, multiRow = true)" not in transform_menu_source:
+    if 'CustomizableBedMenuActionsContent("edit", composeActions.value, portrait, multiRow = true)' not in transform_menu_source:
         raise AssertionError("The active Transform menu no longer renders its responsive Compose actions")
-    if "menuItems?.onSelectionChanged()" not in transform_menu_source or "menuItems?.onObjectsChanged()" not in transform_menu_source:
+    if "fun onSelectionChanged(event: SelectedObjectChangedEvent)" not in transform_menu_source or "fun onObjectsChanged(event: ObjectsListChangedEvent)" not in transform_menu_source:
         raise AssertionError("Transform selection and model events no longer update Compose action state")
     if "ListBedMenu" in transform_menu_source and "SimpleRecyclerAdapter" in transform_menu_source:
         raise AssertionError("Transform menu still renders native RecyclerView rows")
     transform_routes = (
-        "MenuOrientationArrange", "MenuOrientationAutoOrient", "MenuToolbarMove", "MenuToolbarRotate",
-        "MenuTransformScale", "ModelSimplify", "MenuOrientationFlatten", "MenuTransformCut",
+        "ModelContextResetRotation", "ModelContextResetScale", "ModelUndo", "ModelRedo",
+        "MenuToolbarMove", "MenuToolbarRotate", "MenuTransformScale", "ModelSimplify", "MenuTransformCut",
         "MenuToolbarSplit", "MenuToolbarVariableLayerHeight", "MenuToolbarSupportPaint",
         "MenuToolbarSeamPaint", "MenuToolbarFuzzyPaint", "MenuToolbarColorPaint", "MenuToolbarEmboss",
         "MenuToolbarMeasure",
@@ -1317,23 +1257,20 @@ def main() -> None:
     transform_contracts = (
         "showPositionMenu.accept(it)", "showRotationMenu.accept(it)", "showScaleMenu.accept(it)",
         "showCutMenu.accept(it)", "enabled = availability.hasSelectedObject", "modelSelectionAvailability(",
-        "renderer.setInFlattenMode(flattenEnabled)", "fun onSelectionChanged()",
-        "selectedTriangleCount", "ratios[choice]", "coerceIn(4, triangles - 1)",
+        "selectedTriangleCount", "ratios[choice]", "minimumTriangleCount = 4",
     )
     missing_transform_contracts = [contract for contract in transform_contracts if contract not in transform_items_source]
     if missing_transform_contracts:
         raise AssertionError("Transform-menu behavior changed during Kotlin migration: " + ", ".join(missing_transform_contracts))
-    for contract in ("new OrientationPositionMenu(bed)", "new OrientationRotationMenu(bed)"):
-        kotlin_contract = contract.replace("new ", "")
-        if kotlin_contract not in transform_menu_source:
-            raise AssertionError(f"Transform menu must pass its active bed to the Kotlin submenu: {contract}")
-    if "TransformCutMenu(bed)" not in transform_menu_source:
+    for kotlin_contract in ("OrientationPositionMenu(fragment)", "OrientationRotationMenu(fragment)"):
+        if kotlin_contract not in transform_items_source:
+            raise AssertionError(f"Transform menu must pass its active bed to the Kotlin submenu: {kotlin_contract}")
+    if "TransformCutMenu(fragment)" not in transform_items_source:
         raise AssertionError("Transform menu no longer opens the Kotlin cut editor with its active bed")
     for event_contract in (
         "@EventHandler(runOnMainThread = true)",
         "fun onObjectsChanged(event: ObjectsListChangedEvent)",
         "fun onSelectionChanged(event: SelectedObjectChangedEvent)",
-        "fun onFlattenModeReset(event: FlattenModeResetEvent)",
     ):
         if event_contract not in transform_menu_source:
             raise AssertionError(f"Kotlin Transform menu is missing its selection update route: {event_contract}")
@@ -1342,7 +1279,7 @@ def main() -> None:
         raise AssertionError("The Kotlin transform scale editor is missing")
     scale_menu_source = scale_menu_path.read_text(encoding="utf-8")
     scale_menu_contracts = (
-        "class TransformScaleMenu(private val bed: BedFragment) : UnfoldMenu()",
+        "class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute()",
         "fun setLinked(linked: Boolean)", "Prefs.isScaleInputInMM()", "Prefs.setScaleInputInMM",
         "Prefs.isScaleLinked()", "Prefs.setScaleLinked", "model.ensureOnBed(index)",
         "resolveTransformScaleValues(", "TransformScalePolicy.moveRuler(",
@@ -1371,15 +1308,13 @@ def main() -> None:
     ):
         if contract not in shared_ruler_source:
             raise AssertionError(f"Shared Compose transform ruler is missing required behavior: {contract}")
-    if "TransformScaleMenu(bed)" not in transform_menu_source:
+    if "TransformScaleMenu(fragment)" not in transform_items_source:
         raise AssertionError("Transform menu no longer opens the Kotlin scale editor")
     file_menu_source = (JAVA / "components/bed_menu/FileMenu.kt").read_text(encoding="utf-8")
     if "TransformScaleMenu(bed)" not in file_menu_source:
         raise AssertionError("File menu no longer opens the Kotlin scale editor")
     file_menu_compose_contracts = (
-        "override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView",
-        "BeamComposeTheme(themeRevision = themedView.themeRevision)",
-        "BedMenuActionsContent(composeActions.value, portrait)",
+        "CustomizableBedMenuActionsContent(\"project\", composeActions.value, portrait)",
         "onCreateItems(portrait).map { menuItem ->",
         "menuItem.checkedChangeListener?.onCheckedChanged(menuItem.isChecked)",
         "menuItem.clickListener?.invoke(anchor)",
@@ -1403,9 +1338,6 @@ def main() -> None:
     ):
         if contract not in list_bed_menu_source:
             raise AssertionError(f"Shared bed-menu lifecycle or Compose action model was lost: {contract}")
-    bed_fragment_source = (JAVA / "fragment/BedFragment.kt").read_text(encoding="utf-8")
-    if "TransformScaleMenu(this)" not in bed_fragment_source:
-        raise AssertionError("Selected-object quick actions no longer open the Kotlin scale editor")
     if "new OrientationMenu().new PositionMenu()" in transform_menu_source or "new OrientationMenu().new RotationMenu()" in transform_menu_source:
         raise AssertionError("Transform menu is constructing a detached orientation-menu wrapper")
 
@@ -1423,14 +1355,14 @@ def main() -> None:
         raise AssertionError("The Compose transform cut editor is missing")
     cut_menu_source = cut_menu_path.read_text(encoding="utf-8")
     cut_menu_contracts = (
-        "class TransformCutMenu(private val bed: BedFragment) : UnfoldMenu()",
-        "renderer.showCutPlane(true)", "renderer.showCutPlane(false)",
+        "class TransformCutMenu(private val bed: BedFragment) : WorkspaceComposeToolRoute()",
+        "activeRenderer.showCutPlane(true)", "renderer.showCutPlane(false)",
         "setCutPlane(", "renderer.setCutConnectorPlacement(false)",
         "setCutConnectorDefaults(",
         "getCutConnectorCount(cutObject)", "removeLastCutConnectorForObject(cutObject)",
         "clearCutConnectorsForObject(cutObject)", "model.cut(",
-        "renderer.clearAllCutConnectorPreviews()", "override fun getRequestedSize(into: FrameLayout, portrait: Boolean)",
-        "ThemeAwareComposeView(ctx)", "BeamComposeTheme(themeRevision = themedView.themeRevision)",
+        "renderer.clearAllCutConnectorPreviews()", "workspacePanelSize(): WorkspacePanelSize",
+        "bed.setWorkspaceToolAllowsBackgroundInteraction(javaClass.name, connectorMode)",
         "verticalScroll(rememberScrollState())", "Slider(", "CutValueSlider(",
     )
     missing_cut_contracts = [item for item in cut_menu_contracts if item not in cut_menu_source]
@@ -1537,7 +1469,6 @@ def main() -> None:
         "SmartSliceEngine.apply(result)", "R.string.SmartSliceApplyAndSlice",
         "R.string.SmartSliceApplyEdit", "RejectedExecutionException",
         "R.string.SmartSliceBusy", "SmartSliceInputValues.resolve",
-        "ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool",
     )
     missing_smart_slice_contracts = [contract for contract in smart_slice_contracts if contract not in smart_slice_source]
     if missing_smart_slice_contracts:
@@ -1548,7 +1479,7 @@ def main() -> None:
     if not quick_slice_path.exists():
         raise AssertionError("The Quick Slice Kotlin dialog is missing")
     quick_slice_source = quick_slice_path.read_text(encoding="utf-8")
-    for contract in ("SliceChoiceField", "QuickSliceProfileValues.resolve", "ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool"):
+    for contract in ("SliceChoiceField", "QuickSliceProfileValues.resolve"):
         if contract not in quick_slice_source:
             raise AssertionError(f"Quick Slice dialog is missing required behavior: {contract}")
     if any(widget in quick_slice_source for widget in ("android.widget.Spinner", "android.widget.ScrollView", "android.widget.LinearLayout")):
@@ -1562,7 +1493,6 @@ def main() -> None:
         "SliceChoiceField(", "WorkspaceProfileSelectionLogic.resolve(",
         "SliceBeam.applyProfileSelection(printer, filament, process)",
         "onProfilesChanged?.run()",
-        "ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool",
     )
     missing_workspace_profile = [item for item in workspace_profile_contracts if item not in workspace_profile_source]
     if missing_workspace_profile:
@@ -1586,13 +1516,13 @@ def main() -> None:
         raise AssertionError("The post-slice menu is not routed to its Kotlin item builder")
     if "SlicePrintPreparationDialog.show(" not in slice_menu:
         raise AssertionError("The print-preparation dialog is not routed to its Kotlin controller")
-    if "SlicePreparationTools.readUsedTools(gcode)" not in slice_menu:
+    if "SlicePreparationTools.readToolUsage(gcode)" not in slice_menu:
         raise AssertionError("The print-tool scan is not routed to its Kotlin helper")
     slice_menu_contracts = (
         "class SliceMenu : ListBedMenu()", "MmuFilamentSync.synchronize(printer)",
         "SliceUploadController.upload(", "SliceBeam.applyProfileSelection(printer = printer.title)",
-        "override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView",
-        "BedMenuActionsContent(composeActions.value, portrait)", "fun refreshInfoItems()",
+        "override fun WorkspaceContent(portrait: Boolean)",
+        "CustomizableBedMenuActionsContent(\"slice\", composeActions.value, portrait)", "fun refreshInfoItems()",
     )
     missing_slice_menu = [item for item in slice_menu_contracts if item not in slice_menu]
     if missing_slice_menu:
@@ -1603,8 +1533,8 @@ def main() -> None:
         raise AssertionError("Kotlin Slice info panel or its tested value helpers are missing")
     slice_info_source = slice_info_path.read_text(encoding="utf-8")
     slice_info_contracts = (
-        "class SliceInfoMenu(private val parentMenu: SliceMenu) : UnfoldMenu()",
-        "ThemeAwareComposeView(ctx)", "BeamComposeTheme(themeRevision = themeRevision)",
+        "internal fun showSliceInfoWorkspace(bed: BedFragment, parentMenu: SliceMenu)",
+        "bed.showWorkspaceComposeDialog",
         "SliceInfoContent(", "SliceInfoTimeline(", "Canvas(", "SegmentsView.mapColor(role)",
         "R.array.GCodeColorSchemes", "GCodeViewer.OPTION_TYPE_SEAMS",
         "R.string.SliceSummaryTimeValue", "R.string.SliceSummaryWeightValue",
@@ -1636,14 +1566,11 @@ def main() -> None:
     camera_menu_source = camera_menu_path.read_text(encoding="utf-8")
     camera_geometry_source = camera_geometry_path.read_text(encoding="utf-8")
     camera_contracts = (
-        "open class CameraMenu : BedMenu()", "ThemeAwareComposeView(ctx)",
-        "BeamComposeTheme(themeRevision = themedView.themeRevision)", "CameraMenuContent(",
-        "CameraPresetGeometry.resolve(", "setSingleChoiceItems(", "Prefs.setCameraControlMode(which)",
+        "open class CameraMenu : BedMenu(), WorkspaceComposeBedMenu", "WorkspaceContent(portrait: Boolean)",
+        "CameraMenuContent(", "CameraPresetGeometry.resolve(", "ModelChoiceDialog(", "Prefs.setCameraControlMode(which)",
         "Prefs.setOrthoProjectionEnabled(enabled)", "renderer.updateProjection()", "requestRender()",
-        "R.string.MenuCameraIsometric", "R.string.MenuCameraTop", "R.string.MenuCameraBottom",
-        "R.string.MenuCameraFront", "R.string.MenuCameraBack", "R.string.MenuCameraLeft",
-        "R.string.MenuCameraRight", "R.string.MenuCameraControlMode", "R.string.MenuCameraOrtho",
-        "BedMenuActionsContent(actions, portrait, multiRow = true)",
+        "R.string.MenuCameraControlMode", "R.string.MenuCameraOrtho",
+        'CustomizableBedMenuActionsContent("view", actions, portrait, multiRow = true)',
     )
     missing_camera = [item for item in camera_contracts if item not in camera_menu_source]
     if missing_camera:
@@ -1667,9 +1594,9 @@ def main() -> None:
         raise AssertionError("Kotlin Compose layer-range menu or its range normalization helper is missing")
     slice_layers_source = slice_layers_path.read_text(encoding="utf-8")
     slice_layers_contracts = (
-        "class SliceLayersMenu : UnfoldMenu()", "ThemeAwareComposeView(ctx)", "BeamComposeTheme",
+        "internal fun showSliceLayersWorkspace(bed: BedFragment)", "bed.showWorkspaceComposeDialog",
         "SliceLayersContent(", "Slider(", "layerSliderFraction(", "layerFromSliderFraction(",
-        "viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled())",
+        "viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled() || Prefs.isLowRamDevice())",
         "viewer.setLayersViewRange(from.toLong() - 1L, to.toLong() - 1L)",
         "normalizeSliceLayerRange(viewer.getLayersCount(), range.first, range.second)",
         "cancelPendingApply()", "ViewUtils.postOnMainThread(callback, 50L)",
@@ -1703,7 +1630,7 @@ def main() -> None:
     slice_items_contracts = (
         "object SliceMenuItems", "fun createBeforeSlice(fragment: BedFragment, hasModel: Boolean): List<BedComposeMenuAction>",
         "QuickSliceDialog.show(fragment, view)", "SmartSliceDialog.show(fragment)",
-        "fun createAfterSlice(", "SliceInfoMenu(parentMenu)", "SliceLayersMenu()",
+        "fun createAfterSlice(", "showSliceInfoWorkspace(fragment, parentMenu)", "showSliceLayersWorkspace(fragment)",
         "Intent.ACTION_CREATE_DOCUMENT", "Intent.ACTION_SEND_MULTIPLE",
         "Prefs.isPerformanceModeEnabled()", "toggleable = true", "R.string.MenuSliceSendToPrinter",
         "R.string.MenuSliceSendToPrinterAndPrint", "sendAction.send(selectedType, host!!, apiKey, printer, true)",
@@ -1718,11 +1645,12 @@ def main() -> None:
         raise AssertionError("Kotlin print-preparation UI or its helpers are missing")
     preparation_source = preparation_path.read_text(encoding="utf-8")
     preparation_contracts = (
-        "object SlicePrintPreparationDialog", "ComposeView(context)", "BeamComposeTheme {",
-        "PrintPreparationContent(", "R.string.PrintPrepareTitle",
+        "object SlicePrintPreparationDialog", "fragment.showWorkspaceComposeDialog",
+        "ComposeAlertDialog(", "PrintPreparationContent(", "R.string.PrintPrepareTitle",
         "R.string.PrintPrepareAutoLevelEnabled", "R.string.PrintPrepareAutoLevelUnavailable",
-        "MmuFilamentAssignmentDialog.show", "fragment.startSlicing", "sendAction.send(",
-        "R.string.PrintPrepareReslicing", "selectedPrinter.value", "mappingRevision.intValue++",
+        "PrintPreparationWarningDialog(", "fragment.startSlicing", "sendAction.send(",
+        "R.string.PrintPrepareReslicing", "var printer by remember(initialPrinter)",
+        "resliceRequired = SlicePreparationTools.didPrinterChange(",
     )
     missing_preparation = [item for item in preparation_contracts if item not in preparation_source]
     if missing_preparation:
@@ -1769,12 +1697,11 @@ def main() -> None:
         raise AssertionError("The Kotlin layer-range editor is missing")
     slice_layers_source = slice_layers_path.read_text(encoding="utf-8")
     slice_layers_contracts = (
-        "class SliceLayersMenu : UnfoldMenu()", "R.string.MenuSliceInfoLayers",
+        "internal fun showSliceLayersWorkspace(bed: BedFragment)", "R.string.MenuSliceInfoLayers",
         "viewer.setLayersViewRange(from.toLong() - 1L, to.toLong() - 1L)",
-        "viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled())",
+        "viewer.applyPerformanceMode(Prefs.isPerformanceModeEnabled() || Prefs.isLowRamDevice())",
         "fun cancelPendingApply()", "ViewUtils.removeCallbacks(it)",
         "finishLayerSliderInteraction()", "withSliceLayerFrom(", "withSliceLayerTo(",
-        "override fun getRequestedSize(",
     )
     missing_slice_layers = [item for item in slice_layers_contracts if item not in slice_layers_source]
     if missing_slice_layers:
@@ -1798,7 +1725,7 @@ def main() -> None:
     kromacut_source = kromacut_path.read_text(encoding="utf-8")
     kromacut_contracts = (
         "const val REQUEST_CODE_FILE = 15", "@JvmStatic", "fun handleActivityResult(",
-        "WebViewAssetLoader.Builder()", "assets/kromacut-editor/index.html",
+        "WebViewAssetLoader.Builder()", "kromacut-editor/app/index.html",
         "settings.javaScriptEnabled = true", "settings.allowFileAccess = false",
         "addJavascriptInterface(DownloadBridge(), \"OrcaMobile\")", "onShowFileChooser(",
         "ImageToStlConverter.saveGeneratedFile", "Base64.decode(base64, Base64.DEFAULT)",
@@ -1809,7 +1736,7 @@ def main() -> None:
         raise AssertionError("Kromacut editor behavior was lost during Kotlin migration: " + ", ".join(missing_kromacut_contracts))
 
     cloud_java = JAVA / "components/CloudManageBottomSheet.java"
-    cloud_path = JAVA / "components/CloudManageBottomSheet.kt"
+    cloud_path = JAVA / "components/CloudManageDialog.kt"
     if cloud_java.exists():
         raise AssertionError("The cloud account sheet still has a Java implementation")
     if not cloud_path.exists():
@@ -1817,13 +1744,13 @@ def main() -> None:
     cloud_source = cloud_path.read_text(encoding="utf-8")
     cloud_state = (JAVA / "components/CloudManageScreenState.kt").read_text(encoding="utf-8")
     cloud_contracts = (
-        "class CloudManageBottomSheet(context: Context) : BottomSheetDialog(context)",
-        "ComposeView(context)", "BeamComposeTheme {", "CloudManageContent(",
+        "class CloudManageDialog(context: Context)", "fun Content(onDismiss: () -> Unit)",
+        "Dialog(", "BeamComposeTheme {", "CloudManageContent(",
         "Switch(", "TextButton(", "CloudManageScreenState.resolve(",
         "SettingsCloudManageLoggedInAs", "CloudController.getUserFeatures()",
         "Prefs.isCloudProfileSyncEnabled()", "Prefs.setCloudProfileSyncEnabled(isChecked)",
         "CloudController.notifyDataChanged()", "NeedDismissSnackbarEvent(CloudController.CLOUD_SYNC_TAG)",
-        "SettingsCloudManageSubscription", "CloudController.logout()", "dismiss()",
+        "SettingsCloudManageSubscription", "CloudController.logout()", "onDismiss()",
         "uri.scheme !in setOf(\"https\", \"http\")", "ActivityNotFoundException",
     )
     missing_cloud_contracts = [item for item in cloud_contracts if item not in cloud_source]
@@ -1859,11 +1786,10 @@ def main() -> None:
         raise AssertionError("The Kotlin color chooser is missing")
     color_chooser_source = color_chooser_path.read_text(encoding="utf-8")
     color_chooser_contracts = (
-        "open class ColorChooserSheet(", "ComposeView(context)", "BeamComposeTheme {",
-        "ColorChooserContent(", "setViewCompositionStrategy(",
+        "internal fun ColorChooserDialog(", "Dialog(", "BeamComposeTheme {",
+        "ColorChooserContent(", "onColorChosen(color or OPAQUE_ALPHA)",
         "ColorChooserPalette.commonColors()", "ColorChooserPalette.allColors()",
         "ColorChooserPalette.columnsForWidth(configuration.screenWidthDp)",
-        "ColorPickerPopUp.OnPickColorListener", "callback?.onColorChosen(color or OPAQUE_ALPHA)",
         "rememberScrollState()", "ColorSwatchGrid(", "ColorUtils.calculateLuminance(opaqueColor)",
         "clickable(role = Role.Button, onClick = onClick)",
     )
@@ -1895,10 +1821,10 @@ def main() -> None:
         raise AssertionError("The Kotlin filament-slot editor is missing")
     filament_slot_source = filament_slot_path.read_text(encoding="utf-8")
     filament_slot_contracts = (
-        "open class FilamentSlotSheet(", "ComposeView(context)", "BeamComposeTheme {",
-        "FilamentSlotContent(", "ColorChooserSheet(context, color)",
-        "slot.color = selectedColor", "items(materialTypes)", "slot.type = option",
-        "if (canDelete)", "onDelete = {", "listener?.onDelete()", "dismiss()",
+        "class FilamentSlotSheet(", "fun Content(onDismiss: () -> Unit)", "BeamComposeTheme {",
+        "FilamentSlotContent(", "ColorChooserDialog(", "slot.color = color", "items(materialTypes)",
+        "slot.type = material", "if (canDelete)", "onSave = {", "onDelete = {",
+        "listener?.onChanged(slot)", "listener?.onDelete()", "onDismiss()",
     )
     missing_filament_slot_contracts = [item for item in filament_slot_contracts if item not in filament_slot_source]
     if missing_filament_slot_contracts:
@@ -1909,7 +1835,7 @@ def main() -> None:
 
     preslice_source = (JAVA / "components/PreSliceFilamentDialog.kt").read_text(encoding="utf-8")
     for contract in (
-        "ComposeView(context)", "BeamComposeTheme {", "PreSliceFilamentContent(",
+        "fragment.showWorkspaceComposeDialog", "PreSliceFilamentContent(",
         "PreSliceFilamentAssignments.initialSlotIndices(",
         "PreSliceFilamentAssignments.resolve(",
         "R.string.PreSliceAllObjectsMode", "R.string.PreSliceIndividualMode",
@@ -1929,14 +1855,13 @@ def main() -> None:
         if test_name not in preslice_test:
             raise AssertionError(f"Pre-slice filament assignment regression test is missing: {test_name}")
 
-    mmu_assignment_source = (JAVA / "components/MmuFilamentAssignmentDialog.kt").read_text(encoding="utf-8")
+    mmu_assignment_source = (JAVA / "components/MmuFilamentAssignments.kt").read_text(encoding="utf-8")
     for contract in (
-        "ComposeView(context)", "BeamComposeTheme {", "MmuAssignmentContent(",
+        "object MmuFilamentAssignments", "fun availableGates(", "fun initialMapping(",
         "MmuFilamentSync.loadedGates(printerTitle)",
         "MmuFilamentSync.getSelectedGates(printerTitle, toolCount)",
-        "MmuFilamentSync.setSelectedGates(printerTitle, result)",
-        "R.string.MmuAssignmentContinue",
-        "callback.onSelected(result.clone())",
+        "internal fun MmuAssignmentContent(", "AcePhysicalSlotsBar(",
+        "MmuColorAssignmentPolicy.suggest(", "MmuColorAssignmentPolicy.materialMismatch(",
     ):
         if contract not in mmu_assignment_source:
             raise AssertionError(f"ACE gate assignment lost its Compose UI or saved mapping behavior: {contract}")
@@ -1982,20 +1907,21 @@ def main() -> None:
         raise AssertionError("Cloud coordinator behavior was lost during Kotlin migration: " + ", ".join(missing_cloud_controller_contracts))
 
     changelog_java = JAVA / "components/ChangeLogBottomSheet.java"
-    changelog_path = JAVA / "components/ChangeLogBottomSheet.kt"
+    changelog_path = JAVA / "components/ChangeLogDialog.kt"
     if changelog_java.exists():
         raise AssertionError("The change-log sheet still has a Java implementation")
     if not changelog_path.exists():
         raise AssertionError("The Kotlin change-log sheet is missing")
     changelog_source = changelog_path.read_text(encoding="utf-8")
     changelog_contracts = (
-        "class ChangeLogBottomSheet(context: Context) : BottomSheetDialog(context)",
-        "ComposeView(context)", "BeamComposeTheme", "ChangeLogContent(",
+        "class ChangeLogDialog(private val context: Context)", "fun Content(onDismiss: () -> Unit)",
+        "Dialog(", "BeamComposeTheme", "ChangeLogContent(",
         "loadReleaseNotes(context)", "ChangeLogContentResolver.localizedText(",
         "BeamServerData.isBoostyAvailable()",
         "supporters = data.boostySubscribers.shuffled()", "BeamServerDataUpdatedEvent",
-        "SliceBeam.EVENT_BUS.registerListener(this)", "SliceBeam.EVENT_BUS.unregisterListener(this)",
-        "BottomSheetBehavior.STATE_EXPANDED", "https://boosty.to/ytkab0bp",
+        "SliceBeam.EVENT_BUS.registerListener(this@ChangeLogDialog)",
+        "SliceBeam.EVENT_BUS.unregisterListener(this@ChangeLogDialog)",
+        "https://boosty.to/ytkab0bp",
     )
     missing_changelog_contracts = [item for item in changelog_contracts if item not in changelog_source]
     if missing_changelog_contracts:
@@ -2089,8 +2015,8 @@ def main() -> None:
         if "SimpleRecyclerItem<ComposeView>" in option_source or "onCreateView(" in option_source:
             raise AssertionError(f"{option_file.name} still creates a nested Android/Compose view wrapper.")
     printer_config_source = (JAVA / "fragment/PrinterConfigFragment.kt").read_text(encoding="utf-8")
-    if "ProfileActionItem(" not in printer_config_source or "PreferenceItem()" in printer_config_source:
-        raise AssertionError("Printer web and filament-sync actions must use the direct Compose profile-row model")
+    if "PrinterConnectionCard(" not in printer_config_source or "OrcaPrinterSettingsBuilder.build(this)" not in printer_config_source:
+        raise AssertionError("Printer web action and profile settings must use the current profile header and settings builder")
     setting_items = (JAVA / "fragment/ProfileSettingItems.kt").read_text(encoding="utf-8")
     space_item = (JAVA / "recycler/SpaceItem.kt").read_text(encoding="utf-8")
     if "class ProfileActionItem(" not in setting_items or "ProfileSettingsComposeItem" not in setting_items:
@@ -2289,7 +2215,7 @@ def main() -> None:
     marker_events = (
         "BeamServerDataUpdatedEvent", "CloudFeaturesUpdatedEvent", "CloudLoginStateUpdatedEvent",
         "CloudModelsRemainingCountUpdatedEvent", "CloudSyncFinishedEvent", "FlattenModeResetEvent",
-        "NeedDismissAIGeneratorMenu", "NeedDismissCalibrationsMenu", "ObjectsListChangedEvent",
+        "ObjectsListChangedEvent",
         "SelectedObjectChangedEvent",
     )
     for event_name in marker_events:
@@ -2302,15 +2228,15 @@ def main() -> None:
         if f"open class {event_name}" not in kotlin_event.read_text(encoding="utf-8"):
             raise AssertionError(f"{event_name} no longer preserves its extensible Java class contract")
 
-    slice_progress_source = (JAVA / "components/SliceProgressBottomSheet.kt").read_text(encoding="utf-8")
+    slice_progress_source = (JAVA / "components/SliceProgressDialog.kt").read_text(encoding="utf-8")
     slice_progress_state = (JAVA / "components/SliceProgressState.kt").read_text(encoding="utf-8")
     for progress_contract in (
-        "class SliceProgressBottomSheet(context: Context) : BottomSheetDialog(context)",
+        "class SliceProgressDialog(", "fun Content()",
         "SliceProgressContent(progressState)", "LazyColumn(", "LinearProgressIndicator(",
-        "LaunchedEffect(state.messages.size)", "BottomSheetBehavior.STATE_EXPANDED",
+        "LaunchedEffect(state.messages.size)",
         "SliceBeam.EVENT_BUS.registerListener(eventBridge)",
         "SliceBeam.EVENT_BUS.unregisterListener(eventBridge)",
-        "if (progressState.completed) dismiss()",
+        "if (progressState.completed && !completionReported)", "onCompleted()",
         "localizeProgressMessage(Slic3rLocalization.getString(message))",
     ):
         if progress_contract not in slice_progress_source:
@@ -2782,9 +2708,10 @@ def main() -> None:
             "setSelectedObject(i, showActionBar = false)",
         ),
         "fragment/BedFragment": (
-            "if (event.showActionBar) {",
-            "selectedObjectBarSelectionRevision++",
-            "selectedObjectBar?.setVisibility(View.GONE)",
+            "private val workspaceController = WorkspaceController()",
+            "get() = workspaceController.selectedDestinationSlot",
+            "showWorkspaceComposeDialog { dismiss ->",
+            "ModelContextMenuDialog(",
         ),
     }
     for relative_name, contracts in remaining_migration_contracts.items():
@@ -2866,7 +2793,7 @@ def main() -> None:
         if legacy_views:
             raise AssertionError(f"SetupActivity {name} still builds native layout views: " + ", ".join(legacy_views))
     setup_screen_contracts = (
-        "fun SetupAboutScreen(versionName: String, onClose: () -> Unit)",
+        "fun SetupAboutScreen(versionName: String, updateStatus: String, onCheckUpdate: () -> Unit, onClose: () -> Unit)",
         "fun SetupIntroScreen(onNext: () -> Unit)",
         "fun SetupPresetSourceScreen(",
         "R.string.SetupPresetSource",
@@ -2977,19 +2904,27 @@ def main() -> None:
             + ", ".join(str(path.relative_to(app_tests)) for path in remaining_test_java)
         )
     android_view_bridges = [
-        str(path.relative_to(JAVA))
+        path.relative_to(JAVA).as_posix()
         for path in JAVA.rglob("*.kt")
         if "AndroidView(" in path.read_text(encoding="utf-8")
     ]
-    if android_view_bridges:
+    required_android_interop = {
+        "components/KromacutEditorMenu.kt",  # WebView hosting KromaCut's WebGL editor.
+        "ui/workspace/PrinterWebWorkspacePanel.kt",  # Printer dashboard WebView.
+        "ui/workspace/WorkspaceShell.kt",  # Retains the GLView renderer in the Compose workspace.
+    }
+    unexpected_android_bridges = sorted(set(android_view_bridges) - required_android_interop)
+    missing_required_android_bridges = sorted(required_android_interop - set(android_view_bridges))
+    if unexpected_android_bridges or missing_required_android_bridges:
         raise AssertionError(
-            "AndroidView interop bridges remain in app production sources: "
-            + ", ".join(android_view_bridges)
+            "AndroidView interop differs from the required WebView/GL renderer hosts: unexpected: "
+            + ", ".join(unexpected_android_bridges)
+            + "; missing: " + ", ".join(missing_required_android_bridges)
         )
 
     kotlin_count = len(list(JAVA.rglob("*.kt")))
     kotlin_test_count = len(list(app_tests.rglob("*.kt"))) if app_tests.exists() else 0
-    print(f"Kotlin migration audit passed: all {kotlin_count} app production sources and {kotlin_test_count} app unit tests are Kotlin, no AndroidView interop bridges remain, migrated Java contracts and lifecycle/render routes are present, early MainActivity lifecycle callbacks are null-safe, setup pages render directly inside the Compose pager, printer/filament selection pages use Compose, and every profile row uses typed direct Compose; shared theme, adaptive Compose navigation/header, native model wrapper, event payloads, utility/boot/render contracts, Maker/converter routes and printing flows are retained.")
+    print(f"Kotlin UI migration audit passed: all {kotlin_count} app production sources and {kotlin_test_count} app unit tests are Kotlin; AndroidView is limited to the GL renderer and required WebViews; migrated lifecycle/render routes, Compose setup/profile flows, theme/navigation, model wrapper, events, utility/boot/render contracts, Maker route and printing flows are present.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Tous les curseurs de tonalité et de couleur, leur effet sur les couleurs cibles et le moment où appliquer l’aperçu à l’image." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/fr/docs/image-adjustments">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Réglages d’image | Documentation Kromacut" />
+        <meta property="og:description" content="Tous les curseurs de tonalité et de couleur, leur effet sur les couleurs cibles et le moment où appliquer l’aperçu à l’image." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/fr/docs/image-adjustments" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="fr_FR" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Réglages d’image | Documentation Kromacut" />
+        <meta name="twitter:description" content="Tous les curseurs de tonalité et de couleur, leur effet sur les couleurs cibles et le moment où appliquer l’aperçu à l’image." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Réglages d’image | Documentation Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/image-adjustments">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/image-adjustments">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/image-adjustments">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/image-adjustments">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/image-adjustments">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/image-adjustments">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/image-adjustments">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/image-adjustments">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/image-adjustments">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/image-adjustments">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/image-adjustments">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/image-adjustments">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/image-adjustments">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/fr/">Aller à l’accueil</a>
+                    <a href="/app">Ouvrir Kromacut</a>
+                    <ul><li><a href="/fr/docs/overview">Présentation</a></li><li><a href="/fr/docs/quick-start">Démarrage rapide</a></li><li><a href="/fr/docs/loading-images">Chargement des images</a></li><li><a href="/fr/docs/image-adjustments">Réglages d’image</a></li><li><a href="/fr/docs/reducing-colors">Réduction des couleurs</a></li><li><a href="/fr/docs/dedithering-cleanup">Détramage et nettoyage</a></li><li><a href="/fr/docs/3d-mode">Mode 3D</a></li><li><a href="/fr/docs/auto-paint">Commandes de peinture automatique</a></li><li><a href="/fr/docs/calibration-theory">Théorie de l’étalonnage</a></li><li><a href="/fr/docs/flat-paint">Peinture à plat</a></li><li><a href="/fr/docs/calibration-workflows">Méthodes d’étalonnage</a></li><li><a href="/fr/docs/generating-exporting-output">Génération et export</a></li><li><a href="/fr/docs/settings-and-controls">Paramètres et commandes</a></li><li><a href="/fr/docs/troubleshooting">Dépannage</a></li><li><a href="/fr/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="image-adjustments">Réglages d’image</h1>
+<p>Les réglages modifient l’image cible avant la réduction des couleurs. Ils n’étalonnent pas le filament, ne modifient pas sa distance de masquage et ne garantissent pas qu’une couleur affichée soit physiquement imprimable.</p>
+<p>Déplacez un curseur pour prévisualiser son effet ; l’aperçu se met à jour lorsque vous terminez l’interaction. Tous commencent à zéro. Les flèches individuelles réinitialisent un curseur ; la réinitialisation du panneau les rétablit tous.</p>
+<h2 id="tone-and-color-controls">Commandes de tonalité et de couleur</h2>
+<p><a href="/localized/fr/diagrams/32_adjustment_controls.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Exemples illustratifs négatifs, neutres et positifs pour les douze réglages."><img src="/localized/fr/diagrams/32_adjustment_controls.svg" alt="Exemples illustratifs négatifs, neutres et positifs pour les douze réglages." loading="lazy"></a></p>
+<p><em>Il s’agit de tendances schématiques, pas de prédictions d’impression étalonnées. Les effets dépendent de la source et des autres réglages actifs.</em></p>
+<h3 id="tone">Tonalité</h3>
+<table><thead><tr><th>Curseur</th><th>Plage</th><th>Valeurs négatives</th><th>Valeurs positives</th><th>Conséquence pour la préparation à l’impression</th></tr></thead><tbody><tr><td>Exposition</td><td>−3 à +3 diaphragmes, pas de 0,01</td><td>Assombrit les valeurs RVB.</td><td>Les éclaircit ; +1 double les valeurs des canaux jusqu’à écrêtage.</td><td>Déplace les tons cibles globalement. Ce réglage d’image rendue ne récupère pas les informations RAW écrêtées.</td></tr><tr><td>Contraste</td><td>−100 % à +100 %</td><td>Ramène les tons vers le gris moyen. À −100 %, tout devient gris moyen avant les autres réglages.</td><td>Éloigne les tons du gris moyen, avec écrêtage au noir/blanc.</td><td>Sépare les grandes zones, mais peut aplatir les ombres et hautes lumières subtiles.</td></tr><tr><td>Hautes lumières</td><td>−100 % à +100 %</td><td>Assombrit les zones claires.</td><td>Éclaircit les zones claires.</td><td>Modifie les tons clairs en concurrence pour la palette ; ne récupère pas les détails absents.</td></tr><tr><td>Ombres</td><td>−100 % à +100 %</td><td>Assombrit les zones d’ombre.</td><td>Éclaircit les zones d’ombre.</td><td>Peut révéler les différences sombres déjà présentes avant la réduction.</td></tr><tr><td>Blancs</td><td>−100 % à +100 %</td><td>Assombrit la plage la plus claire.</td><td>Éclaircit la plage la plus claire.</td><td>Sépare ou fusionne les cibles proches du blanc. Ce n’est pas une balance des blancs.</td></tr><tr><td>Noirs</td><td>−100 % à +100 %</td><td>Assombrit la plage la plus sombre.</td><td>Éclaircit la plage la plus sombre.</td><td>Modifie les cibles proches du noir ; le noir pur reste noir, car les valeurs sont multipliées.</td></tr></tbody></table>
+<p>Hautes lumières/Ombres couvrent des plages plus larges que Blancs/Noirs. Les plages se chevauchent : un pixel très sombre peut réagir aux Noirs et aux Ombres. Elles sont évaluées après Exposition, Contraste, Température/Nuance et les réglages TSL ; les commandes peuvent donc interagir.</p>
+<h3 id="color-and-local-detail">Couleur et détails locaux</h3>
+<table><thead><tr><th>Curseur</th><th>Plage</th><th>Valeurs négatives</th><th>Valeurs positives</th><th>Conséquence pour la préparation à l’impression</th></tr></thead><tbody><tr><td>Saturation</td><td>−100 % à +100 %</td><td>Réduit l’intensité ; −100 % désature.</td><td>Augmente l’intensité.</td><td>Modifie les différences de couleur de l’image, pas la gamme physique des filaments.</td></tr><tr><td>Vibrance</td><td>−100 % à +100 %</td><td>Réduit davantage la saturation des couleurs relativement peu saturées.</td><td>Augmente davantage la saturation des couleurs relativement peu saturées.</td><td>Moins uniforme que Saturation, sans reconnaissance des tons de peau. Le gris pur reste gris.</td></tr><tr><td>Teinte</td><td>−180° à +180°</td><td>Fait tourner les teintes dans un sens.</td><td>Les fait tourner dans l’autre sens.</td><td>Recolore toute l’image ; modifiez un échantillon pour une seule couleur exacte.</td></tr><tr><td>Température</td><td>−100 à +100</td><td>Plus froid : moins de rouge, plus de bleu.</td><td>Plus chaud : plus de rouge, moins de bleu.</td><td>Correction approximative de dominante, <strong>pas en kelvins</strong>.</td></tr><tr><td>Nuance</td><td>−100 à +100</td><td>Ajoute du vert.</td><td>Ajoute du magenta en augmentant rouge/bleu et en réduisant le vert.</td><td>Corrige ou introduit une dominante ; ce n’est pas un profil d’appareil photo mesuré.</td></tr><tr><td>Clarté</td><td>−100 à +100</td><td>Adoucit le contraste local.</td><td>Accentue le contraste local et les contours.</td><td>Peut créer des couleurs de bord ou des halos nécessitant une quantification. Ne récupère pas de détails et n’élargit pas les lignes fines.</td></tr></tbody></table>
+<p>À l’exception d’Exposition et de Teinte, les curseurs avancent par pas entiers. L’alpha reste inchangé. La quantification traite l’alpha différemment : elle rend les pixels partiellement transparents entièrement opaques.</p>
+<h2 id="preview-versus-apply">Aperçu et application</h2>
+<p><a href="/localized/fr/diagrams/33_adjustment_bake.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Un aperçu en direct part de la source. Appliquer incorpore son apparence et remet les curseurs à zéro ; la quantification, l’export PNG et la 3D utilisent ensuite ces pixels."><img src="/localized/fr/diagrams/33_adjustment_bake.svg" alt="Un aperçu en direct part de la source. Appliquer incorpore son apparence et remet les curseurs à zéro ; la quantification, l’export PNG et la 3D utilisent ensuite ces pixels." loading="lazy"></a></p>
+<p><strong>Appliquer</strong> incorpore l’apparence actuelle à l’image sous-jacente, réinitialise les curseurs à zéro et crée une étape dans l’historique. Cela ne réduit pas les couleurs, ne génère pas le modèle et ne modifie pas les paramètres d’impression.</p>
+<p>La distinction est importante :</p>
+<ul><li><strong>La quantification, Redimensionner l’image, Télécharger l’image et la génération 3D utilisent l’image de travail sous-jacente</strong>, pas les réglages d’aperçu non appliqués.</li><li><strong>Couleurs de l’image</strong> décrit les pixels sous-jacents : ses échantillons ne suivent donc pas les réglages en direct.</li><li>Les outils de retouche modifient l’image sous-jacente ; les réglages actifs se réappliquent par-dessus.</li><li>Le détramage lit l’image ajustée. Appliquez d’abord les réglages pour éviter qu’ils restent actifs sur son résultat traité.</li></ul>
+<p>La séquence fiable est <strong>prévisualiser les réglages → appliquer les réglages → quantifier → examiner/nettoyer → générer la 3D</strong>. Si possible, recadrez et redimensionnez avant ces étapes.</p>
+<h2 id="reset-and-undo-are-different">Réinitialiser et annuler sont différents</h2>
+<p>Réinitialiser supprime un réglage en direct, pas une modification déjà incorporée à l’image. Après Appliquer, les curseurs à zéro sont normaux puisque leur effet précédent fait désormais partie de l’image. Utilisez <strong>Annuler</strong> pour restaurer l’image antérieure.</p>
+<p>Des applications répétées travaillent sur l’image déjà modifiée ; l’écrêtage et la perte de détails tonals peuvent donc s’accumuler. Annulez d’abord pour comparer des alternatives.</p>
+<p>Suite : <a href="/fr/docs/reducing-colors">Réduction des couleurs</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

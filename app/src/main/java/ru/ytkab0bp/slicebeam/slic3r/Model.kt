@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam.slic3r
 
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -18,6 +19,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     @Volatile
     private var geometryRevisionValue: Long = 0L
+    @Volatile
+    private var stateRevisionValue: Long = 0L
 
     private var boundingExact: DoubleArray? = null
     private var boundingApprox: DoubleArray? = null
@@ -38,6 +41,10 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     @Throws(Slic3rRuntimeError::class)
     constructor(file: File, plateId: Int, progress: ImportProgressCallback) : this(readModelPointer(file.absolutePath, plateId, progress))
+
+    @Throws(Slic3rRuntimeError::class)
+    constructor(file: File, plateId: Int, stepOptions: StepImportOptions, progress: ImportProgressCallback? = null) :
+        this(readModelPointer(file.absolutePath, plateId, progress, stepOptions))
 
     open fun getBoundingBoxExact(i: Int, min: Vec3d, max: Vec3d) {
         val data = Native.model_get_bounding_box_exact(pointer, i)
@@ -87,11 +94,20 @@ open class Model private constructor(@JvmField var pointer: Long) {
         boundingExact = null
         boundingApprox = null
         geometryRevisionValue++
+        stateRevisionValue++
     }
 
     /** Revision for invalidating inexpensive analysis results tied to this model geometry. */
     open val geometryRevision: Long
         get() = geometryRevisionValue
+
+    /** Revision for rejecting background edit results if any model state changed meanwhile. */
+    open val stateRevision: Long
+        get() = stateRevisionValue
+
+    open fun markStateChanged() {
+        stateRevisionValue++
+    }
 
     open fun translate(i: Int, x: Double, y: Double, z: Double) {
         Native.model_translate(pointer, i, x, y, z)
@@ -115,6 +131,12 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun rotate(i: Int, x: Double, y: Double, z: Double) {
         Native.model_rotate(pointer, i, x, y, z)
+        resetBoundingBox()
+    }
+
+    /** Reset rotations on all object volumes without changing their translations or scales. */
+    open fun resetRotation(i: Int) {
+        Native.model_reset_rotation(pointer, i)
         resetBoundingBox()
     }
 
@@ -156,6 +178,24 @@ open class Model private constructor(@JvmField var pointer: Long) {
         resetBoundingBox()
     }
 
+    /** Atomically swaps this model's native contents with a prepared model on the GL thread. */
+    open fun replaceContentsFrom(other: Model) {
+        require(pointer != 0L && other.pointer != 0L && pointer != other.pointer)
+        Native.model_replace_contents(pointer, other.pointer)
+        resetBoundingBox()
+        other.resetBoundingBox()
+    }
+
+    /** Adds a linked instance of an object while preserving the source instance transform. */
+    open fun duplicateInstance(i: Int, sourceInstanceIndex: Int, offset: Vec3d): Int {
+        if (pointer == 0L || !offset.x.isFinite() || !offset.y.isFinite() || !offset.z.isFinite()) return -1
+        val instanceIndex = Native.model_duplicate_instance(
+            pointer, i, sourceInstanceIndex, offset.x, offset.y, offset.z,
+        )
+        if (instanceIndex >= 0) resetBoundingBox()
+        return instanceIndex
+    }
+
     open fun deleteObject(i: Int) {
         Native.model_delete_object(pointer, i)
         resetBoundingBox()
@@ -180,6 +220,29 @@ open class Model private constructor(@JvmField var pointer: Long) {
         if (result) resetBoundingBox()
         return result
     }
+
+    /** Applies a cut and removes only newly committed, unprocessed connectors if it fails. */
+    open fun cutPreservingConnectorsOnFailure(
+        objectIndex: Int,
+        connectorCountBeforeCommit: Int,
+        zHeight: Double,
+        rotX: Double,
+        rotY: Double,
+        keepUpper: Boolean,
+        keepLower: Boolean,
+    ): Boolean {
+        val applied = cut(objectIndex, zHeight, rotX, rotY, keepUpper, keepLower)
+        if (!applied) {
+            val connectorCount = Native.model_get_cut_connector_count(pointer, objectIndex)
+            for (connectorIndex in connectorCount - 1 downTo connectorCountBeforeCommit) {
+                removeConnector(objectIndex, connectorIndex)
+            }
+        }
+        return applied
+    }
+
+    open fun getCutConnectorCount(objectIndex: Int): Int =
+        Native.model_get_cut_connector_count(pointer, objectIndex)
 
     open fun addConnector(
         objectIndex: Int,
@@ -233,6 +296,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
         vec.set(mirror[0], mirror[1], mirror[2])
     }
 
+    /** Mirrors every volume in an object around its current world-space bounds center. */
+    open fun mirror(i: Int, axis: ModelMirrorAxis) {
+        require(i in 0 until objectsCount) { "Invalid model object index: $i" }
+        Native.model_mirror(pointer, i, axis.nativeValue)
+        resetBoundingBox()
+    }
+
     open fun createFlattenPlanes(i: Int): List<GLModel> {
         val pointers = Native.model_create_flatten_planes(pointer, i)
         val models = ArrayList<GLModel>(pointers.size)
@@ -242,8 +312,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun getExtruder(i: Int): Int = Native.model_get_extruder(pointer, i)
 
+    /** One-based filament assigned to a specific volume, including object-level fallback. */
+    open fun getVolumeExtruder(objectIndex: Int, volumeIndex: Int): Int =
+        if (pointer == 0L) -1 else Native.model_get_volume_extruder(pointer, objectIndex, volumeIndex)
+
     open fun setExtruder(i: Int, extruder: Int) {
         Native.model_set_extruder(pointer, i, extruder)
+        markStateChanged()
     }
 
     /** One-based filament indices used by parts and painted facets of this object. */
@@ -251,14 +326,24 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun setUniformFilament(i: Int, filament: Int) {
         Native.model_set_uniform_filament(pointer, i, filament)
+        markStateChanged()
+    }
+
+    /** Remaps imported logical filament IDs (one-based) throughout all model-part volumes and painted facets. */
+    open fun remapFilaments(sourceFilaments: IntArray, targetFilaments: IntArray) {
+        require(sourceFilaments.size == targetFilaments.size) { "Source and target filament arrays must match" }
+        Native.model_remap_filaments(pointer, sourceFilaments, targetFilaments)
+        markStateChanged()
     }
 
     open fun applyAdaptiveLayerHeight(i: Int, configPath: String, qualityFactor: Float) {
         Native.model_apply_adaptive_layer_height(pointer, i, configPath, qualityFactor)
+        markStateChanged()
     }
 
     open fun clearAdaptiveLayerHeight(i: Int) {
         Native.model_clear_adaptive_layer_height(pointer, i)
+        markStateChanged()
     }
 
     open fun hasAdaptiveLayerHeight(i: Int): Boolean = Native.model_has_adaptive_layer_height(pointer, i)
@@ -279,6 +364,60 @@ open class Model private constructor(@JvmField var pointer: Long) {
         )
         resetBoundingBox()
     }
+
+    /** Creates printable text; with a target index, conforms it to that surface and adds it as a target part. */
+    open fun createTextObject(
+        fontPath: String,
+        text: String,
+        size: Float,
+        depth: Float,
+        position: Vec3d,
+        normal: Vec3d,
+        targetObjectIndex: Int = -1,
+    ): Int {
+        if (pointer == 0L) return -1
+        val placement = ModelEditRequestValidation.snapshotTextPlacement(position, normal)
+        if (!ModelEditRequestValidation.isValidTextRequest(
+                fontPath, text, size, depth, placement.position, placement.normal, targetObjectIndex, objectsCount,
+            )
+        ) return -1
+        val index = Native.model_create_text_object(
+            pointer, fontPath, text, size, depth,
+            placement.position.x, placement.position.y, placement.position.z,
+            placement.normal.x, placement.normal.y, placement.normal.z,
+            targetObjectIndex,
+        )
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    /** Combines selected single-instance objects into a multipart object while preserving volume materials. */
+    open fun combineObjectsAsParts(objectIndices: IntArray): Int {
+        if (pointer == 0L) return -1
+        val stableIndices = ModelEditRequestValidation.distinctObjectIndicesSnapshot(objectIndices, objectsCount) ?: return -1
+        val index = Native.model_combine_objects_as_parts(pointer, stableIndices)
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    /**
+     * Applies a validated Orca/CGAL solid operation to the selected single-instance objects.
+     * The first index is the target; remaining objects are applied in order. Returns the
+     * replacement object's index, or a negative status without changing inputs.
+     */
+    open fun booleanObjects(objectIndices: IntArray, operation: BooleanOperation): Int {
+        if (pointer == 0L) return -1
+        val stableIndices = ModelEditRequestValidation.distinctObjectIndicesSnapshot(objectIndices, objectsCount) ?: return -1
+        val index = Native.model_boolean_objects(pointer, stableIndices, operation.nativeValue)
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    open fun booleanObjects(targetIndex: Int, toolIndex: Int, operation: BooleanOperation): Int =
+        booleanObjects(intArrayOf(targetIndex, toolIndex), operation)
+
+    /** Absolute mesh volume in mm³ for one object, including its instance transform. */
+    open fun getObjectVolume(i: Int): Double = Native.model_get_object_volume(pointer, i)
 
     /** True if object i has any committed multi-color painting. */
     open fun hasPaint(i: Int): Boolean = Native.model_has_paint(pointer, i)
@@ -327,9 +466,18 @@ open class Model private constructor(@JvmField var pointer: Long) {
         // Declare enough filament slots for object assignments and painted facets so native
         // slicing emits all required multi-material tool changes.
         val numFilaments = requiredFilamentCount
-        val palette = Prefs.getFilamentPalette()
         val colors = if (numFilaments > 1) {
-            IntArray(numFilaments) { i -> palette[minOf(i, palette.size - 1)] and 0xFFFFFF }
+            val configColors = runCatching {
+                File(configPath).useLines { lines ->
+                    lines.lastOrNull { it.startsWith("filament_colour = ") }
+                        ?.substringAfter("filament_colour = ")
+                }
+            }.getOrNull()
+            SliceFilamentColorResolver.resolve(
+                configColors,
+                numFilaments,
+                Prefs.getFilamentPalette(),
+            )
         } else {
             null
         }
@@ -340,7 +488,11 @@ open class Model private constructor(@JvmField var pointer: Long) {
             pointer, configPath, gcodePath, nativeListener, numFilaments, colors ?: IntArray(0),
             calibMode, calibStart, calibEnd, calibStep,
         )
-        return GCodeProcessorResult(resultPointer)
+        return GCodeProcessorResult(resultPointer).also { result ->
+            // Keep the effective ACE/profile palette with the result so the tool-color
+            // preview shows the same colors that the native slicer actually received.
+            result.previewToolColors = colors?.copyOf()
+        }
     }
 
     @Throws(Slic3rRuntimeError::class)
@@ -395,8 +547,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     companion object {
-        private fun readModelPointer(path: String, plateId: Int, progress: ImportProgressCallback? = null): Long {
-            val result = OrcaModelBridge.load(path, plateId, progress)
+        private fun readModelPointer(
+            path: String,
+            plateId: Int,
+            progress: ImportProgressCallback? = null,
+            stepOptions: StepImportOptions? = null,
+        ): Long {
+            val result = OrcaModelBridge.load(path, plateId, progress, stepOptions)
             if (!result.isSuccess()) {
                 throw Slic3rRuntimeError(result.errorMessage, result.cause)
             }
@@ -409,4 +566,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
             return Model(Native.models_merge(*pointers))
         }
     }
+}
+
+enum class BooleanOperation(val nativeValue: Int) {
+    UNION(0), DIFFERENCE(1), INTERSECTION(2),
 }

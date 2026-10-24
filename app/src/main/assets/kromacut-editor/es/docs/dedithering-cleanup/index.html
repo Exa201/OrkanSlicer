@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Limpieza del vecindario por colores exactos y sus efectos sobre motas, bordes, transparencia e islas imprimibles." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/es/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Eliminación de tramado y limpieza | Documentación de Kromacut" />
+        <meta property="og:description" content="Limpieza del vecindario por colores exactos y sus efectos sobre motas, bordes, transparencia e islas imprimibles." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/es/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="es_ES" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Eliminación de tramado y limpieza | Documentación de Kromacut" />
+        <meta name="twitter:description" content="Limpieza del vecindario por colores exactos y sus efectos sobre motas, bordes, transparencia e islas imprimibles." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Eliminación de tramado y limpieza | Documentación de Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentación">
+                    <a href="/es/">Ir a la página de inicio</a>
+                    <a href="/app">Abrir Kromacut</a>
+                    <ul><li><a href="/es/docs/overview">Visión general</a></li><li><a href="/es/docs/quick-start">Inicio rápido</a></li><li><a href="/es/docs/loading-images">Cargar imágenes</a></li><li><a href="/es/docs/image-adjustments">Ajustes de imagen</a></li><li><a href="/es/docs/reducing-colors">Reducir colores</a></li><li><a href="/es/docs/dedithering-cleanup">Eliminación de tramado y limpieza</a></li><li><a href="/es/docs/3d-mode">Modo 3D</a></li><li><a href="/es/docs/auto-paint">Controles de pintura automática</a></li><li><a href="/es/docs/calibration-theory">Teoría de calibración</a></li><li><a href="/es/docs/flat-paint">Pintura plana</a></li><li><a href="/es/docs/calibration-workflows">Flujos de calibración</a></li><li><a href="/es/docs/generating-exporting-output">Generación y exportación</a></li><li><a href="/es/docs/settings-and-controls">Ajustes y controles</a></li><li><a href="/es/docs/troubleshooting">Solución de problemas</a></li><li><a href="/es/docs/faq">Preguntas frecuentes</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Eliminación de tramado y limpieza</h1>
+<p><strong>Eliminar tramado</strong> sustituye los píxeles con poco apoyo local por colores vecinos. Es una pasada de limpieza independiente, no un algoritmo de cuantización ni una simulación de lo que puede imprimir la boquilla.</p>
+<p>Úsala en patrones tramados de colores repetidos o imágenes reducidas con motas aisladas. Puede funcionar antes de cuantizar si el original ya contiene esos patrones, o después sobre regiones reducidas. No es un filtro de reducción de ruido fotográfico: los píxeles vecinos de una foto suelen tener colores exactos ligeramente distintos.</p>
+<h2 id="how-a-pixel-is-chosen">Cómo se elige un píxel</h2>
+<p><a href="/localized/es/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="Abrir ilustración a tamaño completo: Los ocho píxeles vecinos votan por color exacto. El peso define cuántos vecinos iguales hacen falta para conservar el centro; cada pasada usa el resultado anterior."><img src="/localized/es/diagrams/36_dedither_neighbors.svg" alt="Los ocho píxeles vecinos votan por color exacto. El peso define cuántos vecinos iguales hacen falta para conservar el centro; cada pasada usa el resultado anterior." loading="lazy"></a></p>
+<p>Cada píxel comprueba sus ocho vecinos inmediatos, incluidas las diagonales. Si suficientes coinciden exactamente en <strong>RGB y alfa</strong>, se conserva. Si no, adopta el color diferente más frecuente del vecindario. Los empates se resuelven al azar, por lo que los mismos ajustes no tienen por qué producir ejecuciones idénticas.</p>
+<p>Solo se usan colores vecinos existentes, incluidos píxeles transparentes. No se promedian para crear una nueva tonalidad.</p>
+<h2 id="weight">Peso</h2>
+<p>El <strong>Peso</strong> es el número de vecinos iguales necesario para conservar el píxel original. Intervalo: <strong>1 a 9</strong>; valor predeterminado: <strong>4</strong>.</p>
+<table><thead><tr><th>Ejemplo</th><th>Resultado</th></tr></thead><tbody><tr><td>Ningún vecino igual</td><td>Cambia si existe otro color vecino, incluso con peso 1.</td></tr><tr><td>Tres vecinos iguales</td><td>Se conserva con peso 3; puede sustituirse con peso 4.</td></tr><tr><td>El centro y los ocho vecinos coinciden</td><td>Se conserva incluso con peso 9 porque no existe ningún vecino distinto.</td></tr></tbody></table>
+<p>Los valores bajos tienden a conservar detalles; los altos permiten sustituir más píxeles. Con solo ocho vecinos, el peso 9 nunca alcanza el umbral de conservación. Es un ajuste agresivo de bordes, no un radio mayor. Los píxeles del borde también tienen menos vecinos disponibles.</p>
+<h2 id="passes">Pasadas</h2>
+<p><strong>Pasadas</strong> repite la limpieza entre <strong>1 y 10</strong> veces, con <strong>1</strong> por defecto. Cada pasada lee el resultado anterior completo. Más pasadas pueden quitar motas persistentes, pero también mover bordes, romper conexiones estrechas o borrar texto pequeño.</p>
+<p>Las flechas de restablecimiento de cada campo recuperan peso 4 o pasadas 1. El restablecimiento del panel recupera ambos. Ninguno restaura la imagen anterior; usa Deshacer para eso.</p>
+<h2 id="apply-and-inspect">Aplicar e inspeccionar</h2>
+<ol><li><strong>Aplica</strong> primero los ajustes activos. Eliminar tramado lee la vista ajustada; incorporarlos antes evita dejar ajustes en directo activos sobre el resultado limpio.</li><li>Empieza con una pasada. El peso predeterminado es 4; prueba valores menores si importan los detalles finos.</li><li>Haz clic en <strong>Aplicar</strong> y examina contornos, letras y bordes transparentes con mucho aumento.</li><li>Deshaz antes de comparar otro ajuste con la misma imagen inicial.</li></ol>
+<p>Pulsar Aplicar repetidamente sigue limpiando la imagen ya limpiada. No son comparaciones independientes con el original.</p>
+<h2 id="effect-on-the-print">Efecto en la impresión</h2>
+<p>Quitar píxeles aislados de otro color puede eliminar islas diminutas, pero también detalles deseados. El alfa participa en la votación, así que la limpieza puede ampliar o reducir la silueta y abrir o cerrar agujeros.</p>
+<p>Trabaja en <strong>píxeles de imagen</strong>, no en milímetros. Un detalle de tres píxeles a 0,1 mm/píxel ocupa 0,3 mm antes de las decisiones posteriores de malla o laminado. Esta herramienta no tiene un parámetro de diámetro de boquilla. Usa los <a href="/es/docs/3d-mode">controles 3D de detalles imprimibles</a> y la vista previa del laminador para comprobar los detalles físicos.</p>
+<h2 id="dedither-versus-height-dithering">Eliminar tramado frente a tramado de altura</h2>
+<table><thead><tr><th>Herramienta</th><th>Dónde</th><th>Qué cambia</th></tr></thead><tbody><tr><td>Eliminar tramado</td><td>2D</td><td>Las regiones de color exacto y, posiblemente, el contorno transparente de la imagen original.</td></tr><tr><td>Tramado de altura</td><td>Pintura automática en 3D</td><td>El patrón de alturas de superficie generado para aproximar colores objetivo.</td></tr></tbody></table>
+<p>Usar una no activa la otra. No apliques la eliminación de tramado si quieres conservar arte de píxeles o punteado intencionado.</p>
+<p>Siguiente: <a href="/es/docs/3d-mode">Modo 3D</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

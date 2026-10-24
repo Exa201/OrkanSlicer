@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Every tone and color slider, its effect on target colors, and when to bake the preview into the image." />
+        <meta
+            name="keywords"
+            content="Kromacut, free image to 3D print, color lithophane, filament swaps, palette quantization, STL export, 3MF export"
+        />
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/docs/image-adjustments" />
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Image Adjustments | Kromacut Docs" />
+        <meta property="og:description" content="Every tone and color slider, its effect on target colors, and when to bake the preview into the image." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/docs/image-adjustments" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut logo" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Image Adjustments | Kromacut Docs" />
+        <meta name="twitter:description" content="Every tone and color slider, its effect on target colors, and when to bake the preview into the image." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut logo" />
+        <title>Image Adjustments | Kromacut Docs</title>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "WebSite",
+                        "@id": "https://kromacut.com/#website",
+                        "url": "https://kromacut.com/",
+                        "name": "Kromacut",
+                        "description": "Turn 2D images into stacked, color-layered 3D prints.",
+                        "potentialAction": {
+                            "@type": "CreateAction",
+                            "target": "https://kromacut.com/app"
+                        }
+                    },
+                    {
+                        "@type": "SoftwareApplication",
+                        "@id": "https://kromacut.com/#application",
+                        "name": "Kromacut",
+                        "applicationCategory": "DesignApplication",
+                        "operatingSystem": "Web, Windows, macOS, Linux",
+                        "url": "https://kromacut.com/",
+                        "description": "Browser-first image-to-3D color-layer print generator with STL and 3MF export.",
+                        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+                    }
+                ]
+            }
+        </script>
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    </head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/">Kromacut home</a>
+                    <a href="/app">Open Kromacut</a>
+                    <ul><li><a href="/docs/overview">Overview</a></li><li><a href="/docs/quick-start">Quick Start</a></li><li><a href="/docs/loading-images">Loading Images</a></li><li><a href="/docs/image-adjustments">Image Adjustments</a></li><li><a href="/docs/reducing-colors">Reducing Colors</a></li><li><a href="/docs/dedithering-cleanup">Dedithering And Cleanup</a></li><li><a href="/docs/3d-mode">3D Mode</a></li><li><a href="/docs/auto-paint">Auto-paint Controls</a></li><li><a href="/docs/calibration-theory">Calibration Theory</a></li><li><a href="/docs/flat-paint">Flat Paint</a></li><li><a href="/docs/calibration-workflows">Calibration Workflows</a></li><li><a href="/docs/generating-exporting-output">Generating And Exporting Output</a></li><li><a href="/docs/settings-and-controls">Settings And Controls</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li><li><a href="/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="image-adjustments">Image Adjustments</h1>
+<p>Adjustments change the target image before color reduction. They do not calibrate filament, change hiding distance, or guarantee that a displayed color is physically printable.</p>
+<p>Move a slider to preview its effect; the preview updates when you finish the interaction. All start at zero. Individual reset arrows restore one slider; panel reset restores all sliders.</p>
+<h2 id="tone-and-color-controls">Tone And Color Controls</h2>
+<p><a href="/assets/32_adjustment_controls-DY_LJw8K.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: Illustrative negative, neutral, and positive examples for all twelve adjustment controls."><img src="/assets/32_adjustment_controls-DY_LJw8K.svg" alt="Illustrative negative, neutral, and positive examples for all twelve adjustment controls." loading="lazy"></a></p>
+<p><em>These are schematic directions, not calibrated print predictions. Effects depend on the source and other active adjustments.</em></p>
+<h3 id="tone">Tone</h3>
+<table><thead><tr><th>Slider</th><th>Range</th><th>Negative values</th><th>Positive values</th><th>Print-preparation consequence</th></tr></thead><tbody><tr><td>Exposure</td><td>−3 to +3 stops, step 0.01</td><td>Darken RGB values.</td><td>Brighten them; +1 doubles channel values until clipped.</td><td>Shifts broad target tones. This rendered-image adjustment cannot recover clipped RAW information.</td></tr><tr><td>Contrast</td><td>−100% to +100%</td><td>Pull tones toward middle gray. −100% becomes mid-gray before other adjustments.</td><td>Push tones away from mid-gray, clipping at black/white.</td><td>Separates major regions but can flatten subtle shadows/highlights.</td></tr><tr><td>Highlights</td><td>−100% to +100%</td><td>Darken bright regions.</td><td>Brighten bright regions.</td><td>Changes bright tones competing for the palette; cannot recover absent detail.</td></tr><tr><td>Shadows</td><td>−100% to +100%</td><td>Darken shadow regions.</td><td>Brighten shadow regions.</td><td>Can expose existing dark differences before reduction.</td></tr><tr><td>Whites</td><td>−100% to +100%</td><td>Darken the brightest region.</td><td>Brighten the brightest region.</td><td>Separates or combines near-white targets. Not a white-balance setting.</td></tr><tr><td>Blacks</td><td>−100% to +100%</td><td>Darken the darkest region.</td><td>Brighten the darkest region.</td><td>Changes near-black targets; pure black stays black because values are scaled.</td></tr></tbody></table>
+<p>Highlights/Shadows cover broader ranges than Whites/Blacks. Ranges overlap: a very dark pixel can respond to both Blacks and Shadows. Tone ranges are evaluated after Exposure, Contrast, Temperature/Tint, and the HSL adjustments, so controls can interact.</p>
+<h3 id="color-and-local-detail">Color And Local Detail</h3>
+<table><thead><tr><th>Slider</th><th>Range</th><th>Negative values</th><th>Positive values</th><th>Print-preparation consequence</th></tr></thead><tbody><tr><td>Saturation</td><td>−100% to +100%</td><td>Reduce intensity; −100% desaturates.</td><td>Increase intensity.</td><td>Changes image-color differences, not the physical filament gamut.</td></tr><tr><td>Vibrance</td><td>−100% to +100%</td><td>Reduce saturation more in relatively unsaturated colors.</td><td>Increase saturation more in relatively unsaturated colors.</td><td>Less uniform than Saturation, but not skin-tone-aware. Pure gray remains gray.</td></tr><tr><td>Hue</td><td>−180° to +180°</td><td>Rotate hues one way.</td><td>Rotate them the other way.</td><td>Recolors the entire image; use a swatch edit for one exact color.</td></tr><tr><td>Temperature</td><td>−100 to +100</td><td>Cooler: less red, more blue.</td><td>Warmer: more red, less blue.</td><td>An approximate color-cast adjustment, <strong>not Kelvin</strong>.</td></tr><tr><td>Tint</td><td>−100 to +100</td><td>Add green.</td><td>Add magenta, increasing red/blue and reducing green.</td><td>Corrects or introduces a cast; not a measured camera profile.</td></tr><tr><td>Clarity</td><td>−100 to +100</td><td>Soften local contrast.</td><td>Emphasize local contrast and edges.</td><td>Can create edge colors/halos needing quantization. Does not recover detail or make thin lines wider.</td></tr></tbody></table>
+<p>Other than Exposure and Hue, sliders use integer steps. Alpha remains unchanged. Quantization has different alpha behavior: it makes partially transparent pixels fully opaque.</p>
+<h2 id="preview-versus-apply">Preview Versus Apply</h2>
+<p><a href="/assets/33_adjustment_bake-CU6eGO2b.svg" target="_blank" rel="noopener noreferrer" aria-label="Open illustration at full size: A live preview branches from the source. Apply bakes that appearance and resets sliders; quantization, PNG export, and 3D then use the baked pixels."><img src="/assets/33_adjustment_bake-CU6eGO2b.svg" alt="A live preview branches from the source. Apply bakes that appearance and resets sliders; quantization, PNG export, and 3D then use the baked pixels." loading="lazy"></a></p>
+<p><strong>Apply</strong> bakes the current appearance into the underlying image, resets sliders to zero, and creates an image-history step. It does not reduce colors, build the model, or change print settings.</p>
+<p>The distinction matters:</p>
+<ul><li><strong>Quantization, Resize Image, Download image, and 3D generation use the underlying working image</strong>, not unbaked preview adjustments.</li><li><strong>Image colors</strong> describes underlying pixels, so its swatches do not track live adjustments.</li><li>Touch-up tools edit the underlying image; active adjustments reapply on top.</li><li>Dedither reads the adjusted image. Bake first to avoid leaving adjustments active over its processed result.</li></ul>
+<p>The reliable sequence is <strong>preview adjustments → Apply adjustments → quantize → inspect/clean up → build 3D</strong>. Crop and resize before these steps when possible.</p>
+<h2 id="reset-and-undo-are-different">Reset And Undo Are Different</h2>
+<p>Reset removes a live adjustment, not an already-baked image edit. After Apply, zero-valued sliders are expected because their previous effect is now in the image. Use <strong>Undo</strong> to restore the earlier image.</p>
+<p>Repeated Apply operations work on the already-edited image, so clipping and lost tonal detail can accumulate. Undo first when comparing alternatives.</p>
+<p>Next: <a href="/docs/reducing-colors">Reducing colors</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

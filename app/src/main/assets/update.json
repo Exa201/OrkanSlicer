@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.227\n\n• Große Modelle öffnen Malen und Prägen erst nach einer bewusst bestätigten Vereinfachung.\n• Abbrechen bewahrt die unveränderte Druckgeometrie.",
-  "en": "OrkanSlicer 0.8.227\n\n• Dense models offer explicit simplification before paint or emboss tools allocate full-resolution meshes.\n• Cancel keeps the print geometry unchanged.",
-  "ru": "OrkanSlicer 0.8.227\n\n• Для больших моделей упрощение подтверждается до открытия рисования или тиснения.\n• Отмена сохраняет геометрию печати без изменений."
+  "de": "OrkanSlicer 0.8.365\n\n• Gruppenplatzierung und Verbinden sind gegen fehlgeschlagene native Vorgänge abgesichert: Objektpositionen werden zurückgesetzt und der Platzierungsmodus zuverlässig beendet.\n• STEP/STP-Importdialog und native Netzumwandlung erneut auf Honor PTP-N49 / Android 16 geprüft.",
+  "en": "OrkanSlicer 0.8.365\n\n• Group placement and joining now recover safely from failed native operations: object positions are rolled back and placement mode is always cleared.\n• STEP/STP import options and native mesh conversion reverified on Honor PTP-N49 / Android 16.",
+  "ru": "OrkanSlicer 0.8.365\n\n• Групповое размещение и объединение защищены от сбоев нативных операций: позиции объектов откатываются, а режим размещения гарантированно завершается.\n• Диалог импорта STEP/STP и преобразование сетки повторно проверены на Honor PTP-N49 / Android 16."
 }

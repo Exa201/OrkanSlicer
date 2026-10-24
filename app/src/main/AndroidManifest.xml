@@ -35,7 +35,7 @@
             android:allowTaskReparenting="true"
             android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|fontScale"
             android:exported="true"
             android:theme="@style/Theme.SliceBeam">
             <intent-filter>
@@ -50,7 +50,39 @@
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="*/*" />
-                <data android:host="*" />
+                <!-- Do not require a URI authority: shared file:// URIs commonly have no host. -->
+            </intent-filter>
+            <!-- A few file managers omit the MIME type entirely for ACTION_VIEW. Keep this
+                 scheme-only fallback so .step/.stp documents can still be opened; MainActivity
+                 validates the name/content and routes shared file:// paths through SAF. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+            </intent-filter>
+            <!-- Some document providers publish STEP files using a specific CAD MIME type. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="model/step" />
+                <data android:scheme="content" android:mimeType="application/step" />
+                <data android:scheme="content" android:mimeType="application/x-step" />
+                <data android:scheme="content" android:mimeType="application/vnd.step" />
+                <data android:scheme="content" android:mimeType="application/step-file" />
+            </intent-filter>
+            <!-- File managers often expose "Share/Open with" as SEND instead of VIEW. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>

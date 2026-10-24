@@ -2,7 +2,9 @@
 #include <typeinfo>
 #include <set>
 #include <algorithm>
+#include <unordered_set>
 #include <memory>
+#include <mutex>
 
 #include <thread>
 
@@ -10,11 +12,13 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
+#include "libslic3r/MeshBoolean.hpp"
 #include <libslic3r/SVG.hpp>
 #include <libslic3r/GCode.hpp>
 #include <libslic3r/Print.hpp>
@@ -37,6 +41,7 @@
 #include "GLModel.hpp"
 #include "GLShader.hpp"
 #include "bed_utils.hpp"
+#include "ModelFilamentRemap.hpp"
 #include "libvgcode_utils.hpp"
 
 #include <igl/unproject.h>
@@ -65,6 +70,9 @@ struct GLModelRef {
     AABBMesh* emesh = nullptr;
     std::vector<stl_normal> normals;
     Vec3d flatten_normal;
+    // Touch raycasts run on Android's UI thread while the renderer replaces GLModel meshes
+    // on the GL thread. Protect the CPU-side picking mesh/cache from concurrent destruction.
+    std::mutex picking_mutex;
 
     ~GLModelRef() { delete emesh; }
 };
@@ -76,6 +84,8 @@ struct PaintSessionRef {
     // 0 = color (mmu segmentation), 1 = support, 2 = seam, 3 = fuzzy skin.
     int mode = 0;
     TriangleMesh mesh;
+    // GL hit points are in the transformed object mesh; the selector owns the raw first-volume mesh.
+    Slic3r::Transform3d mesh_to_world = Slic3r::Transform3d::Identity();
     AABBMesh* emesh = nullptr;
     std::unique_ptr<Slic3r::TriangleSelector> selector;
 };
@@ -111,6 +121,173 @@ jclass shadersManagerClass = nullptr;
 jmethodID shadersManagerGetCurrent = nullptr;
 
 static JavaVM* staticVM;
+
+namespace {
+
+void subdivide_text_mesh_for_surface(indexed_triangle_set &mesh)
+{
+    constexpr double max_edge_length = 1.25;
+    constexpr size_t max_faces = 300000;
+    for (int level = 0; level < 5 && mesh.indices.size() < max_faces; ++level) {
+        double longest = 0.;
+        for (const Vec3i32 &face : mesh.indices) {
+            for (int edge = 0; edge < 3; ++edge) {
+                const Vec3f &a = mesh.vertices[face[edge]];
+                const Vec3f &b = mesh.vertices[face[(edge + 1) % 3]];
+                longest = std::max(longest, double((a - b).norm()));
+            }
+        }
+        if (longest <= max_edge_length || mesh.indices.size() * 4 > max_faces) break;
+
+        std::unordered_map<uint64_t, int32_t> midpoint_indices;
+        std::vector<Vec3f> vertices = mesh.vertices;
+        std::vector<Vec3i32> faces;
+        midpoint_indices.reserve(mesh.indices.size());
+        faces.reserve(mesh.indices.size() * 4);
+        auto midpoint = [&](int32_t a, int32_t b) {
+            const uint32_t lo = static_cast<uint32_t>(std::min(a, b));
+            const uint32_t hi = static_cast<uint32_t>(std::max(a, b));
+            const uint64_t key = (uint64_t(lo) << 32) | uint64_t(hi);
+            auto found = midpoint_indices.find(key);
+            if (found != midpoint_indices.end()) return found->second;
+            const int32_t index = static_cast<int32_t>(vertices.size());
+            vertices.emplace_back((mesh.vertices[a] + mesh.vertices[b]) * 0.5f);
+            midpoint_indices.emplace(key, index);
+            return index;
+        };
+        for (const Vec3i32 &face : mesh.indices) {
+            const int32_t a = face.x(), b = face.y(), c = face.z();
+            const int32_t ab = midpoint(a, b), bc = midpoint(b, c), ca = midpoint(c, a);
+            faces.emplace_back(a, ab, ca);
+            faces.emplace_back(ab, b, bc);
+            faces.emplace_back(ca, bc, c);
+            faces.emplace_back(ab, bc, ca);
+        }
+        mesh.vertices = std::move(vertices);
+        mesh.indices = std::move(faces);
+    }
+}
+
+std::vector<Transform3d> model_instance_transforms(const ModelObject &object)
+{
+    std::vector<Transform3d> instances;
+    if (object.instances.empty()) instances.emplace_back(Transform3d::Identity());
+    else {
+        instances.reserve(object.instances.size());
+        for (const ModelInstance *instance : object.instances)
+            if (instance != nullptr) instances.emplace_back(instance->get_matrix());
+    }
+    return instances;
+}
+
+size_t find_instance_for_world_surface(
+    const std::vector<Transform3d> &instances,
+    const AABBMesh &raycaster,
+    const Vec3d &world_position,
+    const Vec3d &world_normal,
+    double ray_distance)
+{
+    size_t selected = instances.size();
+    double closest_hit_distance = std::numeric_limits<double>::infinity();
+    const Vec3d normal = world_normal.normalized();
+    for (size_t index = 0; index < instances.size(); ++index) {
+        const Transform3d inverse = instances[index].inverse();
+        const Vec3d inward = -(inverse.linear() * normal).normalized();
+        const Vec3d origin = inverse * (world_position + normal * ray_distance);
+        const auto hit = raycaster.query_ray_hit(origin, inward);
+        if (!hit.is_hit()) continue;
+        const Vec3d candidate_world = instances[index] * hit.position();
+        const double distance = (candidate_world - world_position).norm();
+        if (distance < closest_hit_distance) {
+            closest_hit_distance = distance;
+            selected = index;
+        }
+    }
+    return closest_hit_distance <= 2.0 ? selected : instances.size();
+}
+
+int find_surface_extruder(
+    const ModelObject &target,
+    const Transform3d &instance,
+    const Vec3d &world_position,
+    const Vec3d &world_normal,
+    double ray_distance)
+{
+    const Transform3d inverse = instance.inverse();
+    const Vec3d normal = world_normal.normalized();
+    const Vec3d inward = -(inverse.linear() * normal).normalized();
+    const Vec3d origin = inverse * (world_position + normal * ray_distance);
+    double nearest_part_hit = std::numeric_limits<double>::infinity();
+    int surface_extruder = -1;
+    for (const ModelVolume *volume : target.volumes) {
+        if (volume == nullptr || !volume->is_model_part()) continue;
+        TriangleMesh part_mesh = volume->mesh();
+        part_mesh.transform(volume->get_matrix());
+        if (part_mesh.its.vertices.empty() || part_mesh.its.indices.empty()) continue;
+        AABBMesh part_raycaster(part_mesh);
+        const auto hit = part_raycaster.query_ray_hit(origin, inward);
+        if (!hit.is_hit()) continue;
+        const Vec3d world_hit = instance * hit.position();
+        const double distance = (world_hit - world_position).norm();
+        if (distance < nearest_part_hit) {
+            nearest_part_hit = distance;
+            surface_extruder = volume->extruder_id();
+        }
+    }
+    return nearest_part_hit <= 2.0 ? surface_extruder : -1;
+}
+
+Transform3d conform_text_mesh_to_model_surface(
+    indexed_triangle_set &text_mesh,
+    const ModelObject &target,
+    const Vec3d &world_position,
+    const Vec3d &world_normal,
+    int &surface_extruder)
+{
+    if (target.volumes.empty()) throw std::runtime_error("The target model has no printable surface");
+    TriangleMesh target_mesh = target.raw_mesh();
+    if (target_mesh.its.vertices.empty() || target_mesh.its.indices.empty())
+        throw std::runtime_error("The target model has no printable surface");
+    AABBMesh raycaster(target_mesh);
+
+    const Vec3d normal = world_normal.normalized();
+    const Transform3d tangent_frame = Emboss::create_transformation_onto_surface(world_position, normal);
+    const BoundingBoxf3 bounds = bounding_box(target_mesh.its);
+    const double ray_distance = std::max(100., 4. * (bounds.max - bounds.min).norm() + 10.);
+    const std::vector<Transform3d> instances = model_instance_transforms(target);
+    if (instances.empty()) throw std::runtime_error("The target model has no placed instance");
+    const size_t selected_instance = find_instance_for_world_surface(
+        instances, raycaster, world_position, normal, ray_distance);
+    if (selected_instance == instances.size())
+        throw std::runtime_error("Tap the text onto a visible model surface");
+
+    subdivide_text_mesh_for_surface(text_mesh);
+    const Transform3d &instance = instances[selected_instance];
+    const Transform3d inverse = instance.inverse();
+    const Vec3d inward = -(inverse.linear() * normal).normalized();
+    const Vec3d outward = -inward;
+    // A multipart target can use different filaments per volume. Follow the tapped part's
+    // extruder rather than silently inheriting the parent object's default tool.
+    surface_extruder = find_surface_extruder(target, instance, world_position, normal, ray_distance);
+    const double sink = 0.04; // A small overlap keeps raised text bonded to the model for slicing.
+    for (Vec3f &vertex : text_mesh.vertices) {
+        const Vec3d planar_world = tangent_frame * Vec3d(vertex.x(), vertex.y(), 0.);
+        const Vec3d origin = inverse * (planar_world + normal * ray_distance);
+        const auto hit = raycaster.query_ray_hit(origin, inward);
+        if (!hit.is_hit())
+            throw std::runtime_error("The complete text must fit on the visible model surface");
+        Vec3d surface_normal = instance.linear().inverse().transpose() * hit.normal();
+        if (surface_normal.squaredNorm() < 1e-12)
+            throw std::runtime_error("The target surface has an invalid normal");
+        surface_normal.normalize();
+        if (surface_normal.dot(normal) < 0.) surface_normal = -surface_normal;
+        const Vec3d world_surface = instance * hit.position();
+        vertex = (world_surface + surface_normal * (double(vertex.z()) - sink)).cast<float>();
+    }
+    return instance;
+}
+
+} // namespace
 
 GLShaderProgram* get_current_shader() {
     JNIEnv* env;
@@ -405,7 +582,7 @@ extern "C" {
         }
     }
 
-    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file(JNIEnv *env, jclass, jstring path, jstring base_name, jint plateId, jobject progressCallback) {
+    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1read_1from_1file(JNIEnv *env, jclass, jstring path, jstring base_name, jint plateId, jobject progressCallback, jdouble stepLinearDeflection, jdouble stepAngularDeflection, jboolean splitStepCompound) {
         if (path == nullptr || base_name == nullptr) {
             jclass exceptionClass = env->FindClass("java/lang/IllegalArgumentException");
             if (exceptionClass != nullptr) env->ThrowNew(exceptionClass, "Model path and name are required");
@@ -420,6 +597,8 @@ extern "C" {
         }
 
         ImportstlProgressFn progressFn;
+        ImportStepProgressFn stepProgressFn;
+        bool stepImportCancelled = false;
         if (progressCallback != nullptr) {
             jclass callbackClass = env->GetObjectClass(progressCallback);
             jmethodID onProgress = env->GetMethodID(callbackClass, "onProgress", "(F)Z");
@@ -438,6 +617,21 @@ extern "C" {
                 if (!keepGoing)
                     throw ModelImportCancelled();
             };
+            stepProgressFn = [env, progressCallback, onProgress, &stepImportCancelled](int stage, int current, int total, bool& cancel) {
+                const float stageProgress = total > 0
+                    ? std::clamp(static_cast<float>(current) / static_cast<float>(total), 0.f, 1.f)
+                    : 0.f;
+                const float fraction = std::clamp((static_cast<float>(stage) + stageProgress) / 3.f, 0.f, 1.f);
+                const jboolean keepGoing = env->CallBooleanMethod(progressCallback, onProgress, fraction);
+                if (env->ExceptionCheck()) {
+                    env->ExceptionClear();
+                    throw std::runtime_error("STEP import progress callback failed");
+                }
+                if (!keepGoing) {
+                    cancel = true;
+                    stepImportCancelled = true;
+                }
+            };
         }
 
         std::unique_ptr<ModelRef> ref;
@@ -447,7 +641,16 @@ extern "C" {
             if (boost::algorithm::iends_with(std::string(chars), ".3mf")) {
                 load_strategy = LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel;
             }
-            ref->model = Model::read_from_file(std::string(chars), nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, progressFn, nullptr, plateId, nullptr);
+            const std::string inputPath(chars);
+            if (boost::algorithm::iends_with(inputPath, ".step") || boost::algorithm::iends_with(inputPath, ".stp")) {
+                Model stepModel = Model::read_from_step(
+                    inputPath, LoadStrategy::AddDefaultInstances, stepProgressFn, nullptr, nullptr,
+                    stepLinearDeflection, stepAngularDeflection, splitStepCompound == JNI_TRUE);
+                if (stepImportCancelled) throw ModelImportCancelled();
+                ref->model = std::move(stepModel);
+            } else {
+                ref->model = Model::read_from_file(inputPath, nullptr, nullptr, load_strategy, nullptr, nullptr, nullptr, nullptr, nullptr, progressFn, nullptr, plateId, nullptr);
+            }
             ref->base_name = std::string(baseChars);
         } catch (const ModelImportCancelled&) {
             env->ReleaseStringUTFChars(path, chars);
@@ -484,6 +687,16 @@ extern "C" {
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create(JNIEnv *env, jclass) {
         ModelRef* ref = new ModelRef();
         return (jlong) (intptr_t) ref;
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1replace_1contents(
+        JNIEnv*, jclass, jlong ptr, jlong from_ptr) {
+        ModelRef* target = (ModelRef*) (intptr_t) ptr;
+        ModelRef* source = (ModelRef*) (intptr_t) from_ptr;
+        if (target == nullptr || source == nullptr || target == source) return;
+        Model previous(std::move(target->model));
+        target->model = std::move(source->model);
+        source->model = std::move(previous);
     }
 
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_models_1merge(JNIEnv* env, jclass, jlongArray ptrsArr) {
@@ -557,6 +770,24 @@ extern "C" {
         model->model.add_object(*from->model.objects[i]);
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1duplicate_1instance(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint source_instance_index,
+        jdouble dx, jdouble dy, jdouble dz) {
+        ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+        if (ref == nullptr || object_index < 0 || object_index >= static_cast<jint>(ref->model.objects.size()) ||
+            !std::isfinite(dx) || !std::isfinite(dy) || !std::isfinite(dz)) return -1;
+        ModelObject* object = ref->model.objects[object_index];
+        if (object == nullptr || source_instance_index < 0 ||
+            source_instance_index >= static_cast<jint>(object->instances.size())) return -1;
+        const ModelInstance* source = object->instances[source_instance_index];
+        if (source == nullptr) return -1;
+
+        ModelInstance* duplicate = object->add_instance(*source);
+        duplicate->set_offset(source->get_offset() + Vec3d(dx, dy, dz));
+        object->invalidate_bounding_box();
+        return static_cast<jint>(object->instances.size() - 1);
+    }
+
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1delete_1object(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         model->model.delete_object(i);
@@ -578,6 +809,26 @@ extern "C" {
         return arr;
     }
 
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1mirror(JNIEnv*, jclass, jlong ptr, jint object_index, jint axis) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || object_index >= static_cast<jint>(model->model.objects.size()) || axis < X || axis > Z)
+            return;
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || object->instances.empty()) return;
+
+        // Preserve the selected object's world-space center when reflecting its local volumes.
+        const Vec3d center_before = object->bounding_box_exact().center();
+        for (ModelVolume* volume : object->volumes) {
+            if (volume == nullptr) continue;
+            Vec3d mirror = volume->get_mirror();
+            mirror[axis] *= -1.0;
+            volume->set_mirror(mirror);
+        }
+        object->invalidate_bounding_box();
+        const Vec3d center_after = object->bounding_box_exact().center();
+        object->translate_instances(center_before - center_after);
+    }
+
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1scale(JNIEnv* env, jclass, jlong ptr, jint object_index) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         ModelObject* obj = model->model.objects[object_index];
@@ -597,6 +848,16 @@ extern "C" {
 
     static bool is_unprocessed_cut_connector(const ModelVolume* volume) {
         return volume != nullptr && volume->cut_info.is_connector && !volume->cut_info.is_processed;
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1cut_1connector_1count(JNIEnv*, jclass, jlong ptr, jint objIdx) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || objIdx < 0 || static_cast<size_t>(objIdx) >= model->model.objects.size()) return 0;
+        int count = 0;
+        for (const ModelVolume* volume : model->model.objects[objIdx]->volumes) {
+            if (is_unprocessed_cut_connector(volume)) ++count;
+        }
+        return count;
     }
 
     static CutConnectorType connector_type_from_int(jint type) {
@@ -795,6 +1056,15 @@ extern "C" {
             ptrs[i]->set_rotation(Vec3d(new_rotation[2], new_rotation[1], new_rotation[0]));
         }
         model->model.objects[i]->invalidate_bounding_box();
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1reset_1rotation(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || i >= model->model.objects.size()) return;
+        ModelObject* object = model->model.objects[i];
+        for (ModelVolume* volume : object->volumes)
+            volume->set_rotation(Vec3d::Zero());
+        object->invalidate_bounding_box();
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1flatten_1rotate(JNIEnv* env, jclass, jlong ptr, jint i, jlong surface_ptr) {
@@ -1096,7 +1366,10 @@ extern "C" {
             ref->mesh = TriangleMesh(its);
             ref->model.init_from(its);
             ref->flatten_normal = plane.normal;
-            ref->emesh = new AABBMesh(its, true);
+            // AABBMesh keeps references into the input triangle mesh. `its` is a local
+            // temporary here, so building the raycast index from it leaves dangling
+            // triangle storage that crashes as soon as a flatten plane is tapped.
+            ref->emesh = new AABBMesh(ref->mesh.its, true);
             ref->normals = its_face_normals(its);
 
             jlong ptr = reinterpret_cast<jlong>(ref);
@@ -1125,6 +1398,16 @@ extern "C" {
         ModelRef* model = (ModelRef*) (intptr_t) ptr;
         ModelObject* obj = model->model.objects[i];
         return obj->config.has("extruder") ? obj->config.opt_int("extruder") : -1;
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1volume_1extruder(
+        JNIEnv* env, jclass, jlong ptr, jint object_index, jint volume_index) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || object_index >= static_cast<jint>(model->model.objects.size())) return -1;
+        const ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || volume_index < 0 || volume_index >= static_cast<jint>(object->volumes.size())) return -1;
+        const ModelVolume* volume = object->volumes[volume_index];
+        return volume == nullptr ? -1 : std::max(1, volume->extruder_id());
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1set_1extruder(JNIEnv* env, jclass, jlong ptr, jint i, jint extruder) {
@@ -1165,6 +1448,33 @@ extern "C" {
         }
     }
 
+    // Remap source 3MF filament IDs to user-selected slots without flattening multipart objects.
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1remap_1filaments(
+            JNIEnv* env, jclass, jlong ptr, jintArray sourceFilaments, jintArray targetFilaments) {
+        ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+        if (model == nullptr || sourceFilaments == nullptr || targetFilaments == nullptr) return;
+        const jsize sourceCount = env->GetArrayLength(sourceFilaments);
+        const jsize targetCount = env->GetArrayLength(targetFilaments);
+        if (sourceCount != targetCount) return;
+
+        std::array<int, 17> remapping{};
+        jint* sources = env->GetIntArrayElements(sourceFilaments, nullptr);
+        jint* targets = env->GetIntArrayElements(targetFilaments, nullptr);
+        if (sources == nullptr || targets == nullptr) {
+            if (sources != nullptr) env->ReleaseIntArrayElements(sourceFilaments, sources, JNI_ABORT);
+            if (targets != nullptr) env->ReleaseIntArrayElements(targetFilaments, targets, JNI_ABORT);
+            return;
+        }
+        for (jsize index = 0; index < sourceCount; ++index) {
+            if (sources[index] >= 1 && sources[index] <= 16 && targets[index] >= 1 && targets[index] <= 16)
+                remapping[static_cast<size_t>(sources[index])] = targets[index];
+        }
+        env->ReleaseIntArrayElements(sourceFilaments, sources, JNI_ABORT);
+        env->ReleaseIntArrayElements(targetFilaments, targets, JNI_ABORT);
+        if (std::none_of(remapping.begin(), remapping.end(), [](int target) { return target > 0; })) return;
+        remap_model_filaments(model->model, remapping);
+    }
+
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1apply_1adaptive_1layer_1height(JNIEnv* env, jclass, jlong ptr, jint i, jstring configPath, jfloat qualityFactor) {
         try {
             ModelRef* model = (ModelRef*) (intptr_t) ptr;
@@ -1198,6 +1508,84 @@ extern "C" {
             return !model->model.objects[i]->layer_height_profile.empty();
         }
         return false;
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create_1text_1object(
+        JNIEnv* env, jclass, jlong ptr, jstring fontPath, jstring textStr, jfloat size, jfloat depth,
+        jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz, jint targetObjectIndex) {
+        try {
+            ModelRef* model = (ModelRef*) (intptr_t) ptr;
+            if (model == nullptr || fontPath == nullptr || textStr == nullptr ||
+                !std::isfinite(size) || !std::isfinite(depth) || size <= 0.f || depth <= 0.f ||
+                !std::isfinite(px) || !std::isfinite(py) || !std::isfinite(pz) ||
+                !std::isfinite(nx) || !std::isfinite(ny) || !std::isfinite(nz) ||
+                targetObjectIndex < -1) return -1;
+            const double normalLengthSquared = nx * nx + ny * ny + nz * nz;
+            if (!std::isfinite(normalLengthSquared) || normalLengthSquared <= 1e-18 ||
+                (targetObjectIndex >= 0 && targetObjectIndex >= static_cast<jint>(model->model.objects.size())))
+                return -1;
+            if (targetObjectIndex >= 0 && model->model.objects[targetObjectIndex] == nullptr) return -1;
+            const char* font_chars = env->GetStringUTFChars(fontPath, JNI_FALSE);
+            if (font_chars == nullptr) return -1;
+            std::string font_path(font_chars);
+            env->ReleaseStringUTFChars(fontPath, font_chars);
+            const char* text_chars = env->GetStringUTFChars(textStr, JNI_FALSE);
+            if (text_chars == nullptr) return -1;
+            std::string text(text_chars);
+            env->ReleaseStringUTFChars(textStr, text_chars);
+            if (text.empty()) return -1;
+
+            std::unique_ptr<Emboss::FontFile> font = Emboss::create_font_file(font_path.c_str());
+            if (!font) throw std::runtime_error("Failed to load font file");
+            Emboss::FontFileWithCache cached(std::move(font));
+            FontProp font_prop(size);
+            HealedExPolygons shapes = Emboss::text2shapes(cached, text.c_str(), font_prop);
+            if (shapes.expolygons.empty()) throw std::runtime_error("Generated text shape is empty");
+            const double scale = Emboss::get_text_shape_scale(font_prop, *cached.font_file);
+            auto project_z = std::make_unique<Emboss::ProjectZ>((double) depth / scale);
+            Emboss::ProjectScale project(std::move(project_z), scale);
+            indexed_triangle_set its = Emboss::polygons2model(shapes.expolygons, project);
+            if (its.indices.empty()) throw std::runtime_error("Text produced no geometry");
+
+            // Keep Z in [0, depth] and center only XY so the standalone solid rests on the picked surface.
+            BoundingBoxf3 bb = bounding_box(its);
+            its_translate(its, Vec3f((float) -bb.center().x(), (float) -bb.center().y(), 0.f));
+            Vec3d normal(nx, ny, nz);
+            if (normal.norm() < 1e-9) normal = Vec3d::UnitZ(); else normal.normalize();
+            if (targetObjectIndex >= 0) {
+                ModelObject *target = model->model.objects[targetObjectIndex];
+                int surfaceExtruder = -1;
+                const Transform3d instance = conform_text_mesh_to_model_surface(
+                    its, *target, Vec3d(px, py, pz), normal, surfaceExtruder);
+                its_transform(its, instance.inverse(), true);
+                ModelVolume *volume = target->add_volume(
+                    TriangleMesh(std::move(its)), ModelVolumeType::MODEL_PART, false);
+                if (volume == nullptr) throw std::runtime_error("Curved text could not be added to the target model");
+                if (surfaceExtruder > 0) volume->config.set("extruder", surfaceExtruder);
+                volume->name = text;
+                target->invalidate_bounding_box();
+                return targetObjectIndex;
+            } else {
+                const Transform3d surface = Emboss::create_transformation_onto_surface(Vec3d(px, py, pz), normal);
+                its_transform(its, surface, true);
+            }
+            TriangleMesh mesh(std::move(its));
+
+            ModelObject* object = model->model.add_object();
+            object->name = text;
+            ModelVolume* volume = object->add_volume(std::move(mesh), ModelVolumeType::MODEL_PART, false);
+            if (volume == nullptr) {
+                model->model.delete_object((int) model->model.objects.size() - 1);
+                return -1;
+            }
+            volume->name = text;
+            object->add_instance();
+            object->invalidate_bounding_box();
+            return (jint) model->model.objects.size() - 1;
+        } catch (const std::exception& e) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+            return -1;
+        }
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1emboss_1text(
@@ -1261,19 +1649,249 @@ extern "C" {
             Vec3d normal(nx, ny, nz);
             if (normal.norm() < 1e-9) normal = Vec3d::UnitZ(); else normal.normalize();
             Transform3d world_tr = Emboss::create_transformation_onto_surface(position, normal);
-            Transform3d inst_tr = Transform3d::Identity();
-            if (!obj->instances.empty() && obj->instances.front() != nullptr)
-                inst_tr = obj->instances.front()->get_matrix();
+            const std::vector<Transform3d> instances = model_instance_transforms(*obj);
+            if (instances.empty()) throw std::runtime_error("The target model has no placed instance");
+            const ModelVolumeType vol_type = static_cast<ModelVolumeType>(type);
+            std::vector<const ModelVolume*> model_parts;
+            if (vol_type == ModelVolumeType::MODEL_PART) {
+                for (const ModelVolume *volume : obj->volumes)
+                    if (volume != nullptr && volume->is_model_part()) model_parts.push_back(volume);
+            }
+            size_t selected_instance = 0;
+            int surface_extruder = model_parts.size() == 1 ? model_parts.front()->extruder_id() : -1;
+            if (instances.size() > 1 || (vol_type == ModelVolumeType::MODEL_PART && model_parts.size() > 1)) {
+                // Resolve the tapped copy and material in world space. Using the first instance
+                // misplaces text on repeated models; using the parent object's default extruder
+                // can recolor text placed on a differently assigned multipart surface.
+                TriangleMesh target_mesh = obj->raw_mesh();
+                if (target_mesh.its.vertices.empty() || target_mesh.its.indices.empty())
+                    throw std::runtime_error("The target model has no printable surface");
+                const BoundingBoxf3 bounds = bounding_box(target_mesh.its);
+                const double ray_distance = std::max(100., 4. * (bounds.max - bounds.min).norm() + 10.);
+                if (instances.size() > 1) {
+                    AABBMesh raycaster(target_mesh);
+                    selected_instance = find_instance_for_world_surface(
+                        instances, raycaster, position, normal, ray_distance);
+                    if (selected_instance == instances.size())
+                        throw std::runtime_error("Tap the text onto a visible model surface");
+                }
+                if (vol_type == ModelVolumeType::MODEL_PART && model_parts.size() > 1) {
+                    surface_extruder = find_surface_extruder(
+                        *obj, instances[selected_instance], position, normal, ray_distance);
+                }
+            }
+            const Transform3d inst_tr = instances[selected_instance];
 
             // 6) Add as a volume with its own transformation (geometry stays centered at origin).
-            ModelVolumeType vol_type = static_cast<ModelVolumeType>(type);
             ModelVolume* vol = obj->add_volume(TriangleMesh(std::move(its)), vol_type, false);
             vol->set_transformation(Geometry::Transformation(inst_tr.inverse() * world_tr));
+            if (vol_type == ModelVolumeType::MODEL_PART && surface_extruder > 0)
+                vol->config.set("extruder", surface_extruder);
             vol->name = text;
             obj->invalidate_bounding_box();
         } catch (const std::exception& e) {
             env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
         }
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1combine_1objects_1as_1parts(
+        JNIEnv* env, jclass, jlong ptr, jintArray indices_arr) {
+        try {
+            ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+            if (ref == nullptr || indices_arr == nullptr) return -1;
+            const jsize count = env->GetArrayLength(indices_arr);
+            if (count < 2) return -1;
+            jint* raw = env->GetIntArrayElements(indices_arr, JNI_FALSE);
+            if (raw == nullptr) return -1;
+            std::vector<int> indices(raw, raw + count);
+            env->ReleaseIntArrayElements(indices_arr, raw, JNI_ABORT);
+            std::sort(indices.begin(), indices.end());
+            if (std::adjacent_find(indices.begin(), indices.end()) != indices.end()) return -1;
+            for (int index : indices)
+                if (index < 0 || index >= (int) ref->model.objects.size()) return -1;
+
+            const int target_index = indices.front();
+            ModelObject* target = ref->model.objects[target_index];
+            if (target == nullptr || target->instances.size() != 1 || target->instances.front() == nullptr) return -2;
+            const Transform3d target_world = target->instances.front()->get_matrix();
+            const Transform3d world_to_target = target_world.inverse();
+            // Validate the entire operation before mutating the destination object.
+            for (size_t n = 1; n < indices.size(); ++n) {
+                ModelObject* source = ref->model.objects[indices[n]];
+                if (source == nullptr || source->instances.size() != 1 || source->instances.front() == nullptr) return -2;
+            }
+            // Build all copied volumes off-object first. Appending incrementally would expose a
+            // partial join if copying/configuration throws; deleting those volumes as rollback is
+            // also unsafe because ModelObject::delete_volume collapses the last volume transform
+            // into the instance. Reserve and prepare the new name before the no-throw commit.
+            std::vector<std::unique_ptr<ModelVolume>> prepared_volumes;
+            for (size_t n = 1; n < indices.size(); ++n) {
+                ModelObject* source = ref->model.objects[indices[n]];
+                const Transform3d source_world = source->instances.front()->get_matrix();
+                for (const ModelVolume* volume : source->volumes) {
+                    auto copied = target->prepare_volume_copy(*volume);
+                    // The parent object changes during grouping; pin the source's effective tool
+                    // on its copied volume so it does not inherit the target object's tool.
+                    if (volume->is_model_part())
+                        copied->config.set("extruder", std::max(1, volume->extruder_id()));
+                    copied->set_transformation(Geometry::Transformation(
+                        world_to_target * source_world * volume->get_matrix()));
+                    copied->source.object_idx = target_index;
+                    copied->source.volume_idx = (int) (target->volumes.size() + prepared_volumes.size());
+                    prepared_volumes.push_back(std::move(copied));
+                }
+            }
+            std::string combined_name = target->name + " + " + std::to_string(indices.size() - 1);
+            target->volumes.reserve(target->volumes.size() + prepared_volumes.size());
+            // Keep the existing project-backup behavior while taking the snapshot before the
+            // mutation, so a failed backup cannot leave a partially committed join.
+            Slic3r::save_object_mesh(*target);
+            for (auto& volume : prepared_volumes)
+                target->volumes.push_back(volume.release());
+            target->name.swap(combined_name);
+            target->invalidate_bounding_box();
+            for (auto it = indices.rbegin(); it != indices.rend(); ++it)
+                if (*it != target_index) ref->model.delete_object(*it);
+            return target_index;
+        } catch (const std::exception& e) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+            return -3;
+        }
+    }
+
+    // Boolean operations work on transformed copies and only replace source objects after
+    // CGAL reports a valid, closed solid. This avoids mutating project state on failed CSG.
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1boolean_1objects(
+        JNIEnv* env, jclass, jlong ptr, jintArray indices_arr, jint operation) {
+        try {
+            ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+            if (ref == nullptr || indices_arr == nullptr || operation < 0 || operation > 2) return -1;
+            const jsize count = env->GetArrayLength(indices_arr);
+            if (count < 2) return -1;
+            jint* raw = env->GetIntArrayElements(indices_arr, JNI_FALSE);
+            if (raw == nullptr) return -1;
+            std::vector<int> indices(raw, raw + count);
+            env->ReleaseIntArrayElements(indices_arr, raw, JNI_ABORT);
+            std::unordered_set<int> uniqueIndices;
+            for (int index : indices) {
+                if (index < 0 || index >= (int) ref->model.objects.size() || !uniqueIndices.insert(index).second)
+                    return -1;
+            }
+
+            ModelObject* target = ref->model.objects[indices.front()];
+            if (target == nullptr || target->instances.size() != 1 || target->instances.front() == nullptr)
+                return -2;
+
+            auto valid_operand = [](const TriangleMesh& mesh) {
+                if (mesh.empty() || mesh.stats().open_edges != 0 ||
+                    !std::isfinite(mesh.stats().volume) || std::fabs(mesh.stats().volume) <= 1e-9f)
+                    return false;
+                auto cgal = MeshBoolean::cgal::triangle_mesh_to_cgal(mesh);
+                return cgal && !MeshBoolean::cgal::empty(*cgal) &&
+                    MeshBoolean::cgal::does_bound_a_volume(*cgal) &&
+                    !MeshBoolean::cgal::does_self_intersect(*cgal);
+            };
+            TriangleMesh resultMesh = target->mesh();
+            if (!valid_operand(resultMesh)) return -3;
+            const double baseVolume = std::fabs(resultMesh.volume());
+            auto applyBoolean = [operation](auto& result, auto& tool) {
+                switch (operation) {
+                    case 0: MeshBoolean::cgal::plus(result, tool); break;
+                    case 1: MeshBoolean::cgal::minus(result, tool); break;
+                    case 2: MeshBoolean::cgal::intersect(result, tool); break;
+                }
+            };
+            auto validateStep = [&](TriangleMesh& stepMesh) {
+                if (stepMesh.empty() || stepMesh.stats().open_edges != 0 ||
+                    !std::isfinite(stepMesh.volume()) || std::fabs(stepMesh.volume()) <= 1e-9f)
+                    return false;
+                const double stepVolume = std::fabs(stepMesh.volume());
+                if (operation == 1 && stepVolume >= baseVolume - std::max(1e-5, baseVolume * 1e-6))
+                    return false; // Do not silently accept a sequence that did not cut its target.
+                return true;
+            };
+            if (indices.size() == 2) {
+                // Keep the common single-operation path on EPIC for its lower cost.
+                auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
+                if (!resultCgal) return -3;
+                ModelObject* tool = ref->model.objects[indices[1]];
+                if (tool == nullptr || tool->instances.size() != 1 || tool->instances.front() == nullptr) return -2;
+                TriangleMesh toolMesh = tool->mesh();
+                if (!valid_operand(toolMesh)) return -3;
+                auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
+                if (!toolCgal) return -3;
+                applyBoolean(*resultCgal, *toolCgal);
+                if (MeshBoolean::cgal::empty(*resultCgal) ||
+                    !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
+                    MeshBoolean::cgal::does_self_intersect(*resultCgal)) return -4;
+                resultMesh = MeshBoolean::cgal::cgal_to_triangle_mesh(*resultCgal);
+                if (!validateStep(resultMesh)) return operation == 1 ? -7 : -4;
+            } else {
+                // Keep intermediate multi-operand results in CGAL instead of
+                // round-tripping through the slicer's float mesh after every step.
+                auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
+                if (!resultCgal) return -3;
+                for (size_t n = 1; n < indices.size(); ++n) {
+                    ModelObject* tool = ref->model.objects[indices[n]];
+                    if (tool == nullptr || tool->instances.size() != 1 || tool->instances.front() == nullptr) return -2;
+                    TriangleMesh toolMesh = tool->mesh();
+                    if (!valid_operand(toolMesh)) return -3;
+                    auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
+                    if (!toolCgal) return -3;
+                    applyBoolean(*resultCgal, *toolCgal);
+                    if (MeshBoolean::cgal::empty(*resultCgal) ||
+                        !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
+                        MeshBoolean::cgal::does_self_intersect(*resultCgal)) return -4;
+                    TriangleMesh stepMesh = MeshBoolean::cgal::cgal_to_triangle_mesh(*resultCgal);
+                    if (!validateStep(stepMesh)) return operation == 1 ? -7 : -4;
+                }
+                resultMesh = MeshBoolean::cgal::cgal_to_triangle_mesh(*resultCgal);
+            }
+
+            // Boolean output is one solid, so it takes the target object's profile and
+            // material assignment. Preserve its world-space geometry as the new object.
+            const std::string resultName = target->name.empty() ? "Boolean result" : target->name + " (Boolean)";
+            const bool printable = target->printable;
+            int targetExtruder = 1;
+            for (const ModelVolume* volume : target->volumes) {
+                if (volume != nullptr && volume->is_model_part()) {
+                    targetExtruder = std::max(1, volume->extruder_id());
+                    break;
+                }
+            }
+            // A CSG result is newly generated geometry, not a mesh from one source
+            // object. Do not serialize the target's source path/object index onto it.
+            ModelObject* replacement = ref->model.add_object(resultName.c_str(), "", std::move(resultMesh));
+            if (replacement == nullptr || replacement->volumes.empty()) return -5;
+            // resultMesh is already in world coordinates (ModelObject::mesh applies
+            // each source instance). A replacement ModelObject created by add_object
+            // has no instances, so add an identity instance to keep it visible and
+            // make its bounds/slicing state valid after the two source objects go away.
+            replacement->add_instance();
+            replacement->config.assign_config(target->config);
+            replacement->printable = printable;
+            replacement->volumes.front()->config.set("extruder", targetExtruder);
+            replacement->volumes.front()->source.input_file.clear();
+            replacement->volumes.front()->source.object_idx = -1;
+            replacement->volumes.front()->source.volume_idx = -1;
+
+            std::sort(indices.begin(), indices.end(), std::greater<int>());
+            for (int index : indices) ref->model.delete_object((size_t) index);
+            return (jint) ref->model.objects.size() - 1;
+        } catch (const std::exception& e) {
+            __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean", "Boolean operation failed without replacing inputs: %s", e.what());
+            return -6;
+        } catch (...) {
+            __android_log_print(ANDROID_LOG_ERROR, "ModelBoolean", "Boolean operation failed without replacing inputs");
+            return -6;
+        }
+    }
+
+    JNIEXPORT jdouble JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1volume(
+        JNIEnv*, jclass, jlong ptr, jint objectIndex) {
+        ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+        if (ref == nullptr || objectIndex < 0 || objectIndex >= (int) ref->model.objects.size()) return 0.0;
+        return (jdouble) ref->model.objects[objectIndex]->get_object_stl_stats().volume;
     }
 
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1slice(JNIEnv* env, jclass, jlong ptr, jstring configPath, jstring path, jobject listener, jint numFilaments, jintArray colorsArr, jint calibMode, jdouble calibStart, jdouble calibEnd, jdouble calibStep) {
@@ -1287,9 +1905,8 @@ extern "C" {
             env->ReleaseStringUTFChars(configPath, chars);
             config.normalize_fdm();
 
-            // The app's bed temperatures live in the hot-plate slots (legacy bed_temperature keys
-            // migrate to hot_plate_temp); the engine reads the slot picked by curr_bed_type, whose
-            // compiled default is Cool Plate — which would silently ignore those values.
+            // Legacy bed_temperature keys migrate to hot_plate_temp. When an older profile omits
+            // curr_bed_type, keep Orkan's established PEI/high-temperature plate fallback.
             if (config.option("curr_bed_type", false) == nullptr)
                 config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(btPEI));
 
@@ -1591,6 +2208,13 @@ extern "C" {
             resultRef->name = print.output_filename(model->base_name);
 
             return (jlong) (intptr_t) resultRef;
+        } catch (const Slic3r::SlicingErrors& e) {
+            std::string message = e.what();
+            for (const Slic3r::SlicingError& error : e.errors_)
+                message += "\nObject " + std::to_string(error.objectId()) + ": " + error.what();
+            __android_log_print(ANDROID_LOG_ERROR, "BeamPaint", "slice exception type=%s what=%s", typeid(e).name(), message.c_str());
+            env->ThrowNew(env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError"), message.c_str());
+            return 0;
         } catch (const std::exception& e) {
             __android_log_print(ANDROID_LOG_ERROR, "BeamPaint", "slice exception type=%s what=%s", typeid(e).name(), e.what());
             env->ThrowNew(env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError"), e.what());
@@ -1748,16 +2372,26 @@ extern "C" {
         return (jlong) (intptr_t) ref;
     }
 
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1raycast_1data(JNIEnv* env, jclass, jlong ptr) {
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1raycast_1data(JNIEnv* env, jclass, jlong ptr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
-        delete ref->emesh;
-        ref->emesh = nullptr;
-        ref->emesh = new AABBMesh(ref->mesh, true);
-        ref->normals = its_face_normals(ref->mesh.its);
+        if (ref == nullptr) return JNI_FALSE;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
+        if (ref->emesh != nullptr) return JNI_TRUE;
+        try {
+            auto emesh = std::make_unique<AABBMesh>(ref->mesh, true);
+            auto normals = its_face_normals(ref->mesh.its);
+            ref->emesh = emesh.release();
+            ref->normals.swap(normals);
+            return JNI_TRUE;
+        } catch (const std::exception& e) {
+            __android_log_print(ANDROID_LOG_WARN, TAG, "Raycast index build failed: %s", e.what());
+            return JNI_FALSE;
+        }
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1raycast_1closest_1hit(JNIEnv* env, jclass, jlong ptr, jdoubleArray pointArr, jdoubleArray directionArr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        if (ref == nullptr) return env->NewDoubleArray(0);
         jdouble* point = env->GetDoubleArrayElements(pointArr, JNI_FALSE);
         jdouble* direction = env->GetDoubleArrayElements(directionArr, JNI_FALSE);
 
@@ -1767,11 +2401,31 @@ extern "C" {
         Vec3d point_positive = point3d - direction3d;
         Vec3d point_negative = point3d + direction3d;
 
-        std::vector<AABBMesh::hit_result> hits = ref->emesh->query_ray_hits(point_positive, direction3d);
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
+        if (ref->emesh == nullptr) {
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
+            return env->NewDoubleArray(0);
+        }
+        std::vector<AABBMesh::hit_result> hits;
+        try {
+            hits = ref->emesh->query_ray_hits(point_positive, direction3d);
+        } catch (const std::exception& e) {
+            __android_log_print(ANDROID_LOG_WARN, TAG, "Raycast query failed: %s", e.what());
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
+            return env->NewDoubleArray(0);
+        }
         jdoubleArray arr = env->NewDoubleArray(hits.size() * 6);
         for (int i = 0; i < hits.size(); ++i) {
             const AABBMesh::hit_result& hit = hits[i];
-            env->SetDoubleArrayRegion(arr, i * 6, 6, hit.position().data());
+            const Vec3d position = hit.position();
+            const Vec3d normal = hit.normal();
+            const jdouble hit_data[6] = {
+                position.x(), position.y(), position.z(),
+                normal.x(), normal.y(), normal.z(),
+            };
+            env->SetDoubleArrayRegion(arr, i * 6, 6, hit_data);
         }
 
         env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
@@ -1783,6 +2437,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model(JNIEnv* env, jclass, jlong ptr, jlong model) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         delete ref->emesh;
         ref->emesh = nullptr;
         ref->mesh = mRef->model.mesh();
@@ -1792,6 +2447,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model_1object(JNIEnv* env, jclass, jlong ptr, jlong model, jint i) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         delete ref->emesh;
         ref->emesh = nullptr;
         ref->mesh = mRef->model.objects[i]->mesh();
@@ -1801,6 +2457,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model_1object_1preview(JNIEnv* env, jclass, jlong ptr, jlong model, jint i, jint max_triangles) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         delete ref->emesh;
         ref->emesh = nullptr;
         ref->mesh = mRef->model.objects[i]->mesh();
@@ -1849,6 +2506,7 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1box(JNIEnv* env, jclass, jlong ptr, jfloat width, jfloat depth, jfloat height) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         ref->model.reset();
         ref->mesh.clear();
         delete ref->emesh;
@@ -1977,6 +2635,7 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1reset(JNIEnv* env, jclass, jlong ptr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
         ref->model.reset();
         delete ref->emesh;
         ref->emesh = nullptr;
@@ -2496,10 +3155,13 @@ extern "C" {
         s->model = mRef;
         s->objIdx = objIdx;
         s->mode = mode;
-        // Use the same merged object mesh the GLModel/raycaster uses, so hit coords and triangle
-        // indices line up exactly. Paint states are stored per triangle index, so they still map
-        // back to volume[0]'s facet annotation (single-volume objects).
-        s->mesh = obj->mesh();
+        // Keep selector triangle indices aligned with the annotation on volume[0].
+        // obj->mesh() merges all model-part volumes, but commit stores the selector into only
+        // volume[0]; for multi-volume assemblies the later volume indices then cannot round-trip.
+        s->mesh = obj->volumes[0]->mesh();
+        s->mesh_to_world = obj->volumes[0]->get_matrix();
+        if (!obj->instances.empty() && obj->instances.front() != nullptr)
+            s->mesh_to_world = obj->instances.front()->get_matrix() * s->mesh_to_world;
         s->selector = std::make_unique<Slic3r::TriangleSelector>(s->mesh);
         const auto& data = facets_for_mode(obj->volumes[0], mode).get_data();
         if (!data.triangles_to_split.empty())
@@ -2529,23 +3191,20 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1brush(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jdouble radius, jint filamentIdx, jdoubleArray cameraArr, jboolean sphere) {
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
-        Vec3f hit((float) h[0], (float) h[1], (float) h[2]);
+        Vec3d hit_world((double) h[0], (double) h[1], (double) h[2]);
         env->ReleaseDoubleArrayElements(hitArr, h, JNI_ABORT);
 
         jdouble* cam = env->GetDoubleArrayElements(cameraArr, JNI_FALSE);
         Vec3d camera_pos_world((double) cam[0], (double) cam[1], (double) cam[2]);
         env->ReleaseDoubleArrayElements(cameraArr, cam, JNI_ABORT);
 
-        ModelObject* obj = s->model->model.objects[s->objIdx];
-        Transform3d inst_matrix = Transform3d::Identity();
-        if (!obj->instances.empty() && obj->instances.front() != nullptr) {
-            inst_matrix = obj->instances.front()->get_matrix();
-        }
+        const Transform3d& mesh_to_world = s->mesh_to_world;
+        const Transform3d world_to_mesh = mesh_to_world.inverse();
+        const Vec3f hit = (world_to_mesh * hit_world).cast<float>();
+        // Convert camera position to the selector's raw-volume coordinate system.
+        Vec3d camera_pos_local = world_to_mesh * camera_pos_world;
 
-        // Convert camera position to local mesh space
-        Vec3d camera_pos_local = inst_matrix.inverse() * camera_pos_world;
-
-        Transform3d trafo_no_translate = inst_matrix;
+        Transform3d trafo_no_translate = mesh_to_world;
         trafo_no_translate.translation() = Vec3d::Zero();
 
         Slic3r::EnforcerBlockerType state = paint_state(filamentIdx);
@@ -2565,7 +3224,7 @@ extern "C" {
         auto cursor = TriangleSelector::SinglePointCursor::cursor_factory(
             hit, camera_pos_local.cast<float>(), (float)radius,
             sphere ? TriangleSelector::CursorType::SPHERE : TriangleSelector::CursorType::CIRCLE,
-            inst_matrix, TriangleSelector::ClippingPlane());
+            mesh_to_world, TriangleSelector::ClippingPlane());
 
         s->selector->select_patch(facetStart, std::move(cursor), state, trafo_no_translate, true);
     }
@@ -2573,8 +3232,9 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1bucket(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jint filamentIdx, jboolean propagate, jdouble angle) {
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
-        Vec3f hit((float) h[0], (float) h[1], (float) h[2]);
+        Vec3d hit_world((double) h[0], (double) h[1], (double) h[2]);
         env->ReleaseDoubleArrayElements(hitArr, h, JNI_ABORT);
+        const Vec3f hit = (s->mesh_to_world.inverse() * hit_world).cast<float>();
         // Bucket fill needs a valid starting facet; the Java raycaster only gives the hit point,
         // so find the nearest original facet to it.
         if (facetStart < 0) {
@@ -2623,8 +3283,8 @@ extern "C" {
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
         ModelObject* obj = s->model->model.objects[s->objIdx];
 
-        // The merged session mesh matches obj->mesh(); commit to volumes[0] as the standard for
-        // single-part models. Write to the facet channel for this session's mode.
+        // The session selector is built from volumes[0], so its triangle indices map directly
+        // to the annotation we commit here.
         for (auto* v : obj->volumes) {
             if (v == obj->volumes[0]) {
                 facets_for_mode(v, s->mode).set(*s->selector);
