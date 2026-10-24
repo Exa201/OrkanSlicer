@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## Erneute Modellierungs- und STEP/STP-Abnahme — 2026-10-24, HEAD `940d4788`
+
+- Honor PTP-N49 / Android 16: drei aktuelle Modellaktionen erneut bestanden (3/3): Ebenenschnitt teilt das gewählte Modell auf dem GL-Thread, schräge Fläche abflachen erhält Undo/Redo, Drei-Objekt-Boolean-Schnittmenge erhält Undo/Redo.
+- STEP/STP auf demselben Gerät: Projektpicker mit Netzparametern vor dem Laden, SAF-Rückkehr aus dem App-Bereich, externes `ACTION_VIEW`/`ACTION_SEND`, sowie Fallback für unlesbare `file://`-URIs und native `.step`/`.stp`/Großbuchstaben-Endungen — fünf gezielte Geräteläufe bestanden. Native Tests bestätigten ein renderbares Dreiecksnetz nach Bestätigung; Abbrechen lud kein Modell.
+- `ModelImportFileNameTest` und `StepImportOptionsTest`: 7/7 Unit-Tests bestanden. Ein falscher Testfilter führte 0 Tests aus und zählt nicht als Nachweis.
+- Eine zusätzliche temporäre 3MF-Hostprobe wurde verworfen: ihr Semantics-Helper suchte ausschließlich im `BedFragment`-Viewbaum und erfasste damit nicht das separate Android-Fenster des Compose-`AlertDialog`; aus diesem Fehlschlag wird kein Produktfehler abgeleitet. Die temporären Teständerungen wurden entfernt.
+- Kein Produktcode geändert, keine APK erstellt, kein Release erstellt. Nächste konkrete Arbeit: weitere noch nicht abgenommene Modell-/Werkzeugaktionen priorisieren und mit tatsächlichem Undo/Redo- beziehungsweise Materialerhalt prüfen; die vollständige UI-Menü- und Accessibility-Abnahme bleibt offen.
+
 ## Modellierungs-Regressionslauf — 2026-10-24
 
 - Aktueller Branch-HEAD vor den folgenden Prüfungen: `306fecce79423cde1451d03dc648b3fb6e801de1`; keine Quellcodeänderung in diesem Lauf.
