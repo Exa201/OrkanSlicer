@@ -13,6 +13,24 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class StepModelImportDeviceTest {
+    @Test fun malformedStepReturnsAnImportErrorInsteadOfEscapingItsNativeWorker() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val malformed = File(context.cacheDir, "malformed-step-fixture-${System.nanoTime()}.step")
+        malformed.writeText("ISO-10303-21;\nHEADER;\nENDSEC;\nDATA;\nENDSEC;\nEND-ISO-10303-21;\n")
+
+        try {
+            var receivedImportError = false
+            try {
+                Model(malformed, 0, StepImportOptions())
+            } catch (_: Slic3rRuntimeError) {
+                receivedImportError = true
+            }
+            assertTrue("Malformed STEP should become a normal model-import error", receivedImportError)
+        } finally {
+            malformed.delete()
+        }
+    }
+
     @Test fun importsStepAndStpAsRenderableTriangleMeshesWithSelectedMeshingOptions() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val source = File(context.cacheDir, "step-cube-fixture-source.step")

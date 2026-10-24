@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-23, OrkanSlicer 0.8.365 veröffentlicht
 
+## STEP/STP-Importfehler behoben — 2026-10-24
+
+- Der STEP-Dialog mit linearer/winkliger Abweichung und optionaler Compound-Aufteilung war bereits vorhanden; Dateiauswahl und Importdialog waren auf Honor funktional. Den nativen Importer trotzdem genauer geprüft und einen echten C++-Nebenläufigkeitsfehler gefunden: CAD-Hintergrundthreads lasen und schrieben Abschlussstatus, Fortschritt und Abbruch ohne Synchronisierung. Außerdem konnten OpenCascade/TBB-Ausnahmen aus diesen Threads den Android-Prozess beenden.
+- `STEP.cpp` verwendet nun atomare Abschluss-/Fortschrittswerte, eine atomare Mesh-Abbruchanforderung und fängt CAD-Worker-Ausnahmen an der Threadgrenze ab. Ein fehlgeschlagenes oder nur teilweise erzeugtes Netz wird als normaler STEP-Importfehler zurückgegeben und nicht als Teilmodell übernommen.
+- Honor PTP-N49 / Android 16: native `.step`-/`.stp`-/Großbuchstaben-/Compound-Importe plus beschädigte STEP-Datei 2/2 bestanden; Projektmenü mit geänderten Netzparametern vor dem Import und renderbarem Mesh 1/1; externer Datei-App-Intent mit Optionen vor dem Laden und renderbarem Mesh 1/1. Debug- und Slice-JVM: fokussierte Namens-, Optionen- und Bridge-Tests je 13/13 bestanden. CMake/native SliceTest-Build war Teil der Geräteläufe.
+- Der konkrete Xiaomi-Dateimanager und die Nutzerdatei waren hier nicht angeschlossen/verfügbar; der genaue Fehler auf diesem Gerät bleibt deshalb unbestätigt. Die nativen Datenrennen und das Risiko nicht abgefangener Worker-Ausnahmen sind jedoch im Quellcode behoben und durch gültige sowie beschädigte Importfälle auf Honor abgedeckt.
+- Änderungen in `app/src/main/jni/libslic3r/Format/STEP.cpp` und `StepModelImportDeviceTest.kt`; `git diff --check` noch vor dem Commit ausführen. Nächster Schritt: STEP-Änderung sichern und auf dem Branch/PR bereitstellen; nachfolgend verbleibende UI-2.0-Modell- und Accessibility-Prüfungen fortsetzen.
+
 ## Stabilitätsnachprüfung — 2026-10-24
 
 - Reproduzierbarer Reihenfolgefehler bei Modellimporten behoben: `BedFragment` richtet Undo/Redo jetzt auf den importierten Rendererzustand aus, bevor `ModelLoadCallback.onLoaded` Erfolg signalisiert. STL-Autoausrichtung rebased anschließend die Undo-Basis, damit Importkorrekturen nicht als separate Nutzeraktion erscheinen.
