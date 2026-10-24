@@ -94,6 +94,8 @@ class Native {
     @JvmStatic
     external fun model_create(): Long
     @JvmStatic
+    external fun model_replace_contents(ptr: Long, fromPtr: Long): Unit
+    @JvmStatic
     @Throws(Slic3rRuntimeError::class)
     external fun model_read_from_file(
         path: String,

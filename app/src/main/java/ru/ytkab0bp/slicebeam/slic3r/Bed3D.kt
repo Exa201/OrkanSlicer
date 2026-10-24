@@ -21,6 +21,9 @@ open class Bed3D {
     private var min: Vec3d? = null
     private var max: Vec3d? = null
     private var likelyDelta: Boolean = false
+    @Volatile
+    var configurationRevision: Long = 0L
+        private set
     private val modelMatrix = DoubleArray(16)
     private val outModelMatrix = DoubleArray(16)
 
@@ -32,10 +35,12 @@ open class Bed3D {
         contourlines = GLModel(data[2])
     }
 
+    @Synchronized
     open fun configure(file: File) {
         configure(file.absolutePath)
     }
 
+    @Synchronized
     private fun configure(path: String) {
         Native.bed_configure(pointer, path)
         Native.bed_init_triangles_mesh(pointer, triangles.pointer)
@@ -55,10 +60,13 @@ open class Bed3D {
         } else {
             likelyDelta = false
         }
+        configurationRevision++
     }
 
+    @Synchronized
     open fun arrange(model: Model): Boolean = Native.bed_arrange(pointer, model.pointer)
 
+    @Synchronized
     open fun getVolumeMin(): Vec3d? {
         if (min == null && boundingVolume != null) {
             val volume = requireNotNull(boundingVolume)
@@ -67,6 +75,7 @@ open class Bed3D {
         return min
     }
 
+    @Synchronized
     open fun getVolumeMax(): Vec3d? {
         if (max == null && boundingVolume != null) {
             val volume = requireNotNull(boundingVolume)
@@ -75,7 +84,8 @@ open class Bed3D {
         return max
     }
 
-    open fun isValid(): Boolean = boundingVolume != null
+    @Synchronized
+    open fun isValid(): Boolean = pointer != 0L && boundingVolume != null
 
     open val raycaster: GLModel.MeshRaycaster
         get() = triangles.raycaster
@@ -187,11 +197,14 @@ open class Bed3D {
         shader.stopUsing()
     }
 
+    @Synchronized
     open fun release() {
         if (pointer != 0L) {
             Native.bed_release(pointer)
             axes.release()
             pointer = 0L
+            boundingVolume = null
+            configurationRevision++
             // The triangle/grid/contour meshes are owned by the native bed and released there.
         }
     }

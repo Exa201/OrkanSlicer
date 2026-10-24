@@ -31,11 +31,14 @@ import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.theme.IThemeView
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import java.util.concurrent.Executors
 class GLView(context:Context):GLSurfaceView(context), IThemeView {
 lateinit var renderer: GLRenderer
 private var lastX:Float = 0.toFloat()
@@ -52,7 +55,8 @@ private var longClickMoved:Boolean = false
 @Volatile private var longClickActivationPending:Boolean = false
 private var longPressDownTimeMs:Long = 0L
 private var isScaling:Boolean = false
-private var fillBedInProgress:Boolean = false
+@Volatile var isFillBedInProgress:Boolean = false
+    private set
 private var primeTowerGesture:Boolean = false
 private var primeTowerMoved:Boolean = false
 private var primeTowerDownX:Float = 0f
@@ -144,15 +148,78 @@ fun arrange(onComplete: ((Boolean) -> Unit)? = null) {
     }
 }
 fun fillBedWithSelectedModel(callback:FillBedCallback) {
-if (renderer.model == null || fillBedInProgress) return
-fillBedInProgress = true
-queueEvent({ val addedCopies = renderer.fillBedWithSelectedObject()
-requestRender()
-ViewUtils.postOnMainThread({ fillBedInProgress = false
-if (callback != null)
-{
-callback.onFillBedComplete(addedCopies)
-} }) })
+if (isFillBedInProgress) return
+isFillBedInProgress = true
+queueEvent {
+    val activeModel = renderer.model
+    val activeBed = renderer.bed
+    val selectedObject = renderer.selectedObject
+    val viewerEnabled = renderer.isViewerEnabled
+    if (activeModel == null || activeBed == null || selectedObject !in 0 until activeModel.objectsCount) {
+        ViewUtils.postOnMainThread {
+            isFillBedInProgress = false
+            callback.onFillBedComplete(0)
+        }
+        return@queueEvent
+    }
+    val modelRevision = activeModel.geometryRevision
+    val modelStateRevision = activeModel.stateRevision
+    val bedRevision = activeBed.configurationRevision
+    val selectedFilaments = (0 until activeModel.objectsCount).map { activeModel.getUsedFilaments(it) }
+    val selectedPaintState = (0 until activeModel.objectsCount).map {
+        activeModel.hasPaint(it) to activeModel.paintMaxFilament(it)
+    }
+    val workingModel = try {
+        Model.merge(activeModel)
+    } catch (error: Throwable) {
+        android.util.Log.e("GLView", "Failed to create fill-bed model snapshot", error)
+        ViewUtils.postOnMainThread {
+            isFillBedInProgress = false
+            callback.onFillBedComplete(0)
+        }
+        return@queueEvent
+    }
+    fillBedExecutor.execute {
+        val addedCopies = try {
+            renderer.fillBedModel(workingModel, activeBed, selectedObject, viewerEnabled)
+        } catch (error: Throwable) {
+            android.util.Log.e("GLView", "Failed to arrange model copies", error)
+            0
+        }
+        queueEvent {
+            val currentModel = renderer.model
+            val stillCurrent = currentModel === activeModel && renderer.bed === activeBed &&
+                activeBed.configurationRevision == bedRevision &&
+                renderer.isViewerEnabled == viewerEnabled &&
+                renderer.selectedObject == selectedObject &&
+                activeModel.geometryRevision == modelRevision &&
+                activeModel.stateRevision == modelStateRevision &&
+                activeModel.objectsCount == selectedFilaments.size &&
+                (0 until activeModel.objectsCount).all { index ->
+                    activeModel.getUsedFilaments(index).contentEquals(selectedFilaments[index]) &&
+                        (activeModel.hasPaint(index) to activeModel.paintMaxFilament(index)) == selectedPaintState[index]
+                }
+            var committedCopies = 0
+            try {
+                if (addedCopies > 0 && stillCurrent) {
+                    activeModel.replaceContentsFrom(workingModel)
+                    renderer.resetGlModels()
+                    SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
+                    committedCopies = addedCopies
+                }
+            } catch (error: Throwable) {
+                android.util.Log.e("GLView", "Failed to apply fill-bed result", error)
+            } finally {
+                workingModel.release()
+                requestRender()
+                ViewUtils.postOnMainThread {
+                    isFillBedInProgress = false
+                    callback.onFillBedComplete(committedCopies)
+                }
+            }
+        }
+    }
+}
 }
 fun duplicateSelectedModel(onComplete: Runnable) {
     duplicateSelectedModelWithResult { if (onComplete != null) onComplete.run() }
@@ -905,5 +972,8 @@ requestRender()
 }
 companion object {
 private val FILL_BED_STEP_DELAY_MS = 16L
+private val fillBedExecutor = Executors.newSingleThreadExecutor { task ->
+    Thread(task, "OrkanSlicer-FillBed").apply { isDaemon = true }
+}
 }
 }

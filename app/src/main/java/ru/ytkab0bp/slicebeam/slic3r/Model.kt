@@ -19,6 +19,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     @Volatile
     private var geometryRevisionValue: Long = 0L
+    @Volatile
+    private var stateRevisionValue: Long = 0L
 
     private var boundingExact: DoubleArray? = null
     private var boundingApprox: DoubleArray? = null
@@ -92,11 +94,20 @@ open class Model private constructor(@JvmField var pointer: Long) {
         boundingExact = null
         boundingApprox = null
         geometryRevisionValue++
+        stateRevisionValue++
     }
 
     /** Revision for invalidating inexpensive analysis results tied to this model geometry. */
     open val geometryRevision: Long
         get() = geometryRevisionValue
+
+    /** Revision for rejecting background edit results if any model state changed meanwhile. */
+    open val stateRevision: Long
+        get() = stateRevisionValue
+
+    open fun markStateChanged() {
+        stateRevisionValue++
+    }
 
     open fun translate(i: Int, x: Double, y: Double, z: Double) {
         Native.model_translate(pointer, i, x, y, z)
@@ -165,6 +176,14 @@ open class Model private constructor(@JvmField var pointer: Long) {
     open fun addObject(from: Model, i: Int) {
         Native.model_add_object_from_another(pointer, from.pointer, i)
         resetBoundingBox()
+    }
+
+    /** Atomically swaps this model's native contents with a prepared model on the GL thread. */
+    open fun replaceContentsFrom(other: Model) {
+        require(pointer != 0L && other.pointer != 0L && pointer != other.pointer)
+        Native.model_replace_contents(pointer, other.pointer)
+        resetBoundingBox()
+        other.resetBoundingBox()
     }
 
     /** Adds a linked instance of an object while preserving the source instance transform. */
@@ -299,6 +318,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun setExtruder(i: Int, extruder: Int) {
         Native.model_set_extruder(pointer, i, extruder)
+        markStateChanged()
     }
 
     /** One-based filament indices used by parts and painted facets of this object. */
@@ -306,20 +326,24 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun setUniformFilament(i: Int, filament: Int) {
         Native.model_set_uniform_filament(pointer, i, filament)
+        markStateChanged()
     }
 
     /** Remaps imported logical filament IDs (one-based) throughout all model-part volumes and painted facets. */
     open fun remapFilaments(sourceFilaments: IntArray, targetFilaments: IntArray) {
         require(sourceFilaments.size == targetFilaments.size) { "Source and target filament arrays must match" }
         Native.model_remap_filaments(pointer, sourceFilaments, targetFilaments)
+        markStateChanged()
     }
 
     open fun applyAdaptiveLayerHeight(i: Int, configPath: String, qualityFactor: Float) {
         Native.model_apply_adaptive_layer_height(pointer, i, configPath, qualityFactor)
+        markStateChanged()
     }
 
     open fun clearAdaptiveLayerHeight(i: Int) {
         Native.model_clear_adaptive_layer_height(pointer, i)
+        markStateChanged()
     }
 
     open fun hasAdaptiveLayerHeight(i: Int): Boolean = Native.model_has_adaptive_layer_height(pointer, i)

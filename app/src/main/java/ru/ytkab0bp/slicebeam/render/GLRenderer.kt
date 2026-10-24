@@ -94,7 +94,7 @@ private var inactivePlateSimplePreview: Boolean? = null
 private val plateViewMatrix = DoubleArray(16)
 var gcodeResult: GCodeProcessorResult? = null
 var viewer: GCodeViewer? = null
-private var isViewerEnabled:Boolean = false
+internal var isViewerEnabled:Boolean = false
 // Primary selection (drives the transform gizmo, flatten, fill-bed, duplicate).
  // selectedObjects holds the full multi-selection; when non-empty it always contains selectedObject.
  var selectedObject = -1
@@ -1775,18 +1775,13 @@ selectedObjects.clear()
 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return true
 }
-/**
- * Batch-fill the bed with copies of the selected object.
- * Uses bounding box math to estimate capacity, adds all copies at once,
- * then arranges a single time â€” much faster than the old one-at-a-time approach.
- */
- fun fillBedWithSelectedObject():Int {
-    val activeModel = model ?: return 0
-    val activeBed = bed ?: return 0
-    if (!activeBed.isValid() || isViewerEnabled || selectedObject !in 0 until activeModel.objectsCount) return 0
+/** Runs on a private model copy, so native packing never blocks the live renderer thread. */
+/** Returns the number of copies placed, or zero when the model or bed cannot accept them. */
+internal fun fillBedModel(activeModel: Model, activeBed: Bed3D, objectIndex: Int, viewerEnabled: Boolean): Int {
+    if (!activeBed.isValid() || viewerEnabled || objectIndex !in 0 until activeModel.objectsCount) return 0
     val maxAttempts = FillBedPlanner.copyAttemptsForLimit(activeModel.objectsCount, MAX_FILL_BED_OBJECTS)
     if (maxAttempts == 0) return 0
-    val estimatedCapacity = estimateBedCapacity(selectedObject)
+    val estimatedCapacity = estimateBedCapacity(activeModel, activeBed, objectIndex)
     if (estimatedCapacity == 0) return 0
     // Allow one conservative trial for heterogeneous plates, but never add hundreds of
     // speculative copies when an estimate is invalid or no grid capacity remains.
@@ -1801,7 +1796,7 @@ return true
     val sourceModel = Model()
     var added = 0
     try {
-        sourceModel.addObject(activeModel, selectedObject)
+        sourceModel.addObject(activeModel, objectIndex)
         fun restoreOriginalState() {
             while (activeModel.objectsCount > originalCount) {
                 activeModel.deleteObject(activeModel.objectsCount - 1)
@@ -1813,39 +1808,28 @@ return true
             }
             activeModel.resetBoundingBox()
         }
-        fun canArrangeCopies(count: Int): Boolean {
-            repeat(count) { activeModel.addObject(sourceModel, 0) }
-            activeModel.resetBoundingBox()
-            val fits = activeBed.arrange(activeModel)
-            // Arrange may move originals on either success or failure; each probe is disposable.
-            restoreOriginalState()
-            return fits
-        }
-
-        // Search the largest working batch logarithmically instead of retrying every possible
-        // count. This keeps crowded plates responsive even when the grid estimate is optimistic.
-        var low = 0
-        var high = copiesToAdd
-        while (low < high) {
-            val candidate = low + (high - low + 1) / 2
-            if (canArrangeCopies(candidate)) low = candidate else high = candidate - 1
-        }
-        if (low > 0) {
-            repeat(low) { activeModel.addObject(sourceModel, 0) }
+        // Never let a poor rectangular estimate trigger an unbounded set of expensive native
+        // repacks. Probe a small descending set; keep the first successful arrangement in place.
+        val candidates = linkedSetOf(
+            copiesToAdd,
+            copiesToAdd * 3 / 4,
+            copiesToAdd / 2,
+            copiesToAdd / 4,
+            1,
+        ).filter { it in 1..copiesToAdd }
+        for (candidate in candidates) {
+            repeat(candidate) { activeModel.addObject(sourceModel, 0) }
             activeModel.resetBoundingBox()
             if (activeBed.arrange(activeModel)) {
-                added = low
-            } else {
-                restoreOriginalState()
+                added = candidate
+                break
             }
+            restoreOriginalState()
         }
     } finally {
         sourceModel.release()
     }
-    // Rebuild GL meshes after success and failure so the viewport matches model state.
     activeModel.resetBoundingBox()
-    resetGlModels()
-    if (added > 0) SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
     return added
 }
 fun arrangeObjects(): Boolean {
@@ -1870,22 +1854,18 @@ fun arrangeObjects(): Boolean {
     resetGlModels()
     return arranged
 }
-fun fillBedWithSelectedObjectStep():Int {
-// Delegate to the batch method â€” no more step-by-step needed
- return fillBedWithSelectedObject()
-}
 /**
  * Estimate how many copies of an object can fit on the bed
  * based on bounding box dimensions.
  */
- private fun estimateBedCapacity(objectIndex:Int):Int {
-val bedMin = bed!!.getVolumeMin()
-val bedMax = bed!!.getVolumeMax()
+ private fun estimateBedCapacity(activeModel: Model, activeBed: Bed3D, objectIndex:Int):Int {
+val bedMin = activeBed.getVolumeMin()
+val bedMax = activeBed.getVolumeMax()
 val bedWidth = bedMax!!.x - bedMin!!.x
 val bedDepth = bedMax!!.y - bedMin!!.y
 val objMin = Vec3d()
 val objMax = Vec3d()
-this.model!!.getBoundingBoxApprox(objectIndex, objMin, objMax)
+activeModel.getBoundingBoxApprox(objectIndex, objMin, objMax)
 val objWidth = objMax.x - objMin.x
 val objDepth = objMax.y - objMin.y
 // Add spacing between objects â€” must match the arrange min_obj_distance (6mm gap)
@@ -2025,7 +2005,10 @@ endPaintInternal(commit)
 private fun endPaintInternal(commit:Boolean) {
 if (paintSession != null)
 {
-if (commit) paintSession!!.commit()
+if (commit) {
+    paintSession!!.commit()
+    model?.markStateChanged()
+}
 paintSession!!.end()
 paintSession = null
 }
@@ -2106,12 +2089,14 @@ fun heightPaint(zMin:Double, zMax:Double) {
 if (paintSession == null) return
 paintSession!!.height(zMin, zMax, paintFilament)
 paintSession!!.commit()
+model?.markStateChanged()
 rebuildPaintOverlays()
 }
 fun clearPaint() {
 if (paintSession == null) return
 paintSession!!.clear()
 paintSession!!.commit()
+model?.markStateChanged()
 rebuildPaintOverlays()
 }
 private fun rebuildPaintOverlays() {

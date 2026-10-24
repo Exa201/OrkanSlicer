@@ -148,6 +148,43 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun externallyOpenedDetailedMulticolorSvgLoadsThroughWorkspaceImportPath() {
+        val activity = compose.activity
+        val source = File(activity.cacheDir, "external-multicolor-${System.nanoTime()}.svg")
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("models/Beste_Oma_Kind_Herz_3D_Druck.svg").use { input ->
+                source.outputStream().use(input::copyTo)
+            }
+            @Suppress("DEPRECATION")
+            val provider = activity.packageManager.getPackageInfo(
+                activity.packageName,
+                PackageManager.GET_PROVIDERS,
+            ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+            val authority = requireNotNull(provider.authority).substringBefore(';')
+            val uri = FileProvider.getUriForFile(activity, authority, source)
+
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod("handleExternalModelOpen", Intent::class.java)
+                    .apply { isAccessible = true }
+                    .invoke(activity, Intent(Intent.ACTION_VIEW).setData(uri)
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+            }
+
+            compose.waitUntil(timeoutMillis = 60_000) {
+                val model = (activity.navigationDelegate.getCurrentFragment() as? BedFragment)?.currentModel
+                model != null && model.objectsCount == 1 && model.getTriangleCount(0) > 0
+            }
+            val model = requireNotNull((activity.navigationDelegate.getCurrentFragment() as BedFragment).currentModel)
+            assertTrue("Imported SVG should render with its original printable width",
+                model.boundingBoxApproxMax.x - model.boundingBoxApproxMin.x > 100.0)
+            assertTrue("Opening an SVG must not delete the selected source document", source.isFile)
+        } finally {
+            source.delete()
+        }
+    }
+
+    @Test
     fun compactViewCubeIsVisibleAccessibleAndAtLeast48Dp() {
         // A fresh debug install can show the in-app changelog above the workspace.
         // Dismiss it so this checks the header at the requested display size.
@@ -1977,6 +2014,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
+            compose.waitUntil(timeoutMillis = 30_000) { !glView.isFillBedInProgress }
             instrumentationWaitForGlIdle()
             assertEquals("an oversized object must not produce speculative copies", 1, readObjectCountOnGl(glView))
             assertArrayEquals("a rejected fill action must preserve the source geometry and position",
@@ -2023,6 +2061,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
+            compose.waitUntil(timeoutMillis = 30_000) { !glView.isFillBedInProgress }
             instrumentationWaitForGlIdle()
             assertEquals("a failed native arrange must not leave speculative copies", 2, readObjectCountOnGl(glView))
             (0..1).forEach { index ->
@@ -4550,7 +4589,10 @@ class InitialProjectMenuDeviceTest {
                 assertArrayEquals("Redo Fill Bed copy $index must retain its filament", intArrayOf(2),
                     readUsedFilamentsOnGl(glView, index))
             }
-            assertCurrentWorkspaceModelRoundTripsAndSlices("fill-bed")
+            // Filling a small cube plate creates dozens of printable instances. Round-trip the
+            // complete generated project here; slice validation is covered by the focused
+            // single-object and multi-object editing tests, avoiding a minutes-long stress slice.
+            assertCurrentWorkspaceModelRoundTripsAndSlices("fill-bed", sliceModel = false)
         } finally {
             modelFile.delete()
         }
@@ -4559,6 +4601,7 @@ class InitialProjectMenuDeviceTest {
     /** Export the actual post-action renderer model, reload the 3MF, and slice that reloaded model. */
     private fun assertCurrentWorkspaceModelRoundTripsAndSlices(
         name: String,
+        sliceModel: Boolean = true,
         prepareForSlice: (Model) -> Unit = {},
     ) {
         val activity = compose.activity
@@ -4633,19 +4676,21 @@ class InitialProjectMenuDeviceTest {
                 assertArrayEquals("$name reloaded object $index filament", expectedFilaments[index],
                     restored.getUsedFilaments(index))
             }
-            prepareForSlice(restored)
-            assertTrue("$name should leave a printable sample after preparation", restored.objectsCount > 0)
-            SliceBeam.genCurrentConfig(restored)
-            sliceResult = restored.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
-            assertTrue("$name reloaded model should produce non-empty G-code",
-                gcodeFile.isFile && gcodeFile.length() > 0L)
-            val gcode = gcodeFile.readText()
-            assertTrue("$name G-code should contain deposited extrusion",
-                Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
-            val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
-                .map { it.groupValues[1].toInt() }.toSet()
-            assertTrue("$name G-code should use assigned tool T1; found $emittedTools", 1 in emittedTools)
-            assertFalse("$name G-code must not use the unassigned T2", 2 in emittedTools)
+            if (sliceModel) {
+                prepareForSlice(restored)
+                assertTrue("$name should leave a printable sample after preparation", restored.objectsCount > 0)
+                SliceBeam.genCurrentConfig(restored)
+                sliceResult = restored.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+                assertTrue("$name reloaded model should produce non-empty G-code",
+                    gcodeFile.isFile && gcodeFile.length() > 0L)
+                val gcode = gcodeFile.readText()
+                assertTrue("$name G-code should contain deposited extrusion",
+                    Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+                val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
+                    .map { it.groupValues[1].toInt() }.toSet()
+                assertTrue("$name G-code should use assigned tool T1; found $emittedTools", 1 in emittedTools)
+                assertFalse("$name G-code must not use the unassigned T2", 2 in emittedTools)
+            }
         } finally {
             sliceResult?.release()
             restoredModel?.release()

@@ -689,6 +689,16 @@ extern "C" {
         return (jlong) (intptr_t) ref;
     }
 
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1replace_1contents(
+        JNIEnv*, jclass, jlong ptr, jlong from_ptr) {
+        ModelRef* target = (ModelRef*) (intptr_t) ptr;
+        ModelRef* source = (ModelRef*) (intptr_t) from_ptr;
+        if (target == nullptr || source == nullptr || target == source) return;
+        Model previous(std::move(target->model));
+        target->model = std::move(source->model);
+        source->model = std::move(previous);
+    }
+
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_models_1merge(JNIEnv* env, jclass, jlongArray ptrsArr) {
         ModelRef* ref = new ModelRef();
 
