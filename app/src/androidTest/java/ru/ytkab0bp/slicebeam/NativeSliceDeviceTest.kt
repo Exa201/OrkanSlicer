@@ -723,6 +723,56 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun suppliedMulticolorOmaSvgRoundTripsAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val svgFile = File(context.cacheDir, "supplied-oma-heart-slice.svg")
+        InstrumentationRegistry.getInstrumentation().context.assets
+            .open("models/Beste_Oma_Kind_Herz_3D_Druck.svg").use { input ->
+                svgFile.outputStream().use(input::copyTo)
+            }
+        val projectFile = File(context.cacheDir, "supplied-oma-heart-roundtrip.3mf")
+        val gcodeFile = File(context.cacheDir, "supplied-oma-heart.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            model = Model(svgFile)
+            assertEquals("the source SVG should load as one workspace model", 1, model.objectsCount)
+            assertTrue("the source SVG should contain printable mesh facets", model.getTriangleCount(0) > 0)
+            assertTrue("the source SVG should create a closed printable body", model.getObjectVolume(0) > 0.0)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+
+            restored = Model(projectFile, 1)
+            assertEquals("the exported project should retain the SVG model", 1, restored.objectsCount)
+            assertTrue("the 3MF round trip should retain printable geometry", restored.getTriangleCount(0) > 0)
+            assertEquals("the SVG's filament assignments should survive the project round trip",
+                model.getUsedFilaments(0).toList(), restored.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            Log.i("NativeSliceDeviceTest", "PASS supplied multicolor SVG G-code bytes=${gcodeFile.length()}, " +
+                "facets=${restored.getTriangleCount(0)}, filaments=${restored.getUsedFilaments(0).toList()}")
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            restored?.release()
+            svgFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun disjointBooleanUnionKeepsItsInstanceBoundsAndProducesGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
