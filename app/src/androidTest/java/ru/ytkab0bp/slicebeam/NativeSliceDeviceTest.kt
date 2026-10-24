@@ -507,10 +507,14 @@ class NativeSliceDeviceTest {
         val model = Model(modelFile)
         var restored: Model? = null
         try {
+            val trianglesPerCopy = model.getTriangleCount(0)
             model.addObject(model, 0)
             model.addObject(model, 0)
             model.translate(1, 30.0, -10.0, 8.0)
             model.translate(2, 65.0, 12.0, 14.0)
+            assertTrue("the moving group should include a linked copy", model.duplicateInstance(
+                1, 0, Vec3d(24.0, 6.0, 0.0),
+            ) >= 0)
             model.setUniformFilament(0, 1)
             model.setUniformFilament(1, 2)
             model.setUniformFilament(2, 3)
@@ -537,6 +541,8 @@ class NativeSliceDeviceTest {
             // the bed. A stacked assembly must become multipart geometry before slicing.
             assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1, 2)))
             assertEquals(1, model.objectsCount)
+            assertEquals("the placed assembly should materialize all four printable copies",
+                trianglesPerCopy * 4, model.getTriangleCount(0))
             assertEquals("surface placement assembly must retain target and placed-part tools",
                 listOf(1, 2, 3), model.getUsedFilaments(0).toList())
             SliceBeam.genCurrentConfig(model)
