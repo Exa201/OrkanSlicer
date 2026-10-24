@@ -1169,6 +1169,8 @@ class InitialProjectMenuDeviceTest {
             assertTrue("group-placement objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
             compose.runOnUiThread { bed.updateModel() }
             instrumentationWaitForGlIdle()
+            assertArrayEquals("the source object should remain selected before opening the object list",
+                intArrayOf(0), readSelectedIndicesOnGl(glView))
 
             openModelMenu(activity)
             selectSingleObjectScope()
@@ -4098,6 +4100,12 @@ class InitialProjectMenuDeviceTest {
         assertEquals("temporary STL should load without error: $loadError", 1, requireNotNull(loaded).objectsCount)
 
         val viewport = requireNotNull(bed.glView)
+        viewport.queueEvent {
+            requireNotNull(viewport.renderer.model).setUniformFilament(0, 2)
+            viewport.requestRender()
+        }
+        instrumentationWaitForGlIdle()
+        compose.runOnUiThread { bed.updateModel() }
         viewport.selectModel(0, Runnable {})
         instrumentationWaitForGlIdle()
         compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
@@ -4128,6 +4136,21 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread should report the select-all result", selectedCount.await(10, TimeUnit.SECONDS))
         assertEquals("Select All should select all three native models", 3, requireNotNull(selectedObjects.get()))
+        for (index in 0 until 3) {
+            assertArrayEquals("duplicate $index should retain the source material", intArrayOf(2),
+                readUsedFilamentsOnGl(viewport, index))
+        }
+        compose.runOnUiThread { bed.undoModelEdit() }
+        compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(viewport) == 1 }
+        assertArrayEquals("Undo duplication should restore the assigned source material", intArrayOf(2),
+            readUsedFilamentsOnGl(viewport, 0))
+        compose.runOnUiThread { bed.redoModelEdit() }
+        compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(viewport) == 3 }
+        for (index in 0 until 3) {
+            assertArrayEquals("Redo duplication should restore material on copy $index", intArrayOf(2),
+                readUsedFilamentsOnGl(viewport, index))
+        }
+        assertCurrentWorkspaceModelRoundTripsAndSlices("duplicate")
         modelFile.delete()
     }
 
@@ -4534,7 +4557,10 @@ class InitialProjectMenuDeviceTest {
     }
 
     /** Export the actual post-action renderer model, reload the 3MF, and slice that reloaded model. */
-    private fun assertCurrentWorkspaceModelRoundTripsAndSlices(name: String) {
+    private fun assertCurrentWorkspaceModelRoundTripsAndSlices(
+        name: String,
+        prepareForSlice: (Model) -> Unit = {},
+    ) {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -4607,6 +4633,8 @@ class InitialProjectMenuDeviceTest {
                 assertArrayEquals("$name reloaded object $index filament", expectedFilaments[index],
                     restored.getUsedFilaments(index))
             }
+            prepareForSlice(restored)
+            assertTrue("$name should leave a printable sample after preparation", restored.objectsCount > 0)
             SliceBeam.genCurrentConfig(restored)
             sliceResult = restored.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
             assertTrue("$name reloaded model should produce non-empty G-code",
@@ -5161,6 +5189,12 @@ class InitialProjectMenuDeviceTest {
             val model = loadSingleTestModel(bed, modelFile)
             assertEquals(1, model.objectsCount)
             val glView = requireNotNull(bed.glView)
+            glView.queueEvent {
+                requireNotNull(glView.renderer.model).setUniformFilament(0, 2)
+                glView.requestRender()
+            }
+            instrumentationWaitForGlIdle()
+            compose.runOnUiThread { bed.updateModel() }
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             val initialBounds = readExactBoundsOnGl(glView, 0).single()
@@ -5191,15 +5225,21 @@ class InitialProjectMenuDeviceTest {
             }
             val afterXBounds = readExactBoundsOnGl(glView, 0).single()
             (0..2).forEach { axis -> assertEquals("X reflection keeps world center", initialCenter[axis], center(afterXBounds, axis), 0.01) }
+            assertArrayEquals("X reflection preserves the object's filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
 
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 hasExpectedLinearTransform(glView, 0, doubleArrayOf(1.0, 1.0, 1.0))
             }
+            assertArrayEquals("Undo reflection preserves the object's filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 hasExpectedLinearTransform(glView, 0, doubleArrayOf(-1.0, 1.0, 1.0))
             }
+            assertArrayEquals("Redo reflection preserves the object's filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
 
             compose.onNodeWithTag("scale-mirror-y").performClick()
             compose.waitUntil(timeoutMillis = 10_000) {
@@ -5209,6 +5249,8 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 hasExpectedLinearTransform(glView, 0, doubleArrayOf(-1.0, -1.0, -1.0))
             }
+            assertArrayEquals("XYZ reflections preserve the object's filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
             assertTrue("mirrored object must remain renderable", readTriangleCountOnGl(glView, 0) > 0)
         } finally {
             modelFile.delete()
@@ -6170,6 +6212,12 @@ class InitialProjectMenuDeviceTest {
             val model = loadSingleTestModel(bed, modelFile)
             assertEquals(1, model.objectsCount)
             val glView = requireNotNull(bed.glView)
+            glView.queueEvent {
+                requireNotNull(glView.renderer.model).setUniformFilament(0, 2)
+                glView.requestRender()
+            }
+            instrumentationWaitForGlIdle()
+            compose.runOnUiThread { bed.updateModel() }
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
 
@@ -6193,6 +6241,22 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            assertArrayEquals("cut half 0 should retain the source material", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("cut half 1 should retain the source material", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 1))
+            assertCurrentWorkspaceModelRoundTripsAndSlices("cut") { cutModel ->
+                // The upper cut half is intentionally floating at this horizontal cut plane.
+                // Keep the lower, bed-contacting half for a valid G-code check after verifying
+                // that both halves survived Undo/Redo and the 3MF round trip above.
+                fun lowerZ(index: Int): Double {
+                    val min = Vec3d(); val max = Vec3d()
+                    cutModel.getBoundingBoxExact(index, min, max)
+                    return min.z
+                }
+                val lowerHalf = if (lowerZ(0) <= lowerZ(1)) 0 else 1
+                cutModel.deleteObject(1 - lowerHalf)
+            }
         } finally {
             modelFile.delete()
         }
@@ -6370,6 +6434,12 @@ class InitialProjectMenuDeviceTest {
             val trianglesPerComponent = importedTriangleCount / 2
 
             val glView = requireNotNull(bed.glView)
+            glView.queueEvent {
+                requireNotNull(glView.renderer.model).setUniformFilament(0, 2)
+                glView.requestRender()
+            }
+            instrumentationWaitForGlIdle()
+            compose.runOnUiThread { bed.updateModel() }
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             openSelectedObjectMenu(activity)
@@ -6393,6 +6463,11 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
             assertEquals("redo should restore both disconnected components", trianglesPerComponent,
                 readTriangleCountOnGl(glView, 1))
+            for (index in 0 until 2) {
+                assertArrayEquals("split component $index should keep the original material", intArrayOf(2),
+                    readUsedFilamentsOnGl(glView, index))
+            }
+            assertCurrentWorkspaceModelRoundTripsAndSlices("split-disconnected")
         } finally {
             modelFile.delete()
         }

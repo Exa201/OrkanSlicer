@@ -3176,3 +3176,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - PR-Nachweis: https://github.com/Exa201/OrkanSlicer/pull/2#issuecomment-6379983525. Kein APK-Build und kein Release in diesem Durchgang. Xiaomi-Gerät und konkrete Nutzerdatei waren nicht verfügbar.
 - Nächster Schritt: UI-2.0-Funktionsabnahme anhand des vorhandenen Status fortsetzen; keine offene STEP-Codeänderung aus diesem Fehlerbericht.
 
+# Objektaktionen — Material, Undo/Redo und Slicing-Rundlauf (2026-10-24)
+
+- Fehler behoben: „Alle auswählen“ und die Übernahme einer Objektauswahl im Dialog riefen `updateModel()` auf. Das fügte unveränderte Modell-Snapshots zur Undo-Historie hinzu; das erste Undo nach einer Auswahl konnte dadurch ohne sichtbare Modelländerung verbraucht werden. Auswahl bleibt jetzt UI-Zustand und erzeugt keinen Edit-History-Eintrag.
+- Fünf Objektbearbeitungsabläufe auf Honor PTP-N49 / Android 16 gezielt geprüft: Duplizieren von zwei Kopien, Aufteilen eines nicht verbundenen STL-Meshes in zwei Objekte, Schneiden mit Undo/Redo, Spiegeln über X/Y/Z sowie Auswahl einer Gruppe im Objektlisten-Dialog und Platzieren auf einem anderen Modell. Die Materialzuweisung bleibt in den betroffenen Bearbeitungen erhalten.
+- Duplizieren, Aufteilen und Schneiden zusätzlich mit 3MF-Export/Neuladen und echtem G-Code-Slice geprüft; alle drei Läufe bestanden einzeln 1/1. Beim Schneiden blieben beide Hälften im 3MF erhalten; da die obere Hälfte des horizontalen Testcuts frei schwebt, wurde für den G-Code-Nachweis die untere bettberührende Hälfte gesliced. Das ist kein Nachweis, dass die schwebende Hälfte ohne Stützen druckbar ist.
+- Spiegeln und gruppierte Objektlisten-/Flächenplatzierung auf Honor jeweils 1/1 bestanden. Insgesamt fünf gezielte Geräteprüfungen erfolgreich. Vollständige Unit-Suiten und APK-Build wurden in dieser Arbeitsgruppe nicht ausgeführt.
+- Nächster Schritt: die nächsten nicht vollständig abgenommenen Modellaktionen samt Mehrfachauswahl, Materialerhalt und Undo/Redo weiterprüfen; danach die Modellbearbeitungs- und Slice-Regressionsläufe gebündelt ausführen.
+

@@ -195,7 +195,9 @@ internal class ModelMenuItems(
                 }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuSelectAll, R.drawable.square_stack_up_outline_28, {
-                fragment.glView!!.selectAllModels { fragment.updateModel() }
+                // Selection is renderer UI state, not a model edit. Recording it through
+                // updateModel() would add an identical model snapshot and consume the next Undo.
+                fragment.glView!!.selectAllModels {}
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuDeleteAll, R.drawable.delete_outline_android_28, { anchor ->
                 val activeGlView = glView ?: return@BedComposeMenuAction

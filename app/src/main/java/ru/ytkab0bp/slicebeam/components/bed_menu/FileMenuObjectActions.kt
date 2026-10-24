@@ -110,7 +110,9 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                         dismiss()
                         viewport.selectModelsIfCurrent(indices, snapshot) { result ->
                             if (result == MODEL_EDIT_STALE_SELECTION) reportStaleSelection()
-                            else if (result == 1) fragment.updateModel()
+                            // Applying a selection changes renderer UI state only. The
+                            // SelectedObjectChangedEvent refreshes the model menu; don't
+                            // append an identical model snapshot to Undo history.
                         }
                     },
                 )
