@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -30,6 +31,57 @@ import java.util.zip.ZipFile
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun invalidJoinBooleanAndTextRequestsLeaveModelUntouched() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "invalid-model-edit-requests.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "invalid-model-edit-font.ttf")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            val originalCount = model.objectsCount
+            val originalFilaments = (0 until originalCount).map { model.getUsedFilaments(it) }
+            val min = Vec3d()
+            val max = Vec3d()
+            val originalBounds = (0 until originalCount).map { index ->
+                model.getBoundingBoxExact(index, min, max)
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+
+            assertEquals("duplicate join indices are rejected", -1,
+                model.combineObjectsAsParts(intArrayOf(0, 0)))
+            assertEquals("out-of-range Boolean indices are rejected", -1,
+                model.booleanObjects(intArrayOf(0, originalCount), BooleanOperation.UNION))
+            assertEquals("blank standalone text is rejected", -1, model.createTextObject(
+                fontFile.absolutePath, "  ", 12f, 1.2f,
+                Vec3d(90.0, 90.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            ))
+            assertEquals("an invalid surface target is rejected", -1, model.createTextObject(
+                fontFile.absolutePath, "Label", 12f, 1.2f,
+                Vec3d(90.0, 90.0, 0.0), Vec3d(0.0, 0.0, 1.0), targetObjectIndex = originalCount,
+            ))
+
+            assertEquals("invalid model edits must not add, remove, or combine objects", originalCount,
+                model.objectsCount)
+            (0 until originalCount).forEach { index ->
+                assertArrayEquals("invalid edits preserve object $index filament assignments",
+                    originalFilaments[index], model.getUsedFilaments(index))
+                model.getBoundingBoxExact(index, min, max)
+                val after = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                originalBounds[index].forEachIndexed { axis, value ->
+                    assertEquals("invalid edits preserve object $index bounds on axis $axis", value,
+                        after[axis], 0.001)
+                }
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
     @Test
     fun copyingAnObjectFromEmptyOrReleasedModelIsIgnoredSafely() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
