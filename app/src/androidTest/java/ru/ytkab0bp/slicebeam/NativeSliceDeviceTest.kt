@@ -874,6 +874,19 @@ class NativeSliceDeviceTest {
             )
             assertEquals(0, textIndex)
             assertTrue("standalone text should contain printable triangles", model.getTriangleCount(textIndex) > 0)
+            val secondTextIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "3D",
+                18f,
+                1.2f,
+                Vec3d(90.0, 125.0, 0.0),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("a second label should remain a separate object", 1, secondTextIndex)
+            assertTrue("the second standalone text should contain printable triangles",
+                model.getTriangleCount(secondTextIndex) > 0)
+            model.setUniformFilament(textIndex, 1)
+            model.setUniformFilament(secondTextIndex, 2)
 
             SliceBeam.genCurrentConfig(model)
             generatedConfig = SliceBeam.getCurrentConfigFile()
@@ -881,9 +894,15 @@ class NativeSliceDeviceTest {
             generatedConfig.delete()
             generatedConfig = null
             restored = Model(projectFile, 1)
-            assertEquals("standalone text should remain a separate object after 3MF reload", 1, restored.objectsCount)
-            assertEquals("text label should survive project reload", "ORKAN", restored.getObjectName(0))
-            assertTrue("reloaded text should remain a printable mesh", restored.getTriangleCount(0) > 0)
+            assertEquals("both standalone labels should remain separate after 3MF reload", 2, restored.objectsCount)
+            assertEquals("first text label should survive project reload", "ORKAN", restored.getObjectName(0))
+            assertEquals("second text label should survive project reload", "3D", restored.getObjectName(1))
+            assertEquals("the first text should keep its own filament", listOf(1),
+                restored.getUsedFilaments(0).toList())
+            assertEquals("the second text should keep its own filament", listOf(2),
+                restored.getUsedFilaments(1).toList())
+            assertTrue("reloaded first text should remain printable", restored.getTriangleCount(0) > 0)
+            assertTrue("reloaded second text should remain printable", restored.getTriangleCount(1) > 0)
 
             SliceBeam.genCurrentConfig(restored)
             generatedConfig = SliceBeam.getCurrentConfigFile()
@@ -891,6 +910,8 @@ class NativeSliceDeviceTest {
             val gcode = gcodeFile.readText()
             assertTrue("native slicer should emit G-code for standalone text", gcode.isNotBlank())
             assertTrue("text G-code should contain deposited moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            assertTrue("first text should use T0", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("second text should use T1", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
             Log.i("NativeSliceDeviceTest", "PASS standalone text G-code bytes=${gcodeFile.length()}")
         } finally {
             sliceResult?.release()
