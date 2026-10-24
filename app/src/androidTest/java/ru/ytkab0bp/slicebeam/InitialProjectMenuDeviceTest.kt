@@ -11,6 +11,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.view.InputDevice
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -585,6 +586,78 @@ class InitialProjectMenuDeviceTest {
             beforeBounds.zip(readExactBoundsOnGl(glView, 0, 1)).forEachIndexed { index, (before, after) ->
                 assertArrayEquals("stale Boolean selection must preserve object $index", before, after, 0.001)
             }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanDialogCancelAndAndroidBackPreserveModelGeometryMaterialsAndSelection() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "boolean-cancel-preserves-model-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val current = requireNotNull(glView.renderer.model)
+                current.addObject(current, 0)
+                current.translate(1, 12.0, 4.0, 3.0)
+                current.setUniformFilament(0, 2)
+                current.setUniformFilament(1, 3)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("Boolean sources should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            val beforeBounds = readExactBoundsOnGl(glView, 0, 1)
+            val beforeFilaments = (0..1).map { readUsedFilamentsOnGl(glView, it).toList() }
+            val beforeRevision = model.geometryRevision
+            val selectedIndices = intArrayOf(0, 1)
+            val cancelLabel = activity.getString(android.R.string.cancel)
+            val unionLabel = activity.getString(R.string.ModelBooleanUnion)
+
+            fun openBooleanDialog() {
+                openModelMenu(activity)
+                selectAllObjectsScope()
+                revealMenuAction(activity, R.string.ModelMenuBoolean)
+                compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                    .assertIsDisplayed().assertIsEnabled().performClick()
+                compose.onNodeWithText(unionLabel).assertIsDisplayed()
+            }
+
+            fun assertSourcesUnchanged() {
+                assertEquals("cancel must retain both source objects", 2, readObjectCountOnGl(glView))
+                assertEquals("cancel must not mutate model geometry", beforeRevision, model.geometryRevision)
+                beforeBounds.zip(readExactBoundsOnGl(glView, 0, 1)).forEachIndexed { index, (before, after) ->
+                    assertArrayEquals("cancel must preserve object $index bounds", before, after, 0.001)
+                }
+                assertEquals("cancel must retain source material assignments", beforeFilaments,
+                    (0..1).map { readUsedFilamentsOnGl(glView, it).toList() })
+                assertArrayEquals("cancel must retain the source selection", selectedIndices,
+                    readSelectedIndicesOnGl(glView))
+            }
+
+            openBooleanDialog()
+            compose.onNodeWithText(cancelLabel).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(unionLabel).fetchSemanticsNodes().isEmpty()
+            }
+            assertSourcesUnchanged()
+
+            openBooleanDialog()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(unionLabel).fetchSemanticsNodes().isEmpty()
+            }
+            assertSourcesUnchanged()
         } finally {
             modelFile.delete()
         }
