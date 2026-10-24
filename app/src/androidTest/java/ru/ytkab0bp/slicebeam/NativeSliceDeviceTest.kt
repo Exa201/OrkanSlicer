@@ -9,6 +9,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
@@ -339,6 +340,71 @@ class NativeSliceDeviceTest {
             sharedRoundTrip.delete()
             firstOutput.delete()
             sharedOutput.delete()
+        }
+    }
+
+    @Test
+    fun kromacutColorFixtureCanMapBothSourceColorsToOneSlotAndSliceAfterReload() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val fixture = File(context.cacheDir, "kromacut-color-fixture-input.3mf")
+        val fixturePipe = instrumentation.uiAutomation.executeShellCommand("cat /data/local/tmp/kromacut.3mf")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(fixturePipe).use { input ->
+            fixture.outputStream().use { output -> input.copyTo(output) }
+        }
+        val fixtureAvailable = fixture.length() > 1_000_000L
+        if (!fixtureAvailable) fixture.delete()
+        assumeTrue(
+            "Push the user-provided KromaCut fixture to /data/local/tmp/kromacut.3mf to run this integration test",
+            fixtureAvailable,
+        )
+        val remappedProject = File(context.cacheDir, "kromacut-shared-filament.3mf")
+        val gcodeFile = File(context.cacheDir, "kromacut-shared-filament.gcode")
+        val model = Model(fixture, 1)
+        var reloaded: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            assertEquals("KromaCut's two colored layers should import as one assembled object", 1, model.objectsCount)
+            assertEquals("the source project should retain both imported colors", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+            assertEquals("the first source color should use its first logical filament", 1,
+                model.getVolumeExtruder(0, 0))
+            assertEquals("the second source color should use its second logical filament", 2,
+                model.getVolumeExtruder(0, 1))
+
+            // A user may intentionally print both source colors with one physical slot.
+            model.remapFilaments(intArrayOf(1, 2), intArrayOf(2, 2))
+            assertEquals("both source colors should now share the chosen logical filament", listOf(2),
+                model.getUsedFilaments(0).toList())
+            assertEquals(2, model.getVolumeExtruder(0, 0))
+            assertEquals(2, model.getVolumeExtruder(0, 1))
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, remappedProject.absolutePath)
+            reloaded = Model(remappedProject, 1)
+            assertEquals("the chosen filament must survive the 3MF round trip", listOf(2),
+                reloaded.getUsedFilaments(0).toList())
+            assertEquals(2, reloaded.getVolumeExtruder(0, 0))
+            assertEquals(2, reloaded.getVolumeExtruder(0, 1))
+
+            SliceBeam.genCurrentConfig(reloaded)
+            sliceResult = reloaded.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the selected slot 2 must be emitted as G-code tool T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("the original slot 1 must not reappear after slicing",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("unassigned slot 3 must not be emitted",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            sliceResult?.release()
+            reloaded?.release()
+            model.release()
+            fixture.delete()
+            remappedProject.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
         }
     }
 
