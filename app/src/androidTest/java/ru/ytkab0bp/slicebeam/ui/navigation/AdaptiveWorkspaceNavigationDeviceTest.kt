@@ -25,6 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.navigation.MobileNavigationPolicy
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 
 @RunWith(AndroidJUnit4::class)
@@ -113,6 +114,53 @@ class AdaptiveWorkspaceNavigationDeviceTest {
                 node.fetchSemanticsNode().boundsInRoot.top, 0.5f)
         }
         compose.onNodeWithText(context.getString(R.string.MenuOptionsCompact)).assertIsDisplayed()
+    }
+
+    @Test
+    fun globalNavigationStaysInOneRowAtPhoneWidthAndLargeFontScale() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val labels = mapOf(
+            MobileNavigationPolicy.PREVIEW_SLOT to (R.string.NavigationPreviewCompact to R.string.NavigationPreview),
+            MobileNavigationPolicy.PRINT_SLOT to (R.string.NavigationPrintCompact to R.string.SlotPrintConfig),
+            MobileNavigationPolicy.FILAMENT_SLOT to (R.string.NavigationFilamentCompact to R.string.NavigationFilament),
+            MobileNavigationPolicy.PRINTER_SLOT to (R.string.NavigationPrinterCompact to R.string.SlotPrinterConfig),
+            MobileNavigationPolicy.APP_SLOT to (R.string.NavigationAppCompact to R.string.NavigationApp),
+        )
+        val items = MobileNavigationPolicy.destinations().map { slot ->
+            val (compact, full) = requireNotNull(labels[slot])
+            WorkspaceNavigationItem(
+                slot = slot,
+                label = context.getString(compact),
+                icon = R.drawable.view_in_ar_24,
+                accessibilityLabel = context.getString(full),
+            )
+        }
+
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1.5f)) {
+                BeamComposeTheme {
+                    Box(Modifier.width(320.dp).height(56.dp)) {
+                        AdaptiveWorkspaceNavigation(
+                            items = items,
+                            selectedSlot = MobileNavigationPolicy.PREVIEW_SLOT,
+                            isBottomNavigation = true,
+                            onSelected = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val destinationNodes = items.map { item ->
+            compose.onNodeWithContentDescription(item.accessibilityLabel)
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(48.dp)
+        }
+        val firstTop = destinationNodes.first().fetchSemanticsNode().boundsInRoot.top
+        destinationNodes.drop(1).forEach { node ->
+            assertEquals("global navigation items must remain on one row", firstTop,
+                node.fetchSemanticsNode().boundsInRoot.top, 0.5f)
+        }
     }
 
     @Test
