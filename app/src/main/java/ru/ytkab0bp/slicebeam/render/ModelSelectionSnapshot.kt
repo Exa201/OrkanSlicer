@@ -8,8 +8,14 @@ internal class ModelSelectionSnapshot(
     val geometryRevision: Long,
     val objectCount: Int,
     val primaryObject: Int,
-    val selectedIndices: IntArray,
+    selectedIndices: IntArray,
 ) {
+    private val selectedIndicesSnapshot = selectedIndices.copyOf()
+
+    /** Expose a copy so delayed UI callbacks cannot mutate the captured selection. */
+    val selectedIndices: IntArray
+        get() = selectedIndicesSnapshot.copyOf()
+
     fun matches(
         currentModel: Model?,
         currentPrimaryObject: Int,
@@ -18,5 +24,5 @@ internal class ModelSelectionSnapshot(
         model.geometryRevision == geometryRevision &&
         model.objectsCount == objectCount &&
         currentPrimaryObject == primaryObject &&
-        currentSelectedIndices.contentEquals(selectedIndices)
+        currentSelectedIndices.contentEquals(selectedIndicesSnapshot)
 }

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -18,6 +19,7 @@ import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
@@ -48,6 +50,30 @@ class ModelEditingNativeDeviceTest {
         assertTrue("released model must reject standalone text creation", model.createTextObject(
             "font.ttf", "Label", 10f, 1f, Vec3d(0.0, 0.0, 0.0), Vec3d(0.0, 0.0, 1.0),
         ) < 0)
+    }
+
+    @Test fun delayedModelEditSelectionSnapshotCannotBeMutatedThroughInputOrGetter() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "selection-snapshot-cube.stl")
+        val model = Model(modelFile)
+        try {
+            val callerSelection = intArrayOf(0)
+            val snapshot = ModelSelectionSnapshot(
+                model = model,
+                geometryRevision = model.geometryRevision,
+                objectCount = model.objectsCount,
+                primaryObject = 0,
+                selectedIndices = callerSelection,
+            )
+
+            callerSelection[0] = 9
+            snapshot.selectedIndices[0] = 9
+
+            assertTrue(snapshot.matches(model, 0, intArrayOf(0)))
+            assertFalse(snapshot.matches(model, 0, intArrayOf(9)))
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
     }
 
     @Test fun mirrorXyZKeepsObjectCenterMeshAndCanBeToggledBack() {
