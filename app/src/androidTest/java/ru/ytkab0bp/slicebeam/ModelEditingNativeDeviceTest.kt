@@ -14,6 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
@@ -802,7 +803,7 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
-    @Test fun standardM12BoltCanBuildNativeRaycastDataAndBePicked() {
+    @Test fun standardM12BoltUsesSafeBoundsPickingWithoutNativeRaycastIndex() {
         val values = FastenerFormLogic.defaults(size = FastenerStandards.count() - 1)
         assertEquals(null, FastenerFormLogic.validate(values))
         val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "m12-raycast-regression.stl")
@@ -815,26 +816,24 @@ class ModelEditingNativeDeviceTest {
             FastenerFormLogic.parse(values.third),
         )
         val model = Model(file)
-        val glModel = GLModel()
         try {
             assertTrue("generated STL should retain its screw triangles", model.getTriangleCount(0) > 0)
             assertEquals(written, model.getTriangleCount(0))
-            glModel.initFrom(model, 0)
-            val started = android.os.SystemClock.elapsedRealtime()
-            Native.glmodel_init_raycast_data(glModel.pointer)
-            val elapsed = android.os.SystemClock.elapsedRealtime() - started
-
+            assertTrue(
+                "a standard M12 bolt must stay on the safe bounds-picking path",
+                LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),
+            )
             val min = Vec3d(); val max = Vec3d()
             model.getBoundingBoxExact(0, min, max)
-            val hits = Native.glmodel_raycast_closest_hit(
-                glModel.pointer,
-                doubleArrayOf((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z + 10.0),
-                doubleArrayOf(0.0, 0.0, -1.0),
+            val hit = LargeModelPick.hit(
+                Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z + 10.0),
+                Vec3d(0.0, 0.0, -1.0),
+                min,
+                max,
             )
-            android.util.Log.i("FastenerRaycastRegression", "M12 facets=${written}, raycastIndexMs=${elapsed}")
-            assertTrue("ray through the bolt axis should hit the generated model", hits.size >= 6)
+            assertTrue("ray through the bolt bounds should select the generated model", hit != null)
+            assertTrue("bounds selection must be marked approximate", hit!!.approximate)
         } finally {
-            glModel.release()
             model.release()
             file.delete()
         }

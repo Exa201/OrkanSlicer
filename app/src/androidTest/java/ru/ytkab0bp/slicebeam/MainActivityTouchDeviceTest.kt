@@ -32,6 +32,7 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -152,6 +153,10 @@ class MainActivityTouchDeviceTest {
             scenario.onActivity {
                 val meshesField = glView.renderer.javaClass.getDeclaredField("glModels").apply { isAccessible = true }
                 val generatedMesh = (meshesField.get(glView.renderer) as List<*>).first() as GLModel
+                assertTrue(
+                    "the generated M12 mesh must be classified for safe bounds picking",
+                    LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),
+                )
                 val pickHits = arrayListOf<GLModel.HitResult>()
                 generatedMesh.raycaster.raycast(
                     glView.renderer,
