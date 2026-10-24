@@ -520,6 +520,7 @@ class MainActivityTouchDeviceTest {
                     requireNotNull(bed).isWorkspaceMessageDialogAttached(),
                 )
             }
+            instrumentation.waitForIdleSync()
             instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
             instrumentation.waitForIdleSync()
             scenario.onActivity {
