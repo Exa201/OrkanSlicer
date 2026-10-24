@@ -237,17 +237,40 @@ internal fun WorkspaceShell(
                     val dockWidth = if (modePanelDocked && modePanelContent != null) {
                         WorkspaceShellLayoutPolicy.dockedLandscapePanelWidthDp(maxWidth.value.toInt(), modePanelSize?.landscape)
                     } else 0
-                    Row(Modifier.fillMaxSize()) {
-                        AndroidView(
-                            factory = { rendererView },
-                            modifier = Modifier.weight(1f).fillMaxHeight().testTag("workspace-renderer-area"),
+                    val dockAtBottom = modePanelDocked && modePanelContent != null &&
+                        dockWidth < WorkspaceShellLayoutPolicy.MIN_LANDSCAPE_SIDE_PANEL_WIDTH_DP
+                    if (dockAtBottom) {
+                        val dockHeight = WorkspaceShellLayoutPolicy.dockedLandscapeBottomPanelHeightDp(
+                            maxHeight.value.toInt(),
                         )
-                        if (dockWidth > 0) {
-                            androidx.compose.material3.Surface(
-                                modifier = Modifier.width(dockWidth.dp).fillMaxHeight().testTag("workspace-docked-tool-panel"),
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 4.dp,
-                            ) { modePanelContent?.invoke() }
+                        Column(Modifier.fillMaxSize()) {
+                            AndroidView(
+                                factory = { rendererView },
+                                modifier = Modifier.fillMaxWidth().weight(1f).testTag("workspace-renderer-area"),
+                            )
+                            if (dockHeight > 0) {
+                                androidx.compose.material3.Surface(
+                                    modifier = Modifier.fillMaxWidth().height(dockHeight.dp)
+                                        .testTag("workspace-docked-tool-panel"),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shadowElevation = 4.dp,
+                                ) { modePanelContent?.invoke() }
+                            }
+                        }
+                    } else {
+                        Row(Modifier.fillMaxSize()) {
+                            AndroidView(
+                                factory = { rendererView },
+                                modifier = Modifier.weight(1f).fillMaxHeight().testTag("workspace-renderer-area"),
+                            )
+                            if (dockWidth > 0) {
+                                androidx.compose.material3.Surface(
+                                    modifier = Modifier.width(dockWidth.dp).fillMaxHeight()
+                                        .testTag("workspace-docked-tool-panel"),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shadowElevation = 4.dp,
+                                ) { modePanelContent?.invoke() }
+                            }
                         }
                     }
                 }
@@ -319,6 +342,7 @@ internal fun WorkspaceActionControl(
 
 /** Measurable policy for the portion of a compact workspace reserved for the actual build plate. */
 internal object WorkspaceShellLayoutPolicy {
+    const val MIN_LANDSCAPE_SIDE_PANEL_WIDTH_DP = 360
     private const val MAX_APP_TEXT_SCALE = 1.5f
 
     /** Stable header geometry with room for its two profile lines at the app zoom maximum. */
@@ -369,6 +393,15 @@ internal object WorkspaceShellLayoutPolicy {
         val available = availableWidthDp.coerceAtLeast(0)
         val requested = dimension?.let { WorkspacePanelSizePolicy.resolve(it, available.toFloat()).toInt() } ?: 0
         return minOf(requested, (available - 280).coerceAtLeast(0))
+    }
+
+    /** Narrow landscape workspaces dock inspection controls below the renderer instead of clipping them. */
+    @JvmStatic
+    fun dockedLandscapeBottomPanelHeightDp(availableHeightDp: Int): Int {
+        val available = availableHeightDp.coerceAtLeast(0)
+        val minimumRenderer = 100
+        val maximumPanel = 300
+        return minOf(maximumPanel, (available - minimumRenderer).coerceAtLeast(0))
     }
 
     /** Reserve a usable action menu while leaving most wide-window space to the renderer. */

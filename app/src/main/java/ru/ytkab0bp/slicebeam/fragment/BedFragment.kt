@@ -2287,6 +2287,10 @@ private fun onModelImportCommitted() {
     // import commit so an initially open menu cannot retain its empty-state actions.
     SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent())
 }
+/** Keep import-time adjustments (such as auto-orientation) as the new undo baseline. */
+internal fun rebaseModelHistoryAfterImportAdjustment() {
+    resetModelHistory()
+}
 /** Reuse the native model bounds to draw tiny XY footprints; never render a second 3D scene. */
 private fun refreshPlateThumbnails() {
     val viewport = glView ?: return
@@ -2450,11 +2454,11 @@ first.translate(o, -origin[0], -origin[1], (0).toDouble())
 first.resetBoundingBox()
 glView!!.renderer.model = first
 glView!!.renderer.resetGlModels()
+onModelImportCommitted()
 if (finalCallback != null)
 {
 finalCallback.onLoaded(first, 0, first.objectsCount)
 }
-onModelImportCommitted()
 reportImportReduction(reduction)
 }
 })
@@ -2528,11 +2532,11 @@ if (!preserveProjectLayout)
 bed.arrange(currentModel)
 }
 glView!!.renderer.resetGlModels()
+onModelImportCommitted()
 if (callback != null)
 {
 callback?.onLoaded(currentModel, firstNewObject, addedObjects)
 }
-onModelImportCommitted()
 reportImportReduction(reduction)
 }
 })
@@ -2587,11 +2591,11 @@ m.getBoundingBoxExact(i, objMin, objMax)
 bed.arrange(m)
 }
 glView!!.renderer.resetGlModels()
+onModelImportCommitted()
 if (callback != null)
 {
 callback?.onLoaded(m, 0, addedObjects)
 }
-onModelImportCommitted()
 reportImportReduction(reduction)
 }
 })

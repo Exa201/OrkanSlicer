@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -17,6 +18,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -27,6 +29,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -37,11 +40,97 @@ import org.junit.runner.RunWith
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
+import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 
 @RunWith(AndroidJUnit4::class)
 class WorkspaceModePanelHostDeviceTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun controllerToolActivationRecomposesTheWorkspacePanel() {
+        val controller = WorkspaceController()
+        compose.setContent {
+            MaterialTheme {
+                Box(Modifier.requiredSize(360.dp, 720.dp)) {
+                    Button(
+                        modifier = Modifier.testTag("activate-test-tool"),
+                        onClick = {
+                            controller.selectToolWithPanel(
+                                toolId = "test-tool",
+                                dismiss = {},
+                                panelContent = { Text("Controller panel", Modifier.testTag("controller-panel-content")) },
+                            )
+                        },
+                    ) { Text("Open tool") }
+                    controller.activeToolPanelContent?.let { panel ->
+                        WorkspaceModePanelHost(onDismiss = {}) { panel() }
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("activate-test-tool").performClick()
+        compose.onNodeWithTag("workspace-mode-panel").assertIsDisplayed()
+        compose.onNodeWithTag("controller-panel-content").assertIsDisplayed()
+    }
+
+    @Test
+    fun controllerToolActivationRendersPanelThroughWorkspaceShell() {
+        val controller = WorkspaceController()
+        compose.setContent {
+            BeamComposeTheme {
+                WorkspaceShell(
+                    portrait = false,
+                    toolPanelExpanded = true,
+                    toolPanelNeedsTwoRows = false,
+                    navigationItemCount = WorkspaceDestination.visibleNavigationDestinations.size,
+                    menuWidthDp = 220,
+                    rendererView = android.view.View(LocalContext.current),
+                    selectedNavigationSlot = WorkspaceDestination.PROJECT.ordinal,
+                    toolsExpanded = true,
+                    onNavigationSelected = {},
+                    activeMenuSlot = WorkspaceDestination.PROJECT.ordinal,
+                    menuComposeContentForSlot = {},
+                    onMenuTransitionSettled = {},
+                    projectSettingsContent = {},
+                    profileStatusContent = {
+                        Button(
+                            modifier = Modifier.testTag("shell-activate-test-tool"),
+                            onClick = {
+                                controller.selectToolWithPanel(
+                                    toolId = "test-tool",
+                                    dismiss = {},
+                                    panelContent = {
+                                        Text("Shell panel", Modifier.testTag("shell-panel-content"))
+                                    },
+                                    panelSize = WorkspacePanelSize(
+                                        portrait = WorkspacePanelDimension.Fixed(300f),
+                                        landscape = WorkspacePanelDimension.Fixed(300f),
+                                    ),
+                                )
+                            },
+                        ) { Text("Open tool") }
+                    },
+                    filamentButtonContent = {},
+                    platePickerContent = {},
+                    viewCubeContent = {},
+                    printerWebButtonContent = {},
+                    modePanelContent = controller.activeToolPanelContent,
+                    modePanelSize = controller.activeToolPanelSize,
+                    modePanelDocked = controller.activeToolPanelDocked,
+                    modePanelAllowsBackgroundInteraction = controller.activeToolAllowsBackgroundInteraction,
+                    onModePanelDismiss = { controller.dismissActivePanel() },
+                    transientPanelContent = controller.activePanelContent,
+                    snackbarController = WorkspaceSnackbarController(),
+                )
+            }
+        }
+
+        compose.onNodeWithTag("shell-activate-test-tool").performClick()
+        compose.onNodeWithTag("workspace-mode-panel").assertIsDisplayed()
+        compose.onNodeWithTag("shell-panel-content").assertIsDisplayed()
+    }
 
     @Test
     fun portraitToolPanelUsesComposeDpConstraints() {

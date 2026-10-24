@@ -21,7 +21,7 @@ class StepModelImportDeviceTest {
         }
 
         try {
-            for (extension in listOf("step", "stp")) {
+            for (extension in listOf("step", "stp", "STEP", "STP")) {
                 val file = File(context.cacheDir, "step-cube-fixture.$extension")
                 source.copyTo(file, overwrite = true)
                 val progress = mutableListOf<Float>()

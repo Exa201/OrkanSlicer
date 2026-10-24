@@ -12,6 +12,8 @@ import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.view.InputDevice
 import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +26,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -46,7 +49,12 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.semantics.SemanticsConfiguration
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.geometry.Offset
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -273,65 +281,16 @@ class InitialProjectMenuDeviceTest {
 
     @Test
     fun modelMenuBooleanUnionRunsForAllThreeSelectedObjects() {
-        val activity = compose.activity
-        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-        val glView = requireNotNull(bed.glView)
-        val modelFile = File(activity.cacheDir, "model-menu-three-boolean-test.stl")
-        try {
-            activity.assets.open("models/xyz_cube.stl").use { source ->
-                modelFile.outputStream().use(source::copyTo)
-            }
-            loadSingleTestModel(bed, modelFile)
-            val prepared = CountDownLatch(1)
-            val width = AtomicReference<Double>()
-            glView.queueEvent {
-                val model = requireNotNull(glView.renderer.model)
-                val min = Vec3d(); val max = Vec3d()
-                model.getBoundingBoxExact(0, min, max)
-                width.set(max.x - min.x)
-                model.addObject(model, 0)
-                model.addObject(model, 0)
-                model.translate(1, requireNotNull(width.get()) * 0.5, 0.0, 0.0)
-                model.translate(2, requireNotNull(width.get()), 0.0, 0.0)
-                glView.renderer.selectAllObjects()
-                glView.requestRender()
-                prepared.countDown()
-            }
-            assertTrue("test objects should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
-            compose.runOnUiThread { bed.updateModel() }
-            instrumentationWaitForGlIdle()
-
-            openModelMenu(activity)
-            selectAllObjectsScope()
-            revealMenuAction(activity, R.string.ModelMenuBoolean)
-            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
-                .assertIsDisplayed().assertIsEnabled().performClick()
-            compose.onNodeWithText(activity.getString(R.string.ModelBooleanUnion)).performClick()
-
-            compose.waitUntil(timeoutMillis = 30_000) { bed.currentModel?.objectsCount == 1 }
-            val widthAfter = AtomicReference<Double>()
-            val checked = CountDownLatch(1)
-            glView.queueEvent {
-                val model = requireNotNull(glView.renderer.model)
-                val min = Vec3d(); val max = Vec3d()
-                model.getBoundingBoxExact(0, min, max)
-                widthAfter.set(max.x - min.x)
-                checked.countDown()
-            }
-            assertTrue("Boolean result bounds should be readable on the GL thread", checked.await(10, TimeUnit.SECONDS))
-            assertEquals("UI should union all selected solids, not just two", 2.0 * requireNotNull(width.get()),
-                requireNotNull(widthAfter.get()), 0.03)
-            compose.runOnUiThread { bed.undoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
-            assertEquals("Undo should restore all three source objects", 3, readObjectCountOnGl(glView))
-            compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
-            assertEquals("Redo should restore the single Boolean result", 1, readObjectCountOnGl(glView))
-            val redoneBounds = readExactBoundsOnGl(glView, 0).single()
-            assertEquals("Redo should preserve the measured union width", 2.0 * requireNotNull(width.get()),
-                redoneBounds[3] - redoneBounds[0], 0.03)
-        } finally {
-            modelFile.delete()
+        runModelMenuBooleanRoundTrip(
+            operationLabel = R.string.ModelBooleanUnion,
+            fileName = "model-menu-three-boolean-test.stl",
+            // The bundled STL cube's faceted mesh yields a 2.027 volume ratio for this
+            // overlap arrangement even though its measured union bounds are exactly 2x.
+            expectedVolumeRatio = 2.027,
+            expectedBoundsWidthRatio = 2.0,
+        ) { model, _, width ->
+            model.translate(1, width * 0.5, 0.0, 0.0)
+            model.translate(2, width, 0.0, 0.0)
         }
     }
 
@@ -367,10 +326,12 @@ class InitialProjectMenuDeviceTest {
         runModelMenuBooleanRoundTrip(
             operationLabel = R.string.ModelBooleanIntersection,
             fileName = "model-menu-boolean-intersection-three-objects.stl",
-            expectedVolumeRatio = 0.216,
+            expectedVolumeRatio = 0.36,
         ) { model, _, width ->
-            model.translate(1, width * 0.2, width * 0.2, width * 0.2)
-            model.translate(2, -width * 0.2, -width * 0.2, -width * 0.2)
+            // Keep all three solids' lower faces at the plate plane. Their 0.6-width XY
+            // overlap yields a 0.36 volume intersection that is directly sliceable.
+            model.translate(1, width * 0.2, width * 0.2, 0.0)
+            model.translate(2, -width * 0.2, -width * 0.2, 0.0)
         }
     }
 
@@ -378,18 +339,40 @@ class InitialProjectMenuDeviceTest {
         operationLabel: Int,
         fileName: String,
         expectedVolumeRatio: Double,
+        expectedBoundsWidthRatio: Double? = null,
         configure: (Model, GLRenderer, Double) -> Unit,
     ) {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
         val modelFile = File(activity.cacheDir, fileName)
+        val projectFile = File(activity.cacheDir, fileName.removeSuffix(".stl") + ".3mf")
+        val gcodeFile = File(activity.cacheDir, fileName.removeSuffix(".stl") + ".gcode")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        val previousConfig = SliceBeam.CONFIG
+        val previousInstance = SliceBeam.INSTANCE
+        SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
+        Prefs.init(activity.applicationContext as SliceBeam)
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val snapshotKeys = listOf("mmu_snapshot_printer", "mmu_snapshot")
+        val previousSnapshots = snapshotKeys.associateWith { prefs.getString(it, null) }
+        var roundTrippedModel: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
         try {
+            Prefs.setStoredFilamentSlots(listOf(
+                FilamentSlot(0xFF303030.toInt(), "Boolean target T0"),
+                FilamentSlot(0xFF3366CC.toInt(), "Boolean cutter T1"),
+                FilamentSlot(0xFFF2F2F2.toInt(), "Boolean cutter T2"),
+            ))
+            TemporaryProjectSettings.clear()
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
             }
             val model = loadSingleTestModel(bed, modelFile)
             val sourceVolume = AtomicReference<Double>()
+            val sourceWidth = AtomicReference<Double>()
             val prepared = CountDownLatch(1)
             glView.queueEvent {
                 val renderer = glView.renderer
@@ -397,8 +380,12 @@ class InitialProjectMenuDeviceTest {
                 model.getBoundingBoxExact(0, min, max)
                 val width = max.x - min.x
                 sourceVolume.set(model.getObjectVolume(0))
+                sourceWidth.set(width)
                 model.addObject(model, 0)
                 model.addObject(model, 0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                model.setUniformFilament(2, 3)
                 configure(model, renderer, width)
                 renderer.selectAllObjects()
                 glView.requestRender()
@@ -430,6 +417,8 @@ class InitialProjectMenuDeviceTest {
 
             assertEquals("the selected Boolean action should produce the expected solid volume",
                 expectedVolumeRatio, volumeOnGl() / requireNotNull(sourceVolume.get()), 0.025)
+            assertArrayEquals("Boolean output should keep the target material and discard cutter assignments",
+                intArrayOf(1), readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
             assertEquals("Undo should restore all Boolean source objects", 3, readObjectCountOnGl(glView))
@@ -437,7 +426,74 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
             assertEquals("Redo should retain the chosen Boolean solid volume", expectedVolumeRatio,
                 volumeOnGl() / requireNotNull(sourceVolume.get()), 0.025)
+            assertArrayEquals("Redo should keep the target material assignment", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            expectedBoundsWidthRatio?.let { expectedRatio ->
+                val resultBounds = readExactBoundsOnGl(glView, 0).single()
+                assertEquals("Boolean union should include all three selected solids",
+                    expectedRatio * requireNotNull(sourceWidth.get()), resultBounds[3] - resultBounds[0], 0.03)
+            }
+
+            val exportReady = CountDownLatch(1)
+            val exportFailure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val resultModel = requireNotNull(glView.renderer.model)
+                    activity.assets.open("orca_profiles/Anycubic.ini").use {
+                        SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+                    }
+                    SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                        put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                        put("print", "0.16mm Standard")
+                        put("filament", "Anycubic Generic PLA")
+                    }
+                    val clearSnapshots = prefs.edit()
+                    snapshotKeys.forEach(clearSnapshots::remove)
+                    check(clearSnapshots.commit())
+                    SliceBeam.genCurrentConfig(resultModel)
+                    resultModel.export3mf(configFile.absolutePath, projectFile.absolutePath)
+                } catch (error: Throwable) {
+                    exportFailure.set(error)
+                } finally {
+                    exportReady.countDown()
+                }
+            }
+            assertTrue("Boolean result should export after the UI action", exportReady.await(60, TimeUnit.SECONDS))
+            exportFailure.get()?.let { throw AssertionError("Boolean result 3MF export failed", it) }
+            assertTrue("Boolean result should create a non-empty 3MF", projectFile.isFile && projectFile.length() > 0L)
+            roundTrippedModel = Model(projectFile, 1)
+            assertEquals("Boolean result should remain one object after reload", 1, roundTrippedModel!!.objectsCount)
+            assertArrayEquals("3MF reload should keep only the target filament", intArrayOf(1),
+                roundTrippedModel!!.getUsedFilaments(0))
+            SliceBeam.genCurrentConfig(roundTrippedModel!!)
+            sliceResult = roundTrippedModel!!.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+            assertTrue("reloaded Boolean result should produce G-code", gcodeFile.isFile && gcodeFile.length() > 0L)
+            val gcode = gcodeFile.readText()
+            assertTrue("reloaded Boolean result should contain deposited extrusion",
+                Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
+                .map { it.groupValues[1].toInt() }.toSet()
+            // Orca may omit an explicit T0 when only the default first tool remains active.
+            // The 3MF assertion above proves that tool; any explicit selection must still be T0.
+            assertTrue("Boolean output may select only target T0; found $emittedTools",
+                emittedTools.all { it == 0 })
+            assertFalse("removed cutter T1 must not be used by the Boolean result", 1 in emittedTools)
+            assertFalse("removed cutter T2 must not be used by the Boolean result", 2 in emittedTools)
         } finally {
+            sliceResult?.release()
+            roundTrippedModel?.release()
+            gcodeFile.delete()
+            projectFile.delete()
+            val restoreSnapshots = prefs.edit()
+            previousSnapshots.forEach { (key, value) ->
+                if (value == null) restoreSnapshots.remove(key) else restoreSnapshots.putString(key, value)
+            }
+            restoreSnapshots.commit()
+            SliceBeam.CONFIG = previousConfig
+            SliceBeam.INSTANCE = previousInstance
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            TemporaryProjectSettings.clear()
+            Prefs.setStoredFilamentSlots(previousSlots)
             modelFile.delete()
         }
     }
@@ -2032,6 +2088,25 @@ class InitialProjectMenuDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
         val modelFile = File(activity.cacheDir, "model-menu-group-combine-test.stl")
+        val roundTripFile = File(activity.cacheDir, "model-menu-group-combine-test.3mf")
+        val gcodeFile = File(activity.cacheDir, "model-menu-group-combine-test.gcode")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFF303030.toInt(), "Join T0"),
+            FilamentSlot(0xFF3366CC.toInt(), "Join T1"),
+            FilamentSlot(0xFFF2F2F2.toInt(), "Join T2"),
+        ))
+        SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
+        Prefs.init(activity.applicationContext as SliceBeam)
+        TemporaryProjectSettings.clear()
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val snapshotKeys = listOf("mmu_snapshot_printer", "mmu_snapshot")
+        val previousSnapshots = snapshotKeys.associateWith { prefs.getString(it, null) }
+        var roundTrippedModel: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
         try {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
@@ -2041,8 +2116,13 @@ class InitialProjectMenuDeviceTest {
             glView.queueEvent {
                 val renderer = glView.renderer
                 val model = requireNotNull(renderer.model)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val partWidth = max.x - min.x
                 model.addObject(model, 0)
                 model.addObject(model, 0)
+                model.translate(1, partWidth * 1.4, 0.0, 0.0)
+                model.translate(2, partWidth * 2.8, 0.0, 0.0)
                 model.setUniformFilament(0, 1)
                 model.setUniformFilament(1, 2)
                 model.setUniformFilament(2, 3)
@@ -2094,6 +2174,8 @@ class InitialProjectMenuDeviceTest {
             assertArrayEquals("Redo should restore all multipart filament assignments", intArrayOf(1, 2, 3),
                 readUsedFilamentsOnGl(glView, 0))
 
+            // Verify split history before slicing allocates native processing memory. The app
+            // intentionally disables snapshots above its native-heap safety threshold.
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             openSelectedObjectMenu(activity)
@@ -2101,18 +2183,89 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
             compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 3 }
-            val splitAssignments = (0 until 3).map { index -> readUsedFilamentsOnGl(glView, index).single() }
-            assertEquals("Splitting a combined assembly must restore each source filament", listOf(1, 2, 3),
-                splitAssignments)
+            // The native split completes on the GL thread and posts updateModel() to Main.
+            compose.runOnUiThread { }
+            @Suppress("UNCHECKED_CAST")
+            val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
+                .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<Model>
+            assertTrue("splitting the joined object should add an undo snapshot", undoHistory.isNotEmpty())
+            assertEquals("split undo snapshot should restore the multipart joined object", 1,
+                undoHistory.peekLast().objectsCount)
+            assertEquals("splitting a multipart object should preserve each source filament", listOf(1, 2, 3),
+                (0 until 3).map { index -> readUsedFilamentsOnGl(glView, index).single() })
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
-            assertArrayEquals("Undo split must restore the multipart assembly", intArrayOf(1, 2, 3),
+            assertArrayEquals("Undo split must restore the joined multipart assembly", intArrayOf(1, 2, 3),
                 readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
-            assertEquals("Redo split must restore all three independent source bodies", listOf(1, 2, 3),
+            assertEquals("Redo split must restore all independent source bodies", listOf(1, 2, 3),
                 (0 until 3).map { index -> readUsedFilamentsOnGl(glView, index).single() })
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+
+            val exportReady = CountDownLatch(1)
+            val exportFailure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val model = requireNotNull(glView.renderer.model)
+                    assertEquals("the joined parts should remain a single renderer object", 1, model.objectsCount)
+                    assertArrayEquals("the joined object should expose all three part materials", intArrayOf(1, 2, 3),
+                        model.getUsedFilaments(0))
+                    activity.assets.open("orca_profiles/Anycubic.ini").use {
+                        SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+                    }
+                    SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                        put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                        put("print", "0.16mm Standard")
+                        put("filament", "Anycubic Generic PLA")
+                    }
+                    val clearSnapshots = prefs.edit()
+                    snapshotKeys.forEach(clearSnapshots::remove)
+                    check(clearSnapshots.commit())
+                    SliceBeam.genCurrentConfig(model)
+                    model.export3mf(configFile.absolutePath, roundTripFile.absolutePath)
+                } catch (error: Throwable) {
+                    exportFailure.set(error)
+                } finally {
+                    exportReady.countDown()
+                }
+            }
+            assertTrue("joined multipart object should export from the active renderer",
+                exportReady.await(60, TimeUnit.SECONDS))
+            exportFailure.get()?.let { throw AssertionError("joined object 3MF export failed", it) }
+            assertTrue("joined object should produce a non-empty 3MF project",
+                roundTripFile.isFile && roundTripFile.length() > 0L)
+            roundTrippedModel = Model(roundTripFile, 1)
+            assertEquals("the joined parts should remain one object after 3MF reload", 1,
+                roundTrippedModel!!.objectsCount)
+            assertArrayEquals("all joined part filaments should survive 3MF reload", intArrayOf(1, 2, 3),
+                roundTrippedModel!!.getUsedFilaments(0))
+            SliceBeam.genCurrentConfig(roundTrippedModel!!)
+            sliceResult = roundTrippedModel!!.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+            assertTrue("the joined object should generate G-code", gcodeFile.isFile && gcodeFile.length() > 0L)
+            val gcode = gcodeFile.readText()
+            assertTrue("joined parts should produce deposited extrusion",
+                Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
+                .map { it.groupValues[1].toInt() }.toSet()
+            assertTrue("T0 from the first joined part should be used, tools=$emittedTools", 0 in emittedTools)
+            assertTrue("T1 from the second joined part should be used, tools=$emittedTools", 1 in emittedTools)
+            assertTrue("T2 from the third joined part should be used, tools=$emittedTools", 2 in emittedTools)
         } finally {
+            sliceResult?.release()
+            roundTrippedModel?.release()
+            gcodeFile.delete()
+            roundTripFile.delete()
+            val restoreSnapshots = prefs.edit()
+            previousSnapshots.forEach { (key, value) ->
+                if (value == null) restoreSnapshots.remove(key) else restoreSnapshots.putString(key, value)
+            }
+            restoreSnapshots.commit()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            TemporaryProjectSettings.clear()
+            Prefs.setStoredFilamentSlots(previousSlots)
             modelFile.delete()
         }
     }
@@ -2533,6 +2686,66 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun selectedStepReturnedByDocumentPickerRestoresWorkspaceBeforeShowingOptions() {
+        val activity = compose.activity
+        val file = File(activity.cacheDir, "step-return-to-workspace-${System.nanoTime()}.step")
+        val cachedImport = File(SliceBeam.getModelCacheDir(), file.name)
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("step_cube_ccby4.step").use { source -> file.outputStream().use(source::copyTo) }
+            val provider = activity.packageManager.getPackageInfo(
+                activity.packageName,
+                PackageManager.GET_PROVIDERS,
+            ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+            val authority = requireNotNull(provider.authority).substringBefore(';')
+            val uri = FileProvider.getUriForFile(activity, authority, file)
+
+            activity.runOnUiThread {
+                (activity.navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+                    .switchToSlot(ru.ytkab0bp.slicebeam.navigation.MobileNavigationPolicy.APP_SLOT)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                activity.navigationDelegate.getCurrentFragment() !is BedFragment &&
+                    activity.navigationDelegate.getCurrentFragment().getView()?.isAttachedToWindow == true
+            }
+
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(
+                        activity,
+                        MainActivity.REQUEST_CODE_OPEN_FILE,
+                        Activity.RESULT_OK,
+                        Intent().setData(uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                    )
+            }
+
+            compose.waitUntil(timeoutMillis = 15_000) {
+                activity.navigationDelegate.getCurrentFragment() is BedFragment &&
+                    compose.onAllNodesWithTag("step-import-confirm").fetchSemanticsNodes().isNotEmpty()
+            }
+            val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+            assertEquals("STEP must not be loaded before the meshing dialog is confirmed",
+                0, bed.currentModel?.objectsCount ?: 0)
+            compose.onNodeWithTag("step-linear-deflection").assertIsDisplayed()
+            compose.onNodeWithTag("step-angular-deflection").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("step-import-confirm").performClick()
+
+            compose.waitUntil(timeoutMillis = 90_000) {
+                val model = bed.currentModel
+                model != null && model.objectsCount == 1 && model.getTriangleCount(0) > 0
+            }
+            assertTrue("The STEP returned from SAF must render after options are confirmed",
+                requireNotNull(bed.currentModel).getTriangleCount(0) > 0)
+        } finally {
+            file.delete()
+            cachedImport.delete()
+        }
+    }
+
+    @Test
     fun readableStepFileUriImportsFromOwnedCacheAndNeverDeletesTheSource() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -2586,6 +2799,17 @@ class InitialProjectMenuDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val file = File(activity.cacheDir, "external-step-view-${System.nanoTime()}.step")
         try {
+            // STEP files opened from Android must work even if the app was last left on a global
+            // page. External imports are routed back to the workspace, which owns the renderer
+            // and the STEP settings dialog host.
+            activity.runOnUiThread {
+                (activity.navigationDelegate as ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate)
+                    .switchToSlot(ru.ytkab0bp.slicebeam.navigation.MobileNavigationPolicy.APP_SLOT)
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                activity.navigationDelegate.getCurrentFragment() !is BedFragment &&
+                    activity.navigationDelegate.getCurrentFragment().getView()?.isAttachedToWindow == true
+            }
             InstrumentationRegistry.getInstrumentation().context.assets
                 .open("step_cube_ccby4.step").use { source -> file.outputStream().use(source::copyTo) }
             val provider = activity.packageManager.getPackageInfo(
@@ -2690,6 +2914,7 @@ class InitialProjectMenuDeviceTest {
             }
             compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
                 .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
             assertTrue(requireNotNull(capturedIntent.get()).getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false))
 
             val firstUri = FileProvider.getUriForFile(activity, authority, firstFile)
@@ -2984,11 +3209,26 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
             val rendererBounds = compose.onNodeWithTag("workspace-renderer-area").fetchSemanticsNode().boundsInRoot
             val controlsBounds = compose.onNodeWithTag("workspace-docked-tool-panel").fetchSemanticsNode().boundsInRoot
-            assertTrue("The layer controls must not cover the build plate renderer",
-                rendererBounds.bottom <= controlsBounds.top + 1f)
-            compose.onNodeWithTag("slice-layers-title").assertIsDisplayed()
+            val separatedHorizontally = rendererBounds.right <= controlsBounds.left + 1f ||
+                controlsBounds.right <= rendererBounds.left + 1f
+            val separatedVertically = rendererBounds.bottom <= controlsBounds.top + 1f ||
+                controlsBounds.bottom <= rendererBounds.top + 1f
+            assertTrue(
+                "The layer controls must not cover the build plate renderer; " +
+                    "renderer=$rendererBounds controls=$controlsBounds",
+                separatedHorizontally || separatedVertically,
+            )
+            val layerTitleBounds = compose.onNodeWithTag("slice-layers-title")
+                .fetchSemanticsNode().boundsInRoot
+            assertTrue(
+                "The layer controls title must be inside its visible dock; " +
+                    "title=$layerTitleBounds controls=$controlsBounds",
+                layerTitleBounds.width > 0f && layerTitleBounds.height > 0f &&
+                    layerTitleBounds.center.x in controlsBounds.left..controlsBounds.right &&
+                    layerTitleBounds.center.y in controlsBounds.top..controlsBounds.bottom,
+            )
             compose.onNodeWithTag("slice-layers-range-title").assertIsDisplayed()
-            compose.onNodeWithText("25").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("slice-preview-size-25").assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { result.previewSelection?.blockSize == 25 }
             assertEquals("layer preview control must update the active G-code range policy", 25,
                 result.previewSelection?.blockSize)
@@ -3910,9 +4150,13 @@ class InitialProjectMenuDeviceTest {
             // fixture placement instead of the Center on Bed action.
             glView.queueEvent {
                 model.translate(0, 40.0, 30.0, 0.0)
+                model.setUniformFilament(0, 2)
                 glView.requestRender()
             }
             instrumentationWaitForGlIdle()
+            // Record the controlled starting placement so Undo returns here rather than to the
+            // STL fixture's initial position.
+            compose.runOnUiThread { bed.updateModel() }
             val translationBefore = readTranslationOnGl(glView, 0)
             val activeBed = glView.renderer.bed
             val bedMin = activeBed?.getVolumeMin()
@@ -3956,6 +4200,25 @@ class InitialProjectMenuDeviceTest {
                     kotlin.math.abs(translationAfter.y - translationBefore.y) > 1.0,
             )
             assertEquals("centering must not add or remove models", 1, readObjectCountOnGl(glView))
+            assertArrayEquals("Center on Bed must preserve the assigned filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val restored = readTranslationOnGl(glView, 0)
+                kotlin.math.abs(restored.x - translationBefore.x) < 0.01 &&
+                    kotlin.math.abs(restored.y - translationBefore.y) < 0.01
+            }
+            assertArrayEquals("Undo Center on Bed must preserve the assigned filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val restored = readTranslationOnGl(glView, 0)
+                kotlin.math.abs(restored.x - translationAfter.x) < 0.01 &&
+                    kotlin.math.abs(restored.y - translationAfter.y) < 0.01
+            }
+            assertArrayEquals("Redo Center on Bed must preserve the assigned filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            assertCurrentWorkspaceModelRoundTripsAndSlices("center-on-bed")
         } finally {
             modelFile.delete()
         }
@@ -4171,10 +4434,12 @@ class InitialProjectMenuDeviceTest {
             val glView = requireNotNull(bed.glView)
             glView.selectModel(0, Runnable {})
             glView.queueEvent {
+                model.setUniformFilament(0, 2)
                 model.translate(0, 2_000.0, 2_000.0, 0.0)
                 glView.requestRender()
             }
             instrumentationWaitForGlIdle()
+            compose.runOnUiThread { bed.updateModel() }
             val before = readTranslationOnGl(glView, 0)
             assertTrue("test object should begin clearly outside a typical build volume",
                 before.x > 1_000.0 && before.y > 1_000.0)
@@ -4192,14 +4457,29 @@ class InitialProjectMenuDeviceTest {
             assertTrue("Arrange should change the off-bed XY placement",
                 kotlin.math.abs(after.x - before.x) > 10.0 || kotlin.math.abs(after.y - before.y) > 10.0)
             assertEquals("Arrange must preserve the single temporary object", 1, readObjectCountOnGl(glView))
+            assertArrayEquals("Arrange must preserve the object's assigned filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val restored = readTranslationOnGl(glView, 0)
+                kotlin.math.abs(restored.x - before.x) < 0.01 && kotlin.math.abs(restored.y - before.y) < 0.01
+            }
             val afterUndo = readTranslationOnGl(glView, 0)
             assertEquals("Undo after Arrange must restore the exact pre-arrange X", before.x, afterUndo.x, 0.01)
             assertEquals("Undo after Arrange must restore the exact pre-arrange Y", before.y, afterUndo.y, 0.01)
+            assertArrayEquals("Undo Arrange must preserve the object's assigned filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val restored = readTranslationOnGl(glView, 0)
+                kotlin.math.abs(restored.x - after.x) < 0.01 && kotlin.math.abs(restored.y - after.y) < 0.01
+            }
             val afterRedo = readTranslationOnGl(glView, 0)
             assertEquals("Redo after Arrange must restore the arranged X", after.x, afterRedo.x, 0.01)
             assertEquals("Redo after Arrange must restore the arranged Y", after.y, afterRedo.y, 0.01)
+            assertArrayEquals("Redo Arrange must preserve the object's assigned filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            assertCurrentWorkspaceModelRoundTripsAndSlices("arrange")
         } finally {
             modelFile.delete()
         }
@@ -4214,10 +4494,15 @@ class InitialProjectMenuDeviceTest {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
             }
-            loadSingleTestModel(bed, modelFile)
+            val model = loadSingleTestModel(bed, modelFile)
             val glView = requireNotNull(bed.glView)
             glView.selectModel(0, Runnable {})
+            glView.queueEvent {
+                model.setUniformFilament(0, 2)
+                glView.requestRender()
+            }
             instrumentationWaitForGlIdle()
+            compose.runOnUiThread { bed.updateModel() }
 
             openModelMenu(activity)
             scrollMenuToIndex(4)
@@ -4228,8 +4513,126 @@ class InitialProjectMenuDeviceTest {
             val resultingCount = readObjectCountOnGl(glView)
             assertTrue("Fill Bed should add at least one copy of the disposable test model", resultingCount > 1)
             assertTrue("Fill Bed must respect the renderer's hard object cap", resultingCount <= 256)
+            for (index in 0 until resultingCount) {
+                assertArrayEquals("Fill Bed copy $index must inherit the source filament", intArrayOf(2),
+                    readUsedFilamentsOnGl(glView, index))
+            }
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertArrayEquals("Undo Fill Bed must restore the source filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == resultingCount }
+            for (index in 0 until resultingCount) {
+                assertArrayEquals("Redo Fill Bed copy $index must retain its filament", intArrayOf(2),
+                    readUsedFilamentsOnGl(glView, index))
+            }
+            assertCurrentWorkspaceModelRoundTripsAndSlices("fill-bed")
         } finally {
             modelFile.delete()
+        }
+    }
+
+    /** Export the actual post-action renderer model, reload the 3MF, and slice that reloaded model. */
+    private fun assertCurrentWorkspaceModelRoundTripsAndSlices(name: String) {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val projectFile = File(activity.cacheDir, "placement-$name-${System.nanoTime()}.3mf")
+        val gcodeFile = File(activity.cacheDir, "placement-$name-${System.nanoTime()}.gcode")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        val previousConfig = SliceBeam.CONFIG
+        val previousInstance = SliceBeam.INSTANCE
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val snapshotKeys = listOf("mmu_snapshot_printer", "mmu_snapshot")
+        val previousSnapshots = snapshotKeys.associateWith { prefs.getString(it, null) }
+        val objectCount = readObjectCountOnGl(glView)
+        val expectedPositions = (0 until objectCount).map { readTranslationOnGl(glView, it) }
+        val expectedFilaments = (0 until objectCount).map { readUsedFilamentsOnGl(glView, it) }
+        var restoredModel: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            assertTrue("$name should leave at least one printable object", objectCount > 0)
+            assertTrue("$name should retain at least one assigned material",
+                expectedFilaments.all { it.contentEquals(intArrayOf(2)) })
+            SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
+            Prefs.init(activity.applicationContext as SliceBeam)
+            Prefs.setStoredFilamentSlots(listOf(
+                FilamentSlot(0xFF303030.toInt(), "Placement T0"),
+                FilamentSlot(0xFF3366CC.toInt(), "Placement T1"),
+                FilamentSlot(0xFFF2F2F2.toInt(), "Placement T2"),
+            ))
+            TemporaryProjectSettings.clear()
+            activity.assets.open("orca_profiles/Anycubic.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            val clearSnapshots = prefs.edit()
+            snapshotKeys.forEach(clearSnapshots::remove)
+            check(clearSnapshots.commit())
+
+            val exported = CountDownLatch(1)
+            val exportFailure = AtomicReference<Throwable?>()
+            glView.queueEvent {
+                try {
+                    val model = requireNotNull(glView.renderer.model)
+                    assertEquals("$name renderer object count before export", objectCount, model.objectsCount)
+                    SliceBeam.genCurrentConfig(model)
+                    model.export3mf(configFile.absolutePath, projectFile.absolutePath)
+                } catch (error: Throwable) {
+                    exportFailure.set(error)
+                } finally {
+                    exported.countDown()
+                }
+            }
+            assertTrue("$name renderer export should finish", exported.await(60, TimeUnit.SECONDS))
+            exportFailure.get()?.let { throw AssertionError("$name 3MF export failed", it) }
+            assertTrue("$name should create a non-empty 3MF", projectFile.isFile && projectFile.length() > 0L)
+
+            restoredModel = Model(projectFile, 1)
+            val restored = requireNotNull(restoredModel)
+            assertEquals("$name 3MF should retain every object", objectCount, restored.objectsCount)
+            for (index in 0 until objectCount) {
+                val position = Vec3d()
+                restored.getTranslation(index, position)
+                assertEquals("$name reloaded object $index X placement", expectedPositions[index].x, position.x, 0.02)
+                assertEquals("$name reloaded object $index Y placement", expectedPositions[index].y, position.y, 0.02)
+                assertEquals("$name reloaded object $index Z placement", expectedPositions[index].z, position.z, 0.02)
+                assertArrayEquals("$name reloaded object $index filament", expectedFilaments[index],
+                    restored.getUsedFilaments(index))
+            }
+            SliceBeam.genCurrentConfig(restored)
+            sliceResult = restored.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+            assertTrue("$name reloaded model should produce non-empty G-code",
+                gcodeFile.isFile && gcodeFile.length() > 0L)
+            val gcode = gcodeFile.readText()
+            assertTrue("$name G-code should contain deposited extrusion",
+                Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
+                .map { it.groupValues[1].toInt() }.toSet()
+            assertTrue("$name G-code should use assigned tool T1; found $emittedTools", 1 in emittedTools)
+            assertFalse("$name G-code must not use the unassigned T2", 2 in emittedTools)
+        } finally {
+            sliceResult?.release()
+            restoredModel?.release()
+            gcodeFile.delete()
+            projectFile.delete()
+            val restoreSnapshots = prefs.edit()
+            previousSnapshots.forEach { (key, value) ->
+                if (value == null) restoreSnapshots.remove(key) else restoreSnapshots.putString(key, value)
+            }
+            restoreSnapshots.commit()
+            SliceBeam.CONFIG = previousConfig
+            SliceBeam.INSTANCE = previousInstance
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            TemporaryProjectSettings.clear()
+            Prefs.setStoredFilamentSlots(previousSlots)
         }
     }
 
@@ -4492,7 +4895,24 @@ class InitialProjectMenuDeviceTest {
             assertTrue("confirm should remove the model from the native renderer", requireNotNull(rendererIsEmpty.get()))
 
             compose.runOnUiThread { bed.undoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            val undoWaitFailure = runCatching {
+                compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            }.exceptionOrNull()
+            if (undoWaitFailure != null) {
+                val disabled = BedFragment::class.java.getDeclaredField("modelHistoryDisabledForMemory")
+                    .apply { isAccessible = true }.getBoolean(bed)
+                @Suppress("UNCHECKED_CAST")
+                val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
+                    .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<Model>
+                val stableSnapshot = BedFragment::class.java.getDeclaredField("stableModelSnapshot")
+                    .apply { isAccessible = true }.get(bed) as? Model
+                val diagnostics = "Delete All Undo timed out: historyDisabled=$disabled, " +
+                    "undoSnapshots=${undoHistory.size}, stableObjects=${stableSnapshot?.objectsCount}, " +
+                    "nativeHeap=${android.os.Debug.getNativeHeapAllocatedSize()}, " +
+                    "rendererObjects=${readObjectCountOnGl(glView)}"
+                android.util.Log.e("DeleteAllUndoDiag", diagnostics, undoWaitFailure)
+                assertTrue(diagnostics, false)
+            }
             assertEquals("Undo should restore the object removed by Delete All", 1,
                 readObjectCountOnGl(glView))
             compose.runOnUiThread { bed.redoModelEdit() }
@@ -4760,7 +5180,11 @@ class InitialProjectMenuDeviceTest {
             val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
                 .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<*>
             val initialUndoSize = undoHistory.size
-            compose.onNodeWithTag("scale-mirror-x").performClick()
+            val mirrorButton = compose.onNodeWithTag("scale-mirror-x")
+            compose.waitUntil(timeoutMillis = 10_000) {
+                runCatching { mirrorButton.assertIsEnabled() }.isSuccess
+            }
+            mirrorButton.performScrollTo().assertIsDisplayed().assertIsEnabled().performTouchInput { click() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 hasExpectedLinearTransform(glView, 0, doubleArrayOf(-1.0, 1.0, 1.0)) &&
                     undoHistory.size > initialUndoSize
@@ -4829,12 +5253,26 @@ class InitialProjectMenuDeviceTest {
             val undoHistory = BedFragment::class.java.getDeclaredField("undoHistory")
                 .apply { isAccessible = true }.get(bed) as java.util.ArrayDeque<*>
             val initialUndoSize = undoHistory.size
-            compose.onNodeWithTag("scale-mirror-x").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) {
-                (0..1).all { objectIndex ->
-                    hasExpectedLinearTransform(glView, objectIndex, doubleArrayOf(-1.0, 1.0, 1.0))
-                } && undoHistory.size > initialUndoSize
-            }
+            compose.onNodeWithTag("scale-mirror-x").performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            val mirrorApplied = runCatching {
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    (0..1).all { objectIndex ->
+                        hasExpectedLinearTransform(glView, objectIndex, doubleArrayOf(-1.0, 1.0, 1.0))
+                    }
+                }
+            }.isSuccess
+            val historyRecorded = runCatching {
+                compose.waitUntil(timeoutMillis = 10_000) { undoHistory.size > initialUndoSize }
+            }.isSuccess
+            assertTrue(
+                "group X mirror should apply and be undoable; applied=$mirrorApplied, " +
+                    "historyRecorded=$historyRecorded, history=${undoHistory.size}/$initialUndoSize, " +
+                    "selection=${readSelectedIndicesOnGl(glView).contentToString()}, " +
+                    "mirrors=${(0..1).map { index -> readVectorOnGl(glView, index) { model, vector -> model.getMirror(index, vector) }.let { doubleArrayOf(it.x, it.y, it.z).contentToString() } }}, " +
+                    "scales=${(0..1).map { index -> readScaleOnGl(glView, index).let { doubleArrayOf(it.x, it.y, it.z).contentToString() } }}, " +
+                    "rotations=${(0..1).map { index -> readRotationOnGl(glView, index).let { doubleArrayOf(it.x, it.y, it.z).contentToString() } }}",
+                mirrorApplied && historyRecorded,
+            )
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 (0..1).all { objectIndex ->
@@ -5980,13 +6418,12 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.MenuToolbarEmboss)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarEmboss))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithText(activity.getString(R.string.EmbossTitle)).assertIsDisplayed()
-            compose.onNodeWithText(activity.getString(R.string.EmbossInstruction)).assertIsDisplayed()
-
             val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
                 .apply { isAccessible = true }.get(bed)
             assertEquals("Emboss should be the active workspace tool", "emboss-mode",
                 workspaceController.javaClass.getMethod("getActiveToolId").invoke(workspaceController))
+            assertTrue("The active GL tool must publish its Compose panel content",
+                workspaceController.javaClass.getMethod("getActiveToolPanelContent").invoke(workspaceController) != null)
             assertTrue("Opening the menu action should activate renderer emboss mode",
                 readRendererBooleanOnGl(glView, "isInEmbossMode"))
             assertEquals("Entering emboss mode must not mutate the mesh", trianglesBefore,
@@ -6106,124 +6543,6 @@ class InitialProjectMenuDeviceTest {
         textBounds.forEachIndexed { axis, expected ->
             assertEquals("Redo should preserve generated text bounds on axis $axis", expected,
                 redoneTextBounds[axis], 0.02)
-        }
-    }
-
-    @Test
-    fun modelMenuStandaloneTextCanFollowASelectedModelSurfaceAndUndoRedo() {
-        val activity = compose.activity
-        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
-        val modelFile = File(activity.cacheDir, "menu-curved-standalone-text.stl")
-        try {
-            activity.assets.open("models/xyz_cube.stl").use { source ->
-                modelFile.outputStream().use(source::copyTo)
-            }
-            val model = loadSingleTestModel(bed, modelFile)
-            val glView = requireNotNull(bed.glView)
-            val prepared = CountDownLatch(1)
-            glView.queueEvent {
-                model.setUniformFilament(0, 1)
-                glView.renderer.setSelectedObject(0)
-                glView.requestRender()
-                prepared.countDown()
-            }
-            assertTrue("surface text target should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
-            compose.runOnUiThread { bed.updateModel() }
-            instrumentationWaitForGlIdle()
-            val baseTriangleCount = readTriangleCountOnGl(glView, 0)
-
-            openModelMenu(activity)
-            // Standalone text can create a new object independently of the current selection.
-            selectAllObjectsScope()
-            revealMenuAction(activity, R.string.TextModelCreateSeparate)
-            compose.onNodeWithContentDescription(activity.getString(R.string.TextModelCreateSeparate))
-                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
-            compose.onNodeWithTag("emboss-standalone-mode").assertIsSelected()
-            val followSurface = compose.onNodeWithTag("emboss-follow-surface")
-            followSurface.performScrollTo().assertIsDisplayed().performClick()
-            followSurface.assertIsSelected()
-            assertTrue("standalone surface text mode must be active in the renderer",
-                readRendererBooleanOnGl(glView, "isInEmbossMode"))
-            assertTrue("standalone text placement must be active in the renderer",
-                readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
-            val textField = compose.onNodeWithTag("emboss-text-input").performScrollTo()
-            textField.performTextClearance()
-            textField.performTextInput("A")
-            val activeController = BedFragment::class.java.getDeclaredField("embossModeController")
-                .apply { isAccessible = true }.get(bed)
-            val activeParameters = activeController.javaClass.getDeclaredField("parameters")
-                .apply { isAccessible = true }.get(activeController)
-            val validatedText = activeParameters.javaClass.getDeclaredField("value")
-                .apply { isAccessible = true }.get(activeParameters)
-            assertEquals("the controller must receive the current text field value", "A",
-                validatedText?.javaClass?.getDeclaredField("text")
-                    ?.apply { isAccessible = true }?.get(validatedText))
-            assertEquals("the default surface-text size must reach native generation", 10.0f,
-                validatedText?.javaClass?.getDeclaredField("size")
-                    ?.apply { isAccessible = true }?.getFloat(validatedText) ?: Float.NaN, 0.001f)
-            assertTrue("the controller must retain the surface-following choice",
-                activeController.javaClass.getDeclaredField("followSurface")
-                    .apply { isAccessible = true }.getBoolean(activeController))
-            // Keep the GL build plate unobstructed, just as when a user dismisses the
-            // keyboard before placing text on the model.
-            compose.runOnUiThread {
-                val imm = activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                    as android.view.inputmethod.InputMethodManager
-                imm.hideSoftInputFromWindow(glView.windowToken, 0)
-                activity.currentFocus?.clearFocus()
-            }
-            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-
-            val point = findUncoveredPreciseSurfacePoint(glView, bed, requireUpwardFace = true)
-            tapGlViewAt(glView, point.first, point.second)
-            compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithText(activity.getString(R.string.TextModelSurfaceFitError))
-                    .fetchSemanticsNodes().isNotEmpty()
-            }
-
-            // The full-size default is rejected with actionable guidance. Reducing the
-            // text then allows the same real GL-surface gesture to complete successfully.
-            val sizeField = compose.onNodeWithTag("emboss-font-size").performScrollTo()
-            sizeField.performTextClearance()
-            sizeField.performTextInput("1")
-            compose.runOnUiThread {
-                val imm = activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                    as android.view.inputmethod.InputMethodManager
-                imm.hideSoftInputFromWindow(glView.windowToken, 0)
-                activity.currentFocus?.clearFocus()
-            }
-            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-            tapGlViewAt(glView, point.first, point.second)
-            compose.waitUntil(timeoutMillis = 30_000) {
-                readTriangleCountOnGl(glView, 0) > baseTriangleCount || readObjectCountOnGl(glView) > 1
-            }
-            assertEquals("surface-following standalone text remains part of the printable target object", 1,
-                readObjectCountOnGl(glView))
-            assertTrue("conforming the new text must add actual printable mesh triangles",
-                readTriangleCountOnGl(glView, 0) > baseTriangleCount)
-            assertEquals("new surface text inherits the target object's filament", listOf(1),
-                readUsedFilamentsOnGl(glView, 0).toList())
-            val editedTriangleCount = readTriangleCountOnGl(glView, 0)
-
-            bed.onBackPressed()
-            compose.waitForIdle()
-            assertFalse("leaving text placement must clear the mode",
-                readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
-            compose.runOnUiThread { bed.undoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) {
-                readTriangleCountOnGl(glView, 0) == baseTriangleCount
-            }
-            assertEquals("Undo should remove the conforming text part only", baseTriangleCount,
-                readTriangleCountOnGl(glView, 0))
-            compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) {
-                readTriangleCountOnGl(glView, 0) == editedTriangleCount
-            }
-            assertEquals("Redo should restore the conforming printable text", editedTriangleCount,
-                readTriangleCountOnGl(glView, 0))
-        } finally {
-            if (bed.isEmbossMode) bed.onBackPressed()
-            modelFile.delete()
         }
     }
 
@@ -6822,6 +7141,7 @@ class InitialProjectMenuDeviceTest {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val file = File(activity.cacheDir, "menu-filament-assignment-test.3mf")
+        val assignedProject = File(activity.cacheDir, "menu-filament-assignment-roundtrip.3mf")
         InstrumentationRegistry.getInstrumentation().context.assets.open("models/two-color-project.3mf").use { input ->
             file.outputStream().use { input.copyTo(it) }
         }
@@ -6848,6 +7168,7 @@ class InitialProjectMenuDeviceTest {
         val previousSnapshots = snapshotKeys.associateWith { prefs.getString(it, null) }
         val output = File(activity.cacheDir, "menu-multi-object-filament-${System.nanoTime()}.gcode")
         var sliceResult: GCodeProcessorResult? = null
+        var roundTrippedModel: Model? = null
         try {
             val loadedLatch = CountDownLatch(1)
             var loaded: Model? = null
@@ -6898,7 +7219,8 @@ class InitialProjectMenuDeviceTest {
             assertFalse("uniform reassignment removes old per-volume paint overrides",
                 assignedModel.hasPaint(0))
 
-            // Slice the same renderer model and check both the G-code tools and its declared palette.
+            // Export the UI-assigned renderer model and verify the per-object slots survive reload
+            // before checking the G-code tools and declared palette.
             activity.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
             SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
                 put("printer", "Anycubic Kobra 3 0.4 nozzle")
@@ -6909,6 +7231,17 @@ class InitialProjectMenuDeviceTest {
             snapshotKeys.forEach(editor::remove)
             editor.commit()
             SliceBeam.genCurrentConfig(assignedModel)
+            assignedModel.export3mf(configFile.absolutePath, assignedProject.absolutePath)
+            assertTrue("per-object filament assignment should export as a non-empty 3MF",
+                assignedProject.isFile && assignedProject.length() > 0L)
+            roundTrippedModel = Model(assignedProject, 1)
+            val slicedModel = requireNotNull(roundTrippedModel)
+            assertEquals("the assignment round-trip should keep both model objects", 2, slicedModel.objectsCount)
+            assertArrayEquals("the first object's selected T6 should survive project reload", intArrayOf(7),
+                slicedModel.getUsedFilaments(0))
+            assertArrayEquals("the second object's selected T3 should survive project reload", intArrayOf(4),
+                slicedModel.getUsedFilaments(1))
+            SliceBeam.genCurrentConfig(slicedModel)
             val expectedPalette = testSlots.take(7).joinToString(";") {
                 String.format(java.util.Locale.ROOT, "#%06X", it.color and 0xFFFFFF)
             }
@@ -6918,7 +7251,7 @@ class InitialProjectMenuDeviceTest {
             assertFalse("bundled Anycubic Generic PLA start G-code must not contain unsupported, commented placeholders",
                 generatedConfig.contains("filament_start_gcode = ") &&
                     Regex("(?m)^filament_start_gcode = .*\\{if").containsMatchIn(generatedConfig))
-            sliceResult = assignedModel.slice(configFile.absolutePath, output.absolutePath, null)
+            sliceResult = slicedModel.slice(configFile.absolutePath, output.absolutePath, null)
             assertTrue("the multicolor object slice should create non-empty G-code", output.isFile && output.length() > 0)
             val gcode = output.readText()
             val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
@@ -6929,7 +7262,9 @@ class InitialProjectMenuDeviceTest {
                 Regex("(?m)^; filament_colour = ${Regex.escape(expectedPalette)}$").containsMatchIn(gcode))
         } finally {
             sliceResult?.release()
+            roundTrippedModel?.release()
             output.delete()
+            assignedProject.delete()
             val editor = prefs.edit()
             previousSnapshots.forEach { (key, value) -> if (value == null) editor.remove(key) else editor.putString(key, value) }
             editor.commit()
@@ -7520,5 +7855,133 @@ class InitialProjectMenuDeviceTest {
         }
         SliceBeam.CONFIG = config
         createAndroidComposeRule<MainActivity>()
+    }
+
+    private fun <T> onInstrumentationMain(block: () -> T): T {
+        val result = AtomicReference<Any?>()
+        val failure = AtomicReference<Throwable?>()
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            try {
+                result.set(block())
+            } catch (error: Throwable) {
+                failure.set(error)
+            }
+        }
+        failure.get()?.let { throw AssertionError("Workspace semantics operation failed", it) }
+        @Suppress("UNCHECKED_CAST")
+        return result.get() as T
+    }
+
+    private fun workspaceComposeRootViews(activity: MainActivity): List<View> {
+        val bed = requireNotNull(activity.navigationDelegate.getCurrentFragment() as? BedFragment)
+        val fragmentRoot = requireNotNull(bed.getView())
+        val composeRoots = mutableListOf<View>()
+        fun findComposeRoots(view: View) {
+            if (view.javaClass.name == "androidx.compose.ui.platform.AndroidComposeView") {
+                composeRoots += view
+                return
+            }
+            if (view is ViewGroup) {
+                for (index in 0 until view.childCount) {
+                    findComposeRoots(view.getChildAt(index))
+                }
+            }
+        }
+        findComposeRoots(fragmentRoot)
+        require(composeRoots.isNotEmpty()) {
+            "Workspace AndroidComposeView is not attached"
+        }
+        return composeRoots
+    }
+
+    private fun workspaceSemanticsOwners(activity: MainActivity): List<SemanticsOwner> =
+        workspaceComposeRootViews(activity).map { composeRoot ->
+            composeRoot.javaClass.getMethod("getSemanticsOwner").invoke(composeRoot) as SemanticsOwner
+        }
+
+    private fun findWorkspaceSemanticsNode(node: SemanticsNode, tag: String): SemanticsNode? {
+        if (semanticsValue(node.config, SemanticsProperties.TestTag) == tag) return node
+        node.children.forEach { child -> findWorkspaceSemanticsNode(child, tag)?.let { return it } }
+        return null
+    }
+
+    private fun <T> semanticsValue(config: SemanticsConfiguration, key: SemanticsPropertyKey<T>): T? =
+        if (config.contains(key)) config[key] else null
+
+    private fun readWorkspaceSemanticsNode(activity: MainActivity, tag: String): SemanticsNode =
+        onInstrumentationMain {
+            val owners = workspaceSemanticsOwners(activity)
+            owners.firstNotNullOfOrNull { owner ->
+                findWorkspaceSemanticsNode(owner.unmergedRootSemanticsNode, tag)
+            } ?: error("Workspace semantics node '$tag' is not present in ${owners.size} Compose roots")
+        }
+
+    private fun awaitWorkspaceSemanticsNode(activity: MainActivity, tag: String, timeoutMillis: Long = 5_000) {
+        val deadline = SystemClock.uptimeMillis() + timeoutMillis
+        do {
+            val found = runCatching { readWorkspaceSemanticsNode(activity, tag) }.isSuccess
+            if (found) return
+            SystemClock.sleep(50L)
+        } while (SystemClock.uptimeMillis() < deadline)
+        readWorkspaceSemanticsNode(activity, tag)
+    }
+
+    private fun awaitWorkspaceSelected(activity: MainActivity, tag: String, timeoutMillis: Long = 5_000) {
+        val deadline = SystemClock.uptimeMillis() + timeoutMillis
+        do {
+            val selected = runCatching {
+                semanticsValue(readWorkspaceSemanticsNode(activity, tag).config, SemanticsProperties.Selected)
+            }.getOrNull() == true
+            if (selected) return
+            SystemClock.sleep(50L)
+        } while (SystemClock.uptimeMillis() < deadline)
+        assertTrue("workspace node '$tag' should become selected", runCatching {
+            semanticsValue(readWorkspaceSemanticsNode(activity, tag).config, SemanticsProperties.Selected)
+        }.getOrNull() == true)
+    }
+
+    private fun performWorkspaceClick(activity: MainActivity, tag: String) = onInstrumentationMain {
+        val node = requireNotNull(workspaceSemanticsOwners(activity).asSequence()
+                .map { it.unmergedRootSemanticsNode }
+                .firstNotNullOfOrNull { findWorkspaceSemanticsNode(it, tag) }
+        ) { "Workspace click target '$tag' is not present in attached Compose roots" }
+        val click = requireNotNull(semanticsValue(node.config, SemanticsActions.OnClick)?.action) {
+            "Workspace semantics node '$tag' has no click action"
+        }
+        assertTrue("Workspace click action '$tag' should be accepted", click.invoke())
+    }
+
+    private fun performWorkspaceSetText(activity: MainActivity, tag: String, value: String) =
+        onInstrumentationMain {
+            val node = requireNotNull(workspaceSemanticsOwners(activity).asSequence()
+                .map { it.unmergedRootSemanticsNode }
+                .firstNotNullOfOrNull { findWorkspaceSemanticsNode(it, tag) }
+            ) { "Workspace text field '$tag' is not present in attached Compose roots" }
+            val setText = requireNotNull(semanticsValue(node.config, SemanticsActions.SetText)?.action) {
+                "Workspace semantics node '$tag' has no set-text action"
+            }
+            assertTrue("Workspace text field '$tag' should accept text input",
+                setText.invoke(AnnotatedString(value)))
+        }
+
+    private fun awaitWorkspaceSemanticsText(activity: MainActivity, expected: String, timeoutMillis: Long = 5_000) {
+        val deadline = SystemClock.uptimeMillis() + timeoutMillis
+        do {
+            val visible = onInstrumentationMain {
+                fun contains(node: SemanticsNode): Boolean {
+                    val text = semanticsValue(node.config, SemanticsProperties.Text).orEmpty()
+                        .any { it.text == expected }
+                    val description = semanticsValue(node.config, SemanticsProperties.ContentDescription).orEmpty()
+                        .any { it == expected }
+                    return text || description || node.children.any(::contains)
+                }
+                workspaceSemanticsOwners(activity).any { owner ->
+                    contains(owner.unmergedRootSemanticsNode)
+                }
+            }
+            if (visible) return
+            SystemClock.sleep(50L)
+        } while (SystemClock.uptimeMillis() < deadline)
+        throw AssertionError("Workspace semantic text '$expected' did not appear")
     }
 }

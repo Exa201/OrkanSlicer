@@ -109,5 +109,8 @@ class WorkspaceShellLayoutPolicyTest {
         assertEquals(0, WorkspaceShellLayoutPolicy.dockedLandscapePanelWidthDp(
             240, WorkspacePanelDimension.Fixed(180f),
         ))
+        assertEquals(360, WorkspaceShellLayoutPolicy.MIN_LANDSCAPE_SIDE_PANEL_WIDTH_DP)
+        assertEquals(200, WorkspaceShellLayoutPolicy.dockedLandscapeBottomPanelHeightDp(300))
+        assertEquals(0, WorkspaceShellLayoutPolicy.dockedLandscapeBottomPanelHeightDp(100))
     }
 }

@@ -2237,11 +2237,11 @@ if (placementTarget >= 0) {
 }
 if (isInEmbossMode)
 {
-var targetObj = selectedObject
-if (targetObj == -1)
-{
-targetObj = raycastObjectIndex(x, y)
-}
+// Standalone surface text is explicitly placed by tapping a target. Do not let an
+// unrelated preselection silently redirect the text to another object. Traditional
+// emboss/engrave still operates on the selected model when one is selected.
+var targetObj = if (isStandaloneTextPlacementMode) raycastObjectIndex(x, y) else selectedObject
+if (targetObj == -1) targetObj = raycastObjectIndex(x, y)
 if (targetObj != -1 && targetObj < glModels.size)
 {
 val glModel = glModels.get(targetObj)

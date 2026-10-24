@@ -433,6 +433,123 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun nativeBooleanUnionMergesSolidsTouchingAcrossOneCoplanarFace() {
+        val modelFile = createCubeFixture("boolean-face-touching-union.stl", 20f)
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            model.addObject(model, 0)
+            // The second cube shares the target's +X face exactly: no gap and no overlap.
+            model.translate(1, width, 0.0, 0.0)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+
+            assertEquals("face-touching closed solids should union into one object", 0, result)
+            assertEquals(1, model.objectsCount)
+            assertEquals("coplanar shared faces must not lose or duplicate volume", 2.0,
+                model.getObjectVolume(result) / sourceVolume, 0.002)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals(width * 2.0, resultMax.x - resultMin.x, 0.002)
+            assertEquals(max.y - min.y, resultMax.y - resultMin.y, 0.002)
+            assertEquals(max.z - min.z, resultMax.z - resultMin.z, 0.002)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun nativeBooleanUnionWithVertexTouchIsValidOrLeavesBothInputsUntouched() {
+        val modelFile = createCubeFixture("boolean-vertex-touching-union.stl", 20f)
+        val model = Model(modelFile)
+        try {
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            val side = targetMax.x - targetMin.x
+            val sourceVolume = model.getObjectVolume(0)
+            val sourceTriangles = model.getTriangleCount(0)
+            model.addObject(model, 0)
+            // The cubes meet at exactly one vertex. Some mesh solvers reject this
+            // non-manifold boundary; rejection must not consume or alter either input.
+            model.translate(1, side, side, side)
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+
+            if (result >= 0) {
+                assertEquals("a successful vertex-touch union should yield one valid object", 1,
+                    model.objectsCount)
+                assertEquals("a successful union must preserve both volumes", 2.0,
+                    model.getObjectVolume(result) / sourceVolume, 0.002)
+                assertTrue("a successful union must retain triangles", model.getTriangleCount(result) > 0)
+                val resultMin = Vec3d(); val resultMax = Vec3d()
+                model.getBoundingBoxExact(result, resultMin, resultMax)
+                assertEquals(side * 2.0, resultMax.x - resultMin.x, 0.002)
+                assertEquals(side * 2.0, resultMax.y - resultMin.y, 0.002)
+                assertEquals(side * 2.0, resultMax.z - resultMin.z, 0.002)
+            } else {
+                assertEquals("rejected non-manifold union must preserve both source objects", 2,
+                    model.objectsCount)
+                for (index in 0..1) {
+                    assertEquals(sourceVolume, model.getObjectVolume(index), sourceVolume * 0.002)
+                    assertEquals(sourceTriangles, model.getTriangleCount(index))
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(index, min, max)
+                    assertEquals(side, max.x - min.x, 0.002)
+                    assertEquals(side, max.y - min.y, 0.002)
+                    assertEquals(side, max.z - min.z, 0.002)
+                }
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun nativeBooleanDifferenceWithDisjointCutterNeverMutatesTargetGeometry() {
+        val modelFile = createCubeFixture("boolean-disjoint-difference.stl", 20f)
+        val model = Model(modelFile)
+        try {
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            val targetVolume = model.getObjectVolume(0)
+            val targetTriangles = model.getTriangleCount(0)
+            model.addObject(model, 0)
+            // Keep a positive gap so the cutter cannot intersect even through tolerance.
+            model.translate(1, (targetMax.x - targetMin.x) * 2.0, 0.0, 0.0)
+            val cutterVolume = model.getObjectVolume(1)
+            val cutterTriangles = model.getTriangleCount(1)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.DIFFERENCE)
+
+            if (result >= 0) {
+                assertEquals("a valid empty subtraction should leave only the unchanged target", 1,
+                    model.objectsCount)
+                assertEquals(targetVolume, model.getObjectVolume(result), targetVolume * 0.002)
+                assertEquals(targetTriangles, model.getTriangleCount(result))
+            } else {
+                assertEquals("a rejected subtraction must preserve both input objects", 2,
+                    model.objectsCount)
+                assertEquals(targetVolume, model.getObjectVolume(0), targetVolume * 0.002)
+                assertEquals(targetTriangles, model.getTriangleCount(0))
+                assertEquals(cutterVolume, model.getObjectVolume(1), cutterVolume * 0.002)
+                assertEquals(cutterTriangles, model.getTriangleCount(1))
+            }
+            val preservedMin = Vec3d(); val preservedMax = Vec3d()
+            model.getBoundingBoxExact(if (result >= 0) result else 0, preservedMin, preservedMax)
+            assertEquals(targetMin.x, preservedMin.x, 0.002)
+            assertEquals(targetMax.x, preservedMax.x, 0.002)
+            assertEquals(targetMin.y, preservedMin.y, 0.002)
+            assertEquals(targetMax.y, preservedMax.y, 0.002)
+            assertEquals(targetMin.z, preservedMin.z, 0.002)
+            assertEquals(targetMax.z, preservedMax.z, 0.002)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun nativeBooleanUnionSupportsThreeSelectedObjectsAndPreservesWorldBounds() {
         val modelFile = copyAsset("models/xyz_cube.stl", "boolean-three-object-union.stl")
         val model = Model(modelFile)

@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
@@ -44,7 +46,8 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelSize
 
 /** Hosts the post-slice layer range editor in the exclusive workspace overlay. */
 internal fun showSliceLayersWorkspace(bed: BedFragment) {
-    val controller = SliceLayersWorkspaceController(bed)
+    val context = bed.getContext() ?: return
+    val controller = SliceLayersWorkspaceController(bed, context)
     val toolId = "slice-layer-preview"
     bed.showWorkspaceToolPanel(
         toolId = toolId,
@@ -65,13 +68,20 @@ internal fun showSliceLayersWorkspace(bed: BedFragment) {
         }
         SliceLayersPanel(
             onClose = { bed.dismissWorkspaceToolPanel() },
+            blockSize = controller.currentBlockSize,
+            onBlockSizeChanged = controller::changePartSize,
             content = { controller.Content() },
         )
     }
 }
 
 @Composable
-private fun SliceLayersPanel(onClose: () -> Unit, content: @Composable () -> Unit) {
+private fun SliceLayersPanel(
+    onClose: () -> Unit,
+    blockSize: Int,
+    onBlockSizeChanged: (Int) -> Unit,
+    content: @Composable () -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).testTag("slice-layers-panel"),
     ) {
@@ -90,21 +100,47 @@ private fun SliceLayersPanel(onClose: () -> Unit, content: @Composable () -> Uni
                 Text(stringResource(android.R.string.cancel), color = MaterialTheme.colorScheme.primary)
             }
         }
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                stringResource(R.string.GCodePreviewPartSize),
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            listOf(25, 50, 100, 200).forEach { block ->
+                FilterChip(
+                    selected = block == blockSize,
+                    onClick = { onBlockSizeChanged(block) },
+                    label = { Text(block.toString()) },
+                    modifier = Modifier.testTag("slice-preview-size-$block"),
+                )
+            }
+        }
         Box(Modifier.fillMaxWidth().weight(1f)) { content() }
     }
 }
 
-private class SliceLayersWorkspaceController(private val bed: BedFragment) {
+private class SliceLayersWorkspaceController(
+    private val bed: BedFragment,
+    private val context: android.content.Context,
+) {
     private var layerRange by mutableStateOf(SliceLayerRange(1, 1, 1))
-    private var title by mutableStateOf("")
+    private var title by mutableStateOf(
+        context.getString(R.string.MenuSliceInfoLayers, 1, 1),
+    )
     private var blockSize by mutableIntStateOf(GCodePreviewPolicy.DEFAULT_BLOCK_SIZE)
     private var applyCallback: Runnable? = null
     private var destroyed = false
+    private var openGeneration = 0
 
     private fun getViewer(): GCodeViewer? = bed.glView?.renderer?.viewer
 
     private fun updateTitle(from: Int, to: Int) {
-        val context = bed.getContext() ?: return
         title = context.getString(R.string.MenuSliceInfoLayers, from, to)
     }
 
@@ -136,7 +172,7 @@ private class SliceLayersWorkspaceController(private val bed: BedFragment) {
         applyView(layerRange.from, layerRange.to)
     }
 
-    private fun changePartSize(size: Int) {
+    fun changePartSize(size: Int) {
         blockSize = size
         selectPart(GCodePreviewPolicy.blockAt(layerRange.from, layerRange.maximum, size))
     }
@@ -194,18 +230,53 @@ private class SliceLayersWorkspaceController(private val bed: BedFragment) {
         )
     }
 
+    val currentBlockSize: Int get() = blockSize
+
     fun open() {
         destroyed = false
-        val viewer = getViewer() ?: return
-        val range = viewer.layersViewRange
+        val generation = ++openGeneration
+        val viewport = bed.glView
+        val renderer = viewport?.renderer
+        val viewer = renderer?.viewer
         blockSize = bed.glView?.renderer?.gcodeResult?.previewSelection?.blockSize
             ?: GCodePreviewPolicy.DEFAULT_BLOCK_SIZE
-        layerRange = normalizeSliceLayerRange(viewer.getLayersCount(), range.first, range.second)
+        if (viewer != null) {
+            val range = viewer.layersViewRange
+            layerRange = normalizeSliceLayerRange(viewer.getLayersCount(), range.first, range.second)
+            updateTitle(layerRange.from, layerRange.to)
+            return
+        }
+
+        // The G-code viewer is initialized on the GL thread after its next frame.
+        // The panel can be opened during that handoff; keep its header populated and
+        // refresh the real range as soon as the renderer publishes the viewer.
+        layerRange = normalizeSliceLayerRange(1L, 0L, 0L)
         updateTitle(layerRange.from, layerRange.to)
+        if (viewport != null && renderer != null) {
+            viewport.queueEvent {
+                renderer.afterNextFrame {
+                    if (destroyed || generation != openGeneration) return@afterNextFrame
+                    val readyViewer = renderer.viewer ?: return@afterNextFrame
+                    val range = readyViewer.layersViewRange
+                    val readyRange = normalizeSliceLayerRange(
+                        readyViewer.getLayersCount(), range.first, range.second,
+                    )
+                    ViewUtils.postOnMainThread {
+                        if (destroyed || generation != openGeneration) return@postOnMainThread
+                        layerRange = readyRange
+                        blockSize = renderer.gcodeResult?.previewSelection?.blockSize
+                            ?: GCodePreviewPolicy.DEFAULT_BLOCK_SIZE
+                        updateTitle(layerRange.from, layerRange.to)
+                    }
+                }
+                viewport.requestRender()
+            }
+        }
     }
 
     fun close() {
         if (destroyed) return
+        openGeneration++
         applyView(layerRange.from, layerRange.to)
         destroyed = true
         cancelPendingApply()
@@ -224,19 +295,27 @@ private fun SliceLayersContent(
     onToChanged: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
 ) {
+    val visibleTitle = title.ifBlank {
+        stringResource(R.string.MenuSliceInfoLayers, range.from, range.to)
+    }
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState())
+                .testTag("slice-layers-scroll-content"),
+        ) {
         Text(
-            text = title,
+            text = visibleTitle,
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).testTag("slice-layers-range-title"),
             color = MaterialTheme.colorScheme.primary,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
         )
-        SliceLayerPartControls(range, blockSize, onPartSelected, onPartSizeChanged, onShowAll)
+        SliceLayerPartControls(
+            range, blockSize, onPartSelected, onPartSizeChanged, onShowAll, showSizeOptions = false,
+        )
         LayerRangeSlider(
             label = stringResource(R.string.GCodeLayerRangeStart),
             layer = range.from,

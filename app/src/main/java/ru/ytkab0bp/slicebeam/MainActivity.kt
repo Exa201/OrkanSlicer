@@ -91,6 +91,7 @@ import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.navigation.MobileNavigationDelegate
+import ru.ytkab0bp.slicebeam.navigation.MobileNavigationPolicy
 import ru.ytkab0bp.slicebeam.navigation.NavigationDelegate
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Native
@@ -256,7 +257,7 @@ private fun handleExternalModelOpen(intent: Intent) {
     val uris = ExternalModelOpenIntent.uris(intent)
     if (uris.isEmpty()) return
     if (uris.size == 1) {
-        loadFile(uris.single())
+        runInWorkspaceBed { loadFile(uris.single()) }
         return
     }
 
@@ -272,8 +273,43 @@ private fun handleExternalModelOpen(intent: Intent) {
             getString(R.string.MenuFileOpenMultipleStlOnly),
         )
     } else {
-        loadMultipleStlFiles(stlFiles)
+        runInWorkspaceBed { loadMultipleStlFiles(stlFiles) }
     }
+}
+
+/** External file intents can arrive while a global page (for example App or Filament) is active.
+ * Model loading and the STEP options dialog belong to BedFragment, so switch back to the workspace
+ * first and wait until its Compose overlay host is attached before dispatching the import. */
+private fun runInWorkspaceBed(attempt: Int = 0, action: () -> Unit) {
+    if (isFinishing || isDestroyed) return
+    val mobileNavigation = navigationDelegate as? MobileNavigationDelegate
+    if (navigationDelegate.getCurrentFragment() !is BedFragment) {
+        if (mobileNavigation == null) {
+            showFileOperationError(
+                getString(R.string.MenuFileOpenFileFailed),
+                getString(R.string.StepImportWorkspaceUnavailable),
+            )
+            return
+        }
+        mobileNavigation.switchToSlot(MobileNavigationPolicy.PREVIEW_SLOT)
+    }
+
+    val bed = navigationDelegate.getCurrentFragment() as? BedFragment
+    if (bed?.canShowWorkspaceComposeDialog() == true) {
+        action()
+        return
+    }
+    if (attempt >= STEP_DIALOG_HOST_MAX_ATTEMPTS) {
+        showFileOperationError(
+            getString(R.string.MenuFileOpenFileFailed),
+            getString(R.string.StepImportWorkspaceUnavailable),
+        )
+        return
+    }
+    window.decorView.postDelayed(
+        { runInWorkspaceBed(attempt + 1, action) },
+        STEP_DIALOG_HOST_RETRY_DELAY_MS,
+    )
 }
 private fun dispatchActivityResult(requestCode:Int, resultCode:Int, data:Intent?) {
 if (ru.ytkab0bp.slicebeam.components.KromacutEditorMenu.handleActivityResult(requestCode, resultCode, data))
@@ -441,12 +477,15 @@ showFileOperationError(
 }
 else
 {
-loadMultipleStlFiles(stlFiles)
+runInWorkspaceBed { loadMultipleStlFiles(stlFiles) }
 }
 }
 else if (!selectedFiles.isEmpty())
 {
-loadFile(selectedFiles.get(0))
+// The document picker can return after workspace navigation has changed (for example
+// from an external file handoff or a restored global page). Model import and the STEP
+// meshing-options dialog are hosted by BedFragment, so restore that host before loading.
+runInWorkspaceBed { loadFile(selectedFiles.get(0)) }
 }
 }
 else if (requestCode == MainActivity.REQUEST_CODE_EXPORT_PROFILES)
@@ -1640,6 +1679,7 @@ bigObject = true
 }
 if (autoorient && !project3mf)
 {
+fragment.rebaseModelHistoryAfterImportAdjustment()
 fragment.glView!!.requestRender()
 }
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))

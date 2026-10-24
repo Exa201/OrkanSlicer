@@ -15,6 +15,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.testTag
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy
 
@@ -25,6 +26,7 @@ internal fun SliceLayerPartControls(
     onPart: (Int) -> Unit,
     onSize: (Int) -> Unit,
     onAll: () -> Unit,
+    showSizeOptions: Boolean = true,
 ) {
     val count = GCodePreviewPolicy.blockCount(range.maximum, size)
     val current = GCodePreviewPolicy.blockAt(range.from, range.maximum, size)
@@ -47,13 +49,20 @@ internal fun SliceLayerPartControls(
                     modifier = Modifier.graphicsLayer(rotationZ = 180f))
             }
         }
-        Text(stringResource(R.string.GCodePreviewPartSize), fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf(25, 50, 100, 200).forEach { block ->
-                FilterChip(selected = block == size, onClick = { onSize(block) }, label = { Text(block.toString()) })
+        if (showSizeOptions) {
+            Text(stringResource(R.string.GCodePreviewPartSize), fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(25, 50, 100, 200).forEach { block ->
+                    FilterChip(
+                        selected = block == size,
+                        onClick = { onSize(block) },
+                        label = { Text(block.toString()) },
+                        modifier = Modifier.testTag("slice-preview-size-$block"),
+                    )
+                }
+                AssistChip(onClick = onAll, label = { Text(stringResource(R.string.GCodePreviewAll)) })
             }
-            AssistChip(onClick = onAll, label = { Text(stringResource(R.string.GCodePreviewAll)) })
         }
     }
     if (choosingPart) {
