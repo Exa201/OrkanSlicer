@@ -126,6 +126,13 @@ open class GLModel internal constructor(
         get() = synchronized(this) {
         var current = raycasterCache
         if (current == null) {
+            // Renderer teardown may release a mesh while a queued touch callback is still
+            // waiting to resolve its raycaster. A released handle must never reach JNI.
+            if (pointer == 0L) {
+                current = MeshRaycaster()
+                raycasterCache = current
+                return@synchronized current
+            }
             // AABBMesh builds face-neighbour data for every triangle. KromaCut meshes
             // can exceed a million facets and crash the process on this tap path.
             if (approximatePickBounds == null && !Native.glmodel_init_raycast_data(pointer))
@@ -141,6 +148,8 @@ open class GLModel internal constructor(
             // `release`, mesh replacement and raycasts all share the GLModel monitor, so a
             // touch already in flight can never call JNI with a freed native handle.
             synchronized(this@GLModel) {
+            list?.clear()
+            if (pointer == 0L) return
             DebugUtils.assertTrue(renderer != null)
             DebugUtils.assertTrue(list != null)
             val safeRenderer = renderer!!

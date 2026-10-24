@@ -53,6 +53,16 @@ class ModelEditingNativeDeviceTest {
         ) < 0)
     }
 
+    @Test fun releasedGlModelIgnoresLateRaycastWithoutCallingNativeCode() {
+        val glModel = GLModel()
+        glModel.release()
+        val hits = arrayListOf(GLModel.HitResult(Vec3d(1.0, 2.0, 3.0), Vec3d(0.0, 0.0, 1.0)))
+
+        glModel.raycaster.raycast(null, hits, 0f, 0f)
+
+        assertTrue("late raycasts must clear stale hits and ignore the released native handle", hits.isEmpty())
+    }
+
     @Test fun delayedModelEditSelectionSnapshotCannotBeMutatedThroughInputOrGetter() {
         val modelFile = copyAsset("models/xyz_cube.stl", "selection-snapshot-cube.stl")
         val model = Model(modelFile)
