@@ -333,6 +333,53 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun booleanUiUsesPrimarySelectedObjectAsTargetMaterial() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "boolean-primary-target-material-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val width = max.x - min.x
+                model.addObject(model, 0)
+                model.translate(1, width * 0.5, 0.0, 0.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                renderer.setSelectedObject(1)
+                renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("Boolean sources should be prepared on the GL thread", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuBoolean)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-boolean-union").assertIsDisplayed().performClick()
+
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
+            assertArrayEquals(
+                "the primary selected object (index 1) must supply the Boolean result material",
+                intArrayOf(2), readUsedFilamentsOnGl(glView, 0),
+            )
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelMenuBooleanDifferenceAppliesMultipleCuttersAndSupportsUndoRedo() {
         runModelMenuBooleanRoundTrip(
             operationLabel = R.string.ModelBooleanDifference,
