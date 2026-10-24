@@ -836,6 +836,86 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanDifferenceAndIntersectionApplyAcrossLinkedCopiesAndStillSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val targetCube = copyCube(context, "boolean-linked-pair-target.stl")
+        val cutterCube = copyCube(context, "boolean-linked-pair-cutter.stl")
+        try {
+            for (operation in listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+                val suffix = if (operation == BooleanOperation.DIFFERENCE) "difference" else "intersection"
+                val projectFile = File(context.cacheDir, "boolean-linked-$suffix.3mf")
+                val gcodeFile = File(context.cacheDir, "boolean-linked-$suffix.gcode")
+                val model = Model(targetCube)
+                val cutter = Model(cutterCube)
+                var restored: Model? = null
+                var sliceResult: GCodeProcessorResult? = null
+                try {
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val width = max.x - min.x
+                    val oneCubeVolume = model.getObjectVolume(0)
+                    assertTrue("target should contain two linked copies", model.duplicateInstance(
+                        0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+                    ) >= 0)
+                    cutter.translate(0, width * 0.5, 0.0, 0.0)
+                    assertTrue("cutter should contain two corresponding linked copies", cutter.duplicateInstance(
+                        0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+                    ) >= 0)
+                    model.setUniformFilament(0, 1)
+                    cutter.setUniformFilament(0, 2)
+                    model.addObject(cutter, 0)
+
+                    val result = model.booleanObjects(0, 1, operation)
+                    assertEquals("$suffix should apply to both linked pairs", 0, result)
+                    assertEquals("$suffix should replace the two inputs with one result", 1, model.objectsCount)
+                    assertEquals("$suffix should keep one half of each target copy",
+                        oneCubeVolume, model.getObjectVolume(result), oneCubeVolume * 0.03)
+                    val resultMin = Vec3d(); val resultMax = Vec3d()
+                    model.getBoundingBoxExact(result, resultMin, resultMax)
+                    val resultSpan = resultMax.x - resultMin.x
+                    assertTrue("$suffix should preserve both distant result components; x span=$resultSpan",
+                        resultSpan >= width * 2.0 && resultSpan <= width * 3.5)
+                    assertEquals("Boolean output should keep the target material", listOf(1),
+                        model.getUsedFilaments(result).toList())
+
+                    SliceBeam.genCurrentConfig(model)
+                    val exportConfig = SliceBeam.getCurrentConfigFile()
+                    try {
+                        model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+                    } finally {
+                        exportConfig.delete()
+                    }
+                    restored = Model(projectFile, 1)
+                    assertEquals("$suffix 3MF reload should contain one result", 1, restored.objectsCount)
+                    assertEquals("$suffix 3MF reload should retain the target material", listOf(1),
+                        restored.getUsedFilaments(0).toList())
+                    SliceBeam.genCurrentConfig(restored)
+                    val sliceConfig = SliceBeam.getCurrentConfigFile()
+                    try {
+                        sliceResult = restored.slice(sliceConfig.absolutePath, gcodeFile.absolutePath, null)
+                    } finally {
+                        sliceConfig.delete()
+                    }
+                    val gcode = gcodeFile.readText()
+                    assertHasExtrusion(gcode)
+                    assertFalse("$suffix result should not use cutter T1", Regex("(?m)^T1(?:\\s|$)")
+                        .containsMatchIn(gcode))
+                } finally {
+                    sliceResult?.release()
+                    restored?.release()
+                    cutter.release()
+                    model.release()
+                    projectFile.delete()
+                    gcodeFile.delete()
+                }
+            }
+        } finally {
+            targetCube.delete()
+            cutterCube.delete()
+        }
+    }
+
+    @Test
     fun standalonePrintableTextProducesExtrusionGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
