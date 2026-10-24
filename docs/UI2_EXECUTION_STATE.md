@@ -5,8 +5,10 @@
 - Auf Honor PTP-N49 / Android 16 am aktuellen Branch verifiziert: nativer STEP/STP-Import 2/2; Projektpicker mit Orca-artigen Netzoptionen vor dem Laden 1/1; externer `ACTION_VIEW`-Import mit Dialog vor dem Rendern 1/1; Datei-/Optionstests 7/7.
 - Die neueste offizielle Version war `0.8.366` / code 401 und enthielt den nachfolgenden nativen STEP-Worker-Sicherheitsfix noch nicht. Arbeitsbranch auf `0.8.367` / code 402 angehoben, um den bereits korrigierten Stand auszuliefern.
 - Xiaomi-spezifische Datei-App und Nutzerdatei stehen nicht zur Verfügung; nicht als geräteverifiziert ausgeben.
-- Debug-/Slice-JVM-Suiten je 625/625 bestanden; `:app:assembleDebug` erfolgreich. Die fokussierten Gerätetests umfassen Projektpicker, externes Öffnen und nativen STEP/STP-Import.
-- Nächster Schritt: den finalen Code-Commit bauen, APK auf Honor installieren/starten, SHA-256 dokumentieren, dann regulären GitHub-Release und PR #2 aktualisieren. Kein Merge und kein Druckstart.
+- Debug-/Slice-JVM-Suiten je 625/625 bestanden; `:app:assembleDebug` erfolgreich. Honor-Importtests: nativer STEP/STP 2/2, Projektpicker 1/1, externer Dateiöffnungsweg 1/1; Dateiname/Optionen 7/7.
+- Code-Commit `665551ee323134ff0657d2547e8e47a829ba81fc`; APK `OrkanSlicer_665551ee32.apk`, 239,425,451 Bytes, SHA-256 `08592680C92BA0B89FEBBD23A0BDA2EF033FFCE60038A010C1EA44EE865656B6`. Honor meldet 0.8.367/code 402 und MainActivity aktiv; Logcat-Stichprobe ohne Crash/ANR/OOM.
+- Branch/PR #2 aktualisiert; offizieller GitHub-Release [v0.8.367](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.367) veröffentlicht. Xiaomi-Dateimanager und Nutzerdatei nicht gerätegeprüft.
+- Nächster Schritt: UI-2.0-Restarbeiten fortsetzen; falls STEP auf Xiaomi mit 0.8.367 weiter scheitert, konkrete Datei-App-/URI-/MIME-Übergabe vom Gerät erfassen und gezielt nachstellen. Kein Merge und kein Druckstart.
 
 ## STEP/STP-Importfehler behoben — 2026-10-24
 

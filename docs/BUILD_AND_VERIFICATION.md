@@ -3,8 +3,11 @@
 - Ursache der weiter gemeldeten Nichtöffnung: GitHub führte `v0.8.366` als neuestes offizielles Release. Die bereits behobene native STEP-Threadstabilisierung aus Commit `88733d62` lag nach dem im Release eingebauten Code-Commit `82540095` und war deshalb noch nicht in der herunterladbaren App enthalten.
 - Aktueller Branch-Stand: `.step`, `.stp`, Groß-/Kleinschreibung, Android-Dateiauswahl, externe Dateiübergabe und der Orca-artige Meshingdialog vor dem Laden sind vorhanden. Der Dialog bietet lineare und winklige Abweichung sowie Compound-Aufteilung.
 - Verifikation auf Honor PTP-N49 / Android 16 am aktuellen Code `03f4ec34`: nativer STEP/STP-Import 2/2; Projektpicker → geänderte Meshingoptionen → renderbares Modell 1/1; externer `ACTION_VIEW`-Pfad → Optionen vor dem Import → renderbares Modell 1/1. `ModelImportFileNameTest` 4/4 und `StepImportOptionsTest` 3/3 bestanden. Kein Druckstart.
-- Vollständige Debug-JVM- und Slice-JVM-Suiten: je 625/625 bestanden, keine Fehler oder Skips. `:app:assembleDebug` erfolgreich; auf Honor wird nach dem finalen Code-Commit nochmals die daraus gebaute APK installiert und gestartet.
-- Der konkrete Xiaomi-Dateimanager und seine Datei wurden nicht getestet. Der bestätigte Unterschied ist der veraltete installierte Release gegenüber dem bereits korrigierten PR-Branch. Nächster Schritt: finalen APK-Hash dokumentieren, dann `v0.8.367` veröffentlichen.
+- Vollständige Debug-JVM- und Slice-JVM-Suiten: je 625/625 bestanden, keine Fehler oder Skips. `:app:assembleDebug` erfolgreich.
+- Finaler Code-Commit `665551ee323134ff0657d2547e8e47a829ba81fc`; APK `OrkanSlicer_665551ee32.apk`, 239,425,451 Bytes, SHA-256 `08592680C92BA0B89FEBBD23A0BDA2EF033FFCE60038A010C1EA44EE865656B6`.
+- APK auf Honor PTP-N49 installiert und gestartet; Android meldet Version 0.8.367 / code 402, MainActivity im Vordergrund. Logcat-Stichprobe ohne Crash, ANR, OOM oder Fatal Signal.
+- Regulärer Release: [v0.8.367](https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.367), APK und SHA-256-Sidecar angehängt. PR #2 Branch auf den Code-Commit aktualisiert; kein Merge.
+- Der konkrete Xiaomi-Dateimanager und die Nutzerdatei wurden nicht getestet. Nächster Schritt: OrkanSlicer UI-2.0-Arbeit fortsetzen; bei einem weiter auftretenden Xiaomi-Fehler dessen Dateimanager-Übergabe anhand der neuen Version diagnostizieren.
 
 # OrkanSlicer 0.8.365 — Gruppenplatzierung rollback-sicher gemacht — 2026-10-23
 
