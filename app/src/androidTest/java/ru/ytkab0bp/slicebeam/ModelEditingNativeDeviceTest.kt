@@ -753,6 +753,46 @@ class ModelEditingNativeDeviceTest {
         expectedVolumeFactor = 1.5,
     )
 
+    @Test fun nativeBooleanUnionPreservesAllLinkedTargetInstances() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-linked-target-instances.stl")
+        val model = Model(modelFile)
+        val cutterModel = Model(modelFile)
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            model.setUniformFilament(0, 2)
+            assertEquals("the target should gain one linked copy", 1,
+                model.duplicateInstance(0, 0, Vec3d(width * 1.5, 0.0, 0.0)))
+
+            // Place the cutter across only the second target instance. The Boolean result
+            // must retain the untouched first copy and include the union at the far end.
+            model.addObject(cutterModel, 0)
+            model.setUniformFilament(1, 1)
+            model.translate(1, width * 2.0, 0.0, 0.0)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+
+            assertEquals("Boolean should replace both operands with one printable result", 0, result)
+            assertEquals(1, model.objectsCount)
+            assertEquals("both disjoint/overlapping target instances and the cutter must survive",
+                2.5, model.getObjectVolume(result) / sourceVolume, 0.03)
+            assertEquals("Boolean output should keep the target material", listOf(2),
+                model.getUsedFilaments(result).toList())
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals("the far target instance and cutter must remain in world position",
+                width * 3.0, resultMax.x - resultMin.x, 0.03)
+            assertEquals(max.y - min.y, resultMax.y - resultMin.y, 0.03)
+            assertEquals(max.z - min.z, resultMax.z - resultMin.z, 0.03)
+        } finally {
+            cutterModel.release()
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun nativeBooleanDifferenceSubtractsTheOverlappingHalf() = assertBooleanResult(
         BooleanOperation.DIFFERENCE,
         expectedVolumeFactor = 0.5,
