@@ -116,4 +116,21 @@ class ObjectPlacementTest {
         assertNull(ObjectPlacement.onTop(valid, valid, -0.1))
         assertNull(ObjectPlacement.ontoBed(valid.copy(minZ = Double.NaN), 0.0))
     }
+
+    @Test fun placementRejectsNonFiniteDeltasAndUsesStableMidpoints() {
+        val huge = 1e308
+        val farTarget = ObjectBounds3D(huge, huge, 0.0, huge, huge, 1.0)
+        val origin = ObjectBounds3D(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+        val centered = requireNotNull(ObjectPlacement.onTop(origin, farTarget))
+        assertEquals("finite target centers must not overflow during midpoint calculation", huge, centered.x, 0.0)
+        assertEquals(huge, centered.y, 0.0)
+
+        assertNull("unrepresentable lateral placement is rejected",
+            ObjectPlacement.onSurface(
+                ObjectBounds3D(-huge, 0.0, 0.0, -huge, 0.0, 1.0),
+                Vec3d(huge, 0.0, 0.0),
+            ))
+        assertNull("unrepresentable vertical bed placement is rejected",
+            ObjectPlacement.ontoBed(origin.copy(minZ = -huge, maxZ = 0.0), huge))
+    }
 }

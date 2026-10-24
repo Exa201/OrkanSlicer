@@ -31,11 +31,12 @@ internal object ObjectPlacement {
         if (values.any { !it.isFinite() } || clearanceMm < 0.0) return null
         if (moving.maxX < moving.minX || moving.maxY < moving.minY || moving.maxZ < moving.minZ ||
             target.maxX < target.minX || target.maxY < target.minY || target.maxZ < target.minZ) return null
-        return ObjectPlacementDelta(
-            x = (target.minX + target.maxX - moving.minX - moving.maxX) / 2.0,
-            y = (target.minY + target.maxY - moving.minY - moving.maxY) / 2.0,
+        val delta = ObjectPlacementDelta(
+            x = midpoint(target.minX, target.maxX) - midpoint(moving.minX, moving.maxX),
+            y = midpoint(target.minY, target.maxY) - midpoint(moving.minY, moving.maxY),
             z = target.maxZ + clearanceMm - moving.minZ,
         )
+        return delta.takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
     }
 
     /** Centers a moving assembly on a picked point and keeps its bounds above the tapped plane. */
@@ -61,8 +62,9 @@ internal object ObjectPlacement {
         // Surface placement only supports upward-facing surfaces. The renderer applies the
         // same slope limit before dispatching the tap; keep this pure geometry helper safe too.
         if (nz < 0.7) return null
-        val dx = point.x - (moving.minX + moving.maxX) / 2.0
-        val dy = point.y - (moving.minY + moving.maxY) / 2.0
+        val dx = point.x - midpoint(moving.minX, moving.maxX)
+        val dy = point.y - midpoint(moving.minY, moving.maxY)
+        if (!dx.isFinite() || !dy.isFinite()) return null
         var dz = Double.NEGATIVE_INFINITY
         for (x in listOf(moving.minX, moving.maxX)) {
             for (y in listOf(moving.minY, moving.maxY)) {
@@ -78,11 +80,12 @@ internal object ObjectPlacement {
             }
         }
         if (!dz.isFinite()) return null
-        return ObjectPlacementDelta(
+        val delta = ObjectPlacementDelta(
             x = dx,
             y = dy,
             z = dz,
         )
+        return delta.takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
     }
 
     /** Drops an entire object group onto the printable bed while preserving its internal Z offsets. */
@@ -91,6 +94,11 @@ internal object ObjectPlacement {
         if (values.any { !it.isFinite() } ||
             moving.maxX < moving.minX || moving.maxY < moving.minY || moving.maxZ < moving.minZ
         ) return null
-        return ObjectPlacementDelta(0.0, 0.0, bedZ - moving.minZ)
+        val deltaZ = bedZ - moving.minZ
+        if (!deltaZ.isFinite()) return null
+        return ObjectPlacementDelta(0.0, 0.0, deltaZ)
     }
+
+    /** Avoid overflowing the sum when both endpoints are large but their midpoint is representable. */
+    private fun midpoint(min: Double, max: Double): Double = min / 2.0 + max / 2.0
 }
