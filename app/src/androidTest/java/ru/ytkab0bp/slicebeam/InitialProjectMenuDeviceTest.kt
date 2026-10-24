@@ -367,13 +367,23 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
-            compose.onNodeWithTag("model-boolean-union").assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.ModelBooleanUnion), useUnmergedTree = true)
+                .performScrollTo().assertIsDisplayed().performClick()
 
             compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
             assertArrayEquals(
                 "the primary selected object (index 1) must supply the Boolean result material",
                 intArrayOf(2), readUsedFilamentsOnGl(glView, 0),
             )
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            assertArrayEquals("Undo should restore both source material assignments", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals(intArrayOf(2), readUsedFilamentsOnGl(glView, 1))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertArrayEquals("Redo should retain the primary target's material", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 0))
         } finally {
             modelFile.delete()
         }
