@@ -1,3 +1,11 @@
+# STEP/STP-Import auf Release-Stand gebracht — 2026-10-24
+
+- Ursache der weiter gemeldeten Nichtöffnung: GitHub führte `v0.8.366` als neuestes offizielles Release. Die bereits behobene native STEP-Threadstabilisierung aus Commit `88733d62` lag nach dem im Release eingebauten Code-Commit `82540095` und war deshalb noch nicht in der herunterladbaren App enthalten.
+- Aktueller Branch-Stand: `.step`, `.stp`, Groß-/Kleinschreibung, Android-Dateiauswahl, externe Dateiübergabe und der Orca-artige Meshingdialog vor dem Laden sind vorhanden. Der Dialog bietet lineare und winklige Abweichung sowie Compound-Aufteilung.
+- Verifikation auf Honor PTP-N49 / Android 16 am aktuellen Code `03f4ec34`: nativer STEP/STP-Import 2/2; Projektpicker → geänderte Meshingoptionen → renderbares Modell 1/1; externer `ACTION_VIEW`-Pfad → Optionen vor dem Import → renderbares Modell 1/1. `ModelImportFileNameTest` 4/4 und `StepImportOptionsTest` 3/3 bestanden. Kein Druckstart.
+- Vollständige Debug-JVM- und Slice-JVM-Suiten: je 625/625 bestanden, keine Fehler oder Skips. `:app:assembleDebug` erfolgreich; auf Honor wird nach dem finalen Code-Commit nochmals die daraus gebaute APK installiert und gestartet.
+- Der konkrete Xiaomi-Dateimanager und seine Datei wurden nicht getestet. Der bestätigte Unterschied ist der veraltete installierte Release gegenüber dem bereits korrigierten PR-Branch. Nächster Schritt: finalen APK-Hash dokumentieren, dann `v0.8.367` veröffentlichen.
+
 # OrkanSlicer 0.8.365 — Gruppenplatzierung rollback-sicher gemacht — 2026-10-23
 
 - Product build commit: `795f85ffbffad909233c920fd6af39fe74ce02cf`; enthält die getestete Platzierungstransaktion aus `37a1745c`. Version 0.8.365 / versionCode 400.

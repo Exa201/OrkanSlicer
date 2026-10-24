@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-23, OrkanSlicer 0.8.365 veröffentlicht
 
+## STEP/STP-Korrektur für Nutzer bereitstellen — 2026-10-24
+
+- Auf Honor PTP-N49 / Android 16 am aktuellen Branch verifiziert: nativer STEP/STP-Import 2/2; Projektpicker mit Orca-artigen Netzoptionen vor dem Laden 1/1; externer `ACTION_VIEW`-Import mit Dialog vor dem Rendern 1/1; Datei-/Optionstests 7/7.
+- Die neueste offizielle Version war `0.8.366` / code 401 und enthielt den nachfolgenden nativen STEP-Worker-Sicherheitsfix noch nicht. Arbeitsbranch auf `0.8.367` / code 402 angehoben, um den bereits korrigierten Stand auszuliefern.
+- Xiaomi-spezifische Datei-App und Nutzerdatei stehen nicht zur Verfügung; nicht als geräteverifiziert ausgeben.
+- Debug-/Slice-JVM-Suiten je 625/625 bestanden; `:app:assembleDebug` erfolgreich. Die fokussierten Gerätetests umfassen Projektpicker, externes Öffnen und nativen STEP/STP-Import.
+- Nächster Schritt: den finalen Code-Commit bauen, APK auf Honor installieren/starten, SHA-256 dokumentieren, dann regulären GitHub-Release und PR #2 aktualisieren. Kein Merge und kein Druckstart.
+
 ## STEP/STP-Importfehler behoben — 2026-10-24
 
 - Der STEP-Dialog mit linearer/winkliger Abweichung und optionaler Compound-Aufteilung war bereits vorhanden; Dateiauswahl und Importdialog waren auf Honor funktional. Den nativen Importer trotzdem genauer geprüft und einen echten C++-Nebenläufigkeitsfehler gefunden: CAD-Hintergrundthreads lasen und schrieben Abschlussstatus, Fortschritt und Abbruch ohne Synchronisierung. Außerdem konnten OpenCascade/TBB-Ausnahmen aus diesen Threads den Android-Prozess beenden.
