@@ -195,7 +195,9 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     /** Adds a linked instance of an object while preserving the source instance transform. */
     open fun duplicateInstance(i: Int, sourceInstanceIndex: Int, offset: Vec3d): Int {
-        if (pointer == 0L || !offset.x.isFinite() || !offset.y.isFinite() || !offset.z.isFinite()) return -1
+        if (!hasObject(i) || sourceInstanceIndex < 0 ||
+            !offset.x.isFinite() || !offset.y.isFinite() || !offset.z.isFinite()
+        ) return -1
         val instanceIndex = Native.model_duplicate_instance(
             pointer, i, sourceInstanceIndex, offset.x, offset.y, offset.z,
         )
@@ -204,16 +206,20 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     open fun deleteObject(i: Int) {
+        if (!hasObject(i)) return
         Native.model_delete_object(pointer, i)
         resetBoundingBox()
     }
 
     /** Split object i into separate objects; returns the piece count, or 0 if nothing to split. */
     open fun split(i: Int): Int {
+        if (!hasObject(i)) return 0
         val result = Native.model_split(pointer, i)
         if (result > 0) resetBoundingBox()
         return result
     }
+
+    private fun hasObject(index: Int): Boolean = pointer != 0L && index in 0 until objectsCount
 
     open fun cut(
         objectIndex: Int,

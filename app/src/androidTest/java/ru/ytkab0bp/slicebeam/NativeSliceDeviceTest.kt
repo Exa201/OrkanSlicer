@@ -32,6 +32,45 @@ import java.util.zip.ZipFile
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun invalidDuplicateDeleteAndSplitRequestsPreserveNativeModel() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "invalid-object-index-edits.stl")
+        val model = Model(modelFile)
+        try {
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            val originalBounds = DoubleArray(6).also { bounds ->
+                val min = Vec3d()
+                val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                bounds[0] = min.x; bounds[1] = min.y; bounds[2] = min.z
+                bounds[3] = max.x; bounds[4] = max.y; bounds[5] = max.z
+            }
+
+            assertEquals("linked duplication rejects a missing object", -1,
+                model.duplicateInstance(model.objectsCount, 0, Vec3d(10.0, 0.0, 0.0)))
+            assertEquals("linked duplication rejects a negative source instance", -1,
+                model.duplicateInstance(0, -1, Vec3d(10.0, 0.0, 0.0)))
+            model.deleteObject(model.objectsCount)
+            assertEquals("split rejects a negative object index", 0, model.split(-1))
+
+            assertEquals("invalid edits preserve the object count", 1, model.objectsCount)
+            assertEquals("invalid edits preserve the mesh", originalTriangles, model.getTriangleCount(0))
+            assertEquals("invalid edits preserve solid volume", originalVolume, model.getObjectVolume(0), 1e-6)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val after = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            originalBounds.forEachIndexed { axis, value ->
+                assertEquals("invalid edits preserve bounds on axis $axis", value, after[axis], 1e-6)
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun invalidJoinBooleanAndTextRequestsLeaveModelUntouched() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "invalid-model-edit-requests.stl")
