@@ -338,13 +338,15 @@ open class Model private constructor(@JvmField var pointer: Long) {
         targetObjectIndex: Int = -1,
     ): Int {
         if (pointer == 0L) return -1
+        val placement = ModelEditRequestValidation.snapshotTextPlacement(position, normal)
         if (!ModelEditRequestValidation.isValidTextRequest(
-                fontPath, text, size, depth, position, normal, targetObjectIndex, objectsCount,
+                fontPath, text, size, depth, placement.position, placement.normal, targetObjectIndex, objectsCount,
             )
         ) return -1
         val index = Native.model_create_text_object(
             pointer, fontPath, text, size, depth,
-            position.x, position.y, position.z, normal.x, normal.y, normal.z,
+            placement.position.x, placement.position.y, placement.position.z,
+            placement.normal.x, placement.normal.y, placement.normal.z,
             targetObjectIndex,
         )
         if (index >= 0) resetBoundingBox()
@@ -354,8 +356,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
     /** Combines selected single-instance objects into a multipart object while preserving volume materials. */
     open fun combineObjectsAsParts(objectIndices: IntArray): Int {
         if (pointer == 0L) return -1
-        if (!ModelEditRequestValidation.hasDistinctObjectIndices(objectIndices, objectsCount)) return -1
-        val index = Native.model_combine_objects_as_parts(pointer, objectIndices)
+        val stableIndices = ModelEditRequestValidation.distinctObjectIndicesSnapshot(objectIndices, objectsCount) ?: return -1
+        val index = Native.model_combine_objects_as_parts(pointer, stableIndices)
         if (index >= 0) resetBoundingBox()
         return index
     }
@@ -367,8 +369,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
      */
     open fun booleanObjects(objectIndices: IntArray, operation: BooleanOperation): Int {
         if (pointer == 0L) return -1
-        if (!ModelEditRequestValidation.hasDistinctObjectIndices(objectIndices, objectsCount)) return -1
-        val index = Native.model_boolean_objects(pointer, objectIndices, operation.nativeValue)
+        val stableIndices = ModelEditRequestValidation.distinctObjectIndicesSnapshot(objectIndices, objectsCount) ?: return -1
+        val index = Native.model_boolean_objects(pointer, stableIndices, operation.nativeValue)
         if (index >= 0) resetBoundingBox()
         return index
     }

@@ -4,6 +4,15 @@ import ru.ytkab0bp.slicebeam.utils.Vec3d
 
 /** Rejects malformed edit requests before they cross the JNI/native geometry boundary. */
 internal object ModelEditRequestValidation {
+    data class TextPlacementSnapshot(val position: Vec3d, val normal: Vec3d)
+
+    /** Copy mutable request inputs before validation so validation and JNI observe one snapshot. */
+    fun distinctObjectIndicesSnapshot(indices: IntArray, objectCount: Int): IntArray? =
+        indices.copyOf().takeIf { hasDistinctObjectIndices(it, objectCount) }
+
+    fun snapshotTextPlacement(position: Vec3d, normal: Vec3d) =
+        TextPlacementSnapshot(Vec3d(position), Vec3d(normal))
+
     fun hasDistinctObjectIndices(indices: IntArray, objectCount: Int): Boolean =
         indices.size >= 2 && objectCount >= 2 &&
             indices.all { it in 0 until objectCount } && indices.toSet().size == indices.size

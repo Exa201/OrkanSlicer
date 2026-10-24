@@ -1,6 +1,9 @@
 package ru.ytkab0bp.slicebeam.slic3r
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -14,6 +17,36 @@ class ModelEditRequestValidationTest {
         assertFalse(ModelEditRequestValidation.hasDistinctObjectIndices(intArrayOf(0, 0), 3))
         assertFalse(ModelEditRequestValidation.hasDistinctObjectIndices(intArrayOf(-1, 1), 3))
         assertFalse(ModelEditRequestValidation.hasDistinctObjectIndices(intArrayOf(0, 3), 3))
+    }
+
+    @Test fun joinAndBooleanRequestsUseAnImmutableValidatedIndexSnapshot() {
+        val callerIndices = intArrayOf(0, 2)
+        val snapshot = requireNotNull(ModelEditRequestValidation.distinctObjectIndicesSnapshot(callerIndices, 3))
+
+        callerIndices[0] = 1
+        callerIndices[1] = 1
+
+        assertArrayEquals(intArrayOf(0, 2), snapshot)
+        assertEquals(null, ModelEditRequestValidation.distinctObjectIndicesSnapshot(intArrayOf(0, 0), 3))
+    }
+
+    @Test fun standaloneTextRequestCopiesMutablePlacementVectorsBeforeValidation() {
+        val sourcePosition = Vec3d(1.0, 2.0, 3.0)
+        val sourceNormal = Vec3d(0.0, 0.0, 1.0)
+        val snapshot = ModelEditRequestValidation.snapshotTextPlacement(sourcePosition, sourceNormal)
+
+        sourcePosition.set(Double.NaN, 0.0, 0.0)
+        sourceNormal.set(0.0, 0.0, 0.0)
+
+        assertNotSame(sourcePosition, snapshot.position)
+        assertNotSame(sourceNormal, snapshot.normal)
+        assertEquals(1.0, snapshot.position.x, 0.0)
+        assertEquals(2.0, snapshot.position.y, 0.0)
+        assertEquals(3.0, snapshot.position.z, 0.0)
+        assertEquals(1.0, snapshot.normal.z, 0.0)
+        assertTrue(ModelEditRequestValidation.isValidTextRequest(
+            "font.ttf", "Label", 10f, 1.2f, snapshot.position, snapshot.normal, -1, 2,
+        ))
     }
 
     @Test fun textRequestAcceptsStandaloneAndSurfaceAttachedPlacement() {
