@@ -196,6 +196,12 @@
     <string name="ModelBooleanIntersection">Schnittmenge · Überlappung behalten</string>
     <string name="ModelBooleanDone">Boolesches Ergebnis erstellt</string>
     <string name="ModelBooleanSelectionChanged">Modell oder Auswahl hat sich geändert. Starte die Boolean-Funktion erneut.</string>
+    <string name="ModelBooleanUnsupportedInstances">Boolesche Funktionen benötigen einzelne Objekte. Trenne zuerst mehrfach vorhandene Instanzen.</string>
+    <string name="ModelBooleanInvalidMesh">Mindestens ein ausgewähltes Objekt ist kein geschlossenes, gültiges Volumennetz.</string>
+    <string name="ModelBooleanInvalidResult">Diese Körper ergeben kein gültiges Volumen. Prüfe Überschneidung und Geometrie.</string>
+    <string name="ModelBooleanResultCreationFailed">Das Ergebnisobjekt konnte nicht erstellt werden. Die Ausgangsobjekte blieben unverändert.</string>
+    <string name="ModelBooleanEngineFailed">Die boolesche Funktion ist fehlgeschlagen. Die Ausgangsobjekte blieben unverändert.</string>
+    <string name="ModelBooleanNoCut">Es wurde kein Material abgezogen. Der Schneidkörper muss die Basis überlappen.</string>
     <string name="ModelSelectionChanged">Modell oder Auswahl hat sich geändert. Starte die Aktion erneut.</string>
     <string name="ModelBooleanFailed">Aus „%1$s“ und „%2$s“ konnte kein gültiger Körper erstellt werden. Prüfe, ob beide Netze geschlossen sind und sich wie erforderlich überschneiden.</string>
     <string name="MenuModelCompact">Modell</string>

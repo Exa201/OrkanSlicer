@@ -206,6 +206,12 @@
     <string name="ModelBooleanIntersection">Intersection · keep the overlap</string>
     <string name="ModelBooleanDone">Boolean result created</string>
     <string name="ModelBooleanSelectionChanged">The model or selection changed. Start the Boolean operation again.</string>
+    <string name="ModelBooleanUnsupportedInstances">Boolean operations require single-instance objects. Separate repeated instances first.</string>
+    <string name="ModelBooleanInvalidMesh">At least one selected object is not a closed, valid solid mesh.</string>
+    <string name="ModelBooleanInvalidResult">These shapes do not produce a valid solid. Check their overlap and geometry.</string>
+    <string name="ModelBooleanResultCreationFailed">The result object could not be created. The source objects were kept unchanged.</string>
+    <string name="ModelBooleanEngineFailed">The Boolean operation failed. The source objects were kept unchanged.</string>
+    <string name="ModelBooleanNoCut">No material was removed. Move a cutter so it overlaps the base object.</string>
     <string name="ModelSelectionChanged">The model or selection changed. Start this action again.</string>
     <string name="ModelBooleanFailed">Could not create a valid solid from “%1$s” and “%2$s”. Check that both meshes are closed and intersect as required.</string>
     <string name="MenuModelCompact">Model</string>

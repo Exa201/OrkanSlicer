@@ -448,8 +448,14 @@ internal class ModelMenuItems(
                                     }
                                 } else {
                                     ViewUtils.postOnMainThread {
+                                        val specificMessage = ModelBooleanFailureMessage.resourceFor(result)
+                                        val message = specificMessage ?: R.string.ModelBooleanFailed
                                         SliceBeam.EVENT_BUS.fireEvent(
-                                            NeedSnackbarEvent(R.string.ModelBooleanFailed, displayTargetName, displayToolNames.joinToString()),
+                                            if (specificMessage == null) {
+                                                NeedSnackbarEvent(message, displayTargetName, displayToolNames.joinToString())
+                                            } else {
+                                                NeedSnackbarEvent(message)
+                                            },
                                         )
                                     }
                                 }
