@@ -22,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -136,6 +137,8 @@ class WorkspaceMenuCustomizationDeviceTest {
                 "workspace-menu-action-${R.string.MenuCameraControlMode}",
             )
             compose.onNodeWithTag("menu-customize-view").performClick()
+            compose.onNodeWithTag("menu-customize-list-view").assertIsDisplayed()
+            compose.onNodeWithTag("menu-customize-list-view").performScrollToIndex(1)
             compose.onNodeWithTag("menu-customize-visible-view-$orthoKey").performClick()
             compose.onNodeWithTag("menu-customize-save-view").performClick()
 
@@ -219,6 +222,7 @@ class WorkspaceMenuCustomizationDeviceTest {
                     }
                     compose.onNodeWithTag("menu-customize-view").performClick()
                     compose.onNodeWithTag("menu-customize-list-view").assertIsDisplayed()
+                    compose.onNodeWithTag("menu-customize-list-view").performScrollToIndex(1)
                     compose.onNodeWithTag("menu-customize-visible-view-${context.resources.getResourceEntryName(R.string.MenuCameraControlMode)}")
                         .assertIsDisplayed()
                     compose.onNodeWithText(context.getString(AndroidR.string.cancel)).performClick()

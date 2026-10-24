@@ -7,7 +7,9 @@
 - Debug- und Slice-Unit-Suiten bestanden (je 625/625, keine Fehler oder Übersprünge). Der erste parallele Lauf deckte außerdem eine falsche neue Landscape-Panel-Test-Erwartung auf (180 statt richtiger 200 dp); korrigiert. Ein temporäres STL-Fixture scheiterte in diesem parallelen Lauf beim Schreiben; der sequenzielle vollständige Slice-Lauf bestand.
 - `git diff --check` bestanden. Der Code-Commit `82540095` enthält die verifizierte Änderung; Version `0.8.366` / Code `401` baut erfolgreich. Die Debug-APK wurde auf Honor installiert und gestartet; `dumpsys` bestätigt Version `0.8.366`, im erfassten Logcat-Ausschnitt kein Crash/ANR/OOM.
 - Release-Artefakt: `OrkanSlicer_825400959e.apk`, 239,425,214 Bytes, SHA-256 `68E29BCF5167243BEA2DEC91B25D3FD1BE207C174EA7EB11F754A63ED4C0F71A`. Der APK-Build referenziert Code-Commit `82540095`.
-- Nächster Schritt: den geprüften Stand als regulären GitHub-Release veröffentlichen, danach die noch offenen Xiaomi-/Honor-Modellierungs- und Importpfade fortsetzen; UI-2.0-Gesamtziel bleibt offen.
+- GitHub-Release `v0.8.366` ist als regulärer Release veröffentlicht; APK und SHA-256-Datei sind angehängt. PR #2 enthält die Testergebnisse und Release-URL.
+- Nachprüfung der Menüpersonalisierung auf Honor PTP-N49 / Android 16: `WorkspaceMenuCustomizationDeviceTest` besteht 4/4. Drag-and-drop links/rechts, persistierte Reihenfolge, Ausblenden und Rückkehr in den Bearbeitungsdialog sind abgedeckt. Zwei zuvor fehlschlagende Erwartungen wurden als Scrollbarkeit des Dialogs eingeordnet; die Tests scrollen den zweiten Eintrag jetzt explizit an. Kein Produktionsfehler.
+- Nächster Schritt: weitere noch nicht abgenommene Modellierungs- und Importpfade fortsetzen; UI-2.0-Gesamtziel bleibt offen.
 
 ## Modellierungsfortschritt — 2026-10-24
 
