@@ -2098,6 +2098,50 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun fillBedPlacesMaximumAvailableCopiesAndSupportsUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-fill-bed-positive-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val selectionReady = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                selectionReady.countDown()
+            }
+            assertTrue("source object should be selected on the GL thread", selectionReady.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            assertEquals("fixture must start with one object", 1, readObjectCountOnGl(glView))
+
+            openModelMenu(activity)
+            scrollMenuToIndex(4)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            compose.waitUntil(timeoutMillis = 60_000) { !glView.isFillBedInProgress }
+            instrumentationWaitForGlIdle()
+            val filledCount = readObjectCountOnGl(glView)
+            assertTrue("fill-bed must use remaining printable plate area", filledCount > 1)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            instrumentationWaitForGlIdle()
+            assertEquals("Undo must restore the single source object", 1, readObjectCountOnGl(glView))
+            compose.runOnUiThread { bed.redoModelEdit() }
+            instrumentationWaitForGlIdle()
+            assertEquals("Redo must restore the completed plate arrangement", filledCount,
+                readObjectCountOnGl(glView))
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun fillBedArrangeFailureRollsBackCopiesAndExistingPositions() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

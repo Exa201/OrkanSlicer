@@ -1808,23 +1808,33 @@ internal fun fillBedModel(activeModel: Model, activeBed: Bed3D, objectIndex: Int
             }
             activeModel.resetBoundingBox()
         }
-        // Never let a poor rectangular estimate trigger an unbounded set of expensive native
-        // repacks. Probe a small descending set; keep the first successful arrangement in place.
-        val candidates = linkedSetOf(
-            copiesToAdd,
-            copiesToAdd * 3 / 4,
-            copiesToAdd / 2,
-            copiesToAdd / 4,
-            1,
-        ).filter { it in 1..copiesToAdd }
-        for (candidate in candidates) {
+        // The estimate can be low or high on a plate with mixed objects. Arrange on this
+        // background-only snapshot and search the largest feasible count in logarithmic tries.
+        // Each failed trial restores all original positions before the next native arrange.
+        var bestTranslations: List<Vec3d>? = null
+        added = FillBedPlanner.maximumPackableCopies(copiesToAdd) { candidate ->
+            restoreOriginalState()
             repeat(candidate) { activeModel.addObject(sourceModel, 0) }
             activeModel.resetBoundingBox()
             if (activeBed.arrange(activeModel)) {
-                added = candidate
-                break
+                bestTranslations = (0 until activeModel.objectsCount).map { index ->
+                    Vec3d().also { activeModel.getTranslation(index, it) }
+                }
+                true
+            } else {
+                restoreOriginalState()
+                false
             }
+        }
+        if (added > 0) {
+            val placements = requireNotNull(bestTranslations)
             restoreOriginalState()
+            repeat(added) { activeModel.addObject(sourceModel, 0) }
+            placements.forEachIndexed { index, target ->
+                val current = Vec3d()
+                activeModel.getTranslation(index, current)
+                activeModel.translate(index, target.x - current.x, target.y - current.y, target.z - current.z)
+            }
         }
     } finally {
         sourceModel.release()

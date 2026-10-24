@@ -10,6 +10,25 @@ class FillBedPlanner private constructor() {
             return maxObjectCount - currentObjectCount
         }
 
+        /** Finds the largest packable copy count with a bounded search over a monotone fit predicate. */
+        @JvmStatic
+        fun maximumPackableCopies(maxCopies: Int, fits: (Int) -> Boolean): Int {
+            if (maxCopies <= 0) return 0
+            var low = 1
+            var high = maxCopies
+            var best = 0
+            while (low <= high) {
+                val candidate = low + (high - low) / 2
+                if (fits(candidate)) {
+                    best = candidate
+                    low = candidate + 1
+                } else {
+                    high = candidate - 1
+                }
+            }
+            return best
+        }
+
         /** Returns a usable grid capacity, or zero when the selected object cannot fit. */
         @JvmStatic
         fun estimatedCapacity(bedWidth: Double, bedDepth: Double, objectWidth: Double, objectDepth: Double, spacing: Double): Int {
