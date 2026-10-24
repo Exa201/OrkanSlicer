@@ -16,14 +16,16 @@ internal class EmbossModeController(
     initialStandaloneMode: Boolean = false,
 ) {
     private val initialText = context.getString(R.string.AppName)
-    @Volatile private var parameters: EmbossTextInputValidator.Result = EmbossTextInputValidator.validate(
-        initialText,
-        context.getString(R.string.EmbossDefaultFontSize),
-        context.getString(R.string.EmbossDefaultDepth),
+    @Volatile private var options = EmbossModeOptions.create(
+        parameters = EmbossTextInputValidator.validate(
+            initialText,
+            context.getString(R.string.EmbossDefaultFontSize),
+            context.getString(R.string.EmbossDefaultDepth),
+        ),
+        addMode = true,
+        standaloneMode = initialStandaloneMode,
+        followSurface = false,
     )
-    @Volatile private var addMode: Boolean = true
-    @Volatile private var standaloneMode: Boolean = initialStandaloneMode
-    @Volatile private var followSurface: Boolean = false
     @Volatile private var fontFilePath: String? = null
     private var started = false
     private val eventBridge = EmbossModeEventBridge(::onSurfaceClicked)
@@ -32,7 +34,7 @@ internal class EmbossModeController(
         if (started) return
         started = true
         fontFilePath = prepareFontFile()
-        glView.renderer.isStandaloneTextPlacementMode = standaloneMode
+        glView.renderer.isStandaloneTextPlacementMode = options.standaloneMode
         SliceBeam.EVENT_BUS.registerListener(eventBridge)
     }
 
@@ -51,15 +53,19 @@ internal class EmbossModeController(
         standaloneMode: Boolean = false,
         followSurface: Boolean = false,
     ) {
-        parameters = EmbossTextInputValidator.validate(text, size, depth)
-        this.addMode = addMode
-        this.standaloneMode = standaloneMode
-        this.followSurface = standaloneMode && followSurface
+        options = EmbossModeOptions.create(
+            parameters = EmbossTextInputValidator.validate(text, size, depth),
+            addMode = addMode,
+            standaloneMode = standaloneMode,
+            followSurface = followSurface,
+        )
         glView.renderer.isStandaloneTextPlacementMode = standaloneMode
     }
 
     private fun onSurfaceClicked(event: EmbossSurfaceClickedEvent) {
-        val validParameters = parameters
+        // One immutable snapshot prevents a GL tap from combining old and new UI modes.
+        val editOptions = options
+        val validParameters = editOptions.parameters
         if (validParameters.value == null) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossInvalidParameters))
             return
@@ -67,7 +73,9 @@ internal class EmbossModeController(
         // The bridge runs on the EventBus worker thread. The clicked object index is
         // captured by GLRenderer and avoids reading mutable renderer state off-GL.
         val selectedObject = event.targetObjectIndex
-        if ((!standaloneMode && selectedObject == -1) || (event.isBuildPlatePlacement && !standaloneMode)) {
+        if ((!editOptions.standaloneMode && selectedObject == -1) ||
+            (event.isBuildPlatePlacement && !editOptions.standaloneMode)
+        ) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.SelectObjectFirst))
             return
         }
@@ -79,20 +87,20 @@ internal class EmbossModeController(
         val safeText = validParameters.value.text
         val safeSize = validParameters.value.size
         val safeDepth = validParameters.value.depth
-        val operationType = if (addMode) 0 else 1
-        val createSeparateObject = standaloneMode
+        val createSeparateObject = editOptions.standaloneMode
         glView.queueEvent {
             try {
                 val model = glView.renderer.model ?: return@queueEvent
                 val affectedObject = if (createSeparateObject) {
                     model.createTextObject(
                         fontPath, safeText, safeSize, safeDepth, event.position, event.normal,
-                        targetObjectIndex = if (followSurface && !event.isBuildPlatePlacement) event.targetObjectIndex else -1,
+                        targetObjectIndex = if (editOptions.followSurface && !event.isBuildPlatePlacement) event.targetObjectIndex else -1,
                     )
                         .also { if (it < 0) throw IllegalStateException("Text model could not be created") }
                 } else {
                     model.embossText(
-                        selectedObject, fontPath, safeText, safeSize, safeDepth, operationType,
+                        selectedObject, fontPath, safeText, safeSize, safeDepth,
+                        if (editOptions.addMode) 0 else 1,
                         event.position, event.normal,
                     )
                     selectedObject
@@ -128,6 +136,23 @@ internal class EmbossModeController(
         }
         fontFile.absolutePath
     }.getOrNull()
+}
+
+/** Immutable options published as one volatile reference to the GL/EventBus callback. */
+internal class EmbossModeOptions private constructor(
+    val parameters: EmbossTextInputValidator.Result,
+    val addMode: Boolean,
+    val standaloneMode: Boolean,
+    val followSurface: Boolean,
+) {
+    companion object {
+        fun create(
+            parameters: EmbossTextInputValidator.Result,
+            addMode: Boolean,
+            standaloneMode: Boolean,
+            followSurface: Boolean,
+        ) = EmbossModeOptions(parameters, addMode, standaloneMode, standaloneMode && followSurface)
+    }
 }
 
 /** Validates model-generation input before it reaches native geometry code. */

@@ -6,6 +6,20 @@ import org.junit.Test
 
 class EmbossTextInputValidatorTest {
     @Test
+    fun embossModesKeepStandaloneAndSurfaceFollowingAsOneConsistentSnapshot() {
+        val parameters = EmbossTextInputValidator.validate("Label", "10", "1")
+        val standalone = EmbossModeOptions.create(parameters, addMode = true, standaloneMode = true, followSurface = true)
+        val embossed = EmbossModeOptions.create(parameters, addMode = false, standaloneMode = false, followSurface = true)
+
+        assertEquals(true, standalone.standaloneMode)
+        assertEquals(true, standalone.followSurface)
+        assertEquals(true, standalone.addMode)
+        assertEquals(false, embossed.standaloneMode)
+        assertEquals(false, embossed.followSurface)
+        assertEquals(false, embossed.addMode)
+    }
+
+    @Test
     fun acceptsTrimmedTextAndLocalizedPositiveDimensions() {
         val result = EmbossTextInputValidator.validate("  ORKAN  ", "12,5", "0,8")
 
