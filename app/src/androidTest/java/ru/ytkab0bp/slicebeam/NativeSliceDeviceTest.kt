@@ -807,6 +807,70 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun standaloneTextCanBePlacedJoinedAndSlicedAsItsOwnFilamentPart() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "text-side-join-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "text-side-join-font.ttf")
+        val projectFile = File(context.cacheDir, "text-side-join-roundtrip.3mf")
+        val model = Model(cubeFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath, "A", 6f, 1.2f,
+                Vec3d(100.0, 100.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("standalone text should be a separate editable object", 1, textIndex)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(textIndex, 2)
+
+            fun bounds(index: Int): ObjectBounds3D {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val target = bounds(0)
+            val text = bounds(textIndex)
+            val point = Vec3d(
+                target.maxX,
+                (target.minY + target.maxY) / 2.0,
+                (target.minZ + target.maxZ) / 2.0,
+            )
+            val delta = requireNotNull(ObjectPlacement.onSurface(text, point, Vec3d(1.0, 0.0, 0.0)))
+            model.translate(textIndex, delta.x, delta.y, delta.z)
+            val placedText = bounds(textIndex)
+            assertEquals("text should meet the chosen side face", target.maxX, placedText.minX, 0.001)
+            assertEquals("text should be centered at the picked face location", point.y,
+                (placedText.minY + placedText.maxY) / 2.0, 0.001)
+
+            assertEquals("text and model should become one multipart object", 0,
+                model.combineObjectsAsParts(intArrayOf(0, textIndex)))
+            assertEquals("text and base material assignments should both survive joining", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals(listOf(1, 2), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "text-side-join.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("base material should be emitted", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("joined standalone text material should be emitted", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun booleanResultUsesTargetObjectsFilamentAndStillSlices() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "boolean-filament-slice.stl")
