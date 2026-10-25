@@ -399,6 +399,17 @@ open class SliceBeam : Application() {
         @JvmStatic
         fun buildCurrentConfigObject(): ConfigObject = buildCurrentConfigObject(-1)
 
+        /**
+         * Renderer preview paths can run before asynchronous profile loading completes.
+         * Return null until a usable preset selection exists instead of crashing GLThread.
+         */
+        @JvmStatic
+        fun buildCurrentConfigObjectOrNull(activeFilamentCount: Int = -1): ConfigObject? {
+            val current = CONFIG ?: return null
+            if (current.presets == null) return null
+            return buildCurrentConfigObject(activeFilamentCount)
+        }
+
         /** Build a slice config whose synced ACE vectors contain only tools used by this model. */
         @JvmStatic
         fun buildCurrentConfigObject(activeFilamentCount: Int): ConfigObject {

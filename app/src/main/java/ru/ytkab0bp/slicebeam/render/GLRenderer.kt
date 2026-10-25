@@ -757,7 +757,7 @@ return primeTowerBedHits.get(0).position
 }
 fun tryStartPrimeTowerDrag(screenX:Float, screenY:Float):Boolean {
 if (isViewerEnabled || bed == null || !bed!!.isValid()) return false
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: return false
 if (!isPrimeTowerEnabled(cfg)) return false
 val p = raycastBed(screenX, screenY)
 if (p == null) return false
@@ -776,7 +776,7 @@ fun dragPrimeTower(screenX:Float, screenY:Float):Boolean {
 if (java.lang.Double.isNaN(primeTowerPreviewX) || java.lang.Double.isNaN(primeTowerPreviewY)) return false
 val p = raycastBed(screenX, screenY)
 if (p == null) return false
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: return false
 val w = towerWidth(cfg)
 val d = towerDepth(cfg, w)
 val min = bed!!.getVolumeMin()
@@ -801,7 +801,13 @@ fun finishPrimeTowerDrag(commit:Boolean):Boolean {
 if (java.lang.Double.isNaN(primeTowerPreviewX) || java.lang.Double.isNaN(primeTowerPreviewY)) return false
 if (commit)
 {
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: run {
+    primeTowerPreviewX = Double.NaN
+    primeTowerPreviewY = Double.NaN
+    primeTowerGrabOffsetX = Double.NaN
+    primeTowerGrabOffsetY = Double.NaN
+    return false
+}
 val xs = vectorWithValue(configValue(cfg, "wipe_tower_x", "15"), currentPlateIndex, primeTowerPreviewX)
 val ys = vectorWithValue(configValue(cfg, "wipe_tower_y", "15"), currentPlateIndex, primeTowerPreviewY)
 val pending = HashMap<String, String>()
@@ -1675,7 +1681,7 @@ flat.stopUsing()
 }
 private fun drawPrimeTowerPreview(viewMatrix:DoubleArray) {
 if (isViewerEnabled || bed == null || !bed!!.isValid()) return
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: return
 if (!isPrimeTowerEnabled(cfg)) return
 val x = towerX(cfg)
 val y = towerY(cfg)

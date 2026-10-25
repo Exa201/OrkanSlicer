@@ -14,6 +14,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,6 +36,17 @@ import java.util.concurrent.atomic.AtomicReference
 /** Uses the platform window recomposer, without ComposeTestRule's activity idling clock. */
 @RunWith(AndroidJUnit4::class)
 class WorkspaceRuntimeCompositionDeviceTest {
+    @Test
+    fun rendererConfigBuilderReturnsNullBeforePrinterConfigLoads() {
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            SliceBeam.CONFIG = null
+            assertNull(SliceBeam.buildCurrentConfigObjectOrNull())
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
     @Test
     fun joiningBooleanAndStandaloneTextEditsSupportWorkspaceUndoRedo() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -738,6 +750,8 @@ class WorkspaceRuntimeCompositionDeviceTest {
                 val hits = ArrayList<GLModel.HitResult>()
                 val scale = Prefs.getRenderScale()
                 val step = 8
+                var bestPoint: Pair<Float, Float>? = null
+                var bestScore = Double.POSITIVE_INFINITY
                 for (y in step until renderer.viewportHeight step step) {
                     for (x in step until renderer.viewportWidth step step) {
                         if (renderer.raycastObjectIndex(x.toFloat(), y.toFloat()) != objectIndex) continue
@@ -745,10 +759,16 @@ class WorkspaceRuntimeCompositionDeviceTest {
                         mesh.raycaster.raycast(renderer, hits, x.toFloat(), y.toFloat())
                         val hit = hits.firstOrNull { !it.approximate } ?: continue
                         if (kotlin.math.abs(hit.normal.z) >= 0.65) continue
-                        point.set((location[0] + x / scale) to (location[1] + y / scale))
-                        return@queueEvent
+                        // Prefer the middle of the cylinder wall: edge hits can be valid GL
+                        // picks but leave too little room for the complete text footprint.
+                        val score = kotlin.math.abs(hit.position.z - 15.0) + kotlin.math.abs(hit.normal.z) * 10f
+                        if (score < bestScore) {
+                            bestScore = score
+                            bestPoint = (location[0] + x / scale) to (location[1] + y / scale)
+                        }
                     }
                 }
+                point.set(bestPoint)
             } finally { done.countDown() }
         }
         assertTrue("GL thread should locate a precise curved-side hit", done.await(20, TimeUnit.SECONDS))
