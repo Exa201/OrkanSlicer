@@ -464,6 +464,30 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.updateModel() }
             instrumentationWaitForGlIdle()
 
+            // Commit the three-object fixture, make and commit one user edit, then undo it.
+            // This leaves a valid Redo entry while the same three-object model is active.
+            val redoBounds = AtomicReference<List<DoubleArray>>()
+            val redoEditPrepared = CountDownLatch(1)
+            glView.queueEvent {
+                val current = requireNotNull(glView.renderer.model)
+                current.translate(0, 5.0, 0.0, 0.0)
+                redoBounds.set((0..2).map { index ->
+                    val min = Vec3d()
+                    val max = Vec3d()
+                    current.getBoundingBoxExact(index, min, max)
+                    doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                })
+                redoEditPrepared.countDown()
+            }
+            assertTrue("the redo edit should be prepared on GL", redoEditPrepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            instrumentationWaitForGlIdle()
+            beforeVolumes.set((0..2).map { readObjectVolumeOnGl(glView, it) })
+            beforeRevision.set(readGeometryRevisionOnGl(glView))
+
             openModelMenu(activity)
             selectAllObjectsScope()
             revealMenuAction(activity, R.string.ModelMenuBoolean)
@@ -488,6 +512,14 @@ class InitialProjectMenuDeviceTest {
             beforeVolumes.get().forEachIndexed { index, volume ->
                 assertEquals("failed intersection must preserve object $index volume", volume,
                     readObjectVolumeOnGl(glView, index), volume * 0.002)
+            }
+
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            val restoredRedoBounds = readExactBoundsOnGl(glView, 0, 1, 2)
+            redoBounds.get().zip(restoredRedoBounds).forEachIndexed { index, (before, after) ->
+                assertArrayEquals("failed intersection must leave Redo available for object $index",
+                    before, after, 0.001)
             }
         } finally {
             modelFile.delete()
