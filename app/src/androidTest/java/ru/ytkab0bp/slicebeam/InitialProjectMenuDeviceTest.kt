@@ -7215,7 +7215,9 @@ class InitialProjectMenuDeviceTest {
             val connectorPoint = findUncoveredPreciseSurfacePoint(glView, bed)
             tapGlViewAt(glView, connectorPoint.first, connectorPoint.second)
             compose.waitUntil(timeoutMillis = 10_000) {
-                readCutConnectorCountOnGl(glView, 0) == 1
+                readCutConnectorCountOnGl(glView, 0) == 1 &&
+                    compose.onAllNodesWithText(activity.getString(R.string.CutConnectorCount, 1))
+                        .fetchSemanticsNodes().isNotEmpty()
             }
             assertEquals("placing a cut connector should only create a preview", 1,
                 readObjectCountOnGl(glView))
@@ -7272,7 +7274,9 @@ class InitialProjectMenuDeviceTest {
             val connectorPoint = findUncoveredPreciseSurfacePoint(glView, bed)
             tapGlViewAt(glView, connectorPoint.first, connectorPoint.second)
             compose.waitUntil(timeoutMillis = 10_000) {
-                readCutConnectorCountOnGl(glView, 0) == 1
+                readCutConnectorCountOnGl(glView, 0) == 1 &&
+                    compose.onAllNodesWithText(activity.getString(R.string.CutConnectorCount, 1))
+                        .fetchSemanticsNodes().isNotEmpty()
             }
 
             // Exercise Undo before checking that later selection changes cannot redirect the preview.
@@ -7288,7 +7292,9 @@ class InitialProjectMenuDeviceTest {
             instrumentationWaitForGlIdle()
             tapGlViewAt(glView, connectorPoint.first, connectorPoint.second)
             compose.waitUntil(timeoutMillis = 10_000) {
-                readCutConnectorCountOnGl(glView, 0) == 1
+                readCutConnectorCountOnGl(glView, 0) == 1 &&
+                    compose.onAllNodesWithText(activity.getString(R.string.CutConnectorCount, 1))
+                        .fetchSemanticsNodes().isNotEmpty()
             }
             assertEquals("selection changes must not redirect connectors to another object", 0,
                 readCutConnectorCountOnGl(glView, 1))
