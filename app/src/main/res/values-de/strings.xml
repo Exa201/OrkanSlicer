@@ -183,6 +183,7 @@
     <string name="ModelMenuApplySelection">Auswahl verwenden (%1$d)</string>
     <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
     <string name="ModelMenuPlaceOnObjectDone">Auf das Ziel gesetzt und für den Druck als Baugruppe verbunden.</string>
+    <string name="ModelMenuCombineFailed">Die Objekte konnten nicht verbunden werden. Die Originale sind erhalten geblieben.</string>
     <string name="ModelMenuPlaceOnSurface">Auf ausgewählte Fläche setzen</string>
     <string name="ModelSurfacePlacementInstruction">Tippe auf eine sichtbare Seiten- oder Oberseite des Ziels. Zurück bricht ab.</string>
     <string name="ModelSurfacePlacementNeedsUpwardFace">Wähle eine sichtbare Seiten- oder Oberseite. Unterseiten werden nicht unterstützt.</string>
