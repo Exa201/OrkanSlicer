@@ -16,6 +16,8 @@
     <string name="LargeModelSurfaceTitle">Für Oberflächenwerkzeuge vereinfachen?</string>
     <string name="LargeModelSurfaceMessage">Dieses Modell hat %1$d Dreiecke. Zum Malen und Prägen sind höchstens %2$d nötig. Die Vereinfachung verändert das Modell auf der Druckplatte und kann Details entfernen; die Quelldatei bleibt erhalten. Öffne das Werkzeug danach erneut.</string>
     <string name="LargeModelSurfaceStillDense">Das Modell ist für präzise Oberflächenwerkzeuge noch zu detailliert. Vereinfache es stärker.</string>
+    <string name="LargeModelEmbossTitle">Für präzise Textplatzierung vereinfachen?</string>
+    <string name="LargeModelEmbossMessage">Dieses Modell hat %1$d Dreiecke. Prägen und Textplatzierung auf Oberflächen unterstützen bis zu %2$d. Die Vereinfachung verändert das Modell auf der Druckplatte und kann Details entfernen; die Quelldatei bleibt erhalten.</string>
     <string name="SlotBed">Modell</string>
     <string name="NavigationPreview">Vorschau</string>
     <string name="NavigationPrintCompact">Druck</string>
@@ -185,6 +187,7 @@
     <string name="ModelSurfacePlacementInstruction">Tippe auf eine sichtbare, nach oben gerichtete Fläche des Ziels. Zurück bricht ab.</string>
     <string name="ModelSurfacePlacementNeedsUpwardFace">Wähle eine sichtbare Fläche, die nach oben zeigt. Die ausgewählte Gruppe wird auf diesen Punkt gesetzt.</string>
     <string name="ModelSurfacePlacementTargetUnavailable">Das Ziel ist nicht mehr verfügbar. Wähle die Objekte erneut aus.</string>
+    <string name="ModelSurfacePlacementNeedsSimplification">Vereinfache das Zielmodell, bevor du Objekte auf seiner Oberfläche platzierst. Dichte Modelle können weiterhin ausgewählt und gesliced werden.</string>
     <string name="ModelSurfacePlacementCancelled">Flächenplatzierung abgebrochen.</string>
     <string name="ModelMenuPlaceOnSurfaceDone">Am gewählten Flächenpunkt platziert und als druckbare Baugruppe verbunden.</string>
     <string name="ModelMenuBoolean">Boolesche Funktion</string>

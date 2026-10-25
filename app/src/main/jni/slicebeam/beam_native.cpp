@@ -31,6 +31,7 @@
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/AABBMesh.hpp"
+#include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/calib.hpp"
 #include "libslic3r/Geometry/ConvexHull.hpp"
@@ -67,14 +68,12 @@ struct ModelImportCancelled : std::exception {
 struct GLModelRef {
     GLModel model;
     TriangleMesh mesh;
-    AABBMesh* emesh = nullptr;
-    std::vector<stl_normal> normals;
+    std::unique_ptr<AABBTreeIndirect::Tree3f> raycast_tree;
     Vec3d flatten_normal;
     // Touch raycasts run on Android's UI thread while the renderer replaces GLModel meshes
     // on the GL thread. Protect the CPU-side picking mesh/cache from concurrent destruction.
     std::mutex picking_mutex;
 
-    ~GLModelRef() { delete emesh; }
 };
 // Multi-color painting session, bound to one ModelObject's first volume. Holds a TriangleSelector
 // over the volume mesh plus an AABBMesh for ray-casting touch points to a facet.
@@ -1366,11 +1365,11 @@ extern "C" {
             ref->mesh = TriangleMesh(its);
             ref->model.init_from(its);
             ref->flatten_normal = plane.normal;
-            // AABBMesh keeps references into the input triangle mesh. `its` is a local
-            // temporary here, so building the raycast index from it leaves dangling
-            // triangle storage that crashes as soon as a flatten plane is tapped.
-            ref->emesh = new AABBMesh(ref->mesh.its, true);
-            ref->normals = its_face_normals(its);
+            // Build the lightweight tree only after copying `its` into ref->mesh; the tree
+            // stores triangle indices and must never outlive the mesh backing its vertices.
+            ref->raycast_tree = std::make_unique<AABBTreeIndirect::Tree3f>(
+                AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(
+                    ref->mesh.its.vertices, ref->mesh.its.indices));
 
             jlong ptr = reinterpret_cast<jlong>(ref);
             env->SetLongArrayRegion(arr, i, 1, &ptr);
@@ -2421,12 +2420,12 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         if (ref == nullptr) return JNI_FALSE;
         std::lock_guard<std::mutex> lock(ref->picking_mutex);
-        if (ref->emesh != nullptr) return JNI_TRUE;
+        if (ref->raycast_tree != nullptr) return JNI_TRUE;
         try {
-            auto emesh = std::make_unique<AABBMesh>(ref->mesh, true);
-            auto normals = its_face_normals(ref->mesh.its);
-            ref->emesh = emesh.release();
-            ref->normals.swap(normals);
+            auto tree = std::make_unique<AABBTreeIndirect::Tree3f>(
+                AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(
+                    ref->mesh.its.vertices, ref->mesh.its.indices));
+            ref->raycast_tree = std::move(tree);
             return JNI_TRUE;
         } catch (const std::exception& e) {
             __android_log_print(ANDROID_LOG_WARN, TAG, "Raycast index build failed: %s", e.what());
@@ -2436,42 +2435,70 @@ extern "C" {
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1raycast_1closest_1hit(JNIEnv* env, jclass, jlong ptr, jdoubleArray pointArr, jdoubleArray directionArr) {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
-        if (ref == nullptr) return env->NewDoubleArray(0);
+        if (ref == nullptr || pointArr == nullptr || directionArr == nullptr ||
+            env->GetArrayLength(pointArr) < 3 || env->GetArrayLength(directionArr) < 3)
+            return env->NewDoubleArray(0);
         jdouble* point = env->GetDoubleArrayElements(pointArr, JNI_FALSE);
+        if (point == nullptr) return env->NewDoubleArray(0);
         jdouble* direction = env->GetDoubleArrayElements(directionArr, JNI_FALSE);
+        if (direction == nullptr) {
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            return env->NewDoubleArray(0);
+        }
 
         Vec3d point3d(point);
         Vec3d direction3d(direction);
-
-        Vec3d point_positive = point3d - direction3d;
-        Vec3d point_negative = point3d + direction3d;
-
-        std::lock_guard<std::mutex> lock(ref->picking_mutex);
-        if (ref->emesh == nullptr) {
+        if (!point3d.allFinite() || !direction3d.allFinite() || direction3d.squaredNorm() <= 1e-24) {
             env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
             env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
             return env->NewDoubleArray(0);
         }
-        std::vector<AABBMesh::hit_result> hits;
+
+        Vec3d point_positive = point3d - direction3d;
+
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
+        if (ref->raycast_tree == nullptr) {
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
+            return env->NewDoubleArray(0);
+        }
+        igl::Hit hit{-1, -1, 0.f, 0.f, 0.f};
+        hit.t = std::numeric_limits<float>::infinity();
+        bool has_hit = false;
         try {
-            hits = ref->emesh->query_ray_hits(point_positive, direction3d);
+            has_hit = AABBTreeIndirect::intersect_ray_first_hit(
+                ref->mesh.its.vertices,
+                ref->mesh.its.indices,
+                *ref->raycast_tree,
+                point_positive,
+                direction3d,
+                hit);
         } catch (const std::exception& e) {
             __android_log_print(ANDROID_LOG_WARN, TAG, "Raycast query failed: %s", e.what());
             env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
             env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
             return env->NewDoubleArray(0);
         }
-        jdoubleArray arr = env->NewDoubleArray(hits.size() * 6);
-        for (int i = 0; i < hits.size(); ++i) {
-            const AABBMesh::hit_result& hit = hits[i];
-            const Vec3d position = hit.position();
-            const Vec3d normal = hit.normal();
-            const jdouble hit_data[6] = {
-                position.x(), position.y(), position.z(),
-                normal.x(), normal.y(), normal.z(),
-            };
-            env->SetDoubleArrayRegion(arr, i * 6, 6, hit_data);
+        if (!has_hit || hit.id < 0 || static_cast<size_t>(hit.id) >= ref->mesh.its.indices.size()) {
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
+            return env->NewDoubleArray(0);
         }
+        const Vec3d position = point_positive + direction3d * static_cast<double>(hit.t);
+        Vec3d normal = its_unnormalized_normal(ref->mesh.its, hit.id).cast<double>();
+        const double normal_length = normal.norm();
+        if (!position.allFinite() || !std::isfinite(normal_length) || normal_length <= 1e-12) {
+            env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
+            env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
+            return env->NewDoubleArray(0);
+        }
+        normal /= normal_length;
+        const jdouble hit_data[6] = {
+            position.x(), position.y(), position.z(),
+            normal.x(), normal.y(), normal.z(),
+        };
+        jdoubleArray arr = env->NewDoubleArray(6);
+        if (arr != nullptr) env->SetDoubleArrayRegion(arr, 0, 6, hit_data);
 
         env->ReleaseDoubleArrayElements(pointArr, point, JNI_ABORT);
         env->ReleaseDoubleArrayElements(directionArr, direction, JNI_ABORT);
@@ -2483,8 +2510,7 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
         std::lock_guard<std::mutex> lock(ref->picking_mutex);
-        delete ref->emesh;
-        ref->emesh = nullptr;
+        ref->raycast_tree.reset();
         ref->mesh = mRef->model.mesh();
         ref->model.init_from(ref->mesh.its);
     }
@@ -2493,8 +2519,7 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
         std::lock_guard<std::mutex> lock(ref->picking_mutex);
-        delete ref->emesh;
-        ref->emesh = nullptr;
+        ref->raycast_tree.reset();
         ref->mesh = mRef->model.objects[i]->mesh();
         ref->model.init_from(ref->mesh.its);
     }
@@ -2503,8 +2528,7 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
         std::lock_guard<std::mutex> lock(ref->picking_mutex);
-        delete ref->emesh;
-        ref->emesh = nullptr;
+        ref->raycast_tree.reset();
         ref->mesh = mRef->model.objects[i]->mesh();
         if (max_triangles >= 4 && ref->mesh.its.indices.size() > static_cast<size_t>(max_triangles)) {
             try {
@@ -2554,9 +2578,7 @@ extern "C" {
         std::lock_guard<std::mutex> lock(ref->picking_mutex);
         ref->model.reset();
         ref->mesh.clear();
-        delete ref->emesh;
-        ref->emesh = nullptr;
-        ref->normals.clear();
+        ref->raycast_tree.reset();
 
         const float w = std::max(1.0f, (float)width);
         const float d = std::max(1.0f, (float)depth);
@@ -2682,10 +2704,8 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         std::lock_guard<std::mutex> lock(ref->picking_mutex);
         ref->model.reset();
-        delete ref->emesh;
-        ref->emesh = nullptr;
+        ref->raycast_tree.reset();
         ref->mesh.clear();
-        ref->normals.clear();
     }
 
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1is_1initialized(JNIEnv* env, jclass, jlong ptr) {

@@ -503,7 +503,7 @@ class InitialProjectMenuDeviceTest {
                 R.string.ModelBooleanEngineFailed,
             )
             compose.waitUntil(timeoutMillis = 15_000) {
-                failureMessages.any { hasSnackbarTitle(bed, it) }
+                failureMessages.any { hasSnackbarTitle(it) }
             }
             assertEquals("failed intersection must preserve all three source objects", 3,
                 readObjectCountOnGl(glView))
@@ -730,7 +730,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("selection change should complete on the GL thread", changedSelection.await(10, TimeUnit.SECONDS))
             compose.onNodeWithText(activity.getString(R.string.ModelBooleanUnion)).performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelBooleanSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelBooleanSelectionChanged) }
 
             assertEquals("a stale Boolean dialog must not replace either source object", 2,
                 readObjectCountOnGl(glView))
@@ -855,7 +855,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("object selection change should finish on GL", selectedOne.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("model-object-row-0").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertEquals("stale object-list selection must preserve the newer selection", 1, readSelectedObjectOnGl(glView))
 
             // Assigning an individual object's filament is also bound to the opening selection.
@@ -871,7 +871,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("second object selection change should finish on GL", selectedZero.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("model-choice-option-0").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertTrue("stale filament assignment must leave object 1 unchanged",
                 model.getUsedFilaments(0).contentEquals(intArrayOf(1)))
 
@@ -886,7 +886,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("duplicate selection change should finish on GL", selectedForDuplicate.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("duplicate-model-confirm").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertEquals("stale duplicate confirmation must not add objects", 2, readObjectCountOnGl(glView))
             assertEquals("stale duplicate confirmation must preserve newer selection", 1, readSelectedObjectOnGl(glView))
         } finally {
@@ -959,7 +959,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("selection change before Split must complete on GL", changedForSplit.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("model-choice-option-2").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertEquals("stale Split must keep both objects", 2, readObjectCountOnGl(glView))
             assertEquals("stale Split must keep the replacement selection", 1, readSelectedObjectOnGl(glView))
 
@@ -973,7 +973,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("selection change before Delete must complete on GL", changedForDelete.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("model-choice-option-3").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertEquals("stale Delete must keep both objects", 2, readObjectCountOnGl(glView))
             assertEquals("stale Delete must keep the replacement selection", 0, readSelectedObjectOnGl(glView))
 
@@ -1037,7 +1037,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("selection change before plate confirmation must complete on GL", changedSelection.await(10, TimeUnit.SECONDS))
             compose.onNodeWithText(activity.getString(R.string.PlateNumber, "2")).performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertEquals("stale move must stay on the source plate", 0, bed.currentPlateIndex)
             assertEquals("stale move must preserve both source objects", 2, readObjectCountOnGl(glView))
 
@@ -1092,7 +1092,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("selection change should complete on GL", changedSelection.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("model-choice-option-0").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
 
             assertEquals("stale placement must keep both source objects", 2, readObjectCountOnGl(glView))
             assertEquals("stale placement must not mutate geometry", revisionBefore, model.geometryRevision)
@@ -1145,7 +1145,7 @@ class InitialProjectMenuDeviceTest {
                 changedSelection.countDown()
             }
             assertTrue("stale surface-pick should be rejected on GL", changedSelection.await(10, TimeUnit.SECONDS))
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
 
             assertFalse("stale surface placement must leave pick mode", glView.renderer.isSurfacePlacementActive)
             assertEquals("stale surface placement must preserve source objects", 2, readObjectCountOnGl(glView))
@@ -1200,7 +1200,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("alignment selection change should finish on GL", changeAlignmentSelection.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("model-choice-option-0").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertEquals("stale alignment must not change geometry", alignmentRevision, model.geometryRevision)
             alignmentBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2)).forEachIndexed { index, (before, after) ->
                 assertArrayEquals("alignment must preserve object $index", before, after, 0.001)
@@ -1227,7 +1227,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("geometry change should finish on GL", changeDistributionGeometry.await(10, TimeUnit.SECONDS))
             compose.onNodeWithTag("model-choice-option-0").performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
             assertEquals("stale distribution must not add a second geometry change",
                 distributionRevision + 1, model.geometryRevision)
             distributionBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2)).forEachIndexed { index, (before, after) ->
@@ -1278,7 +1278,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue("selection change should finish on GL", changed.await(10, TimeUnit.SECONDS))
             compose.onNode(hasText(activity.getString(R.string.ModelMenuCombineSelected)) and hasClickAction())
                 .performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
 
             assertEquals("stale confirmation must preserve every source object", 3, readObjectCountOnGl(glView))
             assertEquals("stale confirmation must not mutate geometry", revisionBefore, model.geometryRevision)
@@ -1327,7 +1327,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue("selection change should finish on GL", changed.await(10, TimeUnit.SECONDS))
             compose.onNode(hasText(activity.getString(R.string.ModelMenuDeleteSelected)) and hasClickAction())
                 .performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
 
             assertEquals("stale confirmation must preserve both objects", 2, readObjectCountOnGl(glView))
             assertEquals("stale confirmation must not mutate geometry", revisionBefore, model.geometryRevision)
@@ -1368,7 +1368,7 @@ class InitialProjectMenuDeviceTest {
             val revisionAfterTestMutation = model.geometryRevision
             compose.onNode(hasText(activity.getString(R.string.ModelMenuDeleteAll)) and hasClickAction())
                 .performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(bed, R.string.ModelSelectionChanged) }
+            compose.waitUntil(timeoutMillis = 10_000) { hasSnackbarTitle(R.string.ModelSelectionChanged) }
 
             assertSame("stale delete-all must retain the same model", model, glView.renderer.model)
             assertEquals("stale delete-all must preserve the model object", 1, readObjectCountOnGl(glView))
@@ -6937,7 +6937,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
-                hasSnackbarTitle(bed, R.string.MenuToolbarSplitNothing)
+                hasSnackbarTitle(R.string.MenuToolbarSplitNothing)
             }
             assertEquals("Split on a single connected test mesh should preserve its object", 1,
                 readObjectCountOnGl(glView))
@@ -8787,15 +8787,12 @@ class InitialProjectMenuDeviceTest {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 
-    private fun hasSnackbarTitle(bed: BedFragment, titleRes: Int): Boolean {
-        val snackbarController = BedFragment::class.java.getDeclaredField("snackbarController")
-            .apply { isAccessible = true }.get(bed)
-        val entries = snackbarController.javaClass.getMethod("getEntries").invoke(snackbarController) as List<*>
+    private fun hasSnackbarTitle(titleRes: Int): Boolean {
         val expectedTitle = compose.activity.getString(titleRes)
-        return entries.any { entry ->
-            val snackbar = entry?.javaClass?.getMethod("getSnackbar")?.invoke(entry)
-            snackbar?.javaClass?.getField("title")?.get(snackbar) == expectedTitle
-        }
+        // Read the rendered state through Compose semantics. Reflectively iterating the
+        // controller's SnapshotStateList races snackbar animations and can throw CME.
+        return compose.onAllNodesWithText(expectedTitle, useUnmergedTree = true)
+            .fetchSemanticsNodes().isNotEmpty()
     }
 
     private fun clearWorkspaceSnackbars(bed: BedFragment) {

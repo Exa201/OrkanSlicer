@@ -12,6 +12,8 @@ import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
@@ -42,6 +44,124 @@ import ru.ytkab0bp.slicebeam.view.GLView
 /** Exercises the real GLView tap path on an Android device with a loaded model. */
 @RunWith(AndroidJUnit4::class)
 class MainActivityTouchDeviceTest {
+    @Test
+    fun generatedM12SupportsPreciseSurfacePlacementWithoutTopologyIndexing() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val application = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = application
+        Prefs.init(application)
+        Prefs.getPrefs()?.edit()
+            ?.remove("crash")
+            ?.putBoolean("converter_storage_first_prompt", true)
+            ?.commit()
+        Prefs.setLastCommit()
+        SliceBeam.clearLiveDiffs()
+        val config = context.assets.open("orca_profiles/Anycubic.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+        SliceBeam.CONFIG = config
+
+        val modelFile = File(context.cacheDir, "m12-surface-placement-safety.stl")
+        val values = FastenerFormLogic.defaults(size = FastenerStandards.count() - 1)
+        FastenerStlWriter.writeBolt(
+            modelFile,
+            FastenerStandards.diameter(values.size),
+            FastenerFormLogic.parse(values.second),
+            FastenerFormLogic.parse(values.first),
+            FastenerFormLogic.parse(values.fourth),
+            FastenerFormLogic.parse(values.third),
+        )
+        val scenario = ActivityScenario.launch(MainActivity::class.java)
+        try {
+            val bedRef = AtomicReference<BedFragment>()
+            scenario.onActivity { activity ->
+                bedRef.set(activity.navigationDelegate.getCurrentFragment() as BedFragment)
+            }
+            val bed = bedRef.get()
+            val loaded = AtomicReference<Model?>()
+            val failure = AtomicReference<Exception?>()
+            val loadFinished = CountDownLatch(1)
+            scenario.onActivity {
+                bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        loaded.set(loadedModel)
+                        loadFinished.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        loadFinished.countDown()
+                    }
+                })
+            }
+            assertTrue("M12 target should load", loadFinished.await(60, TimeUnit.SECONDS))
+            val model = requireNotNull(loaded.get()) { "M12 load failed: ${failure.get()}" }
+            val glView = requireNotNull(bed.glView)
+            val prepared = CountDownLatch(1)
+            val result = AtomicInteger(Int.MIN_VALUE)
+            val modelRevisionBeforePlacement = AtomicLong(-1L)
+            glView.queueEvent {
+                // Keep a second M12 as the moving group and target the first one.
+                model.addObject(model, 0)
+                model.translate(1, 30.0, 0.0, 0.0)
+                glView.renderer.setSelectedObject(1)
+                modelRevisionBeforePlacement.set(model.geometryRevision)
+                val selection = glView.renderer.captureSelectionSnapshot()
+                result.set(glView.renderer.beginSurfacePlacement(0, selection))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("surface placement safety check should finish on GL", prepared.await(10, TimeUnit.SECONDS))
+            val triangleCount = model.getTriangleCount(0)
+            assertTrue("M12 target remains above the more expensive paint-topology threshold",
+                LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)))
+            assertTrue("M12 should remain under the memory-bounded exact raycast ceiling",
+                LargeModelPick.canUsePreciseSurfaceTools(triangleCount))
+            assertFalse("M12 should not fall back to approximate bounds picking",
+                LargeModelPick.needsBoundsOnlyPicking(triangleCount))
+            assertEquals("precise M12 surface placement should start", 1, result.get())
+            assertTrue("the exact surface target should enter tap-to-place mode", glView.renderer.isSurfacePlacementActive)
+            assertEquals("starting placement must not change source objects", 2, model.objectsCount)
+            assertEquals("starting placement must not mutate model geometry", modelRevisionBeforePlacement.get(),
+                model.geometryRevision)
+            glView.cancelSurfacePlacement()
+            val cancelled = CountDownLatch(1)
+            glView.queueEvent { cancelled.countDown() }
+            assertTrue("cancel should be processed on GL", cancelled.await(10, TimeUnit.SECONDS))
+            assertFalse("Android-side cancel should clear the active target", glView.renderer.isSurfacePlacementActive)
+
+            // M12 is above the heavier paint-topology limit but below the lightweight exact
+            // raycast limit. Embossing should therefore open directly instead of incorrectly
+            // asking the user to decimate a model that can already be picked precisely.
+            val selectionReady = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(1)
+                selectionReady.countDown()
+            }
+            assertTrue("M12 emboss selection should be set on GL", selectionReady.await(10, TimeUnit.SECONDS))
+            assertTrue("M12 should be selected above the paint-topology threshold",
+                LargeModelPick.needsPreciseSurfaceSimplification(triangleCount))
+            bed.enterEmbossMode()
+            assertTrue("precise M12 embossing should not require unnecessary simplification", bed.isEmbossMode)
+            assertTrue("emboss mode should be enabled on GL", glView.renderer.isInEmbossMode)
+            assertTrue("Android Back should close the M12 emboss tool", bed.onBackPressed())
+            val embossStopped = CountDownLatch(1)
+            glView.queueEvent { embossStopped.countDown() }
+            assertTrue("emboss shutdown should finish on the GL thread", embossStopped.await(10, TimeUnit.SECONDS))
+            assertFalse("closing emboss should disable the renderer mode", glView.renderer.isInEmbossMode)
+        } finally {
+            scenario.close()
+            modelFile.delete()
+        }
+    }
+
     @Test
     fun tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -155,8 +275,9 @@ class MainActivityTouchDeviceTest {
                 val meshesField = glView.renderer.javaClass.getDeclaredField("glModels").apply { isAccessible = true }
                 val generatedMesh = (meshesField.get(glView.renderer) as List<*>).first() as GLModel
                 assertTrue(
-                    "the generated M12 mesh must be classified for safe bounds picking",
-                    LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),
+                    "the generated M12 mesh should use exact picks without expensive paint topology",
+                    LargeModelPick.canUsePreciseSurfaceTools(model.getTriangleCount(0)) &&
+                        LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),
                 )
                 val pickHits = arrayListOf<GLModel.HitResult>()
                 generatedMesh.raycaster.raycast(
@@ -166,8 +287,8 @@ class MainActivityTouchDeviceTest {
                     hit.second * Prefs.getRenderScale(),
                 )
                 assertTrue(
-                    "A standard M12 bolt must use safe bounds picking instead of constructing the native face-neighbour index on touch",
-                    pickHits.firstOrNull()?.approximate == true,
+                    "A standard M12 bolt must use the lightweight exact raycast tree instead of a face-neighbour index",
+                    pickHits.firstOrNull()?.approximate == false,
                 )
                 assertEquals("The GL renderer must track the actual surface width", glView.width, glView.renderer.viewportWidth)
                 assertEquals("The GL renderer must track the actual surface height", glView.height, glView.renderer.viewportHeight)
@@ -555,7 +676,7 @@ class MainActivityTouchDeviceTest {
             )
 
             // Dense objects still support safe object-to-object placement without asking the
-            // native surface raycaster for its expensive face-neighbour index. The placement
+            // native surface raycaster for its exact triangle tree. The placement
             // uses exact object bounds, then combines the assembly as printable multipart data.
             val cubeFile = File(context.cacheDir, "touch-test-placement-cube.stl")
             val cubeSourceFile = File(context.cacheDir, "touch-test-placement-cube-source.stl")

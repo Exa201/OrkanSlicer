@@ -43,6 +43,7 @@ import ru.ytkab0bp.slicebeam.view.GLView
 
 enum class ModelAlignmentAxis { CENTER_X, CENTER_Y, BASE_Z }
 internal const val MODEL_EDIT_STALE_SELECTION = -2
+internal const val MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION = -3
 
 class GLRenderer(glView:GLView):GLSurfaceView.Renderer {
 var camera = Camera()
@@ -535,9 +536,18 @@ internal fun placeSelectedObjectsOnObject(
 
 /** Start a GL-thread-only interaction that seats the selected group at a picked top-surface point. */
 internal fun beginSurfacePlacement(targetIndex: Int, expectedSelection: ModelSelectionSnapshot? = null): Int {
+    // A new request replaces any pending tap target, including when the new target is
+    // invalid or too dense. Otherwise an old placement can remain active behind the error.
+    cancelSurfacePlacement()
     val activeModel = model ?: return 0
     if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
     if (targetIndex !in 0 until activeModel.objectsCount) return 0
+    // Dense meshes use bounds-only picking to avoid building Orca's expensive native
+    // face-neighbour index on a touch. Never start a surface-placement interaction unless
+    // the target can provide a precise triangle hit.
+    if (!LargeModelPick.canUsePreciseSurfaceTools(activeModel.getTriangleCount(targetIndex))) {
+        return MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION
+    }
     val moving = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
     if (moving.isEmpty() || targetIndex in moving || isInEmbossMode || isInMeasureMode || isPaintMode) return 0
     surfacePlacementSelection = expectedSelection ?: captureSelectionSnapshot() ?: return 0

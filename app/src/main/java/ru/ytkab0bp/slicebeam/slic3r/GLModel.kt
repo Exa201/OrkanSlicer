@@ -49,7 +49,7 @@ open class GLModel internal constructor(
         model.getBoundingBoxApprox(i, min, max)
         fallbackPickBounds = min to max
         approximatePickBounds = fallbackPickBounds.takeIf {
-            LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(i))
+            LargeModelPick.needsBoundsOnlyPicking(model.getTriangleCount(i))
         }
     }
 
@@ -133,8 +133,8 @@ open class GLModel internal constructor(
                 raycasterCache = current
                 return@synchronized current
             }
-            // AABBMesh builds face-neighbour data for every triangle. KromaCut meshes
-            // can exceed a million facets and crash the process on this tap path.
+            // Build the lightweight triangle AABB tree only for meshes within the explicit
+            // memory limit. KromaCut meshes can exceed a million facets and must stay on bounds.
             if (approximatePickBounds == null && !Native.glmodel_init_raycast_data(pointer))
                 approximatePickBounds = fallbackPickBounds
             current = MeshRaycaster()

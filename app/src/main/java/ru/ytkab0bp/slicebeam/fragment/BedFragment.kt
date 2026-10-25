@@ -608,7 +608,10 @@ private fun simplifySelectedObjectOnGl(
         if (maxTriangles != null) {
             repeat(2) {
                 if (after > maxTriangles) {
-                    after = model.simplify(selected, LargeModelPick.suggestedKeepRatio(after))
+                    after = model.simplify(
+                        selected,
+                        LargeModelPick.suggestedKeepRatio(after, maxTriangles),
+                    )
                 }
             }
         }
@@ -1391,16 +1394,18 @@ val ctx = getContext() ?: return false
 val model = currentModel ?: return false
 if (objectIndex < 0 || objectIndex >= model.objectsCount) return false
 val triangles = model.getTriangleCount(objectIndex)
-if (!LargeModelPick.needsPreciseSurfaceSimplification(triangles)) return true
+if (LargeModelPick.canUsePreciseSurfaceTools(triangles)) return true
 showWorkspaceMessageDialog(
-    ctx.getString(R.string.LargeModelSurfaceTitle),
-    ctx.getString(R.string.LargeModelSurfaceMessage, triangles, LargeModelPick.TRIANGLE_LIMIT),
+    ctx.getString(R.string.LargeModelEmbossTitle),
+    ctx.getString(R.string.LargeModelEmbossMessage, triangles, LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT),
     ctx.getString(R.string.ModelSimplifyStart),
     ctx.getString(android.R.string.cancel),
 ) {
         if (currentModel === model && glView?.renderer?.selectedObject == objectIndex) {
-            simplifySelectedObject(LargeModelPick.suggestedKeepRatio(triangles),
-                LargeModelPick.TRIANGLE_LIMIT)
+            simplifySelectedObject(
+                LargeModelPick.suggestedKeepRatio(triangles, LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT),
+                LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT,
+            )
         }
     }
 return false

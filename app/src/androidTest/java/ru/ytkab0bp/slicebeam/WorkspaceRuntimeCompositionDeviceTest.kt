@@ -20,10 +20,12 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.view.GLView
 import java.io.File
 import java.util.concurrent.CountDownLatch
@@ -33,6 +35,138 @@ import java.util.concurrent.atomic.AtomicReference
 /** Uses the platform window recomposer, without ComposeTestRule's activity idling clock. */
 @RunWith(AndroidJUnit4::class)
 class WorkspaceRuntimeCompositionDeviceTest {
+    @Test
+    fun joiningBooleanAndStandaloneTextEditsSupportWorkspaceUndoRedo() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val application = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = application
+        Prefs.init(application)
+        Prefs.getPrefs()?.edit()?.remove("crash")?.putBoolean("converter_storage_first_prompt", true)?.commit()
+        Prefs.setLastCommit()
+        SliceBeam.hasUpdateInfo = false
+        SliceBeam.clearLiveDiffs()
+
+        val previousConfig = SliceBeam.CONFIG
+        val config = context.assets.open("orca_profiles/Anycubic.ini").use(::Slic3rConfigWrapper)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title); put("print", process.title); put("filament", filament.title)
+        }
+        SliceBeam.CONFIG = config
+
+        val activity = instrumentation.startActivitySync(
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+        ) as MainActivity
+        val modelFile = File(activity.cacheDir, "workspace-model-edit-history.stl")
+        val fontFile = File(activity.cacheDir, "workspace-model-edit-history.ttf")
+        try {
+            context.assets.open("models/xyz_cube.stl").use { input -> modelFile.outputStream().use(input::copyTo) }
+            context.assets.open("font/roboto_medium.ttf").use { input -> fontFile.outputStream().use(input::copyTo) }
+            val bed = awaitReadyWorkspace(activity)
+            loadSingleModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+
+            fun editOnGl(action: (Model) -> Unit) {
+                onGl(glView) { view -> action(requireNotNull(view.renderer.model)) }
+            }
+            fun commitEdit() {
+                instrumentation.runOnMainSync { bed.updateModel() }
+                onGl(glView) { Unit } // Drain the GL queue after updateModel enqueues its snapshot.
+            }
+            fun assertObjectCount(expected: Int) {
+                awaitCondition(15_000) {
+                    onGl(glView) { requireNotNull(it.renderer.model).objectsCount } == expected
+                }
+            }
+
+            commitEdit()
+            editOnGl { model ->
+                model.addObject(model, 0)
+                model.setUniformFilament(1, 2)
+                model.translate(1, 30.0, 0.0, 0.0)
+                assertEquals("joining test setup creates two objects", 2, model.objectsCount)
+            }
+            commitEdit()
+            editOnGl { model ->
+                assertEquals("join should combine both model objects", 0,
+                    model.combineObjectsAsParts(intArrayOf(0, 1)))
+                glView.renderer.resetGlModels()
+            }
+            commitEdit()
+            assertObjectCount(1)
+            assertTrue("joined body must retain both source filaments after commit",
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toSet().containsAll(setOf(1, 2)) })
+            instrumentation.runOnMainSync { bed.undoModelEdit() }
+            assertObjectCount(2)
+            assertEquals("undo of join restores the first object's original tool", listOf(1),
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toList() })
+            assertEquals("undo of join restores the second object's original tool", listOf(2),
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(1).toList() })
+            instrumentation.runOnMainSync { bed.redoModelEdit() }
+            assertObjectCount(1)
+            assertTrue("redo of join restores both source filaments",
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toSet().containsAll(setOf(1, 2)) })
+
+            editOnGl { model ->
+                model.addObject(model, 0)
+                model.setUniformFilament(1, 2)
+                model.translate(1, 5.0, 0.0, 0.0)
+            }
+            commitEdit()
+            assertObjectCount(2)
+            editOnGl { model ->
+                assertEquals("Boolean union should replace both selected operands", 0,
+                    model.booleanObjects(0, 1, BooleanOperation.UNION))
+                glView.renderer.resetGlModels()
+            }
+            commitEdit()
+            assertObjectCount(1)
+            instrumentation.runOnMainSync { bed.undoModelEdit() }
+            assertObjectCount(2)
+            assertTrue("undo of Boolean restores the base's multipart materials",
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toSet().containsAll(setOf(1, 2)) })
+            assertEquals("undo of Boolean restores the cutter material", listOf(2),
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(1).toList() })
+            instrumentation.runOnMainSync { bed.redoModelEdit() }
+            assertObjectCount(1)
+            assertEquals("Boolean redo follows the target solid's material assignment", listOf(1),
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toList() })
+
+            editOnGl { model ->
+                val textIndex = model.createTextObject(
+                        fontFile.absolutePath, "A", 5f, 1f,
+                        Vec3d(30.0, 30.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+                    )
+                assertEquals("standalone text should append one printable model", 1, textIndex)
+                model.setUniformFilament(textIndex, 2)
+                glView.renderer.resetGlModels()
+            }
+            commitEdit()
+            assertObjectCount(2)
+            instrumentation.runOnMainSync { bed.undoModelEdit() }
+            assertObjectCount(1)
+            instrumentation.runOnMainSync { bed.redoModelEdit() }
+            assertObjectCount(2)
+            assertTrue("standalone text remains printable after redo", triangleCount(glView, 1) > 0)
+            assertEquals("standalone text redo retains its separate filament slot", listOf(2),
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(1).toList() })
+        } finally {
+            instrumentation.runOnMainSync {
+                (runCatching { activity.navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull())
+                    ?.let { if (it.isEmbossMode) it.onBackPressed() }
+                activity.finish()
+            }
+            awaitCondition(10_000) { activity.isDestroyed }
+            SliceBeam.CONFIG = previousConfig
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
     @Test
     fun selectedModelCanOpenStandaloneTextPanelInPlatformWorkspaceComposition() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()

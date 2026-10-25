@@ -10,6 +10,7 @@ import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
+import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
@@ -373,6 +374,7 @@ internal class ModelMenuItems(
                                 when (result) {
                                     1 -> R.string.ModelSurfacePlacementInstruction
                                     MODEL_EDIT_STALE_SELECTION -> R.string.ModelSelectionChanged
+                                    MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION -> R.string.ModelSurfacePlacementNeedsSimplification
                                     else -> R.string.ModelSurfacePlacementTargetUnavailable
                                 },
                             ))

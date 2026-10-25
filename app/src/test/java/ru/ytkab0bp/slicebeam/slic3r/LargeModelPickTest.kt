@@ -46,8 +46,23 @@ class LargeModelPickTest {
     @Test fun denseSurfaceToolSuggestionStaysBelowSafePickingLimit() {
         assertFalse(LargeModelPick.needsPreciseSurfaceSimplification(20_000))
         assertTrue(LargeModelPick.needsPreciseSurfaceSimplification(20_001))
+        assertTrue("the threshold-sized mesh can use precise surface tools",
+            LargeModelPick.canUsePreciseSurfaceTools(20_000))
+        assertTrue("the paint topology threshold remains distinct from the safe picking threshold",
+            LargeModelPick.canUsePreciseSurfaceTools(20_001))
+        assertTrue(LargeModelPick.canUsePreciseSurfaceTools(LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT))
+        assertFalse("very dense bounds-only meshes must not enter precise surface tools",
+            LargeModelPick.canUsePreciseSurfaceTools(LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT + 1))
+        assertFalse(LargeModelPick.needsBoundsOnlyPicking(40_000))
+        assertTrue(LargeModelPick.needsBoundsOnlyPicking(100_001))
         assertEquals(1f, LargeModelPick.suggestedKeepRatio(20_000), 0f)
         assertEquals(16_000f / 40_000f,
             LargeModelPick.suggestedKeepRatio(40_000), 0.000001f)
+        assertEquals(LargeModelPick.SAFE_RAYCAST_TRIANGLE_TARGET / 120_000f,
+            LargeModelPick.suggestedKeepRatio(120_000, LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT),
+            0.000001f)
+        assertEquals(1f,
+            LargeModelPick.suggestedKeepRatio(40_000, LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT),
+            0f)
     }
 }

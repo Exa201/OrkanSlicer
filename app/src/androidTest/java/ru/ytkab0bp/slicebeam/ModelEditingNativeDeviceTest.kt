@@ -1191,10 +1191,11 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
-    @Test fun standardM12BoltUsesSafeBoundsPickingWithoutNativeRaycastIndex() {
+    @Test fun standardM12BoltBuildsLightweightExactRaycastIndexWithoutPaintTopology() {
         val values = FastenerFormLogic.defaults(size = FastenerStandards.count() - 1)
         assertEquals(null, FastenerFormLogic.validate(values))
         val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "m12-raycast-regression.stl")
+        val generationStarted = System.nanoTime()
         val written = FastenerStlWriter.writeBolt(
             file,
             FastenerStandards.diameter(values.size),
@@ -1203,7 +1204,10 @@ class ModelEditingNativeDeviceTest {
             FastenerFormLogic.parse(values.fourth),
             FastenerFormLogic.parse(values.third),
         )
+        val generationMillis = (System.nanoTime() - generationStarted) / 1_000_000
+        val importStarted = System.nanoTime()
         val model = Model(file)
+        val importMillis = (System.nanoTime() - importStarted) / 1_000_000
         val glModel = GLModel()
         try {
             assertTrue("generated STL should retain its screw triangles", model.getTriangleCount(0) > 0)
@@ -1216,9 +1220,13 @@ class ModelEditingNativeDeviceTest {
             assertEquals("packed ring generation must preserve the bolt's designed total height",
                 expectedHeight.toDouble(), boltMax.z - boltMin.z, 0.02)
             assertTrue(
-                "a standard M12 bolt must stay on the safe bounds-picking path",
+                "M12 remains above the separate paint-topology safety limit",
                 LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),
             )
+            assertTrue("the lightweight raycast tree should allow exact surface placement for M12",
+                LargeModelPick.canUsePreciseSurfaceTools(model.getTriangleCount(0)))
+            assertTrue("the M12 raycast tree must remain below its memory bound",
+                !LargeModelPick.needsBoundsOnlyPicking(model.getTriangleCount(0)))
             val min = Vec3d(); val max = Vec3d()
             model.getBoundingBoxExact(0, min, max)
             val hit = LargeModelPick.hit(
@@ -1230,10 +1238,65 @@ class ModelEditingNativeDeviceTest {
             assertTrue("ray through the bolt bounds should select the generated model", hit != null)
             assertTrue("bounds selection must be marked approximate", hit!!.approximate)
 
-            // Exercise the production picking entry point: a dense generated screw must
-            // use its bounds and avoid building Orca's native face-neighbour index.
+            // Exercise the production picking entry point: build the exact indexed raycaster
+            // without constructing AABBMesh's much heavier face-neighbour and vertex-face maps.
             glModel.initFrom(model, 0)
-            assertNotNull("dense M12 geometry should still expose a selectable raycaster", glModel.raycaster)
+            val raycastIndexStarted = System.nanoTime()
+            assertNotNull("dense M12 geometry should expose the lightweight exact raycaster", glModel.raycaster)
+            val raycastIndexMillis = (System.nanoTime() - raycastIndexStarted) / 1_000_000
+            assertEquals("released native handles should reject raycasts safely", 0,
+                Native.glmodel_raycast_closest_hit(0L, doubleArrayOf(0.0, 0.0, 1.0), doubleArrayOf(0.0, 0.0, -1.0)).size)
+            assertEquals("short origins must be rejected before native vector construction", 0,
+                Native.glmodel_raycast_closest_hit(glModel.pointer, doubleArrayOf(0.0, 0.0), doubleArrayOf(0.0, 0.0, -1.0)).size)
+            assertEquals("zero-length directions must not produce invalid native hits", 0,
+                Native.glmodel_raycast_closest_hit(glModel.pointer, doubleArrayOf(0.0, 0.0, 1.0), doubleArrayOf(0.0, 0.0, 0.0)).size)
+            assertEquals("non-finite origins must be rejected before entering the native tree", 0,
+                Native.glmodel_raycast_closest_hit(
+                    glModel.pointer,
+                    doubleArrayOf(Double.NaN, 0.0, 1.0),
+                    doubleArrayOf(0.0, 0.0, -1.0),
+                ).size)
+            assertEquals("non-finite directions must not produce native hits", 0,
+                Native.glmodel_raycast_closest_hit(
+                    glModel.pointer,
+                    doubleArrayOf(0.0, 0.0, 1.0),
+                    doubleArrayOf(0.0, Double.POSITIVE_INFINITY, -1.0),
+                ).size)
+            // Building the index alone does not prove that the GL touch path can use it.
+            // Sample the generated head from above and require at least one precise hit
+            // with a finite, normalized face normal.
+            val sampleFractions = doubleArrayOf(0.2, 0.5, 0.8)
+            var preciseHit: DoubleArray? = null
+            for (xFraction in sampleFractions) {
+                for (yFraction in sampleFractions) {
+                    val point = doubleArrayOf(
+                        boltMin.x + (boltMax.x - boltMin.x) * xFraction,
+                        boltMin.y + (boltMax.y - boltMin.y) * yFraction,
+                        boltMax.z + 1.0,
+                    )
+                    val hits = Native.glmodel_raycast_closest_hit(
+                        glModel.pointer, point, doubleArrayOf(0.0, 0.0, -1.0),
+                    )
+                    if (hits.size == 6 && hits.all(Double::isFinite)) {
+                        preciseHit = hits
+                        break
+                    }
+                }
+                if (preciseHit != null) break
+            }
+            assertNotNull("native M12 raycaster should return a precise surface hit", preciseHit)
+            val nativeHit = requireNotNull(preciseHit)
+            val normalLength = kotlin.math.sqrt(
+                nativeHit[3] * nativeHit[3] + nativeHit[4] * nativeHit[4] + nativeHit[5] * nativeHit[5],
+            )
+            assertEquals("native raycast should return a unit face normal", 1.0, normalLength, 1e-5)
+            assertTrue("a ray from above should hit the generated bolt below its top bound",
+                nativeHit[2] <= boltMax.z)
+            android.util.Log.i(
+                "ModelEditingNativeDeviceTest",
+                "M12 profile=${FastenerStandards.diameter(values.size)}mm facets=$written " +
+                    "generateMs=$generationMillis importMs=$importMillis raycastIndexMs=$raycastIndexMillis",
+            )
         } finally {
             glModel.release()
             model.release()

@@ -1204,6 +1204,100 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun standaloneRaisedAndEngravedTextSurviveThreeMfAndSliceWithTheirFilaments() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "text-edit-workflow-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "text-edit-workflow-font.ttf")
+        val projectFile = File(context.cacheDir, "text-edit-workflow.3mf")
+        val gcodeFile = File(context.cacheDir, "text-edit-workflow.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cubeFile)
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val centerX = (min.x + max.x) / 2.0
+            val centerY = (min.y + max.y) / 2.0
+            val originalTopZ = max.z
+
+            // Exercise the two in-place text modes on the selected cube's top face.
+            model.embossText(
+                0, fontFile.absolutePath, "A", 4f, 0.8f, 0,
+                Vec3d(centerX - 4.0, centerY, originalTopZ),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            val raisedTriangles = model.getTriangleCount(0)
+            val raisedVolume = model.getObjectVolume(0)
+            assertTrue("raised text should add native geometry", raisedTriangles > originalTriangles)
+            assertTrue("raised text should add printable solid volume", raisedVolume > originalVolume)
+
+            model.embossText(
+                0, fontFile.absolutePath, "B", 4f, 0.8f, 1,
+                Vec3d(centerX + 4.0, centerY, originalTopZ),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("in-place text edits must not create extra model objects", 1, model.objectsCount)
+
+            // A separate label is a second printable object and keeps an independent tool assignment.
+            val standaloneIndex = model.createTextObject(
+                fontFile.absolutePath, "C", 6f, 1f,
+                Vec3d(100.0, 100.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals(1, standaloneIndex)
+            model.setUniformFilament(standaloneIndex, 2)
+            assertTrue("standalone text should contain printable triangles", model.getTriangleCount(standaloneIndex) > 0)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            val modelXml = ZipFile(projectFile).use { archive ->
+                val configEntry = archive.getEntry("Metadata/model_settings.config")
+                    ?: archive.getEntry("Metadata/Slic3r_PE_model.config")
+                    ?: error("3MF model config is missing; entries: ${archive.entries().asSequence().map { it.name }.toList()}")
+                archive.getInputStream(configEntry)
+                    .bufferedReader().use { it.readText() }
+            }
+            assertTrue("engraving must be serialized as a negative 3MF volume",
+                modelXml.contains("negative_part"))
+
+            restored = Model(projectFile, 1)
+            assertEquals("raised/engraved base plus standalone text should remain two objects", 2, restored.objectsCount)
+            assertTrue("3MF reload should preserve the modified base geometry",
+                restored.getTriangleCount(0) > originalTriangles)
+            assertTrue("3MF reload should preserve the standalone text mesh", restored.getTriangleCount(1) > 0)
+            assertEquals("standalone text should retain its assigned tool", listOf(2),
+                restored.getUsedFilaments(1).toList())
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("base model with raised and engraved text should use target T0",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("separate text should use its assigned T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("no unrelated filament should be emitted",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            restored?.release()
+            model?.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun standalonePrintableTextProducesExtrusionGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
