@@ -16,6 +16,10 @@ internal object ModelImportFileName {
         "application/vnd.step",
         "application/step-file",
     )
+    private val svgMimeTypes = setOf(
+        "image/svg+xml",
+        "application/svg+xml",
+    )
 
     fun resolve(displayName: String?, uriPath: String?, mimeType: String?): String? {
         val name = displayName?.trim()?.takeIf(String::isNotEmpty)
@@ -28,6 +32,16 @@ internal object ModelImportFileName {
                 name.substringAfterLast('/', name).substringAfterLast('.', "")
                     .lowercase(java.util.Locale.ROOT) in knownNonStepExtensions -> name
                 else -> "$name.step"
+            }
+        }
+        if (normalizedMimeType != null && normalizedMimeType in svgMimeTypes) {
+            return when {
+                name == null -> "model.svg"
+                name.substringAfterLast('/', name).substringAfterLast('.', "")
+                    .equals("svg", ignoreCase = true) -> name
+                name.substringAfterLast('/', name).substringAfterLast('.', "")
+                    .lowercase(java.util.Locale.ROOT) in knownNonStepExtensions -> name
+                else -> "$name.svg"
             }
         }
         return name

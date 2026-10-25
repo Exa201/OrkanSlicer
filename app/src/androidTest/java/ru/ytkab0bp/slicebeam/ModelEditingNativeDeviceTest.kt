@@ -736,6 +736,9 @@ class ModelEditingNativeDeviceTest {
             assertEquals("the three SVG color groups should import as one model object", 1, model.objectsCount)
             assertTrue("the imported color groups should produce mesh triangles", model.getTriangleCount(0) > 0)
             assertTrue("the imported SVG should have printable volume", model.getObjectVolume(0) > 0.0)
+            assertEquals("white SVG fill should map to the first slicer filament", 1, model.getVolumeExtruder(0, 0))
+            assertEquals("red SVG fill should map to a distinct second filament", 2, model.getVolumeExtruder(0, 1))
+            assertEquals("black SVG fill should map to a distinct third filament", 3, model.getVolumeExtruder(0, 2))
 
             val min = Vec3d(); val max = Vec3d()
             model.getBoundingBoxExact(0, min, max)

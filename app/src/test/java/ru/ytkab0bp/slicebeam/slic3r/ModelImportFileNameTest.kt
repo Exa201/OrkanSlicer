@@ -28,6 +28,15 @@ class ModelImportFileNameTest {
     }
 
     @Test
+    fun svgMimeSuppliesMissingExtensionWithoutOverridingKnownTypes() {
+        assertEquals("drawing.svg", ModelImportFileName.resolve("drawing", null, "image/svg+xml; charset=utf-8"))
+        assertEquals("42.svg", ModelImportFileName.resolve(null, "/document/42", "application/svg+xml"))
+        assertEquals("model.svg", ModelImportFileName.resolve(null, null, "application/svg+xml"))
+        assertEquals("artwork.SVG", ModelImportFileName.resolve("artwork.SVG", null, "image/svg+xml"))
+        assertEquals("part.stl", ModelImportFileName.resolve("part.stl", null, "image/svg+xml"))
+    }
+
+    @Test
     fun genericProviderNamesCanUseTheStepHeaderFallback() {
         assertEquals("download.step", ModelImportFileName.withStepExtension("download"))
         assertEquals("download.step", ModelImportFileName.withStepExtension("download.bin"))
