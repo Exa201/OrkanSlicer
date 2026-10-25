@@ -963,6 +963,60 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanUnionConsumesEverySelectedToolAndSlicesTheCombinedResult() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-multiple-tools.stl")
+        val projectFile = File(context.cacheDir, "boolean-multiple-tools.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            assertTrue("fixture must have a finite printable volume", sourceVolume > 0.0)
+
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, width / 2.0, 0.0, 0.0)
+            model.translate(2, width, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+
+            assertEquals("one target and both selected tools should be unioned", 0,
+                model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.UNION))
+            assertEquals("every selected tool should be consumed", 1, model.objectsCount)
+            assertEquals("Boolean result should keep only the target object's material", listOf(1),
+                model.getUsedFilaments(0).toList())
+            assertEquals("three overlapping cubes should form a two-cube-wide solid", 2.0,
+                model.getObjectVolume(0) / sourceVolume, 0.04)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals(listOf(1), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "boolean-multiple-tools.gcode")
+            assertHasExtrusion(gcode)
+            val toolChanges = Regex("(?m)^T\\d+.*$").findAll(gcode).map { it.value }.distinct().toList()
+            // A one-tool slice can use T0 implicitly without a redundant T0 command.
+            assertFalse("consumed tool materials must not leak into G-code; tools=$toolChanges",
+                Regex("(?m)^(?:T1|T2)(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "boolean-operations-roundtrip.stl")
