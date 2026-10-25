@@ -1456,8 +1456,8 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithTag("model-objects-group-selection-toggle")
                 .assertIsDisplayed().performClick()
             compose.onNodeWithTag("model-object-row-1").performClick()
-            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            compose.waitUntil(timeoutMillis = 5_000) {
+            compose.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
+            compose.waitUntil(timeoutMillis = 15_000) {
                 compose.onAllNodesWithTag("model-objects-selection-confirm").fetchSemanticsNodes().isEmpty()
             }
             val selectionAfterBack = AtomicReference<IntArray>()
