@@ -69,6 +69,7 @@ import ru.ytkab0bp.slicebeam.events.SlicingProgressEvent
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.replaceGCodeResult
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.ImportProgressCallback
@@ -515,8 +516,11 @@ if (destroyed || viewport == null || model !== currentModel || settingsRevision 
     if (!destroyed && getContext() != null) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ProjectSettingsReslice))
     return@postOnMainThread
 }
+val previousResult = gCodeResult
 gCodeResult = produced
-viewport.queueEvent({ viewport.renderer.setGCodeViewer(produced)
+viewport.queueEvent({ replaceGCodeResult(previousResult, produced) {
+    viewport.renderer.setGCodeViewer(produced)
+}
 viewport.requestRender() })
 tempFileName = produced.getRecommendedName()
 tempExportingFile = null
@@ -779,8 +783,7 @@ if (event.settingsChanged && gCodeResult != null) {
     gCodeResult = null
     val viewport = glView!!
     viewport.queueEvent {
-        viewport.renderer.setGCodeViewer(null)
-        previous?.release()
+        replaceGCodeResult(previous, null) { viewport.renderer.setGCodeViewer(null) }
         viewport.requestRender()
     }
     tempExportingFile = null
@@ -1414,10 +1417,14 @@ removeModePanelHost("emboss-mode")
 }
 }
 fun loadGCode(f:File) {
-gCodeResult = GCodeProcessorResult(f)
-ViewUtils.postOnMainThread({ glView!!.queueEvent({ glView!!.renderer.setGCodeViewer(gCodeResult)
+val loaded = GCodeProcessorResult(f)
+val previous = gCodeResult
+gCodeResult = loaded
+ViewUtils.postOnMainThread({ glView!!.queueEvent({ replaceGCodeResult(previous, loaded) {
+    glView!!.renderer.setGCodeViewer(loaded)
+}
 glView!!.requestRender() })
-tempFileName = gCodeResult!!.getRecommendedName()
+tempFileName = loaded.getRecommendedName()
 tempExportingFile = f
 val ctx = getContext() ?: return@postOnMainThread
 selectMenu(WorkspaceDestination.SLICE.ordinal) })
@@ -1791,10 +1798,10 @@ private fun onMenuNavigationSelected(bottomNavigation: Boolean, slot: Int) {
     if (!workspaceController.navigateToDestination(slot)) return
     if (bottomNavigation && !menuToolsExpanded) setPortraitToolPanelExpanded(true)
     if (slot != WorkspaceDestination.SLICE.ordinal) {
+        val previousResult = gCodeResult
+        gCodeResult = null
         glView?.queueEvent {
-            gCodeResult?.release()
-            gCodeResult = null
-            glView?.renderer?.setGCodeViewer(null)
+            replaceGCodeResult(previousResult, null) { glView?.renderer?.setGCodeViewer(null) }
             glView?.requestRender()
         }
     } else {
