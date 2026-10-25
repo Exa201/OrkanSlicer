@@ -2264,7 +2264,7 @@ if (placementTarget >= 0) {
     if (raycastObjectIndex(x, y) != placementTarget || placementTarget !in glModels.indices) return true
     glModels[placementTarget].raycaster.raycast(this, raycastHits, x, y)
     val hit = preciseSurfaceHit() ?: return true
-    if (hit.normal.z < 0.7) {
+    if (hit.normal.z < -1e-6) {
         SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSurfacePlacementNeedsUpwardFace))
         return true
     }

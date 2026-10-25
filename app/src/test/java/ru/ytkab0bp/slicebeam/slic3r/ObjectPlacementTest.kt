@@ -43,8 +43,6 @@ class ObjectPlacementTest {
         val point = Vec3d(20.0, -5.0, 31.5)
         val normal = Vec3d(0.6, 0.0, 0.8)
         val delta = requireNotNull(ObjectPlacement.onSurface(moving, point, normal))
-        assertEquals(18.0, delta.x, 0.0)
-        assertEquals(-12.0, delta.y, 0.0)
 
         val length = kotlin.math.sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z)
         val minSignedDistance = listOf(moving.minX, moving.maxX).minOf { x ->
@@ -57,15 +55,28 @@ class ObjectPlacementTest {
             }
         }
         assertEquals(0.0, minSignedDistance, 1e-9)
+        val movedCenter = Vec3d(
+            (moving.minX + moving.maxX) / 2.0 + delta.x,
+            (moving.minY + moving.maxY) / 2.0 + delta.y,
+            (moving.minZ + moving.maxZ) / 2.0 + delta.z,
+        )
+        val projectedCenter = (movedCenter.x - point.x) * normal.x / length +
+            (movedCenter.y - point.y) * normal.y / length +
+            (movedCenter.z - point.z) * normal.z / length
+        assertEquals("the group center should stay over the picked point", 0.0, projectedCenter - 8.4, 1e-9)
     }
 
-    @Test fun surfacePlacementNormalIsNormalizedAndRejectsNonUpwardOrInvalidNormals() {
+    @Test fun sideSurfacePlacementKeepsTheWholeGroupOutsideThePickedPlane() {
         val moving = ObjectBounds3D(0.0, 0.0, 0.0, 2.0, 2.0, 1.0)
         val point = Vec3d(10.0, 10.0, 5.0)
-        val unitNormal = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(0.6, 0.0, 0.8)))
-        val scaledNormal = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(6.0, 0.0, 8.0)))
+        val unitNormal = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(1.0, 0.0, 0.0)))
+        val scaledNormal = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(10.0, 0.0, 0.0)))
         assertEquals(unitNormal, scaledNormal)
-        assertNull(ObjectPlacement.onSurface(moving, point, Vec3d(1.0, 0.0, 0.0)))
+        assertEquals(10.0, unitNormal.x, 0.0)
+        assertEquals(9.0, unitNormal.y, 0.0)
+        assertEquals(4.5, unitNormal.z, 0.0)
+        assertNull("downward-facing surfaces would place the group beneath an overhang",
+            ObjectPlacement.onSurface(moving, point, Vec3d(0.0, 0.0, -1.0)))
         assertNull(ObjectPlacement.onSurface(moving, point, Vec3d(Double.NaN, 0.0, 1.0)))
         assertNull(ObjectPlacement.onSurface(moving, point, Vec3d(0.0, 0.0, 0.0)))
     }

@@ -184,8 +184,8 @@
     <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
     <string name="ModelMenuPlaceOnObjectDone">Auf das Ziel gesetzt und für den Druck als Baugruppe verbunden.</string>
     <string name="ModelMenuPlaceOnSurface">Auf ausgewählte Fläche setzen</string>
-    <string name="ModelSurfacePlacementInstruction">Tippe auf eine sichtbare, nach oben gerichtete Fläche des Ziels. Zurück bricht ab.</string>
-    <string name="ModelSurfacePlacementNeedsUpwardFace">Wähle eine sichtbare Fläche, die nach oben zeigt. Die ausgewählte Gruppe wird auf diesen Punkt gesetzt.</string>
+    <string name="ModelSurfacePlacementInstruction">Tippe auf eine sichtbare Seiten- oder Oberseite des Ziels. Zurück bricht ab.</string>
+    <string name="ModelSurfacePlacementNeedsUpwardFace">Wähle eine sichtbare Seiten- oder Oberseite. Unterseiten werden nicht unterstützt.</string>
     <string name="ModelSurfacePlacementTargetUnavailable">Das Ziel ist nicht mehr verfügbar. Wähle die Objekte erneut aus.</string>
     <string name="ModelSurfacePlacementNeedsSimplification">Vereinfache das Zielmodell, bevor du Objekte auf seiner Oberfläche platzierst. Dichte Modelle können weiterhin ausgewählt und gesliced werden.</string>
     <string name="ModelSurfacePlacementCancelled">Flächenplatzierung abgebrochen.</string>

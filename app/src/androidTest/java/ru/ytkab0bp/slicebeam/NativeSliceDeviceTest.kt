@@ -749,6 +749,64 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun sideSurfacePlacedObjectsRemainPrintableAfterThreeMfReload() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "placed-side-surface.stl")
+        val projectFile = File(context.cacheDir, "placed-side-surface-roundtrip.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 40.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            fun bounds(index: Int): ObjectBounds3D {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val target = bounds(0)
+            val moving = bounds(1)
+            val point = Vec3d(
+                target.maxX,
+                (target.minY + target.maxY) / 2.0,
+                (target.minZ + target.maxZ) / 2.0,
+            )
+            val delta = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(1.0, 0.0, 0.0)))
+            model.translate(1, delta.x, delta.y, delta.z)
+            val placed = bounds(1)
+            assertEquals("the part should touch the selected side face", target.maxX, placed.minX, 0.001)
+            assertEquals("the part should center on the tapped face point",
+                (target.minY + target.maxY) / 2.0, (placed.minY + placed.maxY) / 2.0, 0.001)
+            assertEquals("side placement should retain bed contact", target.minZ, placed.minZ, 0.001)
+
+            assertEquals("side-by-side pieces should become one multipart printable object",
+                0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals("3MF reload must preserve both side-joined materials", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "placed-side-surface.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("the side-placed second material must reach G-code",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
     fun booleanResultUsesTargetObjectsFilamentAndStillSlices() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "boolean-filament-slice.stl")

@@ -91,6 +91,8 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
+import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.SliceListener
 import ru.ytkab0bp.slicebeam.render.GLRenderer
@@ -1627,7 +1629,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun modelMenuPlacesSelectedObjectAtTappedTargetSurfaceAndSupportsUndoRedo() {
+    fun modelMenuPlacesSelectedObjectAtTappedSideSurfaceAndSupportsUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -1665,10 +1667,11 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
 
             val tappedPoint = AtomicReference<DoubleArray>()
+            val tappedNormal = AtomicReference<DoubleArray>()
             val tapReady = CountDownLatch(1)
             var targetPixels = 0
             var exactTargetHits = 0
-            var largestNormalZ = -2.0
+            var smallestEligibleNormalZ = 2.0
             var sampleHit: String? = null
             glView.queueEvent {
                 val renderer = glView.renderer
@@ -1686,12 +1689,13 @@ class InitialProjectMenuDeviceTest {
                         glModels[0].raycaster.raycast(renderer, targetHits, x.toFloat(), y.toFloat())
                         targetHits.filter { !it.approximate }.forEach { hit ->
                             exactTargetHits++
-                            largestNormalZ = maxOf(largestNormalZ, hit.normal.z)
+                            if (hit.normal.z >= -1e-6) smallestEligibleNormalZ = minOf(smallestEligibleNormalZ, hit.normal.z)
                             if (sampleHit == null) sampleHit = "p=${hit.position}, n=${hit.normal}"
                         }
-                        val hit = targetHits.firstOrNull { !it.approximate && it.normal.z >= 0.7 } ?: continue
+                        val hit = targetHits.firstOrNull { !it.approximate && it.normal.z in -1e-6..0.7 } ?: continue
                         if (!renderer.onClick(x.toFloat(), y.toFloat())) continue
                         tappedPoint.set(doubleArrayOf(hit.position.x, hit.position.y, hit.position.z))
+                        tappedNormal.set(doubleArrayOf(hit.normal.x, hit.normal.y, hit.normal.z))
                         break@loop
                     }
                 }
@@ -1699,8 +1703,8 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue("surface tap search should complete on GL", tapReady.await(20, TimeUnit.SECONDS))
             val point = requireNotNull(tappedPoint.get()) {
-                "test camera should expose a precise upward target; targetPixels=$targetPixels, " +
-                    "exactHits=$exactTargetHits, largestNormalZ=$largestNormalZ, sample=$sampleHit"
+                "test camera should expose a precise side target; targetPixels=$targetPixels, " +
+                    "exactHits=$exactTargetHits, smallestEligibleNormalZ=$smallestEligibleNormalZ, sample=$sampleHit"
             }
             compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
 
@@ -1708,16 +1712,18 @@ class InitialProjectMenuDeviceTest {
             val originals = requireNotNull(sourceBounds.get())
             val target = originals[0]
             val moving = originals[1]
-            val dx = point[0] - (moving[0] + moving[3]) / 2.0
-            val dy = point[1] - (moving[1] + moving[4]) / 2.0
-            val dz = point[2] - moving[2]
+            val placement = requireNotNull(ObjectPlacement.onSurface(
+                ObjectBounds3D(moving[0], moving[1], moving[2], moving[3], moving[4], moving[5]),
+                Vec3d(point[0], point[1], point[2]),
+                requireNotNull(tappedNormal.get()).let { Vec3d(it[0], it[1], it[2]) },
+            ))
             val expectedBounds = doubleArrayOf(
-                minOf(target[0], moving[0] + dx),
-                minOf(target[1], moving[1] + dy),
-                minOf(target[2], moving[2] + dz),
-                maxOf(target[3], moving[3] + dx),
-                maxOf(target[4], moving[4] + dy),
-                maxOf(target[5], moving[5] + dz),
+                minOf(target[0], moving[0] + placement.x),
+                minOf(target[1], moving[1] + placement.y),
+                minOf(target[2], moving[2] + placement.z),
+                maxOf(target[3], moving[3] + placement.x),
+                maxOf(target[4], moving[4] + placement.y),
+                maxOf(target[5], moving[5] + placement.z),
             )
             expectedBounds.forEachIndexed { index, expected ->
                 assertEquals("combined bounds must reflect the actual surface hit on axis $index",

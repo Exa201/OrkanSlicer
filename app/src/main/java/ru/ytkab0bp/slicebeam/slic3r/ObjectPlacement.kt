@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam.slic3r
 
+import kotlin.math.abs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 
 internal data class ObjectBounds3D(
@@ -39,7 +40,11 @@ internal object ObjectPlacement {
         return delta.takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
     }
 
-    /** Centers a moving assembly on a picked point and keeps its bounds above the tapped plane. */
+    /**
+     * Centers a moving assembly on a picked point and keeps its bounds outside the tapped plane.
+     * Side faces are supported; downward-facing faces are rejected because placing a printable
+     * group under an overhang would silently create an unsupported assembly.
+     */
     fun onSurface(
         moving: ObjectBounds3D,
         point: Vec3d,
@@ -59,31 +64,19 @@ internal object ObjectPlacement {
         val nx = surfaceNormal.x / normalLength
         val ny = surfaceNormal.y / normalLength
         val nz = surfaceNormal.z / normalLength
-        // Surface placement only supports upward-facing surfaces. The renderer applies the
-        // same slope limit before dispatching the tap; keep this pure geometry helper safe too.
-        if (nz < 0.7) return null
-        val dx = point.x - midpoint(moving.minX, moving.maxX)
-        val dy = point.y - midpoint(moving.minY, moving.maxY)
-        if (!dx.isFinite() || !dy.isFinite()) return null
-        var dz = Double.NEGATIVE_INFINITY
-        for (x in listOf(moving.minX, moving.maxX)) {
-            for (y in listOf(moving.minY, moving.maxY)) {
-                for (z in listOf(moving.minZ, moving.maxZ)) {
-                    val relativeX = x + dx - point.x
-                    val relativeY = y + dy - point.y
-                    val relativeZWithoutTranslation = z - point.z
-                    dz = maxOf(
-                        dz,
-                        -(nx * relativeX + ny * relativeY + nz * relativeZWithoutTranslation) / nz,
-                    )
-                }
-            }
-        }
-        if (!dz.isFinite()) return null
+        if (nz < -1e-6) return null
+        val halfX = moving.maxX / 2.0 - moving.minX / 2.0
+        val halfY = moving.maxY / 2.0 - moving.minY / 2.0
+        val halfZ = moving.maxZ / 2.0 - moving.minZ / 2.0
+        val supportRadius = abs(nx) * halfX + abs(ny) * halfY + abs(nz) * halfZ
+        if (!supportRadius.isFinite()) return null
+        val centerX = midpoint(moving.minX, moving.maxX)
+        val centerY = midpoint(moving.minY, moving.maxY)
+        val centerZ = midpoint(moving.minZ, moving.maxZ)
         val delta = ObjectPlacementDelta(
-            x = dx,
-            y = dy,
-            z = dz,
+            x = point.x - centerX + nx * supportRadius,
+            y = point.y - centerY + ny * supportRadius,
+            z = point.z - centerZ + nz * supportRadius,
         )
         return delta.takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
     }
