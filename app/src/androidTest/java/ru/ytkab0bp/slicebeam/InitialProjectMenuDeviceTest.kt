@@ -2921,6 +2921,90 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun projectMenuImportsSelectedMulticolorSvgThroughTheActualResultHandler() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val inputFile = File(activity.cacheDir, "menu-import-${System.nanoTime()}.svg")
+        val cachedImport = File(SliceBeam.getModelCacheDir(), inputFile.name)
+        val requestCode = MainActivity.REQUEST_CODE_OPEN_FILE
+        val launchersField = MainActivity::class.java.getDeclaredField("activityResultLaunchers")
+            .apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val launchers = launchersField.get(activity) as MutableMap<Int, ActivityResultLauncher<Intent>>
+        val previousLauncher = requireNotNull(launchers[requestCode])
+        val capturedIntent = AtomicReference<Intent?>()
+        launchers[requestCode] = object : ActivityResultLauncher<Intent>() {
+            override val contract: ActivityResultContract<Intent, *> =
+                ActivityResultContracts.StartActivityForResult()
+
+            override fun launch(input: Intent, options: ActivityOptionsCompat?) {
+                capturedIntent.set(Intent(input))
+            }
+
+            override fun unregister() = Unit
+        }
+        @Suppress("DEPRECATION")
+        val provider = activity.packageManager.getPackageInfo(
+            activity.packageName,
+            PackageManager.GET_PROVIDERS,
+        ).providers.orEmpty().first { it.name == FileProvider::class.java.name }
+        val authority = requireNotNull(provider.authority).substringBefore(';')
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("models/Beste_Oma_Kind_Herz_3D_Druck.svg").use { source ->
+                    inputFile.outputStream().use(source::copyTo)
+                }
+            assertEquals("the file picker starts with an empty workspace", 0, bed.currentModel?.objectsCount ?: 0)
+
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(activity.getString(R.string.WorkspaceAddModelAction))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { capturedIntent.get() != null }
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, requireNotNull(capturedIntent.get()).action)
+
+            val inputUri = FileProvider.getUriForFile(activity, authority, inputFile)
+            activity.runOnUiThread {
+                MainActivity::class.java.getDeclaredMethod(
+                    "dispatchActivityResult", Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType, Intent::class.java,
+                ).apply { isAccessible = true }
+                    .invoke(activity, requestCode, android.app.Activity.RESULT_OK, Intent().setData(inputUri))
+            }
+            compose.waitUntil(timeoutMillis = 60_000) {
+                val model = bed.currentModel
+                model != null && model.objectsCount == 1
+            }
+
+            val assignments = AtomicReference<IntArray?>()
+            val triangleCount = AtomicReference(0)
+            val assignmentsReady = CountDownLatch(1)
+            glView.queueEvent {
+                bed.currentModel?.let { model ->
+                    triangleCount.set(model.getTriangleCount(0))
+                    assignments.set(model.getUsedFilaments(0))
+                }
+                assignmentsReady.countDown()
+            }
+            assertTrue("SVG filament assignments should be readable on the renderer thread",
+                assignmentsReady.await(10, TimeUnit.SECONDS))
+            assertTrue("the imported SVG should contain printable triangle geometry", triangleCount.get() > 0)
+            assertArrayEquals("all three colored SVG regions should survive the real file-picker import",
+                intArrayOf(1, 2, 3), requireNotNull(assignments.get()))
+            assertTrue("the actual result handler should copy the SVG into app-owned model cache",
+                cachedImport.isFile && cachedImport.length() > 0L)
+        } finally {
+            launchers[requestCode] = previousLauncher
+            inputFile.delete()
+            cachedImport.delete()
+        }
+    }
+
+    @Test
     fun projectMenuImportsSelectedStepAfterConfirmingMeshingOptions() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
