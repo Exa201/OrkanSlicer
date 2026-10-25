@@ -432,6 +432,68 @@ class InitialProjectMenuDeviceTest {
         }
     }
 
+    @Test
+    fun failedBooleanIntersectionKeepsAllInputsAndReportsFailureFromModelMenu() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "model-menu-boolean-disjoint-intersection.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            val beforeVolumes = AtomicReference<List<Double>>()
+            val beforeRevision = AtomicReference<Long>()
+            glView.queueEvent {
+                val renderer = glView.renderer
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                // Objects 0 and 1 overlap, while object 2 is disjoint, so the three-way
+                // intersection cannot produce a solid.
+                model.translate(1, 10.0, 0.0, 0.0)
+                model.translate(2, 40.0, 0.0, 0.0)
+                renderer.selectAllObjects()
+                beforeVolumes.set((0 until model.objectsCount).map(model::getObjectVolume))
+                beforeRevision.set(model.geometryRevision)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("disjoint Boolean inputs should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuBoolean)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-boolean-intersection").performScrollTo()
+                .assertIsDisplayed().performClick()
+
+            val failureMessages = listOf(
+                R.string.ModelBooleanInvalidMesh,
+                R.string.ModelBooleanInvalidResult,
+                R.string.ModelBooleanResultCreationFailed,
+                R.string.ModelBooleanEngineFailed,
+            )
+            compose.waitUntil(timeoutMillis = 15_000) {
+                failureMessages.any { hasSnackbarTitle(bed, it) }
+            }
+            assertEquals("failed intersection must preserve all three source objects", 3,
+                readObjectCountOnGl(glView))
+            assertEquals("failed intersection must not advance model geometry", beforeRevision.get(),
+                readGeometryRevisionOnGl(glView))
+            beforeVolumes.get().forEachIndexed { index, volume ->
+                assertEquals("failed intersection must preserve object $index volume", volume,
+                    readObjectVolumeOnGl(glView, index), volume * 0.002)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
     private fun runModelMenuBooleanRoundTrip(
         operationLabel: Int,
         fileName: String,
@@ -8185,6 +8247,28 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return model object count", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(count.get())
+    }
+
+    private fun readGeometryRevisionOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): Long {
+        val finished = CountDownLatch(1)
+        val revision = AtomicReference<Long>()
+        glView.queueEvent {
+            revision.set(requireNotNull(glView.renderer.model).geometryRevision)
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return model geometry revision", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(revision.get())
+    }
+
+    private fun readObjectVolumeOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Double {
+        val finished = CountDownLatch(1)
+        val volume = AtomicReference<Double>()
+        glView.queueEvent {
+            volume.set(requireNotNull(glView.renderer.model).getObjectVolume(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return object volume", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(volume.get())
     }
 
     private fun readCutConnectorCountOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Int {
