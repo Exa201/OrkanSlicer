@@ -3810,6 +3810,69 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun repeatedWorkspaceSliceReleasesOldNativeResultAfterGlViewerReplacement() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "slice-result-replacement-${System.nanoTime()}.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            if (!usesCompactPortraitLayout(activity)) {
+                compose.onNodeWithTag("workspace-navigation-rail")
+                    .performTouchInput { swipeUp() }
+            }
+            openWorkspaceMenu(activity, WorkspaceDestination.SLICE, R.string.MenuSlice)
+            waitForWorkspaceMenuGrid()
+            revealMenuAction(activity, R.string.MenuSliceCurrentSettings)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuSliceCurrentSettings))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            awaitPreSliceDialog(bed, "pre-slice-title")
+            compose.onNodeWithTag("pre-slice-confirm").performClick()
+
+            val mismatchContinue = compose.onAllNodesWithText(
+                activity.getString(R.string.PreSliceMaterialMismatchContinue),
+            )
+            if (mismatchContinue.fetchSemanticsNodes().isNotEmpty()) {
+                mismatchContinue.get(0).assertIsDisplayed().performClick()
+            }
+
+            val viewport = requireNotNull(bed.glView)
+            compose.waitUntil(timeoutMillis = 120_000) {
+                bed.hasSliceResult() && viewport.renderer.gcodeResult != null && viewport.renderer.viewer != null
+            }
+            val firstResult = requireNotNull(viewport.renderer.gcodeResult)
+            val firstViewer = requireNotNull(viewport.renderer.viewer)
+            assertTrue("first native result must own a live pointer", firstResult.pointer != 0L)
+
+            // The first pre-slice confirmation prepared this exact model/profile/material state.
+            // A second start therefore takes BedFragment's cached path straight into runSlice,
+            // replacing the active GL viewer without another dialog.
+            activity.runOnUiThread { bed.startSlicing() }
+            compose.waitUntil(timeoutMillis = 120_000) {
+                val current = viewport.renderer.gcodeResult
+                current != null && current !== firstResult && firstResult.pointer == 0L
+            }
+            val secondResult = requireNotNull(viewport.renderer.gcodeResult)
+            assertTrue("replacement result must remain live", secondResult.pointer != 0L)
+            compose.waitUntil(timeoutMillis = 15_000) {
+                viewport.renderer.viewer != null && viewport.renderer.viewer !== firstViewer
+            }
+            assertSame("re-slicing must preserve the editable workspace model", model, bed.currentModel)
+
+            // Clearing the result route must detach the viewer before releasing the second native
+            // result as well; this covers the matching clear path in the same real fragment.
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
+            compose.waitUntil(timeoutMillis = 15_000) { secondResult.pointer == 0L }
+            assertTrue("the second result should be released after leaving the slice viewer",
+                secondResult.pointer == 0L)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun sliceResultExportUsesDocumentPickerAndWritesTheGeneratedGcode() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
