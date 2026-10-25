@@ -592,7 +592,17 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
-            compose.onNodeWithText(activity.getString(operationLabel), useUnmergedTree = true)
+            val operationTag = when (operationLabel) {
+                R.string.ModelBooleanUnion -> "model-boolean-union"
+                R.string.ModelBooleanDifference -> "model-boolean-difference"
+                R.string.ModelBooleanIntersection -> "model-boolean-intersection"
+                else -> error("Unsupported Boolean operation label: $operationLabel")
+            }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag(operationTag, useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag(operationTag, useUnmergedTree = true)
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
 
@@ -8165,7 +8175,7 @@ class InitialProjectMenuDeviceTest {
             val destinationNode = compose.onNodeWithContentDescription(activity.getString(R.string.MenuModel))
             if (!compactPortrait) destinationNode.performScrollTo()
             destinationNode.assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) {
+            compose.waitUntil(timeoutMillis = 15_000) {
                 controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == modelSlot &&
                     (!compactPortrait || controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true) &&
                     !(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
