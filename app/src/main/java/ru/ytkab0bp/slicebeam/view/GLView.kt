@@ -384,9 +384,12 @@ queueEvent({ renderer.centerSelectionOnBed()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
-fun placeSelectedObjectsOnBed(onComplete: (Boolean) -> Unit) {
+internal fun placeSelectedObjectsOnBed(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
     queueEvent {
-        val placed = renderer.placeSelectedObjectsOnBed()
+        val placed = renderer.placeSelectedObjectsOnBed(expectedSelection)
         requestRender()
         ViewUtils.postOnMainThread { onComplete(placed) }
     }

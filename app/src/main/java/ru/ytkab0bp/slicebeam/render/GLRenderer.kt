@@ -2588,19 +2588,20 @@ selY = selZ
 selX = selY
 }
 /** Drops the complete selected group onto the printable bed using one shared Z translation. */
-fun placeSelectedObjectsOnBed(): Boolean {
-    val activeModel = model ?: return false
-    val activeBed = bed ?: return false
-    if (!activeBed.isValid() || selectedObjects.isEmpty()) return false
+internal fun placeSelectedObjectsOnBed(expectedSelection: ModelSelectionSnapshot? = null): Int {
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return 0
+    val activeBed = bed ?: return 0
+    if (!activeBed.isValid() || selectedObjects.isEmpty()) return 0
     val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
-    if (indices.isEmpty()) return false
+    if (indices.isEmpty()) return 0
     val bounds = indices.map { index ->
         activeModel.getBoundingBoxExact(index, bbMin, bbMax)
         ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
     }
-    val groupBounds = ObjectPlacement.enclosing(bounds) ?: return false
-    val bedMinZ = activeBed.getVolumeMin()?.z ?: return false
-    val delta = ObjectPlacement.ontoBed(groupBounds, bedMinZ) ?: return false
+    val groupBounds = ObjectPlacement.enclosing(bounds) ?: return 0
+    val bedMinZ = activeBed.getVolumeMin()?.z ?: return 0
+    val delta = ObjectPlacement.ontoBed(groupBounds, bedMinZ) ?: return 0
     indices.forEach { index ->
         activeModel.translate(index, delta.x, delta.y, delta.z)
         invalidateGlModel(index)
@@ -2608,7 +2609,7 @@ fun placeSelectedObjectsOnBed(): Boolean {
     selZ = 0.0
     selY = 0.0
     selX = 0.0
-    return true
+    return 1
 }
 /** Delete every selected object. Returns how many were removed. */
  internal fun deleteSelectedObjects(expectedSelection: ModelSelectionSnapshot? = null):Int {

@@ -51,12 +51,22 @@ internal class ModelMenuItems(
                 }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuPlaceGroupOnBed, R.drawable.view_in_ar_24, { anchor ->
-                fragment.glView!!.placeSelectedObjectsOnBed { placed ->
-                    if (placed) {
-                        fragment.updateModel()
-                        Toast.makeText(anchor.context, R.string.ModelMenuPlaceGroupOnBedDone, Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(anchor.context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+                val activeGlView = fragment.glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(activeGlView) { snapshot ->
+                    activeGlView.placeSelectedObjectsOnBed(snapshot) { result ->
+                        when (result) {
+                            1 -> {
+                                fragment.updateModel()
+                                Toast.makeText(anchor.context, R.string.ModelMenuPlaceGroupOnBedDone, Toast.LENGTH_SHORT).show()
+                            }
+                            MODEL_EDIT_STALE_SELECTION ->
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                            else -> Toast.makeText(
+                                anchor.context,
+                                R.string.ModelContextFillBedNoRoom,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
                     }
                 }
             }, enabled = availability.hasSelectedObject),

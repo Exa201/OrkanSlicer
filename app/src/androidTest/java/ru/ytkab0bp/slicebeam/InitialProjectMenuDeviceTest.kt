@@ -93,6 +93,7 @@ import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
@@ -1915,6 +1916,54 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 droppedBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2, 3))
                     .all { (dropped, current) -> dropped.contentEquals(current) }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun placeSelectedGroupOnBedRejectsSelectionChangedBeforeGlCommit() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "place-group-on-bed-stale-selection.stl")
+        try {
+            activity.assets.open("models/pyramid.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val model = requireNotNull(renderer.model)
+                model.addObject(model, 0)
+                model.translate(0, 0.0, 0.0, 12.0)
+                model.translate(1, 20.0, 0.0, 24.0)
+                renderer.setSelectedObject(0)
+                renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two elevated objects should be prepared", prepared.await(10, TimeUnit.SECONDS))
+            val before = readExactBoundsOnGl(glView, 0, 1)
+            val snapshot = AtomicReference<ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot>()
+            val queued = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                snapshot.set(requireNotNull(renderer.captureSelectionSnapshot()))
+                // Simulate the selection changing after the action's immutable request was captured
+                // but before its GL operation gets a chance to run.
+                renderer.setSelectedObject(1)
+                glView.placeSelectedObjectsOnBed(requireNotNull(snapshot.get())) { result ->
+                    assertEquals("a different live selection must be rejected", MODEL_EDIT_STALE_SELECTION, result)
+                    queued.countDown()
+                }
+            }
+            assertTrue("stale placement should complete", queued.await(10, TimeUnit.SECONDS))
+            val after = readExactBoundsOnGl(glView, 0, 1)
+            before.zip(after).forEachIndexed { index, (expected, actual) ->
+                assertArrayEquals("stale placement must leave object $index unchanged", expected, actual, 0.02)
             }
         } finally {
             modelFile.delete()
