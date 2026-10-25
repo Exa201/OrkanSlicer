@@ -12,6 +12,7 @@ import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_OPERATION_FAILED
+import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_ROLLBACK_FAILED
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 
 /** Model selection, placement and object operations; geometry editing stays in TransformMenuItems. */
@@ -272,6 +273,8 @@ internal class ModelMenuItems(
                                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
                                 result == MODEL_EDIT_OPERATION_FAILED ->
                                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceFailed))
+                                result == MODEL_EDIT_ROLLBACK_FAILED ->
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceRollbackFailed))
                                 else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
                             }
                         }

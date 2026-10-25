@@ -182,6 +182,7 @@
     <string name="ModelMenuPlaceOnObjectDone">Размещено на цели и объединено в печатаемую сборку.</string>
     <string name="ModelMenuCombineFailed">Не удалось объединить объекты. Исходные объекты сохранены.</string>
     <string name="ModelMenuPlaceFailed">Не удалось разместить объекты. Проверьте их положение перед продолжением.</string>
+    <string name="ModelMenuPlaceRollbackFailed">Не удалось разместить объекты, и как минимум один объект не удалось восстановить. Проверьте модель перед продолжением.</string>
     <string name="MenuOrientationPosition">Позиция</string>
     <string name="MenuOrientationPositionX">X</string>
     <string name="MenuOrientationPositionY">Y</string>

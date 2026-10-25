@@ -45,6 +45,7 @@ enum class ModelAlignmentAxis { MIN_X, CENTER_X, MAX_X, MIN_Y, CENTER_Y, MAX_Y, 
 internal const val MODEL_EDIT_STALE_SELECTION = -2
 internal const val MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION = -3
 internal const val MODEL_EDIT_OPERATION_FAILED = -4
+internal const val MODEL_EDIT_ROLLBACK_FAILED = -5
 
 class GLRenderer(glView:GLView):GLSurfaceView.Renderer {
 var camera = Camera()
@@ -620,6 +621,7 @@ private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>
         },
         commit = { activeModel.combineObjectsAsParts((movingIndices + targetIndex).toIntArray()) },
         failureResult = MODEL_EDIT_OPERATION_FAILED,
+        rollbackFailureResult = MODEL_EDIT_ROLLBACK_FAILED,
         onError = { error -> Log.e("GLRenderer", "Could not place and join selected objects; placement rolled back", error) },
     )
     if (combined < 0) {

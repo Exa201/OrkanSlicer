@@ -762,6 +762,8 @@ fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
         } else if (result == ru.ytkab0bp.slicebeam.render.MODEL_EDIT_OPERATION_FAILED) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceFailed))
+        } else if (result == ru.ytkab0bp.slicebeam.render.MODEL_EDIT_ROLLBACK_FAILED) {
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceRollbackFailed))
         } else {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
         }

@@ -9,6 +9,7 @@ internal object ModelPlacementTransaction {
         restore: (T, S) -> Unit,
         commit: () -> Int,
         failureResult: Int = -1,
+        rollbackFailureResult: Int = failureResult,
         onError: (Exception) -> Unit = {},
     ): Int {
         val snapshots = try {
@@ -18,7 +19,7 @@ internal object ModelPlacementTransaction {
             return failureResult
         }
         var attemptedCount = 0
-        fun restoreAttempted() {
+        fun restoreAttempted(): Boolean {
             var rollbackFailure: Exception? = null
             snapshots.take(attemptedCount).asReversed().forEach { (item, before) ->
                 try {
@@ -29,6 +30,7 @@ internal object ModelPlacementTransaction {
                 }
             }
             rollbackFailure?.let { runCatching { onError(it) } }
+            return rollbackFailure != null
         }
 
         try {
@@ -38,12 +40,12 @@ internal object ModelPlacementTransaction {
                 apply(item)
             }
             val result = commit()
-            if (result < 0) restoreAttempted()
+            if (result < 0 && restoreAttempted()) return rollbackFailureResult
             return result
         } catch (error: Exception) {
-            restoreAttempted()
+            val rollbackFailed = restoreAttempted()
             runCatching { onError(error) }
-            return failureResult
+            return if (rollbackFailed) rollbackFailureResult else failureResult
         }
     }
 }
