@@ -1816,13 +1816,18 @@ selectedObjects.clear()
 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return true
 }
-/** Runs on a private model copy, so native packing never blocks the live renderer thread. */
+/** Packs a private model copy; the caller dispatches native bed arrangement to the GL thread. */
 /** Returns the number of copies placed, or zero when the model or bed cannot accept them. */
-internal fun fillBedModel(activeModel: Model, activeBed: Bed3D, objectIndex: Int, viewerEnabled: Boolean): Int {
-    if (!activeBed.isValid() || viewerEnabled || objectIndex !in 0 until activeModel.objectsCount) return 0
+internal fun fillBedModel(
+    activeModel: Model,
+    objectIndex: Int,
+    viewerEnabled: Boolean,
+    estimatedCapacity: Int,
+    arrangeCandidate: (Model) -> Boolean,
+): Int {
+    if (viewerEnabled || objectIndex !in 0 until activeModel.objectsCount) return 0
     val maxAttempts = FillBedPlanner.copyAttemptsForLimit(activeModel.objectsCount, MAX_FILL_BED_OBJECTS)
     if (maxAttempts == 0) return 0
-    val estimatedCapacity = estimateBedCapacity(activeModel, activeBed, objectIndex)
     if (estimatedCapacity == 0) return 0
     // Allow one conservative trial for heterogeneous plates, but never add hundreds of
     // speculative copies when an estimate is invalid or no grid capacity remains.
@@ -1857,7 +1862,7 @@ internal fun fillBedModel(activeModel: Model, activeBed: Bed3D, objectIndex: Int
             restoreOriginalState()
             repeat(candidate) { activeModel.addObject(sourceModel, 0) }
             activeModel.resetBoundingBox()
-            if (activeBed.arrange(activeModel)) {
+            if (arrangeCandidate(activeModel)) {
                 bestTranslations = (0 until activeModel.objectsCount).map { index ->
                     Vec3d().also { activeModel.getTranslation(index, it) }
                 }
@@ -1909,7 +1914,7 @@ fun arrangeObjects(): Boolean {
  * Estimate how many copies of an object can fit on the bed
  * based on bounding box dimensions.
  */
- private fun estimateBedCapacity(activeModel: Model, activeBed: Bed3D, objectIndex:Int):Int {
+internal fun estimateBedCapacity(activeModel: Model, activeBed: Bed3D, objectIndex:Int):Int {
 val bedMin = activeBed.getVolumeMin()
 val bedMax = activeBed.getVolumeMax()
 val bedWidth = bedMax!!.x - bedMin!!.x

@@ -5226,8 +5226,10 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
-            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) > 1 }
-            val resultingCount = readObjectCountOnGl(glView)
+            // Packing performs native bed arrangement on the renderer GL thread. Wait on the
+            // volatile operation flag rather than queueing object-count reads behind that work.
+            compose.waitUntil(timeoutMillis = 120_000) { !glView.isFillBedInProgress }
+            val resultingCount = readObjectCountOnGl(glView, timeoutMillis = 120_000)
             assertTrue("Fill Bed should add at least one copy of the disposable test model", resultingCount > 1)
             assertTrue("Fill Bed must respect the renderer's hard object cap", resultingCount <= 256)
             for (index in 0 until resultingCount) {
@@ -5235,11 +5237,13 @@ class InitialProjectMenuDeviceTest {
                     readUsedFilamentsOnGl(glView, index))
             }
             compose.runOnUiThread { bed.undoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            compose.waitUntil(timeoutMillis = 120_000) { readObjectCountOnGl(glView, timeoutMillis = 120_000) == 1 }
             assertArrayEquals("Undo Fill Bed must restore the source filament", intArrayOf(2),
                 readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == resultingCount }
+            compose.waitUntil(timeoutMillis = 120_000) {
+                readObjectCountOnGl(glView, timeoutMillis = 120_000) == resultingCount
+            }
             for (index in 0 until resultingCount) {
                 assertArrayEquals("Redo Fill Bed copy $index must retain its filament", intArrayOf(2),
                     readUsedFilamentsOnGl(glView, index))
@@ -8533,14 +8537,17 @@ class InitialProjectMenuDeviceTest {
         return requireNotNull(bounds.get())
     }
 
-    private fun readObjectCountOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): Int {
+    private fun readObjectCountOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        timeoutMillis: Long = 10_000,
+    ): Int {
         val finished = CountDownLatch(1)
         val count = AtomicReference<Int>()
         glView.queueEvent {
             count.set(glView.renderer.model?.objectsCount ?: 0)
             finished.countDown()
         }
-        assertTrue("GL thread did not return model object count", finished.await(10, TimeUnit.SECONDS))
+        assertTrue("GL thread did not return model object count", finished.await(timeoutMillis, TimeUnit.MILLISECONDS))
         return requireNotNull(count.get())
     }
 

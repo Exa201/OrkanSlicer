@@ -28,8 +28,21 @@ class FillBedPlannerTest {
         }
 
         assertEquals(173, result)
-        assertEquals("search work should grow logarithmically, not with the plate capacity", 8, attempted.size)
+        assertEquals("search work should grow logarithmically, not with the plate capacity", 9, attempted.size)
         assertTrue(attempted.distinct().size == attempted.size)
+    }
+
+    @Test
+    fun acceptsEstimatedFullBedCapacityWithOneNativeFitProbe() {
+        val attempted = mutableListOf<Int>()
+
+        val result = FillBedPlanner.maximumPackableCopies(63) { count ->
+            attempted += count
+            count <= 63
+        }
+
+        assertEquals(63, result)
+        assertEquals(listOf(63), attempted)
     }
 
     @Test

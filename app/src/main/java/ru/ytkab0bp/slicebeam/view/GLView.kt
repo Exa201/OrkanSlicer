@@ -22,6 +22,10 @@ import android.view.SurfaceHolder
 import android.view.ViewConfiguration
 import java.nio.IntBuffer
 import java.util.ArrayList
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.Executors
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
@@ -29,6 +33,7 @@ import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
+import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
@@ -38,7 +43,6 @@ import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
-import java.util.concurrent.Executors
 class GLView(context:Context):GLSurfaceView(context), IThemeView {
 lateinit var renderer: GLRenderer
 private var lastX:Float = 0.toFloat()
@@ -155,7 +159,9 @@ queueEvent {
     val activeBed = renderer.bed
     val selectedObject = renderer.selectedObject
     val viewerEnabled = renderer.isViewerEnabled
-    if (activeModel == null || activeBed == null || selectedObject !in 0 until activeModel.objectsCount) {
+    if (activeModel == null || activeBed == null || !activeBed.isValid() || viewerEnabled ||
+        selectedObject !in 0 until activeModel.objectsCount
+    ) {
         ViewUtils.postOnMainThread {
             isFillBedInProgress = false
             callback.onFillBedComplete(0)
@@ -165,6 +171,7 @@ queueEvent {
     val modelRevision = activeModel.geometryRevision
     val modelStateRevision = activeModel.stateRevision
     val bedRevision = activeBed.configurationRevision
+    val estimatedBedCapacity = renderer.estimateBedCapacity(activeModel, activeBed, selectedObject)
     val selectedFilaments = (0 until activeModel.objectsCount).map { activeModel.getUsedFilaments(it) }
     val selectedPaintState = (0 until activeModel.objectsCount).map {
         activeModel.hasPaint(it) to activeModel.paintMaxFilament(it)
@@ -181,7 +188,9 @@ queueEvent {
     }
     fillBedExecutor.execute {
         val addedCopies = try {
-            renderer.fillBedModel(workingModel, activeBed, selectedObject, viewerEnabled)
+            renderer.fillBedModel(workingModel, selectedObject, viewerEnabled, estimatedBedCapacity) { candidate ->
+                arrangeFillBedCandidateOnGlThread(activeModel, activeBed, bedRevision, candidate)
+            }
         } catch (error: Throwable) {
             android.util.Log.e("GLView", "Failed to arrange model copies", error)
             0
@@ -220,6 +229,47 @@ queueEvent {
         }
     }
 }
+}
+
+/** Bed3D's native arrange path shares renderer configuration and must only run on the GL thread. */
+private fun arrangeFillBedCandidateOnGlThread(
+    expectedModel: Model,
+    expectedBed: Bed3D,
+    expectedBedRevision: Long,
+    candidateModel: Model,
+): Boolean {
+    val gate = Any()
+    var cancelled = false
+    val result = CompletableFuture<Boolean>()
+    queueEvent {
+        synchronized(gate) {
+            if (cancelled) return@queueEvent
+            if (renderer.model !== expectedModel || renderer.bed !== expectedBed ||
+                expectedBed.configurationRevision != expectedBedRevision || !expectedBed.isValid()) {
+                result.complete(false)
+                return@queueEvent
+            }
+            try {
+                result.complete(expectedBed.arrange(candidateModel))
+            } catch (error: Throwable) {
+                result.completeExceptionally(error)
+            }
+        }
+    }
+    return try {
+        result.get(60, TimeUnit.SECONDS)
+    } catch (error: TimeoutException) {
+        synchronized(gate) { cancelled = true }
+        android.util.Log.e("GLView", "Timed out arranging fill-bed candidate on GL thread", error)
+        false
+    } catch (error: InterruptedException) {
+        synchronized(gate) { cancelled = true }
+        Thread.currentThread().interrupt()
+        false
+    } catch (error: java.util.concurrent.ExecutionException) {
+        android.util.Log.e("GLView", "Native fill-bed arrangement failed", error.cause ?: error)
+        false
+    }
 }
 fun duplicateSelectedModel(onComplete: Runnable) {
     duplicateSelectedModelWithResult { if (onComplete != null) onComplete.run() }
