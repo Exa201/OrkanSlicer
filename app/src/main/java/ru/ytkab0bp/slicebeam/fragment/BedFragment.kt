@@ -2625,7 +2625,21 @@ platePreviewRevision++
 val viewport = glView ?: return
 val targetPlate = currentPlateIndex
 viewport.queueEvent {
-    if (destroyed || targetPlate !in platesModels.indices) return@queueEvent
+    commitModelUpdateOnGlThread(viewport, targetPlate)
+}
+viewport.requestRender()
+}
+/** Commit a model edit that has already been applied on the renderer's GL queue. */
+internal fun updateModelOnGlThread() {
+    val viewport = glView ?: return
+    if (platesModels.isEmpty()) return
+    platePreviewRevision++
+    commitModelUpdateOnGlThread(viewport, currentPlateIndex)
+    viewport.requestRender()
+}
+
+private fun commitModelUpdateOnGlThread(viewport: GLView, targetPlate: Int) {
+    if (destroyed || targetPlate !in platesModels.indices) return
     val currentModel = viewport.renderer.model
     platesModels.set(targetPlate, currentModel)
     if (isLargeModelInMemory(currentModel)) {
@@ -2652,8 +2666,6 @@ viewport.queueEvent {
         updatePlateIndicator()
         if (shouldClearTemporarySettings) TemporaryProjectSettings.clear()
     }
-}
-viewport.requestRender()
 }
 private fun syncCurrentModel() {
 if (!platesModels.isEmpty() && glView != null)
@@ -2697,29 +2709,33 @@ fun redoModelEdit() {
 applyModelHistory(redoHistory, undoHistory, R.string.ModelNothingToRedo)
 }
 private fun applyModelHistory(source:ArrayDeque<Model>, destination:ArrayDeque<Model>, emptyMessage:Int) {
+val viewport = glView ?: return
+// updateModel() commits history snapshots on the GL queue. Check availability there too,
+// so an immediate Undo cannot race ahead of a just-committed edit.
+viewport.queueEvent({
 if (modelHistoryDisabledForMemory)
 {
 warnLargeModelLimitOnce()
-return
+return@queueEvent
 }
 if (source.isEmpty())
 {
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(emptyMessage))
-return
+ViewUtils.postOnMainThread { SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(emptyMessage)) }
+return@queueEvent
 }
-glView!!.queueEvent({ val current = glView!!.renderer.model
+val current = viewport.renderer.model
 // Keep an explicit empty-model snapshot as well. Deleting the final object sets the
 // renderer model to null; without an empty snapshot Undo could restore that object,
 // but Redo had nothing to restore and silently stopped at the non-empty state.
 destination.addLast(current?.let { Model.merge(it) } ?: Model())
 while (destination.size > MAX_HISTORY) destination.removeFirst().release()
 val restored = source.removeLast()
-glView!!.renderer.model = restored
+viewport.renderer.model = restored
 platesModels.set(currentPlateIndex, restored)
 if (current != null) current.release()
 if (stableModelSnapshot != null) stableModelSnapshot!!.release()
 stableModelSnapshot = Model.merge(restored)
-glView!!.requestRender()
+viewport.requestRender()
 ViewUtils.postOnMainThread({ SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent()) }) })
 }
 /** Split the selected object into separate objects while preserving the imported layout. */

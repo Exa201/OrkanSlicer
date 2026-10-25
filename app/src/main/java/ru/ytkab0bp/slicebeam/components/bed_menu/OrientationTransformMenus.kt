@@ -256,7 +256,7 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
                 }
                 renderer.setSelectionTranslation(0.0, 0.0, 0.0)
                 glView.requestRender()
-                ViewUtils.postOnMainThread { bed.updateModel() }
+                bed.updateModelOnGlThread()
             }
         }
         glView.requestRender()
