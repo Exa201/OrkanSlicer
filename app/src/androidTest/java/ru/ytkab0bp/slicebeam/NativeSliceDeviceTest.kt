@@ -1081,6 +1081,76 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanDifferenceAndIntersectionConsumeMultipleSelectedTools() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-multiple-cutters.stl")
+        try {
+            for (operation in listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+                val projectFile = File(context.cacheDir, "boolean-multiple-${operation.name.lowercase()}.3mf")
+                val model = Model(modelFile)
+                var restored: Model? = null
+                var generatedConfig: File? = null
+                try {
+                    val targetMin = Vec3d(); val targetMax = Vec3d()
+                    model.getBoundingBoxExact(0, targetMin, targetMax)
+                    val depth = targetMax.y - targetMin.y
+                    val targetVolume = model.getObjectVolume(0)
+                    model.addObject(model, 0)
+                    model.addObject(model, 0)
+
+                    val halfWidth = (targetMax.x - targetMin.x) / 2.0
+                    when (operation) {
+                        BooleanOperation.DIFFERENCE -> {
+                            // The first cutter removes the right half. The second removes a
+                            // smaller overlapping quarter from the remaining half.
+                            model.translate(1, halfWidth, 0.0, 0.0)
+                            model.translate(2, halfWidth / 2.0, depth / 2.0, 0.0)
+                        }
+                        BooleanOperation.INTERSECTION -> {
+                            // Intersect the target with its right half and upper half.
+                            model.translate(1, halfWidth, 0.0, 0.0)
+                            model.translate(2, 0.0, depth / 2.0, 0.0)
+                        }
+                        BooleanOperation.UNION -> error("not exercised by this test")
+                    }
+                    model.setUniformFilament(0, 1)
+                    model.setUniformFilament(1, 2)
+                    model.setUniformFilament(2, 3)
+
+                    assertEquals("$operation should apply both selected cutters in order", 0,
+                        model.booleanObjects(intArrayOf(0, 1, 2), operation))
+                    assertEquals("$operation should consume both tools", 1, model.objectsCount)
+                    assertEquals("$operation should retain the target's filament", listOf(1),
+                        model.getUsedFilaments(0).toList())
+                    val resultVolume = model.getObjectVolume(0)
+                    assertTrue("$operation should leave a non-empty changed solid; volume=$resultVolume",
+                        resultVolume > 0.0 && resultVolume < targetVolume)
+
+                    SliceBeam.genCurrentConfig(model)
+                    generatedConfig = SliceBeam.getCurrentConfigFile()
+                    model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+                    generatedConfig.delete()
+                    generatedConfig = null
+                    restored = Model(projectFile, 1)
+                    assertEquals("$operation result should survive 3MF reload", 1, restored.objectsCount)
+                    assertEquals(listOf(1), restored.getUsedFilaments(0).toList())
+                    val gcode = sliceToGcode(context, restored, "boolean-multiple-${operation.name.lowercase()}.gcode")
+                    assertHasExtrusion(gcode)
+                    assertFalse("$operation must not emit consumed cutter tools",
+                        Regex("(?m)^(?:T1|T2)(?:\\s|$)").containsMatchIn(gcode))
+                } finally {
+                    restored?.release()
+                    model.release()
+                    projectFile.delete()
+                    generatedConfig?.delete()
+                }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun importedSvgSolidProducesExtrusionGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
