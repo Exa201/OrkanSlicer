@@ -2530,6 +2530,18 @@ class InitialProjectMenuDeviceTest {
 
     @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
+        var modelEditStageStartedAt = SystemClock.elapsedRealtime()
+        fun logModelEditStage(stage: String, details: String = "") {
+            val now = SystemClock.elapsedRealtime()
+            val runtime = Runtime.getRuntime()
+            android.util.Log.i(
+                "ModelEditPerf",
+                "stage=$stage elapsedMs=${now - modelEditStageStartedAt} $details " +
+                    "nativeHeapBytes=${android.os.Debug.getNativeHeapAllocatedSize()} " +
+                    "javaHeapUsedBytes=${runtime.totalMemory() - runtime.freeMemory()}",
+            )
+            modelEditStageStartedAt = now
+        }
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -2611,6 +2623,7 @@ class InitialProjectMenuDeviceTest {
             assertTrue("combined part filaments should be read on the GL thread", combinedReady.await(10, TimeUnit.SECONDS))
             assertArrayEquals("combining the selected group preserves all source materials",
                 intArrayOf(1, 2, 3), requireNotNull(combinedFilaments.get()))
+            logModelEditStage("combine-and-undo-redo")
 
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
@@ -2650,6 +2663,7 @@ class InitialProjectMenuDeviceTest {
                 (0 until 4).map { index -> readUsedFilamentsOnGl(glView, index).single() })
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            logModelEditStage("split-and-history")
 
             val exportReady = CountDownLatch(1)
             val exportFailure = AtomicReference<Throwable?>()
@@ -2683,22 +2697,43 @@ class InitialProjectMenuDeviceTest {
             exportFailure.get()?.let { throw AssertionError("joined object 3MF export failed", it) }
             assertTrue("joined object should produce a non-empty 3MF project",
                 roundTripFile.isFile && roundTripFile.length() > 0L)
+            logModelEditStage("3mf-export")
             roundTrippedModel = Model(roundTripFile, 1)
             assertEquals("the joined parts should remain one object after 3MF reload", 1,
                 roundTrippedModel!!.objectsCount)
             assertArrayEquals("all joined part filaments should survive 3MF reload", intArrayOf(1, 2, 3),
                 roundTrippedModel!!.getUsedFilaments(0))
+            logModelEditStage("3mf-reload")
             SliceBeam.genCurrentConfig(roundTrippedModel!!)
+            logModelEditStage("slice-config-build")
             sliceResult = roundTrippedModel!!.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+            logModelEditStage(
+                "native-slice",
+                "triangles=${roundTrippedModel!!.getTriangleCount(0)} gcodeBytes=${gcodeFile.length()}",
+            )
             assertTrue("the joined object should generate G-code", gcodeFile.isFile && gcodeFile.length() > 0L)
-            val gcode = gcodeFile.readText()
-            assertTrue("joined parts should produce deposited extrusion",
-                Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
-            val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
-                .map { it.groupValues[1].toInt() }.toSet()
+            var hasExtrusion = false
+            val emittedTools = mutableSetOf<Int>()
+            gcodeFile.bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    if (!hasExtrusion && line.startsWith("G1 ")) {
+                        hasExtrusion = line.splitToSequence(' ').any { token ->
+                            token.startsWith("E") && token.substring(1).toDoubleOrNull() != null
+                        }
+                    }
+                    if (line.startsWith("T")) {
+                        val command = line.takeWhile { !it.isWhitespace() }
+                        if (command.length > 1 && command[0] == 'T' && command.drop(1).all(Char::isDigit)) {
+                            command.drop(1).toIntOrNull()?.let(emittedTools::add)
+                        }
+                    }
+                }
+            }
+            assertTrue("joined parts should produce deposited extrusion", hasExtrusion)
             assertTrue("T0 from the first joined part should be used, tools=$emittedTools", 0 in emittedTools)
             assertTrue("T1 from the second joined part should be used, tools=$emittedTools", 1 in emittedTools)
             assertTrue("T2 from the third joined part should be used, tools=$emittedTools", 2 in emittedTools)
+            logModelEditStage("gcode-validation")
         } finally {
             sliceResult?.release()
             roundTrippedModel?.release()
