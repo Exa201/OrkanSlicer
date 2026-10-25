@@ -1976,6 +1976,7 @@ class InitialProjectMenuDeviceTest {
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
         val modelFile = File(activity.cacheDir, "selection-bound-model-actions.stl")
+        val beforeGeometryRevision = AtomicReference<Long>()
         try {
             activity.assets.open("models/pyramid.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
@@ -1990,6 +1991,7 @@ class InitialProjectMenuDeviceTest {
                 model.translate(1, 55.0, 28.0, 16.0)
                 renderer.setSelectedObject(0)
                 renderer.setSelectedObjects(intArrayOf(0, 1))
+                beforeGeometryRevision.set(model.geometryRevision)
                 glView.requestRender()
                 prepared.countDown()
             }
@@ -2030,6 +2032,15 @@ class InitialProjectMenuDeviceTest {
             before.zip(after).forEachIndexed { index, (expected, actual) ->
                 assertArrayEquals("stale selection must leave object $index unchanged", expected, actual, 0.02)
             }
+            val afterGeometryRevision = AtomicReference<Long>()
+            val revisionRead = CountDownLatch(1)
+            glView.queueEvent {
+                afterGeometryRevision.set(requireNotNull(glView.renderer.model).geometryRevision)
+                revisionRead.countDown()
+            }
+            assertTrue("geometry revision should be readable on the GL thread", revisionRead.await(10, TimeUnit.SECONDS))
+            assertEquals("stale center/auto-orient requests must not mutate geometry",
+                beforeGeometryRevision.get(), afterGeometryRevision.get())
         } finally {
             modelFile.delete()
         }
