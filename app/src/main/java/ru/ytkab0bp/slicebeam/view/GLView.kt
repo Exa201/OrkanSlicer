@@ -384,6 +384,16 @@ queueEvent({ renderer.centerSelectionOnBed()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
+internal fun centerSelectedOnBed(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val centered = renderer.centerSelectionOnBed(expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(centered) }
+    }
+}
 internal fun placeSelectedObjectsOnBed(
     expectedSelection: ModelSelectionSnapshot,
     onComplete: (Int) -> Unit,
@@ -427,6 +437,16 @@ internal fun distributeSelectedObjects(
 fun autoOrientSelectedObjects(onComplete: (Int) -> Unit) {
     queueEvent {
         val oriented = renderer.autoOrientSelectedObjects()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(oriented) }
+    }
+}
+internal fun autoOrientSelectedObjects(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val oriented = renderer.autoOrientSelectedObjects(expectedSelection)
         requestRender()
         ViewUtils.postOnMainThread { onComplete(oriented) }
     }

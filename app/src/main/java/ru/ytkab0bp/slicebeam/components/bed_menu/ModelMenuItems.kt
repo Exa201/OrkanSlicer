@@ -45,9 +45,18 @@ internal class ModelMenuItems(
                 objectActions.showMoveToPlateDialog(it)
             }, enabled = availability.hasSelectedObject && fragment.plateCount > 1),
             BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.view_in_ar_24, { anchor ->
-                fragment.glView!!.centerSelectedOnBed {
-                    fragment.updateModel()
-                    Toast.makeText(anchor.context, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show()
+                val activeGlView = fragment.glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(activeGlView) { snapshot ->
+                    activeGlView.centerSelectedOnBed(snapshot) { result ->
+                        when (result) {
+                            1 -> {
+                                fragment.updateModel()
+                                Toast.makeText(anchor.context, R.string.ModelContextCentered, Toast.LENGTH_SHORT).show()
+                            }
+                            MODEL_EDIT_STALE_SELECTION ->
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                        }
+                    }
                 }
             }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuPlaceGroupOnBed, R.drawable.view_in_ar_24, { anchor ->
@@ -148,13 +157,20 @@ internal class ModelMenuItems(
                 fragment.enterEmbossMode(standaloneText = true)
             }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuAutoOrientSelected, R.drawable.menu_orientation_auto_28, {
-                fragment.glView!!.autoOrientSelectedObjects { orientedCount ->
-                    if (orientedCount > 0) {
-                        fragment.updateModel()
-                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
-                            if (orientedCount == 1) R.string.MenuOrientationAutoOrientDone
-                            else R.string.ModelMenuAutoOrientGroupDone,
-                        ))
+                val activeGlView = fragment.glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(activeGlView) { snapshot ->
+                    activeGlView.autoOrientSelectedObjects(snapshot) { orientedCount ->
+                        when {
+                            orientedCount > 0 -> {
+                                fragment.updateModel()
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                                    if (orientedCount == 1) R.string.MenuOrientationAutoOrientDone
+                                    else R.string.ModelMenuAutoOrientGroupDone,
+                                ))
+                            }
+                            orientedCount == MODEL_EDIT_STALE_SELECTION ->
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+                        }
                     }
                 }
             }, enabled = availability.hasSelectedObject),

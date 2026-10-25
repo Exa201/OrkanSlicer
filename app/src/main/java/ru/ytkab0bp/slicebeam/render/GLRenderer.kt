@@ -453,9 +453,14 @@ private fun autoOrientObjectsAtFixedCenters(activeModel: Model, indices: List<In
 }
 
 /** Auto-orient every selected object individually while keeping each object's position fixed. GL-thread only. */
-fun autoOrientSelectedObjects(): Int {
+fun autoOrientSelectedObjects(): Int = autoOrientSelectedObjects(null)
+
+/** Keep delayed UI actions bound to the selection they were opened for. GL-thread only. */
+internal fun autoOrientSelectedObjects(expectedSelection: ModelSelectionSnapshot?): Int {
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
     val activeModel = model ?: return 0
-    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    val indices = (expectedSelection?.selectedIndices?.toList() ?: selectedObjectIndices().toList())
+        .filter { it in 0 until activeModel.objectsCount }
     return autoOrientObjectsAtFixedCenters(activeModel, indices)
 }
 
@@ -2554,38 +2559,46 @@ selX = selY
 }
 /** Move the current selection so its combined footprint is centered on the bed. */
  fun centerSelectionOnBed() {
-if (this.model == null || bed == null || !bed!!.isValid() || selectedObjects.isEmpty()) return
-val bedMin = bed!!.getVolumeMin()
-val bedMax = bed!!.getVolumeMax()
-val bedCx = (bedMin!!.x + bedMax!!.x) / 2.0
-val bedCy = (bedMin!!.y + bedMax!!.y) / 2.0
+    centerSelectionOnBed(null)
+}
+
+/** Center the selection captured by a delayed UI action; returns stale-selection when it changed. */
+internal fun centerSelectionOnBed(expectedSelection: ModelSelectionSnapshot?): Int {
+if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+val activeModel = model ?: return 0
+val activeBed = bed ?: return 0
+if (!activeBed.isValid()) return 0
+val indices = (expectedSelection?.selectedIndices?.toList() ?: selectedObjectIndices().toList())
+    .filter { it in 0 until activeModel.objectsCount }
+if (indices.isEmpty()) return 0
+val bedMin = activeBed.getVolumeMin() ?: return 0
+val bedMax = activeBed.getVolumeMax() ?: return 0
+val bedCx = (bedMin.x + bedMax.x) / 2.0
+val bedCy = (bedMin.y + bedMax.y) / 2.0
 var minX = Double.POSITIVE_INFINITY
 var minY = Double.POSITIVE_INFINITY
 var maxX = Double.NEGATIVE_INFINITY
 var maxY = Double.NEGATIVE_INFINITY
-for (idx in selectedObjects)
+for (idx in indices)
 {
-if (idx < 0 || idx >= this.model!!.objectsCount) continue
-this.model!!.getBoundingBoxExact(idx, bbMin, bbMax)
+activeModel.getBoundingBoxExact(idx, bbMin, bbMax)
 minX = Math.min(minX, bbMin.x)
 minY = Math.min(minY, bbMin.y)
 maxX = Math.max(maxX, bbMax.x)
 maxY = Math.max(maxY, bbMax.y)
 }
-if (minX > maxX) return
+if (minX > maxX) return 0
 val dx = bedCx - (minX + maxX) / 2.0
 val dy = bedCy - (minY + maxY) / 2.0
-for (idx in selectedObjects)
+for (idx in indices)
 {
-if (idx >= 0 && idx < this.model!!.objectsCount)
-{
-this.model!!.translate(idx, dx, dy, (0).toDouble())
+activeModel.translate(idx, dx, dy, 0.0)
 invalidateGlModel(idx)
-}
 }
 selZ = 0.0
 selY = selZ
 selX = selY
+return 1
 }
 /** Drops the complete selected group onto the printable bed using one shared Z translation. */
 internal fun placeSelectedObjectsOnBed(expectedSelection: ModelSelectionSnapshot? = null): Int {

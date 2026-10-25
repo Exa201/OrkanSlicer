@@ -1971,6 +1971,71 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun centerAndAutoOrientRejectSelectionChangedBeforeGlCommit() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "selection-bound-model-actions.stl")
+        try {
+            activity.assets.open("models/pyramid.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val model = requireNotNull(renderer.model)
+                model.addObject(model, 0)
+                model.translate(0, -60.0, -30.0, 8.0)
+                model.translate(1, 55.0, 28.0, 16.0)
+                renderer.setSelectedObject(0)
+                renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two positioned objects should be prepared", prepared.await(10, TimeUnit.SECONDS))
+            val before = readExactBoundsOnGl(glView, 0, 1)
+
+            val centerResult = AtomicReference<Int>()
+            val centerDone = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val snapshot = requireNotNull(renderer.captureSelectionSnapshot())
+                renderer.setSelectedObject(1)
+                glView.centerSelectedOnBed(snapshot) { result ->
+                    centerResult.set(result)
+                    centerDone.countDown()
+                }
+            }
+            assertTrue("center operation should complete", centerDone.await(10, TimeUnit.SECONDS))
+            assertEquals(MODEL_EDIT_STALE_SELECTION, centerResult.get())
+
+            val orientResult = AtomicReference<Int>()
+            val orientDone = CountDownLatch(1)
+            glView.queueEvent {
+                val renderer = glView.renderer
+                renderer.setSelectedObjects(intArrayOf(0, 1))
+                renderer.setSelectedObject(0)
+                val snapshot = requireNotNull(renderer.captureSelectionSnapshot())
+                renderer.setSelectedObject(1)
+                glView.autoOrientSelectedObjects(snapshot) { result ->
+                    orientResult.set(result)
+                    orientDone.countDown()
+                }
+            }
+            assertTrue("auto-orient operation should complete", orientDone.await(10, TimeUnit.SECONDS))
+            assertEquals(MODEL_EDIT_STALE_SELECTION, orientResult.get())
+
+            val after = readExactBoundsOnGl(glView, 0, 1)
+            before.zip(after).forEachIndexed { index, (expected, actual) ->
+                assertArrayEquals("stale selection must leave object $index unchanged", expected, actual, 0.02)
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun singleObjectBatchDuplicateCreatesRequestedCopiesWithUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
