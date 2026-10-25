@@ -44,6 +44,7 @@ import ru.ytkab0bp.slicebeam.view.GLView
 enum class ModelAlignmentAxis { MIN_X, CENTER_X, MAX_X, MIN_Y, CENTER_Y, MAX_Y, BASE_Z }
 internal const val MODEL_EDIT_STALE_SELECTION = -2
 internal const val MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION = -3
+internal const val MODEL_EDIT_OPERATION_FAILED = -4
 
 class GLRenderer(glView:GLView):GLSurfaceView.Renderer {
 var camera = Camera()
@@ -518,7 +519,10 @@ internal fun combineSelectedObjectsAsParts(expectedSelection: ModelSelectionSnap
     val source = model ?: return -1
     val indices = selectedObjectIndices()
     if (indices.size < 2) return -1
-    val combined = source.combineObjectsAsParts(indices)
+    val combined = ModelEditOperation.runSafely(
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
+        onFailure = { Log.e("GLRenderer", "Could not combine selected objects", it) },
+    ) { source.combineObjectsAsParts(indices) }
     if (combined < 0) return combined
     resetGlModels()
     setSelectedObject(combined)
