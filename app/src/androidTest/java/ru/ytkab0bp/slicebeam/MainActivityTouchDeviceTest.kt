@@ -45,6 +45,118 @@ import ru.ytkab0bp.slicebeam.view.GLView
 @RunWith(AndroidJUnit4::class)
 class MainActivityTouchDeviceTest {
     @Test
+    fun tappingLoadedM12SelectsItThroughTheGlTouchPath() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val application = context.applicationContext as SliceBeam
+        SliceBeam.INSTANCE = application
+        Prefs.init(application)
+        Prefs.getPrefs()?.edit()
+            ?.remove("crash")
+            ?.putBoolean("converter_storage_first_prompt", true)
+            ?.commit()
+        Prefs.setLastCommit()
+        SliceBeam.clearLiveDiffs()
+        val config = context.assets.open("orca_profiles/Anycubic.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+        SliceBeam.CONFIG = config
+
+        val modelFile = File(context.cacheDir, "m12-gl-touch-selection.stl")
+        val values = FastenerFormLogic.defaults(size = FastenerStandards.count() - 1)
+        FastenerStlWriter.writeBolt(
+            modelFile,
+            FastenerStandards.diameter(values.size),
+            FastenerFormLogic.parse(values.second),
+            FastenerFormLogic.parse(values.first),
+            FastenerFormLogic.parse(values.fourth),
+            FastenerFormLogic.parse(values.third),
+        )
+        val scenario = ActivityScenario.launch(MainActivity::class.java)
+        try {
+            val bedRef = AtomicReference<BedFragment>()
+            scenario.onActivity { activity ->
+                bedRef.set(activity.navigationDelegate.getCurrentFragment() as BedFragment)
+            }
+            val bed = requireNotNull(bedRef.get())
+            val glViewRef = AtomicReference<GLView>()
+            scenario.onActivity { glViewRef.set(requireNotNull(bed.glView)) }
+            val glView = requireNotNull(glViewRef.get())
+            val loaded = CountDownLatch(1)
+            val loadFailure = AtomicReference<Exception?>()
+            scenario.onActivity {
+                bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        loaded.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        loadFailure.set(error)
+                        loaded.countDown()
+                    }
+                })
+            }
+            assertTrue("Generated M12 should load", loaded.await(60, TimeUnit.SECONDS))
+            loadFailure.get()?.let { throw AssertionError("Generated M12 could not load", it) }
+
+            var hit: Pair<Float, Float>? = null
+            val hitDeadline = SystemClock.uptimeMillis() + 15_000L
+            while (hit == null && SystemClock.uptimeMillis() < hitDeadline) {
+                glView.requestRender()
+                val scanFinished = CountDownLatch(1)
+                val candidate = AtomicReference<Pair<Float, Float>?>()
+                glView.queueEvent {
+                    val renderScale = Prefs.getRenderScale()
+                    if (glView.width > 0 && glView.height > 0 &&
+                        glView.renderer.viewportWidth > 0 && glView.renderer.viewportHeight > 0
+                    ) {
+                        for (row in 1..63 step 2) {
+                            for (column in 1..63 step 2) {
+                                val x = glView.width * column / 64f
+                                val y = glView.height * row / 64f
+                                if (glView.renderer.raycastObjectIndex(x * renderScale, y * renderScale) == 0) {
+                                    candidate.set(x to y)
+                                    break
+                                }
+                            }
+                            if (candidate.get() != null) break
+                        }
+                    }
+                    scanFinished.countDown()
+                }
+                assertTrue("GL raycast scan should finish", scanFinished.await(10, TimeUnit.SECONDS))
+                hit = candidate.get()
+                if (hit == null) SystemClock.sleep(100L)
+            }
+            val tapPoint = hit ?: throw AssertionError("Could not raycast the generated M12 on the GL thread")
+
+            scenario.onActivity {
+                tap(glView, tapPoint.first, tapPoint.second)
+            }
+            awaitRendererQueue(glView)
+            val selectionRead = CountDownLatch(1)
+            val selected = AtomicInteger(Int.MIN_VALUE)
+            glView.queueEvent {
+                selected.set(glView.renderer.selectedObject)
+                selectionRead.countDown()
+            }
+            assertTrue("GL selection should settle after the real touch", selectionRead.await(10, TimeUnit.SECONDS))
+            assertEquals("A tap on the generated M12 should select the model", 0, selected.get())
+            assertFalse("Selecting the M12 must not open a modal", bed.isModelContextMenuAttached())
+            assertFalse("Selecting the M12 must not open a workspace dialog", bed.isWorkspaceMessageDialogAttached())
+        } finally {
+            scenario.close()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun generatedM12SupportsPreciseSurfacePlacementWithoutTopologyIndexing() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
