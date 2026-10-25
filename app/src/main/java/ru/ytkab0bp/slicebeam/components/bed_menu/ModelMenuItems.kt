@@ -279,8 +279,12 @@ internal class ModelMenuItems(
     private fun showAlignmentDialog(anchor: android.view.View) {
         val glView = fragment.glView ?: return
         val labels = listOf(
+            anchor.context.getString(R.string.ModelMenuAlignMinX),
             anchor.context.getString(R.string.ModelMenuAlignCenterX),
+            anchor.context.getString(R.string.ModelMenuAlignMaxX),
+            anchor.context.getString(R.string.ModelMenuAlignMinY),
             anchor.context.getString(R.string.ModelMenuAlignCenterY),
+            anchor.context.getString(R.string.ModelMenuAlignMaxY),
             anchor.context.getString(R.string.ModelMenuAlignBaseZ),
         )
         captureSelectionSnapshot(glView) { snapshot ->
@@ -293,9 +297,13 @@ internal class ModelMenuItems(
                     onSelect = { choice ->
                         dismiss()
                         val axis = when (choice) {
-                            0 -> ModelAlignmentAxis.CENTER_X
-                            1 -> ModelAlignmentAxis.CENTER_Y
-                            2 -> ModelAlignmentAxis.BASE_Z
+                            0 -> ModelAlignmentAxis.MIN_X
+                            1 -> ModelAlignmentAxis.CENTER_X
+                            2 -> ModelAlignmentAxis.MAX_X
+                            3 -> ModelAlignmentAxis.MIN_Y
+                            4 -> ModelAlignmentAxis.CENTER_Y
+                            5 -> ModelAlignmentAxis.MAX_Y
+                            6 -> ModelAlignmentAxis.BASE_Z
                             else -> return@ModelChoiceDialog
                         }
                         glView.alignSelectedObjects(axis, snapshot) { result ->

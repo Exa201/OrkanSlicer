@@ -6302,6 +6302,7 @@ class InitialProjectMenuDeviceTest {
             glView.queueEvent {
                 val model = requireNotNull(glView.renderer.model)
                 model.addObject(model, 0)
+                model.scale(1, 0.7, 0.8, 1.0)
                 model.translate(1, 43.0, 29.0, 18.0)
                 glView.renderer.setSelectedObjects(intArrayOf(0, 1))
                 glView.requestRender()
@@ -6326,6 +6327,10 @@ class InitialProjectMenuDeviceTest {
                     when (label) {
                         R.string.ModelMenuAlignCenterX -> kotlin.math.abs(centersX(current)[0] - centersX(current)[1]) < 0.02
                         R.string.ModelMenuAlignCenterY -> kotlin.math.abs(centersY(current)[0] - centersY(current)[1]) < 0.02
+                        R.string.ModelMenuAlignMinX -> kotlin.math.abs(current[0][0] - current[1][0]) < 0.02
+                        R.string.ModelMenuAlignMaxX -> kotlin.math.abs(current[0][3] - current[1][3]) < 0.02
+                        R.string.ModelMenuAlignMinY -> kotlin.math.abs(current[0][1] - current[1][1]) < 0.02
+                        R.string.ModelMenuAlignMaxY -> kotlin.math.abs(current[0][4] - current[1][4]) < 0.02
                         else -> kotlin.math.abs(current[0][2] - current[1][2]) < 0.02
                     }
                 }
@@ -6362,6 +6367,36 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(beforeZ[0][2] - bounds()[0][2]) < 0.02 }
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(bounds()[0][2] - bounds()[1][2]) < 0.02 }
+
+            val edgeAlignments = listOf(
+                R.string.ModelMenuAlignMinX to { value: DoubleArray -> value[0] },
+                R.string.ModelMenuAlignMaxX to { value: DoubleArray -> value[3] },
+                R.string.ModelMenuAlignMinY to { value: DoubleArray -> value[1] },
+                R.string.ModelMenuAlignMaxY to { value: DoubleArray -> value[4] },
+            )
+            for ((label, edge) in edgeAlignments) {
+                val before = bounds()
+                invokeAlignment(label)
+                val after = bounds()
+                assertEquals("$label must align the selected objects' corresponding edges",
+                    edge(after[0]), edge(after[1]), 0.02)
+                val preservedAxis = if (label == R.string.ModelMenuAlignMinX ||
+                    label == R.string.ModelMenuAlignMaxX) 1 else 0
+                val getPreservedCenter = if (preservedAxis == 0) ::centersX else ::centersY
+                assertEquals("$label must leave the other horizontal axis unchanged",
+                    getPreservedCenter(before)[1], getPreservedCenter(after)[1], 0.02)
+                compose.runOnUiThread { bed.undoModelEdit() }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    bounds().zip(before).all { (actual, expected) ->
+                        actual.indices.all { axis -> kotlin.math.abs(actual[axis] - expected[axis]) < 0.02 }
+                    }
+                }
+                compose.runOnUiThread { bed.redoModelEdit() }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    val redone = bounds()
+                    kotlin.math.abs(edge(redone[0]) - edge(redone[1])) < 0.02
+                }
+            }
         } finally {
             modelFile.delete()
         }

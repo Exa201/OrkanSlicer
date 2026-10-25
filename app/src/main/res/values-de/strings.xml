@@ -254,8 +254,12 @@
     <string name="ModelMenuPlaceGroupOnBedShort">Auf Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Ausgewählte Objekte auf die Platte gestellt</string>
     <string name="ModelMenuAlignSelected">Ausgewählte Objekte ausrichten</string>
+    <string name="ModelMenuAlignMinX">Kleinste X-Kanten ausrichten</string>
     <string name="ModelMenuAlignCenterX">X-Mittelpunkte ausrichten</string>
+    <string name="ModelMenuAlignMaxX">Größte X-Kanten ausrichten</string>
+    <string name="ModelMenuAlignMinY">Kleinste Y-Kanten ausrichten</string>
     <string name="ModelMenuAlignCenterY">Y-Mittelpunkte ausrichten</string>
+    <string name="ModelMenuAlignMaxY">Größte Y-Kanten ausrichten</string>
     <string name="ModelMenuAlignBaseZ">Standflächen auf Z ausrichten</string>
     <string name="ModelMenuAlignDone">Ausgewählte Objekte ausgerichtet</string>
     <string name="ModelMenuDistributeSelected">Ausgewählte Objekte verteilen</string>

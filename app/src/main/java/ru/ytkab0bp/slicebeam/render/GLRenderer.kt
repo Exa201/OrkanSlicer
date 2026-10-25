@@ -41,7 +41,7 @@ import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
 
-enum class ModelAlignmentAxis { CENTER_X, CENTER_Y, BASE_Z }
+enum class ModelAlignmentAxis { MIN_X, CENTER_X, MAX_X, MIN_Y, CENTER_Y, MAX_Y, BASE_Z }
 internal const val MODEL_EDIT_STALE_SELECTION = -2
 internal const val MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION = -3
 
@@ -367,15 +367,23 @@ internal fun alignSelectedObjects(axis: ModelAlignmentAxis, expectedSelection: M
     }
     val reference = bounds[primary] ?: return false
     val target = when (axis) {
+        ModelAlignmentAxis.MIN_X -> reference.minX
         ModelAlignmentAxis.CENTER_X -> (reference.minX + reference.maxX) / 2.0
+        ModelAlignmentAxis.MAX_X -> reference.maxX
+        ModelAlignmentAxis.MIN_Y -> reference.minY
         ModelAlignmentAxis.CENTER_Y -> (reference.minY + reference.maxY) / 2.0
+        ModelAlignmentAxis.MAX_Y -> reference.maxY
         ModelAlignmentAxis.BASE_Z -> reference.minZ
     }
     val deltas = indices.associateWith { index ->
         val item = bounds.getValue(index)
         when (axis) {
+            ModelAlignmentAxis.MIN_X -> target - item.minX
             ModelAlignmentAxis.CENTER_X -> target - (item.minX + item.maxX) / 2.0
+            ModelAlignmentAxis.MAX_X -> target - item.maxX
+            ModelAlignmentAxis.MIN_Y -> target - item.minY
             ModelAlignmentAxis.CENTER_Y -> target - (item.minY + item.maxY) / 2.0
+            ModelAlignmentAxis.MAX_Y -> target - item.maxY
             ModelAlignmentAxis.BASE_Z -> target - item.minZ
         }
     }
@@ -385,8 +393,12 @@ internal fun alignSelectedObjects(axis: ModelAlignmentAxis, expectedSelection: M
         val delta = deltas.getValue(index)
         if (kotlin.math.abs(delta) <= 1e-9) continue
         when (axis) {
+            ModelAlignmentAxis.MIN_X,
             ModelAlignmentAxis.CENTER_X -> activeModel.translate(index, delta, 0.0, 0.0)
+            ModelAlignmentAxis.MAX_X -> activeModel.translate(index, delta, 0.0, 0.0)
+            ModelAlignmentAxis.MIN_Y,
             ModelAlignmentAxis.CENTER_Y -> activeModel.translate(index, 0.0, delta, 0.0)
+            ModelAlignmentAxis.MAX_Y -> activeModel.translate(index, 0.0, delta, 0.0)
             ModelAlignmentAxis.BASE_Z -> activeModel.translate(index, 0.0, 0.0, delta)
         }
         invalidateGlModel(index)
