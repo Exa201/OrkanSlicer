@@ -1771,6 +1771,11 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.ModelMenuPlaceOnSurface)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnSurface))
                 .assertIsDisplayed().assertIsEnabled().performClick()
+            // Target choices are captured asynchronously on the GL queue before Compose opens
+            // the dialog. Compose idleness alone does not wait for that renderer callback.
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithTag("model-choice-option-0").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.isSurfacePlacementActive }
 
