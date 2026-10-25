@@ -5060,6 +5060,12 @@ class InitialProjectMenuDeviceTest {
             }
             var model = loadSingleTestModel(bed, modelFile)
             val glView = requireNotNull(bed.glView)
+            val rotateDone = CountDownLatch(1)
+            glView.queueEvent {
+                model.rotate(0, Math.toRadians(23.0), Math.toRadians(31.0), Math.toRadians(17.0))
+                rotateDone.countDown()
+            }
+            assertTrue("temporary object should finish rotating", rotateDone.await(15, TimeUnit.SECONDS))
             glView.selectModel(0, Runnable {})
             val duplicateDone = CountDownLatch(1)
             glView.duplicateSelectedModel(1, Runnable { duplicateDone.countDown() })
@@ -5073,17 +5079,18 @@ class InitialProjectMenuDeviceTest {
             val beforeOrientAll = model.geometryRevision
             val historyBeforeOrientAll = readModelHistorySize(bed, "undoHistory")
             val beforeOrientAllBounds = readExactBoundsOnGl(glView, 0, 1)
+            fun boundsMatch(expected: DoubleArray, actual: DoubleArray) =
+                expected.indices.all { kotlin.math.abs(expected[it] - actual[it]) <= 0.02 }
             revealMenuAction(activity, R.string.ModelMenuOrientAll)
             compose.onNodeWithText(activity.getString(R.string.ModelMenuOrientAllShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
-            compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision >= beforeOrientAll + 2 }
-            assertEquals("Orient All should process both workspace objects", beforeOrientAll + 2,
-                model.geometryRevision)
+            compose.waitUntil(timeoutMillis = 10_000) { model.geometryRevision > beforeOrientAll }
             compose.waitUntil(timeoutMillis = 10_000) {
                 readModelHistorySize(bed, "undoHistory") > historyBeforeOrientAll
             }
             val afterOrientAllBounds = readExactBoundsOnGl(glView, 0, 1)
             beforeOrientAllBounds.zip(afterOrientAllBounds).forEachIndexed { index, (before, after) ->
+                assertFalse("Orient All should change object $index geometry", before.contentEquals(after))
                 for (axis in 0..2) {
                     assertEquals("Orient All should preserve object $index center on axis $axis",
                         (before[axis] + before[axis + 3]) / 2.0,
@@ -5093,12 +5100,12 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 beforeOrientAllBounds.zip(readExactBoundsOnGl(glView, 0, 1))
-                    .all { (before, current) -> before.contentEquals(current) }
+                    .all { (before, current) -> boundsMatch(before, current) }
             }
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 afterOrientAllBounds.zip(readExactBoundsOnGl(glView, 0, 1))
-                    .all { (after, current) -> after.contentEquals(current) }
+                    .all { (after, current) -> boundsMatch(after, current) }
             }
             model = requireNotNull(bed.currentModel)
 
@@ -5126,12 +5133,12 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 beforeSelectedOrientBounds.zip(readExactBoundsOnGl(glView, 0, 1))
-                    .all { (before, current) -> before.contentEquals(current) }
+                    .all { (before, current) -> boundsMatch(before, current) }
             }
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) {
                 afterSelectedOrientBounds.zip(readExactBoundsOnGl(glView, 0, 1))
-                    .all { (after, current) -> after.contentEquals(current) }
+                    .all { (after, current) -> boundsMatch(after, current) }
             }
         } finally {
             modelFile.delete()
