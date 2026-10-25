@@ -92,6 +92,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.SliceListener
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
@@ -2706,7 +2707,25 @@ class InitialProjectMenuDeviceTest {
             logModelEditStage("3mf-reload")
             SliceBeam.genCurrentConfig(roundTrippedModel!!)
             logModelEditStage("slice-config-build")
-            sliceResult = roundTrippedModel!!.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+            val sliceStartedAt = SystemClock.elapsedRealtime()
+            val sliceProgressEvents = mutableListOf<String>()
+            var lastProgressBucket = -1
+            sliceResult = roundTrippedModel!!.slice(
+                configFile.absolutePath,
+                gcodeFile.absolutePath,
+                SliceListener { progress, text ->
+                    val bucket = progress.coerceIn(0, 100) / 5
+                    synchronized(sliceProgressEvents) {
+                        if (bucket > lastProgressBucket) {
+                            lastProgressBucket = bucket
+                            sliceProgressEvents += "${SystemClock.elapsedRealtime() - sliceStartedAt}ms:$progress:${text.orEmpty()}"
+                        }
+                    }
+                },
+            )
+            synchronized(sliceProgressEvents) {
+                android.util.Log.i("ModelEditPerf", "native-slice-progress=${sliceProgressEvents.joinToString(" -> ")}")
+            }
             logModelEditStage(
                 "native-slice",
                 "triangles=${roundTrippedModel!!.getTriangleCount(0)} gcodeBytes=${gcodeFile.length()}",
