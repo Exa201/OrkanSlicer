@@ -619,6 +619,7 @@ private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>
             invalidateGlModel(index)
         },
         commit = { activeModel.combineObjectsAsParts((movingIndices + targetIndex).toIntArray()) },
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
         onError = { error -> Log.e("GLRenderer", "Could not place and join selected objects; placement rolled back", error) },
     )
     if (combined < 0) {

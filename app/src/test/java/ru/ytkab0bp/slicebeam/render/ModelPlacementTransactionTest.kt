@@ -60,6 +60,23 @@ class ModelPlacementTransactionTest {
     }
 
     @Test
+    fun thrownNativeJoinReturnsDedicatedFailureStatusAfterPlacementRollback() {
+        val positions = mutableMapOf(1 to 4.0, 2 to 8.0)
+        val failureStatus = MODEL_EDIT_OPERATION_FAILED
+        val result = ModelPlacementTransaction.applyAndCommit(
+            items = listOf(1, 2),
+            snapshot = positions::getValue,
+            apply = { positions[it] = positions.getValue(it) + 10.0 },
+            restore = { item, before -> positions[item] = before },
+            commit = { throw IllegalStateException("native join failed") },
+            failureResult = failureStatus,
+        )
+
+        assertEquals(failureStatus, result)
+        assertEquals(mapOf(1 to 4.0, 2 to 8.0), positions)
+    }
+
+    @Test
     fun partiallyAppliedSecondMoveRestoresCurrentAndEarlierMoves() {
         val positions = mutableMapOf(1 to 4.0, 2 to 8.0)
         val errors = mutableListOf<Exception>()

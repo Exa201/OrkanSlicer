@@ -8,13 +8,14 @@ internal object ModelPlacementTransaction {
         apply: (T) -> Unit,
         restore: (T, S) -> Unit,
         commit: () -> Int,
+        failureResult: Int = -1,
         onError: (Exception) -> Unit = {},
     ): Int {
         val snapshots = try {
             items.map { item -> item to snapshot(item) }
         } catch (error: Exception) {
             runCatching { onError(error) }
-            return -1
+            return failureResult
         }
         var attemptedCount = 0
         fun restoreAttempted() {
@@ -42,7 +43,7 @@ internal object ModelPlacementTransaction {
         } catch (error: Exception) {
             restoreAttempted()
             runCatching { onError(error) }
-            return -1
+            return failureResult
         }
     }
 }
