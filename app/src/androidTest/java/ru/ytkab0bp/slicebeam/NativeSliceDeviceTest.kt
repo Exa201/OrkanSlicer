@@ -17,6 +17,7 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
@@ -31,6 +32,55 @@ import java.util.zip.ZipFile
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun nativeDeleteTranslateAndBedPlacementRejectInvalidObjectsAndValues() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "native-invalid-edit-requests.stl")
+        val model = Model(modelFile)
+        try {
+            val beforeMin = Vec3d()
+            val beforeMax = Vec3d()
+            model.getBoundingBoxExact(0, beforeMin, beforeMax)
+            val beforeBounds = doubleArrayOf(
+                beforeMin.x, beforeMin.y, beforeMin.z,
+                beforeMax.x, beforeMax.y, beforeMax.z,
+            )
+
+            // Exercise the JNI boundary itself; the Kotlin wrapper already filters these calls,
+            // but stale native indices must remain harmless even if reached below that layer.
+            Native.model_delete_object(model.pointer, -1)
+            Native.model_delete_object(model.pointer, model.objectsCount)
+            Native.model_ensure_on_bed(model.pointer, -1)
+            Native.model_ensure_on_bed(model.pointer, model.objectsCount)
+            Native.model_translate(model.pointer, -1, 10.0, 20.0, 30.0)
+            Native.model_translate(model.pointer, model.objectsCount, 10.0, 20.0, 30.0)
+            Native.model_translate(model.pointer, 0, Double.NaN, 0.0, 0.0)
+            Native.model_translate(model.pointer, 0, 0.0, Double.POSITIVE_INFINITY, 0.0)
+
+            Native.model_delete_object(0L, 0)
+            Native.model_ensure_on_bed(0L, 0)
+            Native.model_translate(0L, 0, 1.0, 2.0, 3.0)
+
+            assertEquals("invalid native edits must preserve object count", 1, model.objectsCount)
+            val afterMin = Vec3d()
+            val afterMax = Vec3d()
+            model.getBoundingBoxExact(0, afterMin, afterMax)
+            assertArrayEquals("invalid native edits must preserve geometry and placement", beforeBounds,
+                doubleArrayOf(afterMin.x, afterMin.y, afterMin.z, afterMax.x, afterMax.y, afterMax.z), 0.0)
+
+            // Valid native entry points still perform their intended operation.
+            Native.model_translate(model.pointer, 0, 0.0, 0.0, 5.0)
+            model.getBoundingBoxExact(0, afterMin, afterMax)
+            assertEquals("valid native Z translation remains available", beforeBounds[2] + 5.0, afterMin.z, 0.01)
+            Native.model_ensure_on_bed(model.pointer, 0)
+            model.getBoundingBoxExact(0, afterMin, afterMax)
+            assertEquals("valid native bed placement seats the model at Z zero", 0.0, afterMin.z, 0.01)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test
     fun invalidTransformAndSimplifyRequestsPreserveNativeModel() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

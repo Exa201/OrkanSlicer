@@ -795,6 +795,9 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1delete_1object(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || i >= static_cast<jint>(model->model.objects.size()) ||
+            model->model.objects[i] == nullptr)
+            return;
         model->model.delete_object(i);
     }
 
@@ -1011,11 +1014,17 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1translate(JNIEnv* env, jclass, jlong ptr, jint i, jdouble x, jdouble y, jdouble z) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || i >= static_cast<jint>(model->model.objects.size()) ||
+            model->model.objects[i] == nullptr || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+            return;
         model->model.objects[i]->translate(x, y, z);
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1ensure_1on_1bed(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || i >= static_cast<jint>(model->model.objects.size()) ||
+            model->model.objects[i] == nullptr)
+            return;
         model->model.objects[i]->ensure_on_bed(false);
     }
 

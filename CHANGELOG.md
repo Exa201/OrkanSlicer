@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.382
+
+- Guard native object deletion, XYZ translation, and bed placement against stale object indices and invalid translation values at the JNI boundary.
+- Verify invalid native edit requests preserve object count and exact bounds; valid Z movement and bed placement remain functional on Android 16.
+
 ## 0.8.377
 
 - Add Sans, Serif, and Monospace font choices to standalone 3D text; show system-font options only when the device can read them and wrap the controls on narrow panels.
