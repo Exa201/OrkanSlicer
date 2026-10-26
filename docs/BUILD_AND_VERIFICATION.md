@@ -1,3 +1,10 @@
+# Objektverbindung weist ungültige Transformationen vor der Änderung zurück — 2026-10-26
+
+- Die native Multipart-Verbindung prüft nun Ziel-, Instanz-, Volumen- und zusammengesetzte Welttransformationen auf endliche Werte und Invertierbarkeit, bevor Volumen vorbereitet oder Quellobjekte verändert werden. Damit kann eine beschädigte/importierte Null- oder Nicht-Endlich-Transformation nicht durch die inverse Zielmatrix in verbundene Geometrie übergehen.
+- Android 16: Der neue Test bestätigt, dass die öffentliche Skalierung Nullskalierung verwirft und die unveränderten Ziel-/Quellobjekte danach als druckbare Multipart-Geometrie verbinden kann (1/1). In demselben gezielten Lauf bestanden ungültige JNI-Eingaben, Flächenplatzierung mit 3MF-Rundlauf, eigenständiger 3D-Text mit Join/Slicing und Boolean-Union/Slicing (4/4). Zusammen 5 unterschiedliche Gerätetests bestanden; kein echter Druckstart.
+- Die isolierte Testkorrektur prüft die Summe beider Volumendreieckzahlen nach dem Join. Die vorherige Testfassung erwartete fälschlich nur die Dreieckzahl eines Einzelobjekts; das war kein Produktionsfehler.
+- Kein neuer APK-Build oder Release in diesem Schritt. Die öffentlich verfügbare `v0.8.386` enthält diese nachträgliche Join-Transformationsprüfung noch nicht.
+
 # OrkanSlicer 0.8.386 — native Boolean guards and release — 2026-10-26
 
 - Native code commit: `ad829bde2fef2c557f50ba091331b4c8987e3eb8`; release/version commit: `84c61da29c9c0c2acacad6c4dfd99bb20b5fa7df`. Version 0.8.386 / versionCode 421.

@@ -168,6 +168,36 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun zeroScaleIsRejectedBeforeJoiningAndBothObjectsRemainPrintableParts() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "singular-join-transform-cube.stl")
+        try {
+            for (scaleIndex in 0..1) {
+                val model = Model(modelFile)
+                try {
+                    model.addObject(model, 0)
+                    val scaleBefore = Vec3d()
+                    model.getScale(scaleIndex, scaleBefore)
+                    model.scale(scaleIndex, 0.0, 1.0, 1.0)
+                    val scaleAfter = Vec3d()
+                    model.getScale(scaleIndex, scaleAfter)
+                    val targetTriangles = model.getTriangleCount(0)
+                    val sourceTriangles = model.getTriangleCount(1)
+
+                    assertEquals("zero scale must be rejected before it creates a singular join transform",
+                        scaleBefore.x, scaleAfter.x, 1e-9)
+                    assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+                    assertEquals("both objects should be joined as printable parts", 1, model.objectsCount)
+                    assertEquals(targetTriangles + sourceTriangles, model.getTriangleCount(0))
+                    assertTrue("joined model keeps a non-zero printable volume", model.getObjectVolume(0) > 0.0)
+                } finally {
+                    model.release()
+                }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
     @Test fun embossRejectsMalformedNativeRequestsWithoutChangingTheModel() {
         val modelFile = copyAsset("models/xyz_cube.stl", "invalid-emboss-cube.stl")
         val fontFile = copyAsset("font/roboto_medium.ttf", "invalid-emboss-font.ttf")

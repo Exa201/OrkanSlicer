@@ -1845,6 +1845,11 @@ extern "C" {
 
             const int target_index = indices.front();
             ModelObject* target = ref->model.objects[target_index];
+            auto has_invertible_finite_transform = [](const Transform3d& transform) {
+                if (!transform.matrix().allFinite()) return false;
+                const double determinant = transform.linear().determinant();
+                return std::isfinite(determinant) && std::fabs(determinant) > 1e-12;
+            };
             auto has_valid_join_state = [](const ModelObject* object) {
                 return object != nullptr && !object->instances.empty() && !object->volumes.empty() &&
                     std::none_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) {
@@ -1856,7 +1861,9 @@ extern "C" {
             };
             if (!has_valid_join_state(target)) return -2;
             const Transform3d target_world = target->instances.front()->get_matrix();
+            if (!has_invertible_finite_transform(target_world)) return -2;
             const Transform3d world_to_target = target_world.inverse();
+            if (!has_invertible_finite_transform(world_to_target)) return -2;
             // Validate the entire operation before mutating the destination object. Linked
             // instances are materialized as parts below, so every placed copy remains visible
             // after the joined object is reduced to one instance.
@@ -1864,6 +1871,20 @@ extern "C" {
                 ModelObject* source = ref->model.objects[indices[n]];
                 if (!has_valid_join_state(source)) return -2;
             }
+            auto has_valid_volume_transforms = [&](const ModelObject* object) {
+                for (const ModelInstance* instance : object->instances) {
+                    if (!has_invertible_finite_transform(instance->get_matrix())) return false;
+                    for (const ModelVolume* volume : object->volumes) {
+                        const Transform3d world_volume = instance->get_matrix() * volume->get_matrix();
+                        if (!has_invertible_finite_transform(volume->get_matrix()) ||
+                            !has_invertible_finite_transform(world_volume)) return false;
+                    }
+                }
+                return true;
+            };
+            if (!has_valid_volume_transforms(target)) return -2;
+            for (size_t n = 1; n < indices.size(); ++n)
+                if (!has_valid_volume_transforms(ref->model.objects[indices[n]])) return -2;
             // Build all copied volumes off-object first. Appending incrementally would expose a
             // partial join if copying/configuration throws; deleting those volumes as rollback is
             // also unsafe because ModelObject::delete_volume collapses the last volume transform
