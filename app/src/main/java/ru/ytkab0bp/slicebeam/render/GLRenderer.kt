@@ -165,6 +165,10 @@ private var cutConnectorsVertexBuffer: java.nio.FloatBuffer? = null
 private var paintSession: PaintSession? = null
 @Volatile private var paintHistoryObserver: ((canUndo: Boolean, canRedo: Boolean) -> Unit)? = null
 var paintObject = -1
+/** Render-only base material preview while a color-paint session is still staged. */
+private var paintBaseFilamentPreview: Int? = null
+/** A size change reuses the EGL context; only a newly created context needs GL resource rebuild. */
+private var surfaceNeedsResourceRebuild = true
 // ---- Multi-color painting (all methods run on the GL thread) ----
  @Volatile var isPaintMode:Boolean = false
 var paintFilament = 2 // 1-based palette index; 1 = base, so default to first painted color
@@ -964,16 +968,16 @@ measurePointB = null
 init{
 this.glView = glView
 }
-override fun onSurfaceCreated(gl:GL10, config:EGLConfig) {}
+override fun onSurfaceCreated(gl:GL10, config:EGLConfig) {
+surfaceNeedsResourceRebuild = true
+}
 override fun onSurfaceChanged(gl:GL10, width:Int, height:Int) {
 if (width <= 0 || height <= 0) return
 viewportWidth = width
 viewportHeight = height
-if (bed != null)
-{
-onDestroy()
-}
-onCreate()
+if (bed != null && surfaceNeedsResourceRebuild) onDestroy()
+if (bed == null) onCreate()
+surfaceNeedsResourceRebuild = false
 glViewport(0, 0, width, height)
 updateProjection()
 }
@@ -1396,7 +1400,9 @@ val hovering = glModel.isHovering || selected
  val paintingThis = isPaintMode && i == paintObject
 // While painting, show the live session overlays; otherwise the persisted committed ones.
  val overlays = if (paintingThis) paintOverlays else getCommittedOverlays(i)
-val baseFilament = (this.model!!.getUsedFilaments(i).firstOrNull() ?: 1) - 1
+val baseFilament = ((if (paintingThis) paintBaseFilamentPreview else null)
+    ?: this.model!!.getUsedFilaments(i).firstOrNull()
+    ?: 1) - 1
 val baseColor = paintPalette.getOrNull(baseFilament) ?: color
 glModel.setColor(ColorUtils.blendARGB(baseColor, Color.WHITE, if (hovering) 0.4f else 0f))
 glModel.render()
@@ -2045,11 +2051,11 @@ internal fun duplicateSelectedObjects(copies: Int, expectedSelection: ModelSelec
         sourceGroup.release()
     }
 }
-@JvmOverloads fun beginPaint(objIdx:Int, mode:Int = PAINT_MODE_COLOR) {
-if (this.model == null || objIdx < 0 || objIdx >= this.model!!.objectsCount) return
+@JvmOverloads fun beginPaint(objIdx:Int, mode:Int = PAINT_MODE_COLOR): Boolean {
+if (this.model == null || objIdx < 0 || objIdx >= this.model!!.objectsCount) return false
 // A paint session copies facet state and overlays. Refuse the high-memory path even if
 // another caller skipped the UI check; the user may explicitly simplify first.
-if (LargeModelPick.needsPreciseSurfaceSimplification(this.model!!.getTriangleCount(objIdx))) return
+if (LargeModelPick.needsPreciseSurfaceSimplification(this.model!!.getTriangleCount(objIdx))) return false
 endPaintInternal(false)
 // Ensure the object's GLModel + raycast data exist (built lazily in onDrawFrame otherwise).
  while (glModels.size <= objIdx)
@@ -2066,13 +2072,16 @@ paintModeKind = mode
 paintSession = PaintSession(this.model!!, objIdx, mode)
 if (!paintSession!!.isValid()) {
 paintSession = null
-return
+Log.e("GLRenderer", "Could not start paint session for object=$objIdx mode=$mode")
+return false
 }
 paintObject = objIdx
 isPaintMode = true
+paintBaseFilamentPreview = null
 paintPalette = Prefs.getFilamentPalette()
 rebuildPaintOverlays()
 notifyPaintHistoryChanged()
+return true
 }
 fun setPaintHistoryObserver(observer: ((Boolean, Boolean) -> Unit)?) {
     paintHistoryObserver = observer
@@ -2125,6 +2134,7 @@ for (o in paintOverlays) o.model.release()
 paintOverlays.clear()
 if (paintObject != -1) invalidateCommittedOverlays(paintObject) // rebuild persisted view from committed data
 paintObject = -1
+paintBaseFilamentPreview = null
 isPaintMode = false
 notifyPaintHistoryChanged()
 }
@@ -2152,11 +2162,15 @@ internal fun setObjectUniformFilamentIfCurrent(
     invalidateCommittedOverlays(i)
     return 1
 }
-/** Clear the session's imported facet draft before committing a uniform filament choice. */
-fun clearPaintDraftForUniformFilament() {
-if (paintSession == null) return
+/** Stage a uniform base filament for live rendering without mutating the model before Done. */
+fun previewPaintBaseFilament(filament: Int) {
+if (paintSession == null || paintObject < 0 || filament <= 0) return
+if (paintBaseFilamentPreview == filament) return
+// A uniform base choice intentionally replaces any imported or newly painted facet
+// assignments in this draft. Clearing the session prevents commit from restoring them.
 paintSession!!.clear()
 paintSession!!.resetHistory()
+paintBaseFilamentPreview = filament
 rebuildPaintOverlays()
 notifyPaintHistoryChanged()
 }

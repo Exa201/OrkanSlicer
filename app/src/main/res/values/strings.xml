@@ -1245,6 +1245,8 @@
     <string name="VariableLayerDefault">Default (constant)</string>
     <string name="PaintBaseFilament">Base filament</string>
     <string name="PaintWith">Paint with</string>
+    <string name="PaintColorTitle">Color painting</string>
+    <string name="PaintModeStartFailed">Could not start painting for this model.</string>
     <string name="PaintFuzzy">Fuzzy</string>
     <string name="PaintEnforce">Enforce</string>
     <string name="PaintBlock">Block</string>

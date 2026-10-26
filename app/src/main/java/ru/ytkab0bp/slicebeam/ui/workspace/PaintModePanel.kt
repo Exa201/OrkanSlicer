@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -58,6 +59,7 @@ internal fun PaintModePanel(
     val colorMode = mode == GLRenderer.PAINT_MODE_COLOR
     var selectedFilament by remember { mutableIntStateOf(if (colorMode && slots.size >= 2) 2 else 1) }
     var selectedBaseFilament by remember { mutableIntStateOf(0) }
+    var selectingBaseFilament by remember { mutableStateOf(false) }
     var selectedTool by remember { mutableIntStateOf(GLRenderer.PAINT_TOOL_BRUSH) }
     var brushEnabled by remember { mutableStateOf(true) }
     var brushSphere by remember { mutableStateOf(glView.renderer.isBrushSphere) }
@@ -94,7 +96,6 @@ internal fun PaintModePanel(
         }
         onDispose {
             glView.queueEvent { glView.renderer.setPaintHistoryObserver(null) }
-            onCancel()
         }
     }
 
@@ -102,28 +103,44 @@ internal fun PaintModePanel(
         Modifier.fillMaxWidth().heightIn(max = 640.dp).verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(stringResource(R.string.PaintWith), style = MaterialTheme.typography.titleMedium)
         if (colorMode) {
-            Text(stringResource(R.string.PaintBaseFilament), style = MaterialTheme.typography.labelLarge)
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                slots.forEachIndexed { index, slot ->
-                    FilamentSwatch(slot, index + 1, selected = selectedBaseFilament == index + 1) {
-                        selectedBaseFilament = index + 1
-                        // Keep uniform reassignment as a draft. Clearing the session selector
-                        // prevents commit from restoring stale 3MF facet assignments.
-                        onGl { glView.renderer.clearPaintDraftForUniformFilament() }
-                    }
-                }
+            Text(stringResource(R.string.PaintColorTitle), style = MaterialTheme.typography.titleMedium)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = selectingBaseFilament,
+                    onClick = { selectingBaseFilament = true },
+                    label = { Text(stringResource(R.string.PaintBaseFilament)) },
+                    modifier = Modifier.testTag("paint-palette-role-base"),
+                )
+                FilterChip(
+                    selected = !selectingBaseFilament,
+                    onClick = { selectingBaseFilament = false },
+                    label = { Text(stringResource(R.string.PaintWith)) },
+                    modifier = Modifier.testTag("paint-palette-role-paint"),
+                )
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 slots.forEachIndexed { index, slot ->
-                    FilamentSwatch(slot, index + 1, selected = selectedFilament == index + 1) {
-                        selectedFilament = index + 1
-                        onGl { glView.renderer.paintFilament = index + 1 }
+                    val filament = index + 1
+                    FilamentSwatch(
+                        slot,
+                        filament,
+                        selected = if (selectingBaseFilament) selectedBaseFilament == filament else selectedFilament == filament,
+                        testTag = "paint-filament-swatch-$filament",
+                    ) {
+                        if (selectingBaseFilament) {
+                            selectedBaseFilament = filament
+                            // Preview immediately on the GL thread; persist only on Done.
+                            onGl { glView.renderer.previewPaintBaseFilament(filament) }
+                        } else {
+                            selectedFilament = filament
+                            onGl { glView.renderer.paintFilament = filament }
+                        }
                     }
                 }
             }
         } else {
+            Text(stringResource(R.string.PaintWith), style = MaterialTheme.typography.titleMedium)
             val states = buildList {
                 add(1 to if (mode == GLRenderer.PAINT_MODE_FUZZY) R.string.PaintFuzzy else R.string.PaintEnforce)
                 if (mode != GLRenderer.PAINT_MODE_FUZZY) add(2 to R.string.PaintBlock)
@@ -206,7 +223,13 @@ internal fun PaintModePanel(
 }
 
 @Composable
-private fun FilamentSwatch(slot: FilamentSlot, index: Int, selected: Boolean = false, onClick: () -> Unit) {
+private fun FilamentSwatch(
+    slot: FilamentSlot,
+    index: Int,
+    selected: Boolean = false,
+    testTag: String? = null,
+    onClick: () -> Unit,
+) {
     val type = slot.type?.takeIf(String::isNotBlank) ?: stringResource(R.string.FilamentType)
     val description = stringResource(R.string.FilamentPaletteSlotDescription, index, type)
     val swatchColor = Color(slot.color or 0xFF000000.toInt())
@@ -217,7 +240,11 @@ private fun FilamentSwatch(slot: FilamentSlot, index: Int, selected: Boolean = f
             .background(swatchColor)
             .border(3.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
             .clickable(onClick = onClick)
-            .semantics { contentDescription = description; this.selected = selected },
+            .semantics {
+                contentDescription = description
+                this.selected = selected
+            }
+            .then(if (testTag == null) Modifier else Modifier.testTag(testTag)),
         contentAlignment = androidx.compose.ui.Alignment.Center,
     ) {
         Text(index.toString(), color = Color(textColor), style = MaterialTheme.typography.labelLarge)

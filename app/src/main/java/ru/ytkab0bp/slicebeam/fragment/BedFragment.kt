@@ -94,6 +94,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceSnackbarController
 import ru.ytkab0bp.slicebeam.render.PrimeTowerObstacle
 import ru.ytkab0bp.slicebeam.render.PrimeTowerDragLogic
 import ru.ytkab0bp.slicebeam.render.PrimeTowerPlacementMap
+import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.ui.workspace.RendererAdapter
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceController
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspacePanelDimension
@@ -1269,7 +1270,12 @@ private fun requestPaintMode(expectedObjectIndex: Int?, mode: Int) {
                         }
                         return@queueEvent
                     }
-                    activeRenderer.beginPaint(objectIndex, mode)
+                    if (!activeRenderer.beginPaint(objectIndex, mode)) {
+                        ViewUtils.postOnMainThread {
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.PaintModeStartFailed))
+                        }
+                        return@queueEvent
+                    }
                     view.requestRender()
                     ViewUtils.postOnMainThread {
                         if (!destroyed && glView === view && overlayLayout != null) {
@@ -1294,6 +1300,7 @@ private fun showPaintModePanel(currentGlView: GLView, mode: Int) {
             ),
             landscape = WorkspacePanelDimension.Fixed(280f),
         ),
+        dockPanel = mode == GLRenderer.PAINT_MODE_COLOR,
     ) {
         PaintModePanel(
             glView = currentGlView,
@@ -1403,9 +1410,10 @@ private fun showWorkspaceModePanel(
     toolId: String,
     onDismiss: () -> Unit,
     panelSize: WorkspacePanelSize? = null,
+    dockPanel: Boolean = false,
     content: @Composable () -> Unit,
 ): Unit {
-    workspaceController.selectToolWithPanel(toolId, onDismiss, content, panelSize)
+    workspaceController.selectToolWithPanel(toolId, onDismiss, content, panelSize, dockPanel)
 }
 private fun removeModePanelHost(toolId: String) {
     workspaceController.clearTool(toolId)

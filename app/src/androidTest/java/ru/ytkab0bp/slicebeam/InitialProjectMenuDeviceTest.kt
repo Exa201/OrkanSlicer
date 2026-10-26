@@ -7786,10 +7786,20 @@ class InitialProjectMenuDeviceTest {
                 revealMenuAction(activity, labelRes)
                 compose.onNodeWithContentDescription(activity.getString(labelRes))
                     .performScrollTo().assertIsDisplayed().performClick()
-                compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
-                compose.waitUntil(timeoutMillis = 10_000) {
-                    bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+                val paintStarted = runCatching {
+                    compose.waitUntil(timeoutMillis = 10_000) {
+                        bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+                    }
                 }
+                assertTrue(
+                    "Paint mode $expectedMode did not remain active: bed=${bed.isPaintMode}, " +
+                        "renderer=${readRendererBooleanOnGl(glView, "isPaintMode")}, " +
+                        "rendererMode=${readRendererIntOnGl(glView, "paintModeKind")}",
+                    paintStarted.isSuccess,
+                )
+                compose.onNodeWithText(
+                    activity.getString(if (expectedMode == GLRenderer.PAINT_MODE_COLOR) R.string.PaintColorTitle else R.string.PaintWith)
+                ).assertIsDisplayed()
                 assertEquals("The selected menu action must activate its matching GL paint mode",
                     expectedMode, readRendererIntOnGl(glView, "paintModeKind"))
                 assertFalse("Opening or cancelling paint must not add model paint",
@@ -7811,20 +7821,45 @@ class InitialProjectMenuDeviceTest {
             revealMenuAction(activity, R.string.MenuToolbarColorPaint)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
                 .performScrollTo().assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 10_000) {
-                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            val secondPaintStart = runCatching {
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+                }
             }
+            assertTrue(
+                "Second color paint did not start: bed=${bed.isPaintMode}, " +
+                    "renderer=${readRendererBooleanOnGl(glView, "isPaintMode")}, " +
+                    "rendererMode=${readRendererIntOnGl(glView, "paintModeKind")}, " +
+                    "selected=${readSelectedObjectOnGl(glView)}",
+                secondPaintStart.isSuccess,
+            )
             assertTrue("the GL viewport must stay measurable while painting", glView.height > 0)
             compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+            val paintViewportBounds = compose.onNodeWithTag("workspace-renderer-area")
+                .fetchSemanticsNode().boundsInRoot
+            val paintControlsBounds = compose.onNodeWithTag("workspace-docked-tool-panel")
+                .fetchSemanticsNode().boundsInRoot
+            assertTrue(
+                "The paint controls must leave the build-plate viewport visible below them; " +
+                    "renderer=$paintViewportBounds controls=$paintControlsBounds",
+                paintViewportBounds.height >= 150f * activity.resources.displayMetrics.density &&
+                    paintViewportBounds.bottom <= paintControlsBounds.top + 1f,
+            )
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).performClick()
             compose.onAllNodesWithContentDescription(
                 activity.getString(R.string.FilamentPaletteSlotDescription, 2, "UI Paint Accent")
             ).get(0).assertIsDisplayed().performClick()
+            assertEquals("the alternate base filament should be staged for an immediate color preview", 2,
+                readRendererNullableIntOnGl(glView, "paintBaseFilamentPreview"))
             assertArrayEquals("a base-filament choice remains a draft until confirmed", intArrayOf(1),
                 readUsedFilamentsOnGl(glView, 0))
-            compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("workspace-docked-tool-panel").performTouchInput { swipeUp() }
             compose.onNodeWithText(activity.getString(android.R.string.cancel)).performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
             instrumentationWaitForGlIdle()
+            assertEquals("cancelling must clear the staged base color preview", null,
+                readRendererNullableIntOnGl(glView, "paintBaseFilamentPreview"))
             assertArrayEquals(
                 "cancelling a paint session must restore the model's original base filament",
                 intArrayOf(1), readUsedFilamentsOnGl(glView, 0),
@@ -7838,16 +7873,22 @@ class InitialProjectMenuDeviceTest {
                 bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
             }
             compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).performClick()
             compose.onAllNodesWithContentDescription(
                 activity.getString(R.string.FilamentPaletteSlotDescription, 2, "UI Paint Accent")
             ).get(0).assertIsDisplayed().performClick()
+            assertEquals("the selected base filament should preview before confirmation", 2,
+                readRendererNullableIntOnGl(glView, "paintBaseFilamentPreview"))
             assertArrayEquals("choosing a base filament must not mutate the model before Done", intArrayOf(1),
                 readUsedFilamentsOnGl(glView, 0))
-            compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("workspace-docked-tool-panel").performTouchInput { swipeUp() }
             compose.onNodeWithText(activity.getString(R.string.ActionDone))
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
             instrumentationWaitForGlIdle()
+            assertEquals("committing must clear the staged preview after applying the chosen base", null,
+                readRendererNullableIntOnGl(glView, "paintBaseFilamentPreview"))
             assertArrayEquals("the confirmed color-panel base-filament action should update the native model",
                 intArrayOf(2), readUsedFilamentsOnGl(glView, 0))
             assertFalse("changing the base filament should not fabricate facet paint",
@@ -7887,7 +7928,7 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
             }
-            revealPaintFilamentSwatch(activity, 2, "Touch Paint Accent", occurrence = 1)
+            revealPaintFilamentSwatch(activity, 2, "Touch Paint Accent", occurrence = 0)
                 .performClick()
 
             val point = findUncoveredPreciseSurfacePoint(glView, bed)
@@ -7901,7 +7942,7 @@ class InitialProjectMenuDeviceTest {
             // draft session. Undoing the second must restore the first; Undo again must restore
             // the original unpainted selector. Redo must replay those states in order.
             val secondPoint = findUncoveredPreciseSurfacePoint(glView, bed, avoid = point)
-            revealPaintFilamentSwatch(activity, 1, "Touch Paint Base", occurrence = 1).performClick()
+            revealPaintFilamentSwatch(activity, 1, "Touch Paint Base", occurrence = 0).performClick()
             injectCanvasStroke(glView, secondPoint.first, secondPoint.second)
             assertTrue("the second stroke should create a preview for the first filament",
                 readPaintPreviewTriangleCountOnGl(glView, 1) > 0)
@@ -8911,6 +8952,21 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return renderer state $fieldName", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(value.get())
+    }
+
+    private fun readRendererNullableIntOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        fieldName: String,
+    ): Int? {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Int?>()
+        glView.queueEvent {
+            val field = glView.renderer.javaClass.getDeclaredField(fieldName).apply { isAccessible = true }
+            value.set(field.get(glView.renderer) as? Int)
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return renderer state $fieldName", finished.await(10, TimeUnit.SECONDS))
+        return value.get()
     }
 
     private fun readModelHasPaintOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Boolean {

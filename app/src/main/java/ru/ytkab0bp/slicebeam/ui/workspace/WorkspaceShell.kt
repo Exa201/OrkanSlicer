@@ -187,11 +187,13 @@ internal fun WorkspaceShell(
                         }
                     }
                     if (dockHeight > 0) {
-                        androidx.compose.material3.Surface(
-                            modifier = Modifier.fillMaxWidth().height(dockHeight.dp).testTag("workspace-docked-tool-panel"),
-                            color = MaterialTheme.colorScheme.surface,
-                            shadowElevation = 4.dp,
-                        ) { modePanelContent?.invoke() }
+                        Box(Modifier.fillMaxWidth().height(dockHeight.dp).testTag("workspace-mode-panel")) {
+                            androidx.compose.material3.Surface(
+                                modifier = Modifier.fillMaxSize().testTag("workspace-docked-tool-panel"),
+                                color = MaterialTheme.colorScheme.surface,
+                                shadowElevation = 4.dp,
+                            ) { modePanelContent?.invoke() }
+                        }
                     }
                 }
             }
@@ -249,12 +251,13 @@ internal fun WorkspaceShell(
                                 modifier = Modifier.fillMaxWidth().weight(1f).testTag("workspace-renderer-area"),
                             )
                             if (dockHeight > 0) {
-                                androidx.compose.material3.Surface(
-                                    modifier = Modifier.fillMaxWidth().height(dockHeight.dp)
-                                        .testTag("workspace-docked-tool-panel"),
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shadowElevation = 4.dp,
-                                ) { modePanelContent?.invoke() }
+                                Box(Modifier.fillMaxWidth().height(dockHeight.dp).testTag("workspace-mode-panel")) {
+                                    androidx.compose.material3.Surface(
+                                        modifier = Modifier.fillMaxSize().testTag("workspace-docked-tool-panel"),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shadowElevation = 4.dp,
+                                    ) { modePanelContent?.invoke() }
+                                }
                             }
                         }
                     } else {
@@ -264,12 +267,13 @@ internal fun WorkspaceShell(
                                 modifier = Modifier.weight(1f).fillMaxHeight().testTag("workspace-renderer-area"),
                             )
                             if (dockWidth > 0) {
-                                androidx.compose.material3.Surface(
-                                    modifier = Modifier.width(dockWidth.dp).fillMaxHeight()
-                                        .testTag("workspace-docked-tool-panel"),
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shadowElevation = 4.dp,
-                                ) { modePanelContent?.invoke() }
+                                Box(Modifier.width(dockWidth.dp).fillMaxHeight().testTag("workspace-mode-panel")) {
+                                    androidx.compose.material3.Surface(
+                                        modifier = Modifier.fillMaxSize().testTag("workspace-docked-tool-panel"),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shadowElevation = 4.dp,
+                                    ) { modePanelContent?.invoke() }
+                                }
                             }
                         }
                     }

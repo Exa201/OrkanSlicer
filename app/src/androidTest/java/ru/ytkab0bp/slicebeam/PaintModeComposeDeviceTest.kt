@@ -1,7 +1,10 @@
 package ru.ytkab0bp.slicebeam
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -13,6 +16,8 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
 import ru.ytkab0bp.slicebeam.ui.workspace.PaintModePanel
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.view.GLView
 
 /** Verifies the Compose paint controls and their accessible, dismissible mode actions. */
@@ -71,5 +76,34 @@ class PaintModeComposeDeviceTest {
 
         compose.onNodeWithText(context.getString(R.string.ActionDone)).assertIsDisplayed().performClick()
         compose.runOnIdle { assertTrue(committed && !cancelled) }
+    }
+
+    @Test
+    fun colorPaintUsesOnePaletteAndSeparatesBaseFromBrushColor() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lateinit var glView: GLView
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "Palette Base"),
+            FilamentSlot(0xFF3366CC.toInt(), "Palette Accent"),
+        ))
+        compose.runOnUiThread { glView = GLView(context) }
+        try {
+            compose.setContent {
+                BeamComposeTheme {
+                    PaintModePanel(glView, GLRenderer.PAINT_MODE_COLOR, {}, {})
+                }
+            }
+
+            compose.onNodeWithTag("paint-palette-role-base").assertIsDisplayed()
+            compose.onNodeWithTag("paint-palette-role-paint").assertIsDisplayed()
+            compose.onAllNodesWithTag("paint-filament-swatch-1").assertCountEquals(1)
+            compose.onAllNodesWithTag("paint-filament-swatch-2").assertCountEquals(1)
+            compose.onNodeWithTag("paint-filament-swatch-1").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("paint-palette-role-paint").performClick()
+            compose.onNodeWithTag("paint-filament-swatch-2").performClick()
+        } finally {
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
     }
 }
