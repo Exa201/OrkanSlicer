@@ -68,6 +68,22 @@ open class Model private constructor(@JvmField var pointer: Long) {
         max.set(data[3], data[4], data[5])
     }
 
+    /** Minimum world-space mesh projection for a group of printable objects along a direction. */
+    open fun getMinimumProjection(objectIndices: IntArray, direction: Vec3d): Double? {
+        if (pointer == 0L || objectIndices.isEmpty() || objectIndices.any { !hasObject(it) } ||
+            !direction.x.isFinite() || !direction.y.isFinite() || !direction.z.isFinite()
+        ) return null
+        val length = kotlin.math.sqrt(
+            direction.x * direction.x + direction.y * direction.y + direction.z * direction.z,
+        )
+        if (!length.isFinite() || length <= 1e-9) return null
+        return Native.model_get_minimum_projection(
+            pointer,
+            objectIndices,
+            doubleArrayOf(direction.x / length, direction.y / length, direction.z / length),
+        ).takeIf { it.isFinite() }
+    }
+
     open val boundingBoxExactMin: Vec3d
         get() {
         val bounds = boundingExact ?: Native.model_get_bounding_box_exact_global(pointer).also {

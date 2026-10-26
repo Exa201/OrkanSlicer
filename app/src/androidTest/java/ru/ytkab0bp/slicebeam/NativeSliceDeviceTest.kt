@@ -844,6 +844,40 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun tiltedSurfacePlacementUsesExactMeshSupportAndIncludesLinkedInstances() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "tilted-surface-support.stl")
+        val model = Model(modelFile)
+        try {
+            model.translate(0, 13.0, -7.0, 4.0)
+            val direction = Vec3d(1.0, 0.0, 1.0)
+            val minimumProjection = requireNotNull(model.getMinimumProjection(intArrayOf(0), direction))
+            val unit = 1.0 / kotlin.math.sqrt(2.0)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val boundsMinimum = min.x * unit + min.z * unit
+            assertTrue("sphere mesh support should be tighter than its diagonal AABB corner",
+                minimumProjection > boundsMinimum + 0.05)
+
+            val targetPoint = Vec3d(40.0, 12.0, 25.0)
+            val bounds = ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            val delta = requireNotNull(ObjectPlacement.onSurface(bounds, targetPoint, direction, minimumProjection))
+            val targetProjection = targetPoint.x * unit + targetPoint.z * unit
+            assertEquals("the actual sphere mesh must touch the picked plane",
+                targetProjection, minimumProjection + delta.x * unit + delta.z * unit, 0.001)
+
+            val beforeLinkedInstance = minimumProjection
+            assertTrue(model.duplicateInstance(0, 0, Vec3d(-20.0, 0.0, 0.0)) >= 0)
+            val withLinkedInstance = requireNotNull(model.getMinimumProjection(intArrayOf(0), direction))
+            assertEquals("support should include linked instance transforms", beforeLinkedInstance - 20.0 * unit,
+                withLinkedInstance, 0.01)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun sideSurfacePlacedObjectsRemainPrintableAfterThreeMfReload() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "placed-side-surface.stl")

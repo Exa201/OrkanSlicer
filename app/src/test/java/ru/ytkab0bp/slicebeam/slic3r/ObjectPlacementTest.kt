@@ -66,6 +66,33 @@ class ObjectPlacementTest {
         assertEquals("the group center should stay over the picked point", 0.0, projectedCenter - 8.4, 1e-9)
     }
 
+    @Test fun exactMeshSupportCanReplaceConservativeBoundsSupportOnTiltedFaces() {
+        val moving = ObjectBounds3D(0.0, 0.0, 0.0, 10.0, 8.0, 6.0)
+        val point = Vec3d(20.0, -5.0, 30.0)
+        val normal = Vec3d(1.0, 0.0, 1.0)
+        val length = kotlin.math.sqrt(2.0)
+        val unitNormal = Vec3d(1.0 / length, 0.0, 1.0 / length)
+        val actualMeshMinimum = -2.0
+        val delta = requireNotNull(ObjectPlacement.onSurface(moving, point, normal, actualMeshMinimum))
+
+        val pointProjection = point.x * unitNormal.x + point.z * unitNormal.z
+        val placedMinimumProjection = actualMeshMinimum +
+            delta.x * unitNormal.x + delta.z * unitNormal.z
+        assertEquals("the mesh support point should touch the picked plane", pointProjection,
+            placedMinimumProjection, 1e-9)
+        val centerX = (moving.minX + moving.maxX) / 2.0 + delta.x
+        val centerY = (moving.minY + moving.maxY) / 2.0 + delta.y
+        val centerZ = (moving.minZ + moving.maxZ) / 2.0 + delta.z
+        val centerOffsetAlongPlane = (centerX - point.x) * unitNormal.x +
+            (centerY - point.y) * unitNormal.y + (centerZ - point.z) * unitNormal.z
+        val centerProjection = moving.let {
+            ((it.minX + it.maxX) / 2.0) * unitNormal.x + ((it.minY + it.maxY) / 2.0) * unitNormal.y +
+                ((it.minZ + it.maxZ) / 2.0) * unitNormal.z
+        }
+        assertEquals("the group stays aligned above the picked point", centerProjection - actualMeshMinimum,
+            centerOffsetAlongPlane, 1e-9)
+    }
+
     @Test fun sideSurfacePlacementKeepsTheWholeGroupOutsideThePickedPlane() {
         val moving = ObjectBounds3D(0.0, 0.0, 0.0, 2.0, 2.0, 1.0)
         val point = Vec3d(10.0, 10.0, 5.0)

@@ -1126,6 +1126,47 @@ extern "C" {
         return arr;
     }
 
+    JNIEXPORT jdouble JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1minimum_1projection(
+            JNIEnv* env, jclass, jlong ptr, jintArray object_indices, jdoubleArray direction_array) {
+        const double invalid = std::numeric_limits<double>::quiet_NaN();
+        if (ptr == 0 || object_indices == nullptr || direction_array == nullptr ||
+            env->GetArrayLength(direction_array) != 3) return invalid;
+        const jsize count = env->GetArrayLength(object_indices);
+        if (count <= 0) return invalid;
+        std::vector<jint> indices(static_cast<size_t>(count));
+        jdouble direction_values[3];
+        env->GetIntArrayRegion(object_indices, 0, count, indices.data());
+        env->GetDoubleArrayRegion(direction_array, 0, 3, direction_values);
+        if (env->ExceptionCheck()) return invalid;
+        const Vec3d direction(direction_values[0], direction_values[1], direction_values[2]);
+        const double direction_length = direction.norm();
+        if (!std::isfinite(direction_length) || direction_length <= 1e-9) return invalid;
+        const Vec3d unit_direction = direction / direction_length;
+
+        const ModelRef* ref = reinterpret_cast<const ModelRef*>(static_cast<intptr_t>(ptr));
+        double minimum_projection = std::numeric_limits<double>::infinity();
+        bool found_vertex = false;
+        for (jint index : indices) {
+            if (index < 0 || static_cast<size_t>(index) >= ref->model.objects.size()) return invalid;
+            const ModelObject* object = ref->model.objects[index];
+            for (const ModelVolume* volume : object->volumes) {
+                if (!volume->is_model_part()) continue;
+                const indexed_triangle_set& mesh = volume->mesh().its;
+                for (const ModelInstance* instance : object->instances) {
+                    const Transform3d to_world = instance->get_matrix() * volume->get_matrix();
+                    for (const Vec3f& vertex : mesh.vertices) {
+                        const Vec3d world = to_world * vertex.cast<double>();
+                        const double projection = world.dot(unit_direction);
+                        if (!std::isfinite(projection)) return invalid;
+                        minimum_projection = std::min(minimum_projection, projection);
+                        found_vertex = true;
+                    }
+                }
+            }
+        }
+        return found_vertex ? minimum_projection : invalid;
+    }
+
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1bounding_1box_1approx_1global(JNIEnv* env, jclass, jlong ptr) {
         ModelRef* ref = (ModelRef*) (intptr_t) ptr;
         jdoubleArray arr = env->NewDoubleArray(6);

@@ -49,6 +49,7 @@ internal object ObjectPlacement {
         moving: ObjectBounds3D,
         point: Vec3d,
         surfaceNormal: Vec3d = Vec3d(0.0, 0.0, 1.0),
+        minimumSupportProjection: Double? = null,
     ): ObjectPlacementDelta? {
         val values = listOf(
             moving.minX, moving.minY, moving.minZ, moving.maxX, moving.maxY, moving.maxZ,
@@ -73,10 +74,16 @@ internal object ObjectPlacement {
         val centerX = midpoint(moving.minX, moving.maxX)
         val centerY = midpoint(moving.minY, moving.maxY)
         val centerZ = midpoint(moving.minZ, moving.maxZ)
+        val centerProjection = centerX * nx + centerY * ny + centerZ * nz
+        val pointProjection = point.x * nx + point.y * ny + point.z * nz
+        val supportProjection = minimumSupportProjection ?: (centerProjection - supportRadius)
+        if (!centerProjection.isFinite() || !pointProjection.isFinite() || !supportProjection.isFinite()) return null
+        val centerToPointProjection = pointProjection - centerProjection
+        val normalOffset = pointProjection - supportProjection
         val delta = ObjectPlacementDelta(
-            x = point.x - centerX + nx * supportRadius,
-            y = point.y - centerY + ny * supportRadius,
-            z = point.z - centerZ + nz * supportRadius,
+            x = point.x - centerX - nx * centerToPointProjection + nx * normalOffset,
+            y = point.y - centerY - ny * centerToPointProjection + ny * normalOffset,
+            z = point.z - centerZ - nz * centerToPointProjection + nz * normalOffset,
         )
         return delta.takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
     }
@@ -87,9 +94,10 @@ internal object ObjectPlacement {
         point: Vec3d,
         surfaceNormal: Vec3d,
         penetrationMm: Double = 0.8,
+        minimumSupportProjection: Double? = null,
     ): ObjectPlacementDelta? {
         if (!penetrationMm.isFinite() || penetrationMm <= 0.0 || penetrationMm > 5.0) return null
-        val placement = onSurface(moving, point, surfaceNormal) ?: return null
+        val placement = onSurface(moving, point, surfaceNormal, minimumSupportProjection) ?: return null
         val length = kotlin.math.sqrt(
             surfaceNormal.x * surfaceNormal.x + surfaceNormal.y * surfaceNormal.y + surfaceNormal.z * surfaceNormal.z,
         )

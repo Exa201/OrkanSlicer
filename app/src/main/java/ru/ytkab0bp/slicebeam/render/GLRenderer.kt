@@ -629,10 +629,13 @@ internal fun placeSelectedObjectsOnSurface(
             return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
         }
         val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
+        val minimumSupportProjection = activeModel.getMinimumProjection(movingIndices.toIntArray(), normal) ?: return -1
         val delta = if (booleanOperation == null) {
-            ObjectPlacement.onSurface(movingBounds, position, normal)
+            ObjectPlacement.onSurface(movingBounds, position, normal, minimumSupportProjection)
         } else {
-            ObjectPlacement.forSurfaceBoolean(movingBounds, position, normal)
+            ObjectPlacement.forSurfaceBoolean(
+                movingBounds, position, normal, minimumSupportProjection = minimumSupportProjection,
+            )
         } ?: return -1
         if (booleanOperation == null) placeAndCombineWithTarget(targetIndex, movingIndices, delta)
         else placeAndBooleanWithTarget(targetIndex, movingIndices, delta, booleanOperation)

@@ -135,6 +135,8 @@ class Native {
     @JvmStatic
     external fun model_get_bounding_box_exact(ptr: Long, i: Int): DoubleArray
     @JvmStatic
+    external fun model_get_minimum_projection(ptr: Long, objectIndices: IntArray, direction: DoubleArray): Double
+    @JvmStatic
     external fun model_get_bounding_box_approx(ptr: Long, i: Int): DoubleArray
     @JvmStatic
     external fun model_get_bounding_box_exact_global(ptr: Long): DoubleArray
