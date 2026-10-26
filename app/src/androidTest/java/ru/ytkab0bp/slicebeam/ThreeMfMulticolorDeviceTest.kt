@@ -18,9 +18,11 @@ import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaFilamentSettingsCatalog
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalog
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 
 /** Reproducible bundled 3MF fixture keeps multicolor integration coverage runnable on every device. */
@@ -170,6 +172,92 @@ class ThreeMfMulticolorDeviceTest {
             result?.release()
             model?.release()
             destination.delete()
+            source.delete()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+        }
+    }
+
+    @Test fun fillBedCopiesSelectedThreeMfColorWithoutChangingOtherObjectsAndSlicesAllTools() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val source = copyFixture(context.cacheDir, "three-color-fill-bed-source.3mf")
+        val project = File(context.cacheDir, "three-color-fill-bed-roundtrip.3mf")
+        val destination = File(context.cacheDir, "three-color-fill-bed.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("orca_profiles/Anycubic.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            requireNotNull(SliceBeam.requireConfig().findFilament("Anycubic Generic PLA"))
+                .put("filament_start_gcode", "")
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            model = Model(source, 1)
+            assertEquals(3, model.objectsCount)
+            val originalAssignments = listOf(intArrayOf(1), intArrayOf(2), intArrayOf(3))
+            originalAssignments.forEachIndexed { index, assignment ->
+                assertArrayEquals("source object $index should retain its original slot", assignment,
+                    model.getUsedFilaments(index))
+            }
+
+            val added = FillBedModelOperation.run(
+                activeModel = model,
+                objectIndex = 1,
+                viewerEnabled = false,
+                estimatedCapacity = 5,
+            ) { candidate ->
+                for (index in 0 until candidate.objectsCount) {
+                    val current = Vec3d()
+                    candidate.getTranslation(index, current)
+                    candidate.translate(index, index * 30.0 - current.x, -current.y, -current.z)
+                }
+                candidate.objectsCount <= 5
+            }
+            assertEquals("two copies of the selected model should be committed", 2, added)
+            assertEquals(5, model.objectsCount)
+            listOf(intArrayOf(1), intArrayOf(2), intArrayOf(3), intArrayOf(2), intArrayOf(2))
+                .forEachIndexed { index, expected ->
+                    assertArrayEquals("bed-filled object $index should preserve the correct source slot", expected,
+                        model.getUsedFilaments(index))
+                }
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(configFile.absolutePath, project.absolutePath)
+            restored = Model(project, 1)
+            assertEquals(5, restored.objectsCount)
+            listOf(intArrayOf(1), intArrayOf(2), intArrayOf(3), intArrayOf(2), intArrayOf(2))
+                .forEachIndexed { index, expected ->
+                    assertArrayEquals("3MF reload should preserve the slot for object $index", expected,
+                        restored.getUsedFilaments(index))
+                }
+
+            result = restored.slice(configFile.absolutePath, destination.absolutePath, null)
+            val toolsUsed = BooleanArray(3)
+            val toolCommand = Regex("^T([0-2])(?:\\s|$)")
+            destination.useLines { lines -> lines.forEach { line ->
+                toolCommand.find(line)?.groupValues?.get(1)?.toInt()?.let { toolsUsed[it] = true }
+            } }
+            for (tool in toolsUsed.indices) {
+                assertTrue("Slicing the filled multicolor project must emit T$tool", toolsUsed[tool])
+            }
+            assertTrue("Slicing must produce deposited extrusion", destination.useLines { lines ->
+                lines.any { it.startsWith("G1 ") && Regex("\\bE[0-9.-]+").containsMatchIn(it) }
+            })
+        } finally {
+            result?.release()
+            restored?.release()
+            model?.release()
+            destination.delete()
+            project.delete()
             source.delete()
             SliceBeam.CONFIG = previousConfig
             if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
