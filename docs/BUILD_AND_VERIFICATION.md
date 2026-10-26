@@ -2062,3 +2062,12 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Debug and Slice JVM suites each passed 621/621. Six focused Honor PTP-N49 / Android 16 device checks each passed 1/1: M12 touch/long-press, Boolean difference with Undo/Redo, selected-group surface placement, standalone text mesh creation, standalone text UI placement, and generated text G-code. The final long-press miss-state cleanup was followed by another passing M12 integration run.
 - Version 0.8.362 / code 397 installed on Honor and MainActivity resumed. The sampled app log contained no fatal exception or native fatal signal. Xiaomi was unavailable, so its exact device-specific crash remains unverified.
 - APK is debug-signed because no production signing keystore is configured. No print was started and no firmware was changed. PR #2 remains open.
+
+## GitHub Release 0.8.387 — 2026-10-26
+
+- Code commit: `72fec6a42e8c674f2b3d1c9eeeb5f565f9b55533` on `codex/rinkhals-safe-start-audit`; regular, non-prerelease GitHub release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.387.
+- APK: `OrkanSlicer_0.8.387.apk`, 239,558,933 bytes; SHA-256 `236DB714A05384F6C9F61D26DA6201E475A012DD45910E7881282D7FB28FEF15`. GitHub reports the matching asset digest.
+- Version 0.8.387 / versionCode 422. Debug build succeeded. Debug JVM 658/658 and Slice JVM 658/658, with zero failures, errors, or skipped tests.
+- Android 16 emulator: all 43 `ModelEditingNativeDeviceTest` cases passed. The focused coverage includes mirrored-object joining, per-part filament assignment, geometry/placement preservation, Boolean operations, standalone text, surface placement, and slicing.
+- APK installed successfully; Android reports version 0.8.387 / code 422. The launcher opened `SetupActivity`; sampled Logcat contained no crash, ANR, OOM, or fatal-signal matches. This confirms installation and startup, not completion of onboarding or a full UI tour.
+- Debug-signed APK; no production release keystore is configured. Xiaomi device validation remains open. No printer was contacted, no print was started, and no firmware was changed.
