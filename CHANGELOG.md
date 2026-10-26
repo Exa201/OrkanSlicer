@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.388
+
+- Verify that joining objects with linked instances preserves every world-space copy and its filament assignments through 3MF export, reload, and slicing.
+- Correct the model API documentation to reflect support for materializing linked instances during joins and Boolean operations.
+
 ## 0.8.385
 
 - Guard native split, scale, rotate, flatten, auto-orient, handedness, and flatten-plane JNI entry points against invalid handles, stale indices, missing geometry, and non-finite values.
