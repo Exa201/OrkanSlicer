@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.389
+
+- Make fill-bed packing transactional: failed arrangement trials now roll back speculative copies and restore original object positions before another candidate is tested.
+- Verify that the largest accepted packing is committed with every object's filament, survives 3MF export/reload, and slices to G-code using the selected tool.
+- Android 16 model-editing instrumentation: 46/46 passed; Debug and Slice JVM suites: 658/658 each.
+
 ## 0.8.388
 
 - Verify that joining objects with linked instances preserves every world-space copy and its filament assignments through 3MF export, reload, and slicing.
