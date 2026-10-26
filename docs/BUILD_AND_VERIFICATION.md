@@ -2,6 +2,7 @@
 
 - Die native Multipart-Verbindung prüft nun Ziel-, Instanz-, Volumen- und zusammengesetzte Welttransformationen auf endliche Werte und Invertierbarkeit, bevor Volumen vorbereitet oder Quellobjekte verändert werden. Damit kann eine beschädigte/importierte Null- oder Nicht-Endlich-Transformation nicht durch die inverse Zielmatrix in verbundene Geometrie übergehen.
 - Android 16: Der neue Test bestätigt, dass die öffentliche Skalierung Nullskalierung verwirft und die unveränderten Ziel-/Quellobjekte danach als druckbare Multipart-Geometrie verbinden kann (1/1). In demselben gezielten Lauf bestanden ungültige JNI-Eingaben, Flächenplatzierung mit 3MF-Rundlauf, eigenständiger 3D-Text mit Join/Slicing und Boolean-Union/Slicing (4/4). Zusammen 5 unterschiedliche Gerätetests bestanden; kein echter Druckstart.
+- Zusätzliche Join-/Platzierungsregression auf Android 16: Standard-Join mit Filamentzuordnung, gedrehter nichtuniform skalierter Join, ungültige Join-Rollbacks, Einzelobjekt-Flächenplatzierung und Gruppen-Flächenplatzierung bestanden (5/5). `:app:connectedSliceTestAndroidTest` erfolgreich.
 - Die isolierte Testkorrektur prüft die Summe beider Volumendreieckzahlen nach dem Join. Die vorherige Testfassung erwartete fälschlich nur die Dreieckzahl eines Einzelobjekts; das war kein Produktionsfehler.
 - Kein neuer APK-Build oder Release in diesem Schritt. Die öffentlich verfügbare `v0.8.386` enthält diese nachträgliche Join-Transformationsprüfung noch nicht.
 
