@@ -70,6 +70,7 @@ private var longClickTargetObject = -1
 private val tapGestureGate = TapGestureGate()
 // When true and the renderer is in paint mode, a single finger paints instead of orbiting.
  var isPaintBrushActive:Boolean = false
+private var paintStrokeActive = false
 private var tempVec = Vec3d()
 private var longClickOffset = Vec3d()
 private var longClickTranslation = Vec3d()
@@ -691,6 +692,15 @@ override fun onTouchEvent(e:MotionEvent):Boolean {
 val deltaMs = System.currentTimeMillis() - lastActionTime
 lastActionTime = System.currentTimeMillis()
 val action = e.getActionMasked()
+if (paintStrokeActive && (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ||
+        action == MotionEvent.ACTION_POINTER_DOWN)) {
+    paintStrokeActive = false
+    queueEvent { renderer.endPaintStroke(); requestRender() }
+}
+if (renderer.isPaintMode && isPaintBrushActive && e.getPointerCount() == 1 && action == MotionEvent.ACTION_DOWN) {
+    paintStrokeActive = true
+    queueEvent { renderer.beginPaintStroke() }
+}
 if (action == MotionEvent.ACTION_CANCEL) {
 tapGestureGate.invalidate()
 onePointerGesture = false
@@ -717,8 +727,8 @@ onePointerGesture = false
 return true
 }
 // Paint mode: a single finger paints; two fingers still orbit/zoom via the normal path.
- if ((renderer.isPaintMode && isPaintBrushActive && e.getPointerCount() == 1
-&& (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE)))
+ if ((renderer.isPaintMode && isPaintBrushActive && e.getPointerCount() == 1 &&
+        (action == MotionEvent.ACTION_DOWN || (action == MotionEvent.ACTION_MOVE && paintStrokeActive))))
 {
 tapGestureGate.invalidate()
 paintAtScreen(e.getX(), e.getY())

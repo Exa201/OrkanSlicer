@@ -372,6 +372,8 @@
     <string name="PaintBrushRadius">Радиус кисти: %1$.1f мм</string>
     <string name="PaintEnableBrush">Включить рисование</string>
     <string name="PaintDisableBrush">Приостановить рисование</string>
+    <string name="PaintUndoStroke">Отменить мазок</string>
+    <string name="PaintRedoStroke">Повторить мазок</string>
     <string name="NavigationScrollMoreBelow">Другие пункты навигации ниже</string>
     <string name="NavigationScrollMoreAbove">Другие пункты навигации выше</string>
     <plurals name="GCodeIntegrityLayerStarts"><item quantity="one">%1$d начало слоя</item><item quantity="few">%1$d начала слоя</item><item quantity="many">%1$d начал слоя</item><item quantity="other">%1$d начала слоя</item></plurals>

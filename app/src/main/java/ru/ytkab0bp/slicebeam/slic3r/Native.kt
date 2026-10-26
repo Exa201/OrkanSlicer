@@ -214,6 +214,20 @@ class Native {
     @JvmStatic
     external fun paint_height(sessionPtr: Long, zMin: Double, zMax: Double, filamentIdx: Int): Unit
     @JvmStatic
+    external fun paint_begin_stroke(sessionPtr: Long): Unit
+    @JvmStatic
+    external fun paint_end_stroke(sessionPtr: Long): Unit
+    @JvmStatic
+    external fun paint_can_undo(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_can_redo(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_undo_stroke(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_redo_stroke(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_reset_history(sessionPtr: Long): Unit
+    @JvmStatic
     external fun paint_clear(sessionPtr: Long): Unit
     @JvmStatic
     external fun paint_commit(sessionPtr: Long): Unit

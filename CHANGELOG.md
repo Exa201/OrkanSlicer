@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.371
+
+- Add bounded per-stroke Undo/Redo to color, support, seam, and fuzzy painting; each brush gesture can be reversed before confirming the paint session.
+- Keep height painting and clearing as cancellable draft changes until Done, so Back no longer leaves those edits committed.
+- Verify multi-stroke Undo/Redo, commit, and model-history behavior on the Android 16 emulator.
+
 ## 0.8.361
 
 - Synchronize the in-app release notes with the shipped version so the update dialog and changelog test show the current release.

@@ -161,6 +161,7 @@ private var cutConnectorsVAO = -1
 private var cutConnectorsVertexCount = 0
 private var cutConnectorsVertexBuffer: java.nio.FloatBuffer? = null
 private var paintSession: PaintSession? = null
+@Volatile private var paintHistoryObserver: ((canUndo: Boolean, canRedo: Boolean) -> Unit)? = null
 var paintObject = -1
 // ---- Multi-color painting (all methods run on the GL thread) ----
  @Volatile var isPaintMode:Boolean = false
@@ -2060,6 +2061,33 @@ paintObject = objIdx
 isPaintMode = true
 paintPalette = Prefs.getFilamentPalette()
 rebuildPaintOverlays()
+notifyPaintHistoryChanged()
+}
+fun setPaintHistoryObserver(observer: ((Boolean, Boolean) -> Unit)?) {
+    paintHistoryObserver = observer
+}
+fun refreshPaintHistoryState() {
+    notifyPaintHistoryChanged()
+}
+private fun notifyPaintHistoryChanged() {
+    val canUndo = paintSession?.canUndoStroke() == true
+    val canRedo = paintSession?.canRedoStroke() == true
+    ViewUtils.postOnMainThread { paintHistoryObserver?.invoke(canUndo, canRedo) }
+}
+fun beginPaintStroke() {
+    paintSession?.beginStroke()
+}
+fun endPaintStroke() {
+    paintSession?.endStroke()
+    notifyPaintHistoryChanged()
+}
+fun undoPaintStroke() {
+    if (paintSession?.undoStroke() == true) rebuildPaintOverlays()
+    notifyPaintHistoryChanged()
+}
+fun redoPaintStroke() {
+    if (paintSession?.redoStroke() == true) rebuildPaintOverlays()
+    notifyPaintHistoryChanged()
 }
 /** Overlay color for a painted state in the current paint mode. */
  private fun paintStateColor(f:Int):Int {
@@ -2078,6 +2106,7 @@ if (commit) {
     paintSession!!.commit()
     model?.markStateChanged()
 }
+paintSession!!.endStroke()
 paintSession!!.end()
 paintSession = null
 }
@@ -2086,6 +2115,7 @@ paintOverlays.clear()
 if (paintObject != -1) invalidateCommittedOverlays(paintObject) // rebuild persisted view from committed data
 paintObject = -1
 isPaintMode = false
+notifyPaintHistoryChanged()
 }
 /** Set object i's base filament (1-based) and refresh its persisted colors. */
  fun setObjectBaseFilament(i:Int, filament:Int) {
@@ -2115,7 +2145,9 @@ internal fun setObjectUniformFilamentIfCurrent(
 fun clearPaintDraftForUniformFilament() {
 if (paintSession == null) return
 paintSession!!.clear()
+paintSession!!.resetHistory()
 rebuildPaintOverlays()
+notifyPaintHistoryChanged()
 }
 fun paintAt(x:Float, y:Float) {
 if (paintSession == null || paintObject < 0 || paintObject >= glModels.size) return
@@ -2156,17 +2188,19 @@ return null
 }
 fun heightPaint(zMin:Double, zMax:Double) {
 if (paintSession == null) return
+paintSession!!.beginStroke()
 paintSession!!.height(zMin, zMax, paintFilament)
-paintSession!!.commit()
-model?.markStateChanged()
+paintSession!!.endStroke()
 rebuildPaintOverlays()
+notifyPaintHistoryChanged()
 }
 fun clearPaint() {
 if (paintSession == null) return
+paintSession!!.beginStroke()
 paintSession!!.clear()
-paintSession!!.commit()
-model?.markStateChanged()
+paintSession!!.endStroke()
 rebuildPaintOverlays()
+notifyPaintHistoryChanged()
 }
 private fun rebuildPaintOverlays() {
 for (o in paintOverlays) o.model.release()

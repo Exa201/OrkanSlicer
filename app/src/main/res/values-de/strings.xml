@@ -1214,6 +1214,8 @@
     <string name="PaintBrush">Pinsel</string>
     <string name="PaintEnableBrush">Malen aktivieren</string>
     <string name="PaintDisableBrush">Malen pausieren</string>
+    <string name="PaintUndoStroke">Strich rückgängig</string>
+    <string name="PaintRedoStroke">Strich wiederholen</string>
     <string name="PaintBrushRadius">Pinselradius: %1$.1f mm</string>
     <string name="PaintBucket">Fläche füllen</string>
     <string name="PaintHeight">Höhenbereich</string>

@@ -64,6 +64,11 @@ internal fun PaintModePanel(
     var brushRadius by remember { mutableFloatStateOf(4f) }
     var heightBand by remember { mutableFloatStateOf(10f) }
     var bucketAngle by remember { mutableFloatStateOf(30f) }
+    var canUndoStroke by remember { mutableStateOf(false) }
+    var canRedoStroke by remember { mutableStateOf(false) }
+    val historyObserver: (Boolean, Boolean) -> Unit = remember(glView) {
+        { undo, redo -> canUndoStroke = undo; canRedoStroke = redo }
+    }
 
     fun onGl(action: () -> Unit) {
         glView.queueEvent {
@@ -83,7 +88,14 @@ internal fun PaintModePanel(
         }
     }
     DisposableEffect(glView) {
-        onDispose { onCancel() }
+        glView.queueEvent {
+            glView.renderer.setPaintHistoryObserver(historyObserver)
+            glView.renderer.refreshPaintHistoryState()
+        }
+        onDispose {
+            glView.queueEvent { glView.renderer.setPaintHistoryObserver(null) }
+            onCancel()
+        }
     }
 
     Column(
@@ -164,6 +176,18 @@ internal fun PaintModePanel(
             onClick = { brushEnabled = !brushEnabled; glView.isPaintBrushActive = brushEnabled },
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         ) { Text(stringResource(if (brushEnabled) R.string.PaintDisableBrush else R.string.PaintEnableBrush)) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = { onGl { glView.renderer.undoPaintStroke() } },
+                enabled = canUndoStroke,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { contentDescription = glView.context.getString(R.string.PaintUndoStroke) },
+            ) { Text(stringResource(R.string.PaintUndoStroke)) }
+            OutlinedButton(
+                onClick = { onGl { glView.renderer.redoPaintStroke() } },
+                enabled = canRedoStroke,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { contentDescription = glView.context.getString(R.string.PaintRedoStroke) },
+            ) { Text(stringResource(R.string.PaintRedoStroke)) }
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { onGl { glView.renderer.clearPaint() } }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                 Text(stringResource(R.string.ActionClear))

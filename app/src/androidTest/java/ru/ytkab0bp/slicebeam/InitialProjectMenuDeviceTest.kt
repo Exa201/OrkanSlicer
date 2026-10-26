@@ -7694,6 +7694,36 @@ class InitialProjectMenuDeviceTest {
                 previewTriangles > 0)
             assertFalse("painting remains a preview until Done", readModelHasPaintOnGl(glView, 0))
 
+            // Two distinct color changes are separate reversible strokes while still inside the
+            // draft session. Undoing the second must restore the first; Undo again must restore
+            // the original unpainted selector. Redo must replay those states in order.
+            val secondPoint = findUncoveredPreciseSurfacePoint(glView, bed, avoid = point)
+            revealPaintFilamentSwatch(activity, 1, "Touch Paint Base", occurrence = 1).performClick()
+            injectCanvasStroke(glView, secondPoint.first, secondPoint.second)
+            assertTrue("the second stroke should create a preview for the first filament",
+                readPaintPreviewTriangleCountOnGl(glView, 1) > 0)
+            assertTrue("the second stroke should not erase the first stroke's separate facets",
+                readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+
+            fun clickPaintHistoryAction(label: Int) {
+                compose.onNodeWithText(activity.getString(label)).performScrollTo().assertIsEnabled().performClick()
+                instrumentationWaitForGlIdle()
+            }
+            clickPaintHistoryAction(R.string.PaintUndoStroke)
+            assertEquals("undoing stroke two should remove its first-filament facets", 0,
+                readPaintPreviewTriangleCountOnGl(glView, 1))
+            assertTrue("undoing stroke two should retain stroke one's accent facets",
+                readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+            clickPaintHistoryAction(R.string.PaintUndoStroke)
+            assertEquals("undoing stroke one should restore an empty preview", 0,
+                readPaintPreviewTriangleCountOnGl(glView, 2))
+            clickPaintHistoryAction(R.string.PaintRedoStroke)
+            assertTrue("redo should restore stroke one's accent facets",
+                readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+            clickPaintHistoryAction(R.string.PaintRedoStroke)
+            assertTrue("redo should restore stroke two's first-filament facets",
+                readPaintPreviewTriangleCountOnGl(glView, 1) > 0)
+
             compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
             compose.onNodeWithText(activity.getString(R.string.ActionDone))
                 .performScrollTo().assertIsDisplayed().performClick()
@@ -7764,6 +7794,17 @@ class InitialProjectMenuDeviceTest {
                 assertTrue("$expectedMode stroke should create a native preview; point=$point", previewTriangles > 0)
                 assertEquals("special paint remains a preview until it is confirmed", 0,
                     readCommittedPaintModeTriangleCountOnGl(glView, expectedMode, state))
+
+                compose.onNodeWithText(activity.getString(R.string.PaintUndoStroke))
+                    .performScrollTo().assertIsEnabled().performClick()
+                instrumentationWaitForGlIdle()
+                assertEquals("undo must remove the active mode-$expectedMode draft stroke", 0,
+                    readPaintPreviewTriangleCountOnGl(glView, state))
+                compose.onNodeWithText(activity.getString(R.string.PaintRedoStroke))
+                    .performScrollTo().assertIsEnabled().performClick()
+                instrumentationWaitForGlIdle()
+                assertTrue("redo must restore the active mode-$expectedMode draft stroke",
+                    readPaintPreviewTriangleCountOnGl(glView, state) > 0)
 
                 assertTrue("Android Back should cancel a staged mode-$expectedMode paint stroke",
                     bed.onBackPressed())

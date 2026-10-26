@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <memory>
 #include <mutex>
+#include <optional>
 
 #include <thread>
 
@@ -87,6 +88,9 @@ struct PaintSessionRef {
     Slic3r::Transform3d mesh_to_world = Slic3r::Transform3d::Identity();
     AABBMesh* emesh = nullptr;
     std::unique_ptr<Slic3r::TriangleSelector> selector;
+    std::vector<Slic3r::TriangleSelector::TriangleSplittingData> undo_strokes;
+    std::vector<Slic3r::TriangleSelector::TriangleSplittingData> redo_strokes;
+    std::optional<Slic3r::TriangleSelector::TriangleSplittingData> stroke_before;
 };
 struct ShaderRef {
     GLShaderProgram program;
@@ -3209,6 +3213,104 @@ extern "C" {
             case 3:  return v->fuzzy_skin_facets;
             default: return v->mmu_segmentation_facets;
         }
+    }
+
+    using PaintSnapshot = Slic3r::TriangleSelector::TriangleSplittingData;
+    static constexpr size_t PAINT_HISTORY_MAX_BYTES = 8 * 1024 * 1024;
+    static constexpr size_t PAINT_HISTORY_MAX_STROKES = 16;
+
+    static size_t paint_snapshot_bytes(const PaintSnapshot& snapshot) {
+        return snapshot.triangles_to_split.size() * sizeof(Slic3r::TriangleSelector::TriangleBitStreamMapping)
+            + (snapshot.bitstream.size() + 7) / 8
+            + (snapshot.used_states.size() + 7) / 8;
+    }
+
+    static bool paint_snapshot_fits(const PaintSnapshot& snapshot) {
+        return paint_snapshot_bytes(snapshot) <= PAINT_HISTORY_MAX_BYTES;
+    }
+
+    static void push_paint_snapshot(std::vector<PaintSnapshot>& history, PaintSnapshot snapshot) {
+        const size_t bytes = paint_snapshot_bytes(snapshot);
+        if (bytes > PAINT_HISTORY_MAX_BYTES) {
+            history.clear();
+            return;
+        }
+        size_t total = bytes;
+        for (const auto& entry : history) total += paint_snapshot_bytes(entry);
+        while (!history.empty() && (history.size() >= PAINT_HISTORY_MAX_STROKES ||
+                                    total > PAINT_HISTORY_MAX_BYTES)) {
+            total -= paint_snapshot_bytes(history.front());
+            history.erase(history.begin());
+        }
+        history.push_back(std::move(snapshot));
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1begin_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        if (!s || !s->selector || s->stroke_before.has_value()) return;
+        PaintSnapshot before = s->selector->serialize();
+        if (paint_snapshot_fits(before)) {
+            s->stroke_before = std::move(before);
+        } else {
+            // Do not keep an unbounded copy of a dense mesh's selector. If a single state is
+            // already too large, discard older undo entries rather than presenting stale undo.
+            s->undo_strokes.clear();
+            s->redo_strokes.clear();
+        }
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1end_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        if (!s || !s->selector || !s->stroke_before.has_value()) return;
+        PaintSnapshot before = std::move(*s->stroke_before);
+        s->stroke_before.reset();
+        PaintSnapshot after = s->selector->serialize();
+        if (before != after) {
+            push_paint_snapshot(s->undo_strokes, std::move(before));
+            s->redo_strokes.clear();
+        }
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1can_1undo(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        return s && !s->stroke_before.has_value() && !s->undo_strokes.empty();
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1can_1redo(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        return s && !s->stroke_before.has_value() && !s->redo_strokes.empty();
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1undo_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        if (!s || !s->selector || s->stroke_before.has_value() || s->undo_strokes.empty()) return false;
+        PaintSnapshot current = s->selector->serialize();
+        if (!paint_snapshot_fits(current)) return false;
+        push_paint_snapshot(s->redo_strokes, std::move(current));
+        PaintSnapshot previous = std::move(s->undo_strokes.back());
+        s->undo_strokes.pop_back();
+        s->selector->deserialize(previous, true);
+        return true;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1redo_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        if (!s || !s->selector || s->stroke_before.has_value() || s->redo_strokes.empty()) return false;
+        PaintSnapshot current = s->selector->serialize();
+        if (!paint_snapshot_fits(current)) return false;
+        push_paint_snapshot(s->undo_strokes, std::move(current));
+        PaintSnapshot next = std::move(s->redo_strokes.back());
+        s->redo_strokes.pop_back();
+        s->selector->deserialize(next, true);
+        return true;
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1reset_1history(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        if (!s) return;
+        s->undo_strokes.clear();
+        s->redo_strokes.clear();
+        s->stroke_before.reset();
     }
 
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1begin(JNIEnv* env, jclass, jlong modelPtr, jint objIdx, jint mode) {

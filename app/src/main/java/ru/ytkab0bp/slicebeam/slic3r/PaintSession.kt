@@ -29,6 +29,21 @@ open class PaintSession(model: Model, objIdx: Int, mode: Int) {
 
     open fun height(zMin: Double, zMax: Double, filamentIdx: Int) = Native.paint_height(ptr, zMin, zMax, filamentIdx)
 
+    /** Stroke boundaries are owned by the GL touch stream; snapshots stay bounded in native memory. */
+    open fun beginStroke() = Native.paint_begin_stroke(ptr)
+
+    open fun endStroke() = Native.paint_end_stroke(ptr)
+
+    open fun canUndoStroke(): Boolean = Native.paint_can_undo(ptr)
+
+    open fun canRedoStroke(): Boolean = Native.paint_can_redo(ptr)
+
+    open fun undoStroke(): Boolean = Native.paint_undo_stroke(ptr)
+
+    open fun redoStroke(): Boolean = Native.paint_redo_stroke(ptr)
+
+    open fun resetHistory() = Native.paint_reset_history(ptr)
+
     open fun clear() = Native.paint_clear(ptr)
 
     /** Write the painting back into the model so it slices to multi-color gcode. */
