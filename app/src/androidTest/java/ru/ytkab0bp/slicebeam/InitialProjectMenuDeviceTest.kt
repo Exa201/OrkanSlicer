@@ -2551,9 +2551,9 @@ class InitialProjectMenuDeviceTest {
             val before = readExactBoundsOnGl(glView, 0).single()
 
             openModelMenu(activity)
-            scrollMenuToIndex(4)
+            revealMenuAction(activity, R.string.ModelMenuFillBed)
             compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
-                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+                .assertIsDisplayed().assertIsEnabled().performClick()
 
             compose.waitUntil(timeoutMillis = 30_000) { !glView.isFillBedInProgress }
             instrumentationWaitForGlIdle()
@@ -2589,7 +2589,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("fixture must start with one object", 1, readObjectCountOnGl(glView))
 
             openModelMenu(activity)
-            scrollMenuToIndex(4)
+            revealMenuAction(activity, R.string.ModelMenuFillBed)
             compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
@@ -6369,9 +6369,9 @@ class InitialProjectMenuDeviceTest {
             val original = readTranslationOnGl(glView, 0)
 
             openSelectedObjectMenu(activity)
-            scrollMenuToIndex(10)
+            revealMenuAction(activity, R.string.MenuToolbarMove)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
-                .performScrollTo().assertIsDisplayed().performClick()
+                .assertIsDisplayed().performClick()
             compose.onNodeWithText("X =", substring = true).assertIsDisplayed().performClick()
             val positionField = compose.onNodeWithText(activity.getString(R.string.OrientationManualValue))
             positionField.assertIsDisplayed()
@@ -6411,9 +6411,9 @@ class InitialProjectMenuDeviceTest {
             val original = readTranslationOnGl(glView, 0)
 
             openSelectedObjectMenu(activity)
-            scrollMenuToIndex(10)
+            revealMenuAction(activity, R.string.MenuToolbarMove)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
-                .performScrollTo().assertIsDisplayed().performClick()
+                .assertIsDisplayed().performClick()
             compose.onNodeWithText("Z =", substring = true).assertIsDisplayed().performClick()
             val positionField = compose.onNodeWithText(activity.getString(R.string.OrientationManualValue))
             positionField.assertIsDisplayed()
