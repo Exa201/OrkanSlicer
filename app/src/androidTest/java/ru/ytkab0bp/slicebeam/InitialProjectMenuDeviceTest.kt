@@ -6157,6 +6157,7 @@ class InitialProjectMenuDeviceTest {
             assertArrayEquals("XYZ reflections preserve the object's filament", intArrayOf(2),
                 readUsedFilamentsOnGl(glView, 0))
             assertTrue("mirrored object must remain renderable", readTriangleCountOnGl(glView, 0) > 0)
+            assertCurrentWorkspaceModelRoundTripsAndSlices("mirror-xyz")
         } finally {
             modelFile.delete()
         }
@@ -6487,6 +6488,8 @@ class InitialProjectMenuDeviceTest {
                 model.addObject(model, 0)
                 model.scale(1, 0.7, 0.8, 1.0)
                 model.translate(1, 43.0, 29.0, 18.0)
+                model.setUniformFilament(0, 2)
+                model.setUniformFilament(1, 2)
                 glView.renderer.setSelectedObjects(intArrayOf(0, 1))
                 glView.requestRender()
                 prepared.countDown()
@@ -6580,6 +6583,7 @@ class InitialProjectMenuDeviceTest {
                     kotlin.math.abs(edge(redone[0]) - edge(redone[1])) < 0.02
                 }
             }
+            assertCurrentWorkspaceModelRoundTripsAndSlices("align-selected-group")
         } finally {
             modelFile.delete()
         }
@@ -6605,6 +6609,7 @@ class InitialProjectMenuDeviceTest {
                 val size = doubleArrayOf(max.x - min.x, max.y - min.y, max.z - min.z)
                 model.addObject(model, 0)
                 model.addObject(model, 0)
+                for (index in 0..2) model.setUniformFilament(index, 2)
                 model.translate(1, size[0] * 2.0, size[1] * 2.0, size[2] * 2.0)
                 model.translate(2, size[0] * 6.0, size[1] * 6.0, size[2] * 6.0)
                 glView.renderer.setSelectedObjects(intArrayOf(0, 1, 2))
@@ -6664,6 +6669,12 @@ class InitialProjectMenuDeviceTest {
                     val secondGap = start(current[2], axis) - end(current[1], axis)
                     kotlin.math.abs(firstGap - secondGap) < 0.02
                 }
+            }
+            assertCurrentWorkspaceModelRoundTripsAndSlices("distribute-selected-group") { slicedModel ->
+                // Z distribution intentionally may leave parts floating. The 3MF position is
+                // verified above; place the disposable slice copy on the bed before asking Orca
+                // to produce printable G-code, matching the warning shown by the UI.
+                for (index in 0 until slicedModel.objectsCount) slicedModel.ensureOnBed(index)
             }
         } finally {
             modelFile.delete()
