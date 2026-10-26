@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.384
+
+- Guard native mesh simplification, object copying, and transform queries against null models, stale indices, and invalid ratios.
+- Verify direct JNI calls return safely without changing source meshes, while valid transform reads and object copies still work.
+
 ## 0.8.383
 
 - Reject invalid cut and connector requests at the native boundary before they can mutate model geometry.

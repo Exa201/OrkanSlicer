@@ -747,8 +747,10 @@ extern "C" {
 
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1simplify(JNIEnv* env, jclass, jlong ptr, jint i, jfloat keepRatio) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size() ||
+            !std::isfinite(keepRatio) || keepRatio <= 0.0f || keepRatio > 1.0f) return 0;
         ModelObject* object = model->model.objects[i];
+        if (object == nullptr) return 0;
         const float ratio = std::max(0.01f, std::min(0.99f, keepRatio));
         size_t result = 0;
         for (ModelVolume* volume : object->volumes) {
@@ -772,7 +774,10 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1object_1from_1another(JNIEnv* env, jclass, jlong ptr, jlong fromPtr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         ModelRef* from = (ModelRef *) (intptr_t) fromPtr;
-        model->model.add_object(*from->model.objects[i]);
+        if (model == nullptr || from == nullptr || i < 0 || static_cast<size_t>(i) >= from->model.objects.size()) return;
+        ModelObject* source = from->model.objects[i];
+        if (source == nullptr) return;
+        model->model.add_object(*source);
     }
 
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1duplicate_1instance(
@@ -801,20 +806,41 @@ extern "C" {
         model->model.delete_object(i);
     }
 
-    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1rotation(JNIEnv* env, jclass, jlong ptr, jint object_index) {
+    enum class ModelVectorProperty { Translation, Scale, Mirror, Rotation };
+
+    static jdoubleArray model_object_vector(JNIEnv* env, jlong ptr, jint object_index, ModelVectorProperty property) {
+        Vec3d value = Vec3d::Zero();
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        ModelObject* obj = model->model.objects[object_index];
+        if (model != nullptr && object_index >= 0 && static_cast<size_t>(object_index) < model->model.objects.size()) {
+            ModelObject* object = model->model.objects[object_index];
+            if (object != nullptr) {
+                if (property == ModelVectorProperty::Rotation) {
+                    if (!object->volumes.empty() && object->volumes[0] != nullptr)
+                        value = object->volumes[0]->get_rotation();
+                } else if (property == ModelVectorProperty::Mirror) {
+                    if (!object->volumes.empty() && object->volumes[0] != nullptr)
+                        value = object->volumes[0]->get_mirror();
+                } else if (property == ModelVectorProperty::Scale) {
+                    if (!object->volumes.empty() && object->volumes[0] != nullptr)
+                        value = object->volumes[0]->get_scaling_factor();
+                } else if (property == ModelVectorProperty::Translation &&
+                           std::any_of(object->volumes.begin(), object->volumes.end(),
+                                       [](const ModelVolume* volume) { return volume != nullptr; })) {
+                    value = object->bounding_box_exact().center();
+                }
+            }
+        }
         jdoubleArray arr = env->NewDoubleArray(3);
-        env->SetDoubleArrayRegion(arr, 0, 3, obj->volumes[0]->get_rotation().data());
+        if (arr != nullptr) env->SetDoubleArrayRegion(arr, 0, 3, value.data());
         return arr;
     }
 
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1rotation(JNIEnv* env, jclass, jlong ptr, jint object_index) {
+        return model_object_vector(env, ptr, object_index, ModelVectorProperty::Rotation);
+    }
+
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1mirror(JNIEnv* env, jclass, jlong ptr, jint object_index) {
-        ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        ModelObject* obj = model->model.objects[object_index];
-        jdoubleArray arr = env->NewDoubleArray(3);
-        env->SetDoubleArrayRegion(arr, 0, 3, obj->volumes[0]->get_mirror().data());
-        return arr;
+        return model_object_vector(env, ptr, object_index, ModelVectorProperty::Mirror);
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1mirror(JNIEnv*, jclass, jlong ptr, jint object_index, jint axis) {
@@ -838,20 +864,11 @@ extern "C" {
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1scale(JNIEnv* env, jclass, jlong ptr, jint object_index) {
-        ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        ModelObject* obj = model->model.objects[object_index];
-        jdoubleArray arr = env->NewDoubleArray(3);
-        env->SetDoubleArrayRegion(arr, 0, 3, obj->volumes[0]->get_scaling_factor().data());
-        return arr;
+        return model_object_vector(env, ptr, object_index, ModelVectorProperty::Scale);
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1translation(JNIEnv* env, jclass, jlong ptr, jint object_index) {
-        ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        ModelObject* obj = model->model.objects[object_index];
-        Vec3d offset = obj->bounding_box_exact().center();
-        jdoubleArray arr = env->NewDoubleArray(3);
-        env->SetDoubleArrayRegion(arr, 0, 3, offset.data());
-        return arr;
+        return model_object_vector(env, ptr, object_index, ModelVectorProperty::Translation);
     }
 
     static bool is_unprocessed_cut_connector(const ModelVolume* volume) {

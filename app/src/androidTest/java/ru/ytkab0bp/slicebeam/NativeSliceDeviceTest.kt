@@ -211,6 +211,66 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun nativeSimplifyCopyAndTransformQueriesRejectInvalidRequestsSafely() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "native-copy-query-validation.stl")
+        val model = Model(modelFile)
+        try {
+            val pointer = model.pointer
+            val originalVolume = model.getObjectVolume(0)
+            val originalTriangles = model.getTriangleCount(0)
+
+            // Call JNI directly so these guards protect against stale indices below Kotlin wrappers.
+            assertEquals(0, Native.model_simplify(0L, 0, 0.5f))
+            assertEquals(0, Native.model_simplify(pointer, model.objectsCount, 0.5f))
+            assertEquals(0, Native.model_simplify(pointer, 0, Float.NaN))
+            assertEquals(0, Native.model_simplify(pointer, 0, Float.POSITIVE_INFINITY))
+            assertEquals(0, Native.model_simplify(pointer, 0, 0f))
+            assertEquals(0, Native.model_simplify(pointer, 0, 1.01f))
+
+            Native.model_add_object_from_another(0L, pointer, 0)
+            Native.model_add_object_from_another(pointer, 0L, 0)
+            Native.model_add_object_from_another(pointer, pointer, -1)
+            Native.model_add_object_from_another(pointer, pointer, model.objectsCount)
+
+            val emptyVector = DoubleArray(3)
+            for (query in listOf(
+                Native.model_get_rotation(0L, 0),
+                Native.model_get_mirror(0L, 0),
+                Native.model_get_scale(0L, 0),
+                Native.model_get_translation(0L, 0),
+                Native.model_get_rotation(pointer, -1),
+                Native.model_get_mirror(pointer, model.objectsCount),
+                Native.model_get_scale(pointer, -1),
+                Native.model_get_translation(pointer, model.objectsCount),
+            )) {
+                assertArrayEquals(emptyVector, query, 0.0)
+            }
+
+            assertEquals("invalid copy/simplify requests must not append or alter objects", 1, model.objectsCount)
+            assertEquals(originalTriangles, model.getTriangleCount(0))
+            assertEquals(originalVolume, model.getObjectVolume(0), 1e-6)
+            for (query in listOf(
+                Native.model_get_rotation(pointer, 0),
+                Native.model_get_mirror(pointer, 0),
+                Native.model_get_scale(pointer, 0),
+                Native.model_get_translation(pointer, 0),
+            )) {
+                assertEquals(3, query.size)
+                assertTrue("valid transform queries must return finite values", query.all { it.isFinite() })
+            }
+
+            // Valid native object-copy behavior remains available after rejecting bad requests.
+            Native.model_add_object_from_another(pointer, pointer, 0)
+            assertEquals(2, model.objectsCount)
+            assertEquals(originalVolume, model.getObjectVolume(1), 1e-6)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun invalidDuplicateDeleteAndSplitRequestsPreserveNativeModel() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "invalid-object-index-edits.stl")
