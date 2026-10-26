@@ -1222,6 +1222,101 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanOperationsRespectEngravedNegativeVolumesOnToolAndPreserveTargetFilament() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-negative-tool-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-negative-tool-font.ttf")
+        try {
+            for (operation in listOf(
+                BooleanOperation.UNION,
+                BooleanOperation.DIFFERENCE,
+                BooleanOperation.INTERSECTION,
+            )) {
+                val plain = Model(cubeFile)
+                val engravedTool = Model(cubeFile)
+                val projectFile = File(context.cacheDir, "boolean-negative-tool-${operation.name.lowercase()}.3mf")
+                var restored: Model? = null
+                var generatedConfig: File? = null
+                try {
+                    fun configureOperands(model: Model, engraveTool: Boolean) {
+                        val min = Vec3d(); val max = Vec3d()
+                        model.getBoundingBoxExact(0, min, max)
+                        val width = max.x - min.x
+                        model.addObject(model, 0)
+                        model.setUniformFilament(0, 2)
+                        model.setUniformFilament(1, 3)
+                        if (engraveTool) {
+                            model.embossText(
+                                1, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                                Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                                Vec3d(0.0, 0.0, 1.0),
+                            )
+                        }
+                        // Keep the union disjoint so the target cannot fill the tool's engraved
+                        // cutout. Difference/intersection overlap at the engraved text to expose
+                        // whether the Boolean operation evaluates the tool's negative volume.
+                        val toolOffsetX = if (operation == BooleanOperation.UNION) width * 3.0 else width / 2.0
+                        model.translate(1, toolOffsetX, 0.0, 0.0)
+                    }
+
+                    configureOperands(plain, engraveTool = false)
+                    configureOperands(engravedTool, engraveTool = true)
+                    assertEquals("plain ${operation.name} control should succeed", 0,
+                        plain.booleanObjects(intArrayOf(0, 1), operation))
+                    assertEquals("${operation.name} with an engraved tool should succeed", 0,
+                        engravedTool.booleanObjects(intArrayOf(0, 1), operation))
+
+                    val plainVolume = plain.getObjectVolume(0)
+                    val engravedVolume = engravedTool.getObjectVolume(0)
+                    assertTrue("plain ${operation.name} control must remain printable", plainVolume > 0.0)
+                    when (operation) {
+                        BooleanOperation.UNION, BooleanOperation.INTERSECTION -> assertTrue(
+                            "${operation.name} must preserve the tool cutout instead of filling it",
+                            engravedVolume < plainVolume - 0.01,
+                        )
+                        BooleanOperation.DIFFERENCE -> assertTrue(
+                            "DIFFERENCE must subtract only the tool's printable shape, leaving its cutout in the target",
+                            engravedVolume > plainVolume + 0.01,
+                        )
+                    }
+                    assertEquals("Boolean output must use the target's second material, not the tool's third",
+                        listOf(2), engravedTool.getUsedFilaments(0).toList())
+
+                    SliceBeam.genCurrentConfig(engravedTool)
+                    generatedConfig = SliceBeam.getCurrentConfigFile()
+                    engravedTool.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+                    generatedConfig.delete()
+                    generatedConfig = null
+                    restored = Model(projectFile, 1)
+                    assertEquals("${operation.name} tool-side result should survive 3MF reload", 1,
+                        restored.objectsCount)
+                    assertEquals("3MF reload must retain the target material only", listOf(2),
+                        restored.getUsedFilaments(0).toList())
+                    assertEquals("${operation.name} volume must survive 3MF reload", engravedVolume,
+                        restored.getObjectVolume(0), maxOf(0.05, engravedVolume * 0.001))
+                    val gcode = sliceToGcode(
+                        context, restored, "boolean-negative-tool-${operation.name.lowercase()}.gcode",
+                    )
+                    assertHasExtrusion(gcode)
+                    assertTrue("sliced output must select the target's T1 slot",
+                        Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                    assertFalse("sliced output must not select the removed tool's T2 slot",
+                        Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+                } finally {
+                    restored?.release()
+                    plain.release()
+                    engravedTool.release()
+                    projectFile.delete()
+                    generatedConfig?.delete()
+                }
+            }
+        } finally {
+            cubeFile.delete()
+            fontFile.delete()
+        }
+    }
+
+    @Test
     fun multipartJoinPreservesExistingEngravedNegativeVolumeThroughReloadAndSlice() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val cubeFile = copyCube(context, "join-negative-volume-cube.stl")
