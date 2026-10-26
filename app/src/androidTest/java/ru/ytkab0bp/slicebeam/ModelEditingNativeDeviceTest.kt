@@ -949,6 +949,43 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun nativeMultiCutterDifferenceRejectsLaterNoOpAndPreservesEverySource() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "boolean-later-no-op-cutter.stl")
+        val model = Model(modelFile)
+        try {
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            val width = targetMax.x - targetMin.x
+            val sourceVolume = model.getObjectVolume(0)
+            val sourceTriangles = model.getTriangleCount(0)
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            // The first cutter removes half of the target. The second is well outside
+            // the target; it must not be accepted merely because cutter one already cut.
+            model.translate(1, width * 0.5, 0.0, 0.0)
+            model.translate(2, width * 2.0, 0.0, 0.0)
+            val disjointMin = Vec3d(); val disjointMax = Vec3d()
+            model.getBoundingBoxExact(2, disjointMin, disjointMax)
+            assertTrue("the no-op cutter must have a positive gap from the target", disjointMin.x > targetMax.x)
+            val cutterVolumes = listOf(model.getObjectVolume(1), model.getObjectVolume(2))
+            val cutterTriangles = listOf(model.getTriangleCount(1), model.getTriangleCount(2))
+
+            val result = model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.DIFFERENCE)
+
+            assertEquals("every selected difference cutter must make a real cut", -7, result)
+            assertEquals("a rejected multi-cutter edit must preserve target and cutters", 3, model.objectsCount)
+            assertEquals(sourceVolume, model.getObjectVolume(0), sourceVolume * 0.002)
+            assertEquals(sourceTriangles, model.getTriangleCount(0))
+            for (index in 1..2) {
+                assertEquals(cutterVolumes[index - 1], model.getObjectVolume(index), cutterVolumes[index - 1] * 0.002)
+                assertEquals(cutterTriangles[index - 1], model.getTriangleCount(index))
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun nativeBooleanUnionSupportsThreeSelectedObjectsAndPreservesWorldBounds() {
         val modelFile = copyAsset("models/xyz_cube.stl", "boolean-three-object-union.stl")
         val model = Model(modelFile)

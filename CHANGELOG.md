@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.373
+
+- Reject a multi-cutter Boolean Difference when a later cutter does not further cut the current intermediate solid; failed operations preserve every source object.
+- Verify three-object Boolean union, difference, and intersection, grouped surface placement, XYZ group movement, and curved standalone text through slicing on Android 16.
+
 ## 0.8.372
 
 - Publish the verified paint-stroke Undo/Redo and cancellable paint-draft workflow from 0.8.371 as the current installable release.

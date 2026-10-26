@@ -1835,7 +1835,7 @@ extern "C" {
             };
             TriangleMesh resultMesh = target->mesh();
             if (!valid_operand(resultMesh)) return -3;
-            const double baseVolume = std::fabs(resultMesh.volume());
+            double previousVolume = std::fabs(resultMesh.volume());
             auto applyBoolean = [operation](auto& result, auto& tool) {
                 switch (operation) {
                     case 0: MeshBoolean::cgal::plus(result, tool); break;
@@ -1848,8 +1848,9 @@ extern "C" {
                     !std::isfinite(stepMesh.volume()) || std::fabs(stepMesh.volume()) <= 1e-9f)
                     return false;
                 const double stepVolume = std::fabs(stepMesh.volume());
-                if (operation == 1 && stepVolume >= baseVolume - std::max(1e-5, baseVolume * 1e-6))
+                if (operation == 1 && stepVolume >= previousVolume - std::max(1e-5, previousVolume * 1e-6))
                     return false; // Do not silently accept a sequence that did not cut its target.
+                previousVolume = stepVolume;
                 return true;
             };
             if (indices.size() == 2) {
