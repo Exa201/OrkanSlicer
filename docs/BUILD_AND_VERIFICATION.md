@@ -1,3 +1,10 @@
+# Mehrfarben-Kopien und Modellbearbeitung — Nachprüfung 2026-10-26
+
+- Der bestehende Bett-füllen-Test färbt jetzt zusätzlich echte Dreiecksflächen eines 3MF-Objekts auf Slot 3. Er prüft die Quellzuordnung, beide erzeugten Kopien, den 3MF-Export/Rundlauf und die tatsächlich ausgegebenen Werkzeuge T0/T1/T2. Android-16-Emulator: 1/1 bestanden.
+- Bestehende Rundläufe erneut gezielt geprüft: bemalte Flächen über Multipart-Verbindung → 3MF → Slice 1/1; Boolean-Union 1/1; eigenständiger druckbarer 3D-Text 1/1. Kein tatsächlicher Druckstart.
+- M12-Touch-/Raycast-/Workspace-Gerätetest auf Android 16 1/1 bestanden. Der Test erzeugt den Standard-M12-Bolzen, lädt ihn, pickt die Oberfläche präzise und prüft Dialog-Back sowie Auswahlzustand. Die früheren Testfehler kamen vom injizierten rohen `KEYCODE_BACK` in Compose-Dialogfenstern; der App-Back-Dispatcher wird nun direkt geprüft. Die AVD blendete in dieser Konfiguration keine Bildschirmtastatur ein; deren Sichtbarkeit wurde deshalb als nicht verfügbar protokolliert.
+- Änderungen dieses Durchgangs betreffen ausschließlich Instrumentierungstests. Es gab keine Änderung am App-Laufzeitcode und keinen neuen APK-Build. Der aktuelle reguläre Release bleibt `v0.8.389`; APK und SHA-256 stehen im folgenden Release-Eintrag. Xiaomi-Hardwareprüfung bleibt offen.
+
 # OrkanSlicer 0.8.389 — transactional bed fill — 2026-10-26
 
 - Production change: extracted fill-bed candidate packing into `FillBedModelOperation`. Every candidate now begins from the original model state; failed or throwing arrangement attempts delete speculative copies and restore original positions. Only the largest accepted placement is committed into the working snapshot. Existing GL-thread arrangement and stale-state guarded commit in `GLView` remain unchanged.

@@ -14,11 +14,13 @@ import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.config.ThreeMfImportSelection
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
+import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
+import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
-import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaFilamentSettingsCatalog
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalog
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
@@ -203,8 +205,28 @@ class ThreeMfMulticolorDeviceTest {
             }
             model = Model(source, 1)
             assertEquals(3, model.objectsCount)
+            // Add a facet-color override before copying. This makes fill-bed exercise the
+            // same MMU segmentation data used by multi-color 3MFs, not only object-level slots.
+            val objectTranslation = Vec3d()
+            model.getTranslation(1, objectTranslation)
+            val objectMin = Vec3d(); val objectMax = Vec3d()
+            model.getBoundingBoxExact(1, objectMin, objectMax)
+            val localZMin = objectMin.z - objectTranslation.z
+            val localZRange = objectMax.z - objectMin.z
+            val paint = PaintSession(model, 1, GLRenderer.PAINT_MODE_COLOR)
+            try {
+                assertTrue("facet-paint session should open for the selected 3MF object", paint.isValid())
+                paint.height(localZMin + localZRange * 0.2, localZMin + localZRange * 0.8, 3)
+                paint.commit()
+            } finally {
+                paint.end()
+            }
+            assertTrue("source object should retain the new facet-color override", model.hasPaint(1))
+            assertTrue("painted source should use its base slot and the selected color slot",
+                model.getUsedFilaments(1).contentEquals(intArrayOf(2, 3)))
             val originalAssignments = listOf(intArrayOf(1), intArrayOf(2), intArrayOf(3))
             originalAssignments.forEachIndexed { index, assignment ->
+                if (index == 1) return@forEachIndexed
                 assertArrayEquals("source object $index should retain its original slot", assignment,
                     model.getUsedFilaments(index))
             }
@@ -224,21 +246,26 @@ class ThreeMfMulticolorDeviceTest {
             }
             assertEquals("two copies of the selected model should be committed", 2, added)
             assertEquals(5, model.objectsCount)
-            listOf(intArrayOf(1), intArrayOf(2), intArrayOf(3), intArrayOf(2), intArrayOf(2))
+            listOf(intArrayOf(1), intArrayOf(2, 3), intArrayOf(3), intArrayOf(2, 3), intArrayOf(2, 3))
                 .forEachIndexed { index, expected ->
                     assertArrayEquals("bed-filled object $index should preserve the correct source slot", expected,
                         model.getUsedFilaments(index))
                 }
+            assertTrue("both bed-filled copies must retain painted facets", model.hasPaint(3) && model.hasPaint(4))
+            assertEquals("each copied paint mask must retain the selected slot", 3, model.paintMaxFilament(3))
+            assertEquals("each copied paint mask must retain the selected slot", 3, model.paintMaxFilament(4))
 
             SliceBeam.genCurrentConfig(model)
             model.export3mf(configFile.absolutePath, project.absolutePath)
             restored = Model(project, 1)
             assertEquals(5, restored.objectsCount)
-            listOf(intArrayOf(1), intArrayOf(2), intArrayOf(3), intArrayOf(2), intArrayOf(2))
+            listOf(intArrayOf(1), intArrayOf(2, 3), intArrayOf(3), intArrayOf(2, 3), intArrayOf(2, 3))
                 .forEachIndexed { index, expected ->
                     assertArrayEquals("3MF reload should preserve the slot for object $index", expected,
                         restored.getUsedFilaments(index))
                 }
+            assertTrue("3MF reload must retain paint on the original and both generated copies",
+                restored.hasPaint(1) && restored.hasPaint(3) && restored.hasPaint(4))
 
             result = restored.slice(configFile.absolutePath, destination.absolutePath, null)
             val toolsUsed = BooleanArray(3)
