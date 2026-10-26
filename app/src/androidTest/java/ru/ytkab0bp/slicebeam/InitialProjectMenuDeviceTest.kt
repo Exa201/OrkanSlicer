@@ -5440,6 +5440,8 @@ class InitialProjectMenuDeviceTest {
     private fun assertCurrentWorkspaceModelRoundTripsAndSlices(
         name: String,
         sliceModel: Boolean = true,
+        expectedObjectFilaments: List<IntArray>? = null,
+        allowedGcodeTools: Set<Int>? = null,
         prepareForSlice: (Model) -> Unit = {},
     ) {
         val activity = compose.activity
@@ -5462,8 +5464,16 @@ class InitialProjectMenuDeviceTest {
         var sliceResult: GCodeProcessorResult? = null
         try {
             assertTrue("$name should leave at least one printable object", objectCount > 0)
-            assertTrue("$name should retain at least one assigned material",
-                expectedFilaments.all { it.contentEquals(intArrayOf(2)) })
+            if (expectedObjectFilaments == null) {
+                assertTrue("$name should retain at least one assigned material",
+                    expectedFilaments.all { it.contentEquals(intArrayOf(2)) })
+            } else {
+                assertEquals("$name expected filament fixtures should cover every object",
+                    objectCount, expectedObjectFilaments.size)
+                expectedObjectFilaments.forEachIndexed { index, expected ->
+                    assertArrayEquals("$name source object $index filament", expected, expectedFilaments[index])
+                }
+            }
             SliceBeam.INSTANCE = activity.applicationContext as SliceBeam
             Prefs.init(activity.applicationContext as SliceBeam)
             Prefs.setStoredFilamentSlots(listOf(
@@ -5526,8 +5536,13 @@ class InitialProjectMenuDeviceTest {
                     Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
                 val emittedTools = Regex("(?m)^T(\\d+)(?:\\s|$)").findAll(gcode)
                     .map { it.groupValues[1].toInt() }.toSet()
-                assertTrue("$name G-code should use assigned tool T1; found $emittedTools", 1 in emittedTools)
-                assertFalse("$name G-code must not use the unassigned T2", 2 in emittedTools)
+                if (allowedGcodeTools == null) {
+                    assertTrue("$name G-code should use assigned tool T1; found $emittedTools", 1 in emittedTools)
+                    assertFalse("$name G-code must not use the unassigned T2", 2 in emittedTools)
+                } else {
+                    assertTrue("$name G-code must not use unassigned tools; found $emittedTools",
+                        emittedTools.all { it in allowedGcodeTools })
+                }
             }
         } finally {
             sliceResult?.release()
@@ -7696,6 +7711,14 @@ class InitialProjectMenuDeviceTest {
         assertEquals("created text should become selected", 0, glView.renderer.selectedObject)
         val textTriangleCount = readTriangleCountOnGl(glView, 0)
         val textBounds = readExactBoundsOnGl(glView, 0).single()
+
+        // Exercise the complete user path: standalone text created from the Model menu must
+        // retain its material through 3MF export/reload and remain printable by the slicer.
+        assertCurrentWorkspaceModelRoundTripsAndSlices(
+            name = "standalone-text-menu",
+            expectedObjectFilaments = listOf(intArrayOf(1)),
+            allowedGcodeTools = setOf(0),
+        )
 
         bed.onBackPressed()
         assertFalse("exiting the tool should clear standalone placement mode",
