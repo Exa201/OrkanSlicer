@@ -861,8 +861,10 @@ extern "C" {
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1cut_1connector_1count(JNIEnv*, jclass, jlong ptr, jint objIdx) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         if (model == nullptr || objIdx < 0 || static_cast<size_t>(objIdx) >= model->model.objects.size()) return 0;
+        ModelObject* object = model->model.objects[objIdx];
+        if (object == nullptr) return 0;
         int count = 0;
-        for (const ModelVolume* volume : model->model.objects[objIdx]->volumes) {
+        for (const ModelVolume* volume : object->volumes) {
             if (is_unprocessed_cut_connector(volume)) ++count;
         }
         return count;
@@ -878,7 +880,8 @@ extern "C" {
     }
 
     static void add_cut_connector_volume(ModelObject* object, const Vec3d& pos, float radius, float height, jint type, double rotX, double rotY) {
-        if (object == nullptr) return;
+        if (object == nullptr || !pos.allFinite() || !std::isfinite(radius) || !std::isfinite(height) ||
+            !std::isfinite(rotX) || !std::isfinite(rotY)) return;
         radius = std::max(radius, 0.1f);
         height = std::max(height, 0.1f);
 
@@ -911,8 +914,9 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1remove_1connector(JNIEnv* env, jclass, jlong ptr, jint objIdx, jint connIdx) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        if (model == nullptr || objIdx < 0 || objIdx >= model->model.objects.size() || connIdx < 0) return;
+        if (model == nullptr || objIdx < 0 || static_cast<size_t>(objIdx) >= model->model.objects.size() || connIdx < 0) return;
         ModelObject* object = model->model.objects[objIdx];
+        if (object == nullptr) return;
         int connector_counter = 0;
         for (int volume_idx = 0; volume_idx < object->volumes.size(); ++volume_idx) {
             if (!is_unprocessed_cut_connector(object->volumes[volume_idx])) continue;
@@ -926,8 +930,9 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1clear_1connectors(JNIEnv* env, jclass, jlong ptr, jint objIdx) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        if (model == nullptr || objIdx < 0 || objIdx >= model->model.objects.size()) return;
+        if (model == nullptr || objIdx < 0 || static_cast<size_t>(objIdx) >= model->model.objects.size()) return;
         ModelObject* object = model->model.objects[objIdx];
+        if (object == nullptr) return;
         for (int volume_idx = int(object->volumes.size()) - 1; volume_idx >= 0; --volume_idx) {
             if (is_unprocessed_cut_connector(object->volumes[volume_idx])) {
                 object->delete_volume(volume_idx);
@@ -942,7 +947,8 @@ extern "C" {
             return false;
         }
         Model& model = modelRef->model;
-        if (i < 0 || i >= model.objects.size()) {
+        if (i < 0 || static_cast<size_t>(i) >= model.objects.size() || model.objects[i] == nullptr ||
+            !std::isfinite(zHeight) || !std::isfinite(rotX) || !std::isfinite(rotY) || (!keepUpper && !keepLower)) {
             LOGD("Cut failed: invalid model or index %d", i);
             return false;
         }

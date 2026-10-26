@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.383
+
+- Reject invalid cut and connector requests at the native boundary before they can mutate model geometry.
+- Verify invalid inputs preserve model bounds and printable volume, while valid connector edits survive cleanup, 3MF reload, and slicing.
+
 ## 0.8.382
 
 - Guard native object deletion, XYZ translation, and bed placement against stale object indices and invalid translation values at the JNI boundary.

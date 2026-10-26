@@ -82,6 +82,78 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun nativeCutAndConnectorEditsRejectInvalidInputsAndKeepValidRoundTripPrintable() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "native-connector-validation.stl")
+        val projectFile = File(context.cacheDir, "native-connector-validation.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var configFile: File? = null
+        try {
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val beforeBounds = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            val beforeVolume = model.getObjectVolume(0)
+            val pointer = model.pointer
+
+            // Cut must reject invalid heights/angles and an empty keep-mask before mutating input.
+            assertFalse(Native.model_cut(pointer, 0, Double.NaN, 0.0, 0.0, true, true))
+            assertFalse(Native.model_cut(pointer, 0, 10.0, Double.POSITIVE_INFINITY, 0.0, true, true))
+            assertFalse(Native.model_cut(pointer, 0, 10.0, 0.0, 0.0, false, false))
+            assertFalse(Native.model_cut(pointer, model.objectsCount, 10.0, 0.0, 0.0, true, true))
+            assertFalse(Native.model_cut(0L, 0, 10.0, 0.0, 0.0, true, true))
+
+            // Connector add/remove/clear calls are exercised directly at JNI, below Kotlin guards.
+            Native.model_add_connector(pointer, 0, Double.NaN, 0.0, 0.0, 2f, 4f, 0)
+            Native.model_add_connector(pointer, 0, 0.0, 0.0, 0.0, Float.POSITIVE_INFINITY, 4f, 0)
+            Native.model_add_connector(pointer, model.objectsCount, 0.0, 0.0, 0.0, 2f, 4f, 0)
+            Native.model_add_connector(0L, 0, 0.0, 0.0, 0.0, 2f, 4f, 0)
+            Native.model_add_connector_on_plane(pointer, 0, 0.0, 0.0, 0.0, 2f, 4f, 0,
+                0.0, Double.NEGATIVE_INFINITY)
+            Native.model_add_connector_on_plane(pointer, model.objectsCount, 0.0, 0.0, 0.0, 2f, 4f, 0,
+                0.0, 0.0)
+            Native.model_add_connector_on_plane(0L, 0, 0.0, 0.0, 0.0, 2f, 4f, 0, 0.0, 0.0)
+            Native.model_remove_connector(pointer, 0, -1)
+            Native.model_remove_connector(pointer, model.objectsCount, 0)
+            Native.model_remove_connector(0L, 0, 0)
+            Native.model_clear_connectors(pointer, model.objectsCount)
+            Native.model_clear_connectors(0L, 0)
+
+            assertEquals("invalid requests must not create connector volumes", 0, model.getCutConnectorCount(0))
+            assertEquals("invalid requests must preserve object count", 1, model.objectsCount)
+            model.getBoundingBoxExact(0, min, max)
+            assertArrayEquals("invalid requests must preserve exact object bounds", beforeBounds,
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z), 0.001)
+            assertEquals("invalid requests must preserve printable volume", beforeVolume, model.getObjectVolume(0), 0.001)
+
+            // Valid connector add/remove/clear behavior remains intact for both placement modes.
+            Native.model_add_connector(pointer, 0, 10.0, 10.0, 10.0, 2f, 4f, 1)
+            assertEquals(1, model.getCutConnectorCount(0))
+            Native.model_add_connector_on_plane(pointer, 0, 10.0, 10.0, 10.0, 2f, 4f, 2, 0.2, -0.1)
+            assertEquals(2, model.getCutConnectorCount(0))
+            Native.model_remove_connector(pointer, 0, 0)
+            assertEquals(1, model.getCutConnectorCount(0))
+            Native.model_clear_connectors(pointer, 0)
+            assertEquals(0, model.getCutConnectorCount(0))
+            assertEquals("removing connectors restores the original solid volume", beforeVolume,
+                model.getObjectVolume(0), 0.001)
+
+            configFile = SliceBeam.getCurrentConfigFile()
+            model.export3mf(configFile!!.absolutePath, projectFile.absolutePath)
+            restored = Model(projectFile, 1)
+            assertEquals("connector cleanup must survive 3MF reload", 0, restored.getCutConnectorCount(0))
+            assertHasExtrusion(sliceToGcode(context, restored, "native-connector-validation.gcode"))
+        } finally {
+            configFile?.delete()
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
     fun invalidTransformAndSimplifyRequestsPreserveNativeModel() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyAsset(context, "models/sphere.stl", "invalid-transform-edits.stl")
