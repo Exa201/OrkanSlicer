@@ -334,6 +334,47 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun combiningObjectsMaterializesEveryLinkedInstanceAtItsWorldPlacement() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "combine-linked-instances-cube.stl")
+        val model = Model(modelFile)
+        try {
+            val originalMin = Vec3d(); val originalMax = Vec3d()
+            model.getBoundingBoxExact(0, originalMin, originalMax)
+            val width = originalMax.x - originalMin.x
+            assertTrue(width > 0.0)
+            assertEquals(1, model.duplicateInstance(0, 0, Vec3d(width + 8.0, 0.0, 0.0)))
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.translate(1, width * 3.0 + 24.0, 0.0, 0.0)
+
+            fun bounds(index: Int): Pair<Vec3d, Vec3d> {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return min to max
+            }
+            val before = listOf(bounds(0), bounds(1))
+            val expectedMinX = before.minOf { it.first.x }
+            val expectedMaxX = before.maxOf { it.second.x }
+            val perObjectTriangles = model.getTriangleCount(0)
+            val expectedTriangles = perObjectTriangles * 4
+
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals("both two-instance objects become four printable part volumes",
+                expectedTriangles, model.getTriangleCount(0))
+            assertTrue("both original part materials must survive", model.getUsedFilaments(0).toSet().containsAll(setOf(1, 2)))
+            val joinedMin = Vec3d(); val joinedMax = Vec3d()
+            model.getBoundingBoxExact(0, joinedMin, joinedMax)
+            assertEquals("joined linked copies keep their outer world-space minimum", expectedMinX, joinedMin.x, 0.02)
+            assertEquals("joined linked copies keep their outer world-space maximum", expectedMaxX, joinedMax.x, 0.02)
+            assertTrue("the joined repeated instances stay printable", model.getObjectVolume(0) > 0.0)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun linkedInstanceDuplicationValidatesInputsAndPreservesTheSourceMesh() {
         val modelFile = copyAsset("models/xyz_cube.stl", "duplicate-linked-instance-cube.stl")
         val model = Model(modelFile)

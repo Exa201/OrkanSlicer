@@ -2071,3 +2071,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Android 16 emulator: all 43 `ModelEditingNativeDeviceTest` cases passed. The focused coverage includes mirrored-object joining, per-part filament assignment, geometry/placement preservation, Boolean operations, standalone text, surface placement, and slicing.
 - APK installed successfully; Android reports version 0.8.387 / code 422. The launcher opened `SetupActivity`; sampled Logcat contained no crash, ANR, OOM, or fatal-signal matches. This confirms installation and startup, not completion of onboarding or a full UI tour.
 - Debug-signed APK; no production release keystore is configured. Xiaomi device validation remains open. No printer was contacted, no print was started, and no firmware was changed.
+
+## Model editing regression — linked-instance joins (2026-10-26)
+
+- Added `combiningObjectsMaterializesEveryLinkedInstanceAtItsWorldPlacement`: combines two objects that each contain two linked instances and verifies all four printable parts, both filament assignments, positive solid volume, and retained outer world-space bounds.
+- Corrected `Model` API documentation: joining and Boolean operations support object instances; the earlier single-instance wording did not match the native implementation.
+- Android 16 focused instrumentation: linked-instance join, object-on-object surface placement, standalone 3D text join-and-slice, and multi-tool Boolean union-and-slice passed 4/4, zero skips/failures. The added linked-instance join case also passed 1/1 independently.
+- No slicer-native behavior changed in this update; only regression coverage and API documentation changed. The latest app release remains 0.8.387.

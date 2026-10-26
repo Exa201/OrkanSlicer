@@ -445,7 +445,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return index
     }
 
-    /** Combines selected single-instance objects into a multipart object while preserving volume materials. */
+    /** Combines objects, materializing every linked instance as a placed multipart volume. */
     open fun combineObjectsAsParts(objectIndices: IntArray): Int {
         if (pointer == 0L) return -1
         val stableIndices = ModelEditRequestValidation.distinctObjectIndicesSnapshot(objectIndices, objectsCount) ?: return -1
@@ -455,7 +455,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     /**
-     * Applies a validated Orca/CGAL solid operation to the selected single-instance objects.
+     * Applies a validated Orca/CGAL solid operation to the selected objects, including their instances.
      * The first index is the target; remaining objects are applied in order. Returns the
      * replacement object's index, or a negative status without changing inputs.
      */
