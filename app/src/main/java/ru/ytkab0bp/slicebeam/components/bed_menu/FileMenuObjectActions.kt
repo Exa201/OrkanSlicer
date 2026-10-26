@@ -130,7 +130,6 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     choices = listOf(
                         context.getString(R.string.MenuFileDuplicateCount),
                         context.getString(R.string.MenuFileMoveToPlate),
-                        context.getString(R.string.MenuToolbarSplit),
                         context.getString(R.string.MenuFileDelete),
                     ),
                     onDismiss = dismiss,
@@ -139,8 +138,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                         when (which) {
                             0 -> showDuplicateDialog(view, viewport, snapshot)
                             1 -> showMoveToPlateDialog(view, snapshot)
-                            2 -> fragment.splitSelectedObjectInternal(snapshot)
-                            3 -> viewport.deleteSelectedModelsIfCurrent(snapshot) { removed ->
+                            2 -> viewport.deleteSelectedModelsIfCurrent(snapshot) { removed ->
                                 when {
                                     removed == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
                                     removed > 0 -> fragment.updateModel()

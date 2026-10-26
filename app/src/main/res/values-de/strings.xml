@@ -184,6 +184,7 @@
     <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
     <string name="ModelMenuPlaceOnObjectDone">Auf das Ziel gesetzt und für den Druck als Baugruppe verbunden.</string>
     <string name="ModelMenuCombineFailed">Die Objekte konnten nicht verbunden werden. Die Originale sind erhalten geblieben.</string>
+    <string name="ModelMenuSplit">Teile trennen</string>
     <string name="ModelMenuPlaceFailed">Die Platzierung ist fehlgeschlagen. Prüfe die Objektpositionen, bevor du fortfährst.</string>
     <string name="ModelMenuPlaceRollbackFailed">Die Platzierung ist fehlgeschlagen und mindestens ein Objekt konnte nicht zurückgesetzt werden. Prüfe das Modell, bevor du fortfährst.</string>
     <string name="ModelMenuPlaceOnSurface">Auf ausgewählte Fläche setzen</string>

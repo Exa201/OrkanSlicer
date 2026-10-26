@@ -199,6 +199,7 @@
     <string name="ModelMenuCombineSelectedShort">Combine parts</string>
     <string name="ModelMenuCombineWarning">Selected objects will become one multipart object. Their separate volume materials are preserved; this is not a boolean union.</string>
     <string name="ModelMenuCombineDone">Objects combined as multipart object</string>
+    <string name="ModelMenuSplit">Separate parts</string>
     <string name="ModelMenuCombineUnsupported">Select at least two single-instance objects to combine.</string>
     <string name="ModelMenuCombineFailed">The objects could not be combined. The original objects were kept.</string>
     <string name="ModelMenuPlaceFailed">Placement failed. Check the object positions before continuing.</string>

@@ -58,9 +58,6 @@ internal class TransformMenuItems(
             selectionAction(R.string.MenuTransformCut, R.drawable.menu_transform_cut_or_mirror_28, availability) {
                 showCutMenu.accept(it)
             },
-            selectionAction(R.string.MenuToolbarSplit, R.drawable.menu_transform_cut_or_mirror_28, availability) {
-                fragment.splitSelectedObject()
-            },
             selectionAction(R.string.MenuToolbarVariableLayerHeight, R.drawable.sliders_outline_28, availability) {
                 fragment.enterVariableLayerHeightMode()
             },

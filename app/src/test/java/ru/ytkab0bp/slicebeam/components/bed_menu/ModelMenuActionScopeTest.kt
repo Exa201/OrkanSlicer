@@ -23,7 +23,7 @@ class ModelMenuActionScopeTest {
             R.string.MenuTransformScale,
             R.string.ModelSimplify,
             R.string.MenuTransformCut,
-            R.string.MenuToolbarSplit,
+            R.string.ModelMenuSplit,
             R.string.MenuToolbarVariableLayerHeight,
             R.string.MenuToolbarSupportPaint,
             R.string.MenuToolbarSeamPaint,
@@ -40,5 +40,6 @@ class ModelMenuActionScopeTest {
             R.string.ModelMenuSelectAll,
             R.string.ModelMenuDeleteAll,
         ).forEach { assertFalse("$it should affect the full plate", ModelMenuActionScope.isSingleObject(it)) }
+        assertFalse("the legacy edit-menu split action should no longer be exposed", ModelMenuActionScope.isSingleObject(R.string.MenuToolbarSplit))
     }
 }

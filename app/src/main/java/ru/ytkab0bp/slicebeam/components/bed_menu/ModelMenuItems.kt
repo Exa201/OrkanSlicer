@@ -47,6 +47,12 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuMoveToPlate, R.drawable.square_stack_up_outline_28, {
                 objectActions.showMoveToPlateDialog(it)
             }, enabled = availability.hasSelectedObject && fragment.plateCount > 1),
+            BedComposeMenuAction(R.string.ModelMenuSplit, R.drawable.square_stack_up_outline_28, {
+                val activeGlView = fragment.glView ?: return@BedComposeMenuAction
+                captureSelectionSnapshot(activeGlView) { snapshot ->
+                    fragment.splitSelectedObjectInternal(snapshot)
+                }
+            }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.view_in_ar_24, { anchor ->
                 val activeGlView = fragment.glView ?: return@BedComposeMenuAction
                 captureSelectionSnapshot(activeGlView) { snapshot ->

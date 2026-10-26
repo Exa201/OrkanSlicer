@@ -248,6 +248,8 @@ class InitialProjectMenuDeviceTest {
             scrollMenuToIndex(1)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDuplicate))
                 .performScrollTo().assertIsDisplayed()
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled()
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuArrange))
                 .assertDoesNotExist()
 
@@ -258,16 +260,11 @@ class InitialProjectMenuDeviceTest {
             scrollMenuToIndex(2)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSelectAll))
                 .performScrollTo().assertIsDisplayed()
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
+                .assertDoesNotExist()
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
                 .assertDoesNotExist()
 
-            openEditMenu(activity)
-            revealMenuAction(activity, R.string.ModelUndo)
-            compose.onNodeWithContentDescription(activity.getString(R.string.ModelUndo))
-                .assertIsDisplayed()
-            revealMenuAction(activity, R.string.MenuToolbarMove)
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
-                .assertIsDisplayed().assertIsEnabled()
         } finally {
             modelFile.delete()
         }
@@ -2833,8 +2830,8 @@ class InitialProjectMenuDeviceTest {
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             openSelectedObjectMenu(activity)
-            revealMenuAction(activity, R.string.MenuToolbarSplit)
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
+            revealMenuAction(activity, R.string.ModelMenuSplit)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
             compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 4 }
             // Split posts updateModel() to Main, which then queues its history snapshot on GL.
@@ -7252,8 +7249,8 @@ class InitialProjectMenuDeviceTest {
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             openSelectedObjectMenu(activity)
-            revealMenuAction(activity, R.string.MenuToolbarSplit)
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
+            revealMenuAction(activity, R.string.ModelMenuSplit)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
                 .performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) {
                 hasSnackbarTitle(R.string.MenuToolbarSplitNothing)
@@ -7558,8 +7555,8 @@ class InitialProjectMenuDeviceTest {
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
             openSelectedObjectMenu(activity)
-            revealMenuAction(activity, R.string.MenuToolbarSplit)
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarSplit))
+            revealMenuAction(activity, R.string.ModelMenuSplit)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
             compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 2 }
