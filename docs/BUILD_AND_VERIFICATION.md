@@ -1,3 +1,12 @@
+# OrkanSlicer 0.8.389 — transactional bed fill — 2026-10-26
+
+- Production change: extracted fill-bed candidate packing into `FillBedModelOperation`. Every candidate now begins from the original model state; failed or throwing arrangement attempts delete speculative copies and restore original positions. Only the largest accepted placement is committed into the working snapshot. Existing GL-thread arrangement and stale-state guarded commit in `GLView` remain unchanged.
+- Code change commit: `84370a23be3b293e4f7f75ea3e6045d59112a241`; release/version commit: `9d992e23b82631cd55d957c6b157d74cdf99324b`. Version 0.8.389 / versionCode 424.
+- Android 16 emulator instrumentation: `ModelEditingNativeDeviceTest` 46/46 passed (0 failures/errors/skips; XML timestamp `2026-10-26T15:24:55`). Dedicated `NativeSliceDeviceTest.fillBedCopiesPreserveMaterialThroughThreeMfReloadAndSlice` passed 1/1: three arranged objects kept T1 through 3MF export/reload, then generated extrusion G-code with T1 and without an unexpected T0 tool selection (XML timestamp `2026-10-26T15:09:42`).
+- JVM suites: Debug 658/658 and Slice 658/658 passed, with zero failures/errors/skips. `:app:assembleDebug` succeeded.
+- APK: `OrkanSlicer_9d992e23b8.apk`, 239,558,936 bytes; SHA-256 `F92B65A2194138180027CE3A8D7651C79862CB57345E25A414DAB35EDE82AB2D`. Installed and started on the Android 16 emulator; Android reported version 0.8.389/code 424, process remained active, sampled logs had no crash/ANR/OOM/fatal-signal match.
+- Regular, non-prerelease GitHub release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.389. Release asset digest matches the local APK. APK is debug-signed; Xiaomi hardware verification remains open. No printer was contacted and no print was started.
+
 # Objektverbindung weist ungültige Transformationen vor der Änderung zurück — 2026-10-26
 
 - Die native Multipart-Verbindung prüft nun Ziel-, Instanz-, Volumen- und zusammengesetzte Welttransformationen auf endliche Werte und Invertierbarkeit, bevor Volumen vorbereitet oder Quellobjekte verändert werden. Damit kann eine beschädigte/importierte Null- oder Nicht-Endlich-Transformation nicht durch die inverse Zielmatrix in verbundene Geometrie übergehen.
