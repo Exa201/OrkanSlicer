@@ -373,6 +373,11 @@ class WorkspaceRuntimeCompositionDeviceTest {
 
             instrumentation.runOnMainSync { bed.enterEmbossMode(standaloneText = true) }
             awaitTag(activity, "emboss-standalone-mode")
+            val serifFont = File("/system/fonts/NotoSerif-Regular.ttf")
+            if (serifFont.isFile && serifFont.canRead()) {
+                clickTag(activity, "emboss-font-serif")
+                awaitSelected(activity, "emboss-font-serif")
+            }
             clickTag(activity, "emboss-follow-surface")
             awaitSelected(activity, "emboss-follow-surface")
             setText(activity, "emboss-text-input", "A")
@@ -498,6 +503,11 @@ class WorkspaceRuntimeCompositionDeviceTest {
 
             instrumentation.runOnMainSync { bed.enterEmbossMode(standaloneText = true) }
             awaitTag(activity, "emboss-standalone-mode")
+            val serifFont = File("/system/fonts/NotoSerif-Regular.ttf")
+            if (serifFont.isFile && serifFont.canRead()) {
+                clickTag(activity, "emboss-font-serif")
+                awaitSelected(activity, "emboss-font-serif")
+            }
             clickTag(activity, "emboss-follow-surface")
             awaitSelected(activity, "emboss-follow-surface")
             setText(activity, "emboss-text-input", "A")
