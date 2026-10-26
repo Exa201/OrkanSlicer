@@ -1,3 +1,14 @@
+# OrkanSlicer 0.8.386 — native Boolean guards and release — 2026-10-26
+
+- Native code commit: `ad829bde2fef2c557f50ba091331b4c8987e3eb8`; release/version commit: `84c61da29c9c0c2acacad6c4dfd99bb20b5fa7df`. Version 0.8.386 / versionCode 421.
+- Native Boolean operations now reject invalid object, instance, volume, and transform state before mesh evaluation. Union, difference, and intersection validate that each result's volume is consistent with the operation before changing the model.
+- Android 16 focused instrumentation at the native patch: 5/5 Boolean tests passed, covering multiple cutters, invalid requests without mutation, 3MF reload, placement, and subsequent slicing. A further 0.8.386 run passed `booleanUnionConsumesEverySelectedToolAndSlicesTheCombinedResult` (1/1).
+- Full JVM suites at 0.8.386: Debug 658/658 and Slice 658/658 passed; 0 failures, errors, or skips. `:app:assembleDebug` succeeded.
+- Changelog device test confirmed the 0.8.386 release text renders, but its final Android-Back dismissal assertion failed in the test harness. Repeated runs showed the test Activity root had no window focus while the Compose `Dialog` owns the focused window (Espresso reported `RootViewWithoutFocusException`). The release note dialog's production behavior was not independently confirmed by this harness; track a focused-window Back test separately.
+- APK `OrkanSlicer_84c61da29c.apk`: 239,557,429 bytes; SHA-256 `BC30DD8893FD6C5EA630B45924D470E39BAD9022A654314871480BA40CE39446`. Installed and launched on Android 16 emulator; package reported 0.8.386 / 421. The sampled logcat had no fatal exception, ANR, OOM, or fatal signal.
+- Published as regular latest release `v0.8.386`: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.386. Tag targets `84c61da29c9c0c2acacad6c4dfd99bb20b5fa7df`; GitHub asset digest matches the local APK. Debug-signed; no production signing key is configured.
+- PR #2 remains open. No merge, firmware action, or print start occurred.
+
 # STL-Preflight-Test benötigt kein großes Fixture mehr — 2026-10-24
 
 - Der Grenztest für `StlImportPreflight` legt keine 25-MB-Binär-STL mehr an. Eine pure interne Policy-Prüfung testet 500.000/500.001 Dreiecke und die erwartete deklarierte Binärlänge; zusätzlich prüft eine 6-Dreiecke-Datei den echten Headerlesepfad.
