@@ -20,6 +20,8 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/MeshBoolean.hpp"
+#include "libslic3r/CSGMesh/ModelToCSGMesh.hpp"
+#include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
 #include <libslic3r/SVG.hpp>
 #include <libslic3r/GCode.hpp>
 #include <libslic3r/Print.hpp>
@@ -1881,7 +1883,41 @@ extern "C" {
                     MeshBoolean::cgal::does_bound_a_volume(*cgal) &&
                     !MeshBoolean::cgal::does_self_intersect(*cgal);
             };
-            TriangleMesh resultMesh = target->mesh();
+            auto printable_mesh = [](const ModelObject& object) {
+                const bool has_negative_volume = std::any_of(
+                    object.volumes.begin(), object.volumes.end(), [](const ModelVolume* volume) {
+                        return volume != nullptr && volume->is_negative_volume();
+                    });
+                if (!has_negative_volume) return object.mesh();
+
+                // ModelObject::mesh() intentionally contains only positive model parts. For
+                // Boolean inputs with engravings/cutouts, evaluate the same per-instance CSG
+                // expression used by slicing so those existing negative volumes are not silently
+                // restored or discarded by the resulting Boolean solid.
+                MeshBoolean::cgal::CGALMeshPtr combined;
+                for (const ModelInstance* instance : object.instances) {
+                    if (instance == nullptr) return TriangleMesh{};
+                    std::vector<csg::CSGPart> parts;
+                    csg::model_to_csgmesh(
+                        object, instance->get_matrix(), std::back_inserter(parts),
+                        csg::mpartsPositive | csg::mpartsNegative);
+                    if (parts.empty()) return TriangleMesh{};
+                    auto instance_result = csg::perform_csgmesh_booleans(range(parts));
+                    if (!instance_result || MeshBoolean::cgal::empty(*instance_result) ||
+                        !MeshBoolean::cgal::does_bound_a_volume(*instance_result) ||
+                        MeshBoolean::cgal::does_self_intersect(*instance_result)) return TriangleMesh{};
+                    if (!combined) {
+                        combined = std::move(instance_result);
+                    } else {
+                        MeshBoolean::cgal::plus(*combined, *instance_result);
+                        if (MeshBoolean::cgal::empty(*combined) ||
+                            !MeshBoolean::cgal::does_bound_a_volume(*combined) ||
+                            MeshBoolean::cgal::does_self_intersect(*combined)) return TriangleMesh{};
+                    }
+                }
+                return combined ? MeshBoolean::cgal::cgal_to_triangle_mesh(*combined) : TriangleMesh{};
+            };
+            TriangleMesh resultMesh = printable_mesh(*target);
             if (!valid_operand(resultMesh)) return -3;
             double previousVolume = std::fabs(resultMesh.volume());
             auto applyBoolean = [operation](auto& result, auto& tool) {
@@ -1907,7 +1943,7 @@ extern "C" {
                 if (!resultCgal) return -3;
                 ModelObject* tool = ref->model.objects[indices[1]];
                 if (!has_valid_instances(tool)) return -2;
-                TriangleMesh toolMesh = tool->mesh();
+                TriangleMesh toolMesh = printable_mesh(*tool);
                 if (!valid_operand(toolMesh)) return -3;
                 auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
                 if (!toolCgal) return -3;
@@ -1925,7 +1961,7 @@ extern "C" {
                 for (size_t n = 1; n < indices.size(); ++n) {
                     ModelObject* tool = ref->model.objects[indices[n]];
                     if (!has_valid_instances(tool)) return -2;
-                    TriangleMesh toolMesh = tool->mesh();
+                    TriangleMesh toolMesh = printable_mesh(*tool);
                     if (!valid_operand(toolMesh)) return -3;
                     auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
                     if (!toolCgal) return -3;

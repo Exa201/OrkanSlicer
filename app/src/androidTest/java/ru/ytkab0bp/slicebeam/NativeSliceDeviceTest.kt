@@ -1083,6 +1083,202 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun booleanUnionPreservesExistingEngravedNegativeVolumeThroughReloadAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-negative-volume-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-negative-volume-font.ttf")
+        val projectFile = File(context.cacheDir, "boolean-negative-volume-roundtrip.3mf")
+        val plain = Model(cubeFile)
+        val engraved = Model(cubeFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            fun addDisjointCutter(model: Model) {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val width = max.x - min.x
+                model.addObject(model, 0)
+                model.translate(1, width * 3.0, 0.0, 0.0)
+            }
+
+            addDisjointCutter(plain)
+            assertEquals("plain control union should succeed", 0,
+                plain.booleanObjects(intArrayOf(0, 1), BooleanOperation.UNION))
+            val plainUnionVolume = plain.getObjectVolume(0)
+            assertTrue("plain union should have a valid solid volume", plainUnionVolume > 0.0)
+
+            val min = Vec3d(); val max = Vec3d()
+            engraved.getBoundingBoxExact(0, min, max)
+            engraved.setUniformFilament(0, 1)
+            engraved.embossText(
+                0, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            addDisjointCutter(engraved)
+            assertEquals("union with a previously engraved target should succeed", 0,
+                engraved.booleanObjects(intArrayOf(0, 1), BooleanOperation.UNION))
+            assertTrue("Boolean union must retain the existing engraved cut instead of restoring the solid surface",
+                engraved.getObjectVolume(0) < plainUnionVolume - 0.01)
+
+            SliceBeam.genCurrentConfig(engraved)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            engraved.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("Boolean result should remain one printable object after reload", 1, restored.objectsCount)
+            assertEquals("Boolean result should keep the target filament assignment", listOf(1),
+                restored.getUsedFilaments(0).toList())
+            assertTrue("the engraved cut should remain in the reloaded Boolean mesh",
+                restored.getObjectVolume(0) < plainUnionVolume - 0.01)
+            val gcode = sliceToGcode(context, restored, "boolean-negative-volume-roundtrip.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            restored?.release()
+            plain.release()
+            engraved.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun booleanDifferenceAndIntersectionRespectExistingEngravedNegativeVolume() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-negative-volume-ops-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-negative-volume-ops-font.ttf")
+        try {
+            fun centerCutter(target: Model, cutter: Model, operation: BooleanOperation) {
+                val targetMin = Vec3d(); val targetMax = Vec3d()
+                target.getBoundingBoxExact(0, targetMin, targetMax)
+                val targetCenterX = (targetMin.x + targetMax.x) / 2.0
+                val targetCenterY = (targetMin.y + targetMax.y) / 2.0
+                val targetCenterZ = (targetMin.z + targetMax.z) / 2.0
+                when (operation) {
+                    BooleanOperation.DIFFERENCE -> cutter.scale(0, 0.35, 0.35, 0.35)
+                    // Keep the intersection connected to the build plate while still crossing
+                    // the engraved top face, so the resulting part can be sliced normally.
+                    BooleanOperation.INTERSECTION -> cutter.scale(0, 0.45, 0.45, 1.2)
+                    else -> error("Only targeted difference and intersection cases are expected")
+                }
+                val cutterMin = Vec3d(); val cutterMax = Vec3d()
+                cutter.getBoundingBoxExact(0, cutterMin, cutterMax)
+                val cutterCenterX = if (operation == BooleanOperation.DIFFERENCE) targetMax.x - 2.0 else targetCenterX
+                val cutterCenterY = targetCenterY
+                val cutterCenterZ = targetCenterZ
+                cutter.translate(
+                    0,
+                    cutterCenterX - (cutterMin.x + cutterMax.x) / 2.0,
+                    cutterCenterY - (cutterMin.y + cutterMax.y) / 2.0,
+                    cutterCenterZ - (cutterMin.z + cutterMax.z) / 2.0,
+                )
+            }
+
+            for (operation in listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+                val plainTarget = Model(cubeFile)
+                val plainCutter = Model(cubeFile)
+                val engravedTarget = Model(cubeFile)
+                val engravedCutter = Model(cubeFile)
+                try {
+                    centerCutter(plainTarget, plainCutter, operation)
+                    plainTarget.addObject(plainCutter, 0)
+                    assertEquals("plain ${operation.name} control should succeed", 0,
+                        plainTarget.booleanObjects(intArrayOf(0, 1), operation))
+                    val plainVolume = plainTarget.getObjectVolume(0)
+
+                    val min = Vec3d(); val max = Vec3d()
+                    engravedTarget.getBoundingBoxExact(0, min, max)
+                    engravedTarget.setUniformFilament(0, 1)
+                    engravedTarget.embossText(
+                        0, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                        Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                        Vec3d(0.0, 0.0, 1.0),
+                    )
+                    centerCutter(engravedTarget, engravedCutter, operation)
+                    engravedTarget.addObject(engravedCutter, 0)
+                    assertEquals("engraved ${operation.name} should succeed", 0,
+                        engravedTarget.booleanObjects(intArrayOf(0, 1), operation))
+                    assertTrue("${operation.name} must apply the engraved negative volume before its operation",
+                        engravedTarget.getObjectVolume(0) < plainVolume - 0.01)
+                    assertEquals("${operation.name} should retain the target material", listOf(1),
+                        engravedTarget.getUsedFilaments(0).toList())
+                    assertHasExtrusion(sliceToGcode(
+                        context, engravedTarget, "boolean-negative-${operation.name.lowercase()}.gcode",
+                    ))
+                } finally {
+                    plainTarget.release()
+                    plainCutter.release()
+                    engravedTarget.release()
+                    engravedCutter.release()
+                }
+            }
+        } finally {
+            cubeFile.delete()
+            fontFile.delete()
+        }
+    }
+
+    @Test
+    fun multipartJoinPreservesExistingEngravedNegativeVolumeThroughReloadAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "join-negative-volume-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "join-negative-volume-font.ttf")
+        val projectFile = File(context.cacheDir, "join-negative-volume-roundtrip.3mf")
+        val target = Model(cubeFile)
+        val part = Model(cubeFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            target.getBoundingBoxExact(0, min, max)
+            target.setUniformFilament(0, 1)
+            target.embossText(
+                0, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            part.setUniformFilament(0, 2)
+            val partMin = Vec3d(); val partMax = Vec3d()
+            part.getBoundingBoxExact(0, partMin, partMax)
+            target.addObject(part, 0)
+            target.translate(1, (max.x - min.x) * 1.5, 0.0, 0.0)
+
+            assertEquals("joining the engraved object and another printable part should succeed", 0,
+                target.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("joined result should retain both assigned materials", listOf(1, 2),
+                target.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(target)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            target.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals("joined 3MF should retain both material parts", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+            val configText = ZipFile(projectFile).use { archive ->
+                val entry = archive.getEntry("Metadata/model_settings.config")
+                    ?: archive.getEntry("Metadata/Slic3r_PE_model.config")
+                    ?: error("3MF model config is missing")
+                archive.getInputStream(entry).bufferedReader().use { it.readText() }
+            }
+            assertTrue("multipart join should keep the engraved negative volume", configText.contains("negative_part"))
+            assertHasExtrusion(sliceToGcode(context, restored, "join-negative-volume-roundtrip.gcode"))
+        } finally {
+            restored?.release()
+            target.release()
+            part.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun booleanOnMultipartBaseUsesItsFirstPartMaterialAndSlices() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "boolean-multipart-base.stl")
