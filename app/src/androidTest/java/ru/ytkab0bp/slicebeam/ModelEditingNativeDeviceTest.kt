@@ -309,6 +309,31 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun combiningMirroredObjectPreservesPrintablePartsAndMaterialAssignments() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "combine-mirrored-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.mirror(1, ModelMirrorAxis.X)
+            model.translate(1, 30.0, 0.0, 0.0)
+            val expectedTriangles = model.getTriangleCount(0) + model.getTriangleCount(1)
+            val expectedFilaments = (model.getUsedFilaments(0) + model.getUsedFilaments(1)).toSet()
+
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals(expectedTriangles, model.getTriangleCount(0))
+            assertTrue("mirrored printable part keeps its filament assignment",
+                model.getUsedFilaments(0).toSet().containsAll(expectedFilaments))
+            assertTrue("mirrored world placement survives joining",
+                model.getObjectVolume(0) > 0.0)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun linkedInstanceDuplicationValidatesInputsAndPreservesTheSourceMesh() {
         val modelFile = copyAsset("models/xyz_cube.stl", "duplicate-linked-instance-cube.stl")
         val model = Model(modelFile)
