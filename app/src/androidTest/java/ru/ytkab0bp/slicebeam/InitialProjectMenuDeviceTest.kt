@@ -1869,6 +1869,103 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun booleanDialogPlacesToolOnPickedTargetAndAppliesUnion() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "boolean-surface-pick-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val baseVolume = AtomicReference<Double>()
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                baseVolume.set(model.getObjectVolume(0))
+                model.addObject(model, 0)
+                model.scale(1, 0.25, 0.25, 0.25)
+                model.translate(1, 80.0, 80.0, 50.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                glView.renderer.setSelectedObject(0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("Boolean target and tool should be prepared on the GL thread",
+                prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectAllObjectsScope()
+            revealMenuAction(activity, R.string.ModelMenuBoolean)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag("model-boolean-place-on-surface", useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("model-boolean-place-on-surface", useUnmergedTree = true)
+                .performScrollTo().performClick()
+            compose.onNodeWithTag("model-boolean-union", useUnmergedTree = true)
+                .performScrollTo().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.isSurfacePlacementActive }
+
+            val tapReady = CountDownLatch(1)
+            val tappedPoint = AtomicReference<DoubleArray>()
+            glView.queueEvent {
+                val renderer = glView.renderer
+                val glModelsField = GLRenderer::class.java.getDeclaredField("glModels").apply {
+                    isAccessible = true
+                }
+                @Suppress("UNCHECKED_CAST")
+                val glModels = glModelsField.get(renderer) as List<GLModel>
+                val targetHits = ArrayList<GLModel.HitResult>()
+                val xStep = (renderer.viewportWidth / 64).coerceAtLeast(1)
+                val yStep = (renderer.viewportHeight / 64).coerceAtLeast(1)
+                loop@ for (y in yStep until renderer.viewportHeight step yStep) {
+                    for (x in xStep until renderer.viewportWidth step xStep) {
+                        if (renderer.raycastObjectIndex(x.toFloat(), y.toFloat()) != 0) continue
+                        targetHits.clear()
+                        glModels[0].raycaster.raycast(renderer, targetHits, x.toFloat(), y.toFloat())
+                        val hit = targetHits.firstOrNull { !it.approximate && it.normal.z >= 0.7 } ?: continue
+                        if (!renderer.onClick(x.toFloat(), y.toFloat())) continue
+                        tappedPoint.set(doubleArrayOf(hit.position.x, hit.position.y, hit.position.z))
+                        break@loop
+                    }
+                }
+                tapReady.countDown()
+            }
+            assertTrue("test should locate and tap an exact visible target face",
+                tapReady.await(20, TimeUnit.SECONDS))
+            val point = requireNotNull(tappedPoint.get()) {
+                "no exact upward-facing target surface was available for the Boolean tap"
+            }
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
+            val resultVolume = readObjectVolumeOnGl(glView, 0)
+            assertTrue("surface-picked union should add the positioned tool to the target",
+                resultVolume > requireNotNull(baseVolume.get()))
+            assertArrayEquals("the union result should retain the selected base material", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            val resultBounds = readExactBoundsOnGl(glView, 0).single()
+            assertTrue("the Boolean result should include the tapped target's top surface",
+                resultBounds[5] > point[2])
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals("Redo should restore the surface-picked union", resultVolume,
+                readObjectVolumeOnGl(glView, 0), resultVolume * 0.002)
+        } finally {
+            if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun androidBackCancelsSurfacePlacementWithoutChangingEitherObject() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
