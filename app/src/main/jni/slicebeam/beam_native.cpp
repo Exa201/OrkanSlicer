@@ -1949,13 +1949,17 @@ extern "C" {
             }
 
             ModelObject* target = ref->model.objects[indices.front()];
-            auto has_valid_instances = [](const ModelObject* object) {
-                return object != nullptr && !object->instances.empty() &&
-                    std::none_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) {
-                        return instance == nullptr;
-                    });
+            auto has_valid_boolean_state = [](const ModelObject* object) {
+                if (object == nullptr || object->instances.empty() || object->volumes.empty() ||
+                    std::any_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) {
+                        return instance == nullptr || !instance->get_matrix().matrix().allFinite();
+                    }) ||
+                    std::any_of(object->volumes.begin(), object->volumes.end(), [](const ModelVolume* volume) {
+                        return volume == nullptr || !volume->get_matrix().matrix().allFinite();
+                    })) return false;
+                return true;
             };
-            if (!has_valid_instances(target)) return -2;
+            if (!has_valid_boolean_state(target)) return -2;
 
             auto valid_operand = [](const TriangleMesh& mesh) {
                 if (mesh.empty() || mesh.stats().open_edges != 0 ||
@@ -2015,8 +2019,13 @@ extern "C" {
                     !std::isfinite(stepMesh.volume()) || std::fabs(stepMesh.volume()) <= 1e-9f)
                     return false;
                 const double stepVolume = std::fabs(stepMesh.volume());
-                if (operation == 1 && stepVolume >= previousVolume - std::max(1e-5, previousVolume * 1e-6))
+                const double tolerance = std::max(1e-5, previousVolume * 1e-6);
+                if (operation == 0 && stepVolume < previousVolume - tolerance)
+                    return false; // A union must not lose volume from its accumulated result.
+                if (operation == 1 && stepVolume >= previousVolume - tolerance)
                     return false; // Do not silently accept a sequence that did not cut its target.
+                if (operation == 2 && stepVolume > previousVolume + tolerance)
+                    return false; // An intersection must not add material to its accumulated result.
                 previousVolume = stepVolume;
                 return true;
             };
@@ -2025,7 +2034,7 @@ extern "C" {
                 auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
                 if (!resultCgal) return -3;
                 ModelObject* tool = ref->model.objects[indices[1]];
-                if (!has_valid_instances(tool)) return -2;
+                if (!has_valid_boolean_state(tool)) return -2;
                 TriangleMesh toolMesh = printable_mesh(*tool);
                 if (!valid_operand(toolMesh)) return -3;
                 auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
@@ -2043,7 +2052,7 @@ extern "C" {
                 if (!resultCgal) return -3;
                 for (size_t n = 1; n < indices.size(); ++n) {
                     ModelObject* tool = ref->model.objects[indices[n]];
-                    if (!has_valid_instances(tool)) return -2;
+                    if (!has_valid_boolean_state(tool)) return -2;
                     TriangleMesh toolMesh = printable_mesh(*tool);
                     if (!valid_operand(toolMesh)) return -3;
                     auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
