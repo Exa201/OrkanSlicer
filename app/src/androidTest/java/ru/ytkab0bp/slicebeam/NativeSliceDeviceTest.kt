@@ -286,6 +286,45 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun successfulPlaneCutKeepsBothPrintablePiecesAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "successful-plane-cut-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.setUniformFilament(0, 1)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val originalVolume = model.getObjectVolume(0)
+            val originalFilaments = model.getUsedFilaments(0).toSet()
+            val cutHeight = (min.z + max.z) / 2.0
+
+            assertTrue("a centered plane through the cube should produce both cut pieces",
+                model.cut(0, cutHeight, 0.0, 0.0, keepUpper = true, keepLower = true))
+            assertEquals("the original object is replaced with upper and lower pieces", 2, model.objectsCount)
+
+            val pieceVolumes = (0 until model.objectsCount).map { index -> model.getObjectVolume(index) }
+            assertTrue("both cut pieces must contain printable volume", pieceVolumes.all { it > 0.0 })
+            val pieceBottoms = (0 until model.objectsCount).map { index ->
+                model.getBoundingBoxExact(index, min, max)
+                min.z
+            }
+            assertTrue("every cut piece must rest on the print bed, bottoms=$pieceBottoms",
+                pieceBottoms.all { it >= -0.05 && it <= 0.05 })
+            assertEquals("the cut should preserve the source solid volume", originalVolume,
+                pieceVolumes.sum(), originalVolume * 0.01)
+            assertEquals("cut pieces should preserve the source filament assignment", originalFilaments,
+                (0 until model.objectsCount).flatMap { model.getUsedFilaments(it).toList() }.toSet())
+
+            val gcode = sliceToGcode(context, model, "successful-plane-cut-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun simplifiedMeshRemainsSolidAndProducesExtrusionGcode() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyAsset(context, "models/sphere.stl", "simplified-sphere-slice.stl")

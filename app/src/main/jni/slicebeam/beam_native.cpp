@@ -966,10 +966,17 @@ extern "C" {
         
         bool isFirst = true;
         for (auto cut_obj : cut_objects) {
+            const double drop_to_bed = -cut_obj->bounding_box_exact().min.z();
+            Vec3d separation(0.0, 0.0, 0.0);
             if (isFirst && cut_objects.size() > 1) {
-                cut_obj->translate(Vec3d(20.0, 20.0, 10.0));
+                separation.x() = 20.0;
+                separation.y() = 20.0;
                 isFirst = false;
             }
+            // Separate the two pieces in XY, but keep both printable: the upper half
+            // otherwise floats above the bed and Orca rejects its empty first layer.
+            separation.z() = drop_to_bed;
+            cut_obj->translate(separation);
             model.add_object(*cut_obj);
         }
         

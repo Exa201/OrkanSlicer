@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.374
+
+- Keep both pieces of a plane-cut model resting on the print bed while preserving the XY separation between pieces.
+- Verify cut-piece volumes, filament assignments, bed placement, and generated extrusion G-code on Android 16.
+
 ## 0.8.373
 
 - Reject a multi-cutter Boolean Difference when a later cutter does not further cut the current intermediate solid; failed operations preserve every source object.
