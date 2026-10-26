@@ -1021,7 +1021,7 @@ extern "C" {
         ModelRef* modelRef = (ModelRef*) (intptr_t) ptr;
         if (modelRef == nullptr) return 0;
         Model& model = modelRef->model;
-        if (i < 0 || i >= (int) model.objects.size()) return 0;
+        if (i < 0 || static_cast<size_t>(i) >= model.objects.size() || model.objects[i] == nullptr) return 0;
         size_t before = model.objects.size();
         ModelObjectPtrs new_objects;
         model.objects[i]->split(&new_objects, true);
@@ -1053,10 +1053,12 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1scale(JNIEnv* env, jclass, jlong ptr, jint i, jdouble x, jdouble y, jdouble z) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        if (model == nullptr || i < 0 || i >= (jint) model->model.objects.size()) return;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size() ||
+            model->model.objects[i] == nullptr || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return;
         ModelObject* object = model->model.objects[i];
         const ModelVolumePtrs& volumes = object->volumes;
-        if (volumes.empty()) return;
+        if (volumes.empty() || volumes.front() == nullptr ||
+            std::any_of(volumes.begin(), volumes.end(), [](const ModelVolume* volume) { return volume == nullptr; })) return;
 
         // The UI supplies an absolute scale for the first volume. Apply its relative change
         // to every volume AND its local offset, so imported 3MF assemblies scale as one model.
@@ -1066,22 +1068,39 @@ extern "C" {
             (target.array() <= 0.0).any() || (reference.array() <= 0.0).any()) return;
         const Vec3d ratio = target.cwiseQuotient(reference);
         if (!ratio.allFinite()) return;
+        struct ScaleUpdate { ModelVolume* volume; Vec3d scale; Vec3d offset; };
+        std::vector<ScaleUpdate> updates;
+        updates.reserve(volumes.size());
         for (ModelVolume* volume : volumes) {
-            volume->set_scaling_factor(volume->get_scaling_factor().cwiseProduct(ratio));
-            volume->set_offset(volume->get_offset().cwiseProduct(ratio));
+            Vec3d new_scale = volume->get_scaling_factor().cwiseProduct(ratio);
+            Vec3d new_offset = volume->get_offset().cwiseProduct(ratio);
+            if (!new_scale.allFinite() || !new_offset.allFinite()) return;
+            updates.push_back({volume, new_scale, new_offset});
+        }
+        for (const ScaleUpdate& update : updates) {
+            update.volume->set_scaling_factor(update.scale);
+            update.volume->set_offset(update.offset);
         }
         object->invalidate_bounding_box();
     }
 
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1is_1left_1handed(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
-        return model->model.objects[i]->volumes[0]->is_left_handed();
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return false;
+        ModelObject* object = model->model.objects[i];
+        if (object == nullptr || object->volumes.empty() || object->volumes.front() == nullptr) return false;
+        return object->volumes.front()->is_left_handed();
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1rotate(JNIEnv* env, jclass, jlong ptr, jint i, jdouble x, jdouble y, jdouble z) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size() ||
+            model->model.objects[i] == nullptr || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return;
+        ModelObject* object = model->model.objects[i];
+        if (object->volumes.empty() || std::any_of(object->volumes.begin(), object->volumes.end(),
+                [](const ModelVolume* volume) { return volume == nullptr; })) return;
         Vec3d vec(x, y, z);
-        ModelVolumePtrs ptrs = model->model.objects[i]->volumes;
+        ModelVolumePtrs& ptrs = object->volumes;
         for (int i = 0, c = ptrs.size(); i < c; i++) {
             Vec3d current_rotation = ptrs[i]->get_rotation();
 
@@ -1099,7 +1118,7 @@ extern "C" {
             Eigen::Vector3d new_rotation = q_result.toRotationMatrix().eulerAngles(2, 1, 0);
             ptrs[i]->set_rotation(Vec3d(new_rotation[2], new_rotation[1], new_rotation[0]));
         }
-        model->model.objects[i]->invalidate_bounding_box();
+        object->invalidate_bounding_box();
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1reset_1rotation(JNIEnv* env, jclass, jlong ptr, jint i) {
@@ -1114,9 +1133,16 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1flatten_1rotate(JNIEnv* env, jclass, jlong ptr, jint i, jlong surface_ptr) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         GLModelRef* surface = (GLModelRef*) (intptr_t) surface_ptr;
-
-        const Vec3d& normal = surface->flatten_normal;
-        ModelVolumePtrs ptrs = model->model.objects[i]->volumes;
+        if (model == nullptr || surface == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return;
+        ModelObject* object = model->model.objects[i];
+        const Vec3d& surface_normal = surface->flatten_normal;
+        const double normal_length = surface_normal.norm();
+        if (object == nullptr || object->volumes.empty() || !surface_normal.allFinite() ||
+            !std::isfinite(normal_length) || normal_length <= 1e-9 ||
+            std::any_of(object->volumes.begin(), object->volumes.end(),
+                [](const ModelVolume* volume) { return volume == nullptr; })) return;
+        const Vec3d normal = surface_normal / normal_length;
+        ModelVolumePtrs& ptrs = object->volumes;
         for (int i = 0, c = ptrs.size(); i < c; i++) {
             auto vol = ptrs[i];
             const Geometry::Transformation& old_transform = vol->get_transformation();
@@ -1124,7 +1150,7 @@ extern "C" {
             const Transform3d rotation_matrix = Transform3d(Eigen::Quaterniond().setFromTwoVectors(tnormal, -Vec3d::UnitZ()));
             vol->set_transformation(old_transform.get_offset_matrix() * rotation_matrix * old_transform.get_matrix_no_offset());
         }
-        model->model.objects[i]->invalidate_bounding_box();
+        object->invalidate_bounding_box();
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1translate_1global(JNIEnv* env, jclass, jlong ptr, jdouble x, jdouble y, jdouble z) {
@@ -1230,23 +1256,25 @@ extern "C" {
     }
 
     JNIEXPORT jlongArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create_1flatten_1planes(JNIEnv* env, jclass, jlong ptr, jint i) {
-        auto model = (Model*)ptr;
-        if (model == nullptr || i < 0 || i >= model->objects.size()) return nullptr;
-        auto obj = model->objects[i];
-        
+        auto empty_result = [&]() { return env->NewLongArray(0); };
         ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+        if (ref == nullptr || i < 0 || static_cast<size_t>(i) >= ref->model.objects.size()) return empty_result();
         const ModelObject* mo = ref->model.objects[i];
+        if (mo == nullptr || mo->instances.empty() || mo->instances.front() == nullptr) return empty_result();
         TriangleMesh ch;
         Transform3d real_transform = Geometry::translation_transform(mo->bounding_box_exact().center());
         for (const ModelVolume* vol : mo->volumes) {
-            if (vol->type() != ModelVolumeType::MODEL_PART)
+            if (vol == nullptr || vol->type() != ModelVolumeType::MODEL_PART || vol->mesh().empty())
                 continue;
             TriangleMesh vol_ch = vol->get_convex_hull();
+            if (vol_ch.empty()) continue;
             vol_ch.transform(vol->get_matrix_no_offset());
             vol_ch.transform(real_transform);
             ch.merge(vol_ch);
         }
+        if (ch.empty()) return empty_result();
         ch = ch.convex_hull_3d();
+        if (ch.empty()) return empty_result();
 
         std::vector<PlaneData> m_planes;
 
@@ -1469,7 +1497,11 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1auto_1orient(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return;
         ModelObject* obj = model->model.objects[i];
+        if (obj == nullptr || obj->volumes.empty() ||
+            std::any_of(obj->volumes.begin(), obj->volumes.end(),
+                [](const ModelVolume* volume) { return volume == nullptr; })) return;
         orientation::orient(obj);
     }
 

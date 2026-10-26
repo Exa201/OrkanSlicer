@@ -179,6 +179,29 @@ class NativeSliceDeviceTest {
             model.simplify(-1, 0.5f)
             assertEquals("invalid simplify ratio is rejected", 0, model.simplify(0, Float.NaN))
             assertEquals("out-of-range simplify ratio is rejected", 0, model.simplify(0, 1.1f))
+
+            // Exercise the transformation and surface-orientation JNI boundaries directly.
+            Native.model_scale(0L, 0, 2.0, 2.0, 2.0)
+            Native.model_scale(model.pointer, model.objectsCount, 2.0, 2.0, 2.0)
+            Native.model_scale(model.pointer, 0, Double.NaN, 2.0, 2.0)
+            Native.model_rotate(0L, 0, 0.1, 0.2, 0.3)
+            Native.model_rotate(model.pointer, model.objectsCount, 0.1, 0.2, 0.3)
+            Native.model_rotate(model.pointer, 0, Double.POSITIVE_INFINITY, 0.0, 0.0)
+            Native.model_auto_orient(0L, 0)
+            Native.model_auto_orient(model.pointer, model.objectsCount)
+            Native.model_flatten_rotate(0L, 0, 0L)
+            Native.model_flatten_rotate(model.pointer, model.objectsCount, 1L)
+            Native.model_flatten_rotate(model.pointer, 0, 0L)
+            assertEquals("invalid split handle is rejected", 0, Native.model_split(0L, 0))
+            assertEquals("invalid split index is rejected", 0, Native.model_split(model.pointer, model.objectsCount))
+            assertFalse("invalid handedness query is safe", Native.model_is_left_handed(0L, 0))
+            assertFalse("out-of-range handedness query is safe",
+                Native.model_is_left_handed(model.pointer, model.objectsCount))
+            assertEquals("invalid plane source returns an empty plane list", 0,
+                Native.model_create_flatten_planes(0L, 0).size)
+            assertEquals("out-of-range plane source returns an empty plane list", 0,
+                Native.model_create_flatten_planes(model.pointer, model.objectsCount).size)
+
             assertEquals("invalid object triangle query is safe", 0, model.getTriangleCount(model.objectsCount))
             assertEquals("invalid object volume query is safe", 0.0, model.getObjectVolume(-1), 0.0)
             assertFalse("invalid object paint query is safe", model.hasPaint(model.objectsCount))

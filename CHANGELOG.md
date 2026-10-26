@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.385
+
+- Guard native split, scale, rotate, flatten, auto-orient, handedness, and flatten-plane JNI entry points against invalid handles, stale indices, missing geometry, and non-finite values.
+- Apply multi-volume scaling atomically so an invalid derived transform cannot leave a partially modified model.
+- Add device regression coverage for invalid native transform requests and verify valid multipart splitting, plane cuts, auto-orientation, and slicing remain functional.
+
 ## 0.8.384
 
 - Guard native mesh simplification, object copying, and transform queries against null models, stale indices, and invalid ratios.
