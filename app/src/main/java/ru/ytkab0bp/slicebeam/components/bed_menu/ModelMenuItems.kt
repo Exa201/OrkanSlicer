@@ -434,6 +434,7 @@ internal class ModelMenuItems(
         glView.queueEvent {
             val renderer = glView.renderer
             val model = renderer.model ?: return@queueEvent
+            val snapshot = renderer.captureSelectionSnapshot() ?: return@queueEvent
             val selected = renderer.selectedObjectIndices()
             if (selected.size < 2) return@queueEvent
             val targetIndex = renderer.selectedObject.takeIf { it in selected } ?: selected[0]
@@ -455,8 +456,20 @@ internal class ModelMenuItems(
                         targetName = displayTargetName,
                         toolNames = displayToolNames,
                         onDismiss = dismiss,
-                        onChoose = { operation ->
+                        onChoose = { operation, placeOnSurface ->
                             dismiss()
+                            if (placeOnSurface) {
+                                glView.beginSurfaceBoolean(targetIndex, operation, snapshot) { started ->
+                                    val message = when (started) {
+                                        1 -> R.string.ModelBooleanSurfaceInstruction
+                                        MODEL_EDIT_STALE_SELECTION -> R.string.ModelBooleanSelectionChanged
+                                        MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION -> R.string.ModelSurfacePlacementNeedsSimplification
+                                        else -> R.string.ModelBooleanSurfaceUnavailable
+                                    }
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(message))
+                                }
+                                return@ModelBooleanDialog
+                            }
                             glView.queueEvent {
                                 val currentRenderer = glView.renderer
                                 val currentModel = currentRenderer.model

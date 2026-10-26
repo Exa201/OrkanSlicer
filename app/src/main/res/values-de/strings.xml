@@ -195,6 +195,10 @@
     <string name="ModelMenuPlaceOnSurfaceDone">Am gewählten Flächenpunkt platziert und als druckbare Baugruppe verbunden.</string>
     <string name="ModelMenuBoolean">Boolesche Funktion</string>
     <string name="ModelBooleanHelp">Wähle mindestens zwei Objekte. Das hervorgehobene Objekt ist die Basis; die übrigen ausgewählten Objekte werden in Objektlisten-Reihenfolge angewendet. Abziehen entfernt sie, Schnittmenge behält die gemeinsame Überlappung. Das Ergebnis ist ein einzelnes Solid: Es übernimmt das Filament des ersten Modellteils der Basis. Farbgrenzen der Basis und Filamente der Werkzeuge bleiben nicht erhalten.</string>
+    <string name="ModelBooleanPlaceOnSurface">Zielfläche vor der Berechnung antippen</string>
+    <string name="ModelBooleanSurfaceHelp">Die ausgewählten Werkzeuge werden am Tipp zentriert und vor der booleschen Operation 0,8 mm in das Ziel bewegt.</string>
+    <string name="ModelBooleanSurfaceInstruction">Tippe auf eine sichtbare Fläche des ausgewählten Ziels, um die Werkzeuge zu platzieren und die boolesche Operation auszuführen. Zurück bricht ab.</string>
+    <string name="ModelBooleanSurfaceUnavailable">Wähle das Ziel und mindestens ein Werkzeugobjekt aus und versuche es erneut.</string>
     <string name="ModelBooleanTargetSummary">Basisobjekt: %1$s</string>
     <string name="ModelBooleanToolsSummary">Werkzeuge in Objektlisten-Reihenfolge: %1$s</string>
     <string name="ModelBooleanUnion">Vereinigung · ausgewählte Körper verbinden</string>

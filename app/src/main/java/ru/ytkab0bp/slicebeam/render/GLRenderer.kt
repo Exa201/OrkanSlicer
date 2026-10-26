@@ -18,6 +18,7 @@ import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.ObjectSurfacePlacementTapEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
@@ -104,6 +105,7 @@ internal var isViewerEnabled:Boolean = false
 private val selectedObjects = LinkedHashSet<Int>()
 @Volatile private var surfacePlacementTargetObject = -1
 private var surfacePlacementSelection: ModelSelectionSnapshot? = null
+private var surfacePlacementBooleanOperation: BooleanOperation? = null
 val isSurfacePlacementActive: Boolean
     get() = surfacePlacementTargetObject >= 0
 private var selX:Double = 0.toDouble()
@@ -570,12 +572,35 @@ internal fun beginSurfacePlacement(targetIndex: Int, expectedSelection: ModelSel
     if (moving.isEmpty() || targetIndex in moving || isInEmbossMode || isInMeasureMode || isPaintMode) return 0
     surfacePlacementSelection = expectedSelection ?: captureSelectionSnapshot() ?: return 0
     surfacePlacementTargetObject = targetIndex
+    surfacePlacementBooleanOperation = null
+    return 1
+}
+
+/** Starts a precise tap workflow that places selected tools on the selected Boolean target. */
+internal fun beginSurfaceBoolean(
+    targetIndex: Int,
+    operation: BooleanOperation,
+    expectedSelection: ModelSelectionSnapshot? = null,
+): Int {
+    cancelSurfacePlacement()
+    val activeModel = model ?: return 0
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    if (targetIndex !in 0 until activeModel.objectsCount) return 0
+    if (!LargeModelPick.canUsePreciseSurfaceTools(activeModel.getTriangleCount(targetIndex))) {
+        return MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION
+    }
+    val selected = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (selected.size < 2 || targetIndex !in selected || isInEmbossMode || isInMeasureMode || isPaintMode) return 0
+    surfacePlacementSelection = expectedSelection ?: captureSelectionSnapshot() ?: return 0
+    surfacePlacementTargetObject = targetIndex
+    surfacePlacementBooleanOperation = operation
     return 1
 }
 
 internal fun cancelSurfacePlacement() {
     surfacePlacementTargetObject = -1
     surfacePlacementSelection = null
+    surfacePlacementBooleanOperation = null
 }
 
 /** Commits a surface-tap placement while keeping the moving group as one printable multipart object. */
@@ -584,13 +609,17 @@ internal fun placeSelectedObjectsOnSurface(
     position: Vec3d,
     normal: Vec3d,
     expectedSelection: ModelSelectionSnapshot? = surfacePlacementSelection,
+    booleanOperation: BooleanOperation? = surfacePlacementBooleanOperation,
 ): Int {
     return try {
         val activeModel = model ?: return -1
         if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) {
             return MODEL_EDIT_STALE_SELECTION
         }
-        val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+        if (surfacePlacementBooleanOperation != booleanOperation) return MODEL_EDIT_STALE_SELECTION
+        val movingIndices = selectedObjectIndices().filter {
+            it in 0 until activeModel.objectsCount && (booleanOperation == null || it != targetIndex)
+        }
         if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices) {
             return -1
         }
@@ -600,11 +629,47 @@ internal fun placeSelectedObjectsOnSurface(
             return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
         }
         val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
-        val delta = ObjectPlacement.onSurface(movingBounds, position, normal) ?: return -1
-        placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+        val delta = if (booleanOperation == null) {
+            ObjectPlacement.onSurface(movingBounds, position, normal)
+        } else {
+            ObjectPlacement.forSurfaceBoolean(movingBounds, position, normal)
+        } ?: return -1
+        if (booleanOperation == null) placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+        else placeAndBooleanWithTarget(targetIndex, movingIndices, delta, booleanOperation)
     } finally {
         cancelSurfacePlacement()
     }
+}
+
+private fun placeAndBooleanWithTarget(
+    targetIndex: Int,
+    movingIndices: List<Int>,
+    delta: ObjectPlacementDelta,
+    operation: BooleanOperation,
+): Int {
+    val activeModel = model ?: return -1
+    val result = ModelPlacementTransaction.applyAndCommit(
+        items = movingIndices,
+        snapshot = { index -> Vec3d().also { activeModel.getTranslation(index, it) } },
+        apply = { index ->
+            activeModel.translate(index, delta.x, delta.y, delta.z)
+            invalidateGlModel(index)
+        },
+        restore = { index, before ->
+            val after = Vec3d()
+            activeModel.getTranslation(index, after)
+            activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+            invalidateGlModel(index)
+        },
+        commit = { activeModel.booleanObjects((listOf(targetIndex) + movingIndices).toIntArray(), operation) },
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
+        rollbackFailureResult = MODEL_EDIT_ROLLBACK_FAILED,
+        onError = { error -> Log.e("GLRenderer", "Surface Boolean failed; tool placement rolled back", error) },
+    )
+    if (result < 0) return result
+    resetGlModels()
+    setSelectedObject(result)
+    return result
 }
 
 private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>, delta: ObjectPlacementDelta): Int {
@@ -2322,7 +2387,12 @@ if (placementTarget >= 0) {
     }
     surfacePlacementTargetObject = -1
     SliceBeam.EVENT_BUS.fireEvent(
-        ObjectSurfacePlacementTapEvent(placementTarget, Vec3d(hit.position), Vec3d(hit.normal)),
+        ObjectSurfacePlacementTapEvent(
+            placementTarget,
+            Vec3d(hit.position),
+            Vec3d(hit.normal),
+            surfacePlacementBooleanOperation,
+        ),
     )
     return true
 }

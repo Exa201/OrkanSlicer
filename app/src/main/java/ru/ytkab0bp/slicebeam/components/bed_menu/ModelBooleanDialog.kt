@@ -5,10 +5,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
@@ -23,8 +28,9 @@ internal fun ModelBooleanDialog(
     targetName: String,
     toolNames: List<String>,
     onDismiss: () -> Unit,
-    onChoose: (BooleanOperation) -> Unit,
+    onChoose: (BooleanOperation, Boolean) -> Unit,
 ) {
+    var placeOnSurface by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ModelMenuBoolean)) },
@@ -46,16 +52,28 @@ internal fun ModelBooleanDialog(
                     modifier = Modifier.testTag("model-boolean-tools"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                FilterChip(
+                    selected = placeOnSurface,
+                    onClick = { placeOnSurface = !placeOnSurface },
+                    label = { Text(stringResource(R.string.ModelBooleanPlaceOnSurface)) },
+                    modifier = Modifier.fillMaxWidth().testTag("model-boolean-place-on-surface"),
+                )
+                if (placeOnSurface) {
+                    Text(
+                        stringResource(R.string.ModelBooleanSurfaceHelp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 TextButton(
-                    onClick = { onChoose(BooleanOperation.UNION) },
+                    onClick = { onChoose(BooleanOperation.UNION, placeOnSurface) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("model-boolean-union"),
                 ) { Text(stringResource(R.string.ModelBooleanUnion)) }
                 TextButton(
-                    onClick = { onChoose(BooleanOperation.DIFFERENCE) },
+                    onClick = { onChoose(BooleanOperation.DIFFERENCE, placeOnSurface) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("model-boolean-difference"),
                 ) { Text(stringResource(R.string.ModelBooleanDifference)) }
                 TextButton(
-                    onClick = { onChoose(BooleanOperation.INTERSECTION) },
+                    onClick = { onChoose(BooleanOperation.INTERSECTION, placeOnSurface) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("model-boolean-intersection"),
                 ) { Text(stringResource(R.string.ModelBooleanIntersection)) }
             }

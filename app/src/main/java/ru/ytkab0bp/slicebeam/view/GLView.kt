@@ -34,6 +34,7 @@ import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
@@ -417,15 +418,35 @@ internal fun beginSurfacePlacement(
         ViewUtils.postOnMainThread { onStarted(started) }
     }
 }
+internal fun beginSurfaceBoolean(
+    targetIndex: Int,
+    operation: BooleanOperation,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onStarted: (Int) -> Unit,
+) {
+    queueEvent {
+        val started = renderer.beginSurfaceBoolean(targetIndex, operation, expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onStarted(started) }
+    }
+}
 fun cancelSurfacePlacement() {
     queueEvent {
         renderer.cancelSurfacePlacement()
         requestRender()
     }
 }
-fun placeSelectedObjectsOnSurface(targetIndex: Int, position: Vec3d, normal: Vec3d, onComplete: (Int) -> Unit) {
+fun placeSelectedObjectsOnSurface(
+    targetIndex: Int,
+    position: Vec3d,
+    normal: Vec3d,
+    booleanOperation: BooleanOperation? = null,
+    onComplete: (Int) -> Unit,
+) {
     queueEvent {
-        val result = renderer.placeSelectedObjectsOnSurface(targetIndex, position, normal)
+        val result = renderer.placeSelectedObjectsOnSurface(
+            targetIndex, position, normal, booleanOperation = booleanOperation,
+        )
         requestRender()
         ViewUtils.postOnMainThread { onComplete(result) }
     }

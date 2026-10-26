@@ -81,6 +81,29 @@ internal object ObjectPlacement {
         return delta.takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
     }
 
+    /** Seats a cutter on a picked surface, then penetrates slightly so solid booleans have shared volume. */
+    fun forSurfaceBoolean(
+        moving: ObjectBounds3D,
+        point: Vec3d,
+        surfaceNormal: Vec3d,
+        penetrationMm: Double = 0.8,
+    ): ObjectPlacementDelta? {
+        if (!penetrationMm.isFinite() || penetrationMm <= 0.0 || penetrationMm > 5.0) return null
+        val placement = onSurface(moving, point, surfaceNormal) ?: return null
+        val length = kotlin.math.sqrt(
+            surfaceNormal.x * surfaceNormal.x + surfaceNormal.y * surfaceNormal.y + surfaceNormal.z * surfaceNormal.z,
+        )
+        if (!length.isFinite() || length <= 1e-9) return null
+        val nx = surfaceNormal.x / length
+        val ny = surfaceNormal.y / length
+        val nz = surfaceNormal.z / length
+        return ObjectPlacementDelta(
+            placement.x - nx * penetrationMm,
+            placement.y - ny * penetrationMm,
+            placement.z - nz * penetrationMm,
+        ).takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
+    }
+
     /** Drops an entire object group onto the printable bed while preserving its internal Z offsets. */
     fun ontoBed(moving: ObjectBounds3D, bedZ: Double): ObjectPlacementDelta? {
         val values = listOf(moving.minX, moving.minY, moving.minZ, moving.maxX, moving.maxY, moving.maxZ, bedZ)

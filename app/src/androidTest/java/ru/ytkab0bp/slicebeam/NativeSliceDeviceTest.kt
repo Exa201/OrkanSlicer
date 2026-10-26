@@ -325,6 +325,62 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun surfacePlacedUnionDifferenceAndIntersectionRemainPrintable() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (operation in BooleanOperation.entries) {
+            val modelFile = copyCube(context, "surface-boolean-${operation.name.lowercase()}.stl")
+            val model = Model(modelFile)
+            try {
+                model.addObject(model, 0)
+                model.scale(1, 0.25, 0.25, 0.25)
+                model.translate(1, 100.0, 100.0, 100.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+
+                val targetMin = Vec3d(); val targetMax = Vec3d()
+                val toolMin = Vec3d(); val toolMax = Vec3d()
+                model.getBoundingBoxExact(0, targetMin, targetMax)
+                model.getBoundingBoxExact(1, toolMin, toolMax)
+                val targetVolume = model.getObjectVolume(0)
+                val delta = requireNotNull(ObjectPlacement.forSurfaceBoolean(
+                    ObjectBounds3D(toolMin.x, toolMin.y, toolMin.z, toolMax.x, toolMax.y, toolMax.z),
+                    Vec3d((targetMin.x + targetMax.x) / 2.0, (targetMin.y + targetMax.y) / 2.0, targetMax.z),
+                    Vec3d(0.0, 0.0, 1.0),
+                    penetrationMm = 0.8,
+                ))
+                model.translate(1, delta.x, delta.y, delta.z)
+
+                val result = model.booleanObjects(intArrayOf(0, 1), operation)
+                assertEquals("$operation should produce a surface-placed solid", 0, result)
+                assertEquals("the Boolean should replace target and tool atomically", 1, model.objectsCount)
+                assertEquals("the result should retain the base filament", listOf(1), model.getUsedFilaments(result).toList())
+                val resultVolume = model.getObjectVolume(result)
+                assertTrue("$operation should leave printable volume", resultVolume > 0.0)
+                when (operation) {
+                    BooleanOperation.UNION -> assertTrue(resultVolume > targetVolume)
+                    BooleanOperation.DIFFERENCE -> assertTrue(resultVolume < targetVolume)
+                    BooleanOperation.INTERSECTION -> {
+                        assertTrue(resultVolume < targetVolume)
+                        val intersectionMin = Vec3d(); val intersectionMax = Vec3d()
+                        model.getBoundingBoxExact(result, intersectionMin, intersectionMax)
+                        assertTrue("intersection should stay at the picked surface until explicitly arranged",
+                            intersectionMin.z > 0.0)
+                        // Intersection keeps its exact world-space location. As with any floating
+                        // result, arrange it on the bed before asking the slicer to emit G-code.
+                        model.ensureOnBed(result)
+                    }
+                }
+
+                val gcode = sliceToGcode(context, model, "surface-boolean-${operation.name.lowercase()}.gcode")
+                assertHasExtrusion(gcode)
+            } finally {
+                model.release()
+                modelFile.delete()
+            }
+        }
+    }
+
+    @Test
     fun simplifiedMeshRemainsSolidAndProducesExtrusionGcode() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyAsset(context, "models/sphere.stl", "simplified-sphere-slice.stl")

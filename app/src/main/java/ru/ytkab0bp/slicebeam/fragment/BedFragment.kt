@@ -754,18 +754,35 @@ fun onCameraProjectionChanged(event: CameraProjectionChangedEvent) {
 @EventHandler(runOnMainThread = true)
 fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
     val viewport = glView ?: return
-    viewport.placeSelectedObjectsOnSurface(event.targetObjectIndex, event.position, event.normal) { result ->
+    viewport.placeSelectedObjectsOnSurface(
+        event.targetObjectIndex, event.position, event.normal, event.booleanOperation,
+    ) { result ->
         if (result >= 0) {
             updateModel()
-            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceOnSurfaceDone))
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                if (event.booleanOperation == null) R.string.ModelMenuPlaceOnSurfaceDone else R.string.ModelBooleanDone,
+            ))
         } else if (result == ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
         } else if (result == ru.ytkab0bp.slicebeam.render.MODEL_EDIT_OPERATION_FAILED) {
-            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceFailed))
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                if (event.booleanOperation == null) R.string.ModelMenuPlaceFailed else R.string.ModelBooleanFailed,
+            ))
         } else if (result == ru.ytkab0bp.slicebeam.render.MODEL_EDIT_ROLLBACK_FAILED) {
-            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuPlaceRollbackFailed))
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                if (event.booleanOperation == null) R.string.ModelMenuPlaceRollbackFailed else R.string.ModelBooleanFailed,
+            ))
         } else {
-            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelMenuCombineUnsupported))
+            val specificMessage = if (event.booleanOperation != null &&
+                result != ru.ytkab0bp.slicebeam.render.MODEL_EDIT_OPERATION_FAILED &&
+                result != ru.ytkab0bp.slicebeam.render.MODEL_EDIT_ROLLBACK_FAILED
+            ) {
+                ru.ytkab0bp.slicebeam.components.bed_menu.ModelBooleanFailureMessage.resourceFor(result)
+            } else null
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                specificMessage ?: if (event.booleanOperation != null) R.string.ModelBooleanFailed
+                else R.string.ModelMenuCombineUnsupported,
+            ))
         }
     }
 }

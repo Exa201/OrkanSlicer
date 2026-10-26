@@ -205,6 +205,10 @@
     <string name="ModelMenuPlaceRollbackFailed">Placement failed and at least one object could not be restored. Check the model before continuing.</string>
     <string name="ModelMenuBoolean">Boolean operation</string>
     <string name="ModelBooleanHelp">Select two or more objects first. The highlighted object is the base; the other selected objects are applied in object-list order. Difference subtracts them, Intersection keeps the shared overlap. The result is one solid and uses the first model part’s material from the base. Material boundaries in the base and materials on the tools are not retained.</string>
+    <string name="ModelBooleanPlaceOnSurface">Pick target surface before applying</string>
+    <string name="ModelBooleanSurfaceHelp">The selected tools are centered at your tap and moved 0.8 mm into the target before the Boolean operation.</string>
+    <string name="ModelBooleanSurfaceInstruction">Tap a visible surface on the selected target to place the tools and apply the Boolean operation. Back cancels.</string>
+    <string name="ModelBooleanSurfaceUnavailable">Select the target and at least one tool object, then try again.</string>
     <string name="ModelBooleanTargetSummary">Base object: %1$s</string>
     <string name="ModelBooleanToolsSummary">Tool objects, in object-list order: %1$s</string>
     <string name="ModelBooleanUnion">Union · merge selected solids</string>

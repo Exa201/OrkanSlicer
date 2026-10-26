@@ -1158,14 +1158,14 @@ class ModelEditingNativeDeviceTest {
     }
 
     @Test fun booleanDialogOffersUnionDifferenceAndIntersectionAsSeparateActions() {
-        val selected = AtomicReference<BooleanOperation?>(null)
+        val selected = AtomicReference<Pair<BooleanOperation, Boolean>?>(null)
         compose.setContent {
             BeamComposeTheme {
                 ModelBooleanDialog(
                     targetName = "Base object",
                     toolNames = listOf("Tool A", "Tool B"),
                     onDismiss = {},
-                    onChoose = selected::set,
+                    onChoose = { operation, placeOnSurface -> selected.set(operation to placeOnSurface) },
                 )
             }
         }
@@ -1176,11 +1176,15 @@ class ModelEditingNativeDeviceTest {
         compose.onNodeWithText("Tool A", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Tool B", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("model-boolean-union").performScrollTo().assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals(BooleanOperation.UNION, selected.get()) }
+        compose.runOnIdle { assertEquals(BooleanOperation.UNION to false, selected.get()) }
         compose.onNodeWithTag("model-boolean-difference").performScrollTo().assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals(BooleanOperation.DIFFERENCE, selected.get()) }
+        compose.runOnIdle { assertEquals(BooleanOperation.DIFFERENCE to false, selected.get()) }
         compose.onNodeWithTag("model-boolean-intersection").performScrollTo().assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals(BooleanOperation.INTERSECTION, selected.get()) }
+        compose.runOnIdle { assertEquals(BooleanOperation.INTERSECTION to false, selected.get()) }
+
+        compose.onNodeWithTag("model-boolean-place-on-surface").performScrollTo().performClick()
+        compose.onNodeWithTag("model-boolean-union").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(BooleanOperation.UNION to true, selected.get()) }
     }
 
     private fun assertBooleanResult(operation: BooleanOperation, expectedVolumeFactor: Double) {

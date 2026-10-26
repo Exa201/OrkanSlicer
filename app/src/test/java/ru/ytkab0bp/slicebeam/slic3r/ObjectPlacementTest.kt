@@ -81,6 +81,25 @@ class ObjectPlacementTest {
         assertNull(ObjectPlacement.onSurface(moving, point, Vec3d(0.0, 0.0, 0.0)))
     }
 
+    @Test fun surfaceBooleanPlacementPenetratesAlongTheNormalizedSurfaceNormal() {
+        val bounds = ObjectBounds3D(10.0, 20.0, 30.0, 14.0, 24.0, 34.0)
+        val delta = requireNotNull(ObjectPlacement.forSurfaceBoolean(
+            bounds, Vec3d(5.0, 6.0, 7.0), Vec3d(0.0, 0.0, 4.0), penetrationMm = 0.8,
+        ))
+
+        assertEquals(-7.0, delta.x, 1e-9)
+        assertEquals(-16.0, delta.y, 1e-9)
+        // Surface contact would move min Z to 7; Boolean placement overlaps it by 0.8 mm.
+        assertEquals(-23.8, delta.z, 1e-9)
+    }
+
+    @Test fun surfaceBooleanRejectsInvalidPenetrationAndUnsupportedDownwardFace() {
+        val bounds = ObjectBounds3D(0.0, 0.0, 0.0, 2.0, 2.0, 2.0)
+        assertNull(ObjectPlacement.forSurfaceBoolean(bounds, Vec3d(), Vec3d(0.0, 0.0, 1.0), 0.0))
+        assertNull(ObjectPlacement.forSurfaceBoolean(bounds, Vec3d(), Vec3d(0.0, 0.0, 1.0), 6.0))
+        assertNull(ObjectPlacement.forSurfaceBoolean(bounds, Vec3d(), Vec3d(0.0, 0.0, -1.0), 0.8))
+    }
+
     @Test fun surfacePlacementRejectsInvalidPointAndBounds() {
         val valid = ObjectBounds3D(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
         assertNull(ObjectPlacement.onSurface(valid, Vec3d(Double.NaN, 0.0, 0.0)))
