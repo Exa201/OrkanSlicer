@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.os.SystemClock
+import android.content.Intent
 import android.webkit.WebView
 import androidx.compose.ui.platform.ComposeView
 import androidx.test.core.app.ActivityScenario
@@ -240,6 +241,9 @@ class WorkspaceNavigationDeviceTest {
             assertTrue("${expectedType.simpleName} Compose lifecycle should be active", WorkspaceComposeToolRoute::class.java
                 .getDeclaredField("workspaceCompositionVisible").apply { isAccessible = true }.getBoolean(menu))
             if (expectedType == KromacutEditorMenu::class.java) {
+                val browserIntent = KromacutEditorMenu.createBrowserIntent()
+                assertEquals(Intent.ACTION_VIEW, browserIntent.action)
+                assertEquals("https://kromacut.com/app", browserIntent.data.toString())
                 val webView = KromacutEditorMenu::class.java.getDeclaredField("webView")
                     .apply { isAccessible = true }.get(requireNotNull(launchedMenu)) as? WebView
                     ?: findViews(requireNotNull(bed.overlayLayout))
@@ -514,17 +518,23 @@ class WorkspaceNavigationDeviceTest {
     }
 
     private fun awaitRendererPaintMode(scenario: ActivityScenario<MainActivity>, expected: Boolean) {
-        val reached = CountDownLatch(1)
-        val actual = booleanArrayOf(!expected)
-        scenario.onActivity { activity ->
-            val glView = requireNotNull((activity.navigationDelegate.getCurrentFragment() as BedFragment).glView)
-            glView.queueEvent {
-                actual[0] = glView.renderer.isPaintMode
-                reached.countDown()
+        val deadline = SystemClock.uptimeMillis() + 10_000L
+        var actual = !expected
+        while (SystemClock.uptimeMillis() < deadline && actual != expected) {
+            val reached = CountDownLatch(1)
+            val observed = booleanArrayOf(actual)
+            scenario.onActivity { activity ->
+                val glView = requireNotNull((activity.navigationDelegate.getCurrentFragment() as BedFragment).glView)
+                glView.queueEvent {
+                    observed[0] = glView.renderer.isPaintMode
+                    reached.countDown()
+                }
             }
+            assertTrue("GL renderer did not answer paint-mode probe", reached.await(2, TimeUnit.SECONDS))
+            actual = observed[0]
+            if (actual != expected) SystemClock.sleep(50L)
         }
-        assertTrue("GL renderer did not reach paint mode=$expected", reached.await(10, TimeUnit.SECONDS))
-        assertEquals(expected, actual[0])
+        assertEquals("GL renderer did not reach paint mode=$expected", expected, actual)
     }
 
     private fun exerciseWorkspaceModeSwitch(scenario: ActivityScenario<MainActivity>) {

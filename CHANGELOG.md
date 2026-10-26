@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.376
+
+- Add a native "Open in browser" fallback to KromaCut so the editor stays accessible when a device WebView cannot display its embedded workspace.
+- Verify the bundled KromaCut editor, WebGL 2 canvas, and external HTTPS fallback on the Android 16 emulator.
+
 ## 0.8.374
 
 - Keep both pieces of a plane-cut model resting on the print bed while preserving the XY separation between pieces.

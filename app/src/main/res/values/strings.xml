@@ -342,6 +342,8 @@
     <string name="ObjectActionHide">Hide</string>
     <string name="MenuFileKromacut">Create color image</string>
     <string name="KromacutEditorClose">Back to OrkanSlicer</string>
+    <string name="KromacutOpenInBrowser">Open in browser</string>
+    <string name="KromacutBrowserUnavailable">No browser app is available to open KromaCut.</string>
     <string name="KromacutWebGlUnavailable">KromaCut’s 3D preview needs WebGL 2, but this Android WebView could not create a WebGL 2 graphics context. Update Android System WebView and the phone’s system software, then restart OrkanSlicer. If it still appears black, send support the phone model and Android System WebView version.</string>
     <string name="KromacutWebGlCreationFailed">KromaCut could not create its 3D graphics context: %1$s</string>
     <string name="KromacutWebGlDeviceDetails">Device: %1$s %2$s · Android %3$s (API %4$s) · WebView: %5$s</string>

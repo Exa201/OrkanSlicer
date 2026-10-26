@@ -15,6 +15,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -57,6 +58,7 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
 
     companion object {
         const val REQUEST_CODE_FILE = 15
+        private const val KROMACUT_WEB_URL = "https://kromacut.com/app"
         // Pin the SPA's first route to English while it bootstraps. On Android WebView
         // the system-language path can race locale chunk loading before React mounts,
         // leaving only the WebView's dark background visible. Kromacut's own language
@@ -137,6 +139,9 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
         """.trimIndent()
 
         private var fileCallback: ValueCallback<Array<Uri>>? = null
+
+        internal fun createBrowserIntent(): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(KROMACUT_WEB_URL))
+
         @JvmStatic
         fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
             if (requestCode != REQUEST_CODE_FILE) return false
@@ -163,11 +168,19 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp,
             ) {
-                TextButton(
-                    onClick = { dismiss() },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.KromacutEditorClose))
+                Row(Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = { dismiss() },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.KromacutEditorClose))
+                    }
+                    TextButton(
+                        onClick = { openInBrowser(context) },
+                        modifier = Modifier.weight(1f).testTag("kromacut-open-browser"),
+                    ) {
+                        Text(stringResource(R.string.KromacutOpenInBrowser))
+                    }
                 }
             }
             AndroidView(
@@ -177,6 +190,14 @@ class KromacutEditorMenu : WorkspaceComposeToolRoute() {
             activeError?.let { detail ->
                 KromacutErrorDialog(detail) { activeError = null }
             }
+        }
+    }
+
+    private fun openInBrowser(context: Context) {
+        runCatching {
+            context.startActivity(createBrowserIntent())
+        }.onFailure {
+            activeError = context.getString(R.string.KromacutBrowserUnavailable)
         }
     }
 
