@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.372
+
+- Publish the verified paint-stroke Undo/Redo and cancellable paint-draft workflow from 0.8.371 as the current installable release.
+- Preserve the native renderer, project editing, and model-history behavior verified on Android 16.
+
 ## 0.8.371
 
 - Add bounded per-stroke Undo/Redo to color, support, seam, and fuzzy painting; each brush gesture can be reversed before confirming the paint session.
