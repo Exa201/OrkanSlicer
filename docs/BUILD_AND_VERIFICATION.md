@@ -2079,3 +2079,11 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Android 16 focused instrumentation: linked-instance join, object-on-object surface placement, standalone 3D text join-and-slice, and multi-tool Boolean union-and-slice passed 4/4, zero skips/failures. The added linked-instance join case also passed 1/1 independently.
 - No slicer-native behavior changed in this update; only regression coverage and API documentation changed. The latest app release remains 0.8.387.
 - Additional Android 16 join-to-slice round-trip: two objects with two linked instances each were joined, exported to 3MF, reloaded, and sliced. The test passed 1/1, verifying all four part meshes, both filament assignments, retained placement extents, deposited G-code, and tool changes T0/T1. An initial assertion used an incorrect expected outer bound; after deriving the correct bound from the two copied instance offsets, the complete round-trip test passed.
+
+## GitHub Release 0.8.388 — 2026-10-26
+
+- Release commit: `ff00b39f992a85386b47081a2808a6b33c65abdd`; regular, non-prerelease release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.388. The tag points to the release commit, and PR #2 is open with merge state `CLEAN` at publication time.
+- APK: `OrkanSlicer_0.8.388.apk`, 239,558,926 bytes; SHA-256 `3D7488F1659E49FE0EB41AE70252578793946DF41630A1A488F0CA13EF4AE7A1`. GitHub's asset digest matches.
+- Version `0.8.388` / versionCode `423`; `:app:assembleDebug` succeeded. The APK installed on the available Android 16 emulator, which reported version 0.8.388/code 423 and resumed `SetupActivity`; sampled Logcat had no crash, ANR, OOM, or fatal-signal matches.
+- The user-provided `Beste_Oma_Kind_Herz_3D_Druck.svg` and the Android test asset have the same SHA-256 `597E1C260C2B2FC895613F1A660ED7266E67802B8723A52EF51C6AEB33246D47`. On Android 16, native detailed multicolor SVG import, project-menu file-picker import, and external-open workspace import passed 3/3 focused device tests with zero skips/failures.
+- The full Debug/Slice JVM suites were not rerun for 0.8.388; their latest recorded results remain 658/658 each on 0.8.387. The new linked-instance 3MF round-trip/slicing regression passed on Android 16 before release, 1/1. APK is debug-signed; Xiaomi validation remains open.
