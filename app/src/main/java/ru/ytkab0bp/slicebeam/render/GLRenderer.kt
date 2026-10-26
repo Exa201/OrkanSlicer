@@ -1906,70 +1906,13 @@ internal fun fillBedModel(
     viewerEnabled: Boolean,
     estimatedCapacity: Int,
     arrangeCandidate: (Model) -> Boolean,
-): Int {
-    if (viewerEnabled || objectIndex !in 0 until activeModel.objectsCount) return 0
-    val maxAttempts = FillBedPlanner.copyAttemptsForLimit(activeModel.objectsCount, MAX_FILL_BED_OBJECTS)
-    if (maxAttempts == 0) return 0
-    if (estimatedCapacity == 0) return 0
-    // Allow one conservative trial for heterogeneous plates, but never add hundreds of
-    // speculative copies when an estimate is invalid or no grid capacity remains.
-    val copiesToAdd = Math.min(Math.max(estimatedCapacity - activeModel.objectsCount, 1), maxAttempts)
-    val originalCount = activeModel.objectsCount
-    val originalTranslations = ArrayList<Vec3d>(originalCount)
-    for (index in 0 until originalCount) {
-        val translation = Vec3d()
-        activeModel.getTranslation(index, translation)
-        originalTranslations.add(translation)
-    }
-    val sourceModel = Model()
-    var added = 0
-    try {
-        sourceModel.addObject(activeModel, objectIndex)
-        fun restoreOriginalState() {
-            while (activeModel.objectsCount > originalCount) {
-                activeModel.deleteObject(activeModel.objectsCount - 1)
-            }
-            originalTranslations.forEachIndexed { index, before ->
-                val after = Vec3d()
-                activeModel.getTranslation(index, after)
-                activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
-            }
-            activeModel.resetBoundingBox()
-        }
-        // The estimate can be low or high on a plate with mixed objects. Arrange on this
-        // background-only snapshot and search the largest feasible count in logarithmic tries.
-        // Each failed trial restores all original positions before the next native arrange.
-        var bestTranslations: List<Vec3d>? = null
-        added = FillBedPlanner.maximumPackableCopies(copiesToAdd) { candidate ->
-            restoreOriginalState()
-            repeat(candidate) { activeModel.addObject(sourceModel, 0) }
-            activeModel.resetBoundingBox()
-            if (arrangeCandidate(activeModel)) {
-                bestTranslations = (0 until activeModel.objectsCount).map { index ->
-                    Vec3d().also { activeModel.getTranslation(index, it) }
-                }
-                true
-            } else {
-                restoreOriginalState()
-                false
-            }
-        }
-        if (added > 0) {
-            val placements = requireNotNull(bestTranslations)
-            restoreOriginalState()
-            repeat(added) { activeModel.addObject(sourceModel, 0) }
-            placements.forEachIndexed { index, target ->
-                val current = Vec3d()
-                activeModel.getTranslation(index, current)
-                activeModel.translate(index, target.x - current.x, target.y - current.y, target.z - current.z)
-            }
-        }
-    } finally {
-        sourceModel.release()
-    }
-    activeModel.resetBoundingBox()
-    return added
-}
+): Int = FillBedModelOperation.run(
+    activeModel = activeModel,
+    objectIndex = objectIndex,
+    viewerEnabled = viewerEnabled,
+    estimatedCapacity = estimatedCapacity,
+    arrangeCandidate = arrangeCandidate,
+)
 fun arrangeObjects(): Boolean {
     val activeModel = model ?: return false
     val activeBed = bed ?: return false
@@ -2955,7 +2898,6 @@ companion object {
 private val FOV = 60f
 private val NEAR_PLANE = 10f
 private val FAR_PLANE = 1000f
-private val MAX_FILL_BED_OBJECTS = 256
 // --- Multi-color painting ---
  @JvmField
  val PAINT_TOOL_BRUSH = 0

@@ -21,6 +21,7 @@ import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
+import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
@@ -77,6 +78,97 @@ class ModelEditingNativeDeviceTest {
                 listOf(2), snapshot.getUsedFilaments(0).toList())
         } finally {
             snapshot?.release()
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun fillBedCommitsOnlyTheLargestSuccessfulArrangementAndKeepsMaterials() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "fill-bed-atomic-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.translate(0, 13.0, 17.0, 5.0)
+            model.setUniformFilament(0, 2)
+            val sourceTriangles = model.getTriangleCount(0)
+            val sourceVolume = model.getObjectVolume(0)
+            val attempts = mutableListOf<Int>()
+
+            val copies = FillBedModelOperation.run(
+                activeModel = model,
+                objectIndex = 0,
+                viewerEnabled = false,
+                estimatedCapacity = 5,
+            ) { candidate ->
+                attempts += candidate.objectsCount
+                for (index in 0 until candidate.objectsCount) {
+                    val current = Vec3d()
+                    candidate.getTranslation(index, current)
+                    candidate.translate(index, index * 28.0 - current.x, -current.y, -current.z)
+                }
+                candidate.objectsCount <= 3
+            }
+
+            assertEquals("fill-bed should choose the largest arrangement the bed accepted", 2, copies)
+            assertTrue("the packer should retry smaller candidate counts", attempts.size >= 3)
+            assertEquals("only the accepted source and two copies should be committed", 3, model.objectsCount)
+            for (index in 0 until model.objectsCount) {
+                val translation = Vec3d()
+                model.getTranslation(index, translation)
+                assertEquals("object $index should receive its accepted arrangement", index * 28.0,
+                    translation.x, 0.001)
+                assertEquals("object $index should retain its material assignment", listOf(2),
+                    model.getUsedFilaments(index).toList())
+                assertEquals("object $index should retain printable mesh triangles", sourceTriangles,
+                    model.getTriangleCount(index))
+                assertEquals("object $index should retain its solid volume", sourceVolume,
+                    model.getObjectVolume(index), 0.01)
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun fillBedExceptionRollsBackTrialCopiesAndSourcePlacement() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "fill-bed-exception-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.translate(0, 13.0, 17.0, 5.0)
+            model.setUniformFilament(0, 3)
+            val beforeTranslation = Vec3d().also { model.getTranslation(0, it) }
+            val beforeBoundsMin = Vec3d(); val beforeBoundsMax = Vec3d()
+            model.getBoundingBoxExact(0, beforeBoundsMin, beforeBoundsMax)
+            val beforeTriangles = model.getTriangleCount(0)
+            val beforeVolume = model.getObjectVolume(0)
+
+            val copies = FillBedModelOperation.run(
+                activeModel = model,
+                objectIndex = 0,
+                viewerEnabled = false,
+                estimatedCapacity = 5,
+            ) { candidate ->
+                candidate.translate(0, 90.0, -40.0, 12.0)
+                throw IllegalStateException("simulated native bed arrangement failure")
+            }
+
+            assertEquals("a failed native pack must report no committed copies", 0, copies)
+            assertEquals("a failed trial must remove every speculative object", 1, model.objectsCount)
+            val afterTranslation = Vec3d().also { model.getTranslation(0, it) }
+            assertEquals(beforeTranslation.x, afterTranslation.x, 0.001)
+            assertEquals(beforeTranslation.y, afterTranslation.y, 0.001)
+            assertEquals(beforeTranslation.z, afterTranslation.z, 0.001)
+            val afterBoundsMin = Vec3d(); val afterBoundsMax = Vec3d()
+            model.getBoundingBoxExact(0, afterBoundsMin, afterBoundsMax)
+            assertEquals(beforeBoundsMin.x, afterBoundsMin.x, 0.001)
+            assertEquals(beforeBoundsMin.y, afterBoundsMin.y, 0.001)
+            assertEquals(beforeBoundsMin.z, afterBoundsMin.z, 0.001)
+            assertEquals(beforeBoundsMax.x, afterBoundsMax.x, 0.001)
+            assertEquals(beforeBoundsMax.y, afterBoundsMax.y, 0.001)
+            assertEquals(beforeBoundsMax.z, afterBoundsMax.z, 0.001)
+            assertEquals(listOf(3), model.getUsedFilaments(0).toList())
+            assertEquals(beforeTriangles, model.getTriangleCount(0))
+            assertEquals(beforeVolume, model.getObjectVolume(0), 0.01)
+        } finally {
             model.release()
             modelFile.delete()
         }

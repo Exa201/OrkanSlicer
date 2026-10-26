@@ -24,6 +24,7 @@ import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.ObjectGroupDistribution
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
+import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 import java.io.FileOutputStream
@@ -670,6 +671,66 @@ class NativeSliceDeviceTest {
         } finally {
             model.release()
             modelFile.delete()
+        }
+    }
+
+    @Test
+    fun fillBedCopiesPreserveMaterialThroughThreeMfReloadAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "fill-bed-slice-cube.stl")
+        val projectFile = File(context.cacheDir, "fill-bed-slice-roundtrip.3mf")
+        val gcodeFile = File(context.cacheDir, "fill-bed-slice-roundtrip.gcode")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            model.translate(0, 13.0, 17.0, 5.0)
+            model.setUniformFilament(0, 2)
+
+            val added = FillBedModelOperation.run(
+                activeModel = model,
+                objectIndex = 0,
+                viewerEnabled = false,
+                estimatedCapacity = 3,
+            ) { candidate ->
+                for (index in 0 until candidate.objectsCount) {
+                    val current = Vec3d()
+                    candidate.getTranslation(index, current)
+                    candidate.translate(index, index * 28.0 - current.x, -current.y, -current.z)
+                }
+                candidate.objectsCount <= 3
+            }
+            assertEquals("fill-bed should commit both accepted copies", 2, added)
+            assertEquals(3, model.objectsCount)
+            for (index in 0 until model.objectsCount) {
+                assertEquals("every arranged copy should retain the selected T1 material", listOf(2),
+                    model.getUsedFilaments(index).toList())
+            }
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, projectFile.absolutePath)
+            restored = Model(projectFile, 1)
+            assertEquals("all packed objects should survive a 3MF reload", 3, restored.objectsCount)
+            for (index in 0 until restored.objectsCount) {
+                assertEquals("3MF reload should preserve T1 on packed object $index", listOf(2),
+                    restored.getUsedFilaments(index).toList())
+            }
+
+            result = restored.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the selected T1 material should reach the generated G-code",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("the packed objects must not unexpectedly select T0",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
         }
     }
 
