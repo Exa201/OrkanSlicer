@@ -1253,6 +1253,81 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun alignmentAndDistributionDialogsCancelAndBackPreserveTheSelectedGroup() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "group-dialog-cancel-back-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.addObject(model, 0)
+                model.translate(1, 24.0, 0.0, 0.0)
+                model.translate(2, 48.0, 0.0, 0.0)
+                for (index in 0..2) model.setUniformFilament(index, 2)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1, 2))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("group objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            val initialRevision = model.geometryRevision
+            val initialBounds = readExactBoundsOnGl(glView, 0, 1, 2)
+            val initialFilaments = (0..2).map { readUsedFilamentsOnGl(glView, it).toList() }
+            val initialSelection = intArrayOf(0, 1, 2)
+            val cancelLabel = activity.getString(android.R.string.cancel)
+            val choiceTag = "model-choice-option-0"
+
+            fun openChoice(action: Int) {
+                openModelMenu(activity)
+                selectSingleObjectScope()
+                revealMenuAction(activity, action)
+                compose.onNodeWithContentDescription(activity.getString(action))
+                    .assertIsDisplayed().assertIsEnabled().performClick()
+                compose.onNodeWithTag(choiceTag).assertIsDisplayed()
+            }
+
+            fun assertUnchanged(actionName: String) {
+                assertEquals("$actionName must not change object count", 3, readObjectCountOnGl(glView))
+                assertEquals("$actionName must not change model geometry", initialRevision, model.geometryRevision)
+                initialBounds.zip(readExactBoundsOnGl(glView, 0, 1, 2)).forEachIndexed { index, (before, after) ->
+                    assertArrayEquals("$actionName must preserve object $index bounds", before, after, 0.001)
+                }
+                assertEquals("$actionName must preserve object materials", initialFilaments,
+                    (0..2).map { readUsedFilamentsOnGl(glView, it).toList() })
+                assertArrayEquals("$actionName must preserve the selected group", initialSelection,
+                    readSelectedIndicesOnGl(glView))
+            }
+
+            for (action in listOf(R.string.ModelMenuAlignSelected, R.string.ModelMenuDistributeSelected)) {
+                val name = activity.getString(action)
+                openChoice(action)
+                compose.onNodeWithText(cancelLabel).assertIsDisplayed().performClick()
+                compose.waitUntil(timeoutMillis = 5_000) {
+                    compose.onAllNodesWithTag(choiceTag).fetchSemanticsNodes().isEmpty()
+                }
+                assertUnchanged("$name cancel button")
+
+                openChoice(action)
+                InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+                compose.waitUntil(timeoutMillis = 5_000) {
+                    compose.onAllNodesWithTag(choiceTag).fetchSemanticsNodes().isEmpty()
+                }
+                assertUnchanged("$name Android Back")
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun combineConfirmationRejectsChangedSelectionWithoutCombiningObjects() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
