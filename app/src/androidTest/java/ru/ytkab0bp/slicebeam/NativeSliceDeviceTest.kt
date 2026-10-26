@@ -1704,6 +1704,76 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun joiningLinkedInstancesSurvivesThreeMfAndSlicesEveryCopyWithItsMaterial() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "join-linked-instance-slice-cube.stl")
+        val projectFile = File(context.cacheDir, "join-linked-instance-slice.3mf")
+        val gcodeFile = File(context.cacheDir, "join-linked-instance-slice.gcode")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            val sourceTriangles = model.getTriangleCount(0)
+            assertTrue("test cube must have positive size and volume", width > 0.0 && sourceVolume > 0.0)
+            assertEquals(1, model.duplicateInstance(0, 0, Vec3d(width + 8.0, 0.0, 0.0)))
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.translate(1, width * 3.0 + 24.0, 0.0, 0.0)
+
+            assertEquals("join should merge two two-instance objects", 0,
+                model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals("each linked instance must become a separately printable part",
+                sourceTriangles * 4, model.getTriangleCount(0))
+            assertEquals("all four copies must contribute printable volume", sourceVolume * 4.0,
+                model.getObjectVolume(0), sourceVolume * 0.001)
+            assertEquals("both source materials must stay mapped", listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            val joinedMin = Vec3d(); val joinedMax = Vec3d()
+            model.getBoundingBoxExact(0, joinedMin, joinedMax)
+            val expectedMaxX = width * 5.0 + 32.0
+            assertEquals("first copy stays at the original world-space origin", 0.0, joinedMin.x, 0.02)
+            assertEquals("last linked copy keeps its translated world-space position", expectedMaxX, joinedMax.x, 0.02)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals("3MF round-trip keeps all four converted parts", sourceTriangles * 4,
+                restored.getTriangleCount(0))
+            assertEquals("3MF round-trip retains both source filaments", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("first joined material must reach G-code as T0",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("second joined material must reach G-code as T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            sliceResult?.release()
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
     fun booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "boolean-operations-roundtrip.stl")
