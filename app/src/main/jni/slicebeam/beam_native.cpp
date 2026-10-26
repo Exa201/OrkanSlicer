@@ -1710,16 +1710,31 @@ extern "C" {
         jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz) {
         try {
             ModelRef* model = (ModelRef*) (intptr_t) ptr;
-            if (i < 0 || i >= (int) model->model.objects.size()) return;
+            if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size() ||
+                fontPath == nullptr || textStr == nullptr || type < 0 || type > 1 ||
+                !std::isfinite(size) || size <= 0.f || !std::isfinite(depth) || depth <= 0.f ||
+                !std::isfinite(px) || !std::isfinite(py) || !std::isfinite(pz) ||
+                !std::isfinite(nx) || !std::isfinite(ny) || !std::isfinite(nz)) return;
             ModelObject* obj = model->model.objects[i];
+            const double normal_length_squared = nx * nx + ny * ny + nz * nz;
+            if (obj == nullptr || obj->instances.empty() || obj->volumes.empty() ||
+                std::any_of(obj->instances.begin(), obj->instances.end(), [](const ModelInstance* instance) {
+                    return instance == nullptr;
+                }) || !std::isfinite(normal_length_squared) || normal_length_squared <= 1e-18 ||
+                std::any_of(obj->volumes.begin(), obj->volumes.end(), [](const ModelVolume* volume) {
+                    return volume == nullptr;
+                })) return;
 
             const char *font_path_chars = env->GetStringUTFChars(fontPath, JNI_FALSE);
+            if (font_path_chars == nullptr) return;
             std::string font_path(font_path_chars);
             env->ReleaseStringUTFChars(fontPath, font_path_chars);
 
             const char *text_chars = env->GetStringUTFChars(textStr, JNI_FALSE);
+            if (text_chars == nullptr) return;
             std::string text(text_chars);
             env->ReleaseStringUTFChars(textStr, text_chars);
+            if (text.empty()) return;
 
             // 1) Load font
             std::unique_ptr<Emboss::FontFile> font_file = Emboss::create_font_file(font_path.c_str());
@@ -1801,6 +1816,7 @@ extern "C" {
 
             // 6) Add as a volume with its own transformation (geometry stays centered at origin).
             ModelVolume* vol = obj->add_volume(TriangleMesh(std::move(its)), vol_type, false);
+            if (vol == nullptr) throw std::runtime_error("Text geometry could not be added to the target model");
             vol->set_transformation(Geometry::Transformation(inst_tr.inverse() * world_tr));
             if (vol_type == ModelVolumeType::MODEL_PART && surface_extruder > 0)
                 vol->config.set("extruder", surface_extruder);
@@ -1829,7 +1845,16 @@ extern "C" {
 
             const int target_index = indices.front();
             ModelObject* target = ref->model.objects[target_index];
-            if (target == nullptr || target->instances.empty() || target->instances.front() == nullptr) return -2;
+            auto has_valid_join_state = [](const ModelObject* object) {
+                return object != nullptr && !object->instances.empty() && !object->volumes.empty() &&
+                    std::none_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) {
+                        return instance == nullptr;
+                    }) &&
+                    std::none_of(object->volumes.begin(), object->volumes.end(), [](const ModelVolume* volume) {
+                        return volume == nullptr;
+                    });
+            };
+            if (!has_valid_join_state(target)) return -2;
             const Transform3d target_world = target->instances.front()->get_matrix();
             const Transform3d world_to_target = target_world.inverse();
             // Validate the entire operation before mutating the destination object. Linked
@@ -1837,14 +1862,8 @@ extern "C" {
             // after the joined object is reduced to one instance.
             for (size_t n = 1; n < indices.size(); ++n) {
                 ModelObject* source = ref->model.objects[indices[n]];
-                if (source == nullptr || source->instances.empty() ||
-                    std::any_of(source->instances.begin(), source->instances.end(), [](const ModelInstance* instance) {
-                        return instance == nullptr;
-                    })) return -2;
+                if (!has_valid_join_state(source)) return -2;
             }
-            if (std::any_of(target->instances.begin(), target->instances.end(), [](const ModelInstance* instance) {
-                    return instance == nullptr;
-                })) return -2;
             // Build all copied volumes off-object first. Appending incrementally would expose a
             // partial join if copying/configuration throws; deleting those volumes as rollback is
             // also unsafe because ModelObject::delete_volume collapses the last volume transform

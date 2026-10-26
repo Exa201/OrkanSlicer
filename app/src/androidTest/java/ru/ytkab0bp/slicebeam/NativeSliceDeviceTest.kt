@@ -351,6 +351,24 @@ class NativeSliceDeviceTest {
                 doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
             }
 
+            // Protect native callers too; Kotlin validation is not the JNI safety boundary.
+            assertEquals("invalid native join handle is rejected", -1,
+                Native.model_combine_objects_as_parts(0L, intArrayOf(0, 1)))
+            assertEquals("invalid native Boolean handle is rejected", -1,
+                Native.model_boolean_objects(0L, intArrayOf(0, 1), 0))
+            assertEquals("unsupported native Boolean operation is rejected", -1,
+                Native.model_boolean_objects(model.pointer, intArrayOf(0, 1), 3))
+            Native.model_emboss_text(0L, 0, fontFile.absolutePath, "Label", 12f, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, originalCount, fontFile.absolutePath, "Label", 12f, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, 0, fontFile.absolutePath, "Label", Float.NaN, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, 0, fontFile.absolutePath, "Label", 12f, 1.2f, 2,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, 0, fontFile.absolutePath, "Label", 12f, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 0.0)
+
             assertEquals("duplicate join indices are rejected", -1,
                 model.combineObjectsAsParts(intArrayOf(0, 0)))
             assertEquals("out-of-range Boolean indices are rejected", -1,
