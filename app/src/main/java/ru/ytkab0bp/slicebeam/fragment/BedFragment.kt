@@ -1296,7 +1296,9 @@ private fun showPaintModePanel(currentGlView: GLView, mode: Int) {
         ::cancelPaintMode,
         WorkspacePanelSize(
             portrait = WorkspacePanelDimension.Fraction(
-                if (ctx.resources.configuration.fontScale >= 1.3f) 0.30f else 0.40f,
+                // Keep the build plate visibly dominant while the scrollable paint
+                // controls stay docked below it. The panel can scroll independently.
+                if (ctx.resources.configuration.fontScale >= 1.3f) 0.32f else 0.30f,
             ),
             landscape = WorkspacePanelDimension.Fixed(280f),
         ),
@@ -1896,13 +1898,19 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         }
                     },
                     filamentButtonContent = {
-                        key(filamentPaletteRevision) {
-                            BeamComposeTheme {
-                                WorkspaceFilamentButton(
-                                    slots = Prefs.getFilamentSlots(),
-                                    enabled = true,
-                                    onClick = ::showWorkspaceFilamentPalette,
-                                )
+                        // Color painting already presents its own full filament
+                        // swatches. Hiding the compact header palette during that
+                        // mode avoids two competing filament rows and preserves the
+                        // selected paint color as the single visible source.
+                        if (workspaceController.activeToolId != "paint-mode") {
+                            key(filamentPaletteRevision) {
+                                BeamComposeTheme {
+                                    WorkspaceFilamentButton(
+                                        slots = Prefs.getFilamentSlots(),
+                                        enabled = true,
+                                        onClick = ::showWorkspaceFilamentPalette,
+                                    )
+                                }
                             }
                         }
                     },

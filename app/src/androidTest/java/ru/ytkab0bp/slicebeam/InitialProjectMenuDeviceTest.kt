@@ -6486,7 +6486,7 @@ class InitialProjectMenuDeviceTest {
             val before = (0..1).map { readTranslationOnGl(glView, it) }
 
             openSelectedObjectMenu(activity)
-            scrollMenuToIndex(10)
+            revealMenuAction(activity, R.string.MenuToolbarMove)
             compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
@@ -7928,6 +7928,9 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
             }
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.WorkspaceFilamentButtonDescription, 2)
+            ).assertDoesNotExist()
             revealPaintFilamentSwatch(activity, 2, "Touch Paint Accent", occurrence = 0)
                 .performClick()
 
