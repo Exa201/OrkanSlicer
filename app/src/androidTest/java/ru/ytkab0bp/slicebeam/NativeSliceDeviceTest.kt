@@ -878,6 +878,50 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun transformedMultiObjectGroupUsesLowestExactSupportAcrossInstances() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "transformed-group-support.stl")
+        val model = Model(modelFile)
+        try {
+            model.rotate(0, 17.0, -11.0, 29.0)
+            model.scale(0, 1.4, 0.75, 1.2)
+            assertTrue("a linked copy should be added to the transformed target",
+                model.duplicateInstance(0, 0, Vec3d(-23.0, 8.0, 3.0)) >= 0)
+            model.addObject(model, 0)
+            assertEquals("a second transformed object should be added", 2, model.objectsCount)
+            model.translate(1, 41.0, -13.0, 19.0)
+
+            val normal = Vec3d(1.0, 0.7, 1.4)
+            val targetProjection = requireNotNull(model.getMinimumProjection(intArrayOf(0), normal))
+            val secondProjection = requireNotNull(model.getMinimumProjection(intArrayOf(1), normal))
+            val expectedGroupSupport = minOf(targetProjection, secondProjection)
+            val groupSupport = requireNotNull(model.getMinimumProjection(intArrayOf(0, 1), normal))
+            assertEquals("group support must use the lowest point across transformed objects and instances",
+                expectedGroupSupport, groupSupport, 1e-6)
+
+            val min0 = Vec3d(); val max0 = Vec3d()
+            val min1 = Vec3d(); val max1 = Vec3d()
+            model.getBoundingBoxExact(0, min0, max0)
+            model.getBoundingBoxExact(1, min1, max1)
+            val bounds = requireNotNull(ObjectPlacement.enclosing(listOf(
+                ObjectBounds3D(min0.x, min0.y, min0.z, max0.x, max0.y, max0.z),
+                ObjectBounds3D(min1.x, min1.y, min1.z, max1.x, max1.y, max1.z),
+            )))
+            val point = Vec3d(12.0, 31.0, 44.0)
+            val delta = requireNotNull(ObjectPlacement.onSurface(bounds, point, normal, groupSupport))
+            val normalLength = kotlin.math.sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z)
+            val unit = Vec3d(normal.x / normalLength, normal.y / normalLength, normal.z / normalLength)
+            val placedSupport = groupSupport + delta.x * unit.x + delta.y * unit.y + delta.z * unit.z
+            val planeProjection = point.x * unit.x + point.y * unit.y + point.z * unit.z
+            assertEquals("surface placement must seat the transformed group on the picked plane",
+                planeProjection, placedSupport, 1e-5)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun sideSurfacePlacedObjectsRemainPrintableAfterThreeMfReload() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "placed-side-surface.stl")
