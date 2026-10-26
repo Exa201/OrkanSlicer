@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam.ui.workspace
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.view.EmbossFontPreset
 import ru.ytkab0bp.slicebeam.view.EmbossModeController
 import ru.ytkab0bp.slicebeam.view.EmbossTextInputValidator
 
@@ -45,9 +47,11 @@ internal fun EmbossModePanel(
     var addMode by remember { mutableStateOf(true) }
     var standaloneMode by remember { mutableStateOf(startInStandaloneMode) }
     var followSurface by remember { mutableStateOf(false) }
+    var fontPreset by remember { mutableStateOf(EmbossFontPreset.ROBOTO_MEDIUM) }
+    val availableFonts = remember(controller) { controller.availableFontPresets() }
     val validation = EmbossTextInputValidator.validate(text, size, depth)
 
-    fun sync() = controller.update(text, size, depth, addMode, standaloneMode, followSurface)
+    fun sync() = controller.update(text, size, depth, addMode, standaloneMode, followSurface, fontPreset)
     DisposableEffect(controller) {
         controller.start()
         sync()
@@ -70,6 +74,21 @@ internal fun EmbossModePanel(
             modifier = Modifier.testTag("emboss-standalone-mode"),
         )
         if (standaloneMode) {
+            Text(stringResource(R.string.EmbossFontLabel), style = MaterialTheme.typography.labelLarge)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                availableFonts.forEach { preset ->
+                    FilterChip(
+                        selected = fontPreset == preset,
+                        onClick = { fontPreset = preset; sync() },
+                        label = { Text(stringResource(preset.labelRes)) },
+                        modifier = Modifier.testTag("emboss-font-${preset.name.lowercase()}"),
+                    )
+                }
+            }
             FilterChip(
                 selected = followSurface,
                 onClick = { followSurface = !followSurface; sync() },

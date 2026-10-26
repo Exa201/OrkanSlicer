@@ -1184,6 +1184,10 @@
     <string name="PaintHeightBand">Höhenbereich: %1$.1f mm</string>
     <string name="PaintAngleLimit">Winkelgrenze: %1$d°</string>
     <string name="EmbossTitle">Text prägen</string>
+    <string name="EmbossFontLabel">Schriftart für 3D-Text</string>
+    <string name="EmbossFontRoboto">Sans</string>
+    <string name="EmbossFontSerif">Serif</string>
+    <string name="EmbossFontMonospace">Monospace</string>
     <string name="EmbossInstruction">Werte eingeben und anschließend auf die Modelloberfläche tippen, um den Text zu platzieren.</string>
     <string name="TextModelPlacementInstruction">Text und Größe festlegen, dann auf die Druckplatte oder eine Modellfläche tippen.</string>
     <string name="TextModelCreateSeparate">Eigenständigen 3D-Text platzieren</string>

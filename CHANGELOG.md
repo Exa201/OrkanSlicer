@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.377
+
+- Add Sans, Serif, and Monospace font choices to standalone 3D text; show system-font options only when the device can read them and wrap the controls on narrow panels.
+
 ## 0.8.376
 
 - Add a native "Open in browser" fallback to KromaCut so the editor stays accessible when a device WebView cannot display its embedded workspace.

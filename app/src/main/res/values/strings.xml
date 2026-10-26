@@ -1209,6 +1209,10 @@
     <string name="PaintHeightBand">Height band: %1$.1f mm</string>
     <string name="PaintAngleLimit">Angle limit: %1$d°</string>
     <string name="EmbossTitle">Emboss text</string>
+    <string name="EmbossFontLabel">Font for 3D text</string>
+    <string name="EmbossFontRoboto">Sans</string>
+    <string name="EmbossFontSerif">Serif</string>
+    <string name="EmbossFontMonospace">Monospace</string>
     <string name="EmbossInstruction">Enter the settings, then tap the model surface to place the text.</string>
     <string name="TextModelPlacementInstruction">Set the text and size, then tap the build plate or a model surface.</string>
     <string name="EmbossTextHint">Text to emboss</string>

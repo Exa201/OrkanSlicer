@@ -285,6 +285,8 @@ class WorkspaceRuntimeCompositionDeviceTest {
 
             instrumentation.runOnMainSync { bed.enterEmbossMode(standaloneText = true) }
             awaitTag(activity, "emboss-standalone-mode")
+            clickTag(activity, "emboss-font-serif")
+            awaitSelected(activity, "emboss-font-serif")
             clickTag(activity, "emboss-follow-surface")
             awaitSelected(activity, "emboss-follow-surface")
             setText(activity, "emboss-text-input", "A")

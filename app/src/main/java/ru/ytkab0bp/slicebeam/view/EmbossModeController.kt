@@ -32,7 +32,7 @@ internal class EmbossModeController(
 
     fun start() {
         if (sessionGate.begin() == null) return
-        fontFilePath = prepareFontFile()
+        fontFilePath = resolveFontFile(EmbossFontPreset.ROBOTO_MEDIUM)
         glView.renderer.isStandaloneTextPlacementMode = options.standaloneMode
         SliceBeam.EVENT_BUS.registerListener(eventBridge)
     }
@@ -50,6 +50,7 @@ internal class EmbossModeController(
         addMode: Boolean,
         standaloneMode: Boolean = false,
         followSurface: Boolean = false,
+        fontPreset: EmbossFontPreset = EmbossFontPreset.ROBOTO_MEDIUM,
     ) {
         options = EmbossModeOptions.create(
             parameters = EmbossTextInputValidator.validate(text, size, depth),
@@ -57,8 +58,12 @@ internal class EmbossModeController(
             standaloneMode = standaloneMode,
             followSurface = followSurface,
         )
+        fontFilePath = resolveFontFile(fontPreset) ?: fontFilePath
         glView.renderer.isStandaloneTextPlacementMode = standaloneMode
     }
+
+    fun availableFontPresets(): List<EmbossFontPreset> =
+        EmbossFontPreset.entries.filter { it.isAvailable() }
 
     private fun onSurfaceClicked(event: EmbossSurfaceClickedEvent) {
         val session = sessionGate.current() ?: return
@@ -132,7 +137,10 @@ internal class EmbossModeController(
         }
     }
 
-    private fun prepareFontFile(): String? = runCatching {
+    private fun resolveFontFile(preset: EmbossFontPreset): String? = runCatching {
+        preset.systemFontPath?.let { path ->
+            return@runCatching File(path).takeIf { it.isFile && it.canRead() }?.absolutePath
+        }
         val fontFile = File(context.cacheDir, "roboto_medium.ttf")
         if (!fontFile.exists()) {
             context.assets.open("font/roboto_medium.ttf").use { input ->
@@ -141,6 +149,20 @@ internal class EmbossModeController(
         }
         fontFile.absolutePath
     }.getOrNull()
+}
+
+/** Fonts available to native text extrusion. System fonts are offered only when readable. */
+internal enum class EmbossFontPreset(
+    val labelRes: Int,
+    internal val systemFontPath: String? = null,
+) {
+    ROBOTO_MEDIUM(R.string.EmbossFontRoboto),
+    SERIF(R.string.EmbossFontSerif, "/system/fonts/NotoSerif-Regular.ttf"),
+    MONOSPACE(R.string.EmbossFontMonospace, "/system/fonts/DroidSansMono.ttf");
+
+    fun isAvailable(): Boolean = systemFontPath?.let { path ->
+        File(path).let { it.isFile && it.canRead() }
+    } ?: true
 }
 
 /** Invalidates callbacks already queued on GL when the text tool leaves the workspace. */
