@@ -88,6 +88,7 @@ import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
@@ -1942,10 +1943,24 @@ class InitialProjectMenuDeviceTest {
 
     @Test
     fun booleanDialogPlacesToolOnPickedTargetAndAppliesUnion() {
+        assertSurfaceBooleanOperation(BooleanOperation.UNION)
+    }
+
+    @Test
+    fun booleanDialogPlacesToolOnPickedTargetAndAppliesDifference() {
+        assertSurfaceBooleanOperation(BooleanOperation.DIFFERENCE)
+    }
+
+    @Test
+    fun booleanDialogPlacesToolOnPickedTargetAndAppliesIntersection() {
+        assertSurfaceBooleanOperation(BooleanOperation.INTERSECTION)
+    }
+
+    private fun assertSurfaceBooleanOperation(operation: BooleanOperation) {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
-        val modelFile = File(activity.cacheDir, "boolean-surface-pick-test.stl")
+        val modelFile = File(activity.cacheDir, "boolean-surface-pick-${operation.name.lowercase()}.stl")
         try {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
@@ -1981,7 +1996,12 @@ class InitialProjectMenuDeviceTest {
             }
             compose.onNodeWithTag("model-boolean-place-on-surface", useUnmergedTree = true)
                 .performScrollTo().performClick()
-            compose.onNodeWithTag("model-boolean-union", useUnmergedTree = true)
+            val operationTag = when (operation) {
+                BooleanOperation.UNION -> "model-boolean-union"
+                BooleanOperation.DIFFERENCE -> "model-boolean-difference"
+                BooleanOperation.INTERSECTION -> "model-boolean-intersection"
+            }
+            compose.onNodeWithTag(operationTag, useUnmergedTree = true)
                 .performScrollTo().performClick()
             compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.isSurfacePlacementActive }
 
@@ -2017,19 +2037,41 @@ class InitialProjectMenuDeviceTest {
             }
             compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
             val resultVolume = readObjectVolumeOnGl(glView, 0)
-            assertTrue("surface-picked union should add the positioned tool to the target",
-                resultVolume > requireNotNull(baseVolume.get()))
-            assertArrayEquals("the union result should retain the selected base material", intArrayOf(1),
+            val originalVolume = requireNotNull(baseVolume.get())
+            when (operation) {
+                BooleanOperation.UNION -> assertTrue(
+                    "surface-picked union should add the positioned tool to the target",
+                    resultVolume > originalVolume,
+                )
+                BooleanOperation.DIFFERENCE -> assertTrue(
+                    "surface-picked difference should remove the penetrating tool volume",
+                    resultVolume > 0.0 && resultVolume < originalVolume,
+                )
+                BooleanOperation.INTERSECTION -> assertTrue(
+                    "surface-picked intersection should retain only the shared solid volume",
+                    resultVolume > 0.0 && resultVolume < originalVolume,
+                )
+            }
+            assertArrayEquals("the Boolean result should retain the selected base material", intArrayOf(1),
                 readUsedFilamentsOnGl(glView, 0))
             val resultBounds = readExactBoundsOnGl(glView, 0).single()
-            assertTrue("the Boolean result should include the tapped target's top surface",
-                resultBounds[5] > point[2])
+            when (operation) {
+                BooleanOperation.UNION -> assertTrue(
+                    "union should extend above the tapped target surface", resultBounds[5] > point[2],
+                )
+                BooleanOperation.DIFFERENCE -> assertTrue(
+                    "difference should preserve the target's overall extent", resultBounds[5] >= point[2] - 0.01,
+                )
+                BooleanOperation.INTERSECTION -> assertTrue(
+                    "intersection should occupy only the shallow surface overlap", resultBounds[5] <= point[2] + 0.01,
+                )
+            }
 
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
-            assertEquals("Redo should restore the surface-picked union", resultVolume,
+            assertEquals("Redo should restore the surface-picked ${operation.name.lowercase()}", resultVolume,
                 readObjectVolumeOnGl(glView, 0), resultVolume * 0.002)
         } finally {
             if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()
