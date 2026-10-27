@@ -8519,10 +8519,22 @@ class InitialProjectMenuDeviceTest {
             )
             if (!compactPortrait) destinationNode.performScrollTo()
             destinationNode.assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 5_000) {
-                controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == editSlot &&
-                    (!compactPortrait || controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true) &&
-                    !(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
+            try {
+                compose.waitUntil(timeoutMillis = 5_000) {
+                    controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller) == editSlot &&
+                        (!compactPortrait || controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller) == true) &&
+                        !(controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller) as Boolean)
+                }
+            } catch (error: androidx.compose.ui.test.ComposeTimeoutException) {
+                val selected = controller.javaClass.getMethod("getSelectedDestinationSlot").invoke(controller)
+                val expanded = controller.javaClass.getMethod("getToolPanelExpanded").invoke(controller)
+                val transitioning = controller.javaClass.getMethod("isNavigationTransitionInProgress").invoke(controller)
+                val activeTool = controller.javaClass.getMethod("getActiveToolId").invoke(controller)
+                throw AssertionError(
+                    "Edit navigation did not settle after painting: selected=$selected expected=$editSlot " +
+                        "expanded=$expanded compactPortrait=$compactPortrait transitioning=$transitioning activeTool=$activeTool",
+                    error,
+                )
             }
         }
         if (compactPortrait) scrollMenuToIndex(1)

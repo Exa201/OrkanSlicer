@@ -127,6 +127,7 @@ private var rendererAdapter: RendererAdapter? = null
 private var rendererVisibilityBeforeKromacut: Int? = null
 private var workspaceThemeRevision by mutableIntStateOf(0)
 private val workspaceController = WorkspaceController()
+private var workspaceNavigationTransitionGeneration = 0
 private var activeSliceProgressDialog by mutableStateOf<SliceProgressDialog?>(null)
 private var activePrinterUploadProgress: PrinterUploadProgressDialog? = null
 private var menuToolsExpanded:Boolean
@@ -1995,8 +1996,18 @@ if (glView!!.renderer.resetFlattenMode())
 glView!!.requestRender()
 SliceBeam.EVENT_BUS.fireEvent(FlattenModeResetEvent())
 }
+val transitionGeneration = ++workspaceNavigationTransitionGeneration
 workspaceController.updateNavigationTransitionInProgress(routeChanged)
 currentMenuSlot = slot
+if (routeChanged) {
+    // Compose normally clears this guard after its route animation. Keep a bounded fallback so a
+    // cancelled/replaced composition cannot leave every workspace menu permanently unclickable.
+    ViewUtils.postOnMainThread({
+        if (!destroyed && transitionGeneration == workspaceNavigationTransitionGeneration &&
+            workspaceController.isNavigationTransitionInProgress
+        ) workspaceController.updateNavigationTransitionInProgress(false)
+    }, 1_000L)
+}
 }
 fun interface ModelLoadCallback {
 fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int)
