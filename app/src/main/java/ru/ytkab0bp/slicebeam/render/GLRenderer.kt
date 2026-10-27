@@ -167,6 +167,10 @@ private var paintSession: PaintSession? = null
 var paintObject = -1
 /** Render-only base material preview while a color-paint session is still staged. */
 private var paintBaseFilamentPreview: Int? = null
+/** Avoid rebuilding full-mesh paint overlays for every high-frequency touch move. */
+private var lastPaintOverlayRebuildAtMs = 0L
+private var paintOverlayRebuildPending = false
+private val PAINT_OVERLAY_PREVIEW_INTERVAL_MS = 40L
 /** A size change reuses the EGL context; only a newly created context needs GL resource rebuild. */
 private var surfaceNeedsResourceRebuild = true
 // ---- Multi-color painting (all methods run on the GL thread) ----
@@ -2078,6 +2082,8 @@ return false
 paintObject = objIdx
 isPaintMode = true
 paintBaseFilamentPreview = null
+lastPaintOverlayRebuildAtMs = 0L
+paintOverlayRebuildPending = false
 paintPalette = Prefs.getFilamentPalette()
 rebuildPaintOverlays()
 notifyPaintHistoryChanged()
@@ -2099,14 +2105,15 @@ fun beginPaintStroke() {
 }
 fun endPaintStroke() {
     paintSession?.endStroke()
+    if (paintOverlayRebuildPending) rebuildPaintOverlays(force = true)
     notifyPaintHistoryChanged()
 }
 fun undoPaintStroke() {
-    if (paintSession?.undoStroke() == true) rebuildPaintOverlays()
+    if (paintSession?.undoStroke() == true) rebuildPaintOverlays(force = true)
     notifyPaintHistoryChanged()
 }
 fun redoPaintStroke() {
-    if (paintSession?.redoStroke() == true) rebuildPaintOverlays()
+    if (paintSession?.redoStroke() == true) rebuildPaintOverlays(force = true)
     notifyPaintHistoryChanged()
 }
 /** Overlay color for a painted state in the current paint mode. */
@@ -2136,6 +2143,7 @@ if (paintObject != -1) invalidateCommittedOverlays(paintObject) // rebuild persi
 paintObject = -1
 paintBaseFilamentPreview = null
 isPaintMode = false
+paintOverlayRebuildPending = false
 notifyPaintHistoryChanged()
 }
 /** Set object i's base filament (1-based) and refresh its persisted colors. */
@@ -2171,7 +2179,7 @@ if (paintBaseFilamentPreview == filament) return
 paintSession!!.clear()
 paintSession!!.resetHistory()
 paintBaseFilamentPreview = filament
-rebuildPaintOverlays()
+rebuildPaintOverlays(force = true)
 notifyPaintHistoryChanged()
 }
 fun paintAt(x:Float, y:Float) {
@@ -2195,7 +2203,7 @@ paintSession!!.brush(h, -1, paintBrushRadius, paintFilament, camera.position.asD
 }
 // Don't commit on every drag event (expensive) â€” the live session overlays show the paint,
  // and endPaint() commits to the model. This keeps fast drags from painting sparsely.
- rebuildPaintOverlays()
+ rebuildPaintOverlays(force = false)
 }
 /** A bounding-box hit can select an object, but must never place paint or a surface tool. */
 private fun preciseSurfaceHit(): GLModel.HitResult? {
@@ -2216,7 +2224,7 @@ if (paintSession == null) return
 paintSession!!.beginStroke()
 paintSession!!.height(zMin, zMax, paintFilament)
 paintSession!!.endStroke()
-rebuildPaintOverlays()
+    rebuildPaintOverlays(force = true)
 notifyPaintHistoryChanged()
 }
 fun clearPaint() {
@@ -2227,7 +2235,14 @@ paintSession!!.endStroke()
 rebuildPaintOverlays()
 notifyPaintHistoryChanged()
 }
-private fun rebuildPaintOverlays() {
+private fun rebuildPaintOverlays(force: Boolean = true) {
+val now = android.os.SystemClock.uptimeMillis()
+if (!force && now - lastPaintOverlayRebuildAtMs < PAINT_OVERLAY_PREVIEW_INTERVAL_MS) {
+    paintOverlayRebuildPending = true
+    return
+}
+lastPaintOverlayRebuildAtMs = now
+paintOverlayRebuildPending = false
 for (o in paintOverlays) o.model.release()
 paintOverlays.clear()
 if (paintSession == null) return

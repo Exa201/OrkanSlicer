@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.395
+
+- Keep live paint feedback responsive on dense models by limiting full-mesh paint-overlay rebuilds during a stroke and flushing the final preview immediately on touch release.
+- Retain the single paint palette and reserve most portrait workspace height for the live model and build plate.
+- Verify live color before confirmation, final-stroke visibility, 3MF assembly overlays, and cancel/undo behavior on Android 16. Xiaomi hardware was not connected for this verification.
+
 ## 0.8.394
 
 - Preserve every imported 3MF part color during live color-paint preview, including parts outside the volume being edited.
