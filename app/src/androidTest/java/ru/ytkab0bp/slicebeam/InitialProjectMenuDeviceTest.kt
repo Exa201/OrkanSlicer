@@ -7911,9 +7911,7 @@ class InitialProjectMenuDeviceTest {
                         "rendererMode=${readRendererIntOnGl(glView, "paintModeKind")}",
                     paintStarted.isSuccess,
                 )
-                compose.onNodeWithText(
-                    activity.getString(if (expectedMode == GLRenderer.PAINT_MODE_COLOR) R.string.PaintColorTitle else R.string.PaintWith)
-                ).assertIsDisplayed()
+                compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
                 assertEquals("The selected menu action must activate its matching GL paint mode",
                     expectedMode, readRendererIntOnGl(glView, "paintModeKind"))
                 assertFalse("Opening or cancelling paint must not add model paint",
@@ -7960,12 +7958,13 @@ class InitialProjectMenuDeviceTest {
             val paintControlsBounds = compose.onNodeWithTag("workspace-docked-tool-panel")
                 .fetchSemanticsNode().boundsInRoot
             assertTrue(
-                "The paint controls must leave the build-plate viewport visible below them; " +
+                "The paint controls must leave at least 75% of the workspace viewport for the plate; " +
                     "renderer=$paintViewportBounds controls=$paintControlsBounds",
-                paintViewportBounds.height >= 150f * activity.resources.displayMetrics.density &&
+                paintViewportBounds.height >= (paintViewportBounds.height + paintControlsBounds.height) * 0.75f &&
                     paintViewportBounds.bottom <= paintControlsBounds.top + 1f,
             )
-            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).performClick()
+            compose.onNodeWithTag("paint-palette-role-toggle").performClick()
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
             compose.onAllNodesWithContentDescription(
                 activity.getString(R.string.FilamentPaletteSlotDescription, 2, "UI Paint Accent")
             ).get(0).assertIsDisplayed().performClick()
@@ -7991,9 +7990,10 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
             }
-            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
             compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
-            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).performClick()
+            compose.onNodeWithTag("paint-palette-role-toggle").performClick()
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
             compose.onAllNodesWithContentDescription(
                 activity.getString(R.string.FilamentPaletteSlotDescription, 2, "UI Paint Accent")
             ).get(0).assertIsDisplayed().performClick()
@@ -8060,14 +8060,15 @@ class InitialProjectMenuDeviceTest {
                 .fetchSemanticsNode().boundsInRoot
             val combinedHeight = paintViewportBounds.height + paintControlsBounds.height
             assertTrue(
-                "color controls must leave at least 70% of the tool area for the model; " +
+                "color controls must leave at least 75% of the tool area for the model; " +
                     "renderer=$paintViewportBounds controls=$paintControlsBounds",
-                paintViewportBounds.height >= combinedHeight * 0.70f &&
+                paintViewportBounds.height >= combinedHeight * 0.75f &&
                     paintViewportBounds.bottom <= paintControlsBounds.top + 1f,
             )
             val point = findUncoveredPreciseSurfacePoint(glView, bed)
             val beforeBasePreview = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).performClick()
+            compose.onNodeWithTag("paint-palette-role-toggle").performClick()
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
             revealPaintFilamentSwatch(activity, 2, "Live Paint Accent", occurrence = 0)
                 .performClick()
             instrumentationWaitForGlIdle()
@@ -8083,7 +8084,8 @@ class InitialProjectMenuDeviceTest {
             assertArrayEquals("a live base color remains a draft until Done", intArrayOf(1),
                 readUsedFilamentsOnGl(glView, 0))
 
-            compose.onNodeWithText(activity.getString(R.string.PaintWith)).performClick()
+            compose.onNodeWithTag("paint-palette-role-toggle").performClick()
+            compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
             revealPaintFilamentSwatch(activity, 1, "Live Paint Base", occurrence = 0)
                 .performClick()
             val instrumentation = InstrumentationRegistry.getInstrumentation()

@@ -100,6 +100,10 @@ class WorkspaceShellLayoutPolicyTest {
         assertEquals(100, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(
             250, WorkspacePanelDimension.Fraction(0.8f), 1f,
         ))
+        assertEquals("a short paint dock must keep at least 60% of its workspace for the plate", 200,
+            WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(
+                500, WorkspacePanelDimension.Fraction(0.9f), 1f,
+            ))
         assertEquals(0, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(
             120, WorkspacePanelDimension.Fixed(240f), 1.5f,
         ))

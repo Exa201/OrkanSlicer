@@ -386,7 +386,13 @@ internal object WorkspaceShellLayoutPolicy {
     @JvmStatic
     fun dockedPortraitPanelHeightDp(availableHeightDp: Int, dimension: WorkspacePanelDimension?, fontScale: Float): Int {
         val available = availableHeightDp.coerceAtLeast(0)
-        val minimumRenderer = if (fontScale >= 1.3f) 120 else 150
+        // A fixed 150 dp minimum still let the renderer shrink to a narrow strip on a
+        // short phone. Reserve most of the workspace for the bed, scaling the guarantee
+        // with the available height while retaining an absolute minimum for compact views.
+        val minimumRenderer = maxOf(
+            if (fontScale >= 1.3f) 120 else 150,
+            (available * 0.60f).toInt(),
+        )
         val requested = dimension?.let { WorkspacePanelSizePolicy.resolve(it, available.toFloat()).toInt() } ?: 0
         return minOf(requested, (available - minimumRenderer).coerceAtLeast(0))
     }

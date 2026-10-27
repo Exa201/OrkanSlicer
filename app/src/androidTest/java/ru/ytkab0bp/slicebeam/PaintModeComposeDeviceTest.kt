@@ -86,6 +86,8 @@ class PaintModeComposeDeviceTest {
         Prefs.setStoredFilamentSlots(listOf(
             FilamentSlot(0xFFCC3333.toInt(), "Palette Base"),
             FilamentSlot(0xFF3366CC.toInt(), "Palette Accent"),
+            FilamentSlot(0xFF33AA55.toInt(), "Palette Green"),
+            FilamentSlot(0xFFFFCC22.toInt(), "Palette Yellow"),
         ))
         compose.runOnUiThread { glView = GLView(context) }
         try {
@@ -95,12 +97,20 @@ class PaintModeComposeDeviceTest {
                 }
             }
 
-            compose.onNodeWithTag("paint-palette-role-base").assertIsDisplayed()
-            compose.onNodeWithTag("paint-palette-role-paint").assertIsDisplayed()
+            compose.onNodeWithTag("paint-palette-row").assertIsDisplayed()
+            compose.onNodeWithTag("paint-palette-role-toggle").assertIsDisplayed()
+            compose.onNodeWithTag("paint-palette-role-toggle")
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(context.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
             compose.onAllNodesWithTag("paint-filament-swatch-1").assertCountEquals(1)
             compose.onAllNodesWithTag("paint-filament-swatch-2").assertCountEquals(1)
+            compose.onNodeWithTag("paint-filament-swatch-1").assertIsDisplayed()
+            compose.onNodeWithTag("paint-filament-swatch-2").assertIsDisplayed()
+            compose.onNodeWithTag("paint-filament-swatch-3").assertIsDisplayed()
+            compose.onNodeWithTag("paint-filament-swatch-4").assertIsDisplayed()
             compose.onNodeWithTag("paint-filament-swatch-1").assertIsDisplayed().performClick()
-            compose.onNodeWithTag("paint-palette-role-paint").performClick()
+            compose.onNodeWithTag("paint-palette-role-toggle").performClick()
+            compose.onNodeWithText(context.getString(R.string.PaintWith)).assertIsDisplayed()
             compose.onNodeWithTag("paint-filament-swatch-2").performClick()
         } finally {
             Prefs.setStoredFilamentSlots(previousSlots)

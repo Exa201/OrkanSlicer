@@ -100,26 +100,23 @@ internal fun PaintModePanel(
     }
 
     Column(
-        Modifier.fillMaxWidth().heightIn(max = 640.dp).verticalScroll(rememberScrollState()).padding(16.dp),
+        Modifier.fillMaxWidth().heightIn(max = 640.dp).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (colorMode) {
-            Text(stringResource(R.string.PaintColorTitle), style = MaterialTheme.typography.titleMedium)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Keep the active paint target and its colors on one compact row. The former
+            // heading + two role chips + swatch row pushed the actual colors below the fold
+            // in the dock on short phones, which made live painting look delayed until Done.
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("paint-palette-row"),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 FilterChip(
                     selected = selectingBaseFilament,
-                    onClick = { selectingBaseFilament = true },
-                    label = { Text(stringResource(R.string.PaintBaseFilament)) },
-                    modifier = Modifier.testTag("paint-palette-role-base"),
+                    onClick = { selectingBaseFilament = !selectingBaseFilament },
+                    label = { Text(stringResource(if (selectingBaseFilament) R.string.PaintBaseFilament else R.string.PaintWith)) },
+                    modifier = Modifier.testTag("paint-palette-role-toggle"),
                 )
-                FilterChip(
-                    selected = !selectingBaseFilament,
-                    onClick = { selectingBaseFilament = false },
-                    label = { Text(stringResource(R.string.PaintWith)) },
-                    modifier = Modifier.testTag("paint-palette-role-paint"),
-                )
-            }
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 slots.forEachIndexed { index, slot ->
                     val filament = index + 1
                     FilamentSwatch(
