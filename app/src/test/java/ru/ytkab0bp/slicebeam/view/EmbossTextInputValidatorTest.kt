@@ -46,6 +46,14 @@ class EmbossTextInputValidatorTest {
     }
 
     @Test
+    fun preservesLineBreaksForMultilinePrintableText() {
+        val result = EmbossTextInputValidator.validate("M12\n3D", "12", "0,8")
+
+        assertNull(result.error)
+        assertEquals("M12\n3D", result.value?.text)
+    }
+
+    @Test
     fun rejectsEmptyAndOverlongText() {
         assertEquals(
             EmbossTextInputValidator.Error.EMPTY_TEXT,

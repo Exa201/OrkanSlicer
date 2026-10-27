@@ -107,7 +107,8 @@ internal fun EmbossModePanel(
             onValueChange = { text = it; sync() },
             label = { Text(stringResource(R.string.EmbossTextLabel)) },
             placeholder = { Text(stringResource(R.string.EmbossTextHint)) },
-            singleLine = true,
+            singleLine = false,
+            maxLines = 4,
             isError = validation.error == EmbossTextInputValidator.Error.EMPTY_TEXT ||
                 validation.error == EmbossTextInputValidator.Error.TEXT_TOO_LONG,
             modifier = Modifier.fillMaxWidth().testTag("emboss-text-input"),

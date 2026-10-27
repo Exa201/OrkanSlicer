@@ -150,6 +150,19 @@ class GlModePanelsComposeDeviceTest {
     }
 
     @Test
+    fun standaloneTextFieldAcceptsMultipleLinesWithoutValidationError() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lateinit var controller: EmbossModeController
+        compose.runOnUiThread { controller = EmbossModeController(context, GLView(context)) }
+        compose.setContent { BeamComposeTheme { EmbossModePanel(controller) {} } }
+
+        compose.onNodeWithTag("emboss-standalone-mode").performClick()
+        compose.onNodeWithTag("emboss-text-input").performTextReplacement("M12\n3D")
+        compose.onNodeWithTag("emboss-input-error").assertDoesNotExist()
+        compose.onNodeWithTag("emboss-text-input").assertIsDisplayed()
+    }
+
+    @Test
     fun embossPanelShowsInvalidGeometryInputInsteadOfSilentlyUsingDefaults() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         lateinit var controller: EmbossModeController

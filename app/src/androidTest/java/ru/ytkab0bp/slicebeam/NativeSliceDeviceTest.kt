@@ -2268,7 +2268,7 @@ class NativeSliceDeviceTest {
     }
 
     @Test
-    fun standaloneRaisedAndEngravedTextSurviveThreeMfAndSliceWithTheirFilaments() = withKobraProfile {
+    fun raisedEngravedAndMultilineStandaloneTextSurviveThreeMfAndSliceWithTheirFilaments() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val cubeFile = copyCube(context, "text-edit-workflow-cube.stl")
         val fontFile = copyAsset(context, "font/roboto_medium.ttf", "text-edit-workflow-font.ttf")
@@ -2308,12 +2308,16 @@ class NativeSliceDeviceTest {
 
             // A separate label is a second printable object and keeps an independent tool assignment.
             val standaloneIndex = model.createTextObject(
-                fontFile.absolutePath, "C", 6f, 1f,
+                fontFile.absolutePath, "C\n3D", 6f, 1f,
                 Vec3d(100.0, 100.0, 0.0), Vec3d(0.0, 0.0, 1.0),
             )
             assertEquals(1, standaloneIndex)
             model.setUniformFilament(standaloneIndex, 2)
             assertTrue("standalone text should contain printable triangles", model.getTriangleCount(standaloneIndex) > 0)
+            val textMin = Vec3d(); val textMax = Vec3d()
+            model.getBoundingBoxExact(standaloneIndex, textMin, textMax)
+            assertTrue("standalone text should keep its second line as real mesh geometry",
+                textMax.y - textMin.y > 8.0)
 
             SliceBeam.genCurrentConfig(model)
             generatedConfig = SliceBeam.getCurrentConfigFile()
