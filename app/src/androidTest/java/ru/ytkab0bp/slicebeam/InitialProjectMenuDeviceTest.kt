@@ -5264,9 +5264,9 @@ class InitialProjectMenuDeviceTest {
             instrumentationWaitForGlIdle()
 
             openSelectedObjectMenu(activity)
-            scrollMenuToIndex(6)
-            compose.onNodeWithText(activity.getString(R.string.ModelMenuFlattenShort))
-                .performScrollTo().assertIsDisplayed().performClick()
+            revealMenuAction(activity, R.string.ModelMenuFlatten)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuFlatten))
+                .assertIsDisplayed().performClick()
             compose.waitUntil(timeoutMillis = 5_000) { readRendererBooleanOnGl(glView, "isInFlattenMode") }
             val rotationBefore = readRotationOnGl(glView, 0)
 

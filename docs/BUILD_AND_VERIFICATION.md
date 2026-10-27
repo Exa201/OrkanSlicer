@@ -2302,3 +2302,13 @@ Additional model manipulation verification on `small_phone (AVD) - 16` — 2026-
 - `InitialProjectMenuDeviceTest.singleObjectBatchDuplicateCreatesRequestedCopiesWithUndoRedo` — 1/1 passed.
 
 These focused connected tests verified three more existing workflows; no production code changes were needed for them. The whole UI/device suite was not run.
+
+## Mesh editing verification — Android 16 — 2026-10-27
+
+Focused connected tests passed on `small_phone (AVD) - 16`:
+
+- `InitialProjectMenuDeviceTest.flatteningAnAngledFaceIsUndoableAndRedoable` — 1/1. The first attempt used a text-node query for a compact menu tile whose merged accessibility semantics expose the full action label. The test now reveals and activates the action through its content description; flattening, undo, and redo then passed.
+- `InitialProjectMenuDeviceTest.applyingCutRunsOnGlThreadAndSplitsTheSelectedModel` — 1/1.
+- `InitialProjectMenuDeviceTest.editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects` — 1/1.
+
+No production defect was observed in these three workflows; no production code was changed for this sweep. Test change and verification are on commit pending below. The complete device suite remains unrun.
