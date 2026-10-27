@@ -754,6 +754,45 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun standaloneTextCanBeBooleanSubtractedAsAnEngraving() {
+        val modelFile = createCubeFixture("boolean-text-engraving-target.stl", side = 20f)
+        val fontFile = copyAsset("font/roboto_medium.ttf", "boolean-text-engraving-font.ttf")
+        val model = Model(modelFile)
+        try {
+            model.setUniformFilament(0, 2)
+            val targetVolume = model.getObjectVolume(0)
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "A",
+                8f,
+                2f,
+                Vec3d(10.0, 10.0, targetMax.z - 1.0),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("engraving text must be an independent printable cutter", 1, textIndex)
+            model.setUniformFilament(textIndex, 3)
+
+            val result = model.booleanObjects(0, textIndex, BooleanOperation.DIFFERENCE)
+
+            assertEquals("text should cut its intersecting shape from the target", 0, result)
+            assertEquals(1, model.objectsCount)
+            val engravedVolume = model.getObjectVolume(result)
+            assertTrue("engraving should remove target material", engravedVolume > 0.0 && engravedVolume < targetVolume)
+            assertEquals("engraving keeps the target filament", listOf(2), model.getUsedFilaments(result).toList())
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals("engraving preserves the plate-contact plane", targetMin.z, resultMin.z, 0.02)
+            assertEquals("engraving stays within the original top surface", targetMax.z, resultMax.z, 0.02)
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
     @Test fun standaloneTextCanConformToCurvedCylinderAndRemainsPrintable() {
         val modelFile = createCylinderFixture("text-curved-cylinder.stl", radius = 25f, height = 30f, segments = 96)
         val fontFile = copyAsset("font/roboto_medium.ttf", "text-curved-surface-font.ttf")

@@ -7935,6 +7935,22 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.WorkspaceFilamentButtonDescription, 2)
             ).assertDoesNotExist()
+            assertEquals("each paint slot must have one visible swatch, not duplicate filament rows", 1,
+                compose.onAllNodesWithTag("paint-filament-swatch-1").fetchSemanticsNodes().size)
+            assertEquals("each paint slot must have one visible swatch, not duplicate filament rows", 1,
+                compose.onAllNodesWithTag("paint-filament-swatch-2").fetchSemanticsNodes().size)
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+            val paintViewportBounds = compose.onNodeWithTag("workspace-renderer-area")
+                .fetchSemanticsNode().boundsInRoot
+            val paintControlsBounds = compose.onNodeWithTag("workspace-docked-tool-panel")
+                .fetchSemanticsNode().boundsInRoot
+            val combinedHeight = paintViewportBounds.height + paintControlsBounds.height
+            assertTrue(
+                "color controls must leave at least 70% of the tool area for the model; " +
+                    "renderer=$paintViewportBounds controls=$paintControlsBounds",
+                paintViewportBounds.height >= combinedHeight * 0.70f &&
+                    paintViewportBounds.bottom <= paintControlsBounds.top + 1f,
+            )
             val point = findUncoveredPreciseSurfacePoint(glView, bed)
             val beforeBasePreview = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).performClick()
@@ -8024,6 +8040,8 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
             }
+            val baseFilamentPreviewBeforeStrokes = readPaintPreviewTriangleCountOnGl(glView, 1)
+            val accentFilamentPreviewBeforeStrokes = readPaintPreviewTriangleCountOnGl(glView, 2)
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.WorkspaceFilamentButtonDescription, 2)
             ).assertDoesNotExist()
@@ -8035,6 +8053,8 @@ class InitialProjectMenuDeviceTest {
             val previewTriangles = readPaintPreviewTriangleCountOnGl(glView, 2)
             assertTrue("an injected touch on a precise GL surface hit must create a paint preview; point=$point",
                 previewTriangles > 0)
+            val firstStrokeBaseTriangles = readPaintPreviewTriangleCountOnGl(glView, 1)
+            val firstStrokeAccentTriangles = previewTriangles
             assertFalse("painting remains a preview until Done", readModelHasPaintOnGl(glView, 0))
 
             // Two distinct color changes are separate reversible strokes while still inside the
@@ -8047,25 +8067,37 @@ class InitialProjectMenuDeviceTest {
                 readPaintPreviewTriangleCountOnGl(glView, 1) > 0)
             assertTrue("the second stroke should not erase the first stroke's separate facets",
                 readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+            val secondStrokeBaseTriangles = readPaintPreviewTriangleCountOnGl(glView, 1)
+            val secondStrokeAccentTriangles = readPaintPreviewTriangleCountOnGl(glView, 2)
 
             fun clickPaintHistoryAction(label: Int) {
                 compose.onNodeWithText(activity.getString(label)).performScrollTo().assertIsEnabled().performClick()
                 instrumentationWaitForGlIdle()
             }
             clickPaintHistoryAction(R.string.PaintUndoStroke)
-            assertEquals("undoing stroke two should remove its first-filament facets", 0,
+            assertEquals("undoing stroke two should restore the first-stroke base-filament overlay",
+                firstStrokeBaseTriangles,
                 readPaintPreviewTriangleCountOnGl(glView, 1))
-            assertTrue("undoing stroke two should retain stroke one's accent facets",
-                readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+            assertEquals("undoing stroke two should restore stroke one's accent-filament overlay",
+                firstStrokeAccentTriangles,
+                readPaintPreviewTriangleCountOnGl(glView, 2))
             clickPaintHistoryAction(R.string.PaintUndoStroke)
-            assertEquals("undoing stroke one should restore an empty preview", 0,
+            assertEquals("undoing stroke one should restore the pre-paint base-filament overlay",
+                baseFilamentPreviewBeforeStrokes,
+                readPaintPreviewTriangleCountOnGl(glView, 1))
+            assertEquals("undoing stroke one should restore the pre-paint accent-filament overlay",
+                accentFilamentPreviewBeforeStrokes,
                 readPaintPreviewTriangleCountOnGl(glView, 2))
             clickPaintHistoryAction(R.string.PaintRedoStroke)
-            assertTrue("redo should restore stroke one's accent facets",
-                readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+            assertEquals("redo should restore stroke one's accent facets", firstStrokeAccentTriangles,
+                readPaintPreviewTriangleCountOnGl(glView, 2))
+            assertEquals("redo should restore stroke one's base facets", firstStrokeBaseTriangles,
+                readPaintPreviewTriangleCountOnGl(glView, 1))
             clickPaintHistoryAction(R.string.PaintRedoStroke)
-            assertTrue("redo should restore stroke two's first-filament facets",
-                readPaintPreviewTriangleCountOnGl(glView, 1) > 0)
+            assertEquals("redo should restore stroke two's base-filament facets", secondStrokeBaseTriangles,
+                readPaintPreviewTriangleCountOnGl(glView, 1))
+            assertEquals("redo should restore stroke two's accent-filament facets", secondStrokeAccentTriangles,
+                readPaintPreviewTriangleCountOnGl(glView, 2))
 
             compose.onNodeWithTag("workspace-mode-panel").performTouchInput { swipeUp() }
             compose.onNodeWithText(activity.getString(R.string.ActionDone))

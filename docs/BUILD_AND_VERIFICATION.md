@@ -2181,6 +2181,18 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurviveMultipartJoinThreeMfRoundTripAndSlice` passed 1/1 on `small_phone` / Android 16 (JUnit XML `2026-10-27T13:50:03`). The test paints a bundled two-color 3MF, joins a second part, verifies facet segmentation survives 3MF export/reimport, performs a native slice, and confirms the painted filament emits a `T1` tool change and extrusion G-code.
 - This confirms the released preview fix did not regress persisted paint data or sliced tool selection. The Xiaomi itself was not available for the test.
 
+## Paint feedback and viewport adjustment — Android 16 — 2026-10-27
+
+- Reduced the portrait color-paint panel from 30% to 22% of the workspace at normal text scale (28% at larger text scale). The panel remains independently scrollable, reserving more screen area for the live model/build plate.
+- `InitialProjectMenuDeviceTest.colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel` passed 1/1 on `small_phone` / Android 16. It checks live base-color and brush-color pixels before Done, exactly one visible swatch per slot, no second header palette, and at least 70% of the tool region retained for the renderer.
+- `InitialProjectMenuDeviceTest.colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments` passed 1/1. It performs two strokes with different filament slots, verifies both live overlays, undoes/redoes each draft, commits, and verifies model-level Undo/Redo. The test now compares each history state with the captured prior overlay counts; an earlier zero-count expectation was incorrect because untouched base facets are represented in the base-filament overlay.
+- `:app:assembleDebug` succeeded after these changes. Physical Xiaomi/Honor devices were not attached, so the device-specific duplicate-row and visibility report still needs confirmation on Xiaomi. The existing 0.8.394 release has not changed in this pass.
+
+## Standalone text Boolean engraving coverage — Android 16 — 2026-10-27
+
+- Added `ModelEditingNativeDeviceTest.standaloneTextCanBeBooleanSubtractedAsAnEngraving`, which creates independent text over a cube, subtracts it as an engraving, and checks retained positive target volume, target material, and original plate-contact/top bounds. The isolated test passed 1/1 on `small_phone` / Android 16.
+- The expanded 48-case `ModelEditingNativeDeviceTest` batch did not complete: the Android emulator system server crashed while the existing `nativeBooleanDifferenceSubtractsTheOverlappingHalf` case was running. After a cold emulator restart, that existing case passed independently 1/1. Do not treat the 48-case batch as passed; a clean class run remains outstanding.
+
 ## Multi-object and repeated-slot filament assignment — OrkanSlicer 0.8.394 — Android 16 — 2026-10-27
 
 - The real Model-menu assignment flow passed `InitialProjectMenuDeviceTest.modelObjectsMenuAssignmentOverridesImportedThreeMfMaterial` 1/1 on `small_phone` / Android 16. A two-object colored 3MF was assigned independently to T6 and T3 through the object list; assignment replaced imported color overrides, survived 3MF export/reload, and the generated G-code emitted T6 and T3 with the expected palette.
