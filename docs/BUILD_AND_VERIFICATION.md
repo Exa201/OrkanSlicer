@@ -2180,3 +2180,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurviveMultipartJoinThreeMfRoundTripAndSlice` passed 1/1 on `small_phone` / Android 16 (JUnit XML `2026-10-27T13:50:03`). The test paints a bundled two-color 3MF, joins a second part, verifies facet segmentation survives 3MF export/reimport, performs a native slice, and confirms the painted filament emits a `T1` tool change and extrusion G-code.
 - This confirms the released preview fix did not regress persisted paint data or sliced tool selection. The Xiaomi itself was not available for the test.
+
+## Multi-object and repeated-slot filament assignment — OrkanSlicer 0.8.394 — Android 16 — 2026-10-27
+
+- The real Model-menu assignment flow passed `InitialProjectMenuDeviceTest.modelObjectsMenuAssignmentOverridesImportedThreeMfMaterial` 1/1 on `small_phone` / Android 16. A two-object colored 3MF was assigned independently to T6 and T3 through the object list; assignment replaced imported color overrides, survived 3MF export/reload, and the generated G-code emitted T6 and T3 with the expected palette.
+- `SlicePrintPreparationComposeDeviceTest.multipartModelColorsCanBeRemappedIndividuallyToTheSameSlot` passed 1/1: two distinct imported colors could both be assigned to one selected destination filament.
+- `NativeSliceDeviceTest.perSourceColorRemappingSurvives3mfReloadAndEmitsMappedTools` passed 1/1: distinct tool mapping and shared-slot mapping both survived 3MF reload and slicing; G-code contained the requested tools and omitted unmapped tools.
+- These current-code checks confirm that per-object assignment and multiple source colors sharing one slot are already supported in the tested 0.8.394 flow. Xiaomi hardware remains unverified.
