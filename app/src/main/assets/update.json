@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.394\n\n• Mehrfarbige 3MF-Baugruppen behalten beim Malen ihre importierten Farben sofort in der Vorschau.\n• Eine neue Grundfarbe ist vor der Bestätigung sichtbar und wird nicht von der alten Farbe überdeckt.\n• Im Malmodus erscheint eine Filamentpalette und die Druckplatte bleibt sichtbar.",
-  "en": "OrkanSlicer 0.8.394\n\n• Multicolor 3MF assemblies retain imported colors in the live paint preview.\n• A newly selected base filament is visible before confirmation without the old color covering it.\n• Painting shows one filament palette while keeping the build plate visible.",
-  "ru": "OrkanSlicer 0.8.394\n\n• Многоцветные сборки 3MF сохраняют импортированные цвета в режиме предварительного просмотра окраски.\n• Новый базовый филамент виден до подтверждения, старый цвет больше не перекрывает его.\n• В режиме окраски отображается одна палитра, а платформа остаётся видимой."
+  "de": "OrkanSlicer 0.8.396\n\n• Malstriche werden bereits während des Ziehens in der Vorschau aktualisiert, auch wenn du kurz pausierst.\n• Im Farbmodus bleibt nur eine Filamentleiste sichtbar.\n• Die Druckplatte bleibt während des Farbmodus sichtbar.",
+  "en": "OrkanSlicer 0.8.396\n\n• Brush strokes refresh in the preview while dragging, including when you pause briefly.\n• Color mode shows only one filament palette.\n• The build plate remains visible while painting.",
+  "ru": "OrkanSlicer 0.8.396\n\n• Штрихи кисти обновляются в предпросмотре во время рисования, в том числе при короткой паузе.\n• В режиме раскрашивания отображается только одна палитра филаментов.\n• Платформа остаётся видимой во время окрашивания."
 }
