@@ -3778,10 +3778,39 @@ extern "C" {
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1paint(JNIEnv* env, jclass, jlong glPtr, jlong sessionPtr, jint filamentIdx) {
         GLModelRef* g = (GLModelRef*) (intptr_t) glPtr;
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        indexed_triangle_set its = s->selector->get_facets(paint_state(filamentIdx));
+        const indexed_triangle_set local = s->selector->get_facets(paint_state(filamentIdx));
+        indexed_triangle_set its;
+        if (!local.indices.empty() && s->model != nullptr &&
+            s->objIdx >= 0 && s->objIdx < (int)s->model->model.objects.size()) {
+            // The rendered object mesh is already transformed by both each volume's matrix and
+            // each model instance's matrix. Draft paint overlays must use the same merged-mesh
+            // coordinate space or they appear detached until the committed-overlay path rebuilds
+            // them after Done.
+            ModelObject* obj = s->model->model.objects[s->objIdx];
+            ModelVolume* volume = obj->volumes.empty() ? nullptr : obj->volumes.front();
+            if (volume != nullptr) {
+                auto append_instance = [&](const Transform3d& transform) {
+                    const int base = (int)its.vertices.size();
+                    its.vertices.reserve(its.vertices.size() + local.vertices.size());
+                    for (const stl_vertex& vertex : local.vertices)
+                        its.vertices.emplace_back((transform * vertex.cast<double>()).cast<float>());
+                    its.indices.reserve(its.indices.size() + local.indices.size());
+                    for (const stl_triangle_vertex_indices& triangle : local.indices)
+                        its.indices.emplace_back(triangle + stl_triangle_vertex_indices(base, base, base));
+                };
+                if (obj->instances.empty()) {
+                    append_instance(volume->get_matrix());
+                } else {
+                    for (const ModelInstance* instance : obj->instances) {
+                        if (instance != nullptr)
+                            append_instance(instance->get_matrix() * volume->get_matrix());
+                    }
+                }
+            }
+        }
         g->model.reset();
         if (!its.indices.empty())
             g->model.init_from(its);
-        return (jint) its.indices.size();
+        return (jint) local.indices.size();
     }
 }

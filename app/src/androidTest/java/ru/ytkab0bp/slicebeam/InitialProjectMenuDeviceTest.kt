@@ -7903,6 +7903,64 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-paint-live-preview-test.stl")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "Live Paint Base"),
+            FilamentSlot(0xFF3366CC.toInt(), "Live Paint Accent"),
+        ))
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuToolbarColorPaint)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            }
+            compose.onNodeWithContentDescription(
+                activity.getString(R.string.WorkspaceFilamentButtonDescription, 2)
+            ).assertDoesNotExist()
+            revealPaintFilamentSwatch(activity, 2, "Live Paint Accent", occurrence = 0)
+                .performClick()
+
+            val point = findUncoveredPreciseSurfacePoint(glView, bed)
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            instrumentation.waitForIdleSync()
+            SystemClock.sleep(250)
+            val beforePaintFrame = instrumentation.uiAutomation.takeScreenshot()
+            injectCanvasStroke(glView, point.first, point.second)
+            SystemClock.sleep(250)
+            val afterPaintFrame = instrumentation.uiAutomation.takeScreenshot()
+            assertPaintPreviewIsVisibleInFrame(beforePaintFrame, afterPaintFrame, point)
+            assertTrue("a real canvas stroke should be visible in the GL draft",
+                readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+            assertFalse("live color remains a draft until confirmation", readModelHasPaintOnGl(glView, 0))
+
+            assertTrue("Android Back should cancel the uncommitted paint draft", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+            instrumentationWaitForGlIdle()
+            assertFalse("cancel must discard the paint draft", readModelHasPaintOnGl(glView, 0))
+            assertArrayEquals("cancel preserves the model's base filament", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            assertTrue("paint mode cancellation must retain the renderer view", bed.glView === glView)
+        } finally {
+            if (bed.isPaintMode) bed.onBackPressed()
+            modelFile.delete()
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
     fun colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -9151,6 +9209,44 @@ class InitialProjectMenuDeviceTest {
         return requireNotNull(result.get()) {
             "No precise model surface point was reachable outside workspace panels; " +
                 "modePanel=$modePanelBounds, menuPanel=$menuPanelBounds"
+        }
+    }
+
+    /** Confirms the GL paint draft changes actual displayed pixels before the user confirms it. */
+    private fun assertPaintPreviewIsVisibleInFrame(
+        before: android.graphics.Bitmap,
+        after: android.graphics.Bitmap,
+        screenPoint: Pair<Float, Float>,
+    ) {
+        try {
+            assertEquals("paint preview screenshots must have identical dimensions", before.width, after.width)
+            assertEquals("paint preview screenshots must have identical heights", before.height, after.height)
+            val centerX = screenPoint.first.toInt()
+            val centerY = screenPoint.second.toInt()
+            val radius = 18
+            val left = (centerX - radius).coerceIn(0, before.width - 1)
+            val right = (centerX + radius).coerceIn(0, before.width - 1)
+            val top = (centerY - radius).coerceIn(0, before.height - 1)
+            val bottom = (centerY + radius).coerceIn(0, before.height - 1)
+            var changedPixels = 0
+            var totalColorDelta = 0L
+            for (y in top..bottom) for (x in left..right) {
+                val oldColor = before.getPixel(x, y)
+                val newColor = after.getPixel(x, y)
+                val delta = kotlin.math.abs(android.graphics.Color.red(oldColor) - android.graphics.Color.red(newColor)) +
+                    kotlin.math.abs(android.graphics.Color.green(oldColor) - android.graphics.Color.green(newColor)) +
+                    kotlin.math.abs(android.graphics.Color.blue(oldColor) - android.graphics.Color.blue(newColor))
+                if (delta >= 80) changedPixels++
+                totalColorDelta += delta
+            }
+            assertTrue(
+                "The canvas should visibly change at the painted mesh point before Done; " +
+                    "changedPixels=$changedPixels totalDelta=$totalColorDelta point=$screenPoint",
+                changedPixels >= 8 && totalColorDelta >= 2_000,
+            )
+        } finally {
+            before.recycle()
+            after.recycle()
         }
     }
 
