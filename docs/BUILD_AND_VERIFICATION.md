@@ -2159,3 +2159,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Debug JVM and Slice JVM suites passed 659/659 each, 0 failures/errors/skips. `:app:assembleDebug` succeeded.
 - APK `OrkanSlicer_90fc2f1354.apk`, 239,565,104 bytes; SHA-256 `EC884447B1171EE9F6A2622B297A32C6FDF773E8DC9B55C4DC65C6E712219CD4`. Installed and launched on `small_phone` / Android 16; sampled Logcat had no crash, ANR, OOM, or native fatal signal.
 - Xiaomi was not connected; the device-specific appearance still needs user confirmation. APK is debug-signed; no production signing key is configured. No printer was contacted and no print was started.
+
+## Model-editing regression on OrkanSlicer 0.8.394 — Android 16 — 2026-10-27
+
+- After the live multicolor paint-preview change, the complete `ModelEditingNativeDeviceTest` class passed on `small_phone` / Android 16: 46 tests, 46 passed, 0 skipped/failures/errors (JUnit XML `2026-10-27T13:42:03`).
+- This current-code regression run includes multipart object joining with linked instances, per-part material retention, object-on-object surface placement, independent printable text meshes, and native Boolean union/difference/intersection geometry and rollback cases. No product-specific regression was observed.
+- Tested source HEAD: `711e4b4573946617c32310fd4854b5cdfa73220a` (verification-only commit on top of product commit `90fc2f1354b157c30ef5c243c061c6b4e8fddbbf`); app behavior matches the released 0.8.394 product code.
