@@ -2238,3 +2238,8 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Reduced the portrait paint dock allocation to 22% at normal font scale and 25% at font scale >= 1.3, leaving more viewport for the plate while retaining a single palette row.
 - `:app:assembleDebug` succeeded. Xiaomi hardware was not attached, so the device-specific rendering/layout remains to be confirmed on the user's Xiaomi. No release was created.
 - The resulting Debug APK `app/build/outputs/apk/debug/OrkanSlicer_268831fd9d.apk` installed and launched on the Android 16 emulator. The sampled 2,000-line Logcat window showed no fatal exception, native fatal signal, ANR, or OOM. APK size: 239,587,634 bytes; SHA-256: `8FE42EEDD3871E77FBD60349ED9EEB5286846407CFD1ECA046F3E646A424D97F`.
+
+## Model-editing continuation — OrkanSlicer 268831fd — Android 16 — 2026-10-27
+
+- Four focused `NativeSliceDeviceTest` instrumentation invocations passed independently on `small_phone` / Android 16: `joiningLinkedInstancesSurvivesThreeMfAndSlicesEveryCopyWithItsMaterial`, `placedObjectGroupRemainsPrintableAfterSurfacePlacement`, `standaloneRaisedAndEngravedTextSurviveThreeMfAndSliceWithTheirFilaments`, and `surfacePlacedUnionDifferenceAndIntersectionRemainPrintable` (each 1/1, Gradle task successful).
+- These cover four requested model-editing functions through material/placement preservation, 3MF reload where applicable, and actual slicing/printability checks. No real print was started. The final invocation's JUnit XML reports 1 test, 0 failures/errors/skips at `2026-10-27T16:44:48`; the earlier individual Gradle invocations each also exited successfully.
