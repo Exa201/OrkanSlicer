@@ -1314,9 +1314,9 @@ private fun showPaintModePanel(currentGlView: GLView, mode: Int) {
                 // controls stay docked below it. The panel can scroll independently.
                 // Keep both the role selector and the filament swatches visible together on
                 // The palette and target selector now share one compact row, so normal-size
-                // phones no longer need a tall dock just to expose paint colors. Keep the plate
-                // dominant and let secondary brush controls scroll below the palette.
-                if (ctx.resources.configuration.fontScale >= 1.3f) 0.30f else 0.24f,
+                // Keep the plate as large as possible. The role toggle and palette share one
+                // row, so secondary brush controls can scroll below without a tall dock.
+                if (ctx.resources.configuration.fontScale >= 1.3f) 0.25f else 0.22f,
             ),
             landscape = WorkspacePanelDimension.Fixed(280f),
         ),

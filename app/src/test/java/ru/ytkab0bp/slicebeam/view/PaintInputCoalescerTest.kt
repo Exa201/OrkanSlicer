@@ -7,7 +7,7 @@ import org.junit.Test
 
 class PaintInputCoalescerTest {
     @Test
-    fun rapidMovesKeepOnlyLatestPendingPointAndScheduleOneDrain() {
+    fun rapidMovesKeepTheWholePendingSegmentAndScheduleOneDrain() {
         val coalescer = PaintInputCoalescer()
 
         assertTrue(coalescer.submit(1f, 2f))
@@ -15,7 +15,13 @@ class PaintInputCoalescerTest {
             assertFalse(coalescer.submit(index.toFloat(), (index * 2).toFloat()))
         }
 
-        assertEquals(PaintInputCoalescer.Point(99f, 198f), coalescer.takePending())
+        assertEquals(
+            PaintInputCoalescer.Segment(
+                PaintInputCoalescer.Point(1f, 2f),
+                PaintInputCoalescer.Point(99f, 198f),
+            ),
+            coalescer.takePending(),
+        )
         assertFalse(coalescer.finishDrain())
         assertTrue("a later gesture must be able to schedule another GL drain", coalescer.submit(3f, 4f))
     }
@@ -26,9 +32,34 @@ class PaintInputCoalescerTest {
         assertTrue(coalescer.submit(1f, 1f))
         assertFalse(coalescer.submit(8f, 9f))
 
-        assertEquals(PaintInputCoalescer.Point(8f, 9f), coalescer.flush())
+        assertEquals(
+            PaintInputCoalescer.Segment(PaintInputCoalescer.Point(1f, 1f), PaintInputCoalescer.Point(8f, 9f)),
+            coalescer.flush(),
+        )
         assertTrue("input after flush must queue a fresh drain", coalescer.submit(10f, 11f))
-        assertEquals(PaintInputCoalescer.Point(10f, 11f), coalescer.takePending())
+        assertEquals(
+            PaintInputCoalescer.Segment(PaintInputCoalescer.Point(10f, 11f), PaintInputCoalescer.Point(10f, 11f)),
+            coalescer.takePending(),
+        )
+        assertFalse(coalescer.finishDrain())
+    }
+
+    @Test
+    fun aMoveQueuedWhileThePreviousDrainRunsStartsTheNextSegmentAtTheFirstNewPoint() {
+        val coalescer = PaintInputCoalescer()
+        assertTrue(coalescer.submit(0f, 0f))
+        assertEquals(
+            PaintInputCoalescer.Segment(PaintInputCoalescer.Point(0f, 0f), PaintInputCoalescer.Point(0f, 0f)),
+            coalescer.takePending(),
+        )
+        assertFalse(coalescer.submit(5f, 6f))
+        assertFalse(coalescer.submit(20f, 24f))
+
+        assertTrue(coalescer.finishDrain())
+        assertEquals(
+            PaintInputCoalescer.Segment(PaintInputCoalescer.Point(5f, 6f), PaintInputCoalescer.Point(20f, 24f)),
+            coalescer.takePending(),
+        )
         assertFalse(coalescer.finishDrain())
     }
 }

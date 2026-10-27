@@ -132,9 +132,9 @@ if (paintInputCoalescer.submit(x * renderScale, y * renderScale)) {
 }
 }
 private fun drainPaintInput() {
-    val point = paintInputCoalescer.takePending()
-    if (point != null) {
-        applyPaintPoint(point)
+    val segment = paintInputCoalescer.takePending()
+    if (segment != null) {
+        applyPaintSegment(segment)
         requestRender()
     }
     if (paintInputCoalescer.finishDrain()) queueEvent { drainPaintInput() }
@@ -143,10 +143,17 @@ private fun endPaintStrokeOnGlThread() {
     // A finger-up can be queued while a native preview build is still running. Apply the
     // latest coalesced point before ending the native transaction so neither the preview nor
     // the committed brush stroke loses the final section of a quick gesture.
-    paintInputCoalescer.flush()?.let(::applyPaintPoint)
+    paintInputCoalescer.flush()?.let(::applyPaintSegment)
     renderer.endPaintStroke()
     lastPaintPoint = null
     requestRender()
+}
+private fun applyPaintSegment(segment: PaintInputCoalescer.Segment) {
+    // If the GL queue was busy when a stroke began, submit() may coalesce DOWN and several
+    // MOVE events together. Paint the first point before interpolating to the latest point so
+    // a fast initial swipe cannot lose its leading section.
+    if (lastPaintPoint == null) applyPaintPoint(segment.start)
+    if (segment.end != segment.start) applyPaintPoint(segment.end)
 }
 private fun applyPaintPoint(point: PaintInputCoalescer.Point) {
     val previous = lastPaintPoint

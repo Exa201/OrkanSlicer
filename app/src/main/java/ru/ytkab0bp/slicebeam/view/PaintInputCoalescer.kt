@@ -1,41 +1,49 @@
 package ru.ytkab0bp.slicebeam.view
 
-/** Keeps GL-thread paint work bounded while preserving the latest pointer position. */
+/** Keeps GL-thread paint work bounded while preserving the path covered by coalesced input. */
 internal class PaintInputCoalescer {
     data class Point(val x: Float, val y: Float)
+    data class Segment(val start: Point, val end: Point)
 
-    private var pending: Point? = null
+    private var pendingStart: Point? = null
+    private var pendingEnd: Point? = null
     private var drainScheduled = false
 
     @Synchronized
     fun submit(x: Float, y: Float): Boolean {
-        pending = Point(x, y)
+        val point = Point(x, y)
+        if (pendingEnd == null) pendingStart = point
+        pendingEnd = point
         if (drainScheduled) return false
         drainScheduled = true
         return true
     }
 
     @Synchronized
-    fun takePending(): Point? {
-        val point = pending
-        pending = null
-        return point
+    fun takePending(): Segment? {
+        val end = pendingEnd ?: return null
+        val start = pendingStart ?: end
+        pendingStart = null
+        pendingEnd = null
+        return Segment(start, end)
     }
 
     /** Returns true when another drain must be queued. */
     @Synchronized
     fun finishDrain(): Boolean {
-        if (pending != null) return true
+        if (pendingEnd != null) return true
         drainScheduled = false
         return false
     }
 
-    /** Flushes the last point before a stroke ends and releases the scheduled flag. */
+    /** Flushes the complete pending segment before a stroke ends and releases the scheduled flag. */
     @Synchronized
-    fun flush(): Point? {
-        val point = pending
-        pending = null
+    fun flush(): Segment? {
+        val end = pendingEnd
+        val segment = end?.let { Segment(pendingStart ?: it, it) }
+        pendingStart = null
+        pendingEnd = null
         drainScheduled = false
-        return point
+        return segment
     }
 }
