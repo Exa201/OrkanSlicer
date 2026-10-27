@@ -2260,3 +2260,8 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Three error/cancel paths passed individually on `small_phone` / Android 16: `combineConfirmationRejectsChangedSelectionWithoutCombiningObjects`, `surfacePlacementCancelsWhenSelectionChangesBeforeThePick`, and `failedBooleanIntersectionKeepsAllInputsAndReportsFailureFromModelMenu` (each connected test invocation successful, 1/1).
 - The checks confirm stale selections do not trigger a join or placement, and a failed Boolean intersection preserves the original inputs while reporting a user-facing failure. No regression was found and no production code change was needed.
 - The final per-device JUnit XML is overwritten by each isolated invocation; the Gradle task completed successfully for all three runs. No actual print was started.
+
+## Model-edit stale-selection and rollback checks — OrkanSlicer 19bb6ef6 — Android 16 — 2026-10-27
+
+- Three safety workflows passed individually on `small_phone` / Android 16: a join confirmation rejects a changed selection; surface placement cancels if the selection changes before picking; a failing Boolean intersection keeps all source objects and reports failure in the Model menu. Each `:app:connectedSliceTestAndroidTest` invocation completed successfully (1/1).
+- These complement the successful operation-path checks for joining, surface placement, standalone text, and Boolean union, and the native slice checks for all three Boolean operations. The final per-device XML is overwritten by isolated runs; all three Gradle task exits were successful. No real print was started.
