@@ -2150,3 +2150,12 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - `:app:assembleDebug` succeeded after commit `bfa16e5e`. The APK installed and started on `small_phone` / Android 16; package metadata reports version `0.8.393`, code `428`. Sampled Logcat contained no fatal exception, ANR, OOM, or native fatal signal.
 - APK: `OrkanSlicer_bfa16e5ea8.apk`, 239,561,713 bytes; SHA-256 `F98E2A6A8041EDD02F9A0CB90EFEC06E503BC70BFCD498482BF2CB7B1B0E7C02`. GitHub reports the same asset digest.
 - Xiaomi was not connected during verification. Device-specific Xiaomi appearance therefore remains unverified. APK is debug-signed; no production signing key is configured. No printer was contacted and no print was started.
+
+## GitHub Release 0.8.394 — live paint preview for multicolor assemblies — 2026-10-27
+
+- Product commit: `90fc2f1354b157c30ef5c243c061c6b4e8fddbbf`; version `0.8.394` / versionCode `429`.
+- Fixed live color-paint preview for combined/imported 3MF assemblies: the preview now includes material parts from every volume and instance, rather than only the first volume. Base-filament preview now also suppresses stale original base facets, so the selected color appears before confirmation.
+- Focused Android 16 emulator checks passed 1/1 each: imported color overlays survive live painting across combined parts; base-filament draft color is visible before confirmation and cancel preserves the model; paint panel has one visible palette and preserves the plate viewport.
+- Debug JVM and Slice JVM suites passed 659/659 each, 0 failures/errors/skips. `:app:assembleDebug` succeeded.
+- APK `OrkanSlicer_90fc2f1354.apk`, 239,565,104 bytes; SHA-256 `EC884447B1171EE9F6A2622B297A32C6FDF773E8DC9B55C4DC65C6E712219CD4`. Installed and launched on `small_phone` / Android 16; sampled Logcat had no crash, ANR, OOM, or native fatal signal.
+- Xiaomi was not connected; the device-specific appearance still needs user confirmation. APK is debug-signed; no production signing key is configured. No printer was contacted and no print was started.
