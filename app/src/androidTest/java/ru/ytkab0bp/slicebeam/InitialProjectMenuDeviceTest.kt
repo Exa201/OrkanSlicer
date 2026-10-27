@@ -1116,6 +1116,78 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun placeOnObjectDialogStacksAndJoinsSelectedObjectWithChosenTarget() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "place-object-dialog-success-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val targetVolume = AtomicReference<Double>()
+            val targetBounds = AtomicReference<DoubleArray>()
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 35.0, 18.0, 24.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                targetVolume.set(model.getObjectVolume(0))
+                targetBounds.set(doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z))
+                glView.renderer.setSelectedObject(1)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("placement fixtures should be prepared on the GL thread",
+                prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuPlaceOnObject)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnObject))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
+
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
+            val combinedVolume = readObjectVolumeOnGl(glView, 0)
+            assertEquals("stacking should preserve both printable solids", 2.0 * requireNotNull(targetVolume.get()),
+                combinedVolume, targetVolume.get()!! * 0.002)
+            assertArrayEquals("the joined assembly should retain each source object's material",
+                intArrayOf(1, 2), readUsedFilamentsOnGl(glView, 0))
+            val target = requireNotNull(targetBounds.get())
+            val combined = readExactBoundsOnGl(glView, 0).single()
+            assertEquals("the moving object should be centered on the chosen target in X",
+                (target[0] + target[3]) / 2.0, (combined[0] + combined[3]) / 2.0, 0.02)
+            assertEquals("the moving object should be centered on the chosen target in Y",
+                (target[1] + target[4]) / 2.0, (combined[1] + combined[4]) / 2.0, 0.02)
+            assertEquals("the target should remain at its original bed height", target[2], combined[2], 0.02)
+            assertTrue("the stacked object should extend above the target", combined[5] > target[5])
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            assertArrayEquals("undo should restore the original target bounds", target,
+                readExactBoundsOnGl(glView, 0).single(), 0.02)
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
+            assertEquals("redo should restore both materials and the stack geometry", intArrayOf(1, 2).toList(),
+                readUsedFilamentsOnGl(glView, 0).toList())
+            assertCurrentWorkspaceModelRoundTripsAndSlices(
+                name = "place-object-dialog-success",
+                expectedObjectFilaments = listOf(intArrayOf(1, 2)),
+                allowedGcodeTools = setOf(0, 1),
+            )
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun surfacePlacementCancelsWhenSelectionChangesBeforeThePick() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
