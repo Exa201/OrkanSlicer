@@ -2170,3 +2170,8 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - Four focused `InitialProjectMenuDeviceTest` interactions passed on `small_phone` / Android 16: combine a selected group from the Model menu; create an independent text model directly on the build plate; pick a target face and apply Boolean union; place a selected object on a tapped side surface with Undo/Redo. Result: 4/4, 0 skipped/failures/errors (JUnit XML `2026-10-27T13:45:43`).
 - Together with the 46/46 native model-editing class on the same current code, joining, surface placement, standalone text generation, and native Boolean geometry are verified through both model APIs and user-facing interactions. No printer or print workflow was invoked.
+
+## Workspace history and curved text workflow on OrkanSlicer 0.8.394 — Android 16 — 2026-10-27
+
+- `WorkspaceRuntimeCompositionDeviceTest`: 6/6 passed, 0 skipped/failures/errors on `small_phone` / Android 16 (JUnit XML `2026-10-27T13:48:10`). Covered workspace Undo/Redo for object joining, Boolean operations and standalone text; standalone text creation through the Compose workspace; text conforming to curved surfaces; target-object and filament selection; and actual slicing after surface text placement.
+- No additional product code was required: current behavior passed on the released 0.8.394 code. The verification-only documentation was added to the existing PR branch.
