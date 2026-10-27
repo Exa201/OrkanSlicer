@@ -170,6 +170,8 @@ private var paintBaseFilamentPreview: Int? = null
 /** Avoid rebuilding full-mesh paint overlays for every high-frequency touch move. */
 private var lastPaintOverlayRebuildAtMs = 0L
 private var paintOverlayRebuildPending = false
+private var paintOverlayRefreshScheduled = false
+private var paintOverlayRefreshGeneration = 0L
 private val PAINT_OVERLAY_PREVIEW_INTERVAL_MS = 40L
 /** A size change reuses the EGL context; only a newly created context needs GL resource rebuild. */
 private var surfaceNeedsResourceRebuild = true
@@ -2084,6 +2086,8 @@ isPaintMode = true
 paintBaseFilamentPreview = null
 lastPaintOverlayRebuildAtMs = 0L
 paintOverlayRebuildPending = false
+paintOverlayRefreshGeneration++
+paintOverlayRefreshScheduled = false
 paintPalette = Prefs.getFilamentPalette()
 rebuildPaintOverlays()
 notifyPaintHistoryChanged()
@@ -2127,6 +2131,8 @@ fun endPaint(commit:Boolean) {
 endPaintInternal(commit)
 }
 private fun endPaintInternal(commit:Boolean) {
+paintOverlayRefreshGeneration++
+paintOverlayRefreshScheduled = false
 if (paintSession != null)
 {
 if (commit) {
@@ -2239,6 +2245,7 @@ private fun rebuildPaintOverlays(force: Boolean = true) {
 val now = android.os.SystemClock.uptimeMillis()
 if (!force && now - lastPaintOverlayRebuildAtMs < PAINT_OVERLAY_PREVIEW_INTERVAL_MS) {
     paintOverlayRebuildPending = true
+    schedulePaintOverlayRefresh(PAINT_OVERLAY_PREVIEW_INTERVAL_MS - (now - lastPaintOverlayRebuildAtMs))
     return
 }
 lastPaintOverlayRebuildAtMs = now
@@ -2261,6 +2268,24 @@ for (index in overlays.indices) {
         gl.release()
     }
 }
+}
+/** Refresh a throttled paint draft even when the user pauses mid-stroke. */
+private fun schedulePaintOverlayRefresh(delayMs: Long) {
+    if (paintOverlayRefreshScheduled) return
+    val view = glView ?: return
+    paintOverlayRefreshScheduled = true
+    val generation = paintOverlayRefreshGeneration
+    val posted = view.postDelayed({
+        view.queueEvent {
+            if (generation != paintOverlayRefreshGeneration) return@queueEvent
+            paintOverlayRefreshScheduled = false
+            if (paintOverlayRebuildPending && paintSession != null) {
+                rebuildPaintOverlays(force = true)
+                view.requestRender()
+            }
+        }
+    }, delayMs.coerceAtLeast(1L))
+    if (!posted) paintOverlayRefreshScheduled = false
 }
 private fun getCommittedOverlays(i:Int):List<PaintOverlay> {
 var list = committedOverlays.get(i)

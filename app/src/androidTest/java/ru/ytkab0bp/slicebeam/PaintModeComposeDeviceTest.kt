@@ -97,6 +97,7 @@ class PaintModeComposeDeviceTest {
                 }
             }
 
+            compose.onAllNodesWithTag("paint-palette-row").assertCountEquals(1)
             compose.onNodeWithTag("paint-palette-row").assertIsDisplayed()
             compose.onNodeWithTag("paint-palette-role-toggle").assertIsDisplayed()
             compose.onNodeWithTag("paint-palette-role-toggle")

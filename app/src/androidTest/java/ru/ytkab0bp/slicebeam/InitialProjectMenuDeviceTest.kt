@@ -8049,6 +8049,8 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.WorkspaceFilamentButtonDescription, 2)
             ).assertDoesNotExist()
+            assertEquals("color painting must use exactly one filament palette row", 1,
+                compose.onAllNodesWithTag("paint-palette-row").fetchSemanticsNodes().size)
             assertEquals("each paint slot must have one visible swatch, not duplicate filament rows", 1,
                 compose.onAllNodesWithTag("paint-filament-swatch-1").fetchSemanticsNodes().size)
             assertEquals("each paint slot must have one visible swatch, not duplicate filament rows", 1,
@@ -8086,14 +8088,52 @@ class InitialProjectMenuDeviceTest {
 
             compose.onNodeWithTag("paint-palette-role-toggle").performClick()
             compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
-            revealPaintFilamentSwatch(activity, 1, "Live Paint Base", occurrence = 0)
+            // Restore the model's red base preview, then paint the blue accent so the
+            // held-stroke screenshot can distinguish the preview from its source surface.
+            compose.onNodeWithTag("paint-palette-role-toggle").performClick()
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
+            revealPaintFilamentSwatch(activity, 1, "Live Paint Base", occurrence = 0).performClick()
+            instrumentationWaitForGlIdle()
+            compose.onNodeWithTag("paint-palette-role-toggle").performClick()
+            compose.onNodeWithText(activity.getString(R.string.PaintWith)).assertIsDisplayed()
+            revealPaintFilamentSwatch(activity, 2, "Live Paint Accent", occurrence = 0)
                 .performClick()
+            glView.queueEvent { glView.renderer.paintBrushRadius = 1.0 }
+            instrumentationWaitForGlIdle()
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             instrumentation.waitForIdleSync()
             SystemClock.sleep(250)
             val beforePaintFrame = instrumentation.uiAutomation.takeScreenshot()
             val frameBeforeStroke = readRendererLastDrawOnGl(glView)
-            injectCanvasStroke(glView, point.first, point.second)
+            val overlayRefreshBeforeStroke = readRendererLongOnGl(glView, "lastPaintOverlayRebuildAtMs")
+            val previewPoint = findUncoveredPreciseSurfacePoint(
+                glView, bed, avoid = point, minimumAvoidDistancePx = 24f,
+            )
+            val beforeHeldStroke = instrumentation.uiAutomation.takeScreenshot()
+            injectCanvasStroke(glView, point.first, point.second, previewPoint = previewPoint) {
+                // Keep the pointer down after the coalesced input has reached GL. A
+                // throttled overlay rebuild must schedule its own refresh instead of
+                // waiting for finger-up/Done to make the draft visible.
+                paintAtScreenPointWhileHeld(glView, previewPoint)
+                instrumentationWaitForGlIdle()
+                assertTrue("a throttled brush update must remain pending, scheduled, or already refreshed",
+                    readRendererBooleanOnGl(glView, "paintOverlayRebuildPending") ||
+                        readRendererBooleanOnGl(glView, "paintOverlayRefreshScheduled") ||
+                        readRendererLongOnGl(glView, "lastPaintOverlayRebuildAtMs") > overlayRefreshBeforeStroke)
+                compose.waitUntil(timeoutMillis = 2_000) {
+                    !readRendererBooleanOnGl(glView, "paintOverlayRebuildPending") &&
+                        !readRendererBooleanOnGl(glView, "paintOverlayRefreshScheduled") &&
+                        readRendererLongOnGl(glView, "lastPaintOverlayRebuildAtMs") > overlayRefreshBeforeStroke
+                }
+                SystemClock.sleep(80)
+                val whileFingerDown = instrumentation.uiAutomation.takeScreenshot()
+                assertPaintColorVisibleAtPoint(
+                    beforeHeldStroke, whileFingerDown, previewPoint, 0xFF3366CC.toInt(),
+                    "the selected blue filament should become visible before pointer-up or Done",
+                )
+                assertFalse("live paint must remain an uncommitted draft while the pointer is down",
+                    readModelHasPaintOnGl(glView, 0))
+            }
             // Touch handlers enqueue paint work on the GL thread. Drain that queue before
             // asserting a frame, especially on slower GPUs where per-stroke overlay builds
             // can take longer than one arbitrary sleep interval.
@@ -8107,12 +8147,12 @@ class InitialProjectMenuDeviceTest {
                 frameWaitMs < 1_500L)
             SystemClock.sleep(100)
             val afterPaintFrame = instrumentation.uiAutomation.takeScreenshot()
-            val livePaintTriangles = readPaintPreviewTriangleCountOnGl(glView, 1)
+            val livePaintTriangles = readPaintPreviewTriangleCountOnGl(glView, 2)
             assertTrue("the canvas touch should assign facets to the live paint draft; triangles=$livePaintTriangles",
                 livePaintTriangles > 0)
             assertPaintPreviewIsVisibleInFrame(
-                beforePaintFrame, afterPaintFrame, point,
-                liveOverlayHits = readPaintOverlayRayHitsOnGl(glView, point),
+                beforePaintFrame, afterPaintFrame, previewPoint,
+                liveOverlayHits = "draftTriangles=$livePaintTriangles",
             )
             assertFalse("live color remains a draft until confirmation", readModelHasPaintOnGl(glView, 0))
 
@@ -9328,6 +9368,18 @@ class InitialProjectMenuDeviceTest {
         return requireNotNull(value.get())
     }
 
+    private fun readRendererLongOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, fieldName: String): Long {
+        val done = CountDownLatch(1)
+        val value = AtomicReference<Long>()
+        glView.queueEvent {
+            value.set(GLRenderer::class.java.getDeclaredField(fieldName)
+                .apply { isAccessible = true }.getLong(glView.renderer))
+            done.countDown()
+        }
+        assertTrue("GL thread did not return renderer state $fieldName", done.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
     private fun readPaintOverlayRayHitsOnGl(
         glView: ru.ytkab0bp.slicebeam.view.GLView,
         screenPoint: Pair<Float, Float>,
@@ -9398,6 +9450,7 @@ class InitialProjectMenuDeviceTest {
         glView: ru.ytkab0bp.slicebeam.view.GLView,
         bed: BedFragment,
         avoid: Pair<Float, Float>? = null,
+        minimumAvoidDistancePx: Float? = null,
         requireUpwardFace: Boolean = false,
     ): Pair<Float, Float> {
         val modePanelBounds = compose.onAllNodesWithTag("workspace-mode-panel")
@@ -9442,10 +9495,14 @@ class InitialProjectMenuDeviceTest {
                         val localY = y / renderScale
                         val rootX = glLocation[0] + localX - composeLocation[0]
                         val rootY = glLocation[1] + localY - composeLocation[1]
-                        if (avoid != null &&
-                            kotlin.math.abs(glLocation[0] + localX - avoid.first) < 20f &&
-                            kotlin.math.abs(glLocation[1] + localY - avoid.second) < 20f
-                        ) continue
+                        if (avoid != null) {
+                            val distanceX = kotlin.math.abs(glLocation[0] + localX - avoid.first)
+                            val distanceY = kotlin.math.abs(glLocation[1] + localY - avoid.second)
+                            val tooClose = minimumAvoidDistancePx?.let { minimum ->
+                                kotlin.math.hypot(distanceX, distanceY) < minimum
+                            } ?: (distanceX < 20f && distanceY < 20f)
+                            if (tooClose) continue
+                        }
                         if (modePanelBounds?.contains(Offset(rootX, rootY)) == true ||
                             menuPanelBounds?.contains(Offset(rootX, rootY)) == true
                         ) continue
@@ -9468,6 +9525,33 @@ class InitialProjectMenuDeviceTest {
             "No precise model surface point was reachable outside workspace panels; " +
                 "modePanel=$modePanelBounds, menuPanel=$menuPanelBounds"
         }
+    }
+
+    private fun paintAtScreenPointWhileHeld(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        screenPoint: Pair<Float, Float>,
+    ) {
+        val location = IntArray(2)
+        glView.getLocationOnScreen(location)
+        val done = CountDownLatch(1)
+        glView.queueEvent {
+            try {
+                val renderer = glView.renderer
+                // Deterministically exercise the throttled branch on the following brush
+                // sample, regardless of how long the instrumentation input dispatch took.
+                GLRenderer::class.java.getDeclaredField("lastPaintOverlayRebuildAtMs")
+                    .apply { isAccessible = true }.setLong(renderer, SystemClock.uptimeMillis())
+                val scale = Prefs.getRenderScale()
+                renderer.paintAt(
+                    (screenPoint.first - location[0]) * scale,
+                    (screenPoint.second - location[1]) * scale,
+                )
+                glView.requestRender()
+            } finally {
+                done.countDown()
+            }
+        }
+        assertTrue("GL thread did not apply the held brush sample", done.await(10, TimeUnit.SECONDS))
     }
 
     /** Confirms the GL paint draft changes actual displayed pixels before the user confirms it. */
@@ -9587,7 +9671,13 @@ class InitialProjectMenuDeviceTest {
         }
     }
 
-    private fun injectCanvasStroke(glView: ru.ytkab0bp.slicebeam.view.GLView, screenX: Float, screenY: Float) {
+    private fun injectCanvasStroke(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        screenX: Float,
+        screenY: Float,
+        previewPoint: Pair<Float, Float>? = null,
+        whileFingerDown: (() -> Unit)? = null,
+    ) {
         val canvasLocation = IntArray(2)
         glView.getLocationOnScreen(canvasLocation)
         assertTrue(
@@ -9617,10 +9707,22 @@ class InitialProjectMenuDeviceTest {
         inject(MotionEvent.ACTION_DOWN, 0f, 0f, downTime)
         // Flood the input path with more moves than the renderer can repaint. Live color
         // preview must stay current without queuing a native mesh rebuild for every event.
-        repeat(24) { step ->
-            inject(MotionEvent.ACTION_MOVE, step * 0.45f, step * 0.45f, SystemClock.uptimeMillis())
+        try {
+            repeat(24) { step ->
+                inject(MotionEvent.ACTION_MOVE, step * 0.45f, step * 0.45f, SystemClock.uptimeMillis())
+            }
+            previewPoint?.let { target ->
+                inject(
+                    MotionEvent.ACTION_MOVE,
+                    target.first - screenX,
+                    target.second - screenY,
+                    SystemClock.uptimeMillis(),
+                )
+            }
+            whileFingerDown?.invoke()
+        } finally {
+            inject(MotionEvent.ACTION_UP, 10f, 10f, SystemClock.uptimeMillis())
         }
-        inject(MotionEvent.ACTION_UP, 10f, 10f, SystemClock.uptimeMillis())
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 

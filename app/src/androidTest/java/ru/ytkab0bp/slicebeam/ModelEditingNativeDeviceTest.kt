@@ -723,7 +723,7 @@ class ModelEditingNativeDeviceTest {
             // shared volume and must leave a raised, connected letter above the surface.
             val textIndex = model.createTextObject(
                 fontFile.absolutePath,
-                "A",
+                "A\nB",
                 8f,
                 2f,
                 Vec3d(10.0, 10.0, targetMax.z - 1.0),
@@ -808,7 +808,7 @@ class ModelEditingNativeDeviceTest {
             val flatTriangles = model.getTriangleCount(flatIndex)
             val cylinderTriangles = model.getTriangleCount(0)
             val curvedIndex = model.createTextObject(
-                fontFile.absolutePath, "ORCA", 10f, 1.2f, position, Vec3d(1.0, 0.0, 0.0),
+                fontFile.absolutePath, "OR\nCA", 10f, 1.2f, position, Vec3d(1.0, 0.0, 0.0),
                 targetObjectIndex = 0,
             )
             assertEquals("curved text should be added as a part of the target printable object", 0, curvedIndex)

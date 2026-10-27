@@ -1274,7 +1274,7 @@ class NativeSliceDeviceTest {
         var generatedConfig: File? = null
         try {
             val textIndex = model.createTextObject(
-                fontFile.absolutePath, "A", 6f, 1.2f,
+                fontFile.absolutePath, "A\nB", 6f, 1.2f,
                 Vec3d(100.0, 100.0, 0.0), Vec3d(0.0, 0.0, 1.0),
             )
             assertEquals("standalone text should be a separate editable object", 1, textIndex)
@@ -1288,6 +1288,7 @@ class NativeSliceDeviceTest {
             }
             val target = bounds(0)
             val text = bounds(textIndex)
+            assertTrue("both text lines must exist before placement and join", text.maxY - text.minY > 8.0)
             val point = Vec3d(
                 target.maxX,
                 (target.minY + target.maxY) / 2.0,

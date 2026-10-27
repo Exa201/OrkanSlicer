@@ -2272,3 +2272,15 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - Debug and Slice JVM `EmbossTextInputValidatorTest`: 6/6 passed in each variant. `GlModePanelsComposeDeviceTest.standaloneTextFieldAcceptsMultipleLinesWithoutValidationError`: 1/1 passed on `small_phone` / Android 16.
 - `NativeSliceDeviceTest.raisedEngravedAndMultilineStandaloneTextSurviveThreeMfAndSliceWithTheirFilaments`: 1/1 passed on Android 16 (JUnit XML `2026-10-27T16:59:22`). It verifies two-line text becomes real multi-line mesh geometry, retains its assigned filament after 3MF reload, and reaches generated G-code alongside raised and engraved edits.
 - `:app:assembleDebug` succeeded; APK `app/build/outputs/apk/debug/OrkanSlicer_0d673258ee.apk` is 239,587,624 bytes, SHA-256 `BC3E39BB19E6D3D44F189FC24008DDA2540B0301283ABFBD7E327FFE2E7F1916`. It installed and launched on the Android 16 emulator; the sampled Logcat had no fatal exception, fatal signal, ANR, or OOM. No physical Honor/Xiaomi was attached and no real print was started.
+
+## Live color paint and workspace visibility regression — Android 16 — 2026-10-27
+
+- Root cause: full-mesh paint overlay rebuilds are throttled to 40 ms. When another brush sample arrived inside that interval, the renderer marked the preview pending but did not schedule a later GL render. A pause mid-stroke could therefore leave the visible model stale until finger-up forced a rebuild.
+- Added a delayed refresh for the remaining throttle interval. The refresh returns to the GL thread, requests a render after rebuilding, and uses a generation guard so callbacks from a canceled/ended session cannot update a later paint session.
+- Strengthened `colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel` to keep the pointer down, force the throttled sample path, and verify the selected blue paint in screenshot pixels before pointer-up or Done. It also checks there is exactly one palette row, the separate global filament button is absent, the renderer keeps at least 75% of the workspace area, and cancellation preserves the model and valid bed. The test passed 1/1 on `small_phone` / Android 16.
+- A deliberate no-refresh control failed at the new wait-for-live-refresh assertion, confirming the regression test detects the previous behavior. With the refresh enabled, `PaintModeComposeDeviceTest` passed 3/3 and the live workspace test passed 1/1.
+- Physical Xiaomi rendering remains unverified; no release was created and no print was started.
+
+## Multiline text workflow coverage — Android 16 — 2026-10-27
+
+- Extended existing native workflow tests to use two-line text during side placement + joining + 3MF reload + slicing, Boolean-difference engraving, and curved-surface text placement. Each focused instrumentation test passed 1/1 on `small_phone` / Android 16. These are verification-only changes; the multiline text UI and native support were implemented and built in commit `0d673258ee4f29155d79df7ae7d7692d58f4bf47`.
