@@ -2236,7 +2236,7 @@ if (paintSession == null) return
 for (f in 1..n)
 {
 val gl = GLModel()
-val tris = paintSession!!.buildOverlay(gl, f)
+val tris = paintSession!!.buildOverlay(gl, f, paintBaseFilamentPreview ?: 0)
 if (tris > 0)
 {
 val o = PaintOverlay()

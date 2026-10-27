@@ -50,7 +50,8 @@ open class PaintSession(model: Model, objIdx: Int, mode: Int) {
     open fun commit() = Native.paint_commit(ptr)
 
     /** Fill a GLModel with the facets of the given filament; returns triangle count. */
-    open fun buildOverlay(gl: GLModel, filamentIdx: Int): Int = gl.initFromPaint(ptr, filamentIdx)
+    open fun buildOverlay(gl: GLModel, filamentIdx: Int, baseFilamentPreview: Int = 0): Int =
+        gl.initFromPaint(ptr, filamentIdx, baseFilamentPreview)
 
     open fun end() {
         if (ptr != 0L) {

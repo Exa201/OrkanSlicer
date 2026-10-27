@@ -236,7 +236,7 @@ class Native {
     @JvmStatic
     external fun paint_get_mesh(sessionPtr: Long, filamentIdx: Int): FloatArray
     @JvmStatic
-    external fun glmodel_init_from_paint(glPtr: Long, sessionPtr: Long, filamentIdx: Int): Int
+    external fun glmodel_init_from_paint(glPtr: Long, sessionPtr: Long, filamentIdx: Int, baseFilamentPreview: Int): Int
     @JvmStatic
     external fun paint_end(sessionPtr: Long): Unit
     @JvmStatic

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.394
+
+- Preserve every imported 3MF part color during live color-paint preview, including parts outside the volume being edited.
+- Respect a newly selected base filament in the live overlay so the previous base color cannot cover the preview before confirmation.
+- Verify immediate color preview, multi-volume assembly colors, one visible filament palette, and a retained build-plate viewport on Android 16.
+
 ## 0.8.393
 
 - Show color-paint base-filament changes and brush strokes on the model before confirming; align live paint overlays with transformed volumes and instances.

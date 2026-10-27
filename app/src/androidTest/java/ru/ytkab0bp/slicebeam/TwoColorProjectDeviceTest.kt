@@ -11,6 +11,7 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.config.ConfigObject
@@ -25,6 +26,45 @@ import java.io.File
 /** A generated 3MF fixture keeps this import regression runnable without a user's model. */
 @RunWith(AndroidJUnit4::class)
 class TwoColorProjectDeviceTest {
+    @Test fun livePaintPreviewKeepsImportedColorsAcrossAllPartsOfACombinedObject() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = File(context.cacheDir, "two-color-live-paint-parts.3mf")
+        InstrumentationRegistry.getInstrumentation().context.assets.open("models/two-color-project.3mf").use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        var model: Model? = null
+        val liveOverlay = GLModel()
+        val committedOverlay = GLModel()
+        try {
+            model = Model(file, 1)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertArrayEquals("the combined 3MF assembly must retain both imported tools",
+                intArrayOf(1, 2), model.getUsedFilaments(0))
+
+            val session = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+            try {
+                assertTrue("the combined multicolor object should open a live paint session", session.isValid())
+                val liveTriangles = session.buildOverlay(liveOverlay, 2)
+                assertTrue(
+                    "live preview must retain the untouched second volume's imported color; " +
+                        "it must not disappear until the paint session is confirmed",
+                    liveTriangles > 0,
+                )
+                val committedTriangles = model.buildPaintOverlay(0, committedOverlay, 2)
+                assertEquals("live and committed overlays must cover the same second-volume facets",
+                    committedTriangles, liveTriangles)
+            } finally {
+                session.end()
+            }
+        } finally {
+            liveOverlay.release()
+            committedOverlay.release()
+            model?.release()
+            file.delete()
+        }
+    }
+
     @Test fun explicitUniformObjectFilamentChoiceReplacesThreeMfPartAssignment() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "two-color-assignment.3mf")

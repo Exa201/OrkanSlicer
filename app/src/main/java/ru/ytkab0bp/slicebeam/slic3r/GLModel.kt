@@ -55,9 +55,9 @@ open class GLModel internal constructor(
 
     /** Build this model from facets painted with the given filament in a paint session (mesh-local coords). */
     @Synchronized
-    open fun initFromPaint(paintSessionPtr: Long, filamentIdx: Int): Int {
+    open fun initFromPaint(paintSessionPtr: Long, filamentIdx: Int, baseFilamentPreview: Int = 0): Int {
         clearPicking()
-        return Native.glmodel_init_from_paint(pointer, paintSessionPtr, filamentIdx)
+        return Native.glmodel_init_from_paint(pointer, paintSessionPtr, filamentIdx, baseFilamentPreview)
     }
 
     open fun setColor(color: Int) {

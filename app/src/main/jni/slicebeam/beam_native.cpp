@@ -3724,6 +3724,71 @@ extern "C" {
         return out;
     }
 
+    // Build the paint-mode preview from the same complete assembly as the committed overlay.
+    // The live selector edits volume[0], but other volumes can already carry imported 3MF
+    // colors. Hiding committed overlays while painting without restoring those untouched parts
+    // made their colors appear to vanish until the user confirmed the session.
+    static indexed_triangle_set accumulate_live_paint_facets(
+        PaintSessionRef* session,
+        Slic3r::EnforcerBlockerType state,
+        int base_filament_preview) {
+        indexed_triangle_set out;
+        if (session == nullptr || session->model == nullptr ||
+            session->objIdx < 0 || session->objIdx >= (int)session->model->model.objects.size())
+            return out;
+
+        ModelObject* obj = session->model->model.objects[session->objIdx];
+        if (obj == nullptr || obj->volumes.empty()) return out;
+        auto append_transformed = [&](const indexed_triangle_set& part, const Transform3d& transform) {
+            if (part.indices.empty()) return;
+            const int base = (int)out.vertices.size();
+            out.vertices.reserve(out.vertices.size() + part.vertices.size());
+            for (const stl_vertex& vertex : part.vertices)
+                out.vertices.emplace_back((transform * vertex.cast<double>()).cast<float>());
+            out.indices.reserve(out.indices.size() + part.indices.size());
+            for (const stl_triangle_vertex_indices& triangle : part.indices)
+                out.indices.emplace_back(triangle + stl_triangle_vertex_indices(base, base, base));
+        };
+
+        const std::vector<const ModelInstance*> instances = obj->instances.empty()
+            ? std::vector<const ModelInstance*>{ nullptr }
+            : std::vector<const ModelInstance*>(obj->instances.begin(), obj->instances.end());
+        for (const ModelInstance* instance : instances) {
+            const Transform3d instance_matrix = instance != nullptr
+                ? instance->get_matrix() : Transform3d::Identity();
+            for (ModelVolume* volume : obj->volumes) {
+                if (volume == nullptr || !volume->is_model_part()) continue;
+                const Transform3d transform = instance_matrix * volume->get_matrix();
+                const int base_filament = volume == obj->volumes[0] && base_filament_preview > 0
+                    ? base_filament_preview
+                    : std::max(1, volume->extruder_id());
+                const bool base_matches = base_filament == (int)state;
+                if (volume == obj->volumes[0] && session->mode == 0) {
+                    append_transformed(session->selector->get_facets(state), transform);
+                    if (base_matches)
+                        append_transformed(session->selector->get_facets(Slic3r::EnforcerBlockerType::NONE), transform);
+                    continue;
+                }
+                if (volume == obj->volumes[0]) {
+                    append_transformed(session->selector->get_facets(state), transform);
+                    continue;
+                }
+
+                const auto& data = facets_for_mode(volume, session->mode).get_data();
+                if (data.triangles_to_split.empty()) {
+                    if (base_matches) append_transformed(volume->mesh().its, transform);
+                    continue;
+                }
+                Slic3r::TriangleSelector selector(volume->mesh());
+                selector.deserialize(data, true);
+                append_transformed(selector.get_facets(state), transform);
+                if (base_matches)
+                    append_transformed(selector.get_facets(Slic3r::EnforcerBlockerType::NONE), transform);
+            }
+        }
+        return out;
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1build_1paint_1overlay(JNIEnv* env, jclass, jlong modelPtr, jint objIdx, jlong glPtr, jint filamentIdx) {
         ModelRef* m = (ModelRef*) (intptr_t) modelPtr;
         if (objIdx < 0 || objIdx >= (int) m->model.objects.size()) return 0;
@@ -3775,28 +3840,28 @@ extern "C" {
 
     // Build a GLModel from the facets painted with the given filament (mesh-local coords), for
     // rendering a colored overlay over the base object. Returns the number of triangles.
-    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1paint(JNIEnv* env, jclass, jlong glPtr, jlong sessionPtr, jint filamentIdx) {
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1paint(
+        JNIEnv* env, jclass, jlong glPtr, jlong sessionPtr, jint filamentIdx, jint baseFilamentPreview) {
         GLModelRef* g = (GLModelRef*) (intptr_t) glPtr;
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        const indexed_triangle_set local = s->selector->get_facets(paint_state(filamentIdx));
-        indexed_triangle_set its;
-        if (!local.indices.empty() && s->model != nullptr &&
-            s->objIdx >= 0 && s->objIdx < (int)s->model->model.objects.size()) {
-            // The rendered object mesh is already transformed by both each volume's matrix and
-            // each model instance's matrix. Draft paint overlays must use the same merged-mesh
-            // coordinate space or they appear detached until the committed-overlay path rebuilds
-            // them after Done.
-            ModelObject* obj = s->model->model.objects[s->objIdx];
-            ModelVolume* volume = obj->volumes.empty() ? nullptr : obj->volumes.front();
-            if (volume != nullptr) {
+        const indexed_triangle_set its = s->mode == 0
+            ? accumulate_live_paint_facets(s, paint_state(filamentIdx), baseFilamentPreview)
+            : [&]() {
+                indexed_triangle_set local = s->selector->get_facets(paint_state(filamentIdx));
+                indexed_triangle_set transformed;
+                if (local.indices.empty() || s->model == nullptr ||
+                    s->objIdx < 0 || s->objIdx >= (int)s->model->model.objects.size()) return transformed;
+                ModelObject* obj = s->model->model.objects[s->objIdx];
+                ModelVolume* volume = obj->volumes.empty() ? nullptr : obj->volumes.front();
+                if (volume == nullptr) return transformed;
                 auto append_instance = [&](const Transform3d& transform) {
-                    const int base = (int)its.vertices.size();
-                    its.vertices.reserve(its.vertices.size() + local.vertices.size());
+                    const int base = (int)transformed.vertices.size();
+                    transformed.vertices.reserve(transformed.vertices.size() + local.vertices.size());
                     for (const stl_vertex& vertex : local.vertices)
-                        its.vertices.emplace_back((transform * vertex.cast<double>()).cast<float>());
-                    its.indices.reserve(its.indices.size() + local.indices.size());
+                        transformed.vertices.emplace_back((transform * vertex.cast<double>()).cast<float>());
+                    transformed.indices.reserve(transformed.indices.size() + local.indices.size());
                     for (const stl_triangle_vertex_indices& triangle : local.indices)
-                        its.indices.emplace_back(triangle + stl_triangle_vertex_indices(base, base, base));
+                        transformed.indices.emplace_back(triangle + stl_triangle_vertex_indices(base, base, base));
                 };
                 if (obj->instances.empty()) {
                     append_instance(volume->get_matrix());
@@ -3806,11 +3871,11 @@ extern "C" {
                             append_instance(instance->get_matrix() * volume->get_matrix());
                     }
                 }
-            }
-        }
+                return transformed;
+            }();
         g->model.reset();
         if (!its.indices.empty())
             g->model.init_from(its);
-        return (jint) local.indices.size();
+        return (jint) its.indices.size();
     }
 }

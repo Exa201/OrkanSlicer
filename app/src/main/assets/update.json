@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.393\n\n• Farben werden beim Malen sofort am Modell angezeigt, auch bei gedrehten und verschachtelten Objekten.\n• Im Malmodus erscheint nur eine Filamentpalette.\n• Das Malpanel lässt die Druckplatte sichtbar und schneidet die Bedienfelder nicht ab.",
-  "en": "OrkanSlicer 0.8.393\n\n• Paint colors now preview immediately on transformed and instanced model geometry.\n• Painting shows a single filament palette.\n• The docked paint panel keeps the build plate visible without clipping its controls.",
-  "ru": "OrkanSlicer 0.8.393\n\n• Цвета сразу отображаются при окрашивании, в том числе на повёрнутых и экземплярных моделях.\n• В режиме окрашивания показывается одна палитра филаментов.\n• Панель окрашивания оставляет платформу видимой и не обрезает элементы управления."
+  "de": "OrkanSlicer 0.8.394\n\n• Mehrfarbige 3MF-Baugruppen behalten beim Malen ihre importierten Farben sofort in der Vorschau.\n• Eine neue Grundfarbe ist vor der Bestätigung sichtbar und wird nicht von der alten Farbe überdeckt.\n• Im Malmodus erscheint eine Filamentpalette und die Druckplatte bleibt sichtbar.",
+  "en": "OrkanSlicer 0.8.394\n\n• Multicolor 3MF assemblies retain imported colors in the live paint preview.\n• A newly selected base filament is visible before confirmation without the old color covering it.\n• Painting shows one filament palette while keeping the build plate visible.",
+  "ru": "OrkanSlicer 0.8.394\n\n• Многоцветные сборки 3MF сохраняют импортированные цвета в режиме предварительного просмотра окраски.\n• Новый базовый филамент виден до подтверждения, старый цвет больше не перекрывает его.\n• В режиме окраски отображается одна палитра, а платформа остаётся видимой."
 }
