@@ -5,6 +5,7 @@
 - `InitialProjectMenuDeviceTest.modelMenuCanCreateStandaloneTextDirectlyOnTheBuildPlate` 1/1 bestanden: eigenständigen 3D-Text auf dem Druckbett erstellen.
 - `InitialProjectMenuDeviceTest.modelMenuBooleanUnionRunsForAllThreeSelectedObjects` 1/1 bestanden: native Vereinigung von drei ausgewählten Objekten.
 - Native Slice-Rundläufe je 1/1 bestanden: `placedObjectGroupRemainsPrintableAfterSurfacePlacement`, `standaloneTextCanBePlacedJoinedAndSlicedAsItsOwnFilamentPart`, `combinedMultipartObjectKeepsBothFilamentsThroughSlicing`, `booleanUnionConsumesEverySelectedToolAndSlicesTheCombinedResult` sowie `booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice`.
+- Zusätzliche Randfälle je 1/1 bestanden: `tiltedSurfacePlacementUsesExactMeshSupportAndIncludesLinkedInstances`, `curvedSurfaceTextSurvivesThreeMfReloadAndProducesExtrusionGcode` sowie `booleanDifferenceAndIntersectionConsumeMultipleSelectedTools`.
 - Damit sind Verbindung, Oberflächenplatzierung, eigenständiger Text und alle drei Boolean-Arten durch die gezielten Geräte-/Slice-Tests abgedeckt. Die Tests liefen auf `small_phone(AVD)` mit Android 16; es wurden keine Änderungen am App-Laufzeitcode vorgenommen und kein Druck gestartet. Ein erster Boolean-Union-Filter mit verkürztem Testnamen startete 0 Tests und wurde verworfen; anschließend wurde der exakte Testname ausgeführt und 1/1 bestanden.
 
 # OrkanSlicer 0.8.396 — Live-Farbmalen und Release — 2026-10-27
