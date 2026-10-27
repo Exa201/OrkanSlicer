@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.393
+
+- Show color-paint base-filament changes and brush strokes on the model before confirming; align live paint overlays with transformed volumes and instances.
+- Keep the compact workspace filament button hidden while painting so only the paint palette is shown.
+- Dock paint controls below the renderer and reserve a minimum visible build-plate area.
+- Recover workspace navigation if a replaced or cancelled menu animation does not settle.
+- Verify live color before confirmation, one paint palette, a retained build-plate viewport, and paint cancellation on Android 16.
+
 ## 0.8.389
 
 - Make fill-bed packing transactional: failed arrangement trials now roll back speculative copies and restore original object positions before another candidate is tested.

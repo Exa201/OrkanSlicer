@@ -7960,12 +7960,28 @@ class InitialProjectMenuDeviceTest {
             instrumentation.waitForIdleSync()
             SystemClock.sleep(250)
             val beforePaintFrame = instrumentation.uiAutomation.takeScreenshot()
+            val frameBeforeStroke = readRendererLastDrawOnGl(glView)
             injectCanvasStroke(glView, point.first, point.second)
-            SystemClock.sleep(250)
+            // Touch handlers enqueue paint work on the GL thread. Drain that queue before
+            // asserting a frame, especially on slower GPUs where per-stroke overlay builds
+            // can take longer than one arbitrary sleep interval.
+            instrumentationWaitForGlIdle()
+            val frameWaitStarted = SystemClock.elapsedRealtime()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                readRendererLastDrawOnGl(glView) > frameBeforeStroke
+            }
+            val frameWaitMs = SystemClock.elapsedRealtime() - frameWaitStarted
+            assertTrue("live brush preview should reach a rendered frame promptly; waited ${frameWaitMs}ms",
+                frameWaitMs < 1_500L)
+            SystemClock.sleep(100)
             val afterPaintFrame = instrumentation.uiAutomation.takeScreenshot()
-            assertPaintPreviewIsVisibleInFrame(beforePaintFrame, afterPaintFrame, point)
-            assertTrue("a real canvas stroke should be visible in the GL draft",
-                readPaintPreviewTriangleCountOnGl(glView, 1) > 0)
+            val livePaintTriangles = readPaintPreviewTriangleCountOnGl(glView, 1)
+            assertTrue("the canvas touch should assign facets to the live paint draft; triangles=$livePaintTriangles",
+                livePaintTriangles > 0)
+            assertPaintPreviewIsVisibleInFrame(
+                beforePaintFrame, afterPaintFrame, point,
+                liveOverlayHits = readPaintOverlayRayHitsOnGl(glView, point),
+            )
             assertFalse("live color remains a draft until confirmation", readModelHasPaintOnGl(glView, 0))
 
             assertTrue("Android Back should cancel the uncommitted paint draft", bed.onBackPressed())
@@ -9150,6 +9166,53 @@ class InitialProjectMenuDeviceTest {
         return requireNotNull(value.get())
     }
 
+    private fun readRendererLastDrawOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): Long {
+        val done = CountDownLatch(1)
+        val value = AtomicReference<Long>()
+        glView.queueEvent {
+            value.set(GLRenderer::class.java.getDeclaredField("lastDraw")
+                .apply { isAccessible = true }.getLong(glView.renderer))
+            done.countDown()
+        }
+        assertTrue("GL thread did not return its last rendered frame", done.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun readPaintOverlayRayHitsOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        screenPoint: Pair<Float, Float>,
+    ): String {
+        val location = IntArray(2)
+        glView.getLocationOnScreen(location)
+        val done = CountDownLatch(1)
+        val value = AtomicReference<String>()
+        glView.queueEvent {
+            try {
+                val overlays = GLRenderer::class.java.getDeclaredField("paintOverlays")
+                    .apply { isAccessible = true }.get(glView.renderer) as List<*>
+                val hits = ArrayList<ru.ytkab0bp.slicebeam.slic3r.GLModel.HitResult>()
+                val scale = Prefs.getRenderScale()
+                for (overlay in overlays) {
+                    val model = overlay!!.javaClass.getDeclaredField("model")
+                        .apply { isAccessible = true }.get(overlay) as ru.ytkab0bp.slicebeam.slic3r.GLModel
+                    model.raycaster.raycast(glView.renderer, hits,
+                        (screenPoint.first - location[0]) * scale,
+                        (screenPoint.second - location[1]) * scale)
+                }
+                value.set("overlayCount=${overlays.size} initialized=${overlays.mapNotNull { overlay ->
+                    overlay?.javaClass?.getDeclaredField("model")?.apply { isAccessible = true }
+                        ?.get(overlay) as? ru.ytkab0bp.slicebeam.slic3r.GLModel
+                }.map { it.isInitialized() }} hits=${hits.size}")
+            } catch (error: Throwable) {
+                value.set("error=${error.javaClass.simpleName}:${error.message}")
+            } finally {
+                done.countDown()
+            }
+        }
+        assertTrue("GL thread did not return live paint overlay hits", done.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
     /** Reads a persisted non-color facet channel by opening a disposable native paint session. */
     private fun readCommittedPaintModeTriangleCountOnGl(
         glView: ru.ytkab0bp.slicebeam.view.GLView,
@@ -9262,6 +9325,7 @@ class InitialProjectMenuDeviceTest {
         before: android.graphics.Bitmap,
         after: android.graphics.Bitmap,
         screenPoint: Pair<Float, Float>,
+        liveOverlayHits: String,
     ) {
         try {
             assertEquals("paint preview screenshots must have identical dimensions", before.width, after.width)
@@ -9286,7 +9350,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertTrue(
                 "The canvas should visibly change at the painted mesh point before Done; " +
-                    "changedPixels=$changedPixels totalDelta=$totalColorDelta point=$screenPoint",
+                    "changedPixels=$changedPixels totalDelta=$totalColorDelta point=$screenPoint liveOverlayHits=$liveOverlayHits",
                 changedPixels >= 8 && totalColorDelta >= 2_000,
             )
         } finally {
