@@ -2175,3 +2175,8 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - `WorkspaceRuntimeCompositionDeviceTest`: 6/6 passed, 0 skipped/failures/errors on `small_phone` / Android 16 (JUnit XML `2026-10-27T13:48:10`). Covered workspace Undo/Redo for object joining, Boolean operations and standalone text; standalone text creation through the Compose workspace; text conforming to curved surfaces; target-object and filament selection; and actual slicing after surface text placement.
 - No additional product code was required: current behavior passed on the released 0.8.394 code. The verification-only documentation was added to the existing PR branch.
+
+## Painted multi-color G-code regression on OrkanSlicer 0.8.394 — Android 16 — 2026-10-27
+
+- `TwoColorProjectDeviceTest.paintedFilamentAssignmentsSurviveMultipartJoinThreeMfRoundTripAndSlice` passed 1/1 on `small_phone` / Android 16 (JUnit XML `2026-10-27T13:50:03`). The test paints a bundled two-color 3MF, joins a second part, verifies facet segmentation survives 3MF export/reimport, performs a native slice, and confirms the painted filament emits a `T1` tool change and extrusion G-code.
+- This confirms the released preview fix did not regress persisted paint data or sliced tool selection. The Xiaomi itself was not available for the test.
