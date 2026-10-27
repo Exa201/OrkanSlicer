@@ -2265,3 +2265,10 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - Three safety workflows passed individually on `small_phone` / Android 16: a join confirmation rejects a changed selection; surface placement cancels if the selection changes before picking; a failing Boolean intersection keeps all source objects and reports failure in the Model menu. Each `:app:connectedSliceTestAndroidTest` invocation completed successfully (1/1).
 - These complement the successful operation-path checks for joining, surface placement, standalone text, and Boolean union, and the native slice checks for all three Boolean operations. The final per-device XML is overwritten by isolated runs; all three Gradle task exits were successful. No real print was started.
+
+## Multiline printable 3D text — OrkanSlicer 0d673258 — Android 16 — 2026-10-27
+
+- The text-entry field now accepts up to four visible lines; line breaks remain intact through input validation. This makes labels and short stacked inscriptions available in the standalone printable-text workflow.
+- Debug and Slice JVM `EmbossTextInputValidatorTest`: 6/6 passed in each variant. `GlModePanelsComposeDeviceTest.standaloneTextFieldAcceptsMultipleLinesWithoutValidationError`: 1/1 passed on `small_phone` / Android 16.
+- `NativeSliceDeviceTest.raisedEngravedAndMultilineStandaloneTextSurviveThreeMfAndSliceWithTheirFilaments`: 1/1 passed on Android 16 (JUnit XML `2026-10-27T16:59:22`). It verifies two-line text becomes real multi-line mesh geometry, retains its assigned filament after 3MF reload, and reaches generated G-code alongside raised and engraved edits.
+- `:app:assembleDebug` succeeded; APK `app/build/outputs/apk/debug/OrkanSlicer_0d673258ee.apk` is 239,587,624 bytes, SHA-256 `BC3E39BB19E6D3D44F189FC24008DDA2540B0301283ABFBD7E327FFE2E7F1916`. It installed and launched on the Android 16 emulator; the sampled Logcat had no fatal exception, fatal signal, ANR, or OOM. No physical Honor/Xiaomi was attached and no real print was started.
