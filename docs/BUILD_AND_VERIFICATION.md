@@ -2294,3 +2294,11 @@ Three focused instrumentation scenarios passed on `small_phone (AVD) - 16` after
 - `ModelEditingNativeDeviceTest.nativeBooleanUnionSupportsThreeSelectedObjectsAndPreservesWorldBounds` — 1/1. Exercises native three-object union and verifies world-space bounds.
 
 All three connected runs completed successfully; no real printer action was started. The test result directory is variant-scoped and the last XML file is overwritten by a later connected run, so the Gradle connected-test output is the source for the earlier two pass results.
+
+Additional model manipulation verification on `small_phone (AVD) - 16` — 2026-10-27:
+
+- `InitialProjectMenuDeviceTest.modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` — 1/1 passed.
+- `InitialProjectMenuDeviceTest.positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo` — 1/1 passed, including Z-axis movement and undo/redo.
+- `InitialProjectMenuDeviceTest.singleObjectBatchDuplicateCreatesRequestedCopiesWithUndoRedo` — 1/1 passed.
+
+These focused connected tests verified three more existing workflows; no production code changes were needed for them. The whole UI/device suite was not run.
