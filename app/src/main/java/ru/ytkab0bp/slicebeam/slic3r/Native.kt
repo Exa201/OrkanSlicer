@@ -238,6 +238,8 @@ class Native {
     @JvmStatic
     external fun glmodel_init_from_paint(glPtr: Long, sessionPtr: Long, filamentIdx: Int, baseFilamentPreview: Int): Int
     @JvmStatic
+    external fun paint_build_live_overlays(sessionPtr: Long, glModelPtrs: LongArray, baseFilamentPreview: Int): IntArray
+    @JvmStatic
     external fun paint_end(sessionPtr: Long): Unit
     @JvmStatic
     external fun model_build_paint_overlay(modelPtr: Long, objIdx: Int, glPtr: Long, filamentIdx: Int): Int

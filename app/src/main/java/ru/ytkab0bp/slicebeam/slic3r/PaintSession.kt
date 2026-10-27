@@ -53,6 +53,13 @@ open class PaintSession(model: Model, objIdx: Int, mode: Int) {
     open fun buildOverlay(gl: GLModel, filamentIdx: Int, baseFilamentPreview: Int = 0): Int =
         gl.initFromPaint(ptr, filamentIdx, baseFilamentPreview)
 
+    /**
+     * Build every live color overlay in one native pass. Multi-volume 3MF assemblies
+     * otherwise deserialize each untouched volume's facet assignments once per filament.
+     */
+    open fun buildOverlays(glModels: Array<GLModel>, baseFilamentPreview: Int = 0): IntArray =
+        Native.paint_build_live_overlays(ptr, LongArray(glModels.size) { glModels[it].pointer }, baseFilamentPreview)
+
     open fun end() {
         if (ptr != 0L) {
             Native.paint_end(ptr)

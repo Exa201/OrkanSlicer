@@ -3878,4 +3878,107 @@ extern "C" {
             g->model.init_from(its);
         return (jint) its.indices.size();
     }
+
+    // Build the live overlay palette in one pass. In particular, deserialize each
+    // untouched 3MF volume's facet assignments once per preview refresh, rather than
+    // once for every visible filament slot. Emit directly into GL geometry so we do not
+    // retain a second complete set of indexed meshes while the preview is displayed.
+    static void append_live_paint_overlays(
+        PaintSessionRef* session,
+        int base_filament_preview,
+        std::vector<GLModel::Geometry>& geometries) {
+        if (session == nullptr || session->model == nullptr || geometries.empty() ||
+            session->objIdx < 0 || session->objIdx >= (int)session->model->model.objects.size())
+            return;
+
+        ModelObject* obj = session->model->model.objects[session->objIdx];
+        if (obj == nullptr || obj->volumes.empty()) return;
+
+        auto append_transformed = [](const indexed_triangle_set& part,
+                                     const Transform3d& transform,
+                                     GLModel::Geometry& geometry) {
+            if (part.indices.empty()) return;
+            geometry.reserve_more_vertices(part.indices.size() * 3);
+            geometry.reserve_more_indices(part.indices.size() * 3);
+            for (const stl_triangle_vertex_indices& triangle : part.indices) {
+                stl_vertex vertices[3];
+                for (int corner = 0; corner < 3; ++corner)
+                    vertices[corner] = (transform * part.vertices[triangle[corner]].cast<double>()).cast<float>();
+                const Vec3f normal = face_normal_normalized(vertices);
+                const unsigned int base = (unsigned int)geometry.vertices_count();
+                for (const stl_vertex& vertex : vertices) geometry.add_vertex(vertex, normal);
+                geometry.add_triangle(base, base + 1, base + 2);
+            }
+        };
+
+        const int filament_count = (int)geometries.size();
+        const std::vector<const ModelInstance*> instances = obj->instances.empty()
+            ? std::vector<const ModelInstance*>{ nullptr }
+            : std::vector<const ModelInstance*>(obj->instances.begin(), obj->instances.end());
+        for (const ModelInstance* instance : instances) {
+            const Transform3d instance_matrix = instance != nullptr
+                ? instance->get_matrix() : Transform3d::Identity();
+            for (ModelVolume* volume : obj->volumes) {
+                if (volume == nullptr || !volume->is_model_part()) continue;
+                const Transform3d transform = instance_matrix * volume->get_matrix();
+                const bool editable_volume = volume == obj->volumes[0];
+                const int base_filament = editable_volume && base_filament_preview > 0
+                    ? base_filament_preview : std::max(1, volume->extruder_id());
+                const bool show_base = session->mode == 0;
+
+                if (editable_volume) {
+                    for (int filament = 1; filament <= filament_count; ++filament) {
+                        GLModel::Geometry& geometry = geometries[filament - 1];
+                        append_transformed(session->selector->get_facets(paint_state(filament)), transform, geometry);
+                        if (show_base && base_filament == filament)
+                            append_transformed(session->selector->get_facets(Slic3r::EnforcerBlockerType::NONE), transform, geometry);
+                    }
+                    continue;
+                }
+
+                const auto& data = facets_for_mode(volume, session->mode).get_data();
+                if (data.triangles_to_split.empty()) {
+                    if (base_filament > 0 && base_filament <= filament_count)
+                        append_transformed(volume->mesh().its, transform, geometries[base_filament - 1]);
+                    continue;
+                }
+
+                Slic3r::TriangleSelector selector(volume->mesh());
+                selector.deserialize(data, true);
+                for (int filament = 1; filament <= filament_count; ++filament) {
+                    GLModel::Geometry& geometry = geometries[filament - 1];
+                    append_transformed(selector.get_facets(paint_state(filament)), transform, geometry);
+                    if (show_base && base_filament == filament)
+                        append_transformed(selector.get_facets(Slic3r::EnforcerBlockerType::NONE), transform, geometry);
+                }
+            }
+        }
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1build_1live_1overlays(
+        JNIEnv* env, jclass, jlong sessionPtr, jlongArray glModelPtrs, jint baseFilamentPreview) {
+        const jsize count = glModelPtrs != nullptr ? env->GetArrayLength(glModelPtrs) : 0;
+        jintArray result = env->NewIntArray(count);
+        if (result == nullptr || count == 0) return result;
+
+        std::vector<jlong> pointers((size_t)count);
+        env->GetLongArrayRegion(glModelPtrs, 0, count, pointers.data());
+        if (env->ExceptionCheck()) return result;
+
+        std::vector<GLModel::Geometry> geometries((size_t)count);
+        append_live_paint_overlays((PaintSessionRef*)(intptr_t)sessionPtr,
+                                   baseFilamentPreview, geometries);
+        std::vector<jint> triangleCounts((size_t)count, 0);
+        for (jsize i = 0; i < count; ++i) {
+            if (pointers[(size_t)i] == 0) continue;
+            GLModelRef* target = (GLModelRef*)(intptr_t)pointers[(size_t)i];
+            if (!geometries[(size_t)i].is_empty()) {
+                target->model.reset();
+                target->model.init_from(std::move(geometries[(size_t)i]));
+                triangleCounts[(size_t)i] = (jint)(target->model.indices_count() / 3);
+            }
+        }
+        env->SetIntArrayRegion(result, 0, count, triangleCounts.data());
+        return result;
+    }
 }

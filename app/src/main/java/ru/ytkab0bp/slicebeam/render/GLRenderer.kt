@@ -2247,22 +2247,19 @@ for (o in paintOverlays) o.model.release()
 paintOverlays.clear()
 if (paintSession == null) return
 // Color mode covers the full filament palette; enforce/block modes only use states 1 and 2.
- val n = if (paintModeKind == PAINT_MODE_COLOR) Math.max(paintPalette.size, 1) else 2
-for (f in 1..n)
-{
-val gl = GLModel()
-val tris = paintSession!!.buildOverlay(gl, f, paintBaseFilamentPreview ?: 0)
-if (tris > 0)
-{
-val o = PaintOverlay()
-o.model = gl
-o.color = paintStateColor(f)
-paintOverlays.add(o)
-}
-else
-{
-gl.release()
-}
+val n = if (paintModeKind == PAINT_MODE_COLOR) Math.max(paintPalette.size, 1) else 2
+val overlays = Array(n) { GLModel() }
+val triangleCounts = paintSession!!.buildOverlays(overlays, paintBaseFilamentPreview ?: 0)
+for (index in overlays.indices) {
+    val gl = overlays[index]
+    if (triangleCounts.getOrElse(index) { 0 } > 0) {
+        val overlay = PaintOverlay()
+        overlay.model = gl
+        overlay.color = paintStateColor(index + 1)
+        paintOverlays.add(overlay)
+    } else {
+        gl.release()
+    }
 }
 }
 private fun getCommittedOverlays(i:Int):List<PaintOverlay> {

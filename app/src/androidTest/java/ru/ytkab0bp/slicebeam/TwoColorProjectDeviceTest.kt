@@ -33,8 +33,10 @@ class TwoColorProjectDeviceTest {
             file.outputStream().use { input.copyTo(it) }
         }
         var model: Model? = null
-        val liveOverlay = GLModel()
         val committedOverlay = GLModel()
+        val liveBaseOverlay = GLModel()
+        val liveAccentOverlay = GLModel()
+        val livePreviewBaseOverlay = GLModel()
         try {
             model = Model(file, 1)
             assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
@@ -45,7 +47,9 @@ class TwoColorProjectDeviceTest {
             val session = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
             try {
                 assertTrue("the combined multicolor object should open a live paint session", session.isValid())
-                val liveTriangles = session.buildOverlay(liveOverlay, 2)
+                val liveCounts = session.buildOverlays(arrayOf(liveBaseOverlay, liveAccentOverlay))
+                assertTrue("the live preview should contain the object's base material", liveCounts[0] > 0)
+                val liveTriangles = liveCounts[1]
                 assertTrue(
                     "live preview must retain the untouched second volume's imported color; " +
                         "it must not disappear until the paint session is confirmed",
@@ -54,12 +58,23 @@ class TwoColorProjectDeviceTest {
                 val committedTriangles = model.buildPaintOverlay(0, committedOverlay, 2)
                 assertEquals("live and committed overlays must cover the same second-volume facets",
                     committedTriangles, liveTriangles)
+
+                val reassignedBaseCounts = session.buildOverlays(
+                    arrayOf(liveBaseOverlay, liveAccentOverlay, livePreviewBaseOverlay),
+                    baseFilamentPreview = 3,
+                )
+                assertEquals("previewing a new base slot removes the old base overlay", 0, reassignedBaseCounts[0])
+                assertTrue("previewing a new base slot moves its geometry to that slot", reassignedBaseCounts[2] > 0)
+                assertEquals("changing the base slot must not recolor the untouched imported volume",
+                    liveTriangles, reassignedBaseCounts[1])
             } finally {
                 session.end()
             }
         } finally {
-            liveOverlay.release()
             committedOverlay.release()
+            liveBaseOverlay.release()
+            liveAccentOverlay.release()
+            livePreviewBaseOverlay.release()
             model?.release()
             file.delete()
         }

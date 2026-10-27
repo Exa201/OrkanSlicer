@@ -1,3 +1,13 @@
+# Live-Farbmalen: Vorschauleistung und sichtbare Palette — 2026-10-27
+
+- Die Farbmalvorschau baut ihre Filament-Overlays nun in einem nativen Durchlauf. Zuvor wurden die unveränderten Volumen einer mehrteiligen 3MF für jeden Filamentslot erneut deserialisiert; auf langsameren Geräten konnte dies die Live-Aktualisierung verzögern. Die neue Routine erzeugt die GL-Geometrie direkt und hält keine zusätzliche komplette Kopie aller indizierten Overlay-Meshes im Arbeitsspeicher.
+- Der gedockte Farbmalbereich wurde von 22 % auf 30 % der verfügbaren Arbeitsfläche (32 % bei Systemschrift ab 130 %) vergrößert. Der vorherige Wert ließ die Slotpalette im scrollbaren Panel unterhalb des sichtbaren Bereichs liegen. Die restlichen Werkzeugoptionen bleiben scrollbar; der Renderer behält mindestens 68 % der Fläche.
+- Android-16-Emulator: `TwoColorProjectDeviceTest.livePaintPreviewKeepsImportedColorsAcrossAllPartsOfACombinedObject` 1/1 bestanden. Der Test vergleicht die Live-Geometrie für mehrere Filamentslots mit den gespeicherten 3MF-Volumenfarben und prüft die Vorschau einer neuen Grundfarbe.
+- Android-16-Emulator: `InitialProjectMenuDeviceTest.colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel` 1/1 bestanden. Pixelprüfung bestätigt die neue Farbe vor „Fertig“; Abbrechen erhält die ursprüngliche Filamentzuordnung. `supportSeamAndFuzzyPaintCommitRealCanvasStrokesAndUndoRedo` 1/1 bestanden.
+- Ein vorhandener Layouttest fand zuerst die außerhalb des sichtbaren Panels liegende Filamentpalette bei 22 %. Nach der Vergrößerung bestand `editPaintActionsOpenTheirGlModesAndBackCancelsWithoutMeshMutation` 1/1; die Druckplatte blieb gültig, jeder Slot hatte genau ein Feld und Back/Abbrechen erhielten das Modell.
+- JVM-Suites nach der Änderung: Debug 659/659 und Slice 659/659 bestanden, jeweils 0 Fehler, Errors oder Skips. Vier gezielte Android-Instrumentierungstests bestanden nach der Korrektur.
+- Kein APK-Build oder Release in diesem Schritt. Die Xiaomi-Hardwareprüfung bleibt offen; verfügbar war nur der Android-16-Emulator. Kein echter Druck wurde gestartet.
+
 # Mehrfarben-Kopien und Modellbearbeitung — Nachprüfung 2026-10-26
 
 - Der bestehende Bett-füllen-Test färbt jetzt zusätzlich echte Dreiecksflächen eines 3MF-Objekts auf Slot 3. Er prüft die Quellzuordnung, beide erzeugten Kopien, den 3MF-Export/Rundlauf und die tatsächlich ausgegebenen Werkzeuge T0/T1/T2. Android-16-Emulator: 1/1 bestanden.
