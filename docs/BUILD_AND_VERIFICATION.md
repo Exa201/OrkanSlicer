@@ -2254,3 +2254,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - The four `InitialProjectMenuDeviceTest` workflows documented above were run individually through `:app:connectedSliceTestAndroidTest`: selected-group multipart join, group-on-picked-surface placement, standalone text creation on the bed, and a three-object Boolean union. All four Gradle invocations completed successfully (1/1 per invocation, no failure reported).
 - The final visible-workflow result is available in `app/build/outputs/androidTest-results/connected/sliceTest/TEST-small_phone(AVD) - 16-_app-.xml`: `modelMenuBooleanUnionRunsForAllThreeSelectedObjects`, 1 test, 0 failures/errors/skips, timestamp `2026-10-27T16:50:26`. Earlier invocations replace this per-device XML file, so their individual successful task exits are the retained evidence.
+
+## Model-edit safety continuation — OrkanSlicer 3f3a5f14 — Android 16 — 2026-10-27
+
+- Three error/cancel paths passed individually on `small_phone` / Android 16: `combineConfirmationRejectsChangedSelectionWithoutCombiningObjects`, `surfacePlacementCancelsWhenSelectionChangesBeforeThePick`, and `failedBooleanIntersectionKeepsAllInputsAndReportsFailureFromModelMenu` (each connected test invocation successful, 1/1).
+- The checks confirm stale selections do not trigger a join or placement, and a failed Boolean intersection preserves the original inputs while reporting a user-facing failure. No regression was found and no production code change was needed.
+- The final per-device JUnit XML is overwritten by each isolated invocation; the Gradle task completed successfully for all three runs. No actual print was started.
