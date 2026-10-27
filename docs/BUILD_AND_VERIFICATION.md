@@ -2313,3 +2313,15 @@ Focused connected tests passed on `small_phone (AVD) - 16`:
 
 No production defect was observed in these three workflows; no production code was changed for this sweep. The test fix and its verification are recorded together. The complete device suite remains unrun.
 - `InitialProjectMenuDeviceTest.cutConnectorTapCreatesDiscardablePreviewWithoutMutatingModel` — 1/1 passed; canceling the cut preview leaves the original mesh unchanged.
+
+## Safe modeling failure cases and material round trips — Android 16 — 2026-10-27
+
+Five focused connected tests passed on `small_phone (AVD) - 16`:
+
+- `NativeSliceDeviceTest.invalidJoinBooleanAndTextRequestsLeaveModelUntouched` — 1/1; rejected native join, Boolean, and text inputs preserve the model.
+- `InitialProjectMenuDeviceTest.placeOnObjectDialogRejectsChangedSelectionWithoutMovingOrCombiningObjects` — 1/1; stale placement confirmation does not move or merge the wrong objects.
+- `InitialProjectMenuDeviceTest.placeOnObjectDialogStacksAndJoinsSelectedObjectWithChosenTarget` — 1/1; successful object stacking/join preserves expected geometry and history.
+- `NativeSliceDeviceTest.booleanTextPlacementAndMultipartJoinKeepBothFilamentsThroughThreeMfAndSlice` — 1/1; combined text/Boolean/multipart workflow retains both materials through 3MF and generated G-code.
+- `NativeSliceDeviceTest.raisedEngravedAndMultilineStandaloneTextSurviveThreeMfAndSliceWithTheirFilaments` — 1/1; raised, engraved, and multiline text edits survive reload and slicing with material assignments.
+
+No production defect was observed in this sweep, so no native modeling code was changed. These are targeted instrumented runs, not a full device suite; no actual printer was used.
