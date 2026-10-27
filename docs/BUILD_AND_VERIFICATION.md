@@ -1,3 +1,12 @@
+# Modellbearbeitung und native Slice-Rundläufe — Android 16 — 2026-10-27
+
+- `InitialProjectMenuDeviceTest.objectListGroupCanBeCombinedAsPartsFromTheModelMenu` 1/1 bestanden: ausgewählte Objekte als mehrteilige Gruppe verbinden.
+- `InitialProjectMenuDeviceTest.modelMenuPlacesSelectedGroupOnTappedSurfaceAndPreservesSpacingAndMaterials` 1/1 bestanden: Gruppe auf Zielfläche platzieren; Abstand und Materialzuordnung erhalten.
+- `InitialProjectMenuDeviceTest.modelMenuCanCreateStandaloneTextDirectlyOnTheBuildPlate` 1/1 bestanden: eigenständigen 3D-Text auf dem Druckbett erstellen.
+- `InitialProjectMenuDeviceTest.modelMenuBooleanUnionRunsForAllThreeSelectedObjects` 1/1 bestanden: native Vereinigung von drei ausgewählten Objekten.
+- Native Slice-Rundläufe je 1/1 bestanden: `placedObjectGroupRemainsPrintableAfterSurfacePlacement`, `standaloneTextCanBePlacedJoinedAndSlicedAsItsOwnFilamentPart`, `combinedMultipartObjectKeepsBothFilamentsThroughSlicing`, `booleanUnionConsumesEverySelectedToolAndSlicesTheCombinedResult` sowie `booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice`.
+- Damit sind Verbindung, Oberflächenplatzierung, eigenständiger Text und alle drei Boolean-Arten durch die gezielten Geräte-/Slice-Tests abgedeckt. Die Tests liefen auf `small_phone(AVD)` mit Android 16; es wurden keine Änderungen am App-Laufzeitcode vorgenommen und kein Druck gestartet. Ein erster Boolean-Union-Filter mit verkürztem Testnamen startete 0 Tests und wurde verworfen; anschließend wurde der exakte Testname ausgeführt und 1/1 bestanden.
+
 # OrkanSlicer 0.8.396 — Live-Farbmalen und Release — 2026-10-27
 
 - Der vorherige Release `v0.8.395` zielte auf `e973138`; die nachfolgenden Commits zur laufenden Vorschau, zur einzelnen Filamentpalette und zum Platten-Viewport waren deshalb noch nicht im APK enthalten. Version 0.8.396 / versionCode 431 enthält den aktuellen Branch-Stand.
