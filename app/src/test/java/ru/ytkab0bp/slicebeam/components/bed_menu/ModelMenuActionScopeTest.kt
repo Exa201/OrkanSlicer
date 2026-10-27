@@ -42,4 +42,12 @@ class ModelMenuActionScopeTest {
         ).forEach { assertFalse("$it should affect the full plate", ModelMenuActionScope.isSingleObject(it)) }
         assertFalse("the legacy edit-menu split action should no longer be exposed", ModelMenuActionScope.isSingleObject(R.string.MenuToolbarSplit))
     }
+
+    @Test fun selectedGroupActionsStayWithSelectionScopedActions() {
+        listOf(
+            R.string.ModelMenuPlaceGroupOnBed,
+            R.string.ModelMenuAlignSelected,
+            R.string.ModelMenuDistributeSelected,
+        ).forEach { assertTrue("$it operates on the current selection", ModelMenuActionScope.isSingleObject(it)) }
+    }
 }

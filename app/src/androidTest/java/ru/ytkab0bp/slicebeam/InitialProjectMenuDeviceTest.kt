@@ -7834,6 +7834,11 @@ class InitialProjectMenuDeviceTest {
                 secondPaintStart.isSuccess,
             )
             assertTrue("the GL viewport must stay measurable while painting", glView.height > 0)
+            assertTrue("the renderer must retain a valid build plate while painting", readBedValidOnGl(glView))
+            assertEquals("paint mode must expose one copy of each filament swatch", 1,
+                compose.onAllNodesWithTag("paint-filament-swatch-1").fetchSemanticsNodes().size)
+            assertEquals("paint mode must expose one copy of each filament swatch", 1,
+                compose.onAllNodesWithTag("paint-filament-swatch-2").fetchSemanticsNodes().size)
             compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).assertIsDisplayed()
             compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
             val paintViewportBounds = compose.onNodeWithTag("workspace-renderer-area")
@@ -7930,10 +7935,27 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(
                 activity.getString(R.string.WorkspaceFilamentButtonDescription, 2)
             ).assertDoesNotExist()
+            val point = findUncoveredPreciseSurfacePoint(glView, bed)
+            val beforeBasePreview = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            compose.onNodeWithText(activity.getString(R.string.PaintBaseFilament)).performClick()
             revealPaintFilamentSwatch(activity, 2, "Live Paint Accent", occurrence = 0)
                 .performClick()
+            instrumentationWaitForGlIdle()
+            SystemClock.sleep(200)
+            val afterBasePreview = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            assertPaintColorVisibleAtPoint(
+                beforeBasePreview,
+                afterBasePreview,
+                point,
+                0xFF3366CC.toInt(),
+                "selecting a base filament must recolor the live model before Done",
+            )
+            assertArrayEquals("a live base color remains a draft until Done", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
 
-            val point = findUncoveredPreciseSurfacePoint(glView, bed)
+            compose.onNodeWithText(activity.getString(R.string.PaintWith)).performClick()
+            revealPaintFilamentSwatch(activity, 1, "Live Paint Base", occurrence = 0)
+                .performClick()
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             instrumentation.waitForIdleSync()
             SystemClock.sleep(250)
@@ -7943,7 +7965,7 @@ class InitialProjectMenuDeviceTest {
             val afterPaintFrame = instrumentation.uiAutomation.takeScreenshot()
             assertPaintPreviewIsVisibleInFrame(beforePaintFrame, afterPaintFrame, point)
             assertTrue("a real canvas stroke should be visible in the GL draft",
-                readPaintPreviewTriangleCountOnGl(glView, 2) > 0)
+                readPaintPreviewTriangleCountOnGl(glView, 1) > 0)
             assertFalse("live color remains a draft until confirmation", readModelHasPaintOnGl(glView, 0))
 
             assertTrue("Android Back should cancel the uncommitted paint draft", bed.onBackPressed())
@@ -8977,6 +8999,17 @@ class InitialProjectMenuDeviceTest {
         return requireNotNull(count.get())
     }
 
+    private fun readBedValidOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): Boolean {
+        val finished = CountDownLatch(1)
+        val valid = AtomicReference<Boolean>()
+        glView.queueEvent {
+            valid.set(glView.renderer.bed?.isValid() == true)
+            finished.countDown()
+        }
+        assertTrue("GL thread did not report the build plate state", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(valid.get())
+    }
+
     private fun readRendererBooleanOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, fieldName: String): Boolean {
         val finished = CountDownLatch(1)
         val value = AtomicReference<Boolean>()
@@ -9255,6 +9288,55 @@ class InitialProjectMenuDeviceTest {
                 "The canvas should visibly change at the painted mesh point before Done; " +
                     "changedPixels=$changedPixels totalDelta=$totalColorDelta point=$screenPoint",
                 changedPixels >= 8 && totalColorDelta >= 2_000,
+            )
+        } finally {
+            before.recycle()
+            after.recycle()
+        }
+    }
+
+    /** Checks the actual live pixel hue, rather than treating any visual change as a color preview. */
+    private fun assertPaintColorVisibleAtPoint(
+        before: android.graphics.Bitmap,
+        after: android.graphics.Bitmap,
+        screenPoint: Pair<Float, Float>,
+        expectedColor: Int,
+        message: String,
+    ) {
+        try {
+            assertEquals("color preview screenshots must have matching dimensions", before.width, after.width)
+            assertEquals("color preview screenshots must have matching heights", before.height, after.height)
+            val centerX = screenPoint.first.toInt()
+            val centerY = screenPoint.second.toInt()
+            val radius = 12
+            var changedPixels = 0
+            var correctlyColoredPixels = 0
+            val expectedRed = android.graphics.Color.red(expectedColor)
+            val expectedGreen = android.graphics.Color.green(expectedColor)
+            val expectedBlue = android.graphics.Color.blue(expectedColor)
+            for (y in (centerY - radius).coerceAtLeast(0)..(centerY + radius).coerceAtMost(after.height - 1)) {
+                for (x in (centerX - radius).coerceAtLeast(0)..(centerX + radius).coerceAtMost(after.width - 1)) {
+                    val previous = before.getPixel(x, y)
+                    val current = after.getPixel(x, y)
+                    val delta = kotlin.math.abs(android.graphics.Color.red(previous) - android.graphics.Color.red(current)) +
+                        kotlin.math.abs(android.graphics.Color.green(previous) - android.graphics.Color.green(current)) +
+                        kotlin.math.abs(android.graphics.Color.blue(previous) - android.graphics.Color.blue(current))
+                    if (delta >= 36) changedPixels++
+                    val red = android.graphics.Color.red(current)
+                    val green = android.graphics.Color.green(current)
+                    val blue = android.graphics.Color.blue(current)
+                    val dominantChannelMatches = when {
+                        expectedRed > expectedGreen && expectedRed > expectedBlue -> red > green * 1.12 && red > blue * 1.12
+                        expectedGreen > expectedRed && expectedGreen > expectedBlue -> green > red * 1.12 && green > blue * 1.12
+                        else -> blue > red * 1.12 && blue > green * 1.04
+                    }
+                    if (dominantChannelMatches && red + green + blue > 150) correctlyColoredPixels++
+                }
+            }
+            assertTrue(
+                "$message; changedPixels=$changedPixels correctlyColoredPixels=$correctlyColoredPixels " +
+                    "expected=#${expectedColor.toUInt().toString(16)} point=$screenPoint",
+                changedPixels >= 8 && correctlyColoredPixels >= 4,
             )
         } finally {
             before.recycle()
