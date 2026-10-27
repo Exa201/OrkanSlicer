@@ -2182,7 +2182,7 @@ paintBaseFilamentPreview = filament
 rebuildPaintOverlays(force = true)
 notifyPaintHistoryChanged()
 }
-fun paintAt(x:Float, y:Float) {
+fun paintAt(x:Float, y:Float, rebuildPreview: Boolean = true) {
 if (paintSession == null || paintObject < 0 || paintObject >= glModels.size) return
 val gl = glModels.get(paintObject)
 gl.raycaster.raycast(this, raycastHits, x, y)
@@ -2201,9 +2201,9 @@ else
 {
 paintSession!!.brush(h, -1, paintBrushRadius, paintFilament, camera.position.asDoubleArray(), isBrushSphere)
 }
-// Don't commit on every drag event (expensive) â€” the live session overlays show the paint,
- // and endPaint() commits to the model. This keeps fast drags from painting sparsely.
- rebuildPaintOverlays(force = false)
+// Keep the native draft live while avoiding a full palette rebuild for every interpolated
+// point of a coalesced touch segment. Stroke completion always forces one final refresh.
+if (rebuildPreview) rebuildPaintOverlays(force = false) else paintOverlayRebuildPending = true
 }
 /** A bounding-box hit can select an object, but must never place paint or a surface tool. */
 private fun preciseSurfaceHit(): GLModel.HitResult? {

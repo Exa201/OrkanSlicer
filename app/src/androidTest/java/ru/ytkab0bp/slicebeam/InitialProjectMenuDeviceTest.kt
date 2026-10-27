@@ -8121,6 +8121,8 @@ class InitialProjectMenuDeviceTest {
             assertArrayEquals("cancel preserves the model's base filament", intArrayOf(1),
                 readUsedFilamentsOnGl(glView, 0))
             assertTrue("paint mode cancellation must retain the renderer view", bed.glView === glView)
+            assertTrue("live paint must not drop the configured build plate",
+                readBedValidOnGl(glView))
         } finally {
             if (bed.isPaintMode) bed.onBackPressed()
             modelFile.delete()
@@ -9611,11 +9613,11 @@ class InitialProjectMenuDeviceTest {
             }
         }
         inject(MotionEvent.ACTION_DOWN, 0f, 0f, downTime)
-        repeat(5) { step ->
-            SystemClock.sleep(24L)
-            inject(MotionEvent.ACTION_MOVE, step * 2f, step * 2f, SystemClock.uptimeMillis())
+        // Flood the input path with more moves than the renderer can repaint. Live color
+        // preview must stay current without queuing a native mesh rebuild for every event.
+        repeat(24) { step ->
+            inject(MotionEvent.ACTION_MOVE, step * 0.45f, step * 0.45f, SystemClock.uptimeMillis())
         }
-        SystemClock.sleep(24L)
         inject(MotionEvent.ACTION_UP, 10f, 10f, SystemClock.uptimeMillis())
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }

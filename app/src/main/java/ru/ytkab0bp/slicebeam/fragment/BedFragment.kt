@@ -237,6 +237,7 @@ val selected = if (glView != null) glView!!.renderer.selectedObject else -1
 return if (model == null || selected < 0) 0 else model.getTriangleCount(selected)
 }
 private val paintFinishPending = AtomicBoolean(false)
+private var paintModeStarting by mutableStateOf(false)
 private var embossModeController: EmbossModeController? = null
 private var hasWebError:Boolean = false
 private var panelWebView: WebView? = null
@@ -1203,7 +1204,7 @@ fun enterPaintModeForCurrentSelection(mode: Int) = requestPaintMode(expectedObje
 
 private fun requestPaintMode(expectedObjectIndex: Int?, mode: Int) {
     val view = glView ?: return
-    if (getContext() == null || overlayLayout == null || isPaintMode) return
+    if (getContext() == null || overlayLayout == null || isPaintMode || paintModeStarting) return
     workspaceController.dismissActivePanel()
     view.queueEvent {
         val renderer = view.renderer
@@ -1262,17 +1263,22 @@ private fun requestPaintMode(expectedObjectIndex: Int?, mode: Int) {
                     }
                 }
             } else {
+                // Hide the compact global filament entry before the GL session is visible.
+                // This avoids briefly showing a second filament row during the mode transition.
+                paintModeStarting = true
                 view.queueEvent {
                     val activeRenderer = view.renderer
                     if (activeRenderer.model !== model ||
                         (selectionBound && activeRenderer.selectedObject != objectIndex)) {
                         ViewUtils.postOnMainThread {
+                            paintModeStarting = false
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
                         }
                         return@queueEvent
                     }
                     if (!activeRenderer.beginPaint(objectIndex, mode)) {
                         ViewUtils.postOnMainThread {
+                            paintModeStarting = false
                             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.PaintModeStartFailed))
                         }
                         return@queueEvent
@@ -1283,6 +1289,13 @@ private fun requestPaintMode(expectedObjectIndex: Int?, mode: Int) {
                             view.isPaintBrushActive = true
                             paintFinishPending.set(false)
                             showPaintModePanel(view, mode)
+                            paintModeStarting = false
+                        } else {
+                            paintModeStarting = false
+                            view.queueEvent {
+                                view.renderer.endPaint(false)
+                                view.requestRender()
+                            }
                         }
                     }
                 }
@@ -1907,7 +1920,7 @@ private fun createWorkspaceContent(ctx: Context, portrait: Boolean): View {
                         // swatches. Hiding the compact header palette during that
                         // mode avoids two competing filament rows and preserves the
                         // selected paint color as the single visible source.
-                        if (workspaceController.activeToolId != "paint-mode") {
+                        if (workspaceController.activeToolId != "paint-mode" && !paintModeStarting) {
                             key(filamentPaletteRevision) {
                                 BeamComposeTheme {
                                     WorkspaceFilamentButton(

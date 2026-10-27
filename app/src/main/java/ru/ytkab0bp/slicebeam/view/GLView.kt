@@ -72,6 +72,8 @@ private val tapGestureGate = TapGestureGate()
 // When true and the renderer is in paint mode, a single finger paints instead of orbiting.
  var isPaintBrushActive:Boolean = false
 private var paintStrokeActive = false
+private val paintInputCoalescer = PaintInputCoalescer()
+private var lastPaintPoint: PaintInputCoalescer.Point? = null
 private var tempVec = Vec3d()
 private var longClickOffset = Vec3d()
 private var longClickTranslation = Vec3d()
@@ -125,8 +127,50 @@ private var invalidBedDescriptionLayout: StaticLayout? = null
 private var lastScale:Float = 0.toFloat()
 private fun paintAtScreen(x:Float, y:Float) {
 val renderScale = Prefs.getRenderScale()
-queueEvent({ renderer.paintAt(x * renderScale, y * renderScale)
-requestRender() })
+if (paintInputCoalescer.submit(x * renderScale, y * renderScale)) {
+    queueEvent { drainPaintInput() }
+}
+}
+private fun drainPaintInput() {
+    val point = paintInputCoalescer.takePending()
+    if (point != null) {
+        applyPaintPoint(point)
+        requestRender()
+    }
+    if (paintInputCoalescer.finishDrain()) queueEvent { drainPaintInput() }
+}
+private fun endPaintStrokeOnGlThread() {
+    // A finger-up can be queued while a native preview build is still running. Apply the
+    // latest coalesced point before ending the native transaction so neither the preview nor
+    // the committed brush stroke loses the final section of a quick gesture.
+    paintInputCoalescer.flush()?.let(::applyPaintPoint)
+    renderer.endPaintStroke()
+    lastPaintPoint = null
+    requestRender()
+}
+private fun applyPaintPoint(point: PaintInputCoalescer.Point) {
+    val previous = lastPaintPoint
+    if (previous == null || renderer.paintTool != GLRenderer.PAINT_TOOL_BRUSH) {
+        renderer.paintAt(point.x, point.y)
+    } else {
+        // Coalescing prevents a slow native preview from building a queue of stale events.
+        // Interpolate the skipped brush path at screen-space intervals so a quick drag still
+        // covers the same continuous surface instead of leaving gaps between samples.
+        val distance = kotlin.math.hypot(
+            (point.x - previous.x).toDouble(),
+            (point.y - previous.y).toDouble(),
+        )
+        val steps = kotlin.math.ceil(distance / 8.0).toInt().coerceAtLeast(1)
+        for (step in 1..steps) {
+            val fraction = step.toFloat() / steps
+            renderer.paintAt(
+                previous.x + (point.x - previous.x) * fraction,
+                previous.y + (point.y - previous.y) * fraction,
+                rebuildPreview = step == steps,
+            )
+        }
+    }
+    lastPaintPoint = point
 }
 fun interface FillBedCallback {
 fun onFillBedComplete(addedCopies:Int)
@@ -716,7 +760,7 @@ val action = e.getActionMasked()
 if (paintStrokeActive && (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ||
         action == MotionEvent.ACTION_POINTER_DOWN)) {
     paintStrokeActive = false
-    queueEvent { renderer.endPaintStroke(); requestRender() }
+    queueEvent { endPaintStrokeOnGlThread() }
 }
 if (renderer.isPaintMode && isPaintBrushActive && e.getPointerCount() == 1 && action == MotionEvent.ACTION_DOWN) {
     paintStrokeActive = true

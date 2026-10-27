@@ -1,3 +1,11 @@
+# Farbmalen: GL-Eingabe, Vorschau und Plattenstabilität — 2026-10-27
+
+- Pinselbewegungen werden auf dem UI-Thread zu einem GL-Drain zusammengefasst statt jede Bewegung als native Mesh-Neuberechnung aufzureihen. Ausgelassene Punkte des Pinselpfads werden interpoliert; der letzte Punkt wird vor Stroke-Ende angewendet und die Vorschau abschließend aktualisiert.
+- Beim Start des Farbmodus wird die kompakte globale Filament-Schaltfläche bereits während des Renderer-Wechsels ausgeblendet. Damit erscheinen nicht kurzzeitig zwei konkurrierende Filamentanzeigen.
+- Android-16-Emulator, `InitialProjectMenuDeviceTest.colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel`: 1/1 bestanden. Der Test flutet die Eingabe mit schnellen Bewegungen, prüft sichtbare Livefarbe vor „Fertig“, genau eine Filamentpalette, gültige Druckplatte und unveränderte Modellzuordnung nach Abbrechen.
+- Android-16-Emulator, `InitialProjectMenuDeviceTest.supportSeamAndFuzzyPaintCommitRealCanvasStrokesAndUndoRedo`: 1/1 bestanden. Debug- und Slice-Unit-Variante: `PaintInputCoalescerTest` 2/2 bestanden.
+- Xiaomi-Hardwareprüfung bleibt offen; verfügbar war der Android-16-Emulator. Kein echter Druck wurde gestartet.
+
 # Live-Farbmalen: Vorschauleistung und sichtbare Palette — 2026-10-27
 
 - Die Farbmalvorschau baut ihre Filament-Overlays nun in einem nativen Durchlauf. Zuvor wurden die unveränderten Volumen einer mehrteiligen 3MF für jeden Filamentslot erneut deserialisiert; auf langsameren Geräten konnte dies die Live-Aktualisierung verzögern. Die neue Routine erzeugt die GL-Geometrie direkt und hält keine zusätzliche komplette Kopie aller indizierten Overlay-Meshes im Arbeitsspeicher.
