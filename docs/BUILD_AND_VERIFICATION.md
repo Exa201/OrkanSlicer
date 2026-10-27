@@ -2187,3 +2187,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 - `SlicePrintPreparationComposeDeviceTest.multipartModelColorsCanBeRemappedIndividuallyToTheSameSlot` passed 1/1: two distinct imported colors could both be assigned to one selected destination filament.
 - `NativeSliceDeviceTest.perSourceColorRemappingSurvives3mfReloadAndEmitsMappedTools` passed 1/1: distinct tool mapping and shared-slot mapping both survived 3MF reload and slicing; G-code contained the requested tools and omitted unmapped tools.
 - These current-code checks confirm that per-object assignment and multiple source colors sharing one slot are already supported in the tested 0.8.394 flow. Xiaomi hardware remains unverified.
+
+## Standalone text + Boolean workflow regression — OrkanSlicer 0.8.394 code — Android 16 — 2026-10-27
+
+- Added `standaloneTextCanBeBooleanUnionedIntoTargetWithoutLosingItsMaterial` to `ModelEditingNativeDeviceTest`. It creates an independent printable text mesh partially embedded in a cube, unions both through the native Boolean API, then verifies one positive-volume printable result, raised text above the target, preserved plate-contact bounds, and retention of the target filament.
+- The new integration case passed independently 1/1. The full native model-editing class then passed 47/47 on `small_phone` / Android 16, with 0 skips/failures/errors (JUnit XML `2026-10-27T14:06:15`).
+- This test change only extends Android regression coverage; no product APK rebuild or release was needed. Existing join, surface placement, curved text, Boolean rollback, and model-material cases remained green in the full class.

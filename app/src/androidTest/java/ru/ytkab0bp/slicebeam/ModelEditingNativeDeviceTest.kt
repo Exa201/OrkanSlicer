@@ -709,6 +709,51 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun standaloneTextCanBeBooleanUnionedIntoTargetWithoutLosingItsMaterial() {
+        val modelFile = createCubeFixture("boolean-text-target.stl", side = 20f)
+        val fontFile = copyAsset("font/roboto_medium.ttf", "boolean-text-font.ttf")
+        val model = Model(modelFile)
+        try {
+            model.setUniformFilament(0, 2)
+            val targetVolume = model.getObjectVolume(0)
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+
+            // The text starts 1 mm inside the target's top face, so the union has a real
+            // shared volume and must leave a raised, connected letter above the surface.
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "A",
+                8f,
+                2f,
+                Vec3d(10.0, 10.0, targetMax.z - 1.0),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("standalone text must be added as a second printable object", 1, textIndex)
+            assertEquals(2, model.objectsCount)
+            model.setUniformFilament(textIndex, 3)
+            assertTrue("standalone text needs printable geometry before the Boolean", model.getTriangleCount(textIndex) > 0)
+
+            val result = model.booleanObjects(0, textIndex, BooleanOperation.UNION)
+
+            assertEquals("text and target should become one printable solid", 0, result)
+            assertEquals(1, model.objectsCount)
+            assertTrue("union must preserve the target body and add raised text volume",
+                model.getObjectVolume(result) > targetVolume)
+            assertEquals("Boolean union keeps the target object's filament assignment", listOf(2),
+                model.getUsedFilaments(result).toList())
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals("the target keeps its original plate-contact plane", targetMin.z, resultMin.z, 0.02)
+            assertTrue("the fused text must protrude above the target surface", resultMax.z > targetMax.z + 0.5)
+            assertTrue("the Boolean result remains a printable closed body", model.getObjectVolume(result) > 0.0)
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
     @Test fun standaloneTextCanConformToCurvedCylinderAndRemainsPrintable() {
         val modelFile = createCylinderFixture("text-curved-cylinder.stl", radius = 25f, height = 30f, segments = 96)
         val fontFile = copyAsset("font/roboto_medium.ttf", "text-curved-surface-font.ttf")
