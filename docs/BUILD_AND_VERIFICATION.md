@@ -2284,3 +2284,13 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 ## Multiline text workflow coverage — Android 16 — 2026-10-27
 
 - Extended existing native workflow tests to use two-line text during side placement + joining + 3MF reload + slicing, Boolean-difference engraving, and curved-surface text placement. Each focused instrumentation test passed 1/1 on `small_phone` / Android 16. These are verification-only changes; the multiline text UI and native support were implemented and built in commit `0d673258ee4f29155d79df7ae7d7692d58f4bf47`.
+
+## Object editing workflows — emulator sweep — Android 16 — 2026-10-27
+
+Three focused instrumentation scenarios passed on `small_phone (AVD) - 16` after commit `b228cec06bf2948be911f5ee10c14610466995af`:
+
+- `NativeSliceDeviceTest.standaloneTextCanBePlacedJoinedAndSlicedAsItsOwnFilamentPart` — 1/1. Exercises multiline standalone text, object placement/join, 3MF workflow, and slicing to G-code.
+- `InitialProjectMenuDeviceTest.objectListGroupCanBeCombinedAsPartsFromTheModelMenu` — 1/1. Exercises joining a selected group through the workspace model menu.
+- `ModelEditingNativeDeviceTest.nativeBooleanUnionSupportsThreeSelectedObjectsAndPreservesWorldBounds` — 1/1. Exercises native three-object union and verifies world-space bounds.
+
+All three connected runs completed successfully; no real printer action was started. The test result directory is variant-scoped and the last XML file is overwritten by a later connected run, so the Gradle connected-test output is the source for the earlier two pass results.
