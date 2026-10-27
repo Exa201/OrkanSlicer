@@ -2243,3 +2243,9 @@ The complete `PrintProfileDropdownIntegrationDeviceTest` passed 8/8 on Honor PTP
 
 - Four focused `NativeSliceDeviceTest` instrumentation invocations passed independently on `small_phone` / Android 16: `joiningLinkedInstancesSurvivesThreeMfAndSlicesEveryCopyWithItsMaterial`, `placedObjectGroupRemainsPrintableAfterSurfacePlacement`, `standaloneRaisedAndEngravedTextSurviveThreeMfAndSliceWithTheirFilaments`, and `surfacePlacedUnionDifferenceAndIntersectionRemainPrintable` (each 1/1, Gradle task successful).
 - These cover four requested model-editing functions through material/placement preservation, 3MF reload where applicable, and actual slicing/printability checks. No real print was started. The final invocation's JUnit XML reports 1 test, 0 failures/errors/skips at `2026-10-27T16:44:48`; the earlier individual Gradle invocations each also exited successfully.
+
+## Model-menu interaction regression — OrkanSlicer 5fd2a0b4 — Android 16 — 2026-10-27
+
+- Four focused user-facing Compose/GL workflows passed individually on `small_phone` / Android 16: `objectListGroupCanBeCombinedAsPartsFromTheModelMenu`, `modelMenuPlacesSelectedGroupOnTappedSurfaceAndPreservesSpacingAndMaterials`, `modelMenuCanCreateStandaloneTextDirectlyOnTheBuildPlate`, and `modelMenuBooleanUnionRunsForAllThreeSelectedObjects` (each connected test invocation successful, 1/1).
+- Combined with the four native export/reload/slice checks above, this confirms the model menu can join a selected group, place a group on a picked surface, create standalone printable text, and apply a Boolean union; separate native checks also verified difference and intersection.
+- The final UI-test XML reports 1 test, 0 failures/errors/skips at `2026-10-27T16:50:26`. No production code change was needed because all selected actions completed as expected. No print was started.
