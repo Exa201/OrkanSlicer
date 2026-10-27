@@ -2312,3 +2312,4 @@ Focused connected tests passed on `small_phone (AVD) - 16`:
 - `InitialProjectMenuDeviceTest.editSplitActionSeparatesDisconnectedMeshComponentsIntoNativeObjects` — 1/1.
 
 No production defect was observed in these three workflows; no production code was changed for this sweep. The test fix and its verification are recorded together. The complete device suite remains unrun.
+- `InitialProjectMenuDeviceTest.cutConnectorTapCreatesDiscardablePreviewWithoutMutatingModel` — 1/1 passed; canceling the cut preview leaves the original mesh unchanged.
