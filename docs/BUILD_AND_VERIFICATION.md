@@ -1,3 +1,13 @@
+# OrkanSlicer 0.8.396 — Live-Farbmalen und Release — 2026-10-27
+
+- Der vorherige Release `v0.8.395` zielte auf `e973138`; die nachfolgenden Commits zur laufenden Vorschau, zur einzelnen Filamentpalette und zum Platten-Viewport waren deshalb noch nicht im APK enthalten. Version 0.8.396 / versionCode 431 enthält den aktuellen Branch-Stand.
+- Android 16 fokussierte Instrumentierung: `InitialProjectMenuDeviceTest.colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel` 1/1 bestanden. Pixelprüfung sah die Farbe vor Bestätigung; es erschien genau eine Palette; Panelgeometrie ließ mindestens 75 % der Werkzeugfläche für den Renderer und Abbrechen erhielt Platte und Modell.
+- `InitialProjectMenuDeviceTest.colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments` 1/1 bestanden: echtes Canvas-Malen, Bestätigen und Undo.
+- `TwoColorProjectDeviceTest.livePaintPreviewKeepsImportedColorsAcrossAllPartsOfACombinedObject` 1/1 bestanden: importierte Farben einer mehrteiligen 3MF bleiben während der Live-Vorschau sichtbar.
+- `ChangeLogComposeDeviceTest.releaseNotesAndSupporterSheetRenderAndDismissWithAndroidBack` 1/1 bestanden. `:app:assembleDebug` erfolgreich; APK auf dem Android-16-Emulator installiert und gestartet; Android meldete Version 0.8.396 / Code 431. Der geprüfte Logcat-Ausschnitt enthielt keine Crash-, ANR-, OOM- oder Fatal-Signal-Treffer.
+- APK `OrkanSlicer_a7f508b13c.apk`, 239.587.509 Bytes, SHA-256 `F0004C2918DC61DEB597BA66365E7B75CE2D444DD03DAF378050B9922E83B949`. GitHub-Assetdigest stimmt überein.
+- Regulärer Release: https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.396. Tag zeigt auf `a7f508b13cfc7f0bd2e3e93b61a8cb0216007af6`. PR #2 bleibt offen; GitHub meldete `mergeStateStatus=UNKNOWN`. APK ist debug-signiert; eine Produktionssignatur ist nicht konfiguriert. Xiaomi-Hardware war nicht verbunden und bleibt separat zu prüfen. Kein Druck wurde gestartet.
+
 # Farbmalen: GL-Eingabe, Vorschau und Plattenstabilität — 2026-10-27
 
 - Pinselbewegungen werden auf dem UI-Thread zu einem GL-Drain zusammengefasst statt jede Bewegung als native Mesh-Neuberechnung aufzureihen. Ausgelassene Punkte des Pinselpfads werden interpoliert; der letzte Punkt wird vor Stroke-Ende angewendet und die Vorschau abschließend aktualisiert.
