@@ -8199,6 +8199,93 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun importedMulticolorProjectShowsLivePaintBeforeConfirmWithoutDuplicatePaletteOrPlateLoss() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-paint-imported-multicolor-test.3mf")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "Imported Paint Base"),
+            FilamentSlot(0xFF3366CC.toInt(), "Imported Paint Accent"),
+        ))
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("models/two-color-project.3mf").use { source ->
+                    modelFile.outputStream().use(source::copyTo)
+                }
+            val loadedLatch = CountDownLatch(1)
+            val loaded = AtomicReference<Model?>()
+            val loadFailure = AtomicReference<Exception?>()
+            bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    loaded.set(loadedModel)
+                    loadedLatch.countDown()
+                }
+
+                override fun onFailed(error: Exception) {
+                    loadFailure.set(error)
+                    loadedLatch.countDown()
+                }
+            })
+            assertTrue("the multicolor 3MF fixture should finish loading", loadedLatch.await(60, TimeUnit.SECONDS))
+            val model = requireNotNull(loaded.get()) { "multicolor fixture load failed: ${loadFailure.get()}" }
+            assertEquals(2, model.objectsCount)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuToolbarColorPaint)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            }
+            assertEquals("the paint panel must show one palette row", 1,
+                compose.onAllNodesWithTag("paint-palette-row").fetchSemanticsNodes().size)
+            assertEquals("paint mode must not duplicate the compact workspace filament row", 0,
+                compose.onAllNodesWithContentDescription(
+                    activity.getString(R.string.WorkspaceFilamentButtonDescription, 2),
+                ).fetchSemanticsNodes().size)
+            assertTrue("the build plate renderer must remain valid in paint mode", readBedValidOnGl(glView))
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+            val viewport = compose.onNodeWithTag("workspace-renderer-area").fetchSemanticsNode().boundsInRoot
+            val controls = compose.onNodeWithTag("workspace-docked-tool-panel").fetchSemanticsNode().boundsInRoot
+            assertTrue("paint controls must not cover the plate viewport: viewport=$viewport controls=$controls",
+                viewport.bottom <= controls.top + 1f && viewport.height >= (viewport.height + controls.height) * 0.60f)
+            compose.onNodeWithTag("paint-controls-scroll").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("paint-palette-row").assertIsDisplayed()
+
+            val point = findUncoveredPreciseSurfacePoint(glView, bed)
+            val before = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            revealPaintFilamentSwatch(activity, 2, "Imported Paint Accent", occurrence = 0).performClick()
+            injectCanvasStroke(glView, point.first, point.second)
+            instrumentationWaitForGlIdle()
+            compose.waitUntil(timeoutMillis = 5_000) { readPaintPreviewTriangleCountOnGl(glView, 2) > 0 }
+            val after = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            assertPaintPreviewIsVisibleInFrame(before, after, point,
+                liveOverlayHits = "imported 3MF draft triangles=${readPaintPreviewTriangleCountOnGl(glView, 2)}")
+            assertFalse("the imported project remains unmodified until paint confirmation",
+                readModelHasPaintOnGl(glView, 0))
+            assertArrayEquals("the untouched second object's imported filament must remain intact", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 1))
+
+            assertTrue("Android Back should cancel the imported-project paint draft", bed.onBackPressed())
+            compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+            instrumentationWaitForGlIdle()
+            assertArrayEquals("cancel must preserve the first object's base filament", intArrayOf(1),
+                readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("cancel must preserve the second object's imported filament", intArrayOf(2),
+                readUsedFilamentsOnGl(glView, 1))
+            assertTrue("cancel must leave the plate renderer available", bed.glView === glView && readBedValidOnGl(glView))
+        } finally {
+            if (bed.isPaintMode) bed.onBackPressed()
+            modelFile.delete()
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
     fun colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
