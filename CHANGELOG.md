@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.397
+
+- Keep the live color-paint palette visible on short phone screens without scrolling; preserve at least 60% of the workspace viewport for the print bed.
+- Verify live paint color before confirmation, exactly one visible filament palette, and build-plate retention on Android 16.
+
 ## 0.8.395
 
 - Keep live paint feedback responsive on dense models by limiting full-mesh paint-overlay rebuilds during a stroke and flushing the final preview immediately on touch release.

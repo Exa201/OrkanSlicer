@@ -1,3 +1,9 @@
+# Farbmalen und Druckplattenbereich — Android 16 — 2026-10-28
+
+- Der Farbmal-Dock wurde wieder auf 30 % (32 % bei großer Systemschrift) gesetzt. Die vorherigen 22/25 % konnten die Filamentpalette auf kurzen Displays aus dem sichtbaren Bereich drücken. Die Layout-Policy erhält mindestens 60 % des Arbeitsbereichs für den Renderer und die Druckplatte.
+- `InitialProjectMenuDeviceTest.colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel` 1/1 bestanden: Live-Farbpixel vor „Fertig“, eine Palette, sichtbarer Dock, Druckplatten-Viewport und Abbrechen ohne Modellmutation. Die Abnahme prüft zusätzlich mindestens 25 % Panelhöhe für die Palette.
+- `PaintModeComposeDeviceTest` 3/3 bestanden. `:app:assembleDebug` erfolgreich; Xiaomi/Honor waren nicht per ADB angeschlossen, daher keine Hardwareprüfung.
+
 # Schnitt, Verbinder, Bettfüllen und Ausrichtung — Android 16 — 2026-10-28
 
 - UI-Gerätetests auf `small_phone(AVD)` je 1/1 bestanden: `cutConnectorTapCreatesDiscardablePreviewWithoutMutatingModel` (Verbinder-Vorschau ohne Modellmutation), `fillBedCopiesPreserveFilamentsAndDistinctPlacementsWithUndoRedo` (Material, getrennte Positionen und Undo/Redo) sowie `modelMenuAutoOrientActionsRunForAllObjectsAndSelectedObject` (Ausrichtung aller Objekte und der Auswahl).

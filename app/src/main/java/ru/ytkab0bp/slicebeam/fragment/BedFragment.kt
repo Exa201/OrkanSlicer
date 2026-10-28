@@ -1312,11 +1312,11 @@ private fun showPaintModePanel(currentGlView: GLView, mode: Int) {
             portrait = WorkspacePanelDimension.Fraction(
                 // Keep the build plate visibly dominant while the scrollable paint
                 // controls stay docked below it. The panel can scroll independently.
-                // Keep both the role selector and the filament swatches visible together on
-                // The palette and target selector now share one compact row, so normal-size
-                // Keep the plate as large as possible. The role toggle and palette share one
-                // row, so secondary brush controls can scroll below without a tall dock.
-                if (ctx.resources.configuration.fontScale >= 1.3f) 0.25f else 0.22f,
+                // Keep the single role/palette row fully visible without scrolling. A 22–25%
+                // dock can clip that row on short phones once system bars and navigation are
+                // accounted for, which makes live color changes look as if they only apply on
+                // Done. The shell clamps this size to preserve at least 60% for the plate.
+                if (ctx.resources.configuration.fontScale >= 1.3f) 0.32f else 0.30f,
             ),
             landscape = WorkspacePanelDimension.Fixed(280f),
         ),

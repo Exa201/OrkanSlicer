@@ -7958,9 +7958,9 @@ class InitialProjectMenuDeviceTest {
             val paintControlsBounds = compose.onNodeWithTag("workspace-docked-tool-panel")
                 .fetchSemanticsNode().boundsInRoot
             assertTrue(
-                "The paint controls must leave at least 75% of the workspace viewport for the plate; " +
+                "The paint controls must leave at least 60% of the workspace viewport for the plate; " +
                     "renderer=$paintViewportBounds controls=$paintControlsBounds",
-                paintViewportBounds.height >= (paintViewportBounds.height + paintControlsBounds.height) * 0.75f &&
+                paintViewportBounds.height >= (paintViewportBounds.height + paintControlsBounds.height) * 0.60f &&
                     paintViewportBounds.bottom <= paintControlsBounds.top + 1f,
             )
             compose.onNodeWithTag("paint-palette-role-toggle").performClick()
@@ -8062,10 +8062,15 @@ class InitialProjectMenuDeviceTest {
                 .fetchSemanticsNode().boundsInRoot
             val combinedHeight = paintViewportBounds.height + paintControlsBounds.height
             assertTrue(
-                "color controls must leave at least 75% of the tool area for the model; " +
+                "color controls must leave at least 60% of the tool area for the model; " +
                     "renderer=$paintViewportBounds controls=$paintControlsBounds",
-                paintViewportBounds.height >= combinedHeight * 0.75f &&
+                paintViewportBounds.height >= combinedHeight * 0.60f &&
                     paintViewportBounds.bottom <= paintControlsBounds.top + 1f,
+            )
+            assertTrue(
+                "the compact paint dock must expose its palette row without scrolling; " +
+                    "renderer=$paintViewportBounds controls=$paintControlsBounds",
+                paintControlsBounds.height >= combinedHeight * 0.25f,
             )
             val point = findUncoveredPreciseSurfacePoint(glView, bed)
             val beforeBasePreview = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
