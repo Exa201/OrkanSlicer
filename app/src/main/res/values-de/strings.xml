@@ -269,6 +269,8 @@
     <string name="ModelMenuAlignCenterY">Y-Mittelpunkte ausrichten</string>
     <string name="ModelMenuAlignMaxY">Größte Y-Kanten ausrichten</string>
     <string name="ModelMenuAlignBaseZ">Standflächen auf Z ausrichten</string>
+    <string name="ModelMenuAlignCenterZ">Z-Mittelpunkte ausrichten</string>
+    <string name="ModelMenuAlignMaxZ">Oberkanten auf Z ausrichten</string>
     <string name="ModelMenuAlignDone">Ausgewählte Objekte ausgerichtet</string>
     <string name="ModelMenuDistributeSelected">Ausgewählte Objekte verteilen</string>
     <string name="ModelMenuDistributeX">Entlang X verteilen</string>

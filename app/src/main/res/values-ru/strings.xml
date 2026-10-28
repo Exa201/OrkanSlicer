@@ -50,6 +50,8 @@
     <string name="ModelMenuAlignCenterX">Выровнять центры по X</string>
     <string name="ModelMenuAlignCenterY">Выровнять центры по Y</string>
     <string name="ModelMenuAlignBaseZ">Выровнять основания по Z</string>
+    <string name="ModelMenuAlignCenterZ">Выровнять центры по Z</string>
+    <string name="ModelMenuAlignMaxZ">Выровнять верхние края по Z</string>
     <string name="ModelMenuAlignDone">Выбранные объекты выровнены</string>
     <string name="ModelMenuDistributeSelected">Распределить выбранные объекты</string>
     <string name="ModelMenuDistributeX">Распределить по X</string>

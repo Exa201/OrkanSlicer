@@ -6673,7 +6673,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun modelMenuAlignsSelectedGroupOnXAndYCentersAndZBaseWithUndoRedo() {
+    fun modelMenuAlignsSelectedGroupOnXYZEdgesAndCentersWithUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -6687,7 +6687,7 @@ class InitialProjectMenuDeviceTest {
             glView.queueEvent {
                 val model = requireNotNull(glView.renderer.model)
                 model.addObject(model, 0)
-                model.scale(1, 0.7, 0.8, 1.0)
+                model.scale(1, 0.7, 0.8, 0.55)
                 model.translate(1, 43.0, 29.0, 18.0)
                 model.setUniformFilament(0, 2)
                 model.setUniformFilament(1, 2)
@@ -6702,6 +6702,7 @@ class InitialProjectMenuDeviceTest {
             fun bounds() = readExactBoundsOnGl(glView, 0, 1)
             fun centersX(value: List<DoubleArray>) = value.map { (it[0] + it[3]) / 2.0 }
             fun centersY(value: List<DoubleArray>) = value.map { (it[1] + it[4]) / 2.0 }
+            fun centersZ(value: List<DoubleArray>) = value.map { (it[2] + it[5]) / 2.0 }
             fun invokeAlignment(label: Int) {
                 openSelectedObjectMenu(activity)
                 revealMenuAction(activity, R.string.ModelMenuAlignSelected)
@@ -6718,6 +6719,8 @@ class InitialProjectMenuDeviceTest {
                         R.string.ModelMenuAlignMaxX -> kotlin.math.abs(current[0][3] - current[1][3]) < 0.02
                         R.string.ModelMenuAlignMinY -> kotlin.math.abs(current[0][1] - current[1][1]) < 0.02
                         R.string.ModelMenuAlignMaxY -> kotlin.math.abs(current[0][4] - current[1][4]) < 0.02
+                        R.string.ModelMenuAlignCenterZ -> kotlin.math.abs(centersZ(current)[0] - centersZ(current)[1]) < 0.02
+                        R.string.ModelMenuAlignMaxZ -> kotlin.math.abs(current[0][5] - current[1][5]) < 0.02
                         else -> kotlin.math.abs(current[0][2] - current[1][2]) < 0.02
                     }
                 }
@@ -6755,6 +6758,40 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(bounds()[0][2] - bounds()[1][2]) < 0.02 }
 
+            val beforeCenterZ = bounds()
+            invokeAlignment(R.string.ModelMenuAlignCenterZ)
+            val afterCenterZ = bounds()
+            assertEquals("Z-center alignment must align both object centers",
+                centersZ(afterCenterZ)[0], centersZ(afterCenterZ)[1], 0.02)
+            assertEquals("Z-center alignment must preserve X", centersX(beforeCenterZ)[1], centersX(afterCenterZ)[1], 0.02)
+            assertEquals("Z-center alignment must preserve Y", centersY(beforeCenterZ)[1], centersY(afterCenterZ)[1], 0.02)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bounds().zip(beforeCenterZ).all { (a, b) ->
+                    a.indices.all { axis -> kotlin.math.abs(a[axis] - b[axis]) < 0.02 }
+                }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(centersZ(bounds())[0] - centersZ(bounds())[1]) < 0.02
+            }
+
+            val beforeMaxZ = bounds()
+            invokeAlignment(R.string.ModelMenuAlignMaxZ)
+            val afterMaxZ = bounds()
+            assertEquals("top-edge alignment must align both maximum heights",
+                afterMaxZ[0][5], afterMaxZ[1][5], 0.02)
+            assertEquals("top-edge alignment must preserve X", centersX(beforeMaxZ)[1], centersX(afterMaxZ)[1], 0.02)
+            assertEquals("top-edge alignment must preserve Y", centersY(beforeMaxZ)[1], centersY(afterMaxZ)[1], 0.02)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bounds().zip(beforeMaxZ).all { (a, b) ->
+                    a.indices.all { axis -> kotlin.math.abs(a[axis] - b[axis]) < 0.02 }
+                }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) { kotlin.math.abs(bounds()[0][5] - bounds()[1][5]) < 0.02 }
+
             val edgeAlignments = listOf(
                 R.string.ModelMenuAlignMinX to { value: DoubleArray -> value[0] },
                 R.string.ModelMenuAlignMaxX to { value: DoubleArray -> value[3] },
@@ -6784,6 +6821,8 @@ class InitialProjectMenuDeviceTest {
                     kotlin.math.abs(edge(redone[0]) - edge(redone[1])) < 0.02
                 }
             }
+            // Restore printable bed contact after checking center/top Z alignments.
+            invokeAlignment(R.string.ModelMenuAlignBaseZ)
             assertCurrentWorkspaceModelRoundTripsAndSlices("align-selected-group")
         } finally {
             modelFile.delete()

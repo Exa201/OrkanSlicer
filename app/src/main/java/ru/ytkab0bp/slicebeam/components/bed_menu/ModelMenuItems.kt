@@ -300,6 +300,8 @@ internal class ModelMenuItems(
             anchor.context.getString(R.string.ModelMenuAlignCenterY),
             anchor.context.getString(R.string.ModelMenuAlignMaxY),
             anchor.context.getString(R.string.ModelMenuAlignBaseZ),
+            anchor.context.getString(R.string.ModelMenuAlignCenterZ),
+            anchor.context.getString(R.string.ModelMenuAlignMaxZ),
         )
         captureSelectionSnapshot(glView) { snapshot ->
             fragment.showWorkspaceComposeDialog { dismiss ->
@@ -318,6 +320,8 @@ internal class ModelMenuItems(
                             4 -> ModelAlignmentAxis.CENTER_Y
                             5 -> ModelAlignmentAxis.MAX_Y
                             6 -> ModelAlignmentAxis.BASE_Z
+                            7 -> ModelAlignmentAxis.CENTER_Z
+                            8 -> ModelAlignmentAxis.MAX_Z
                             else -> return@ModelChoiceDialog
                         }
                         glView.alignSelectedObjects(axis, snapshot) { result ->

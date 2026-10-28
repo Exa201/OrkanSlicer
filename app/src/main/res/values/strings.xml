@@ -279,6 +279,8 @@
     <string name="ModelMenuAlignCenterY">Align Y centers</string>
     <string name="ModelMenuAlignMaxY">Align maximum Y edges</string>
     <string name="ModelMenuAlignBaseZ">Align bases (Z)</string>
+    <string name="ModelMenuAlignCenterZ">Align Z centers</string>
+    <string name="ModelMenuAlignMaxZ">Align top edges (Z)</string>
     <string name="ModelMenuAlignDone">Selected objects aligned</string>
     <string name="ModelMenuDistributeSelected">Distribute selected objects</string>
     <string name="ModelMenuDistributeX">Distribute along X</string>
