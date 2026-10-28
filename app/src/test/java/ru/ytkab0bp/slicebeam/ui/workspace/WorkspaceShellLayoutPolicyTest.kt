@@ -117,4 +117,19 @@ class WorkspaceShellLayoutPolicyTest {
         assertEquals(200, WorkspaceShellLayoutPolicy.dockedLandscapeBottomPanelHeightDp(300))
         assertEquals(0, WorkspaceShellLayoutPolicy.dockedLandscapeBottomPanelHeightDp(100))
     }
+
+    @Test
+    fun compactPaintDockKeepsPaletteVisibleAndReservesMoreRoomForPlate() {
+        val paintDock = WorkspacePanelDimension.ClampedFraction(
+            fraction = 0.24f,
+            minDp = 72f,
+            maxDp = 136f,
+        )
+        assertEquals(72, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(300, paintDock, 1f))
+        assertEquals(120, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(500, paintDock, 1f))
+        assertEquals(136, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(800, paintDock, 1f))
+        // Below this workspace height the panel is clamped away so it cannot consume the
+        // renderer's absolute 120 dp minimum; the activity still has no usable split space.
+        assertEquals(0, WorkspaceShellLayoutPolicy.dockedPortraitPanelHeightDp(120, paintDock, 1.5f))
+    }
 }

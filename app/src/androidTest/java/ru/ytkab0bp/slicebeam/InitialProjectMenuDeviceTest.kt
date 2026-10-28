@@ -8070,6 +8070,10 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithTag("paint-filament-swatch-1").fetchSemanticsNodes().size)
             assertEquals("each paint slot must have one visible swatch, not duplicate filament rows", 1,
                 compose.onAllNodesWithTag("paint-filament-swatch-2").fetchSemanticsNodes().size)
+            assertEquals("the workspace filament shortcut must not duplicate the paint palette", 0,
+                compose.onAllNodesWithContentDescription(
+                    activity.getString(R.string.WorkspaceFilamentButtonDescription, 2),
+                ).fetchSemanticsNodes().size)
             compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
             val paintViewportBounds = compose.onNodeWithTag("workspace-renderer-area")
                 .fetchSemanticsNode().boundsInRoot
@@ -8077,15 +8081,17 @@ class InitialProjectMenuDeviceTest {
                 .fetchSemanticsNode().boundsInRoot
             val combinedHeight = paintViewportBounds.height + paintControlsBounds.height
             assertTrue(
-                "color controls must leave at least 60% of the tool area for the model; " +
+                "color controls must leave at least 70% of the tool area for the model; " +
                     "renderer=$paintViewportBounds controls=$paintControlsBounds",
-                paintViewportBounds.height >= combinedHeight * 0.60f &&
+                paintViewportBounds.height >= combinedHeight * 0.70f &&
                     paintViewportBounds.bottom <= paintControlsBounds.top + 1f,
             )
+            val paletteBounds = compose.onNodeWithTag("paint-palette-row").fetchSemanticsNode().boundsInRoot
             assertTrue(
                 "the compact paint dock must expose its palette row without scrolling; " +
                     "renderer=$paintViewportBounds controls=$paintControlsBounds",
-                paintControlsBounds.height >= combinedHeight * 0.25f,
+                paletteBounds.top >= paintControlsBounds.top - 1f &&
+                    paletteBounds.bottom <= paintControlsBounds.bottom + 1f,
             )
             val point = findUncoveredPreciseSurfacePoint(glView, bed)
             val beforeBasePreview = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()

@@ -1309,14 +1309,14 @@ private fun showPaintModePanel(currentGlView: GLView, mode: Int) {
         "paint-mode",
         ::cancelPaintMode,
         WorkspacePanelSize(
-            portrait = WorkspacePanelDimension.Fraction(
-                // Keep the build plate visibly dominant while the scrollable paint
-                // controls stay docked below it. The panel can scroll independently.
-                // Keep the single role/palette row fully visible without scrolling. A 22–25%
-                // dock can clip that row on short phones once system bars and navigation are
-                // accounted for, which makes live color changes look as if they only apply on
-                // Done. The shell clamps this size to preserve at least 60% for the plate.
-                if (ctx.resources.configuration.fontScale >= 1.3f) 0.32f else 0.30f,
+            portrait = WorkspacePanelDimension.ClampedFraction(
+                // The color selector itself is a single 48 dp palette row. Reserve enough
+                // height to keep it visible, then let secondary brush controls scroll. A
+                // large 30–32% dock made the plate feel cropped on short phones even though
+                // the renderer technically retained 60% of its viewport.
+                fraction = if (ctx.resources.configuration.fontScale >= 1.3f) 0.26f else 0.24f,
+                minDp = 72f,
+                maxDp = if (ctx.resources.configuration.fontScale >= 1.3f) 148f else 136f,
             ),
             landscape = WorkspacePanelDimension.Fixed(280f),
         ),
