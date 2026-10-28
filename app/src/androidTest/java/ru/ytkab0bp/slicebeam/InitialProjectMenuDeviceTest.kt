@@ -2767,7 +2767,7 @@ class InitialProjectMenuDeviceTest {
             val before = (0..1).map { readExactBoundsOnGl(glView, it).single() }
 
             openModelMenu(activity)
-            scrollMenuToIndex(4)
+            revealMenuAction(activity, R.string.ModelMenuFillBed)
             compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
@@ -5512,7 +5512,7 @@ class InitialProjectMenuDeviceTest {
             compose.runOnUiThread { bed.updateModel() }
 
             openModelMenu(activity)
-            scrollMenuToIndex(4)
+            revealMenuAction(activity, R.string.ModelMenuFillBed)
             compose.onNodeWithText(activity.getString(R.string.ModelMenuFillBedShort))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
 
