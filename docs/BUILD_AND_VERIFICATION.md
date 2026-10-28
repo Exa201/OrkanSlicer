@@ -1,3 +1,10 @@
+# Schnitt, Verbinder, Bettfüllen und Ausrichtung — Android 16 — 2026-10-28
+
+- UI-Gerätetests auf `small_phone(AVD)` je 1/1 bestanden: `cutConnectorTapCreatesDiscardablePreviewWithoutMutatingModel` (Verbinder-Vorschau ohne Modellmutation), `fillBedCopiesPreserveFilamentsAndDistinctPlacementsWithUndoRedo` (Material, getrennte Positionen und Undo/Redo) sowie `modelMenuAutoOrientActionsRunForAllObjectsAndSelectedObject` (Ausrichtung aller Objekte und der Auswahl).
+- Native Slice-Tests je 1/1 bestanden: `successfulPlaneCutKeepsBothPrintablePiecesAndStillSlices` (beide Schnittteile druckbar), `fillBedCopiesPreserveMaterialThroughThreeMfReloadAndSlice` (Filament bleibt durch 3MF-Rundlauf und G-Code erhalten), `autoOrientedModelRemainsOnBedAndProducesExtrusionGcode` sowie `nativeCutAndConnectorEditsRejectInvalidInputsAndKeepValidRoundTripPrintable`.
+- Die letzten beiden Tests wurden auf `solidcraft_clean_api36(AVD)` (Android 16, 2 GB, Software-Renderer) bestanden. Der erste Auto-Orient-Slice-Lauf auf `small_phone(AVD)` (1 GB) endete mit „Instrumentation run failed due to Process crashed“, bevor der Test startete; der korrekte Einzeltest lief anschließend auf der 2-GB-AVD mit `numtests=1`, `OK (1 test)`. Das ist ein AVD-/Runner-Ausfall und kein fehlgeschlagener Funktionsassert.
+- Keine Änderungen am App-Laufzeitcode, kein APK-Build und kein Druckstart in diesem Verifikationsdurchgang.
+
 # Modellbearbeitung und native Slice-Rundläufe — Android 16 — 2026-10-27
 
 - `InitialProjectMenuDeviceTest.objectListGroupCanBeCombinedAsPartsFromTheModelMenu` 1/1 bestanden: ausgewählte Objekte als mehrteilige Gruppe verbinden.
