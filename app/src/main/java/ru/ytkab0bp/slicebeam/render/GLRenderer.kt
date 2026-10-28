@@ -997,11 +997,26 @@ if (Prefs.isOrthoProjectionEnabled())
 {
 val min = bed!!.getVolumeMin()!!
 val max = bed!!.getVolumeMax()!!
-// The diagonal also fits the isometric bed in a narrow viewport, regardless of bed origin.
-val scale = (kotlin.math.hypot(max.x - min.x, max.y - min.y) / 2.0 + 10.0) * invZoom
-val ratioHorizontal = if (aspectRatio > 1) aspectRatio else 1f
-val ratioVertical = if (aspectRatio < 1) 1f / aspectRatio else 1f
-DoubleMatrix.orthoM(projectionMatrix, 0, (-scale * ratioHorizontal).toDouble(), (scale * ratioHorizontal).toDouble(), (-scale * ratioVertical).toDouble(), (scale * ratioVertical).toDouble(), NEAR_PLANE.toDouble(), FAR_PLANE.toDouble())
+// Fit the actual projected bed corners. The GL viewport gets shorter when a paint
+// dock opens; deriving scale only from the plate's XY diagonal kept the previous zoom
+// and clipped the plate on those narrow viewports.
+val viewMatrix = camera.getViewModelMatrix()
+var projectedHalfWidth = 0.0
+var projectedHalfHeight = 0.0
+for (x in doubleArrayOf(min.x, max.x)) {
+    for (y in doubleArrayOf(min.y, max.y)) {
+        val corner = doubleArrayOf(x, y, min.z, 1.0)
+        val inView = DoubleArray(4)
+        DoubleMatrix.multiplyMV(inView, 0, viewMatrix, 0, corner, 0)
+        projectedHalfWidth = maxOf(projectedHalfWidth, kotlin.math.abs(inView[0]))
+        projectedHalfHeight = maxOf(projectedHalfHeight, kotlin.math.abs(inView[1]))
+    }
+}
+val (halfWidth, halfHeight) = BuildPlateProjectionFit.halfExtents(
+    projectedHalfWidth, projectedHalfHeight, aspectRatio.toDouble(), camera.zoom.toDouble(),
+)
+DoubleMatrix.orthoM(projectionMatrix, 0, -halfWidth, halfWidth, -halfHeight, halfHeight,
+    NEAR_PLANE.toDouble(), FAR_PLANE.toDouble())
 }
 else
 {

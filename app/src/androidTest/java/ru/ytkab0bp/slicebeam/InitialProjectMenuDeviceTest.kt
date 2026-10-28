@@ -8253,6 +8253,9 @@ class InitialProjectMenuDeviceTest {
             val controls = compose.onNodeWithTag("workspace-docked-tool-panel").fetchSemanticsNode().boundsInRoot
             assertTrue("paint controls must not cover the plate viewport: viewport=$viewport controls=$controls",
                 viewport.bottom <= controls.top + 1f && viewport.height >= (viewport.height + controls.height) * 0.60f)
+            val plateNdc = readBuildPlateNdcBoundsOnGl(glView)
+            assertTrue("the full build plate must fit inside the resized paint viewport; projected bounds=$plateNdc",
+                plateNdc[0] >= -1f && plateNdc[1] <= 1f && plateNdc[2] >= -1f && plateNdc[3] <= 1f)
             compose.onNodeWithTag("paint-controls-scroll").performTouchInput { swipeUp() }
             compose.onNodeWithTag("paint-palette-row").assertIsDisplayed()
 
@@ -9327,6 +9330,43 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not report the build plate state", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(valid.get())
+    }
+
+    /** Returns minX, maxX, minY, maxY after projecting all four build plate corners. */
+    private fun readBuildPlateNdcBoundsOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): FloatArray {
+        val finished = CountDownLatch(1)
+        val bounds = AtomicReference<FloatArray>()
+        glView.queueEvent {
+            val renderer = glView.renderer
+            val bed = requireNotNull(renderer.bed)
+            val min = requireNotNull(bed.getVolumeMin())
+            val max = requireNotNull(bed.getVolumeMax())
+            val viewProjection = DoubleArray(16)
+            ru.ytkab0bp.slicebeam.utils.DoubleMatrix.multiplyMM(
+                viewProjection, 0, renderer.projectionMatrix, 0,
+                renderer.camera.getViewModelMatrix(), 0,
+            )
+            var minX = Double.POSITIVE_INFINITY
+            var maxX = Double.NEGATIVE_INFINITY
+            var minY = Double.POSITIVE_INFINITY
+            var maxY = Double.NEGATIVE_INFINITY
+            for (x in doubleArrayOf(min.x, max.x)) {
+                for (y in doubleArrayOf(min.y, max.y)) {
+                    val clip = DoubleArray(4)
+                    ru.ytkab0bp.slicebeam.utils.DoubleMatrix.multiplyMV(
+                        clip, 0, viewProjection, 0, doubleArrayOf(x, y, min.z, 1.0), 0,
+                    )
+                    val ndcX = clip[0] / clip[3]
+                    val ndcY = clip[1] / clip[3]
+                    minX = minOf(minX, ndcX); maxX = maxOf(maxX, ndcX)
+                    minY = minOf(minY, ndcY); maxY = maxOf(maxY, ndcY)
+                }
+            }
+            bounds.set(floatArrayOf(minX.toFloat(), maxX.toFloat(), minY.toFloat(), maxY.toFloat()))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return projected build plate bounds", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(bounds.get())
     }
 
     private fun readRendererBooleanOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, fieldName: String): Boolean {
