@@ -985,12 +985,19 @@ surfaceNeedsResourceRebuild = true
 }
 override fun onSurfaceChanged(gl:GL10, width:Int, height:Int) {
 if (width <= 0 || height <= 0) return
+// Opening the docked paint panel reduces the GL surface while preserving the camera
+// zoom. At a zoom above the bed-fit level that can crop the plate even though the new
+// orthographic projection is otherwise fitted correctly. Refit on a shrinking paint
+// viewport; the user can still zoom in again after the dock has settled.
+val paintViewportShrank = isPaintMode && viewportWidth > 0 && viewportHeight > 0 &&
+    (width < viewportWidth || height < viewportHeight)
 viewportWidth = width
 viewportHeight = height
 if (bed != null && surfaceNeedsResourceRebuild) onDestroy()
 if (bed == null) onCreate()
 surfaceNeedsResourceRebuild = false
 glViewport(0, 0, width, height)
+if (paintViewportShrank && camera.zoom > 1f) camera.zoom = 1f
 updateProjection()
 }
 fun updateProjection() {

@@ -8272,6 +8272,12 @@ class InitialProjectMenuDeviceTest {
             assertEquals(2, model.objectsCount)
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
+            val zoomReady = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.camera.zoom = 2f
+                zoomReady.countDown()
+            }
+            assertTrue("GL thread should apply the pre-paint zoom", zoomReady.await(5, TimeUnit.SECONDS))
 
             openSelectedObjectMenu(activity)
             revealMenuAction(activity, R.string.MenuToolbarColorPaint)
@@ -8295,6 +8301,8 @@ class InitialProjectMenuDeviceTest {
             val plateNdc = readBuildPlateNdcBoundsOnGl(glView)
             assertTrue("the full build plate must fit inside the resized paint viewport; projected bounds=$plateNdc",
                 plateNdc[0] >= -1f && plateNdc[1] <= 1f && plateNdc[2] >= -1f && plateNdc[3] <= 1f)
+            assertEquals("shrinking the paint viewport should refit the camera so the bed stays visible",
+                1f, readRendererCameraZoomOnGl(glView), 0.001f)
             compose.onNodeWithTag("paint-controls-scroll").performTouchInput { swipeUp() }
             compose.onNodeWithTag("paint-palette-row").assertIsDisplayed()
 
@@ -9406,6 +9414,17 @@ class InitialProjectMenuDeviceTest {
         }
         assertTrue("GL thread did not return projected build plate bounds", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(bounds.get())
+    }
+
+    private fun readRendererCameraZoomOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView): Float {
+        val finished = CountDownLatch(1)
+        val zoom = AtomicReference<Float>()
+        glView.queueEvent {
+            zoom.set(glView.renderer.camera.zoom)
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return camera zoom", finished.await(5, TimeUnit.SECONDS))
+        return requireNotNull(zoom.get())
     }
 
     private fun readRendererBooleanOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, fieldName: String): Boolean {
