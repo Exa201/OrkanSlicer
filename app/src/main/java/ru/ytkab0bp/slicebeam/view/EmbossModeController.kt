@@ -6,6 +6,7 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.io.File
 
 /** Keeps emboss event handling and GL mutations outside the Compose presentation. */
@@ -51,12 +52,14 @@ internal class EmbossModeController(
         standaloneMode: Boolean = false,
         followSurface: Boolean = false,
         fontPreset: EmbossFontPreset = EmbossFontPreset.ROBOTO_MEDIUM,
+        standaloneFilament: Int = 1,
     ) {
         options = EmbossModeOptions.create(
             parameters = EmbossTextInputValidator.validate(text, size, depth),
             addMode = addMode,
             standaloneMode = standaloneMode,
             followSurface = followSurface,
+            standaloneFilament = standaloneFilament,
         )
         fontFilePath = resolveFontFile(fontPreset) ?: fontFilePath
         glView.renderer.isStandaloneTextPlacementMode = standaloneMode
@@ -98,11 +101,27 @@ internal class EmbossModeController(
             try {
                 val model = glView.renderer.model ?: return@queueEvent
                 val affectedObject = if (createSeparateObject) {
+                    val targetObjectIndex = if (editOptions.followSurface && !event.isBuildPlatePlacement) {
+                        event.targetObjectIndex
+                    } else {
+                        -1
+                    }
                     model.createTextObject(
                         fontPath, safeText, safeSize, safeDepth, event.position, event.normal,
-                        targetObjectIndex = if (editOptions.followSurface && !event.isBuildPlatePlacement) event.targetObjectIndex else -1,
+                        targetObjectIndex = targetObjectIndex,
                     )
-                        .also { if (it < 0) throw IllegalStateException("Text model could not be created") }
+                        .also {
+                            if (it < 0) throw IllegalStateException("Text model could not be created")
+                            // Standalone text is a separate printable object and can have
+                            // its own slicer filament. Surface-following text is a volume
+                            // of the target, so retain that object's existing material.
+                            if (targetObjectIndex < 0) {
+                                model.setUniformFilament(
+                                    it,
+                                    editOptions.standaloneFilament.coerceIn(1, Prefs.MAX_FILAMENT_COLORS),
+                                )
+                            }
+                        }
                 } else {
                     model.embossText(
                         selectedObject, fontPath, safeText, safeSize, safeDepth,
@@ -193,6 +212,7 @@ internal class EmbossModeOptions private constructor(
     val addMode: Boolean,
     val standaloneMode: Boolean,
     val followSurface: Boolean,
+    val standaloneFilament: Int,
 ) {
     companion object {
         fun create(
@@ -200,7 +220,14 @@ internal class EmbossModeOptions private constructor(
             addMode: Boolean,
             standaloneMode: Boolean,
             followSurface: Boolean,
-        ) = EmbossModeOptions(parameters, addMode, standaloneMode, standaloneMode && followSurface)
+            standaloneFilament: Int = 1,
+        ) = EmbossModeOptions(
+            parameters,
+            addMode,
+            standaloneMode,
+            standaloneMode && followSurface,
+            standaloneFilament.coerceIn(1, Prefs.MAX_FILAMENT_COLORS),
+        )
     }
 }
 

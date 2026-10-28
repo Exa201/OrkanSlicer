@@ -3,6 +3,7 @@ package ru.ytkab0bp.slicebeam
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -26,6 +27,8 @@ import ru.ytkab0bp.slicebeam.ui.workspace.VariableLayerHeightPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceModePanelHost
 import ru.ytkab0bp.slicebeam.view.EmbossModeController
 import ru.ytkab0bp.slicebeam.view.GLView
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import ru.ytkab0bp.slicebeam.utils.Prefs
 
 @RunWith(AndroidJUnit4::class)
 class GlModePanelsComposeDeviceTest {
@@ -147,6 +150,31 @@ class GlModePanelsComposeDeviceTest {
         compose.onNodeWithTag("emboss-follow-surface").assertIsDisplayed().performClick()
         compose.onNodeWithTag("emboss-follow-surface").assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.TextFollowSurfaceHelp)).assertIsDisplayed()
+    }
+
+    @Test
+    fun standaloneTextPanelLetsUserChooseFilamentWithoutChangingSurfaceInheritedMaterial() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFF222222.toInt(), "Text Black"),
+            FilamentSlot(0xFF3366CC.toInt(), "Text Blue"),
+        ))
+        lateinit var controller: EmbossModeController
+        compose.runOnUiThread { controller = EmbossModeController(context, GLView(context)) }
+        try {
+            compose.setContent { BeamComposeTheme { EmbossModePanel(controller) {} } }
+            compose.onNodeWithTag("emboss-standalone-mode").performClick()
+            compose.onNodeWithTag("emboss-text-filament-1").performScrollTo().assertIsDisplayed().assertIsSelected()
+            compose.onNodeWithTag("emboss-text-filament-2").performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("emboss-text-filament-2").assertIsSelected()
+            compose.onNodeWithText(context.getString(R.string.TextModelFilamentHelp)).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("emboss-follow-surface").performClick()
+            compose.onNodeWithTag("emboss-text-filament-2").assertIsSelected()
+            compose.onNodeWithText(context.getString(R.string.TextModelFilamentSurfaceHelp)).performScrollTo().assertIsDisplayed()
+        } finally {
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
     }
 
     @Test

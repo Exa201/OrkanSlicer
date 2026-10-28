@@ -1227,6 +1227,10 @@
     <string name="EmbossRaise">Raise</string>
     <string name="EmbossEngrave">Engrave</string>
     <string name="TextModelCreateSeparate">Create a separate 3D text object</string>
+    <string name="TextModelFilamentLabel">Filament for separate text</string>
+    <string name="TextModelFilamentOption">T%1$d · %2$s</string>
+    <string name="TextModelFilamentHelp">Text placed on the build plate uses this filament.</string>
+    <string name="TextModelFilamentSurfaceHelp">Text added to a model surface inherits that model’s filament.</string>
     <string name="TextFollowCurvedSurface">Follow curved model surface</string>
     <string name="TextModelSurfaceFitError">The text does not fit on the tapped surface. Reduce its size or tap closer to the middle of the face.</string>
     <string name="TextFollowSurfaceHelp">The text is fitted to the tapped model and added as a printable part of it.</string>

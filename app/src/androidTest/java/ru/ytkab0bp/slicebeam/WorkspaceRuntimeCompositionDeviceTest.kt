@@ -25,6 +25,7 @@ import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.view.GLView
@@ -325,6 +326,11 @@ class WorkspaceRuntimeCompositionDeviceTest {
         SliceBeam.INSTANCE = application
         Prefs.init(application)
         Prefs.getPrefs()?.edit()?.remove("crash")?.putBoolean("converter_storage_first_prompt", true)?.commit()
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFF222222.toInt(), "Text Black"),
+            FilamentSlot(0xFF3366CC.toInt(), "Target Blue"),
+        ))
         Prefs.setLastCommit()
         SliceBeam.hasUpdateInfo = false
         SliceBeam.clearLiveDiffs()
@@ -380,6 +386,10 @@ class WorkspaceRuntimeCompositionDeviceTest {
             }
             clickTag(activity, "emboss-follow-surface")
             awaitSelected(activity, "emboss-follow-surface")
+            // Pick a different text filament deliberately: conforming text must remain
+            // a volume of the target and preserve that target's T1 assignment.
+            clickTag(activity, "emboss-text-filament-1")
+            awaitSelected(activity, "emboss-text-filament-1")
             setText(activity, "emboss-text-input", "A")
             setText(activity, "emboss-font-size", "1")
 
@@ -447,6 +457,7 @@ class WorkspaceRuntimeCompositionDeviceTest {
             generatedConfig?.delete()
             projectFile.delete()
             gcodeFile.delete()
+            Prefs.setStoredFilamentSlots(previousSlots)
             SliceBeam.CONFIG = previousConfig
             instrumentation.runOnMainSync {
                 (runCatching { activity.navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull())

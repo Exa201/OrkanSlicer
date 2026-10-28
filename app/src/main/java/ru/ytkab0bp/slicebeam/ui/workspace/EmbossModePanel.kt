@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +32,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.view.EmbossFontPreset
 import ru.ytkab0bp.slicebeam.view.EmbossModeController
 import ru.ytkab0bp.slicebeam.view.EmbossTextInputValidator
+import ru.ytkab0bp.slicebeam.utils.Prefs
 
 @Composable
 internal fun EmbossModePanel(
@@ -48,10 +50,14 @@ internal fun EmbossModePanel(
     var standaloneMode by remember { mutableStateOf(startInStandaloneMode) }
     var followSurface by remember { mutableStateOf(false) }
     var fontPreset by remember { mutableStateOf(EmbossFontPreset.ROBOTO_MEDIUM) }
+    var standaloneFilament by remember { mutableIntStateOf(1) }
+    val filamentSlots = remember(controller) { Prefs.getFilamentSlots() }
     val availableFonts = remember(controller) { controller.availableFontPresets() }
     val validation = EmbossTextInputValidator.validate(text, size, depth)
 
-    fun sync() = controller.update(text, size, depth, addMode, standaloneMode, followSurface, fontPreset)
+    fun sync() = controller.update(
+        text, size, depth, addMode, standaloneMode, followSurface, fontPreset, standaloneFilament,
+    )
     DisposableEffect(controller) {
         controller.start()
         sync()
@@ -94,6 +100,28 @@ internal fun EmbossModePanel(
                 onClick = { followSurface = !followSurface; sync() },
                 label = { Text(stringResource(R.string.TextFollowCurvedSurface)) },
                 modifier = Modifier.testTag("emboss-follow-surface"),
+            )
+            Text(stringResource(R.string.TextModelFilamentLabel), style = MaterialTheme.typography.labelLarge)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                filamentSlots.forEachIndexed { index, slot ->
+                    val filament = index + 1
+                    val type = slot.type?.takeIf(String::isNotBlank)
+                        ?: stringResource(R.string.FilamentType)
+                    FilterChip(
+                        selected = standaloneFilament == filament,
+                        onClick = { standaloneFilament = filament; sync() },
+                        label = { Text(stringResource(R.string.TextModelFilamentOption, index, type)) },
+                        modifier = Modifier.testTag("emboss-text-filament-$filament"),
+                    )
+                }
+            }
+            Text(
+                stringResource(if (followSurface) R.string.TextModelFilamentSurfaceHelp else R.string.TextModelFilamentHelp),
+                style = MaterialTheme.typography.bodySmall,
             )
             if (followSurface) {
                 Text(

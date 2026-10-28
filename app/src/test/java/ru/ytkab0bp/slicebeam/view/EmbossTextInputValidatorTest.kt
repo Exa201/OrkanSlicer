@@ -32,9 +32,32 @@ class EmbossTextInputValidatorTest {
         assertEquals(true, standalone.standaloneMode)
         assertEquals(true, standalone.followSurface)
         assertEquals(true, standalone.addMode)
+        assertEquals(1, standalone.standaloneFilament)
         assertEquals(false, embossed.standaloneMode)
         assertEquals(false, embossed.followSurface)
         assertEquals(false, embossed.addMode)
+    }
+
+    @Test
+    fun standaloneTextFilamentIsCapturedInTheSameImmutableToolSnapshot() {
+        val selected = EmbossModeOptions.create(
+            parameters = EmbossTextInputValidator.validate("Label", "10", "1"),
+            addMode = true,
+            standaloneMode = true,
+            followSurface = false,
+            standaloneFilament = 4,
+        )
+        val surfaceFollowing = EmbossModeOptions.create(
+            parameters = EmbossTextInputValidator.validate("Label", "10", "1"),
+            addMode = true,
+            standaloneMode = true,
+            followSurface = true,
+            standaloneFilament = 4,
+        )
+
+        assertEquals(4, selected.standaloneFilament)
+        assertEquals(4, surfaceFollowing.standaloneFilament)
+        assertTrue(surfaceFollowing.followSurface)
     }
 
     @Test

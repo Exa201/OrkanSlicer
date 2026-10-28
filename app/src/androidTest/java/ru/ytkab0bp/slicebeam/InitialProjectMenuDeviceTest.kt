@@ -7750,6 +7750,12 @@ class InitialProjectMenuDeviceTest {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFF222222.toInt(), "Text Black"),
+            FilamentSlot(0xFF3366CC.toInt(), "Text Blue"),
+        ))
+        try {
         assertEquals("the test starts with an empty build plate", 0, readObjectCountOnGl(glView))
 
         openModelMenu(activity)
@@ -7776,6 +7782,11 @@ class InitialProjectMenuDeviceTest {
             readRendererBooleanOnGl(glView, "isInEmbossMode"))
         assertTrue("standalone placement must allow bed hits without selecting a model",
             readRendererBooleanOnGl(glView, "isStandaloneTextPlacementMode"))
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("emboss-text-filament-2").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("emboss-text-filament-2").performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithTag("emboss-text-filament-2").assertIsSelected()
 
         val hit = AtomicReference<FloatArray>()
         val hitReady = CountDownLatch(1)
@@ -7827,8 +7838,8 @@ class InitialProjectMenuDeviceTest {
         // retain its material through 3MF export/reload and remain printable by the slicer.
         assertCurrentWorkspaceModelRoundTripsAndSlices(
             name = "standalone-text-menu",
-            expectedObjectFilaments = listOf(intArrayOf(1)),
-            allowedGcodeTools = setOf(0),
+            expectedObjectFilaments = listOf(intArrayOf(2)),
+            allowedGcodeTools = setOf(1),
         )
 
         bed.onBackPressed()
@@ -7864,6 +7875,10 @@ class InitialProjectMenuDeviceTest {
         textBounds.forEachIndexed { axis, expected ->
             assertEquals("Redo should preserve generated text bounds on axis $axis", expected,
                 redoneTextBounds[axis], 0.02)
+        }
+        } finally {
+            if (bed.isEmbossMode) bed.onBackPressed()
+            Prefs.setStoredFilamentSlots(previousSlots)
         }
     }
 
