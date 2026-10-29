@@ -27,11 +27,14 @@ import ru.ytkab0bp.slicebeam.components.MmuAssignmentContent
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.io.File
 
 /** Exercises the real workspace pre-send confirmation without issuing network or printer actions. */
@@ -248,15 +251,21 @@ class SlicePrintPreparationComposeDeviceTest {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val previousSlots = Prefs.getFilamentSlots()
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
         val slots = listOf(
             FilamentSlot(0xFF212721.toInt(), "PETG"),
             FilamentSlot(0xFFFFFFFF.toInt(), "PLA"),
             FilamentSlot(0xFF0047BB.toInt(), "PLA"),
         )
         val source = File(activity.cacheDir, "pre-slice-remap-colors.stl")
+        val project = File(activity.cacheDir, "pre-slice-remap-colors-roundtrip.3mf")
+        val gcodeFile = File(activity.cacheDir, "pre-slice-remap-colors.gcode")
         activity.assets
             .open("models/xyz_cube.stl").use { input -> source.outputStream().use(input::copyTo) }
         var model: Model? = null
+        var restored: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
         try {
             Prefs.setFilamentSlots(slots)
             model = Model(source)
@@ -294,7 +303,7 @@ class SlicePrintPreparationComposeDeviceTest {
             }
             compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
             compose.onNodeWithText(activity.getString(R.string.PreSliceRemapModelColors)).performScrollTo().performClick()
-            sourceTools.take(2).forEach { sourceTool ->
+            sourceTools.forEach { sourceTool ->
                 compose.onNodeWithTag("pre-slice-source-tool-$sourceTool").performScrollTo().performClick()
                 compose.onNodeWithTag("pre-slice-source-$sourceTool-slot-1").performScrollTo().performClick()
             }
@@ -305,10 +314,53 @@ class SlicePrintPreparationComposeDeviceTest {
             assertArrayEquals("every model color is passed as a one-based source tool",
                 sourceTools.map { it + 1 }.toIntArray(), requireNotNull(mappedSources.get()))
             val targetTools = requireNotNull(mappedTargets.get())
-            assertEquals("two model colors may intentionally map to the same destination slot", 2, targetTools.count { it == 2 })
+            assertEquals("every model color may intentionally map to the same destination slot",
+                sourceTools.size, targetTools.count { it == 2 })
+
+            // Exercise the same remap callback the workspace uses, then verify the chosen
+            // single white slot through the actual 3MF and G-code pipeline.
+            val remapped = CountDownLatch(1)
+            val remapFailure = AtomicReference<Throwable?>()
+            requireNotNull(bed.glView).queueEvent {
+                try {
+                    requireNotNull(model).remapFilaments(requireNotNull(mappedSources.get()), targetTools)
+                } catch (error: Throwable) {
+                    remapFailure.set(error)
+                } finally {
+                    remapped.countDown()
+                }
+            }
+            assertTrue("the remap must finish on the renderer thread", remapped.await(10, TimeUnit.SECONDS))
+            remapFailure.get()?.let { throw AssertionError("model-color remapping failed", it) }
+            assertEquals("all source volumes must now use the selected slot", listOf(2),
+                requireNotNull(model).getUsedFilaments(0).toList())
+            repeat(requireNotNull(model).objectsCount) { volume ->
+                assertEquals("source volume $volume must be remapped to one-based slot 2", 2,
+                    requireNotNull(model).getVolumeExtruder(0, volume))
+            }
+            SliceBeam.genCurrentConfig(requireNotNull(model))
+            requireNotNull(model).export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            restored = Model(project, 1)
+            assertEquals("the one-slot mapping must survive 3MF reload", listOf(2),
+                requireNotNull(restored).getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(requireNotNull(restored))
+            sliceResult = requireNotNull(restored).slice(
+                SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null,
+            )
+            val gcode = gcodeFile.readText()
+            assertTrue("the remapped model must extrude and emit the selected slot as T1",
+                Regex("(?m)^G1 .*\\bE[0-9.-]+\\b").containsMatchIn(gcode) &&
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("the original source colors must not reappear as T0 or T2",
+                Regex("(?m)^T(?:0|2)(?:\\s|$)").containsMatchIn(gcode))
         } finally {
+            sliceResult?.release()
+            restored?.release()
             model?.release()
             source.delete()
+            project.delete()
+            gcodeFile.delete()
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
             Prefs.setFilamentSlots(previousSlots)
         }
     }
