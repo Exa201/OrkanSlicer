@@ -213,6 +213,9 @@ val composeDialogHost = ComposeView(this).apply {
     ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
 )
 setContentView(v)
+// Check the stable GitHub release in the background. DownloadManager owns the transfer,
+// so it continues if this activity is stopped or the process is reclaimed.
+ru.ytkab0bp.slicebeam.utils.GitHubUpdater.checkAtAppStart(applicationContext)
 onBackPressedDispatcher.addCallback(this, object:OnBackPressedCallback(true) {
 override fun handleOnBackPressed() {
 if (!handleAppBack()) finishAfterTransition()

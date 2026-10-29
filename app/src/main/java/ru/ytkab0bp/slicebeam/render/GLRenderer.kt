@@ -942,12 +942,13 @@ if (!viewer!!.isOptionVisible(GCodeViewer.OPTION_TYPE_SEAMS))
 {
 viewer!!.toggleOptionVisibility(GCodeViewer.OPTION_TYPE_SEAMS)
 }
-if (isModelMultiColor)
+val sliceToolColors = gcodeResult?.previewToolColors
+if (ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.shouldUseToolPreview(isModelMultiColor, sliceToolColors))
 {
-val pal = gcodeResult?.previewToolColors
-    ?: ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette()
-val rgb = IntArray(pal.size)
-for (i in pal.indices) rgb[i] = pal[i] and 0xFFFFFF
+val rgb = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.previewColors(
+    sliceToolColors,
+    ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette(),
+)
 viewer!!.setToolColors(rgb)
 viewer!!.viewType = GCodeViewer.VIEW_TYPE_TOOL
 }

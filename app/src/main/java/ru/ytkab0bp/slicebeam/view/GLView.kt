@@ -29,6 +29,7 @@ import java.util.concurrent.Executors
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
+import ru.ytkab0bp.slicebeam.render.DevicePerformancePolicy
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
@@ -84,8 +85,8 @@ private val longClick = Runnable {
     val generation = touchGestureGeneration
     if (!pointerDownForLongClick) return@Runnable
     longClickActivationPending = true
-    val x = lastX * Prefs.getRenderScale()
-    val y = lastY * Prefs.getRenderScale()
+    val x = surfaceTouchX(lastX)
+    val y = surfaceTouchY(lastY)
     // Only a stationary long press needs an object pick. Running this on ACTION_DOWN
     // used to build native raycast data before every camera orbit, stalling the GL queue
     // behind potentially expensive mesh topology work.
@@ -129,9 +130,14 @@ private var xferPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 private var invalidBedText = TextPaint(Paint.ANTI_ALIAS_FLAG)
 private var invalidBedDescriptionLayout: StaticLayout? = null
 private var lastScale:Float = 0.toFloat()
+@Volatile private var glSurfaceWidth = 0
+@Volatile private var glSurfaceHeight = 0
+private fun surfaceTouchX(x: Float): Float =
+    DevicePerformancePolicy.mapTouchCoordinate(x, width, glSurfaceWidth)
+private fun surfaceTouchY(y: Float): Float =
+    DevicePerformancePolicy.mapTouchCoordinate(y, height, glSurfaceHeight)
 private fun paintAtScreen(x:Float, y:Float) {
-val renderScale = Prefs.getRenderScale()
-if (paintInputCoalescer.submit(x * renderScale, y * renderScale)) {
+if (paintInputCoalescer.submit(surfaceTouchX(x), surfaceTouchY(y))) {
     queueEvent { drainPaintInput() }
 }
 }
@@ -757,7 +763,7 @@ val y = e.getY(0) - e.getY(1)
 lastLength = (Math.sqrt((x * x + y * y).toDouble())).toFloat()
 }
 override fun onHoverEvent(event:MotionEvent):Boolean {
-if (if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT) renderer.stopHover() else renderer.hover(event.getX() * Prefs.getRenderScale(), event.getY() * Prefs.getRenderScale()))
+if (if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT) renderer.stopHover() else renderer.hover(surfaceTouchX(event.getX()), surfaceTouchY(event.getY())))
 {
 queueEvent(Runnable { requestRender() })
 }
@@ -842,8 +848,7 @@ lastX = e.getX()
 lastY = e.getY()
 longClickTargetObject = -1
 longClickMoved = false
-val renderScale = Prefs.getRenderScale()
-if (renderer.tryStartPrimeTowerDrag(lastX * renderScale, lastY * renderScale))
+if (renderer.tryStartPrimeTowerDrag(surfaceTouchX(lastX), surfaceTouchY(lastY)))
 {
 tapGestureGate.invalidate()
 removeCallbacks(longClick)
@@ -928,8 +933,8 @@ val dispatchTap = tapGestureGate.finish(
 )
 if (dispatchTap)
 {
-val x = e.getX() * Prefs.getRenderScale()
-val y = e.getY() * Prefs.getRenderScale()
+val x = surfaceTouchX(e.getX())
+val y = surfaceTouchY(e.getY())
 queueEvent {
 if (renderer.onClick(x, y)) requestRender()
 }
@@ -958,8 +963,7 @@ return true
 primeTowerMoved = true
 performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
 }
-val renderScale = Prefs.getRenderScale()
-if (renderer.dragPrimeTower(e.getX() * renderScale, e.getY() * renderScale))
+if (renderer.dragPrimeTower(surfaceTouchX(e.getX()), surfaceTouchY(e.getY())))
 {
 requestRender()
 }
@@ -1050,9 +1054,8 @@ if (!startingGesture)
 if (longClickGesture)
 {
 longClickMoved = true
-val renderScale = Prefs.getRenderScale()
-val x = e.getX() * renderScale
-val y = e.getY() * renderScale
+val x = surfaceTouchX(e.getX())
+val y = surfaceTouchY(e.getY())
 queueEvent {
     val activeModel = renderer.model ?: return@queueEvent
     val selected = renderer.selectedObject
@@ -1115,6 +1118,8 @@ super.surfaceCreated(holder)
 requestRender()
 }
 override fun surfaceChanged(holder:SurfaceHolder, format:Int, w:Int, h:Int) {
+glSurfaceWidth = w
+glSurfaceHeight = h
 super.surfaceChanged(holder, format, w, h)
 requestRender()
 }

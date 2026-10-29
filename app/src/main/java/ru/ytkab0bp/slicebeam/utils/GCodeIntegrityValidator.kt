@@ -128,12 +128,23 @@ object GCodeIntegrityValidator {
         if (declaredLayersAtEnd > 0 && declaredLayersAtEnd != expected) {
             return result(Failure.LAYER_COUNT_MISMATCH, expected, layerMarkers, "Header and end-of-file layer counts disagree.")
         }
-        if (layerMarkers != expected || (sawNumberedLayers && expectedNumber != expected)) {
+        // BEFORE_LAYER_CHANGE describes transitions between layers. A file with N
+        // actual layers can therefore legitimately contain N-1 numbered transitions
+        // (the initial layer has no preceding transition).
+        if (layerMarkers != expected) {
             return result(
                 Failure.LAYER_COUNT_MISMATCH,
                 expected,
                 layerMarkers,
                 "The file declares $expected layers but contains $layerMarkers layer starts."
+            )
+        }
+        if (sawNumberedLayers && expectedNumber != expected && expectedNumber != expected - 1) {
+            return result(
+                Failure.NUMBERING_GAP,
+                expected,
+                layerMarkers,
+                "Expected $expected layer numbers or $expected - 1 numbered transitions, but found $expectedNumber."
             )
         }
         if (completionBeforeFinalLayer) {

@@ -6317,12 +6317,43 @@ class InitialProjectMenuDeviceTest {
             assertEquals("unlinked X scaling should preserve Y", original.y, afterApply.y, 0.002)
             assertEquals("unlinked X scaling should preserve Z", original.z, afterApply.z, 0.002)
 
+            // A committed scale advances the model geometry revision. The same still-open
+            // scale tool must remain able to preview and commit another value.
+            compose.onNodeWithContentDescription("X, X =", substring = true).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ScaleManualPercent))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val secondScaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            secondScaleField.performTextClearance()
+            secondScaleField.performTextInput("150")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).x - original.x * 1.5) < 0.002
+            }
+            assertEquals("a second confirmed scale must update the native model", original.x * 1.5,
+                readScaleOnGl(glView, 0).x, 0.002)
+
             compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).x - original.x * 1.25) < 0.002
+            }
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).x - original.x) < 0.002
+            }
             val afterUndo = readScaleOnGl(glView, 0)
             assertEquals("Undo should restore the pre-scale model", original.x, afterUndo.x, 0.002)
             compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).x - original.x * 1.25) < 0.002
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).x - original.x * 1.5) < 0.002
+            }
             val afterRedo = readScaleOnGl(glView, 0)
-            assertEquals("Redo should restore the confirmed scale", original.x * 1.25, afterRedo.x, 0.002)
+            assertEquals("Redo should restore the latest confirmed scale", original.x * 1.5, afterRedo.x, 0.002)
 
             val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
                 .apply { isAccessible = true }.get(bed)
@@ -6335,7 +6366,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("closing the scale tool should preserve the Model destination",
                 WorkspaceDestination.MODEL.ordinal,
                 workspaceController.javaClass.getMethod("getSelectedDestinationSlot").invoke(workspaceController))
-            assertEquals("closing the tool must keep the committed scale", original.x * 1.25,
+            assertEquals("closing the tool must keep the committed scale", original.x * 1.5,
                 readScaleOnGl(glView, 0).x, 0.002)
 
             openSelectedObjectMenu(activity)
@@ -6347,7 +6378,7 @@ class InitialProjectMenuDeviceTest {
             assertEquals("Reset Scale should restore the original native X scale", original.x,
                 afterReset.x, 0.002)
             compose.runOnUiThread { bed.undoModelEdit() }
-            assertEquals("Undo should restore the explicitly confirmed scale after reset", original.x * 1.25,
+            assertEquals("Undo should restore the explicitly confirmed scale after reset", original.x * 1.5,
                 readScaleOnGl(glView, 0).x, 0.002)
             compose.runOnUiThread { bed.redoModelEdit() }
             assertEquals("Redo should restore the reset scale", original.x,
@@ -6785,7 +6816,9 @@ class InitialProjectMenuDeviceTest {
                 compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuAlignSelected))
                     .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
                 val option = activity.getString(label)
-                compose.onNodeWithText(option).assertIsDisplayed().performClick()
+                // Z options are lower in the dialog's LazyColumn; scroll them into view
+                // before asserting/clicking so the test exercises the real scrollable UI.
+                compose.onNodeWithText(option).performScrollTo().assertIsDisplayed().performClick()
                 compose.waitUntil(timeoutMillis = 10_000) {
                     val current = bounds()
                     when (label) {

@@ -160,7 +160,9 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
         startedScrollObject = index
         glView.queueEvent {
             val renderer = glView.renderer
-            if (!renderer.isSelectionSnapshotCurrent(snapshot)) return@queueEvent
+            // Scaling intentionally advances the model geometry revision. Keep preview
+            // updates valid while the same model and exact selection remain active.
+            if (!renderer.isSelectionBindingCurrent(snapshot)) return@queueEvent
             runCatching {
             val model = snapshot.model
             val current = Vec3d()
@@ -205,7 +207,9 @@ class TransformScaleMenu(private val bed: BedFragment) : WorkspaceComposeToolRou
 
         glView.queueEvent {
             val activeRenderer = glView.renderer
-            if (!activeRenderer.isSelectionSnapshotCurrent(snapshot)) return@queueEvent
+            // The geometry revision changes after each committed scale, so validate the
+            // model/selection binding rather than requiring the original revision.
+            if (!activeRenderer.isSelectionBindingCurrent(snapshot)) return@queueEvent
             val model = activeRenderer.model ?: return@queueEvent
             runCatching {
                 val rotation = Vec3d()
