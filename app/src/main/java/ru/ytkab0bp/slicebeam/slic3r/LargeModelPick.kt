@@ -12,12 +12,19 @@ internal object LargeModelPick {
     // A balanced raycast tree uses bounded memory and supports precise picks for common generated
     // parts such as M12 fasteners. Truly massive meshes still use bounds-only selection.
     const val EXACT_RAYCAST_TRIANGLE_LIMIT = 100_000
+    // Color painting is already bounded by TRIANGLE_LIMIT and needs facet-accurate
+    // hits. Build its dedicated precise tree up to that cap; normal selection keeps
+    // using the cheaper bounds-only path above EXACT_RAYCAST_TRIANGLE_LIMIT.
+    const val PAINT_RAYCAST_TRIANGLE_LIMIT = TRIANGLE_LIMIT
     // Keep decimated meshes below the hard raycast cap to allow for simplifier variance.
     const val SAFE_RAYCAST_TRIANGLE_TARGET = 80_000
 
     fun needsPreciseSurfaceSimplification(triangleCount: Int): Boolean = triangleCount > TRIANGLE_LIMIT
 
     fun needsBoundsOnlyPicking(triangleCount: Int): Boolean = triangleCount > EXACT_RAYCAST_TRIANGLE_LIMIT
+
+    fun canUsePrecisePaintRaycast(triangleCount: Int): Boolean =
+        triangleCount in 1..PAINT_RAYCAST_TRIANGLE_LIMIT
 
     /** Surface placement uses exact triangle hits while the lightweight raycast tree stays bounded. */
     fun canUsePreciseSurfaceTools(triangleCount: Int): Boolean =

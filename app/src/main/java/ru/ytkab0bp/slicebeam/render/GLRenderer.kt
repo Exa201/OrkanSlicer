@@ -2097,7 +2097,7 @@ if (this.model == null || objIdx < 0 || objIdx >= this.model!!.objectsCount) ret
 // another caller skipped the UI check; the user may explicitly simplify first.
 if (LargeModelPick.needsPreciseSurfaceSimplification(this.model!!.getTriangleCount(objIdx))) return false
 endPaintInternal(false)
-// Ensure the object's GLModel + raycast data exist (built lazily in onDrawFrame otherwise).
+// Ensure the object's GLModel + precise raycast tree exist (built lazily in onDrawFrame otherwise).
  while (glModels.size <= objIdx)
 {
 val gm = GLModel()
@@ -2106,8 +2106,10 @@ glModels.add(gm)
 }
 // Editing/painting must raycast against the full-resolution model, even if the
 // normal viewport was using a reduced mesh for this object.
-glModels[objIdx].reset()
-glModels[objIdx].initFrom(this.model!!, objIdx)
+if (!glModels[objIdx].initForPaint(this.model!!, objIdx)) {
+    Log.e("GLRenderer", "Could not prepare precise paint raycast for object=$objIdx")
+    return false
+}
 paintModeKind = mode
 paintSession = PaintSession(this.model!!, objIdx, mode)
 if (!paintSession!!.isValid()) {

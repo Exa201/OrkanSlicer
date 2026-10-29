@@ -51,6 +51,10 @@ class LargeModelPickTest {
             LargeModelPick.canUsePreciseSurfaceTools(LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT))
         assertFalse("very dense bounds-only meshes must not enter precise surface tools",
             LargeModelPick.canUsePreciseSurfaceTools(LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT + 1))
+        assertTrue("KromaCut artwork below the paint cap must retain precise paint hits",
+            LargeModelPick.canUsePrecisePaintRaycast(165_264))
+        assertTrue(LargeModelPick.canUsePrecisePaintRaycast(LargeModelPick.PAINT_RAYCAST_TRIANGLE_LIMIT))
+        assertFalse(LargeModelPick.canUsePrecisePaintRaycast(LargeModelPick.PAINT_RAYCAST_TRIANGLE_LIMIT + 1))
         assertFalse(LargeModelPick.needsBoundsOnlyPicking(40_000))
         assertTrue(LargeModelPick.needsBoundsOnlyPicking(100_001))
         assertEquals(1f, LargeModelPick.suggestedKeepRatio(200_000), 0f)

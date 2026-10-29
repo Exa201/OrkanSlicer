@@ -64,6 +64,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assume.assumeTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -8504,6 +8505,104 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun userKromaCutFixtureShowsLivePaintWithOnePaletteAndVisibleBuildPlate() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val fixture = File(activity.cacheDir, "kromacut-live-paint-fixture.3mf")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "Kroma Paint Base"),
+            FilamentSlot(0xFF3366CC.toInt(), "Kroma Paint Accent"),
+        ))
+        try {
+            val fixturePipe = InstrumentationRegistry.getInstrumentation().uiAutomation
+                .executeShellCommand("cat /data/local/tmp/kromacut.3mf")
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(fixturePipe).use { input ->
+                fixture.outputStream().use { output -> input.copyTo(output) }
+            }
+            assumeTrue(
+                "Push the provided KromaCut 3MF to /data/local/tmp/kromacut.3mf",
+                fixture.length() > 1_000_000L,
+            )
+
+            val loadedLatch = CountDownLatch(1)
+            val loaded = AtomicReference<Model?>()
+            val loadFailure = AtomicReference<Exception?>()
+            bed.loadModel(fixture, false, 1, object : BedFragment.ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    loaded.set(loadedModel)
+                    loadedLatch.countDown()
+                }
+
+                override fun onFailed(error: Exception) {
+                    loadFailure.set(error)
+                    loadedLatch.countDown()
+                }
+            })
+            assertTrue("KromaCut 3MF load should complete", loadedLatch.await(90, TimeUnit.SECONDS))
+            val model = requireNotNull(loaded.get()) { "KromaCut load failed: ${loadFailure.get()}" }
+            assertEquals("the supplied KromaCut project is one assembled multicolor object", 1, model.objectsCount)
+            assertEquals("both original imported colors should remain assigned", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuToolbarColorPaint)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 20_000) {
+                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            }
+            assertEquals("KromaCut painting must expose exactly one filament palette row", 1,
+                compose.onAllNodesWithTag("paint-palette-row").fetchSemanticsNodes().size)
+            assertEquals("the header filament palette must stay hidden during paint mode", 0,
+                compose.onAllNodesWithContentDescription(
+                    activity.getString(R.string.WorkspaceFilamentButtonDescription, 2),
+                ).fetchSemanticsNodes().size)
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+            val viewport = compose.onNodeWithTag("workspace-renderer-area").fetchSemanticsNode().boundsInRoot
+            val controls = compose.onNodeWithTag("workspace-docked-tool-panel").fetchSemanticsNode().boundsInRoot
+            assertTrue("paint controls must not cover the KromaCut plate viewport", viewport.bottom <= controls.top + 1f)
+            assertTrue("the plate geometry must remain inside the resized viewport",
+                readBuildPlateNdcBoundsOnGl(glView).let { it[0] >= -1f && it[1] <= 1f && it[2] >= -1f && it[3] <= 1f })
+
+            val point = findUncoveredPreciseSurfacePoint(glView, bed)
+            val before = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            revealPaintFilamentSwatch(activity, 2, "Kroma Paint Accent", occurrence = 0).performClick()
+            injectCanvasStroke(
+                glView,
+                point.first,
+                point.second,
+                previewPoint = point,
+                whileFingerDown = {
+                    paintAtScreenPointWhileHeld(glView, point)
+                    instrumentationWaitForGlIdle()
+                    compose.waitUntil(timeoutMillis = 3_000) {
+                        !readRendererBooleanOnGl(glView, "paintOverlayRebuildPending") &&
+                            !readRendererBooleanOnGl(glView, "paintOverlayRefreshScheduled")
+                    }
+                    assertPaintColorVisibleAtPoint(
+                        before.copy(android.graphics.Bitmap.Config.ARGB_8888, false),
+                        InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot(),
+                        point,
+                        0xFF3366CC.toInt(),
+                        "KromaCut brush color should be rendered before the user confirms the paint session",
+                    )
+                    assertFalse("the visible KromaCut paint remains a draft until confirmation",
+                        readModelHasPaintOnGl(glView, 0))
+                },
+            )
+            assertTrue("KromaCut paint preview should leave the plate available", bed.glView === glView)
+        } finally {
+            if (bed.isPaintMode) bed.onBackPressed()
+            fixture.delete()
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
     fun colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -9843,11 +9942,28 @@ class InitialProjectMenuDeviceTest {
             requireNotNull(bed.overlayLayout).getLocationOnScreen(composeLocation)
         }
         val result = AtomicReference<Pair<Float, Float>?>(null)
+        val rendererDiagnostic = AtomicReference<String>("not available")
         val finished = CountDownLatch(1)
         val failure = AtomicReference<Throwable?>()
         glView.queueEvent {
             try {
                 val renderer = glView.renderer
+                val model = renderer.model
+                val min = Vec3d()
+                val max = Vec3d()
+                val bedMin = Vec3d()
+                val bedMax = Vec3d()
+                if (model != null && model.objectsCount > 0) model.getBoundingBoxExact(0, min, max)
+                renderer.bed?.getVolumeMin()?.let(bedMin::set)
+                renderer.bed?.getVolumeMax()?.let(bedMax::set)
+                rendererDiagnostic.set(
+                    "triangles=${model?.getTriangleCount(0)} viewport=${renderer.viewportWidth}x${renderer.viewportHeight} " +
+                        "renderScale=${Prefs.getRenderScale()} camera=${renderer.camera.position.x}," +
+                        "${renderer.camera.position.y},${renderer.camera.position.z} origin=${renderer.camera.origin.x}," +
+                        "${renderer.camera.origin.y},${renderer.camera.origin.z} " +
+                        "bedBounds=${bedMin.x},${bedMin.y},${bedMin.z}..${bedMax.x},${bedMax.y},${bedMax.z} " +
+                        "objectBounds=${min.x},${min.y},${min.z}..${max.x},${max.y},${max.z}",
+                )
                 @Suppress("UNCHECKED_CAST")
                 val models = GLRenderer::class.java.getDeclaredField("glModels")
                     .apply { isAccessible = true }.get(renderer) as ArrayList<GLModel>
@@ -9892,6 +10008,33 @@ class InitialProjectMenuDeviceTest {
                         }
                     }
                 }
+                // Imported raster/relief meshes may not be centered like the bundled cube.
+                // If the center-first search misses, scan the remaining visible GL viewport
+                // before concluding that the model has no paintable surface.
+                for (y in 8 until renderer.viewportHeight step 16) {
+                    for (x in 8 until renderer.viewportWidth step 16) {
+                        val localX = x / renderScale
+                        val localY = y / renderScale
+                        val rootX = glLocation[0] + localX - composeLocation[0]
+                        val rootY = glLocation[1] + localY - composeLocation[1]
+                        if (avoid != null) {
+                            val distanceX = kotlin.math.abs(glLocation[0] + localX - avoid.first)
+                            val distanceY = kotlin.math.abs(glLocation[1] + localY - avoid.second)
+                            val tooClose = minimumAvoidDistancePx?.let { minimum ->
+                                kotlin.math.hypot(distanceX, distanceY) < minimum
+                            } ?: (distanceX < 20f && distanceY < 20f)
+                            if (tooClose) continue
+                        }
+                        if (modePanelBounds?.contains(Offset(rootX, rootY)) == true ||
+                            menuPanelBounds?.contains(Offset(rootX, rootY)) == true
+                        ) continue
+                        mesh.raycaster.raycast(renderer, hits, x.toFloat(), y.toFloat())
+                        if (hits.any { !it.approximate && (!requireUpwardFace || it.normal.z > 0.7) }) {
+                            result.set((glLocation[0] + localX) to (glLocation[1] + localY))
+                            return@queueEvent
+                        }
+                    }
+                }
             } catch (error: Throwable) {
                 failure.set(error)
             } finally {
@@ -9902,7 +10045,7 @@ class InitialProjectMenuDeviceTest {
         failure.get()?.let { throw AssertionError("Could not locate visible paint target", it) }
         return requireNotNull(result.get()) {
             "No precise model surface point was reachable outside workspace panels; " +
-                "modePanel=$modePanelBounds, menuPanel=$menuPanelBounds"
+                "modePanel=$modePanelBounds, menuPanel=$menuPanelBounds, ${rendererDiagnostic.get()}"
         }
     }
 

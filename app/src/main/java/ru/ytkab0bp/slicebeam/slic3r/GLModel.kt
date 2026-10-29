@@ -36,20 +36,42 @@ open class GLModel internal constructor(
         Native.glmodel_init_from_model_object(pointer, model.pointer, i)
     }
 
+    /** Initialize the full-resolution mesh and a precise raycast tree for an active paint session. */
+    @Synchronized
+    open fun initForPaint(model: Model, i: Int): Boolean {
+        if (!LargeModelPick.canUsePrecisePaintRaycast(model.getTriangleCount(i))) return false
+        updatePickBounds(model, i, LargeModelPick.PAINT_RAYCAST_TRIANGLE_LIMIT)
+        Native.glmodel_init_from_model_object(pointer, model.pointer, i)
+        if (approximatePickBounds != null) return false
+        val ready = try {
+            Native.glmodel_init_raycast_data(pointer)
+        } catch (error: RuntimeException) {
+            android.util.Log.w("GLModel", "Could not initialize precise paint raycast", error)
+            false
+        }
+        if (ready) raycasterCache = MeshRaycaster()
+        else approximatePickBounds = fallbackPickBounds
+        return ready
+    }
+
     @Synchronized
     open fun initPreviewFrom(model: Model, i: Int, maxTriangles: Int) {
         updatePickBounds(model, i)
         Native.glmodel_init_from_model_object_preview(pointer, model.pointer, i, maxTriangles)
     }
 
-    private fun updatePickBounds(model: Model, i: Int) {
+    private fun updatePickBounds(
+        model: Model,
+        i: Int,
+        exactTriangleLimit: Int = LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT,
+    ) {
         clearPicking()
         val min = Vec3d()
         val max = Vec3d()
         model.getBoundingBoxApprox(i, min, max)
         fallbackPickBounds = min to max
         approximatePickBounds = fallbackPickBounds.takeIf {
-            LargeModelPick.needsBoundsOnlyPicking(model.getTriangleCount(i))
+            model.getTriangleCount(i) > exactTriangleLimit
         }
     }
 
