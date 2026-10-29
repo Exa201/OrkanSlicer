@@ -397,7 +397,7 @@ class InitialProjectMenuDeviceTest {
             instrumentationWaitForGlIdle()
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
@@ -522,7 +522,7 @@ class InitialProjectMenuDeviceTest {
             beforeRevision.set(readGeometryRevisionOnGl(glView))
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
@@ -620,7 +620,7 @@ class InitialProjectMenuDeviceTest {
             instrumentationWaitForGlIdle()
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
@@ -759,7 +759,7 @@ class InitialProjectMenuDeviceTest {
             val beforeRevision = model.geometryRevision
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
@@ -822,7 +822,7 @@ class InitialProjectMenuDeviceTest {
 
             fun openBooleanDialog() {
                 openModelMenu(activity)
-                selectAllObjectsScope()
+                selectSingleObjectScope()
                 revealMenuAction(activity, R.string.ModelMenuBoolean)
                 compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                     .assertIsDisplayed().assertIsEnabled().performClick()
@@ -1457,7 +1457,7 @@ class InitialProjectMenuDeviceTest {
             val boundsBefore = readExactBoundsOnGl(glView, 0, 1, 2)
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuCombineSelected)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
                 .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
@@ -2090,7 +2090,7 @@ class InitialProjectMenuDeviceTest {
             instrumentationWaitForGlIdle()
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuBoolean)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertIsDisplayed().assertIsEnabled().performClick()
@@ -2885,6 +2885,10 @@ class InitialProjectMenuDeviceTest {
         val modelFile = File(activity.cacheDir, "model-menu-group-combine-test.stl")
         val roundTripFile = File(activity.cacheDir, "model-menu-group-combine-test.3mf")
         val gcodeFile = File(activity.cacheDir, "model-menu-group-combine-test.gcode")
+        val menuPreferences = activity.getSharedPreferences("workspace_menu_customization", 0)
+        val previousSelectionOrder = menuPreferences.getString("order_model_selected", null)
+        val previousSelectionHidden = menuPreferences.getStringSet("hidden_model_selected", null)?.toSet()
+        menuPreferences.edit().remove("order_model_selected").remove("hidden_model_selected").commit()
         val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
         Prefs.setStoredFilamentSlots(listOf(
             FilamentSlot(0xFF303030.toInt(), "Join T0"),
@@ -2944,7 +2948,7 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.selectedObjectsCount == 3 }
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuCombineSelected)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
                 .assertIsDisplayed().assertIsEnabled().performClick()
@@ -2975,6 +2979,11 @@ class InitialProjectMenuDeviceTest {
             // intentionally disables snapshots above its native-heap safety threshold.
             glView.selectModel(0, Runnable {})
             instrumentationWaitForGlIdle()
+            // Recreate the selection menu after the model changed from three objects to one.
+            // This prevents its remembered action visibility/order from a prior menu instance
+            // from hiding Split in a user-customized test installation.
+            menuPreferences.edit().remove("order_model_selected").remove("hidden_model_selected").commit()
+            openWorkspaceMenu(activity, WorkspaceDestination.PROJECT, R.string.MenuProject)
             openSelectedObjectMenu(activity)
             revealMenuAction(activity, R.string.ModelMenuSplit)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
@@ -3104,6 +3113,12 @@ class InitialProjectMenuDeviceTest {
             TemporaryProjectSettings.clear()
             Prefs.setStoredFilamentSlots(previousSlots)
             modelFile.delete()
+            menuPreferences.edit().apply {
+                if (previousSelectionOrder == null) remove("order_model_selected")
+                else putString("order_model_selected", previousSelectionOrder)
+                if (previousSelectionHidden == null) remove("hidden_model_selected")
+                else putStringSet("hidden_model_selected", previousSelectionHidden)
+            }.commit()
         }
     }
 
@@ -5939,7 +5954,7 @@ class InitialProjectMenuDeviceTest {
                 readObjectCountOnGl(glView))
 
             openModelMenu(activity)
-            selectAllObjectsScope()
+            selectSingleObjectScope()
             revealMenuAction(activity, R.string.ModelMenuCombineSelected)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
                 .assertIsDisplayed().assertIsEnabled().performClick()
