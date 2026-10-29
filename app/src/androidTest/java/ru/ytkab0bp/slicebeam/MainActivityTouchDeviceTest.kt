@@ -232,12 +232,12 @@ class MainActivityTouchDeviceTest {
             }
             assertTrue("surface placement safety check should finish on GL", prepared.await(10, TimeUnit.SECONDS))
             val triangleCount = model.getTriangleCount(0)
-            assertTrue("M12 target remains above the more expensive paint-topology threshold",
-                LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)))
-            assertTrue("M12 should remain under the memory-bounded exact raycast ceiling",
+            assertTrue("the generated M12 should stay within the exact raycast ceiling (triangles=$triangleCount)",
                 LargeModelPick.canUsePreciseSurfaceTools(triangleCount))
             assertFalse("M12 should not fall back to approximate bounds picking",
                 LargeModelPick.needsBoundsOnlyPicking(triangleCount))
+            assertFalse("the generated M12 should not require paint-topology simplification (triangles=$triangleCount)",
+                LargeModelPick.needsPreciseSurfaceSimplification(triangleCount))
             assertEquals("precise M12 surface placement should start", 1, result.get())
             assertTrue("the exact surface target should enter tap-to-place mode", glView.renderer.isSurfacePlacementActive)
             assertEquals("starting placement must not change source objects", 2, model.objectsCount)
@@ -249,17 +249,16 @@ class MainActivityTouchDeviceTest {
             assertTrue("cancel should be processed on GL", cancelled.await(10, TimeUnit.SECONDS))
             assertFalse("Android-side cancel should clear the active target", glView.renderer.isSurfacePlacementActive)
 
-            // M12 is above the heavier paint-topology limit but below the lightweight exact
-            // raycast limit. Embossing should therefore open directly instead of incorrectly
-            // asking the user to decimate a model that can already be picked precisely.
+            // The generated M12 stays below the precise-picking and paint-topology limits,
+            // so surface-aware embossing should open without an unnecessary simplify step.
             val selectionReady = CountDownLatch(1)
             glView.queueEvent {
                 glView.renderer.setSelectedObject(1)
                 selectionReady.countDown()
             }
             assertTrue("M12 emboss selection should be set on GL", selectionReady.await(10, TimeUnit.SECONDS))
-            assertTrue("M12 should be selected above the paint-topology threshold",
-                LargeModelPick.needsPreciseSurfaceSimplification(triangleCount))
+            assertTrue("M12 should be selected below the paint-topology threshold",
+                !LargeModelPick.needsPreciseSurfaceSimplification(triangleCount))
             bed.enterEmbossMode()
             assertTrue("precise M12 embossing should not require unnecessary simplification", bed.isEmbossMode)
             assertTrue("emboss mode should be enabled on GL", glView.renderer.isInEmbossMode)
@@ -339,6 +338,57 @@ class MainActivityTouchDeviceTest {
             assertEquals("The workspace should contain the touch target", 1, model.objectsCount)
             assertEquals("The M12 touch target should retain its generated facets", expectedFacets,
                 model.getTriangleCount(0))
+            val cameraGlViewRef = AtomicReference<GLView>()
+            scenario.onActivity {
+                cameraGlViewRef.set(requireNotNull(bed?.glView))
+                cameraGlViewRef.get().requestRender()
+            }
+            val cameraGlView = requireNotNull(cameraGlViewRef.get())
+            val meshesField = cameraGlView.renderer.javaClass.getDeclaredField("glModels").apply { isAccessible = true }
+            val raycasterField = GLModel::class.java.getDeclaredField("raycasterCache").apply { isAccessible = true }
+            var generatedMesh: GLModel? = null
+            val meshDeadline = SystemClock.uptimeMillis() + 10_000L
+            while (generatedMesh == null && SystemClock.uptimeMillis() < meshDeadline) {
+                val meshesReady = CountDownLatch(1)
+                scenario.onActivity {
+                    cameraGlView.queueEvent {
+                        generatedMesh = (meshesField.get(cameraGlView.renderer) as? List<*>)
+                            ?.firstOrNull() as? GLModel
+                        meshesReady.countDown()
+                    }
+                }
+                assertTrue("The M12 GL mesh should initialize", meshesReady.await(5, TimeUnit.SECONDS))
+                if (generatedMesh == null) SystemClock.sleep(50L)
+            }
+            val m12Mesh = requireNotNull(generatedMesh) { "The renderer did not initialize the loaded M12 mesh" }
+            val cameraModeBefore = Prefs.getCameraControlMode()
+            try {
+                Prefs.setCameraControlMode(Prefs.CAMERA_CONTROL_MODE_ROTATE_MOVE)
+                assertTrue("The generated M12 should not build a pick tree before user interaction",
+                    raycasterField.get(m12Mesh) == null)
+                val cameraBeforeDrag = readCameraPose(cameraGlView)
+                val downTime = SystemClock.uptimeMillis()
+                val centerX = cameraGlView.width / 2f
+                val centerY = cameraGlView.height / 2f
+                scenario.onActivity {
+                    dispatch(cameraGlView, MotionEvent.ACTION_DOWN, centerX, centerY, downTime, downTime)
+                    dispatch(cameraGlView, MotionEvent.ACTION_MOVE, centerX + 70f, centerY + 40f,
+                        downTime, downTime + 35L)
+                    dispatch(cameraGlView, MotionEvent.ACTION_MOVE, centerX + 145f, centerY + 95f,
+                        downTime, downTime + 70L)
+                    dispatch(cameraGlView, MotionEvent.ACTION_UP, centerX + 145f, centerY + 95f,
+                        downTime, downTime + 90L)
+                }
+                awaitRendererQueue(cameraGlView)
+                val cameraAfterDrag = readCameraPose(cameraGlView)
+                assertTrue("A one-finger orbit gesture should update the camera",
+                    cameraBeforeDrag.indices.any { kotlin.math.abs(cameraBeforeDrag[it] - cameraAfterDrag[it]) > 1e-6 })
+                assertTrue("A normal camera orbit must not lazily build a model raycast tree",
+                    raycasterField.get(m12Mesh) == null)
+            } finally {
+                Prefs.setCameraControlMode(cameraModeBefore)
+            }
+
             var hitPoint: Pair<Float, Float>? = null
             var viewport: GLView? = null
             var viewportDescription = "not measured"
@@ -386,11 +436,14 @@ class MainActivityTouchDeviceTest {
             scenario.onActivity {
                 val meshesField = glView.renderer.javaClass.getDeclaredField("glModels").apply { isAccessible = true }
                 val generatedMesh = (meshesField.get(glView.renderer) as List<*>).first() as GLModel
+                val triangleCount = model.getTriangleCount(0)
                 assertTrue(
-                    "the generated M12 mesh should use exact picks without expensive paint topology",
-                    LargeModelPick.canUsePreciseSurfaceTools(model.getTriangleCount(0)) &&
-                        LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),
+                    "the generated M12 must have triangles",
+                    triangleCount > 0,
                 )
+                assertEquals("paint topology must remain capped at the configured triangle threshold",
+                    triangleCount > LargeModelPick.TRIANGLE_LIMIT,
+                    !LargeModelPick.canUsePrecisePaintRaycast(triangleCount))
                 val pickHits = arrayListOf<GLModel.HitResult>()
                 generatedMesh.raycaster.raycast(
                     glView.renderer,
@@ -398,9 +451,11 @@ class MainActivityTouchDeviceTest {
                     hit.first * Prefs.getRenderScale(),
                     hit.second * Prefs.getRenderScale(),
                 )
-                assertTrue(
-                    "A standard M12 bolt must use the lightweight exact raycast tree instead of a face-neighbour index",
-                    pickHits.firstOrNull()?.approximate == false,
+                assertEquals(
+                    "A standard M12 must use exact raycasts below the cap and bounds-only picks above it " +
+                        "(triangles=$triangleCount)",
+                    LargeModelPick.needsBoundsOnlyPicking(triangleCount),
+                    pickHits.firstOrNull()?.approximate,
                 )
                 assertEquals("The GL renderer must track the actual surface width", glView.width, glView.renderer.viewportWidth)
                 assertEquals("The GL renderer must track the actual surface height", glView.height, glView.renderer.viewportHeight)
@@ -559,13 +614,48 @@ class MainActivityTouchDeviceTest {
             SystemClock.sleep(350L)
 
             val downTime = SystemClock.uptimeMillis()
+            val translationBeforeLongPressDrag = Vec3d()
+            val translationReady = CountDownLatch(1)
+            glView.queueEvent {
+                model.getTranslation(0, translationBeforeLongPressDrag)
+                translationReady.countDown()
+            }
+            assertTrue("Model translation should be readable before long-press drag",
+                translationReady.await(5, TimeUnit.SECONDS))
             scenario.onActivity { dispatch(glView, MotionEvent.ACTION_DOWN, hit.first, hit.second, downTime, downTime) }
-            // Let Android deliver the actual long-press callback before releasing the finger.
+            // The model raycast is deferred until this deliberate long press, then drag it.
             SystemClock.sleep(650L)
+            val longClickGestureField = GLView::class.java.getDeclaredField("longClickGesture")
+                .apply { isAccessible = true }
+            val longClickDeadline = SystemClock.uptimeMillis() + 5_000L
+            while (!longClickGestureField.getBoolean(glView) && SystemClock.uptimeMillis() < longClickDeadline) {
+                instrumentation.waitForIdleSync()
+                SystemClock.sleep(30L)
+            }
+            assertTrue("A held model touch should activate drag after the deferred precise pick",
+                longClickGestureField.getBoolean(glView))
             scenario.onActivity {
                 val now = SystemClock.uptimeMillis()
-                dispatch(glView, MotionEvent.ACTION_UP, hit.first, hit.second, downTime, now)
+                dispatch(glView, MotionEvent.ACTION_MOVE, hit.first + 25f, hit.second + 20f, downTime, now)
+                dispatch(glView, MotionEvent.ACTION_MOVE, hit.first + 45f, hit.second + 35f,
+                    downTime, now + 40L)
             }
+            SystemClock.sleep(80L)
+            scenario.onActivity {
+                val now = SystemClock.uptimeMillis()
+                dispatch(glView, MotionEvent.ACTION_UP, hit.first + 45f, hit.second + 35f, downTime, now)
+            }
+            awaitRendererQueue(glView)
+            val translationAfterLongPressDrag = Vec3d()
+            val moved = CountDownLatch(1)
+            glView.queueEvent {
+                model.getTranslation(0, translationAfterLongPressDrag)
+                moved.countDown()
+            }
+            assertTrue("Long-press drag should commit the moved model on GL", moved.await(5, TimeUnit.SECONDS))
+            assertTrue("Long-press dragging should change the model position",
+                kotlin.math.abs(translationBeforeLongPressDrag.x - translationAfterLongPressDrag.x) > 1e-4 ||
+                    kotlin.math.abs(translationBeforeLongPressDrag.y - translationAfterLongPressDrag.y) > 1e-4)
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
@@ -912,6 +1002,21 @@ class MainActivityTouchDeviceTest {
         val rendered = CountDownLatch(1)
         view.queueEvent { rendered.countDown() }
         assertTrue("Queued GL touch events should finish", rendered.await(5, TimeUnit.SECONDS))
+    }
+
+    private fun readCameraPose(view: GLView): DoubleArray {
+        val finished = CountDownLatch(1)
+        val pose = AtomicReference<DoubleArray>()
+        view.queueEvent {
+            val camera = view.renderer.camera
+            pose.set(doubleArrayOf(
+                camera.origin.x, camera.origin.y, camera.origin.z,
+                camera.position.x, camera.position.y, camera.position.z,
+            ))
+            finished.countDown()
+        }
+        assertTrue("The camera pose should be readable from the GL thread", finished.await(5, TimeUnit.SECONDS))
+        return requireNotNull(pose.get())
     }
 
     private fun findEmptyPlatePoint(view: GLView): Pair<Float, Float> {

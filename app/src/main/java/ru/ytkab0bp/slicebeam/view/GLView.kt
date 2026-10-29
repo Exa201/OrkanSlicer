@@ -58,7 +58,6 @@ private var longClickMoved:Boolean = false
 @Volatile private var touchGestureGeneration:Long = 0L
 @Volatile private var pointerDownForLongClick:Boolean = false
 @Volatile private var longClickActivationPending:Boolean = false
-private var longPressDownTimeMs:Long = 0L
 private var isScaling:Boolean = false
 @Volatile var isFillBedInProgress:Boolean = false
     private set
@@ -82,28 +81,32 @@ private var lastActionTime = System.currentTimeMillis()
 // A few devices report a very short accessibility long-press threshold; keep ordinary presses from opening actions.
 private val longPressTimeoutMs = maxOf(ViewConfiguration.getLongPressTimeout(), 500).toLong()
 private val longClick = Runnable {
-    val target = longClickTargetObject
     val generation = touchGestureGeneration
-    if (!pointerDownForLongClick || target == -1) return@Runnable
+    if (!pointerDownForLongClick) return@Runnable
     longClickActivationPending = true
     val x = lastX * Prefs.getRenderScale()
     val y = lastY * Prefs.getRenderScale()
-    // Native mesh raycasting and model reads belong on the GL queue. Doing this from
-    // the Android input callback can block or crash the UI thread on large meshes.
+    // Only a stationary long press needs an object pick. Running this on ACTION_DOWN
+    // used to build native raycast data before every camera orbit, stalling the GL queue
+    // behind potentially expensive mesh topology work.
     queueEvent {
         var hitFound = false
+        var target = -1
         if (touchGestureGeneration == generation && pointerDownForLongClick) {
             val activeModel = renderer.model
             val bed = renderer.bed
-            if (activeModel != null && bed != null && target in 0 until activeModel.objectsCount) {
-                bed.raycaster.raycast(renderer, longClickHitResults, x, y)
-                val hit = longClickHitResults.firstOrNull()
-                if (hit != null) {
-                    activeModel.getTranslation(target, tempVec)
-                    longClickOffset.x = hit.position.x - tempVec.x
-                    longClickOffset.y = hit.position.y - tempVec.y
-                    if (renderer.focusForDrag(target)) requestRender()
-                    hitFound = true
+            if (renderer.gcodeResult == null && activeModel != null && bed != null) {
+                target = renderer.raycastObjectIndex(x, y)
+                if (target in 0 until activeModel.objectsCount) {
+                    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
+                    val hit = longClickHitResults.firstOrNull()
+                    if (hit != null) {
+                        activeModel.getTranslation(target, tempVec)
+                        longClickOffset.x = hit.position.x - tempVec.x
+                        longClickOffset.y = hit.position.y - tempVec.y
+                        if (renderer.focusForDrag(target)) requestRender()
+                        hitFound = true
+                    }
                 }
             }
         }
@@ -111,6 +114,7 @@ private val longClick = Runnable {
             if (touchGestureGeneration != generation || !pointerDownForLongClick) return@postOnMainThread
             longClickActivationPending = false
             if (!hitFound) return@postOnMainThread
+            longClickTargetObject = target
             tapGestureGate.invalidate()
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             longClickGesture = true
@@ -813,7 +817,6 @@ if (action == MotionEvent.ACTION_DOWN) {
     onePointerGesture = false
     pointerDownForLongClick = true
     longClickActivationPending = false
-    longPressDownTimeMs = e.getDownTime()
     touchGestureGeneration++
 }
 if (e.getPointerCount() == 2)
@@ -851,20 +854,9 @@ primeTowerDownY = lastY
 requestRender()
 return true
 }
-val generation = touchGestureGeneration
-val x = lastX * renderScale
-val y = lastY * renderScale
-queueEvent {
-    val target = if (renderer.gcodeResult == null) renderer.raycastObjectIndex(x, y) else -1
-    ViewUtils.postOnMainThread {
-        if (touchGestureGeneration != generation || !pointerDownForLongClick || onePointerGesture) return@postOnMainThread
-        if (target >= 0) {
-            longClickTargetObject = target
-            val elapsed = android.os.SystemClock.uptimeMillis() - longPressDownTimeMs
-            postDelayed(longClick, (longPressTimeoutMs - elapsed).coerceAtLeast(0L))
-        }
-    }
-}
+    // Defer object picking until the user actually holds still. Camera orbit gestures
+    // leave this callback cancelled when they cross touch slop, so the GL queue stays free.
+    postDelayed(longClick, longPressTimeoutMs)
 }
 return true
 }
