@@ -4,7 +4,7 @@
 - Der native Pfad remappt jetzt die Paint-Anmerkungen der Ziel-Modelparts nach deren Volumen- und Instanztransformationen auf das Boolean-Ergebnis. Es wird immer nur ein gespeicherter Volumen-/Instanz-Snapshot gleichzeitig gehalten, um zusätzlichen Speicherbedarf bei großen Modellen zu begrenzen. Farb-/Paint-Zuweisungen des Werkzeugs werden weiterhin nicht übernommen.
 - `NativeSliceDeviceTest.booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice` bestanden: `UNION`, `DIFFERENCE` und `INTERSECTION` jeweils mit gedrehtem und verschobenem Ziel; Filament 2 blieb nach Boolean erhalten, überstand 3MF-Export/Reload und wurde beim tatsächlichen Slice als `T1` ausgegeben. Android 16 Emulator, 1/1 JUnit-Test, 0 Fehler/Überspringungen (XML-Zeitstempel `2026-10-29T04:14:13`, 65,3 s).
 - Debug-Unit-Suite: 667/667; Slice-Unit-Suite: 667/667; keine Fehler, Errors oder Skips. `git diff --check` sauber.
-- Kein normaler Debug-APK-Build, kein Gerät außer dem Android-16-Emulator und kein GitHub-Release in diesem Verifikationsschritt. Xiaomi-/Honor-Hardwareprüfung bleibt offen.
+- `:app:assembleDebug` erfolgreich für Code-Commit `09c34aac9f39260f7d9e0f69459feda190b16d2c`. APK `OrkanSlicer_09c34aac9f.apk`, 239,592,824 Bytes; SHA-256 `AA9DC03AA1EAE49D7521D8A59BAC909575C19D424D0610354F1A9BA2F1514797`. Auf `small_phone(AVD)` installiert und gestartet; Android meldete Version 0.8.402 / Code 437, Prozess blieb aktiv. Der abgefragte Logcat-Ausschnitt enthielt keine Crash-, ANR-, OOM- oder Fatal-Signal-Treffer. Xiaomi-/Honor-Hardwareprüfung und GitHub-Release bleiben offen.
 
 # Farbmalen und Druckplattenbereich — Android 16 — 2026-10-28
 
