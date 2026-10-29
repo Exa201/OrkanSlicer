@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.403
+
+- Suppress the global filament shortcut whenever a paint panel is active, preventing a duplicate palette during panel transitions.
+- Keep live brush color visible before confirmation and preserve the build-plate view when the paint dock resizes the renderer.
+- Verify imported multicolor 3MF paint, single-palette layout, plate visibility, cancellation, and brush undo on Android 16. Xiaomi hardware was not connected for this verification.
+
 ## 0.8.401
 
 - Add German labels and feedback for object placement, multipart joining, and standalone 3D text filament selection.
