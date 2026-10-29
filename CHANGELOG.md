@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.401
+
+- Add German labels and feedback for object placement, multipart joining, and standalone 3D text filament selection.
+- Verify the German resource variants for placement, joining, Boolean union, and standalone text.
+
 ## 0.8.400
 
 - Prevent the global filament shortcut from appearing beside a docked paint palette during tool transitions.

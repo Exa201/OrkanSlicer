@@ -182,7 +182,14 @@
     <string name="ModelMenuCancelGroupSelection">Gruppenauswahl beenden</string>
     <string name="ModelMenuApplySelection">Auswahl verwenden (%1$d)</string>
     <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
+    <string name="ModelMenuPlaceOnObject">Auf ein anderes Objekt setzen</string>
+    <string name="ModelMenuPlaceOnObjectShort">Oben platzieren</string>
     <string name="ModelMenuPlaceOnObjectDone">Auf das Ziel gesetzt und für den Druck als Baugruppe verbunden.</string>
+    <string name="ModelMenuCombineSelected">Ausgewählte als Teile verbinden</string>
+    <string name="ModelMenuCombineSelectedShort">Teile verbinden</string>
+    <string name="ModelMenuCombineWarning">Die ausgewählten Objekte werden zu einem mehrteiligen Objekt verbunden. Die Filamentzuordnung der einzelnen Volumen bleibt erhalten. Das ist keine boolesche Vereinigung.</string>
+    <string name="ModelMenuCombineDone">Objekte als mehrteiliges Objekt verbunden.</string>
+    <string name="ModelMenuCombineUnsupported">Wähle mindestens zwei Objekte ohne mehrfach verknüpfte Instanzen aus.</string>
     <string name="ModelMenuCombineFailed">Die Objekte konnten nicht verbunden werden. Die Originale sind erhalten geblieben.</string>
     <string name="ModelMenuSplit">Teile trennen</string>
     <string name="ModelMenuPlaceFailed">Die Platzierung ist fehlgeschlagen. Prüfe die Objektpositionen, bevor du fortfährst.</string>
@@ -1194,6 +1201,10 @@
     <string name="EmbossInstruction">Werte eingeben und anschließend auf die Modelloberfläche tippen, um den Text zu platzieren.</string>
     <string name="TextModelPlacementInstruction">Text und Größe festlegen, dann auf die Druckplatte oder eine Modellfläche tippen.</string>
     <string name="TextModelCreateSeparate">Eigenständigen 3D-Text platzieren</string>
+    <string name="TextModelFilamentLabel">Filament für den eigenständigen Text</string>
+    <string name="TextModelFilamentOption">T%1$d · %2$s</string>
+    <string name="TextModelFilamentHelp">Text auf der Druckplatte verwendet dieses Filament.</string>
+    <string name="TextModelFilamentSurfaceHelp">Text auf einer Modellfläche übernimmt das Filament dieses Modells.</string>
     <string name="TextFollowCurvedSurface">Gekrümmter Oberfläche folgen</string>
     <string name="TextModelSurfaceFitError">Der Text passt nicht vollständig auf die angetippte Fläche. Verkleinere die Schrift oder tippe näher an die Flächenmitte.</string>
     <string name="TextFollowSurfaceHelp">Der Text folgt dem angetippten Modell und wird als druckbarer Bestandteil hinzugefügt.</string>
@@ -1208,6 +1219,7 @@
     <string name="EmbossEngrave">Eingravieren</string>
     <string name="SelectObjectFirst">Wähle zuerst ein Objekt aus.</string>
     <string name="EmbossSuccess">Text wurde erfolgreich hinzugefügt.</string>
+    <string name="TextModelCreated">Eigenständiges Textobjekt erstellt.</string>
     <string name="EmbossFailed">Text konnte nicht hinzugefügt werden: %1$s</string>
     <string name="VariableLayerTitle">Variable Schichthöhe</string>
     <string name="VariableLayerStatus">Profilstatus:</string>

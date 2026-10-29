@@ -43,6 +43,21 @@ import java.util.concurrent.atomic.AtomicReference
 class ModelEditingNativeDeviceTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun objectPlacementJoiningStandaloneTextAndBooleanActionsHaveGermanLabels() {
+        val base = InstrumentationRegistry.getInstrumentation().targetContext
+        val germanConfiguration = android.content.res.Configuration(base.resources.configuration).apply {
+            setLocale(java.util.Locale.GERMANY)
+        }
+        val german = base.createConfigurationContext(germanConfiguration)
+
+        assertEquals("Auf ein anderes Objekt setzen", german.getString(R.string.ModelMenuPlaceOnObject))
+        assertEquals("Ausgewählte als Teile verbinden", german.getString(R.string.ModelMenuCombineSelected))
+        assertEquals("Eigenständigen 3D-Text platzieren", german.getString(R.string.TextModelCreateSeparate))
+        assertEquals("Boolesche Funktion", german.getString(R.string.ModelMenuBoolean))
+        assertEquals("Vereinigung · ausgewählte Körper verbinden", german.getString(R.string.ModelBooleanUnion))
+        assertEquals("Filament für den eigenständigen Text", german.getString(R.string.TextModelFilamentLabel))
+    }
+
     @Test fun releasedModelRejectsTextJoinAndBooleanRequestsBeforeNativeCalls() {
         val model = Model()
         model.release()
