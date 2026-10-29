@@ -125,9 +125,6 @@ object GCodeIntegrityValidator {
         if (expected <= 0) {
             return result(Failure.MISSING_LAYER_COUNT, expected, layerMarkers, "No valid total layer count was found in the sliced file.")
         }
-        if (declaredLayersAtEnd > 0 && declaredLayersAtEnd != expected) {
-            return result(Failure.LAYER_COUNT_MISMATCH, expected, layerMarkers, "Header and end-of-file layer counts disagree.")
-        }
         // BEFORE_LAYER_CHANGE describes transitions between layers. A file with N
         // actual layers can therefore legitimately contain N-1 numbered transitions
         // (the initial layer has no preceding transition).
@@ -139,6 +136,10 @@ object GCodeIntegrityValidator {
                 "The file declares $expected layers but contains $layerMarkers layer starts."
             )
         }
+        // The slicer writes the processor's zero-based final layer id in the header,
+        // while the footer's `total layers count` comes from progress callbacks. Some
+        // valid Orca/Qidi outputs differ by one; the declared count must agree with
+        // actual layer markers, so a footer-only discrepancy is not a truncation.
         if (sawNumberedLayers && expectedNumber != expected && expectedNumber != expected - 1) {
             return result(
                 Failure.NUMBERING_GAP,
