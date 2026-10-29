@@ -1,3 +1,11 @@
+# Boolean-Facettenfarben bleiben erhalten — Android 16 — 2026-10-29
+
+- Im nativen Boolean-Ergebnis gingen zuvor die gemalten Facetten-Filamentzuweisungen des Zielobjekts verloren: Die neu erzeugte Ergebnisfläche erbte nur das einheitliche Volumenfilament. Der Regressionstest reproduzierte dies vor dem Fix bei `UNION`.
+- Der native Pfad remappt jetzt die Paint-Anmerkungen der Ziel-Modelparts nach deren Volumen- und Instanztransformationen auf das Boolean-Ergebnis. Es wird immer nur ein gespeicherter Volumen-/Instanz-Snapshot gleichzeitig gehalten, um zusätzlichen Speicherbedarf bei großen Modellen zu begrenzen. Farb-/Paint-Zuweisungen des Werkzeugs werden weiterhin nicht übernommen.
+- `NativeSliceDeviceTest.booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice` bestanden: `UNION`, `DIFFERENCE` und `INTERSECTION` jeweils mit gedrehtem und verschobenem Ziel; Filament 2 blieb nach Boolean erhalten, überstand 3MF-Export/Reload und wurde beim tatsächlichen Slice als `T1` ausgegeben. Android 16 Emulator, 1/1 JUnit-Test, 0 Fehler/Überspringungen (XML-Zeitstempel `2026-10-29T04:14:13`, 65,3 s).
+- Debug-Unit-Suite: 667/667; Slice-Unit-Suite: 667/667; keine Fehler, Errors oder Skips. `git diff --check` sauber.
+- Kein normaler Debug-APK-Build, kein Gerät außer dem Android-16-Emulator und kein GitHub-Release in diesem Verifikationsschritt. Xiaomi-/Honor-Hardwareprüfung bleibt offen.
+
 # Farbmalen und Druckplattenbereich — Android 16 — 2026-10-28
 
 - Der Farbmal-Dock wurde wieder auf 30 % (32 % bei großer Systemschrift) gesetzt. Die vorherigen 22/25 % konnten die Filamentpalette auf kurzen Displays aus dem sichtbaren Bereich drücken. Die Layout-Policy erhält mindestens 60 % des Arbeitsbereichs für den Renderer und die Druckplatte.

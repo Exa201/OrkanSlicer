@@ -18,7 +18,9 @@ import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Native
+import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
@@ -1364,6 +1366,61 @@ class NativeSliceDeviceTest {
             model.release()
             modelFile.delete()
             projectFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (operation in listOf(BooleanOperation.UNION, BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+            val modelFile = copyCube(context, "boolean-painted-${operation.name.lowercase()}.stl")
+            val projectFile = File(context.cacheDir, "boolean-painted-${operation.name.lowercase()}.3mf")
+            val model = Model(modelFile)
+            var restored: Model? = null
+            var generatedConfig: File? = null
+            try {
+                model.setUniformFilament(0, 1)
+                model.rotate(0, 0.0, 0.0, Math.toRadians(17.0))
+                model.translate(0, 10.0, 10.0, 0.0)
+                val min = Vec3d()
+                val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val paint = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+                try {
+                    assertTrue("the target cube should support facet painting", paint.isValid())
+                    paint.height(min.z + (max.z - min.z) * 0.25, min.z + (max.z - min.z) * 0.75, 2)
+                    paint.commit()
+                } finally {
+                    paint.end()
+                }
+                assertTrue("the target should contain a painted region before Boolean", model.hasPaint(0))
+                assertTrue(model.getUsedFilaments(0).contains(2))
+
+                model.addObject(model, 0)
+                model.getBoundingBoxExact(0, min, max)
+                model.translate(1, (max.x - min.x) * 0.25, 0.0, 0.0)
+                assertEquals("${operation.name} should succeed", 0, model.booleanObjects(0, 1, operation))
+                assertEquals(1, model.objectsCount)
+                assertTrue("${operation.name} must preserve target facet paint", model.hasPaint(0))
+                assertTrue("${operation.name} must retain target painted filament 2", model.getUsedFilaments(0).contains(2))
+
+                SliceBeam.genCurrentConfig(model)
+                generatedConfig = SliceBeam.getCurrentConfigFile()
+                model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+                restored = Model(projectFile, 1)
+                assertTrue("${operation.name} paint must survive 3MF reload", restored.hasPaint(0))
+                assertTrue("${operation.name} filament 2 must survive 3MF reload", restored.getUsedFilaments(0).contains(2))
+                val gcode = sliceToGcode(context, restored, "boolean-painted-${operation.name.lowercase()}.gcode")
+                assertHasExtrusion(gcode)
+                assertTrue("${operation.name} G-code must select painted target tool T1",
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            } finally {
+                generatedConfig?.delete()
+                restored?.release()
+                model.release()
+                modelFile.delete()
+                projectFile.delete()
+            }
         }
     }
 

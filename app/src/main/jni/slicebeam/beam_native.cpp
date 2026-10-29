@@ -2117,6 +2117,24 @@ extern "C" {
             replacement->volumes.front()->source.input_file.clear();
             replacement->volumes.front()->source.object_idx = -1;
             replacement->volumes.front()->source.volume_idx = -1;
+            // Remap one source volume/instance at a time to bound peak memory for large meshes.
+            // Boolean output is in world coordinates, so transform the target's saved facet
+            // annotations into that frame before mapping them to the new triangulated surface.
+            for (const ModelVolume* volume : target->volumes) {
+                if (volume == nullptr || !volume->is_model_part()) continue;
+                const auto saved = volume->save_painting();
+                if (!saved) continue;
+                for (const ModelInstance* instance : target->instances) {
+                    if (instance == nullptr) {
+                        rollback_uncommitted_result();
+                        return -2;
+                    }
+                    TriangleSelector::SavedPainting world_painting = *saved;
+                    world_painting.mesh.transform(volume->get_matrix(), true);
+                    world_painting.mesh.transform(instance->get_matrix(), true);
+                    replacement->volumes.front()->restore_painting(world_painting, true);
+                }
+            }
 
             std::sort(indices.begin(), indices.end(), std::greater<int>());
             for (int index : indices) ref->model.delete_object((size_t) index);
