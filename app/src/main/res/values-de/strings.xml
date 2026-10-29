@@ -192,6 +192,11 @@
     <string name="ModelMenuCombineUnsupported">Wähle mindestens zwei Objekte ohne mehrfach verknüpfte Instanzen aus.</string>
     <string name="ModelMenuCombineFailed">Die Objekte konnten nicht verbunden werden. Die Originale sind erhalten geblieben.</string>
     <string name="ModelMenuSplit">Teile trennen</string>
+    <string name="ModelObjectPartNumber">Teil %1$d</string>
+    <string name="ModelObjectEditPart">Einzeln bearbeiten</string>
+    <string name="ModelObjectPartSeparated">Teil getrennt; es kann jetzt einzeln verschoben oder skaliert werden</string>
+    <string name="ModelObjectExpandParts">Teile anzeigen (%1$d)</string>
+    <string name="ModelObjectCollapseParts">Teile ausblenden (%1$d)</string>
     <string name="ModelMenuPlaceFailed">Die Platzierung ist fehlgeschlagen. Prüfe die Objektpositionen, bevor du fortfährst.</string>
     <string name="ModelMenuPlaceRollbackFailed">Die Platzierung ist fehlgeschlagen und mindestens ein Objekt konnte nicht zurückgesetzt werden. Prüfe das Modell, bevor du fortfährst.</string>
     <string name="ModelMenuPlaceOnSurface">Auf ausgewählte Fläche setzen</string>

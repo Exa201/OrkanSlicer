@@ -553,7 +553,30 @@ internal fun combineSelectedObjectsAsParts(expectedSelection: ModelSelectionSnap
     return combined
 }
 
-/** Places the current selection on a target and groups the assembly for printable slicing. */
+/** Split a multipart object so the requested part becomes a normal independently editable object. */
+internal fun splitObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    expectedSelection: ModelSelectionSnapshot,
+): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return -1
+    val partCount = activeModel.getObjectPartCount(objectIndex)
+    if (objectIndex !in 0 until activeModel.objectsCount || partIndex !in 0 until partCount) return -1
+    val oldObjectCount = activeModel.objectsCount
+    val splitCount = runCatching { activeModel.split(objectIndex) }.getOrElse { error ->
+        Log.e("GLRenderer", "Could not separate multipart model part", error)
+        0
+    }
+    if (splitCount <= 1 || partIndex >= splitCount) return 0
+    // Native split appends the generated objects and then removes the original entry.
+    val selectedPartIndex = oldObjectCount - 1 + partIndex
+    resetGlModels()
+    setSelectedObject(selectedPartIndex)
+    return splitCount
+}
+
+/** Places the current selection on a target while keeping every model object independent. */
 internal fun placeSelectedObjectsOnObject(
     targetIndex: Int,
     expectedSelection: ModelSelectionSnapshot? = null,
@@ -571,7 +594,7 @@ internal fun placeSelectedObjectsOnObject(
     val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
     val delta = ObjectPlacement.onTop(movingBounds, bounds(targetIndex)) ?: return -1
 
-    return placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+    return placeObjectsWithoutCombining(movingIndices, delta)
 }
 
 /** Start a GL-thread-only interaction that seats the selected group at a picked top-surface point. */
@@ -657,7 +680,7 @@ internal fun placeSelectedObjectsOnSurface(
                 movingBounds, position, normal, minimumSupportProjection = minimumSupportProjection,
             )
         } ?: return -1
-        if (booleanOperation == null) placeAndCombineWithTarget(targetIndex, movingIndices, delta)
+        if (booleanOperation == null) placeObjectsWithoutCombining(movingIndices, delta)
         else placeAndBooleanWithTarget(targetIndex, movingIndices, delta, booleanOperation)
     } finally {
         cancelSurfacePlacement()
@@ -695,32 +718,30 @@ private fun placeAndBooleanWithTarget(
     return result
 }
 
-private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>, delta: ObjectPlacementDelta): Int {
+private fun placeObjectsWithoutCombining(movingIndices: List<Int>, delta: ObjectPlacementDelta): Int {
     val activeModel = model ?: return -1
 
-    val combined = ModelPlacementTransaction.applyAndCommit(
+    val placed = ModelPlacementTransaction.applyAndCommit(
         items = movingIndices,
         snapshot = { index -> Vec3d().also { activeModel.getTranslation(index, it) } },
-        apply = { index -> activeModel.translate(index, delta.x, delta.y, delta.z) },
+        apply = { index ->
+            activeModel.translate(index, delta.x, delta.y, delta.z)
+            invalidateGlModel(index)
+        },
         restore = { index, before ->
             val after = Vec3d()
             activeModel.getTranslation(index, after)
             activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
             invalidateGlModel(index)
         },
-        // The placement target is the assembly's natural destination and must remain its
-        // primary object even when its model index follows the moving group.
-        commit = { activeModel.combineObjectsAsParts((listOf(targetIndex) + movingIndices).toIntArray()) },
+        // Surface placement is only a geometric operation. Joining parts is a separate,
+        // explicit user action so overlapping objects remain independently editable.
+        commit = { 1 },
         failureResult = MODEL_EDIT_OPERATION_FAILED,
         rollbackFailureResult = MODEL_EDIT_ROLLBACK_FAILED,
-        onError = { error -> Log.e("GLRenderer", "Could not place and join selected objects; placement rolled back", error) },
+        onError = { error -> Log.e("GLRenderer", "Could not place selected objects; placement rolled back", error) },
     )
-    if (combined < 0) {
-        return combined
-    }
-    resetGlModels()
-    setSelectedObject(combined)
-    return combined
+    return placed
 }
 
 private var paintModeKind = PAINT_MODE_COLOR

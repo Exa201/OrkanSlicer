@@ -1,6 +1,6 @@
 package ru.ytkab0bp.slicebeam.render
 
-/** Applies a group placement only if the follow-up model join succeeds. */
+/** Applies a group operation atomically, restoring every attempted item if it fails. */
 internal object ModelPlacementTransaction {
     fun <T, S> applyAndCommit(
         items: List<T>,

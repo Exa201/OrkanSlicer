@@ -49,6 +49,14 @@ internal data class ModelObjectRow(
     val color: Int,
     val selected: Boolean,
     val assignEnabled: Boolean,
+    val parts: List<ModelObjectPartRow> = emptyList(),
+)
+
+internal data class ModelObjectPartRow(
+    val label: String,
+    val tool: Int,
+    val material: String,
+    val color: Int,
 )
 
 @Composable
@@ -60,11 +68,15 @@ internal fun ModelObjectsDialog(
     onDismiss: () -> Unit,
     onSelect: (Int) -> Unit,
     onAssign: (Int) -> Unit,
+    onEditPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onApplySelection: (IntArray) -> Unit,
 ) {
     var groupSelectionMode by remember(rows) { mutableStateOf(false) }
     val stagedSelection = remember(rows) {
         mutableStateListOf<Int>().apply { addAll(rows.indices.filter { rows[it].selected }) }
+    }
+    var expandedGroups by remember(rows) {
+        mutableStateOf(rows.indices.filter { rows[it].parts.size > 1 }.toSet())
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -106,6 +118,44 @@ internal fun ModelObjectsDialog(
                             TextButton(onClick = { onAssign(index) }, enabled = row.assignEnabled,
                                 modifier = Modifier.heightIn(min = 48.dp)) {
                                 Text(assignLabel)
+                            }
+                            if (row.parts.size > 1) TextButton(
+                                onClick = {
+                                    expandedGroups = if (index in expandedGroups) expandedGroups - index
+                                    else expandedGroups + index
+                                },
+                                modifier = Modifier.heightIn(min = 48.dp)
+                                    .testTag("model-object-group-toggle-$index"),
+                            ) {
+                                val expanded = index in expandedGroups
+                                Text(
+                                    stringResource(
+                                        if (expanded) R.string.ModelObjectCollapseParts else R.string.ModelObjectExpandParts,
+                                        row.parts.size,
+                                    ),
+                                )
+                            }
+                        }
+                        if (index in expandedGroups) {
+                            row.parts.forEachIndexed { partIndex, part ->
+                                Row(
+                                    Modifier.fillMaxWidth().padding(start = 28.dp, end = 8.dp, bottom = 4.dp)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                        .testTag("model-object-part-row-$index-$partIndex")
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Box(Modifier.size(14.dp).background(Color(part.color), CircleShape))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(part.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("T${part.tool}: ${part.material}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    TextButton(
+                                        onClick = { onEditPart(index, partIndex) },
+                                        modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-edit-part-$index-$partIndex"),
+                                    ) { Text(stringResource(R.string.ModelObjectEditPart)) }
+                                }
                             }
                         }
                     }

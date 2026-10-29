@@ -76,6 +76,16 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     ?: context.getString(R.string.MenuFileObjectNumber, index + 1)
                 val tool = (snapshot.model.getExtruder(index) - 1).coerceAtLeast(0)
                 val slot = filamentSlots.getOrNull(tool)
+                val parts = (0 until snapshot.model.getObjectPartCount(index)).map { partIndex ->
+                    val partTool = (snapshot.model.getObjectPartExtruder(index, partIndex) - 1).coerceAtLeast(0)
+                    val partSlot = filamentSlots.getOrNull(partTool)
+                    ModelObjectPartRow(
+                        label = context.getString(R.string.ModelObjectPartNumber, partIndex + 1),
+                        tool = partTool,
+                        material = partSlot?.type?.takeIf(String::isNotBlank) ?: context.getString(R.string.FilamentType),
+                        color = partSlot?.color ?: 0xFF888888.toInt(),
+                    )
+                }
                 ModelObjectRow(
                     name = name,
                     tool = tool,
@@ -83,6 +93,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     color = slot?.color ?: 0xFF888888.toInt(),
                     selected = index in snapshot.selectedIndices,
                     assignEnabled = filamentSlots.isNotEmpty(),
+                    parts = parts,
                 )
             }
             if (rows.isEmpty()) {
@@ -105,6 +116,20 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     onAssign = { index ->
                         dismiss()
                         showObjectFilamentSlotDialog(view, index, snapshot)
+                    },
+                    onEditPart = { index, partIndex ->
+                        dismiss()
+                        viewport.splitObjectPartIfCurrent(index, partIndex, snapshot) { result ->
+                            when {
+                                result == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                                result > 0 -> {
+                                    fragment.updateModel()
+                                    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelObjectPartSeparated))
+                                }
+                                else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuToolbarSplitNothing))
+                            }
+                        }
                     },
                     onApplySelection = { indices ->
                         dismiss()

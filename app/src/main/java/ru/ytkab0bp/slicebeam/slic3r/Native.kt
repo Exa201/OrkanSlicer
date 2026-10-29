@@ -111,6 +111,10 @@ class Native {
     @JvmStatic
     external fun model_get_object_name(ptr: Long, i: Int): String
     @JvmStatic
+    external fun model_get_object_part_count(ptr: Long, i: Int): Int
+    @JvmStatic
+    external fun model_get_object_part_extruder(ptr: Long, objectIndex: Int, partIndex: Int): Int
+    @JvmStatic
     external fun model_get_triangle_count(ptr: Long, i: Int): Int
     @JvmStatic
     external fun model_simplify(ptr: Long, i: Int, keepRatio: Float): Int

@@ -784,7 +784,7 @@ fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
             } else null
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
                 specificMessage ?: if (event.booleanOperation != null) R.string.ModelBooleanFailed
-                else R.string.ModelMenuCombineUnsupported,
+                else R.string.ModelMenuPlaceFailed,
             ))
         }
     }

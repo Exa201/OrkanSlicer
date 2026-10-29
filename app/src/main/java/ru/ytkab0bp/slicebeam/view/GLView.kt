@@ -457,6 +457,18 @@ queueEvent({
     ViewUtils.postOnMainThread { onComplete(result) }
 })
 }
+internal fun splitObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.splitObjectPartIfCurrent(objectIndex, partIndex, expectedSelection)
+        if (result > 0) requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
 internal fun placeSelectedObjectsOnObject(
     targetIndex: Int,
     expectedSelection: ModelSelectionSnapshot? = null,

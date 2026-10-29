@@ -197,6 +197,15 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return trimmed.takeIf { it.isNotEmpty() }
     }
 
+    /** Number of printable mesh parts (volumes) represented by one object-list entry. */
+    open fun getObjectPartCount(i: Int): Int =
+        if (!hasObject(i)) 0 else Native.model_get_object_part_count(pointer, i)
+
+    /** One-based filament for the zero-based printable part index, ignoring modifier volumes. */
+    open fun getObjectPartExtruder(objectIndex: Int, partIndex: Int): Int =
+        if (!hasObject(objectIndex) || partIndex < 0) -1
+        else Native.model_get_object_part_extruder(pointer, objectIndex, partIndex)
+
     open fun getTriangleCount(i: Int): Int =
         if (!hasObject(i)) 0 else Native.model_get_triangle_count(pointer, i)
 

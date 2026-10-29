@@ -972,6 +972,55 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun multipartObjectListShowsPartsAndCanSeparateOneForIndependentEditing() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "object-list-multipart-parts-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 24.0, 0.0, 0.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+                assertEquals("combined assembly should expose both mesh parts", 2, model.getObjectPartCount(0))
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("multipart test model should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            compose.runOnUiThread { FileMenuObjectActions(bed).showObjectsDialog(glView) }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag("model-object-row-0").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("model-object-row-0").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-part-row-0-0").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-edit-part-0-1").performClick()
+            compose.waitUntil(timeoutMillis = 15_000) {
+                readObjectCountOnGl(glView) == 2 && readSelectedObjectOnGl(glView) == 1
+            }
+            assertEquals("separating a child should leave both parts editable as separate model objects", 2,
+                readObjectCountOnGl(glView))
+            assertEquals("part selection must preserve the part's assigned material", listOf(1),
+                readUsedFilamentsOnGl(glView, 0).toList())
+            assertEquals("the selected child must preserve its own material", listOf(2),
+                readUsedFilamentsOnGl(glView, 1).toList())
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun selectedObjectActionDialogRejectsStaleSplitAndDelete() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -1149,7 +1198,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun placeOnObjectDialogStacksAndJoinsSelectedObjectWithChosenTarget() {
+    fun placeOnObjectDialogStacksSelectedObjectWithoutJoiningTarget() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -1187,34 +1236,35 @@ class InitialProjectMenuDeviceTest {
                 .assertIsDisplayed().assertIsEnabled().performClick()
             compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
 
-            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 1 }
-            val combinedVolume = readObjectVolumeOnGl(glView, 0)
-            assertEquals("stacking should preserve both printable solids", 2.0 * requireNotNull(targetVolume.get()),
-                combinedVolume, targetVolume.get()!! * 0.002)
-            assertArrayEquals("the joined assembly should retain each source object's material",
-                intArrayOf(1, 2), readUsedFilamentsOnGl(glView, 0))
+            compose.waitUntil(timeoutMillis = 30_000) { readObjectCountOnGl(glView) == 2 }
+            assertEquals("target remains a separate printable solid", requireNotNull(targetVolume.get()),
+                readObjectVolumeOnGl(glView, 0), targetVolume.get()!! * 0.002)
+            assertEquals("moving model remains a separate printable solid", requireNotNull(targetVolume.get()),
+                readObjectVolumeOnGl(glView, 1), targetVolume.get()!! * 0.002)
+            assertArrayEquals("target material remains independent", intArrayOf(1), readUsedFilamentsOnGl(glView, 0))
+            assertArrayEquals("moving material remains independent", intArrayOf(2), readUsedFilamentsOnGl(glView, 1))
             val target = requireNotNull(targetBounds.get())
-            val combined = readExactBoundsOnGl(glView, 0).single()
+            val targetAfter = readExactBoundsOnGl(glView, 0).single()
+            val moved = readExactBoundsOnGl(glView, 1).single()
+            assertArrayEquals("placement must not mutate target geometry", target, targetAfter, 0.02)
             assertEquals("the moving object should be centered on the chosen target in X",
-                (target[0] + target[3]) / 2.0, (combined[0] + combined[3]) / 2.0, 0.02)
+                (target[0] + target[3]) / 2.0, (moved[0] + moved[3]) / 2.0, 0.02)
             assertEquals("the moving object should be centered on the chosen target in Y",
-                (target[1] + target[4]) / 2.0, (combined[1] + combined[4]) / 2.0, 0.02)
-            assertEquals("the target should remain at its original bed height", target[2], combined[2], 0.02)
-            assertTrue("the stacked object should extend above the target", combined[5] > target[5])
+                (target[1] + target[4]) / 2.0, (moved[1] + moved[4]) / 2.0, 0.02)
+            assertEquals("the moved model should rest on the target's top surface", target[5], moved[2], 0.02)
+            assertTrue("the moved model should extend above the target", moved[5] > target[5])
 
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
             assertArrayEquals("undo should restore the original target bounds", target,
                 readExactBoundsOnGl(glView, 0).single(), 0.02)
             compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
-            assertEquals("redo should restore both materials and the stack geometry", intArrayOf(1, 2).toList(),
-                readUsedFilamentsOnGl(glView, 0).toList())
-            assertCurrentWorkspaceModelRoundTripsAndSlices(
-                name = "place-object-dialog-success",
-                expectedObjectFilaments = listOf(intArrayOf(1, 2)),
-                allowedGcodeTools = setOf(0, 1),
-            )
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            assertEquals("redo should preserve target material", listOf(1), readUsedFilamentsOnGl(glView, 0).toList())
+            assertEquals("redo should preserve moved-object material", listOf(2), readUsedFilamentsOnGl(glView, 1).toList())
+            // A separately placed object sitting above the bed is intentionally still a
+            // distinct object; the slicer correctly rejects it as floating until the user
+            // explicitly joins it or enables suitable supports.
         } finally {
             modelFile.delete()
         }
@@ -1884,9 +1934,8 @@ class InitialProjectMenuDeviceTest {
                 "test camera should expose a precise side target; targetPixels=$targetPixels, " +
                     "exactHits=$exactTargetHits, smallestEligibleNormalZ=$smallestEligibleNormalZ, sample=$sampleHit"
             }
-            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 2 }
 
-            val combinedBounds = readExactBoundsOnGl(glView, 0).single()
             val originals = requireNotNull(sourceBounds.get())
             val target = originals[0]
             val moving = originals[1]
@@ -1895,28 +1944,28 @@ class InitialProjectMenuDeviceTest {
                 Vec3d(point[0], point[1], point[2]),
                 requireNotNull(tappedNormal.get()).let { Vec3d(it[0], it[1], it[2]) },
             ))
-            val expectedBounds = doubleArrayOf(
-                minOf(target[0], moving[0] + placement.x),
-                minOf(target[1], moving[1] + placement.y),
-                minOf(target[2], moving[2] + placement.z),
-                maxOf(target[3], moving[3] + placement.x),
-                maxOf(target[4], moving[4] + placement.y),
-                maxOf(target[5], moving[5] + placement.z),
+            val expectedMovingBounds = doubleArrayOf(
+                moving[0] + placement.x, moving[1] + placement.y, moving[2] + placement.z,
+                moving[3] + placement.x, moving[4] + placement.y, moving[5] + placement.z,
             )
-            expectedBounds.forEachIndexed { index, expected ->
-                assertEquals("combined bounds must reflect the actual surface hit on axis $index",
-                    expected, combinedBounds[index], 0.04)
+            assertEquals("surface placement must leave target as its own model object", target.toList(),
+                readExactBoundsOnGl(glView, 0).single().toList())
+            expectedMovingBounds.forEachIndexed { index, expected ->
+                assertEquals("placement must move the selected object without merging it, axis $index",
+                    expected, readExactBoundsOnGl(glView, 1).single()[index], 0.04)
             }
-            assertEquals("the grouped result should retain both material assignments", listOf(1, 2),
-                readUsedFilamentsOnGl(glView, 0).toList())
+            assertEquals("the target material must remain independent", listOf(1), readUsedFilamentsOnGl(glView, 0).toList())
+            assertEquals("the moved object material must remain independently editable", listOf(2),
+                readUsedFilamentsOnGl(glView, 1).toList())
 
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
             compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
-            assertEquals(listOf(1, 2), readUsedFilamentsOnGl(glView, 0).toList())
-            val redonePlacementBounds = readExactBoundsOnGl(glView, 0).single()
-            expectedBounds.forEachIndexed { index, expected ->
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 2 }
+            assertEquals(listOf(1), readUsedFilamentsOnGl(glView, 0).toList())
+            assertEquals(listOf(2), readUsedFilamentsOnGl(glView, 1).toList())
+            val redonePlacementBounds = readExactBoundsOnGl(glView, 1).single()
+            expectedMovingBounds.forEachIndexed { index, expected ->
                 assertEquals("Redo must restore surface placement geometry on axis $index",
                     expected, redonePlacementBounds[index], 0.04)
             }
@@ -2002,7 +2051,7 @@ class InitialProjectMenuDeviceTest {
             val point = requireNotNull(tappedPoint.get()) {
                 "the group should be placeable on an exposed upward target face; exactHits=$exactTargetHits"
             }
-            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 3 }
 
             val original = requireNotNull(sourceBounds.get())
             val groupMinX = minOf(original[1][0], original[2][0])
@@ -2014,41 +2063,38 @@ class InitialProjectMenuDeviceTest {
             val dx = point[0] - (groupMinX + groupMaxX) / 2.0
             val dy = point[1] - (groupMinY + groupMaxY) / 2.0
             val dz = point[2] - groupMinZ
-            val expectedBounds = doubleArrayOf(
-                minOf(original[0][0], groupMinX + dx),
-                minOf(original[0][1], groupMinY + dy),
-                minOf(original[0][2], groupMinZ + dz),
-                maxOf(original[0][3], groupMaxX + dx),
-                maxOf(original[0][4], groupMaxY + dy),
-                maxOf(original[0][5], groupMaxZ + dz),
-            )
-            expectedBounds.forEachIndexed { axis, expected ->
-                assertEquals("group surface placement should match the picked point on axis $axis",
-                    expected, readExactBoundsOnGl(glView, 0).single()[axis], 0.04)
+            val expectedMovingBounds = listOf(1, 2).map { index ->
+                doubleArrayOf(
+                    original[index][0] + dx, original[index][1] + dy, original[index][2] + dz,
+                    original[index][3] + dx, original[index][4] + dy, original[index][5] + dz,
+                )
             }
-            assertEquals("target and moving group should keep their separate material assignments", listOf(1, 2, 3),
-                readUsedFilamentsOnGl(glView, 0).toList())
-            val targetPartFilament = AtomicReference<Int>()
-            val targetPartReady = CountDownLatch(1)
-            glView.queueEvent {
-                targetPartFilament.set(requireNotNull(glView.renderer.model).getVolumeExtruder(0, 0))
-                targetPartReady.countDown()
+            assertEquals("the untouched target must retain its own bounds", original[0].toList(),
+                readExactBoundsOnGl(glView, 0).single().toList())
+            expectedMovingBounds.forEachIndexed { movingIndex, expected ->
+                expected.forEachIndexed { axis, value ->
+                    assertEquals("group member ${movingIndex + 1} remains an independent object at axis $axis",
+                        value, readExactBoundsOnGl(glView, movingIndex + 1).single()[axis], 0.04)
+                }
             }
-            assertTrue("the placed assembly's target material should be readable on GL",
-                targetPartReady.await(10, TimeUnit.SECONDS))
-            assertEquals("surface placement should keep the picked target as the first multipart part", 1,
-                requireNotNull(targetPartFilament.get()))
+            assertEquals(listOf(1), readUsedFilamentsOnGl(glView, 0).toList())
+            assertEquals(listOf(2), readUsedFilamentsOnGl(glView, 1).toList())
+            assertEquals(listOf(3), readUsedFilamentsOnGl(glView, 2).toList())
 
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
             assertEquals("Undo should restore each source object's material assignment", listOf(1, 2, 3),
                 (0..2).map { readUsedFilamentsOnGl(glView, it).single() })
             compose.runOnUiThread { bed.redoModelEdit() }
-            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
-            assertEquals(listOf(1, 2, 3), readUsedFilamentsOnGl(glView, 0).toList())
-            expectedBounds.forEachIndexed { axis, expected ->
-                assertEquals("Redo should preserve the picked group placement on axis $axis",
-                    expected, readExactBoundsOnGl(glView, 0).single()[axis], 0.04)
+            compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
+            assertEquals(listOf(1), readUsedFilamentsOnGl(glView, 0).toList())
+            assertEquals(listOf(2), readUsedFilamentsOnGl(glView, 1).toList())
+            assertEquals(listOf(3), readUsedFilamentsOnGl(glView, 2).toList())
+            expectedMovingBounds.forEachIndexed { movingIndex, expected ->
+                expected.forEachIndexed { axis, value ->
+                    assertEquals("Redo keeps independent group member ${movingIndex + 1} placed at axis $axis",
+                        value, readExactBoundsOnGl(glView, movingIndex + 1).single()[axis], 0.04)
+                }
             }
         } finally {
             if (glView.renderer.isSurfacePlacementActive) bed.onBackPressed()

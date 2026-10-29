@@ -735,6 +735,34 @@ extern "C" {
         return name.empty() ? nullptr : env->NewStringUTF(name.c_str());
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1part_1count(JNIEnv*, jclass, jlong ptr, jint i) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;
+        const ModelObject* object = model->model.objects[i];
+        if (object == nullptr) return 0;
+        jint count = 0;
+        for (const ModelVolume* volume : object->volumes) {
+            if (volume != nullptr && volume->type() == ModelVolumeType::MODEL_PART && volume->mesh().facets_count() >= 3)
+                ++count;
+        }
+        return count;
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1part_1extruder(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint part_index) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() || part_index < 0)
+            return -1;
+        const ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr) return -1;
+        jint current_part = 0;
+        for (const ModelVolume* volume : object->volumes) {
+            if (volume == nullptr || volume->type() != ModelVolumeType::MODEL_PART || volume->mesh().facets_count() < 3) continue;
+            if (current_part++ == part_index) return std::max(1, volume->extruder_id());
+        }
+        return -1;
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1triangle_1count(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;
