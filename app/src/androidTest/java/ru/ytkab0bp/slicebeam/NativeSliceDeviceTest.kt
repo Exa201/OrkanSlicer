@@ -16,6 +16,7 @@ import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
+import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
@@ -1376,6 +1377,7 @@ class NativeSliceDeviceTest {
             val modelFile = copyCube(context, "boolean-painted-${operation.name.lowercase()}.stl")
             val projectFile = File(context.cacheDir, "boolean-painted-${operation.name.lowercase()}.3mf")
             val model = Model(modelFile)
+            val paintOverlay = GLModel()
             var restored: Model? = null
             var generatedConfig: File? = null
             try {
@@ -1395,14 +1397,20 @@ class NativeSliceDeviceTest {
                 }
                 assertTrue("the target should contain a painted region before Boolean", model.hasPaint(0))
                 assertTrue(model.getUsedFilaments(0).contains(2))
+                val oneInstancePaintTriangles = model.buildPaintOverlay(0, paintOverlay, 2)
+                assertTrue("the target instance should render its painted facets", oneInstancePaintTriangles > 0)
 
+                val targetWidth = max.x - min.x
+                assertTrue("the painted target should accept a second linked instance",
+                    model.duplicateInstance(0, 0, Vec3d(targetWidth * 3.0, 0.0, 0.0)) >= 0)
                 model.addObject(model, 0)
-                model.getBoundingBoxExact(0, min, max)
-                model.translate(1, (max.x - min.x) * 0.25, 0.0, 0.0)
+                model.translate(1, targetWidth * 0.25, 0.0, 0.0)
                 assertEquals("${operation.name} should succeed", 0, model.booleanObjects(0, 1, operation))
                 assertEquals(1, model.objectsCount)
                 assertTrue("${operation.name} must preserve target facet paint", model.hasPaint(0))
                 assertTrue("${operation.name} must retain target painted filament 2", model.getUsedFilaments(0).contains(2))
+                assertTrue("${operation.name} should remap painted facets from both linked instances",
+                    model.buildPaintOverlay(0, paintOverlay, 2) > oneInstancePaintTriangles)
 
                 SliceBeam.genCurrentConfig(model)
                 generatedConfig = SliceBeam.getCurrentConfigFile()
@@ -1418,6 +1426,7 @@ class NativeSliceDeviceTest {
                 generatedConfig?.delete()
                 restored?.release()
                 model.release()
+                paintOverlay.release()
                 modelFile.delete()
                 projectFile.delete()
             }
