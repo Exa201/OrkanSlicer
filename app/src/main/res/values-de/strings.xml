@@ -184,7 +184,7 @@
     <string name="ModelMenuAllObjectsGroup">Druckplatte</string>
     <string name="ModelMenuPlaceOnObject">Auf ein anderes Objekt setzen</string>
     <string name="ModelMenuPlaceOnObjectShort">Oben platzieren</string>
-    <string name="ModelMenuPlaceOnObjectDone">Auf das Ziel gesetzt und für den Druck als Baugruppe verbunden.</string>
+    <string name="ModelMenuPlaceOnObjectDone">Auf das Ziel gesetzt. Beide Objekte bleiben getrennt bearbeitbar.</string>
     <string name="ModelMenuCombineSelected">Ausgewählte als Teile verbinden</string>
     <string name="ModelMenuCombineSelectedShort">Teile verbinden</string>
     <string name="ModelMenuCombineWarning">Die ausgewählten Objekte werden zu einem mehrteiligen Objekt verbunden. Die Filamentzuordnung der einzelnen Volumen bleibt erhalten. Das ist keine boolesche Vereinigung.</string>

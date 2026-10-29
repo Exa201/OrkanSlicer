@@ -187,7 +187,7 @@
     <string name="ModelMenuAllObjectsGroup">Build plate</string>
     <string name="ModelMenuPlaceOnObject">Place on top of another object</string>
     <string name="ModelMenuPlaceOnObjectShort">Place on top</string>
-    <string name="ModelMenuPlaceOnObjectDone">Placed and grouped with the target as one printable assembly.</string>
+    <string name="ModelMenuPlaceOnObjectDone">Placed on the target. Both objects remain independently editable.</string>
     <string name="ModelMenuPlaceOnSurface">Place on a selected surface</string>
     <string name="ModelSurfacePlacementInstruction">Tap a visible side or upward-facing surface on the target. Back cancels.</string>
     <string name="ModelSurfacePlacementNeedsSimplification">Simplify the target model before placing objects on its surface. Dense models can still be selected and sliced.</string>
