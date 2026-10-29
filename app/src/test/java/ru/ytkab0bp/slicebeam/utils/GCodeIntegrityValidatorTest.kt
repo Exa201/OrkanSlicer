@@ -85,6 +85,33 @@ class GCodeIntegrityValidatorTest {
     }
 
     @Test
+    fun acceptsModelMaxHeightAboveFinalEmittedLayerWhenAllLayersAreComplete() {
+        val contents = buildString {
+            appendLine("; total layer number: 74")
+            appendLine("; max_z_height: 15.10")
+            repeat(74) { index ->
+                appendLine(";LAYER_CHANGE")
+                appendLine(";Z:${"%.1f".format(java.util.Locale.ROOT, 0.3 + index * 0.2)}")
+                appendLine("G1 X$index E1")
+            }
+            appendLine("M73 P100 R0")
+            appendLine("; EXECUTABLE_BLOCK_END")
+            appendLine("; total layers count = 75")
+        }
+        val file = gcodeFile(
+            contents,
+        )
+        try {
+            val result = GCodeIntegrityValidator.validate(file)
+            assertTrue(result.details, result.isValid())
+            assertEquals(74, result.expectedLayers)
+            assertEquals(74, result.actualLayers)
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun rejectsOrcaFooterMismatchWhenDeclaredLayerMarkerIsMissing() {
         val file = gcodeFile(
             """; total layer number: 2

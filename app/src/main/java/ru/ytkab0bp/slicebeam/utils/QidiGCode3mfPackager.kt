@@ -21,6 +21,15 @@ object QidiGCode3mfPackager {
     private const val PLATE = 1
     private const val MAX_THUMBNAIL_BYTES = 4 * 1024 * 1024
     private const val MAX_FILAMENTS = 16
+    private const val MAX_PROJECT_SETTINGS = 4096
+    private val semicolonListSettings = setOf(
+        "extruder_colour", "filament_colour", "filament_colour_type", "filament_ids", "filament_map",
+        "filament_multi_colour", "filament_settings_id", "filament_type", "filament_vendor",
+    )
+    private val scalarCommaSettings = setOf(
+        "before_layer_change_gcode", "change_extrusion_role_gcode", "change_filament_gcode",
+        "layer_change_gcode", "machine_end_gcode", "machine_start_gcode", "printing_by_object_gcode",
+    )
     private val settingLine = Regex("^;\\s*([^=]+?)\\s*=\\s*(.*?)\\s*$")
     private val layerLine = Regex("(?i)^;\\s*total layer number\\s*:\\s*(\\d+)\\s*$")
     private val objectLine = Regex("(?i)^EXCLUDE_OBJECT_DEFINE\\s+NAME=([^\\s]+).*?POLYGON=(.*)$")
@@ -229,8 +238,12 @@ object QidiGCode3mfPackager {
                 if (layer != null) layers = layer.groupValues[1].toIntOrNull() ?: layers
                 val normalized = line.trim()
                 val pair = settingLine.matchEntire(normalized)
-                if (pair != null && settings.size < 256) {
-                    settings[pair.groupValues[1].trim()] = pair.groupValues[2].trim().trim('"')
+                if (pair != null) {
+                    val key = pair.groupValues[1].trim()
+                    if (settings.size >= MAX_PROJECT_SETTINGS && key !in settings) {
+                        throw IllegalArgumentException("The sliced file contains too many project settings to package safely.")
+                    }
+                    settings[key] = pair.groupValues[2].trim().trim('"')
                 }
                 when {
                     normalized.startsWith("; estimated printing time", ignoreCase = true) -> seconds = parseDuration(normalized.substringAfter('='))
@@ -445,6 +458,8 @@ object QidiGCode3mfPackager {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
  <Relationship Target="/3D/3dmodel.model" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
  <Relationship Target="/Metadata/plate_1.png" Id="rel-2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail"/>
+ <Relationship Target="/Metadata/plate_1.png" Id="rel-4" Type="http://schemas.qiditech.com/package/2021/cover-thumbnail-middle"/>
+ <Relationship Target="/Metadata/plate_1.png" Id="rel-5" Type="http://schemas.qiditech.com/package/2021/cover-thumbnail-small"/>
 </Relationships>
 """
 
@@ -559,14 +574,49 @@ $filaments
     }
 
     private fun settingsJson(metadata: PrintMetadata, printer: ConfigObject): String {
-        val values = LinkedHashMap<String, String>()
-        listOf("layer_height", "curr_bed_type", "filament_map", "filament_colour", "filament_type", "filament_ids", "nozzle_diameter", "timelapse_type")
-            .forEach { key -> metadata.settings[key]?.let { values[key] = it } }
+        // QIDI Studio uses this file to populate the print-job details. Keep the
+        // full sliced profile (including speeds, layer heights, temperatures and
+        // filament data), rather than the former small subset that hid most data.
+        val values = LinkedHashMap<String, Any>()
+        metadata.settings.forEach { (key, rawValue) -> values[key] = projectSettingValue(key, rawValue) }
         values["printer_model"] = printer.get("printer_model") ?: "Q2"
         values["gcode_flavor"] = "klipper"
         return values.entries.joinToString(prefix = "{\n", postfix = "\n}\n", separator = ",\n") { (key, value) ->
-            "  ${jsonQuote(key)}: ${jsonQuote(value)}"
+            val jsonValue = if (value is List<*>) {
+                value.joinToString(prefix = "[", postfix = "]") { jsonQuote(it?.toString().orEmpty()) }
+            } else {
+                jsonQuote(value.toString())
+            }
+            "  ${jsonQuote(key)}: $jsonValue"
         }
+    }
+
+    private fun projectSettingValue(key: String, rawValue: String): Any {
+        val normalizedKey = key.lowercase(Locale.ROOT)
+        val separator = when {
+            normalizedKey in semicolonListSettings && rawValue.contains(';') -> ';'
+            normalizedKey !in scalarCommaSettings && rawValue.contains(',') -> ','
+            else -> return rawValue
+        }
+        return splitSettingList(rawValue, separator)
+    }
+
+    private fun splitSettingList(rawValue: String, separator: Char): List<String> {
+        val values = ArrayList<String>()
+        val current = StringBuilder()
+        var quoted = false
+        var escaped = false
+        for (character in rawValue) {
+            when {
+                escaped -> { current.append(character); escaped = false }
+                character == '\\' && quoted -> { current.append(character); escaped = true }
+                character == '"' -> { current.append(character); quoted = !quoted }
+                character == separator && !quoted -> { values.add(current.toString().trim().trim('"')); current.setLength(0) }
+                else -> current.append(character)
+            }
+        }
+        values.add(current.toString().trim().trim('"'))
+        return values
     }
 
     private fun sequenceJson(metadata: PrintMetadata): String {

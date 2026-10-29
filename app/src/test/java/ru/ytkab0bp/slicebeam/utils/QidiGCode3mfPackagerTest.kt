@@ -75,12 +75,54 @@ class QidiGCode3mfPackagerTest {
                 assertTrue(sliceInfo.contains("key=\"filament_maps\" value=\"1 2\""))
                 assertTrue(sliceInfo.contains("type=\"PLA\" color=\"#FF0000\""))
                 assertTrue(sliceInfo.contains("name=\"clamp\""))
+                val relationships = zip.getInputStream(zip.getEntry("_rels/.rels")).bufferedReader().use { it.readText() }
+                assertTrue(relationships.contains("http://schemas.qiditech.com/package/2021/cover-thumbnail-middle"))
+                assertTrue(relationships.contains("http://schemas.qiditech.com/package/2021/cover-thumbnail-small"))
                 val storedPreview = zip.getInputStream(zip.getEntry("Metadata/plate_1.png")).use { it.readBytes() }
                 assertTrue(storedPreview.contentEquals(thumbnail))
             }
         } finally {
             source.delete()
             packageFile.delete()
+        }
+    }
+
+    @Test
+    fun includesFullSettingsForQidiPrintDetailsIncludingSettingsAfterFormerLimit() {
+        val source = File.createTempFile("qidi-full-settings", ".gcode")
+        val target = File.createTempFile("qidi-full-settings", ".gcode.3mf")
+        val png = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+        )
+        try {
+            val settings = buildString {
+                appendLine("; total layer number: 1")
+                repeat(300) { appendLine("; test_setting_$it = value_$it") }
+                appendLine("; layer_height = 0.16")
+                appendLine("; first_layer_height = 0.24")
+                appendLine("; outer_wall_speed = 120")
+                appendLine("; travel_speed = 500")
+                appendLine("; filament_type = PLA,PETG")
+                appendLine("; filament_colour = #112233,#AABBCC")
+                appendLine("; filament_map = 1,2")
+                appendLine("T0")
+                appendLine("T1")
+            }
+            source.writeText(settings)
+            QidiGCode3mfPackager.create(source, target, png, qidiQ2(), emptyList(), "test", "details")
+            ZipFile(target).use { zip ->
+                val projectSettings = zip.getInputStream(zip.getEntry("Metadata/project_settings.config"))
+                    .bufferedReader().use { it.readText() }
+                assertTrue(projectSettings.contains("\"layer_height\": \"0.16\""))
+                assertTrue(projectSettings.contains("\"first_layer_height\": \"0.24\""))
+                assertTrue(projectSettings.contains("\"outer_wall_speed\": \"120\""))
+                assertTrue(projectSettings.contains("\"travel_speed\": \"500\""))
+                assertTrue(projectSettings.contains("\"test_setting_299\": \"value_299\""))
+                assertTrue(projectSettings.contains("\"filament_colour\": [\"#112233\", \"#AABBCC\"]"))
+            }
+        } finally {
+            source.delete()
+            target.delete()
         }
     }
 

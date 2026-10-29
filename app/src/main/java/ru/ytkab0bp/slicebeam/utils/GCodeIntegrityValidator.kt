@@ -10,7 +10,6 @@ import java.util.regex.Pattern
 /** Checks that a sliced G-code has every declared layer and a completion marker after printing. */
 object GCodeIntegrityValidator {
     private val LAYER_TOTAL = Pattern.compile("(?i)^;\\s*(?:total layer number|total layers count)\\s*[:=]\\s*(\\d+)\\s*$")
-    private val Z_MARKER = Pattern.compile("(?i)^;Z:([0-9]+(?:\\.[0-9]+)?)\\s*$")
     private val NUMBERED_LAYER = Pattern.compile("(?i)^; BEFORE_LAYER_CHANGE (\\d+) @ ([0-9]+(?:\\.[0-9]+)?)mm\\s*$")
     private val EXTRUSION = Pattern.compile("(?:^|\\s)E([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(?:\\s|$)")
     private val MOTION_COMMAND = Pattern.compile("(?i)^G[0-3](?:\\s|$).*$")
@@ -28,7 +27,6 @@ object GCodeIntegrityValidator {
         LAST_LAYER_HAS_NO_EXTRUSION,
         END_BEFORE_LAST_LAYER,
         MISSING_COMPLETION_MARKER,
-        HEIGHT_MISMATCH,
         READ_ERROR
     }
 
@@ -55,9 +53,6 @@ object GCodeIntegrityValidator {
         var declaredLayersAtEnd = -1
         var layerMarkers = 0
         var expectedNumber = 0
-        var lastZMarkerLayer = 0
-        var lastZ = Double.NaN
-        var declaredHeight = Double.NaN
         var lastLayerHasExtrusion = false
         var sawNumberedLayers = false
         var completionAfterLastLayer = false
@@ -76,14 +71,6 @@ object GCodeIntegrityValidator {
                         } else {
                             declaredLayersAtEnd = parsed
                         }
-                    }
-                    if (trimmed.lowercase(Locale.ROOT).startsWith("; max_z_height:")) {
-                        declaredHeight = parseDoubleAfterColon(trimmed)
-                    }
-                    val z = Z_MARKER.matcher(trimmed)
-                    if (z.matches() && layerMarkers > 0) {
-                        lastZMarkerLayer = layerMarkers
-                        lastZ = z.group(1).toDouble()
                     }
                     if (trimmed.equals(";LAYER_CHANGE", ignoreCase = true) || LAYER_COMMAND.matcher(trimmed).matches()) {
                         layerMarkers++
@@ -157,9 +144,11 @@ object GCodeIntegrityValidator {
         if (!foundAnyCompletion || !completionAfterLastLayer) {
             return result(Failure.MISSING_COMPLETION_MARKER, expected, layerMarkers, "No recognized print-completion marker follows the final layer.")
         }
-        if (lastZMarkerLayer == layerMarkers && !declaredHeight.isNaN() && kotlin.math.abs(lastZ - declaredHeight) > 0.01) {
-            return result(Failure.HEIGHT_MISMATCH, expected, layerMarkers, "The final layer height does not match the declared maximum print height.")
-        }
+        // `max_z_height` describes the model's upper bound, not necessarily the Z
+        // coordinate of the final emitted layer. Orca/QIDI can legitimately emit
+        // a final layer one layer-height below that bound (for example a 15.1 mm
+        // model whose last toolpath is at Z=14.9 mm). Completeness is established
+        // from declared/actual layer counts, final-layer extrusion and end markers.
         return result(Failure.NONE, expected, layerMarkers, "All declared layers and the print completion are present.")
     }
 
@@ -183,12 +172,6 @@ object GCodeIntegrityValidator {
                 || COMPLETION_COMMAND.matcher(line).matches()
                 || END_PRINT_COMMAND.matcher(line).matches()
                 || M73_COMPLETION.matcher(line).matches()
-
-    private fun parseDoubleAfterColon(line: String): Double = try {
-        line.substring(line.indexOf(':') + 1).trim().toDouble()
-    } catch (_: RuntimeException) {
-        Double.NaN
-    }
 
     private fun result(failure: Failure, expected: Int, actual: Int, details: String): Result =
         Result.create(failure, expected, actual, details)

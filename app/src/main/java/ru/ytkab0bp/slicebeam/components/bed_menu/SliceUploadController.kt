@@ -797,8 +797,6 @@ object SliceUploadController {
                     context.getString(R.string.GCodeIntegrityEndBeforeLastLayer)
                 GCodeIntegrityValidator.Failure.MISSING_COMPLETION_MARKER ->
                     context.getString(R.string.GCodeIntegrityMissingCompletion)
-                GCodeIntegrityValidator.Failure.HEIGHT_MISMATCH ->
-                    context.getString(R.string.GCodeIntegrityHeightMismatch)
                 else -> context.getString(R.string.GCodeIntegrityGeneric)
             }
             fragment.showWorkspaceMessageDialog(
