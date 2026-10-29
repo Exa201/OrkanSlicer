@@ -11,6 +11,12 @@ include(CheckCSourceCompiles)
 project(SliceBeam)
 cmake_minimum_required(VERSION 3.4.1)
 
+# The native slicer translation units can consume substantial memory. The host
+# Ninja default follows all reported CPUs and can spawn too many clang processes
+# on developer machines, terminating a compiler before the APK is produced.
+set_property(GLOBAL PROPERTY JOB_POOLS slic3r_compile_pool=4)
+set(CMAKE_JOB_POOL_COMPILE slic3r_compile_pool)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
