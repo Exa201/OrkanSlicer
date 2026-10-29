@@ -3513,26 +3513,37 @@ extern "C" {
 
     JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1begin(JNIEnv* env, jclass, jlong modelPtr, jint objIdx, jint mode) {
         ModelRef* mRef = (ModelRef*) (intptr_t) modelPtr;
-        if (objIdx < 0 || objIdx >= (int) mRef->model.objects.size()) return 0;
+        if (mRef == nullptr || objIdx < 0 || objIdx >= (int) mRef->model.objects.size()) return 0;
         ModelObject* obj = mRef->model.objects[objIdx];
-        if (obj->volumes.empty()) return 0;
-        PaintSessionRef* s = new PaintSessionRef();
-        s->model = mRef;
-        s->objIdx = objIdx;
-        s->mode = mode;
-        // Keep selector triangle indices aligned with the annotation on volume[0].
-        // obj->mesh() merges all model-part volumes, but commit stores the selector into only
-        // volume[0]; for multi-volume assemblies the later volume indices then cannot round-trip.
-        s->mesh = obj->volumes[0]->mesh();
-        s->mesh_to_world = obj->volumes[0]->get_matrix();
-        if (!obj->instances.empty() && obj->instances.front() != nullptr)
-            s->mesh_to_world = obj->instances.front()->get_matrix() * s->mesh_to_world;
-        s->selector = std::make_unique<Slic3r::TriangleSelector>(s->mesh);
-        const auto& data = facets_for_mode(obj->volumes[0], mode).get_data();
-        if (!data.triangles_to_split.empty())
-            s->selector->deserialize(data, true);
-        s->emesh = new AABBMesh(s->mesh, true);
-        return (jlong) (intptr_t) s;
+        if (obj == nullptr || obj->volumes.empty() || obj->volumes[0] == nullptr) return 0;
+        // Topology construction for a dense imported mesh can allocate substantially more memory
+        // than its source STL/3MF. Do not let a recoverable native allocation/geometry exception
+        // escape across JNI and terminate the app; leave the original model untouched instead.
+        try {
+            auto s = std::make_unique<PaintSessionRef>();
+            s->model = mRef;
+            s->objIdx = objIdx;
+            s->mode = mode;
+            // Keep selector triangle indices aligned with the annotation on volume[0].
+            // obj->mesh() merges all model-part volumes, but commit stores the selector into only
+            // volume[0]; for multi-volume assemblies the later volume indices then cannot round-trip.
+            s->mesh = obj->volumes[0]->mesh();
+            s->mesh_to_world = obj->volumes[0]->get_matrix();
+            if (!obj->instances.empty() && obj->instances.front() != nullptr)
+                s->mesh_to_world = obj->instances.front()->get_matrix() * s->mesh_to_world;
+            s->selector = std::make_unique<Slic3r::TriangleSelector>(s->mesh);
+            const auto& data = facets_for_mode(obj->volumes[0], mode).get_data();
+            if (!data.triangles_to_split.empty())
+                s->selector->deserialize(data, true);
+            s->emesh = new AABBMesh(s->mesh, true);
+            return (jlong) (intptr_t) s.release();
+        } catch (const std::exception& e) {
+            __android_log_print(ANDROID_LOG_ERROR, TAG, "Paint session initialization failed: %s", e.what());
+            return 0;
+        } catch (...) {
+            __android_log_print(ANDROID_LOG_ERROR, TAG, "Paint session initialization failed with an unknown native error");
+            return 0;
+        }
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1raycast(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray originArr, jdoubleArray dirArr) {

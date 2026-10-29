@@ -15,6 +15,8 @@ import ru.ytkab0bp.slicebeam.config.ThreeMfImportSelection
 import ru.ytkab0bp.slicebeam.config.ThreeMfProjectSettingsReader
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
@@ -100,6 +102,39 @@ class KromaCutThreeMfDeviceTest {
                         "205,210", effective["nozzle_temperature"])
                 }
             }
+        }
+    }
+
+    @Test fun detailedKromaCutCanBePaintedWithoutChangingItsOriginalMesh() {
+        val source = sourceFile()
+        assumeTrue("Push the supplied KromaCut 3MF to the app external files test directory", source.isFile)
+        val model = Model(source, 1)
+        var paint: PaintSession? = null
+        val overlay = GLModel()
+        try {
+            assertEquals("the supplied detailed KromaCut mesh should be exercised", 165_264,
+                model.getTriangleCount(0))
+            assertFalse("KromaCut coloring must not require destructive mesh simplification",
+                LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)))
+
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            paint = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+            assertTrue("the detailed original mesh should initialize a color paint session", paint.isValid())
+            paint.height(min.z + (max.z - min.z) * 0.25, min.z + (max.z - min.z) * 0.75, 2)
+            assertTrue("the live overlay must contain painted faces before confirmation",
+                paint.buildOverlay(overlay, 2) > 0)
+            paint.commit()
+
+            assertEquals("painting must preserve the exact original triangle count", 165_264,
+                model.getTriangleCount(0))
+            assertTrue("the committed original mesh must retain the selected filament", model.hasPaint(0))
+            assertTrue(model.getUsedFilaments(0).contains(2))
+        } finally {
+            paint?.end()
+            overlay.release()
+            model.release()
         }
     }
 

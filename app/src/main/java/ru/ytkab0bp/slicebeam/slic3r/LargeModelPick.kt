@@ -6,8 +6,9 @@ import kotlin.math.abs
 /** Cheap selection for dense models; never changes the geometry used for slicing. */
 internal object LargeModelPick {
     // Surface paint creates topology data in addition to its raycast tree. Keep that heavier path
-    // bounded even though GL picking itself now uses a lightweight triangle AABB tree.
-    const val TRIANGLE_LIMIT = 20_000
+    // bounded, but allow detailed multicolor 3MF artwork to be painted without destructively
+    // simplifying its on-bed mesh first. The original KromaCut artwork has 165,264 triangles.
+    const val TRIANGLE_LIMIT = 200_000
     // A balanced raycast tree uses bounded memory and supports precise picks for common generated
     // parts such as M12 fasteners. Truly massive meshes still use bounds-only selection.
     const val EXACT_RAYCAST_TRIANGLE_LIMIT = 100_000

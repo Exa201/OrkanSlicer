@@ -16,11 +16,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
+import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
@@ -1522,7 +1524,7 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
-    @Test fun standardM12BoltBuildsLightweightExactRaycastIndexWithoutPaintTopology() {
+    @Test fun standardM12BoltBuildsBoundedRaycastAndPaintDataWithoutCrash() {
         val values = FastenerFormLogic.defaults(size = FastenerStandards.count() - 1)
         assertEquals(null, FastenerFormLogic.validate(values))
         val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "m12-raycast-regression.stl")
@@ -1550,8 +1552,8 @@ class ModelEditingNativeDeviceTest {
             val expectedHeight = FastenerFormLogic.parse(values.first) + FastenerFormLogic.parse(values.third)
             assertEquals("packed ring generation must preserve the bolt's designed total height",
                 expectedHeight.toDouble(), boltMax.z - boltMin.z, 0.02)
-            assertTrue(
-                "M12 remains above the separate paint-topology safety limit",
+            assertFalse(
+                "the standard M12 mesh must fit the tested non-destructive surface-paint budget",
                 LargeModelPick.needsPreciseSurfaceSimplification(model.getTriangleCount(0)),
             )
             assertTrue("the lightweight raycast tree should allow exact surface placement for M12",
@@ -1575,6 +1577,14 @@ class ModelEditingNativeDeviceTest {
             val raycastIndexStarted = System.nanoTime()
             assertNotNull("dense M12 geometry should expose the lightweight exact raycaster", glModel.raycaster)
             val raycastIndexMillis = (System.nanoTime() - raycastIndexStarted) / 1_000_000
+            val paintStarted = System.nanoTime()
+            val paint = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+            val paintInitMillis = (System.nanoTime() - paintStarted) / 1_000_000
+            try {
+                assertTrue("a standard M12 must enter paint without replacing its original triangles", paint.isValid())
+            } finally {
+                paint.end()
+            }
             assertEquals("released native handles should reject raycasts safely", 0,
                 Native.glmodel_raycast_closest_hit(0L, doubleArrayOf(0.0, 0.0, 1.0), doubleArrayOf(0.0, 0.0, -1.0)).size)
             assertEquals("short origins must be rejected before native vector construction", 0,
@@ -1626,7 +1636,8 @@ class ModelEditingNativeDeviceTest {
             android.util.Log.i(
                 "ModelEditingNativeDeviceTest",
                 "M12 profile=${FastenerStandards.diameter(values.size)}mm facets=$written " +
-                    "generateMs=$generationMillis importMs=$importMillis raycastIndexMs=$raycastIndexMillis",
+                    "generateMs=$generationMillis importMs=$importMillis raycastIndexMs=$raycastIndexMillis " +
+                    "paintInitMs=$paintInitMillis",
             )
         } finally {
             glModel.release()
