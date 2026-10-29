@@ -1333,8 +1333,10 @@ private fun showPaintModePanel(currentGlView: GLView, mode: Int) {
 private fun finishPaintMode(commit: Boolean, uniformFilament: Int? = null) {
     if (!paintFinishPending.compareAndSet(false, true)) return
     val currentGlView = glView
-    exitPaintMode()
-    if (currentGlView == null) return
+    if (currentGlView == null) {
+        exitPaintMode()
+        return
+    }
     currentGlView.isPaintBrushActive = false
     currentGlView.queueEvent {
         if (commit && uniformFilament != null) {
@@ -1344,6 +1346,11 @@ private fun finishPaintMode(commit: Boolean, uniformFilament: Int? = null) {
         currentGlView.renderer.endPaint(commit)
         currentGlView.requestRender()
         ViewUtils.postOnMainThread {
+            // Keep the paint panel as the single owner of the filament controls until the
+            // GL thread has committed/discarded the draft and rendered the resulting model.
+            // Closing it before this callback let the global filament shortcut return while
+            // the paint renderer was still active and resized the bed during that transition.
+            exitPaintMode()
             if (commit) updateModel()
         }
     }

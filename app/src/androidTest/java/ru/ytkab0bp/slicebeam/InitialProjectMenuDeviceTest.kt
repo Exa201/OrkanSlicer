@@ -8313,6 +8313,73 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun confirmingColorPaintKeepsOnePaletteAndThePlateHostUntilGlCommitCompletes() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val modelFile = File(activity.cacheDir, "menu-paint-commit-transition-test.stl")
+        val previousSlots = Prefs.getStoredFilamentSlots().map { FilamentSlot(it.color, it.type) }
+        Prefs.setStoredFilamentSlots(listOf(
+            FilamentSlot(0xFFCC3333.toInt(), "Commit Transition Base"),
+            FilamentSlot(0xFF3366CC.toInt(), "Commit Transition Accent"),
+        ))
+        val glBusy = CountDownLatch(1)
+        val releaseGl = CountDownLatch(1)
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val glView = requireNotNull(bed.glView)
+            glView.selectModel(0, Runnable {})
+            instrumentationWaitForGlIdle()
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuToolbarColorPaint)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarColorPaint))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                bed.isPaintMode && readRendererBooleanOnGl(glView, "isPaintMode")
+            }
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+
+            // Hold the GL queue so the Done callback cannot commit immediately. The workspace
+            // must keep the paint controls as the sole palette owner until this queue resumes.
+            glView.queueEvent {
+                glBusy.countDown()
+                releaseGl.await(60, TimeUnit.SECONDS)
+            }
+            assertTrue("the test must acquire the renderer GL queue", glBusy.await(5, TimeUnit.SECONDS))
+            compose.onNodeWithText(activity.getString(R.string.ActionDone))
+                .performScrollTo().assertIsDisplayed().performClick()
+
+            compose.onNodeWithTag("workspace-docked-tool-panel").assertIsDisplayed()
+            assertEquals("the dock retains its single palette until GL commit finishes", 1,
+                compose.onAllNodesWithTag("paint-palette-row").fetchSemanticsNodes().size)
+            assertEquals("the global filament shortcut must not return while the GL paint session is active", 0,
+                compose.onAllNodesWithContentDescription(
+                    activity.getString(R.string.WorkspaceFilamentButtonDescription, 2),
+                ).fetchSemanticsNodes().size)
+            assertTrue("the renderer view and its plate must remain attached during the transition",
+                bed.glView === glView)
+            releaseGl.countDown()
+            compose.waitUntil(timeoutMillis = 10_000) { !bed.isPaintMode }
+            instrumentationWaitForGlIdle()
+            assertEquals("after GL commit there is exactly one normal filament entry", 1,
+                compose.onAllNodesWithContentDescription(
+                    activity.getString(R.string.WorkspaceFilamentButtonDescription, 2),
+                ).fetchSemanticsNodes().size)
+            assertEquals("the paint palette is removed after the renderer has committed", 0,
+                compose.onAllNodesWithTag("paint-palette-row").fetchSemanticsNodes().size)
+            assertTrue("the build plate renderer remains attached after paint confirmation",
+                bed.glView === glView && readBedValidOnGl(glView))
+        } finally {
+            releaseGl.countDown()
+            if (bed.isPaintMode) bed.onBackPressed()
+            modelFile.delete()
+            Prefs.setStoredFilamentSlots(previousSlots)
+        }
+    }
+
+    @Test
     fun importedMulticolorProjectShowsLivePaintBeforeConfirmWithoutDuplicatePaletteOrPlateLoss() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

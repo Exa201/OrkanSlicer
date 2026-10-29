@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.404
+
+- Keep the color-paint panel and its single filament palette active until the GL thread has finished committing or discarding the paint draft.
+- Prevent the bed viewport and global filament shortcut from switching early during paint confirmation or cancellation.
+- Verify delayed GL-commit transitions, live paint preview, cancel behavior, plate visibility, and paint undo on Android 16.
+
 ## 0.8.403
 
 - Suppress the global filament shortcut whenever a paint panel is active, preventing a duplicate palette during panel transitions.
