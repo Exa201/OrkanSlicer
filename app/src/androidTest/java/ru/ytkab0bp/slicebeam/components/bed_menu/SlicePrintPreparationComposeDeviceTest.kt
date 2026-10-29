@@ -44,6 +44,34 @@ class SlicePrintPreparationComposeDeviceTest {
     val compose = createInitializedActivityRule()
 
     @Test
+    fun sharedAceGateWarningResolvesItsPluralResource() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val acknowledged = AtomicInteger()
+        activity.runOnUiThread {
+            bed.showWorkspaceComposeDialog {
+                PrintPreparationWarningDialog(
+                    warning = PrintPreparationWarning.SharedAceGate(tool = 1),
+                    onDismiss = {},
+                    onAcknowledge = { acknowledged.incrementAndGet() },
+                    onUploadOnly = {},
+                    onFirmwareChecked = {},
+                )
+            }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+        val expectedMessage = activity.resources.getQuantityString(
+            R.plurals.MmuAssignmentSharedAceGate,
+            2,
+            2,
+        )
+        compose.onNodeWithText(expectedMessage).assertIsDisplayed()
+        compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+        assertEquals(1, acknowledged.get())
+    }
+
+    @Test
     fun selectingAnOccupiedAceGateAllowsTwoColorsToShareOnePhysicalFilament() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
@@ -320,7 +321,7 @@ internal fun PrintPreparationWarningDialog(
         is PrintPreparationWarning.UnavailableTool -> stringResource(
             R.string.MmuDirectSlotUnavailable, warning.tool, warning.gate + 1,
         )
-        is PrintPreparationWarning.SharedAceGate -> stringResource(
+        is PrintPreparationWarning.SharedAceGate -> pluralStringResource(
             R.plurals.MmuAssignmentSharedAceGate, warning.tool + 1, warning.tool + 1,
         )
         is PrintPreparationWarning.MaterialMismatch -> stringResource(
