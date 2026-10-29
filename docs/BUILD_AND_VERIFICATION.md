@@ -2385,3 +2385,18 @@ Five focused connected tests passed on `small_phone (AVD) - 16`:
 - `NativeSliceDeviceTest.raisedEngravedAndMultilineStandaloneTextSurviveThreeMfAndSliceWithTheirFilaments` — 1/1; raised, engraved, and multiline text edits survive reload and slicing with material assignments.
 
 No production defect was observed in this sweep, so no native modeling code was changed. These are targeted instrumented runs, not a full device suite; no actual printer was used.
+
+## Paint visibility and core editing regression sweep — Android 16 — 2026-10-29
+
+Eight focused connected tests passed on `small_phone (AVD) - 16`:
+
+- `InitialProjectMenuDeviceTest.colorPaintDraftIsVisibleBeforeConfirmAndCancelPreservesModel` — live color is visible before confirmation; cancel preserves the model.
+- `InitialProjectMenuDeviceTest.confirmingColorPaintKeepsOnePaletteAndThePlateHostUntilGlCommitCompletes` — the paint dock remains the only palette owner through the GL commit; the renderer and plate remain attached.
+- `InitialProjectMenuDeviceTest.importedMulticolorProjectShowsLivePaintBeforeConfirmWithoutDuplicatePaletteOrPlateLoss` — imported 3MF paint is visible before confirmation, with one palette and the whole plate in view.
+- `InitialProjectMenuDeviceTest.colorPaintPanelAcceptsRealCanvasTouchAndUndoRestoresFacetAssignments` — actual canvas painting and undo restore facet assignments.
+- `ModelEditingNativeDeviceTest.standardM12BoltBuildsBoundedRaycastAndPaintDataWithoutCrash` — standard M12 generation, bounded raycast setup, precise native hits, and paint-session initialization complete without a crash.
+- `InitialProjectMenuDeviceTest.modelMenuBooleanUnionRunsForAllThreeSelectedObjects` — three-object Boolean union through the model menu.
+- `InitialProjectMenuDeviceTest.placeOnObjectDialogStacksAndJoinsSelectedObjectWithChosenTarget` — object placement and joining through the workspace.
+- `NativeSliceDeviceTest.standaloneTextCanBePlacedJoinedAndSlicedAsItsOwnFilamentPart` — standalone text placement, joining, and slicing.
+
+All eight tests passed 1/1 with no skips or failures. These results are from the Android 16 emulator only; Xiaomi rendering remains unverified because no Xiaomi device was attached. No production code was changed in this verification sweep, no full unit suite was run, and no printer was started.
