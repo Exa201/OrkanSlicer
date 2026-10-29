@@ -2027,6 +2027,16 @@ class InitialProjectMenuDeviceTest {
             }
             assertEquals("target and moving group should keep their separate material assignments", listOf(1, 2, 3),
                 readUsedFilamentsOnGl(glView, 0).toList())
+            val targetPartFilament = AtomicReference<Int>()
+            val targetPartReady = CountDownLatch(1)
+            glView.queueEvent {
+                targetPartFilament.set(requireNotNull(glView.renderer.model).getVolumeExtruder(0, 0))
+                targetPartReady.countDown()
+            }
+            assertTrue("the placed assembly's target material should be readable on GL",
+                targetPartReady.await(10, TimeUnit.SECONDS))
+            assertEquals("surface placement should keep the picked target as the first multipart part", 1,
+                requireNotNull(targetPartFilament.get()))
 
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 3 }
@@ -2946,6 +2956,19 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithTag("model-object-row-2").performScrollTo().performClick()
             compose.onNodeWithTag("model-objects-selection-confirm").performClick()
             compose.waitUntil(timeoutMillis = 10_000) { glView.renderer.selectedObjectsCount == 3 }
+            val primaryReady = CountDownLatch(1)
+            glView.queueEvent {
+                // Keep object 3 active while the complete group remains selected. Joining
+                // must use this primary object, even though its model index is highest.
+                glView.renderer.setSelectedObject(2)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1, 2))
+                glView.requestRender()
+                primaryReady.countDown()
+            }
+            assertTrue("the selected group should retain its active destination object",
+                primaryReady.await(10, TimeUnit.SECONDS))
+            assertEquals("the highest-index object remains the active group target", 2,
+                readSelectedObjectOnGl(glView))
 
             openModelMenu(activity)
             selectSingleObjectScope()
@@ -2956,14 +2979,19 @@ class InitialProjectMenuDeviceTest {
 
             compose.waitUntil(timeoutMillis = 15_000) { bed.currentModel?.objectsCount == 1 }
             val combinedFilaments = AtomicReference<IntArray>()
+            val targetPartFilament = AtomicReference<Int>()
             val combinedReady = CountDownLatch(1)
             glView.queueEvent {
-                combinedFilaments.set(requireNotNull(glView.renderer.model).getUsedFilaments(0))
+                val combinedModel = requireNotNull(glView.renderer.model)
+                combinedFilaments.set(combinedModel.getUsedFilaments(0))
+                targetPartFilament.set(combinedModel.getVolumeExtruder(0, 0))
                 combinedReady.countDown()
             }
             assertTrue("combined part filaments should be read on the GL thread", combinedReady.await(10, TimeUnit.SECONDS))
             assertArrayEquals("combining the selected group preserves all source materials",
                 intArrayOf(1, 2, 3), requireNotNull(combinedFilaments.get()))
+            assertEquals("the active source object leads the joined multipart assembly", 3,
+                requireNotNull(targetPartFilament.get()))
             logModelEditStage("combine-and-undo-redo")
 
             compose.runOnUiThread { bed.undoModelEdit() }
@@ -2997,7 +3025,7 @@ class InitialProjectMenuDeviceTest {
             }
             assertEquals("split undo snapshot should restore the multipart joined object", 1,
                 readLastUndoSnapshotObjectCountOnGl(bed, glView))
-            assertEquals("splitting a multipart object should preserve each source filament", listOf(1, 2, 2, 3),
+            assertEquals("splitting should preserve the primary part first and every source filament", listOf(3, 1, 2, 2),
                 (0 until 4).map { index -> readUsedFilamentsOnGl(glView, index).single() })
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }
@@ -3005,7 +3033,7 @@ class InitialProjectMenuDeviceTest {
                 readUsedFilamentsOnGl(glView, 0))
             compose.runOnUiThread { bed.redoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 4 }
-            assertEquals("Redo split must restore all independent source bodies", listOf(1, 2, 2, 3),
+            assertEquals("Redo split must restore primary-first independent source bodies", listOf(3, 1, 2, 2),
                 (0 until 4).map { index -> readUsedFilamentsOnGl(glView, index).single() })
             compose.runOnUiThread { bed.undoModelEdit() }
             compose.waitUntil(timeoutMillis = 10_000) { readObjectCountOnGl(glView) == 1 }

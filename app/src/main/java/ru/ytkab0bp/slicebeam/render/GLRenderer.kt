@@ -537,8 +537,12 @@ private fun placeSelectionOnBed(activeModel: Model, indices: List<Int>) {
 internal fun combineSelectedObjectsAsParts(expectedSelection: ModelSelectionSnapshot? = null): Int {
     if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
     val source = model ?: return -1
-    val indices = selectedObjectIndices()
-    if (indices.size < 2) return -1
+    val selectedIndices = selectedObjectIndices()
+    if (selectedIndices.size < 2) return -1
+    // Keep the active object as the destination object. Its object-level settings and
+    // identity should lead the resulting multipart assembly, just as they do for Boolean edits.
+    val primaryIndex = selectedObject.takeIf { it in selectedIndices } ?: selectedIndices.first()
+    val indices = intArrayOf(primaryIndex) + selectedIndices.filter { it != primaryIndex }
     val combined = ModelEditOperation.runSafely(
         failureResult = MODEL_EDIT_OPERATION_FAILED,
         onFailure = { Log.e("GLRenderer", "Could not combine selected objects", it) },
@@ -704,7 +708,9 @@ private fun placeAndCombineWithTarget(targetIndex: Int, movingIndices: List<Int>
             activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
             invalidateGlModel(index)
         },
-        commit = { activeModel.combineObjectsAsParts((movingIndices + targetIndex).toIntArray()) },
+        // The placement target is the assembly's natural destination and must remain its
+        // primary object even when its model index follows the moving group.
+        commit = { activeModel.combineObjectsAsParts((listOf(targetIndex) + movingIndices).toIntArray()) },
         failureResult = MODEL_EDIT_OPERATION_FAILED,
         rollbackFailureResult = MODEL_EDIT_ROLLBACK_FAILED,
         onError = { error -> Log.e("GLRenderer", "Could not place and join selected objects; placement rolled back", error) },

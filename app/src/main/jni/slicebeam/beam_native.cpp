@@ -1838,10 +1838,10 @@ extern "C" {
             if (raw == nullptr) return -1;
             std::vector<int> indices(raw, raw + count);
             env->ReleaseIntArrayElements(indices_arr, raw, JNI_ABORT);
-            std::sort(indices.begin(), indices.end());
-            if (std::adjacent_find(indices.begin(), indices.end()) != indices.end()) return -1;
+            std::unordered_set<int> unique_indices;
             for (int index : indices)
-                if (index < 0 || index >= (int) ref->model.objects.size()) return -1;
+                if (index < 0 || index >= (int) ref->model.objects.size() || !unique_indices.insert(index).second)
+                    return -1;
 
             const int target_index = indices.front();
             ModelObject* target = ref->model.objects[target_index];
@@ -1927,9 +1927,23 @@ extern "C" {
                 target->delete_last_instance();
             target->name.swap(combined_name);
             target->invalidate_bounding_box();
-            for (auto it = indices.rbegin(); it != indices.rend(); ++it)
-                if (*it != target_index) ref->model.delete_object(*it);
-            return target_index;
+            std::vector<int> deletion_indices;
+            deletion_indices.reserve(indices.size() - 1);
+            for (int index : indices)
+                if (index != target_index) deletion_indices.push_back(index);
+            std::sort(deletion_indices.begin(), deletion_indices.end(),
+                [](int left, int right) { return left > right; });
+            const int result_index = target_index - (int) std::count_if(
+                deletion_indices.begin(), deletion_indices.end(),
+                [target_index](int index) { return index < target_index; });
+            for (int index : deletion_indices) ref->model.delete_object(index);
+            // Deleting objects before the chosen target shifts its model index. Keep all
+            // volume source references aligned with the final index used by the renderer.
+            for (size_t volume_index = 0; volume_index < target->volumes.size(); ++volume_index) {
+                target->volumes[volume_index]->source.object_idx = result_index;
+                target->volumes[volume_index]->source.volume_idx = (int) volume_index;
+            }
+            return result_index;
         } catch (const std::exception& e) {
             env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
             return -3;

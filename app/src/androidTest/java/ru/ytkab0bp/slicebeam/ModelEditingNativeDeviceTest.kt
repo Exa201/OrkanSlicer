@@ -418,6 +418,33 @@ class ModelEditingNativeDeviceTest {
         }
     }
 
+    @Test fun combineKeepsFirstRequestedTargetWhenDeletingEarlierObjectIndices() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "combine-primary-target-cube.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 32.0, 0.0, 0.0)
+            model.translate(2, 64.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+            val expectedTriangles = (0..2).sumOf(model::getTriangleCount)
+
+            // Object 2 is intentionally first and must remain the destination even though
+            // deleting objects 0 and 1 shifts it down to final index 0.
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(2, 0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals(expectedTriangles, model.getTriangleCount(0))
+            assertEquals("the selected destination material should lead the joined parts", 3,
+                model.getVolumeExtruder(0, 0))
+            assertEquals(listOf(1, 2, 3), model.getUsedFilaments(0).toList())
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
     @Test fun combiningMirroredObjectPreservesPrintablePartsAndMaterialAssignments() {
         val modelFile = copyAsset("models/xyz_cube.stl", "combine-mirrored-cube.stl")
         val model = Model(modelFile)

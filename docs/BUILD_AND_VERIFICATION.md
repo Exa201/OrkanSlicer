@@ -1,3 +1,10 @@
+# Aktives Primärobjekt bei Verbinden und Flächenplatzierung — Android 16 — 2026-10-29
+
+- Verhaltenslücke behoben: Mehrfachauswahl war nach Objektindex sortiert und die native Gruppenverbindung sortierte erneut. Dadurch wurde beim Verbinden ein anderes Objekt als vom Benutzer aktives Primärobjekt zum Ziel. Der Renderer übergibt jetzt das aktive Objekt zuerst; Oberflächenplatzierung übergibt das angeklickte Ziel zuerst. Native Verarbeitung erhält diese Reihenfolge, löscht übrige Objekte absteigend, passt den final verschobenen Zielindex zurück und korrigiert Volume-Quellreferenzen.
+- Android-16-Instrumentierung auf `small_phone(AVD) - 16`: native Zielindexverschiebung, vollständiger Model-Menü-Join mit Undo/Redo, Split, 3MF-Rundlauf und Slice, Gruppen-Flächenplatzierung mit Materialprüfung sowie Boolean-Zielmaterial bestanden 4/4, 0 Fehler/Skips (JUnit-Zeitstempel `2026-10-29T05:03:46`). Der Join-Test prüft ausdrücklich, dass bei gewähltem Objekt 3 das Ergebnis mit dessen Filament beginnt und Split die Reihenfolge `[3, 1, 2, 2]` erhält.
+- Debug-Unit: 667/667; Slice-Unit: 667/667; 0 Fehler/Errors/Skips. `git diff --check` sauber.
+- `:app:assembleDebug` erfolgreich. APK `OrkanSlicer_a6619beaba.apk`, 239,596,417 Bytes, SHA-256 `8B283AD850E2694A81E62A3393BE465011180A7552639057AB58813F319DBD3E`. Auf `small_phone(AVD) - 16` installiert und gestartet; Android meldete Version 0.8.402 / Code 437, App-Prozess aktiv. Im abgefragten Logcat-Ausschnitt keine Crash-, ANR-, OOM- oder Fatal-Signal-Treffer. Der Debug-Build wurde nicht als Release veröffentlicht.
+
 # Boolean-Facettenfarben bleiben erhalten — Android 16 — 2026-10-29
 
 - Im nativen Boolean-Ergebnis gingen zuvor die gemalten Facetten-Filamentzuweisungen des Zielobjekts verloren: Die neu erzeugte Ergebnisfläche erbte nur das einheitliche Volumenfilament. Der Regressionstest reproduzierte dies vor dem Fix bei `UNION`.
