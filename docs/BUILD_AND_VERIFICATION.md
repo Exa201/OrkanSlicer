@@ -1,3 +1,9 @@
+# Farbmalen: GL-Abschluss und Panelwechsel synchronisieren — Android 16 — 2026-10-29
+
+- Beim Bestätigen/Abbrechen wurde das Compose-Paintpanel vor dem GL-Thread-Abschluss entfernt. Während der Renderer noch den Paint-Draft abschloss, konnte dadurch die globale Filamentleiste zurückkehren und die Arbeitsfläche ihre Höhe ändern. Das Paintpanel bleibt jetzt bis nach `endPaint` und dem anschließenden Render-Aufruf bestehen; erst danach werden Panel und Palette übergeben.
+- Vier gezielte Instrumentierungstests bestanden auf `small_phone(AVD) - 16`: Live-Pixel vor Bestätigung mit echtem Canvas-Touch und Undo; Paint-Abbruch ohne Modelländerung; importiertes zweifarbiges 3MF ohne doppelte Palette und mit erhaltener Druckplatte; sowie ein deterministisch blockierter GL-Commit, währenddessen Paintpanel und einzelne Palette sichtbar bleiben. Ergebnis 4/4, 0 Fehler/Errors/Skips; JUnit-Zeitstempel `2026-10-29T05:56:06`.
+- `:app:assembleDebug` erfolgreich nach Code-Commit `b8ee3d460afdf0c7957e61be84076d5ef03cbaa7`. APK `OrkanSlicer_b8ee3d460a.apk`, 239,596,437 Bytes, SHA-256 `0DE02C594AFEE881B81A4B3C5D820B6C2F6CA00CCDA38AAB0957594F6E9073F0`. Auf `small_phone(AVD) - 16` installiert und gestartet; Version 0.8.404 / Code 439, Prozess aktiv. Im abgefragten Logcat-Ausschnitt keine Crash-, ANR-, OOM- oder Fatal-Signal-Treffer. Xiaomi-Hardware war nicht verbunden.
+
 # Aktives Primärobjekt bei Verbinden und Flächenplatzierung — Android 16 — 2026-10-29
 
 - Verhaltenslücke behoben: Mehrfachauswahl war nach Objektindex sortiert und die native Gruppenverbindung sortierte erneut. Dadurch wurde beim Verbinden ein anderes Objekt als vom Benutzer aktives Primärobjekt zum Ziel. Der Renderer übergibt jetzt das aktive Objekt zuerst; Oberflächenplatzierung übergibt das angeklickte Ziel zuerst. Native Verarbeitung erhält diese Reihenfolge, löscht übrige Objekte absteigend, passt den final verschobenen Zielindex zurück und korrigiert Volume-Quellreferenzen.
