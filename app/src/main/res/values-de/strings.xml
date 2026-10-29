@@ -177,11 +177,11 @@
     <string name="MenuProject">Projekt</string>
     <string name="MenuFileCompact">Projekt</string>
     <string name="MenuModel">Modell</string>
-    <string name="ModelMenuSelectedObjectGroup">Ein Objekt</string>
+    <string name="ModelMenuSelectedObjectGroup">Auswahl</string>
     <string name="ModelMenuSelectGroup">Gruppe auswählen</string>
     <string name="ModelMenuCancelGroupSelection">Gruppenauswahl beenden</string>
     <string name="ModelMenuApplySelection">Auswahl verwenden (%1$d)</string>
-    <string name="ModelMenuAllObjectsGroup">Alle Objekte</string>
+    <string name="ModelMenuAllObjectsGroup">Druckplatte</string>
     <string name="ModelMenuPlaceOnObject">Auf ein anderes Objekt setzen</string>
     <string name="ModelMenuPlaceOnObjectShort">Oben platzieren</string>
     <string name="ModelMenuPlaceOnObjectDone">Auf das Ziel gesetzt und für den Druck als Baugruppe verbunden.</string>

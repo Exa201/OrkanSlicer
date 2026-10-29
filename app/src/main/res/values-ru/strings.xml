@@ -43,6 +43,8 @@
     <string name="MenuFile">Модель</string>
     <string name="WorkspaceAddModelAction">Загрузить модель</string>
     <string name="ModelMenuDuplicate">Дублировать выбранную модель</string>
+    <string name="ModelMenuSelectedObjectGroup">Выбор</string>
+    <string name="ModelMenuAllObjectsGroup">Пластина</string>
     <string name="ModelMenuMoveToPlate">Переместить модель на другую пластину</string>
     <string name="ModelMenuCenterOnBed">Центрировать модель на столе</string>
     <string name="ModelMenuFillBed">Заполнить стол копиями этой модели</string>

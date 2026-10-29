@@ -6,7 +6,7 @@ import org.junit.Test
 import ru.ytkab0bp.slicebeam.R
 
 class ModelMenuActionScopeTest {
-    @Test fun selectedObjectPlacementAndEditActionsStayInTheObjectGroup() {
+    @Test fun selectedObjectPlacementAndEditActionsStayWithTheSelection() {
         listOf(
             R.string.WorkspaceObjects,
             R.string.ModelMenuDuplicate,
@@ -30,24 +30,28 @@ class ModelMenuActionScopeTest {
             R.string.MenuToolbarFuzzyPaint,
             R.string.MenuToolbarColorPaint,
             R.string.MenuToolbarEmboss,
-        ).forEach { assertTrue("$it should affect one object", ModelMenuActionScope.isSingleObject(it)) }
+        ).forEach { assertTrue("$it should be available in the selection group", ModelMenuActionScope.isSelectionScoped(it)) }
     }
 
-    @Test fun plateWideActionsStayInTheAllObjectsGroup() {
+    @Test fun selectionAndPlateWideActionsAreKeptSeparate() {
         listOf(
             R.string.ModelMenuArrange,
             R.string.ModelMenuOrientAll,
             R.string.ModelMenuSelectAll,
             R.string.ModelMenuDeleteAll,
-        ).forEach { assertFalse("$it should affect the full plate", ModelMenuActionScope.isSingleObject(it)) }
-        assertFalse("the legacy edit-menu split action should no longer be exposed", ModelMenuActionScope.isSingleObject(R.string.MenuToolbarSplit))
+        ).forEach { assertFalse("$it should affect the full plate", ModelMenuActionScope.isSelectionScoped(it)) }
+        assertFalse("the legacy edit-menu split action should no longer be exposed", ModelMenuActionScope.isSelectionScoped(R.string.MenuToolbarSplit))
     }
 
     @Test fun selectedGroupActionsStayWithSelectionScopedActions() {
         listOf(
             R.string.ModelMenuPlaceGroupOnBed,
+            R.string.ModelMenuPlaceOnObject,
+            R.string.ModelMenuPlaceOnSurface,
             R.string.ModelMenuAlignSelected,
             R.string.ModelMenuDistributeSelected,
-        ).forEach { assertTrue("$it operates on the current selection", ModelMenuActionScope.isSingleObject(it)) }
+            R.string.ModelMenuCombineSelected,
+            R.string.ModelMenuBoolean,
+        ).forEach { assertTrue("$it operates on the current selection", ModelMenuActionScope.isSelectionScoped(it)) }
     }
 }

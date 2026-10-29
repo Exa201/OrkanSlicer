@@ -230,44 +230,76 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun modelMenuSeparatesSelectedObjectAndWholePlateActions() {
+    fun modelMenuSeparatesSelectionActionsFromPlateWideActions() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val menuPreferences = activity.getSharedPreferences("workspace_menu_customization", 0)
+        val previousSelectionOrder = menuPreferences.getString("order_model_selected", null)
+        val previousSelectionHidden = menuPreferences.getStringSet("hidden_model_selected", null)?.toSet()
+        menuPreferences.edit().remove("order_model_selected").remove("hidden_model_selected").commit()
         val modelFile = File(activity.cacheDir, "model-menu-scope-test.stl")
         try {
             activity.assets.open("models/xyz_cube.stl").use { source ->
                 modelFile.outputStream().use(source::copyTo)
             }
-            loadSingleTestModel(bed, modelFile)
-            requireNotNull(bed.glView).selectModel(0, Runnable {})
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val minimum = Vec3d()
+                val maximum = Vec3d()
+                model.getBoundingBoxExact(0, minimum, maximum)
+                val width = maximum.x - minimum.x
+                model.addObject(model, 0)
+                model.translate(1, width * 1.5, 0.0, 0.0)
+                glView.renderer.setSelectedObject(1)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two temporary objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
             instrumentationWaitForGlIdle()
 
             openSelectedObjectMenu(activity)
-            scrollMenuToIndex(10)
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
-                .performScrollTo().assertIsDisplayed()
-            scrollMenuToIndex(1)
-            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDuplicate))
-                .performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuSelectedObjectGroup)).assertIsDisplayed()
+            revealMenuAction(activity, R.string.ModelMenuDuplicate)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuDuplicate)).assertIsDisplayed()
+            revealMenuAction(activity, R.string.ModelMenuSplit)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
-                .performScrollTo().assertIsDisplayed().assertIsEnabled()
+                .assertIsDisplayed().assertIsEnabled()
+            revealMenuAction(activity, R.string.ModelMenuCombineSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
+                .assertIsDisplayed().assertIsEnabled()
+            revealMenuAction(activity, R.string.ModelMenuBoolean)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
+                .assertIsDisplayed().assertIsEnabled()
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuArrange))
                 .assertDoesNotExist()
 
             selectAllObjectsScope()
-            scrollMenuToIndex(0)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuAllObjectsGroup)).assertIsDisplayed()
+            revealMenuAction(activity, R.string.ModelMenuArrange)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuArrange))
-                .performScrollTo().assertIsDisplayed()
-            scrollMenuToIndex(2)
+                .assertIsDisplayed()
+            revealMenuAction(activity, R.string.ModelMenuSelectAll)
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSelectAll))
-                .performScrollTo().assertIsDisplayed()
+                .assertIsDisplayed()
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuSplit))
                 .assertDoesNotExist()
-            compose.onNodeWithContentDescription(activity.getString(R.string.MenuToolbarMove))
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
+                .assertDoesNotExist()
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuBoolean))
                 .assertDoesNotExist()
 
         } finally {
             modelFile.delete()
+            menuPreferences.edit().apply {
+                if (previousSelectionOrder == null) remove("order_model_selected")
+                else putString("order_model_selected", previousSelectionOrder)
+                if (previousSelectionHidden == null) remove("hidden_model_selected")
+                else putStringSet("hidden_model_selected", previousSelectionHidden)
+            }.commit()
         }
     }
 

@@ -180,11 +180,11 @@
     <string name="MenuProject">Project</string>
     <string name="MenuFileCompact">Project</string>
     <string name="MenuModel">Model</string>
-    <string name="ModelMenuSelectedObjectGroup">One object</string>
+    <string name="ModelMenuSelectedObjectGroup">Selection</string>
     <string name="ModelMenuSelectGroup">Select a group</string>
     <string name="ModelMenuCancelGroupSelection">Stop selecting group</string>
     <string name="ModelMenuApplySelection">Use selection (%1$d)</string>
-    <string name="ModelMenuAllObjectsGroup">All objects</string>
+    <string name="ModelMenuAllObjectsGroup">Build plate</string>
     <string name="ModelMenuPlaceOnObject">Place on top of another object</string>
     <string name="ModelMenuPlaceOnObjectShort">Place on top</string>
     <string name="ModelMenuPlaceOnObjectDone">Placed and grouped with the target as one printable assembly.</string>

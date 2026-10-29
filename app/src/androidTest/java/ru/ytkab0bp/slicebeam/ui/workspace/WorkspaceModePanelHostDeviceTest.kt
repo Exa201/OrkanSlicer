@@ -101,6 +101,17 @@ class WorkspaceModePanelHostDeviceTest {
         compose.onNodeWithTag("paint-filament-row").assertIsDisplayed()
         compose.onAllNodesWithTag("global-filament-shortcut").assertCountEquals(0)
         compose.onNodeWithTag("workspace-renderer-area").assertIsDisplayed()
+
+        // Color paint can also be hosted modally on compact layouts. Its palette must
+        // still be the only filament control while the global workspace remains visible.
+        controller.clearTool("paint-mode")
+        controller.selectToolWithPanel(
+            toolId = "paint-mode",
+            dismiss = {},
+            panelContent = { Text("Modal paint filament row", Modifier.testTag("modal-paint-filament-row")) },
+        )
+        compose.onNodeWithTag("modal-paint-filament-row").assertIsDisplayed()
+        compose.onAllNodesWithTag("global-filament-shortcut").assertCountEquals(0)
     }
 
     @Test

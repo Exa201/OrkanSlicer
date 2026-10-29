@@ -46,8 +46,8 @@ class ModelMenu : ListBedMenu() {
             transforms.invalidateSelectionState()
             refreshActionItems()
         }
-        val selectedActions = composeActions.value.filter { ModelMenuActionScope.isSingleObject(it.titleRes) }
-        val allActions = composeActions.value.filterNot { ModelMenuActionScope.isSingleObject(it.titleRes) }
+        val selectedActions = composeActions.value.filter { ModelMenuActionScope.isSelectionScoped(it.titleRes) }
+        val allActions = composeActions.value.filterNot { ModelMenuActionScope.isSelectionScoped(it.titleRes) }
         Column(Modifier.fillMaxSize()) {
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 4.dp),
@@ -100,15 +100,15 @@ class ModelMenu : ListBedMenu() {
 
     private fun refreshActionItems() {
         val objectTransforms = transformItems?.createItems()
-            ?.filter { ModelMenuActionScope.isSingleObject(it.titleRes) }
+            ?.filter { ModelMenuActionScope.isSelectionScoped(it.titleRes) }
             .orEmpty()
         composeActions.value = menuItems?.createItems().orEmpty() + objectTransforms
     }
 }
 
-/** Explicitly separates per-object placement/edit actions from actions affecting the full plate. */
+/** Separates actions for the current selection from actions affecting the full plate. */
 internal object ModelMenuActionScope {
-    private val singleObjectActions = setOf(
+    private val selectionActions = setOf(
         R.string.WorkspaceObjects,
         R.string.ModelMenuDuplicate,
         R.string.ModelMenuMoveToPlate,
@@ -119,6 +119,8 @@ internal object ModelMenuActionScope {
         R.string.ModelMenuDistributeSelected,
         R.string.ModelMenuCenterOnBed,
         R.string.ModelMenuPlaceGroupOnBed,
+        R.string.ModelMenuCombineSelected,
+        R.string.ModelMenuBoolean,
         R.string.ModelMenuFillBed,
         R.string.ModelMenuAutoOrientSelected,
         R.string.ModelMenuFlatten,
@@ -138,5 +140,5 @@ internal object ModelMenuActionScope {
         R.string.MenuToolbarEmboss,
     )
 
-    fun isSingleObject(titleRes: Int): Boolean = titleRes in singleObjectActions
+    fun isSelectionScoped(titleRes: Int): Boolean = titleRes in selectionActions
 }
