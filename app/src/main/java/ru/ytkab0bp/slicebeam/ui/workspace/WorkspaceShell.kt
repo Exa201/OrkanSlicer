@@ -143,7 +143,13 @@ internal fun WorkspaceShell(
                 modifier = Modifier.weight(headerActionWeight).horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(OrkanUiTokens.compactGap),
             ) {
-                WorkspaceActionControl(filamentButtonContent)
+                // A docked tool owns the GL workspace and may render its own filament
+                // selector (color paint does). Suppress the global shortcut here as a
+                // second line of defense, so transient controller timing cannot show
+                // two filament rows during tool activation or dismissal.
+                if (!modePanelDocked || modePanelContent == null) {
+                    WorkspaceActionControl(filamentButtonContent)
+                }
                 WorkspaceActionControl(platePickerContent, allowVerticalGrowth = true)
                 WorkspaceActionControl(viewCubeContent)
                 WorkspaceActionControl(printerWebButtonContent)

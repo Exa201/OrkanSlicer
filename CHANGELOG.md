@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.400
+
+- Prevent the global filament shortcut from appearing beside a docked paint palette during tool transitions.
+- Verify imported 3MF paint is visible while the canvas touch is still held, without committing the model or losing the build-plate view.
+
 ## 0.8.397
 
 - Keep the live color-paint palette visible on short phone screens without scrolling; preserve at least 60% of the workspace viewport for the print bed.

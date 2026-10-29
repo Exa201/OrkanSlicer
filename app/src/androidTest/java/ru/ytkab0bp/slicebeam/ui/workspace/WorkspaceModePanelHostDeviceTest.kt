@@ -24,10 +24,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -46,6 +48,60 @@ import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 class WorkspaceModePanelHostDeviceTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun dockedPaintPanelHidesGlobalFilamentShortcutToPreventDuplicateRows() {
+        val controller = WorkspaceController()
+        controller.selectToolWithPanel(
+            toolId = "paint-mode",
+            dismiss = {},
+            panelContent = { Text("Paint filament row", Modifier.testTag("paint-filament-row")) },
+            panelSize = WorkspacePanelSize(
+                portrait = WorkspacePanelDimension.Fixed(120f),
+                landscape = WorkspacePanelDimension.Fixed(280f),
+            ),
+            dockPanel = true,
+        )
+        compose.setContent {
+            BeamComposeTheme {
+                Box(Modifier.requiredSize(360.dp, 720.dp)) {
+                    WorkspaceShell(
+                        portrait = true,
+                        toolPanelExpanded = false,
+                        toolPanelNeedsTwoRows = false,
+                        navigationItemCount = WorkspaceDestination.visibleNavigationDestinations.size,
+                        menuWidthDp = 220,
+                        rendererView = android.view.View(LocalContext.current),
+                        selectedNavigationSlot = WorkspaceDestination.PROJECT.ordinal,
+                        toolsExpanded = false,
+                        onNavigationSelected = {},
+                        activeMenuSlot = WorkspaceDestination.PROJECT.ordinal,
+                        menuComposeContentForSlot = {},
+                        onMenuTransitionSettled = {},
+                        projectSettingsContent = {},
+                        profileStatusContent = { Text("Profiles") },
+                        filamentButtonContent = {
+                            Text("Global filament shortcut", Modifier.testTag("global-filament-shortcut"))
+                        },
+                        platePickerContent = {},
+                        viewCubeContent = {},
+                        printerWebButtonContent = {},
+                        modePanelContent = controller.activeToolPanelContent,
+                        modePanelSize = controller.activeToolPanelSize,
+                        modePanelDocked = controller.activeToolPanelDocked,
+                        modePanelAllowsBackgroundInteraction = controller.activeToolAllowsBackgroundInteraction,
+                        onModePanelDismiss = { controller.dismissActiveTool() },
+                        transientPanelContent = controller.activePanelContent,
+                        snackbarController = WorkspaceSnackbarController(),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("paint-filament-row").assertIsDisplayed()
+        compose.onAllNodesWithTag("global-filament-shortcut").assertCountEquals(0)
+        compose.onNodeWithTag("workspace-renderer-area").assertIsDisplayed()
+    }
 
     @Test
     fun controllerToolActivationRecomposesTheWorkspacePanel() {

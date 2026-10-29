@@ -8309,7 +8309,33 @@ class InitialProjectMenuDeviceTest {
             val point = findUncoveredPreciseSurfacePoint(glView, bed)
             val before = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             revealPaintFilamentSwatch(activity, 2, "Imported Paint Accent", occurrence = 0).performClick()
-            injectCanvasStroke(glView, point.first, point.second)
+            injectCanvasStroke(
+                glView,
+                point.first,
+                point.second,
+                previewPoint = point,
+                whileFingerDown = {
+                    paintAtScreenPointWhileHeld(glView, point)
+                    instrumentationWaitForGlIdle()
+                    compose.waitUntil(timeoutMillis = 2_000) {
+                        !readRendererBooleanOnGl(glView, "paintOverlayRebuildPending") &&
+                            !readRendererBooleanOnGl(glView, "paintOverlayRefreshScheduled")
+                    }
+                    val whileHeld = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+                    val heldBaseline = before.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                    assertPaintColorVisibleAtPoint(
+                        heldBaseline,
+                        whileHeld,
+                        point,
+                        0xFF3366CC.toInt(),
+                        "an imported 3MF color must be visible while the finger is still down, before confirmation",
+                    )
+                    assertFalse("the imported model must stay unchanged during the held paint draft",
+                        readModelHasPaintOnGl(glView, 0))
+                    assertTrue("the held paint preview must keep the entire build plate in view",
+                        readBuildPlateNdcBoundsOnGl(glView).let { it[0] >= -1f && it[1] <= 1f && it[2] >= -1f && it[3] <= 1f })
+                },
+            )
             instrumentationWaitForGlIdle()
             compose.waitUntil(timeoutMillis = 5_000) { readPaintPreviewTriangleCountOnGl(glView, 2) > 0 }
             val after = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
