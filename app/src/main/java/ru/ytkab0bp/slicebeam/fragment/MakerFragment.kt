@@ -99,7 +99,7 @@ class MakerFragment : Fragment() {
             R.string.MakerConvertersDescription,
             R.drawable.picture_outline_28,
             listOf(
-                action(R.string.ImageToStlMenu) { activity()?.let { ImageToStlConverter.pickImage(it) } },
+                action(R.string.ImageToStlMenu) { bed -> activity()?.let { ImageToStlConverter.pickImage(it, bed) } },
                 action(R.string.LithophaneGeneratorMenu) { activity()?.let { ImageToStlConverter.pickLithophane(it) } },
             ),
         ),
@@ -114,7 +114,7 @@ class MakerFragment : Fragment() {
             R.string.MakerKromacutDescription,
             R.drawable.magic_wand_outline_28,
             listOf(action(R.string.MakerOpenKromacut) { bed ->
-                bed.getView()?.let { bed.showUnfoldMenu(KromacutEditorMenu(), it) }
+                bed.showWorkspaceComposeTool(KromacutEditorMenu())
             }),
         ),
         MakerSection(
@@ -169,9 +169,9 @@ class MakerFragment : Fragment() {
     }
 }
 
-private data class MakerAction(val titleRes: Int, val onClick: (BedFragment) -> Unit)
+internal data class MakerAction(val titleRes: Int, val onClick: (BedFragment) -> Unit)
 
-private data class MakerSection(
+internal data class MakerSection(
     val titleRes: Int,
     val descriptionRes: Int,
     val iconRes: Int,
@@ -179,7 +179,7 @@ private data class MakerSection(
 )
 
 @Composable
-private fun MakerContent(
+internal fun MakerContent(
     sections: List<MakerSection>,
     expandedSections: Set<Int>,
     onToggleSection: (Int) -> Unit,
@@ -249,7 +249,15 @@ private fun MakerSectionCard(
     onToggle: () -> Unit,
     onAction: (MakerAction) -> Unit,
 ) {
-    val expansionDescription = stringResource(if (expanded) R.string.MakerCollapse else R.string.MakerExpand)
+    val headingDescription = if (section.actions.size == 1) {
+        stringResource(R.string.MakerSectionOpenDescription, stringResource(section.actions.single().titleRes))
+    } else {
+        stringResource(
+            R.string.MakerSectionToggleDescription,
+            stringResource(section.titleRes),
+            stringResource(if (expanded) R.string.MakerCollapse else R.string.MakerExpand),
+        )
+    }
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
         shape = RoundedCornerShape(10.dp),
@@ -262,6 +270,7 @@ private fun MakerSectionCard(
                     .clickable(role = Role.Button) {
                         if (section.actions.size == 1) onAction(section.actions.single()) else onToggle()
                     }
+                    .semantics(mergeDescendants = true) { contentDescription = headingDescription }
                     .heightIn(min = 48.dp)
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -278,7 +287,6 @@ private fun MakerSectionCard(
                 }
                 Text(
                     text = if (section.actions.size == 1) "›" else if (expanded) "⌃" else "⌄",
-                    modifier = Modifier.semantics { contentDescription = expansionDescription },
                     color = MaterialTheme.colorScheme.primary, fontSize = 18.sp,
                 )
             }
@@ -301,6 +309,7 @@ private fun MakerActionRow(action: MakerAction, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(14.dp))
             .clickable(role = Role.Button, onClick = onClick),
         color = MaterialTheme.colorScheme.surface,

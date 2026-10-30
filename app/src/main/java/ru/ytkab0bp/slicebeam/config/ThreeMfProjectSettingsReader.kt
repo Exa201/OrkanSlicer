@@ -152,9 +152,8 @@ object ThreeMfProjectSettingsReader {
         }
         sanitize(process, false)
         filaments.forEach { sanitize(it, true) }
-        // Legacy projects and the app expose one general bed temperature. Supply it for
-        // missing surface fields so the active printer's plate cannot use an old preset value.
-        // Explicit surface temperatures present in the 3MF remain intact.
+        // Legacy projects may contain only the high-temperature bed value. Supply it for
+        // missing surfaces while keeping any explicit Orca surface temperatures intact.
         filaments.forEach { row ->
             for (suffix in listOf("", "_initial_layer")) {
                 val general = row["hot_plate_temp$suffix"] ?: continue

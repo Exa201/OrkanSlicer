@@ -1,4 +1,101 @@
+Ergänzung 0.8.242 (16.10.2026, Alpha veröffentlicht): Filamentprofile bieten jetzt sechs klar
+benannte Orca-Druckoberflächen mit jeweils getrennten Temperaturen für erste und weitere
+Schichten. Der aktive Plattentyp ist im Druckerprofil einstellbar; der Druckdialog zeigt die
+dazu passenden Temperaturen. Vorhandene Plattenwerte bleiben erhalten. Nur fehlende Werte
+älterer Profile werden aus der Hochtemperaturplatte ergänzt. Keine Änderung am Slicer-Kern oder
+Drucker-Firmware. Die Routenprüfung findet 488 Einstellungen (319 Prozess, 100 Filament, 69
+Drucker). Beide Unit-Suiten bestanden (520/520 je Suite), ARM64-Nativkern und Debug-APK bauen
+fehlerfrei. Der neue native Gerätetest erzeugt G-Code auf dem Honor und bestätigt für
+„Textured PEI“ 62 °C statt 81 °C Hochtemperatur. Die App wurde auf Honor und Emulator installiert;
+der Startbildschirm auf dem Honor zeigt die freie Druckplatte und die kompakte Filament-Schaltfläche.
+Der Emulator antwortete während des Gradle-Instrumentierungslaufs nicht auf ADB; der gezielte
+Native-Slice-Test lief deshalb auf dem Honor. Es wurde kein Druck gestartet.
+
+Alpha-APK veröffentlicht unter https://github.com/Exa201/OrkanSlicer/releases/tag/v0.8.242. PR #2 bleibt offen gegen master; es wurde kein Merge ausgeführt.
+
 # OrkanSlicer: priorisierte Funktions- und UI-Liste (10.10.2026)
+
+Ergänzung 0.8.241 (16.10.2026, Entwicklungsstand): Die vollständige ACE-Synchronisierung
+behält jetzt leere Zwischenfächer als leere T-Slots. Dadurch bleibt T0 an ACE 1, T1 an ACE 2
+usw.; ein leeres Fach verschiebt keine späteren Werkzeuge. Abweichende Drucker-Toolmaps werden
+beim vollständigen Sync klar abgewiesen. Leere Plätze bleiben in den Einstellungen und werden
+beim Speichern korrekt erhalten; Filamentknopf und Sync-Ergebnis zählen nur belegte Materialien.
+Die Regression prüft eine Belegung mit Lücken, eine einzelne Belegung in einem späteren Fach,
+abweichende/duplizierte Toolmaps und den Speicherrundlauf leerer Slots. Beide Unit-Test-Suiten
+bestanden mit je 517 Tests; `:app:assembleDebug` einschließlich ARM64-CMake-Build war erfolgreich.
+Die APK wurde auf dem Honor PTP-N49 installiert und gestartet. Nach **Sync** zeigte das Gerät
+T0→ACE 1, T1→ACE 2, T2→ACE 3 und T3→ACE 4; kein Druck wurde gestartet. Ein Nutzer mit einer
+gespeicherten älteren kompakten Palette muss einmal **Sync** ausführen, damit leere Fächer in die
+gespeicherte Reihenfolge übernommen werden. Die globale UI-2.0-Migration bleibt offen.
+
+Ergänzung 0.8.238 (16.10.2026): Der Druckerbereich zeigt die bereinigte Drucker-Webadresse
+in einer festen Compose-Kopfzeile mit zugänglicher 48-dp-Webtaste. Die ACE-Synchronisierung
+wird nur noch im Druck-/Filamentbereich angeboten; damit gibt es keinen zweiten Einstieg in
+denselben Synchronisierungsvorgang. Der Druckername, Profilwechsel und Orca-Kategorien bleiben
+im selben Screen. Beide Unit-Test-Suiten bestanden mit je 515 Tests. Der vollständige Android-
+Debugbuild einschließlich des ARM64-Native-Kerns war erfolgreich. Version 0.8.238 / Code 273
+wurde auf dem Honor installiert; die Druckerroute, Hostanzeige und nicht überlagerte Webtaste
+wurden visuell geprüft. Es wurde keine Weboberfläche geöffnet und kein Druck gestartet. Die
+vollständige Ablösung der alten globalen Routen bleibt offen.
+
+Ergänzung 0.8.240: Farb-, Stütz-, Naht- und Fuzzy-Malen übernehmen ihre abgeschlossene
+Änderung jetzt erst auf dem GL-Thread und aktualisieren danach die Modellhistorie auf dem
+UI-Thread. Rückgängig/Wiederholen greifen damit auf den abgeschlossenen Malstand zu. Die
+Werkzeug- und Statuswahl sowie Filamentfarbfelder sind mindestens 48 dp hoch und melden ihren
+Namen beziehungsweise Zustand an TalkBack. Der Gerätetest kontrolliert Touchhöhe, aktive
+Werkzeugsemantik, Pinselradius und die Beschriftung der Pausieren-Schaltfläche. Noch offen sind
+mehrstufiges Rückgängigmachen einzelner Pinselstriche sowie ein echter bemalter 3MF-Rundlauf.
+
+Ergänzung 0.8.237 (16.10.2026): Der Pinselradius-Regler im Farb-/Stütz-/Nahtmalen
+war vorhanden, wurde aber nicht in das Werkzeugpanel eingesetzt. Er ist jetzt sichtbar,
+mindestens 48 dp hoch und zeigt den Radius in Millimetern mit zugänglicher Beschriftung.
+Die Mal- und Slicer-Engine bleiben unverändert. Der kompakte Filamentknopf zeigt Farbindikatoren
+und zusätzlich die Anzahl der Filamente. Die Aktualisierungsnotizen wurden auf 0.8.237 angehoben.
+`:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden mit je 515 Tests; der
+vollständige Debug-/Native-Build (`buildCMakeRelease[arm64-v8a]`) ist erfolgreich. Der
+Pinselregler, temporäre 3MF-Projektprofile und der Modell-Touch-Test bestehen gezielte
+Geräteprüfungen. Die vollständige Android-Instrumentierung auf dem Honor meldet 35 bestandene
+Tests; drei Tests zur privaten Nutzer-3MF wurden mangels bereitgestellter Datei übersprungen.
+Der vollständige Lauf auf dem Emulator blieb nach zwei Tests hängen und ADB-Shell-Abfragen
+antworteten nicht mehr. 0.8.237 wurde auf dem Honor installiert und als VersionCode 272
+verifiziert. Ein vollständiger Emulator-Lauf bleibt offen; deshalb wird noch kein Release daraus
+erstellt.
+
+Ergänzung 0.8.236 (16.10.2026): Nach Bewertung eines gedruckten Orca-Kalibriertests kann
+der Messwert über **Kalibrierungen → Messwert speichern** als vorgemerkte Änderung in das
+aktive Filament- oder Druckprofil übernommen werden. Unterstützt sind Pressure Advance,
+Düsentemperatur, maximaler Volumenstrom, VFA-Außenwandgeschwindigkeit und Retraktionslänge.
+Der Wert wird validiert und durchläuft den normalen Profil-Speicherweg. Die App bestimmt
+keinen optimalen Wert automatisch und startet keinen Druck. Orcas `Calib_Flow_Rate` hat im
+gebündelten nativen G-Code-Pfad keine Implementierung und wird daher nicht angeboten.
+Das Modell-Menü nutzt auf Smartphones jetzt dasselbe zweireihige Raster wie Bearbeiten;
+die identische Objekte-Schaltfläche wurde aus Bearbeiten entfernt. Beschriftungen trennen
+Duplizieren von Kopien zum Füllen der Platte sowie das Verteilen von Modellen vom
+automatischen Ausrichten aller oder nur des ausgewählten Modells. Verifikation und
+APK-Geräteprüfung: `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` sind erfolgreich.
+`:app:assembleDebug` einschließlich `buildCMakeRelease[arm64-v8a]` ist erfolgreich.
+Version 0.8.236 (Code 271) wurde auf `emulator-5554` installiert. Die visuelle Prüfung
+zeigt zwei vollständige, beschriftete Reihen im Modell-Menü; das Bearbeiten-Menü enthält
+keinen doppelten Einstieg in dieselbe Objektliste. Der Kalibrierungsdialog wurde geöffnet,
+aber kein Messwert gespeichert und kein Druck gestartet. Echte Hardware-Kalibrierung und
+Low-RAM-Geräteprüfung bleiben offen.
+
+Ergänzung 0.8.235 (16.10.2026): Die Profile zeigen jetzt zusätzlich Orcas Expert-Werte für
+Elephant-Foot-Schichtdichte und Infill-Verankerung an ihren vorhandenen Qualitätsgruppen.
+Die Navigationsleiste verkleinert Systemschrift nicht mehr; bei großer Schrift wird die
+Seitenleiste breiter und Beschriftungen umbrechen. TalkBack erhält denselben Namen wie die
+sichtbare Navigation. Die Änderungsansicht wurde von veralteten 0.8.227- auf aktuelle
+Release-Notizen umgestellt. Verifikation am 16.10.2026: `:app:testDebugUnitTest` und
+`:app:testSliceTestUnitTest` bestanden; der Routencheck bestätigt 477 Einstellungen mit
+Native-Definition und Profilparser sowie 100 eindeutige deutsche Gruppenlabels. Die
+vorhandene Emulator-Version war zunächst 0.8.234. Der vollständige APK-Build mit erneutem
+CMake-Build wurde während `buildCMakeRelease[arm64-v8a]` beendet. Danach wurde das neue
+0.8.235-APK erfolgreich mit den Kotlin-Änderungen und dem unveränderten vorhandenen Orca-
+Nativkern paketiert (CMake-Tasks explizit ausgeschlossen), auf dem Emulator installiert,
+gestartet und per `dumpsys` als VersionCode 270 / VersionName 0.8.235 verifiziert. Der
+Screenshot der gestarteten App wurde geprüft. Die Android-CLI lieferte keine Instrumentation-
+Layout-Antwort. Das Honor blieb gesperrt. Der Kobra-Dreifarbdruck bleibt ohne beaufsichtigte
+Hardware-Abnahme offen.
 
 Ergänzung 0.8.232 (15.10.2026): Der echte dreifarbige Mewtwo-3MF-Import wurde auf dem Honor in der getrennten Test-App geprüft: drei bemalte Werkzeuge, korrekte Farbreihe, vollständige letzte Schicht und Abschluss im Test-Slice, ohne gespeicherte Profile zu verändern. Die Auswahl eigener Filamentwerte statt 3MF-Temperaturen wurde separat am Gerät geprüft. Eine weitere Lücke im Druckpfad wurde behoben: Bei leerem ACE 2 wird die komprimierte Filamentpalette `1,3,4` nicht mehr mit den physischen Fachnummern verwechselt. Die beim vollständigen Sync gespeicherte Fachreihenfolge bleibt auch nach einer neuen Werkzeugzuordnung erhalten; Material und Temperatur werden pro tatsächlich gewähltem Fach aufgelöst. Ein beaufsichtigter physischer Dreifarbdruck und die visuelle Geräteprüfung bleiben offen.
 
@@ -56,8 +153,8 @@ Neu in 0.8.212: Auch der OctoPrint-Upload wird anhand von `files.local` bestäti
 | P0 | 3MF-Projektimport mit temporären Profilen, Objektfarben und Platten robust machen | Projekt-Metadaten aus dem gebündelten Zweifarbenprojekt und einer echten Orca-Benchy-3MF sind automatisiert geprüft: getrennte Farben/Temperaturen bleiben erhalten, Druckerwerte werden nicht übernommen. Weitere Orca-Versionen, Geometrie-/Plattenzuordnung, Druckerwechsel und erneutes Öffnen am Gerät bleiben zu prüfen. |
 | P0 | Druckerprofile und Verbindung validieren | Profilreferenzen bei Import/Update weiter prüfen; fehlende Basisprofile werden bereits benannt. Moonraker- und OctoPrint-Uploads prüfen nun ihre Bestätigungen und melden nur bestätigte Druckstarts. Echte Antworten von Kobra 3 V2, Qidi Q2 und OctoPrint sowie Timeout-/Reconnect-Fälle am Gerät abnehmen. |
 | P1 | Kalibrierung als geführter Ablauf | Kalibriermodelle sind teilweise vorhanden. Temperatur, Fluss, Pressure Advance und maximalen Volumenstrom je Filament als Ergebnis speichern; G-Code und Profilwert gegentesten. |
-| P1 | Farb-, Stütz- und Nahtmalen auf Touch verbessern | Grundlegende Malwerkzeuge sind vorhanden. Größere Pinselsteuerung, Rückgängig, Zoom beim Malen, klare Farblegende und Speicher-/3MF-Rundlauf testen. |
-| P1 | Neue Brückenoptionen aus Orca 2.4.x abgleichen | Native `bridge_line_width`, `bridge_angle`, `internal_bridge_angle` und `relative_bridge_angle` sind im mobilen Prozessprofil erreichbar; Brückenbreite wird höchstens mit Düsendurchmesser übernommen. Brückenrolle in der Vorschau vorhanden. G-Code-Wirkung und Bedienung am Gerät noch prüfen. |
+| P1 | Farb-, Stütz- und Nahtmalen auf Touch verbessern | Größere Touchflächen und zugängliche Malzustände sind vorhanden; abgeschlossene Malvorgänge werden in die Modellhistorie übernommen. 3MF-Farbfacetten bleiben beim Export/Import jetzt erhalten (Honor-Rundlauf bestanden). Offen: Undo einzelner Pinselstriche, Zoom beim Malen, klare Farblegende und Touch-Malen auf komplexen Baugruppen. Die aktuelle Raycast-API liefert Position/Normale, aber keine Volume-/Facet-ID; für sicheres Malen pro Baugruppenteil muss zuerst die Hit-Zuordnung erweitert werden. |
+| P1 | Neue Brückenoptionen aus Orca 2.4.x abgleichen | Native `bridge_line_width`, `bridge_angle`, `internal_bridge_angle` und `relative_bridge_angle` sind im mobilen Prozessprofil erreichbar; Brückenbreite wird höchstens mit Düsendurchmesser übernommen. Der Honor-Geräteslice prüft die vier Werte in der Native-Konfiguration, findet Bridge-G-Code und bestätigt `SET_PRESSURE_ADVANCE` aus dem Filamentprofil. Orca serialisiert innere und äußere Brückenrollen im Prozessor unter `BridgeInfill`; der Test kann sie daher nicht als getrennte `TYPE`-Kommentare beweisen. Offen: Profil-/UI-Abnahme auf Kobra/Qidi und physische Brückenqualität. |
 | P2 | Filament je Druckbereich zuweisen | Der Prozesskatalog enthält die Orca-Schlüssel. Eine verständliche Vorschau für Außenwand, Innenwand, Füllung und Oberfläche mit Materialverträglichkeitsprüfung ergänzen. |
 | P2 | Vorschau für große Modelle effizienter machen | Inaktive Platten sind im Sparmodus vereinfacht; Low-RAM-Geräte starten mit geringerer Auflösung und kürzerem Schichtbereich. Aktive unbemalte Modelle erhalten ein separates Vorschau-LOD. Offen: Speicher-/FPS-Messung auf einem schwachen Gerät, Qualitätsumschaltung und Gerätekontrolle des neuen LOD. |
 
@@ -72,7 +169,16 @@ Quellen: [Orca Flush-Optionen](https://github.com/OrcaSlicer/OrcaSlicer/wiki/mul
 | P0 | Zuordnung von Modellfarben zu Slots sichtbar machen | Bereits vor dem Slicen direkt beim Objekt; Option „alles mit einem Slot“; veraltete Farben nach Filamentlöschung entfernen. |
 | P1 | Druckeinstellungen schneller auffindbar machen | Suchfeld und Favoriten sind auf Nutzerwunsch hinter der Such-Schaltfläche verborgen. Wenige Hauptgruppen und keine doppelten Werte; „Reinigung in der Füllung“ über Füllung und Suche erreichbar. |
 | P1 | Portrait, Querformat und große Schrift systematisch prüfen | Der Filamentdialog wurde auf dem Honor in Hoch- und Querformat geprüft; Aktionen bleiben erreichbar, der Inhalt scrollt in beide Richtungen. Weitere Dialoge, größere Systemschrift und Xiaomi 13 bleiben offen. |
-| P1 | Druckplatten und Objektliste vereinfachen | Platten als kompakte vertikale Zahlenleiste; Objektname, Farbe/Slot und Aktionen ohne verschachtelte Menüs; leere Platten nicht unbeabsichtigt erzeugen. |
+| P1 | Druckplatten und Objektliste vereinfachen | Plattenleiste ist bereits kompakt. Die Objektliste zeigt jetzt Name, T-Werkzeug, Material und Farbpunkt; Filamentzuordnung ist direkt je Zeile erreichbar und aus dem zweiten Aktionsmenü entfernt. Weitere Objektaktionen sind weiterhin kontextbezogen. Noch offen: viele Objekte, große Schrift und leere Platten auf verschiedenen Geräten visuell prüfen. |
 | P2 | Vorschau und Status vereinheitlichen | Klare Legende für Werkzeug/Farbe, Druckzeit und Filament; Upload-Fortschritt und Fehler direkt beim Auftrag anzeigen. |
+
+P1-Abnahme am 16.10.2026: Ein isolierter Android-Gerätetest slicet den gebündelten Orca-Cube
+mit angepasster Brückenbreite, Brückenfluss und äußeren/inneren Brückenwinkeln. Der Test
+prüft, dass diese Werte in der von der App erzeugten Native-Konfiguration ankommen und der
+native Slice Bridge-Rollen im G-Code erzeugt. Derselbe Slice prüft, dass ein eingetragener
+Pressure-Advance-Wert aus dem Filamentprofil als `SET_PRESSURE_ADVANCE` im Klipper-G-Code
+erscheint. Damit sind Profilrouting und G-Code-Ausgabe auf dem Honor belegt; ein gedrucktes
+Kalibriermodell, visuelle Qualitätsbewertung, andere Orca-Drucker und physische Bridge-Qualität
+bleiben offen. Kein Druck wurde gestartet.
 
 Auf dem Honor Magic 7 Pro wurden Startansicht, Druckmenü, Suche und Credits geprüft. Dabei fallen ein abgeschnittener langer Druckername, sehr hohe Filament- und Aktionsreihen sowie zwei Navigationsebenen auf; im Druckmenü bleibt dadurch wenig Platz für Einstellungen. Die Credits sind nach der Änderung lesbar. Eine vollständige visuelle Prüfung aller Dialoge und des Xiaomi steht noch aus.

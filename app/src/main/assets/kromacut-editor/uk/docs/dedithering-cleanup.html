@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Очищення сусідства за точним кольором і його вплив на цятки, краї, прозорість та острівці для друку." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Усунення дизерингу й очищення | Документація Kromacut" />
+        <meta property="og:description" content="Очищення сусідства за точним кольором і його вплив на цятки, краї, прозорість та острівці для друку." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/uk/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="uk_UA" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Усунення дизерингу й очищення | Документація Kromacut" />
+        <meta name="twitter:description" content="Очищення сусідства за точним кольором і його вплив на цятки, краї, прозорість та острівці для друку." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Усунення дизерингу й очищення | Документація Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Документація">
+                    <a href="/uk/">На головну</a>
+                    <a href="/app">Відкрити Kromacut</a>
+                    <ul><li><a href="/uk/docs/overview">Огляд</a></li><li><a href="/uk/docs/quick-start">Швидкий старт</a></li><li><a href="/uk/docs/loading-images">Завантаження зображень</a></li><li><a href="/uk/docs/image-adjustments">Коригування зображення</a></li><li><a href="/uk/docs/reducing-colors">Скорочення кольорів</a></li><li><a href="/uk/docs/dedithering-cleanup">Усунення дизерингу й очищення</a></li><li><a href="/uk/docs/3d-mode">Режим 3D</a></li><li><a href="/uk/docs/auto-paint">Керування Auto-paint</a></li><li><a href="/uk/docs/calibration-theory">Теорія калібрування</a></li><li><a href="/uk/docs/flat-paint">Flat Paint</a></li><li><a href="/uk/docs/calibration-workflows">Процеси калібрування</a></li><li><a href="/uk/docs/generating-exporting-output">Створення й експорт результатів</a></li><li><a href="/uk/docs/settings-and-controls">Налаштування й керування</a></li><li><a href="/uk/docs/troubleshooting">Усунення несправностей</a></li><li><a href="/uk/docs/faq">Поширені запитання</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Усунення дизерингу й очищення</h1>
+<p><strong>Усунення дизерингу</strong> замінює пікселі без локальної підтримки сусідніми кольорами. Це окремий прохід очищення зображення, а не алгоритм квантизації чи симуляція можливостей сопла.</p>
+<p>Використовуйте його для дизерингових візерунків із повторюваними кольорами або скороченого зображення з ізольованими цятками. Воно може працювати перед квантизацією, якщо джерело вже містить такі візерунки, або після неї — на скорочених ділянках. Це не фотографічний фільтр шумозаглушення: сусідні пікселі фотографії часто мають трохи різні точні кольори.</p>
+<h2 id="how-a-pixel-is-chosen">Як вибирається піксель</h2>
+<p><a href="/localized/uk/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="Відкрити ілюстрацію в повному розмірі: Вісім навколишніх пікселів голосують за точним кольором. Вага задає потрібну кількість відповідних сусідів для збереження центра; повторні проходи використовують попередній результат."><img src="/localized/uk/diagrams/36_dedither_neighbors.svg" alt="Вісім навколишніх пікселів голосують за точним кольором. Вага задає потрібну кількість відповідних сусідів для збереження центра; повторні проходи використовують попередній результат." loading="lazy"></a></p>
+<p>Кожен піксель перевіряє вісім безпосередніх сусідів, включно з діагональними. Якщо достатньо з них мають <strong>точно такі самі RGB й альфу</strong>, він залишається. Інакше він приймає найпоширеніший інший колір сусідів. Нічиї вирішуються випадково, тому однакові параметри не обов’язково дають однакові результати.</p>
+<p>Використовуються лише наявні сусідні кольори, включно з прозорими пікселями. Вони не усереднюються в новий відтінок.</p>
+<h2 id="weight">Вага</h2>
+<p><strong>Вага</strong> — кількість відповідних сусідів, потрібна для збереження початкового пікселя. Діапазон <strong>1–9</strong>; типово <strong>4</strong>.</p>
+<table><thead><tr><th>Приклад</th><th>Результат</th></tr></thead><tbody><tr><td>Немає відповідних сусідів</td><td>Змінюється, якщо є сусід іншого кольору, навіть за ваги 1.</td></tr><tr><td>Три відповідні сусіди</td><td>Залишається за ваги 3; може замінюватися за ваги 4.</td></tr><tr><td>Центр і всі вісім сусідів збігаються</td><td>Залишається навіть за ваги 9, бо немає іншого сусіднього кольору.</td></tr></tbody></table>
+<p>Нижчі значення зазвичай зберігають деталі; вищі роблять більше пікселів придатними до заміни. За лише восьми сусідів вага 9 не може досягти порога збереження. Це агресивний параметр меж, а не більший радіус. Пікселі на краю також мають менше доступних сусідів.</p>
+<h2 id="passes">Проходи</h2>
+<p><strong>Проходи</strong> повторюють очищення від <strong>1 до 10</strong> разів, типово <strong>1</strong>. Кожен прохід читає повний попередній результат. Додаткові проходи можуть прибрати стійкі цятки, але також пересунути краї, розірвати вузькі з’єднання або видалити дрібний текст.</p>
+<p>Стрілки скидання окремих полів відновлюють вагу 4 або проходи 1. Скидання панелі відновлює обидва значення. Жодне не повертає попереднє зображення; для цього використайте Скасувати.</p>
+<h2 id="apply-and-inspect">Застосуйте й перевірте</h2>
+<ol><li>Спершу <strong>Застосуйте</strong> активні коригування. Усунення дизерингу читає скоригований вигляд, а попереднє закріплення не залишає живих коригувань над очищеним результатом.</li><li>Почніть з одного проходу. Типова вага — 4; спробуйте нижчі значення, коли важливі тонкі елементи.</li><li>Натисніть <strong>Застосувати</strong>, потім перевірте контури, написи й прозорі краї за великого збільшення.</li><li>Скасуйте дію перед порівнянням іншого параметра на тому самому початковому зображенні.</li></ol>
+<p>Повторні натискання Застосувати продовжують очищувати вже очищене зображення. Це не незалежні порівняння з оригіналом.</p>
+<h2 id="effect-on-the-print">Вплив на друк</h2>
+<p>Видалення ізольованих пікселів стороннього кольору може прибрати крихітні кольорові острівці, але й бажані деталі. Альфа бере участь у голосуванні, тому усунення дизерингу може розширити чи звузити силует і відкрити чи закрити отвори.</p>
+<p>Воно працює в <strong>пікселях зображення</strong>, а не в міліметрах. Деталь із трьох пікселів за 0,1 мм/піксель займає 0,3 мм до подальших рішень побудови сітки або слайсера. Усунення дизерингу не має параметра діаметра сопла. Перевіряйте фізичні елементи за допомогою <a href="/uk/docs/3d-mode">керування друкованими деталями 3D</a> та перегляду слайсера.</p>
+<h2 id="dedither-versus-height-dithering">Усунення дизерингу та дизеринг висоти</h2>
+<table><thead><tr><th>Інструмент</th><th>Де</th><th>Що змінюється</th></tr></thead><tbody><tr><td>Усунення дизерингу</td><td>2D</td><td>Ділянки точного кольору й потенційно прозорий контур вихідного зображення.</td></tr><tr><td>Дизеринг висоти</td><td>Auto-paint у 3D</td><td>Створений візерунок висот поверхні для наближення цільових кольорів.</td></tr></tbody></table>
+<p>Використання одного не вмикає іншого. Не застосовуйте усунення дизерингу, коли зберігаєте навмисний піксель-арт або крапковий малюнок.</p>
+<p>Далі: <a href="/uk/docs/3d-mode">Режим 3D</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

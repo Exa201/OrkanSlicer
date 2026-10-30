@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.227\n\n• Große Modelle öffnen Malen und Prägen erst nach einer bewusst bestätigten Vereinfachung.\n• Abbrechen bewahrt die unveränderte Druckgeometrie.",
-  "en": "OrkanSlicer 0.8.227\n\n• Dense models offer explicit simplification before paint or emboss tools allocate full-resolution meshes.\n• Cancel keeps the print geometry unchanged.",
-  "ru": "OrkanSlicer 0.8.227\n\n• Для больших моделей упрощение подтверждается до открытия рисования или тиснения.\n• Отмена сохраняет геометрию печати без изменений."
+  "de": "OrkanSlicer 0.8.396\n\n• Malstriche werden bereits während des Ziehens in der Vorschau aktualisiert, auch wenn du kurz pausierst.\n• Im Farbmodus bleibt nur eine Filamentleiste sichtbar.\n• Die Druckplatte bleibt während des Farbmodus sichtbar.",
+  "en": "OrkanSlicer 0.8.396\n\n• Brush strokes refresh in the preview while dragging, including when you pause briefly.\n• Color mode shows only one filament palette.\n• The build plate remains visible while painting.",
+  "ru": "OrkanSlicer 0.8.396\n\n• Штрихи кисти обновляются в предпросмотре во время рисования, в том числе при короткой паузе.\n• В режиме раскрашивания отображается только одна палитра филаментов.\n• Платформа остаётся видимой во время окрашивания."
 }

@@ -1,45 +1,36 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.content.Context
-import android.view.View
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
+import ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
+import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import java.io.File
 import java.io.IOException
 
 /** Coordinates the Slice menu, printer preparation and Kotlin upload controller. */
 class SliceMenu : ListBedMenu() {
-    private var lastUid = 0
     private var portrait = true
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
-
-    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
-        this.portrait = portrait
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        composeActions.value = createActions()
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(composeActions.value, portrait)
-            }
-        }
-        return themedView
-    }
+    @Volatile private var preflightAnycubicScan: AnycubicGCodeProcessor.ScanResult? = null
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
 
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
+        LaunchedEffect(this, portrait) { refreshItems(portrait) }
+        CustomizableBedMenuActionsContent("slice", composeActions.value, portrait)
+    }
+
     private fun createActions(): List<BedComposeMenuAction> {
-        lastUid = SliceBeam.CONFIG_UID
         val bed = fragment ?: return emptyList()
         if (!bed.hasSliceResult()) {
             val hasModel = bed.currentModel?.objectsCount?.let { it > 0 } == true
@@ -66,23 +57,31 @@ class SliceMenu : ListBedMenu() {
         printer: ConfigObject,
         print: Boolean,
     ) {
+        val bed = fragment ?: return
+        val context = bed.getContext() ?: return
+        preflightAnycubicScan = null
+        val progress = bed.showPrinterUploadProgress(
+            context.getString(if (SlicePrintPreparationDialog.isAnycubicKobra(printer))
+                R.string.UploadAceChecking else R.string.UploadAnalyzingGcode),
+        ) ?: return
         if (SlicePrintPreparationDialog.isAnycubicKobra(printer)) {
             MmuFilamentSync.synchronize(printer) { _, error ->
                 if (error != null) {
-                    val context = fragment?.getContext()
-                    if (context != null) {
-                        BeamAlertDialogBuilder(context)
-                            .setTitle(R.string.MmuSyncFailed)
-                            .setMessage(R.string.MmuAssignmentSyncFailed)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show()
+                    bed.dismissPrinterUploadProgress(progress)
+                    val activeContext = bed.getContext()
+                    if (activeContext != null) {
+                        bed.showWorkspaceMessageDialog(
+                            title = activeContext.getString(R.string.MmuSyncFailed),
+                            message = activeContext.getString(R.string.MmuAssignmentSyncFailed),
+                            confirmLabel = activeContext.getString(android.R.string.ok),
+                        )
                     }
                     return@synchronize
                 }
-                scanToolCountAndPrepare(type, host, apiKey, printer, print)
+                scanToolCountAndPrepare(type, host, apiKey, printer, print, progress)
             }
         } else {
-            scanToolCountAndPrepare(type, host, apiKey, printer, print)
+            scanToolCountAndPrepare(type, host, apiKey, printer, print, progress)
         }
     }
 
@@ -92,32 +91,54 @@ class SliceMenu : ListBedMenu() {
         apiKey: String?,
         printer: ConfigObject,
         print: Boolean,
+        progress: PrinterUploadProgressDialog,
     ) {
         val bed = fragment ?: return
         val gcode: File = BedFragment.tempGCodePath
+        progress.setMessage(bed.getContext()?.getString(R.string.UploadAnalyzingGcode).orEmpty())
         IOUtils.IO_POOL.execute {
-            val toolUsage = try {
-                SlicePreparationTools.readToolUsage(gcode)
+            val qidiPreflight = QidiGCode3mfPackager.isQidiQ2(printer)
+            val preflightStartedAt = android.os.SystemClock.elapsedRealtime()
+            val preflight = try {
+                if (SlicePreparationTools.isAnycubicKobra3Model(printer.get("printer_model"))) {
+                    val startedAt = android.os.SystemClock.elapsedRealtime()
+                    val scan = AnycubicGCodeProcessor.scan(gcode)
+                    preflightAnycubicScan = scan
+                    android.util.Log.i(
+                        "SliceUploadPerf",
+                        "Kobra preflight scanned ${gcode.length()} bytes in ${android.os.SystemClock.elapsedRealtime() - startedAt} ms",
+                    )
+                    SlicePreparationTools.Preflight(
+                        SlicePreparationTools.ToolUsage(
+                            if (scan.usedTools.isEmpty()) intArrayOf(0) else scan.usedTools,
+                            if (scan.firstToolAppearance.isEmpty()) intArrayOf(0) else scan.firstToolAppearance,
+                        ),
+                        SlicePreparationTools.PressureAdvanceCommands(
+                            scan.filamentPressureAdvance,
+                            scan.customPressureAdvance,
+                        ),
+                        scan.materials.toList(),
+                    )
+                } else SlicePreparationTools.readPreflight(gcode)
             } catch (_: IOException) {
+                bed.dismissPrinterUploadProgress(progress)
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
             }
-            val sourceFilamentTypes = try {
-                SlicePreparationTools.readFilamentTypes(gcode)
-            } catch (_: IOException) {
-                SliceUploadController.showPreparationFailure(bed)
-                return@execute
+            if (qidiPreflight) {
+                android.util.Log.i(
+                    "SliceUploadPerf",
+                    "QIDI preflight scanned ${gcode.length()} bytes in ${android.os.SystemClock.elapsedRealtime() - preflightStartedAt} ms",
+                )
             }
-            val pressureAdvance = try {
-                SlicePreparationTools.readPressureAdvanceCommands(gcode)
-            } catch (_: IOException) {
-                SliceUploadController.showPreparationFailure(bed)
-                return@execute
-            }
+            val toolUsage = preflight.toolUsage
+            val pressureAdvance = preflight.pressureAdvance
+            val sourceFilamentTypes = preflight.filamentTypes
             val activeTools = toolUsage.used
             val toolCount = maxOf(1, (activeTools.maxOrNull() ?: 0) + 1)
             ViewUtils.postOnMainThread {
                 if (bed.getContext() != null) {
+                    bed.dismissPrinterUploadProgress(progress)
                     SlicePrintPreparationDialog.show(
                         bed,
                         printer,
@@ -146,8 +167,11 @@ class SliceMenu : ListBedMenu() {
                             shouldPrint,
                             targetPrinter,
                             activeTools,
+                            preflightAnycubicScan,
                         )
                     }
+                } else {
+                    bed.dismissPrinterUploadProgress(progress)
                 }
             }
         }
@@ -165,16 +189,4 @@ class SliceMenu : ListBedMenu() {
         return true
     }
 
-    override fun onViewCreated(v: View) {
-        super.onViewCreated(v)
-        v.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(view: View) {
-                if (lastUid != SliceBeam.CONFIG_UID) {
-                    refreshItems(view.width < view.height)
-                }
-            }
-
-            override fun onViewDetachedFromWindow(view: View) = Unit
-        })
-    }
 }

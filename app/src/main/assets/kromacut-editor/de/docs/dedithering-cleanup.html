@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Nachbarschaftsbereinigung nach exakter Farbe und ihre Auswirkungen auf Punkte, Kanten, Transparenz und druckbare Inseln." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/de/docs/dedithering-cleanup">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Rasterglättung und Bereinigung | Kromacut-Dokumentation" />
+        <meta property="og:description" content="Nachbarschaftsbereinigung nach exakter Farbe und ihre Auswirkungen auf Punkte, Kanten, Transparenz und druckbare Inseln." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/de/docs/dedithering-cleanup" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="de_DE" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Rasterglättung und Bereinigung | Kromacut-Dokumentation" />
+        <meta name="twitter:description" content="Nachbarschaftsbereinigung nach exakter Farbe und ihre Auswirkungen auf Punkte, Kanten, Transparenz und druckbare Inseln." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Rasterglättung und Bereinigung | Kromacut-Dokumentation</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/dedithering-cleanup">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/dedithering-cleanup">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Dokumentation">
+                    <a href="/de/">Zur Startseite</a>
+                    <a href="/app">Kromacut öffnen</a>
+                    <ul><li><a href="/de/docs/overview">Überblick</a></li><li><a href="/de/docs/quick-start">Schnellstart</a></li><li><a href="/de/docs/loading-images">Bilder laden</a></li><li><a href="/de/docs/image-adjustments">Bildanpassungen</a></li><li><a href="/de/docs/reducing-colors">Farben reduzieren</a></li><li><a href="/de/docs/dedithering-cleanup">Rasterglättung und Bereinigung</a></li><li><a href="/de/docs/3d-mode">3D-Modus</a></li><li><a href="/de/docs/auto-paint">Auto-paint-Steuerung</a></li><li><a href="/de/docs/calibration-theory">Kalibrierungstheorie</a></li><li><a href="/de/docs/flat-paint">Flat Paint</a></li><li><a href="/de/docs/calibration-workflows">Kalibrierabläufe</a></li><li><a href="/de/docs/generating-exporting-output">Ergebnisse erzeugen und exportieren</a></li><li><a href="/de/docs/settings-and-controls">Einstellungen und Steuerung</a></li><li><a href="/de/docs/troubleshooting">Fehlerbehebung</a></li><li><a href="/de/docs/faq">Häufige Fragen</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="dedithering-and-cleanup">Rasterglättung und Bereinigung</h1>
+<p><strong>Raster glätten</strong> ersetzt Pixel, deren Farbe in der unmittelbaren Umgebung nicht ausreichend vertreten ist, durch Nachbarfarben. Es ist ein eigener Schritt zur Bildbereinigung, kein Quantisierungsalgorithmus und keine Simulation dessen, was deine Düse drucken kann.</p>
+<p>Nutze die Funktion bei Dither-Mustern aus wiederkehrenden Farben oder bei einem reduzierten Bild mit einzelnen Farbpunkten. Sie kann vor der Quantisierung helfen, wenn die Quelle bereits solche Muster enthält, oder danach bei reduzierten Farbbereichen. Sie ist kein Filter für fotografisches Bildrauschen: Benachbarte Fotopixel haben oft geringfügig unterschiedliche exakte Farben.</p>
+<h2 id="how-a-pixel-is-chosen">Wie ein Pixel ausgewählt wird</h2>
+<p><a href="/localized/de/diagrams/36_dedither_neighbors.svg" target="_blank" rel="noopener noreferrer" aria-label="Illustration in voller Größe öffnen: Die acht umgebenden Pixel stimmen nach exakter Farbe ab. Die Stärke legt fest, wie viele übereinstimmende Nachbarn den mittleren Pixel erhalten; weitere Durchläufe verwenden das vorherige Ergebnis."><img src="/localized/de/diagrams/36_dedither_neighbors.svg" alt="Die acht umgebenden Pixel stimmen nach exakter Farbe ab. Die Stärke legt fest, wie viele übereinstimmende Nachbarn den mittleren Pixel erhalten; weitere Durchläufe verwenden das vorherige Ergebnis." loading="lazy"></a></p>
+<p>Jeder Pixel prüft seine acht unmittelbaren Nachbarn einschließlich der Diagonalen. Stimmen genügend Nachbarn in <strong>RGB und Alpha exakt</strong> überein, bleibt er erhalten. Andernfalls übernimmt er die häufigste abweichende Nachbarfarbe. Bei Gleichstand wird zufällig gewählt. Identische Einstellungen müssen daher nicht zu identischen Ergebnissen führen.</p>
+<p>Es werden nur vorhandene Nachbarfarben einschließlich transparenter Pixel verwendet. Daraus wird kein neuer Farbton gemittelt.</p>
+<h2 id="weight">Stärke</h2>
+<p><strong>Stärke</strong> ist die Zahl übereinstimmender Nachbarn, die zum Erhalt des ursprünglichen Pixels nötig ist. Bereich <strong>1 bis 9</strong>, Standard <strong>4</strong>.</p>
+<table><thead><tr><th>Beispiel</th><th>Ergebnis</th></tr></thead><tbody><tr><td>Keine übereinstimmenden Nachbarn</td><td>Ändert sich auch bei Stärke 1, wenn eine andere Nachbarfarbe vorhanden ist.</td></tr><tr><td>Drei übereinstimmende Nachbarn</td><td>Bleibt bei Stärke 3 erhalten; kann bei Stärke 4 ersetzt werden.</td></tr><tr><td>Mitte und alle acht Nachbarn stimmen überein</td><td>Bleibt auch bei Stärke 9 erhalten, da keine andere Nachbarfarbe vorhanden ist.</td></tr></tbody></table>
+<p>Niedrigere Werte erhalten eher Details; höhere Werte geben mehr Pixel zur Ersetzung frei. Bei nur acht Nachbarn kann Stärke 9 die Erhaltungsschwelle nie erreichen. Dies ist eine aggressive Grenzeinstellung, kein größerer Radius. Pixel am Bildrand haben außerdem weniger verfügbare Nachbarn.</p>
+<h2 id="passes">Durchläufe</h2>
+<p><strong>Durchläufe</strong> wiederholt die Bereinigung <strong>1 bis 10</strong> Mal, standardmäßig <strong>1</strong> Mal. Jeder Durchlauf liest das vollständige vorherige Ergebnis. Zusätzliche Durchläufe können hartnäckige Punkte entfernen, aber auch Kanten verschieben, schmale Verbindungen trennen oder kleine Schrift entfernen.</p>
+<p>Die einzelnen Rücksetz-Pfeile stellen Stärke 4 beziehungsweise 1 Durchlauf wieder her. Das Zurücksetzen des Bereichs setzt beide Werte zurück. Keine dieser Aktionen stellt das vorherige Bild wieder her; dafür dient Rückgängig.</p>
+<h2 id="apply-and-inspect">Anwenden und prüfen</h2>
+<ol><li>Klicke zuerst bei aktiven Bildanpassungen auf <strong>Anwenden</strong>. Die Rasterglättung liest die angepasste Ansicht. Durch vorheriges Übernehmen vermeidest du, dass dieselben laufenden Anpassungen zusätzlich auf das bereinigte Ergebnis wirken.</li><li>Beginne mit einem Durchlauf. Die Stärke ist standardmäßig 4; probiere niedrigere Werte, wenn feine Details wichtig sind.</li><li>Klicke auf <strong>Anwenden</strong> und prüfe anschließend Konturen, Schrift und transparente Kanten bei hoher Vergrößerung.</li><li>Mache die Änderung rückgängig, bevor du eine andere Einstellung am gleichen Ausgangsbild vergleichst.</li></ol>
+<p>Wiederholtes Klicken auf Anwenden bereinigt das bereits bereinigte Bild weiter. Es sind keine unabhängigen Vergleiche mit dem Original.</p>
+<h2 id="effect-on-the-print">Auswirkungen auf den Druck</h2>
+<p>Das Entfernen vereinzelter andersfarbiger Pixel kann winzige Farbinseln beseitigen, aber auch gewünschte Details entfernen. Alpha nimmt an der Abstimmung teil. Die Rasterglättung kann deshalb die Silhouette vergrößern oder verkleinern und Löcher öffnen oder schließen.</p>
+<p>Sie arbeitet in <strong>Bildpixeln</strong>, nicht in Millimetern. Ein drei Pixel breites Detail bei 0,1 mm/Pixel misst 0,3 mm, bevor spätere Entscheidungen bei Vernetzung oder Slicing hinzukommen. Die Rasterglättung kennt keinen Düsendurchmesser. Prüfe physische Details mit den <a href="/de/docs/3d-mode">Steuerelementen für druckbare Details in 3D</a> und der Slicer-Vorschau.</p>
+<h2 id="dedither-versus-height-dithering">Rasterglättung und Höhen-Dithering</h2>
+<table><thead><tr><th>Werkzeug</th><th>Bereich</th><th>Was sich ändert</th></tr></thead><tbody><tr><td>Raster glätten</td><td>2D</td><td>Bereiche exakter Farben und möglicherweise die transparente Kontur des Quellbilds.</td></tr><tr><td>Höhen-Dithering</td><td>Auto-paint in 3D</td><td>Das erzeugte Oberflächenhöhenmuster zur Annäherung an Zielfarben.</td></tr></tbody></table>
+<p>Die Verwendung des einen aktiviert das andere nicht. Wende die Rasterglättung nicht an, wenn absichtliche Pixelkunst oder Punktmuster erhalten bleiben sollen.</p>
+<p>Weiter: <a href="/de/docs/3d-mode">3D-Modus</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

@@ -111,24 +111,52 @@ class SlicePreparationToolsTest {
     }
 
     @Test
+    fun combinedPreflightMatchesSeparateToolAndPressureAdvanceReaders() {
+        val file = File.createTempFile("slice-preflight", ".gcode")
+        try {
+            file.writeText("""
+                ; T9 is only a comment
+                ; filament_type = PETG;PLA;ABS
+                T0
+                SET_PRESSURE_ADVANCE ADVANCE=0.11
+                T2
+                G1 X2 E0.1
+                T1
+                SET_PRESSURE_ADVANCE ADVANCE=0.04; Override pressure advance value
+                T0
+            """.trimIndent())
+            val preflight = SlicePreparationTools.readPreflight(file)
+            assertArrayEquals(intArrayOf(0, 1, 2), preflight.toolUsage.used)
+            assertArrayEquals(intArrayOf(0, 2, 1), preflight.toolUsage.firstAppearance)
+            assertEquals(listOf("PETG", "PLA", "ABS"), preflight.filamentTypes)
+            assertEquals(
+                SlicePreparationTools.readPressureAdvanceCommands(file),
+                preflight.pressureAdvance,
+            )
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun warnsForSparseAceSlotsInTheThreeColorKobraJob() {
         val tools = intArrayOf(0, 1, 2)
-        val assignedGates = intArrayOf(0, 3, 2)
+        val toolCount = 3
         assertArrayEquals(
             intArrayOf(2),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf(0, 2, 3)),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, toolCount, intArrayOf(0, 2, 3)),
         )
         assertArrayEquals(
             intArrayOf(),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf(0, 1, 2, 3)),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, toolCount, intArrayOf(0, 1, 2, 3)),
         )
         assertArrayEquals(
             intArrayOf(),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(intArrayOf(0), assignedGates, intArrayOf(0, 2, 3)),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(intArrayOf(0), toolCount, intArrayOf(0, 2, 3)),
         )
         assertArrayEquals(
             intArrayOf(),
-            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, assignedGates, intArrayOf()),
+            SlicePreparationTools.emptyAceSlotsBeforeUsedGate(tools, toolCount, intArrayOf()),
         )
     }
 

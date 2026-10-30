@@ -6,20 +6,2720 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
+import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.Native
+import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
+import ru.ytkab0bp.slicebeam.slic3r.ObjectGroupDistribution
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
+import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
+import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 import java.io.FileOutputStream
+import java.util.zip.ZipFile
 
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun nativeDeleteTranslateAndBedPlacementRejectInvalidObjectsAndValues() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "native-invalid-edit-requests.stl")
+        val model = Model(modelFile)
+        try {
+            val beforeMin = Vec3d()
+            val beforeMax = Vec3d()
+            model.getBoundingBoxExact(0, beforeMin, beforeMax)
+            val beforeBounds = doubleArrayOf(
+                beforeMin.x, beforeMin.y, beforeMin.z,
+                beforeMax.x, beforeMax.y, beforeMax.z,
+            )
+
+            // Exercise the JNI boundary itself; the Kotlin wrapper already filters these calls,
+            // but stale native indices must remain harmless even if reached below that layer.
+            Native.model_delete_object(model.pointer, -1)
+            Native.model_delete_object(model.pointer, model.objectsCount)
+            Native.model_ensure_on_bed(model.pointer, -1)
+            Native.model_ensure_on_bed(model.pointer, model.objectsCount)
+            Native.model_translate(model.pointer, -1, 10.0, 20.0, 30.0)
+            Native.model_translate(model.pointer, model.objectsCount, 10.0, 20.0, 30.0)
+            Native.model_translate(model.pointer, 0, Double.NaN, 0.0, 0.0)
+            Native.model_translate(model.pointer, 0, 0.0, Double.POSITIVE_INFINITY, 0.0)
+
+            Native.model_delete_object(0L, 0)
+            Native.model_ensure_on_bed(0L, 0)
+            Native.model_translate(0L, 0, 1.0, 2.0, 3.0)
+
+            assertEquals("invalid native edits must preserve object count", 1, model.objectsCount)
+            val afterMin = Vec3d()
+            val afterMax = Vec3d()
+            model.getBoundingBoxExact(0, afterMin, afterMax)
+            assertArrayEquals("invalid native edits must preserve geometry and placement", beforeBounds,
+                doubleArrayOf(afterMin.x, afterMin.y, afterMin.z, afterMax.x, afterMax.y, afterMax.z), 0.0)
+
+            // Valid native entry points still perform their intended operation.
+            Native.model_translate(model.pointer, 0, 0.0, 0.0, 5.0)
+            model.getBoundingBoxExact(0, afterMin, afterMax)
+            assertEquals("valid native Z translation remains available", beforeBounds[2] + 5.0, afterMin.z, 0.01)
+            Native.model_ensure_on_bed(model.pointer, 0)
+            model.getBoundingBoxExact(0, afterMin, afterMax)
+            assertEquals("valid native bed placement seats the model at Z zero", 0.0, afterMin.z, 0.01)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun nativeCutAndConnectorEditsRejectInvalidInputsAndKeepValidRoundTripPrintable() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "native-connector-validation.stl")
+        val projectFile = File(context.cacheDir, "native-connector-validation.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var configFile: File? = null
+        try {
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val beforeBounds = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            val beforeVolume = model.getObjectVolume(0)
+            val pointer = model.pointer
+
+            // Cut must reject invalid heights/angles and an empty keep-mask before mutating input.
+            assertFalse(Native.model_cut(pointer, 0, Double.NaN, 0.0, 0.0, true, true))
+            assertFalse(Native.model_cut(pointer, 0, 10.0, Double.POSITIVE_INFINITY, 0.0, true, true))
+            assertFalse(Native.model_cut(pointer, 0, 10.0, 0.0, 0.0, false, false))
+            assertFalse(Native.model_cut(pointer, model.objectsCount, 10.0, 0.0, 0.0, true, true))
+            assertFalse(Native.model_cut(0L, 0, 10.0, 0.0, 0.0, true, true))
+
+            // Connector add/remove/clear calls are exercised directly at JNI, below Kotlin guards.
+            Native.model_add_connector(pointer, 0, Double.NaN, 0.0, 0.0, 2f, 4f, 0)
+            Native.model_add_connector(pointer, 0, 0.0, 0.0, 0.0, Float.POSITIVE_INFINITY, 4f, 0)
+            Native.model_add_connector(pointer, model.objectsCount, 0.0, 0.0, 0.0, 2f, 4f, 0)
+            Native.model_add_connector(0L, 0, 0.0, 0.0, 0.0, 2f, 4f, 0)
+            Native.model_add_connector_on_plane(pointer, 0, 0.0, 0.0, 0.0, 2f, 4f, 0,
+                0.0, Double.NEGATIVE_INFINITY)
+            Native.model_add_connector_on_plane(pointer, model.objectsCount, 0.0, 0.0, 0.0, 2f, 4f, 0,
+                0.0, 0.0)
+            Native.model_add_connector_on_plane(0L, 0, 0.0, 0.0, 0.0, 2f, 4f, 0, 0.0, 0.0)
+            Native.model_remove_connector(pointer, 0, -1)
+            Native.model_remove_connector(pointer, model.objectsCount, 0)
+            Native.model_remove_connector(0L, 0, 0)
+            Native.model_clear_connectors(pointer, model.objectsCount)
+            Native.model_clear_connectors(0L, 0)
+
+            assertEquals("invalid requests must not create connector volumes", 0, model.getCutConnectorCount(0))
+            assertEquals("invalid requests must preserve object count", 1, model.objectsCount)
+            model.getBoundingBoxExact(0, min, max)
+            assertArrayEquals("invalid requests must preserve exact object bounds", beforeBounds,
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z), 0.001)
+            assertEquals("invalid requests must preserve printable volume", beforeVolume, model.getObjectVolume(0), 0.001)
+
+            // Valid connector add/remove/clear behavior remains intact for both placement modes.
+            Native.model_add_connector(pointer, 0, 10.0, 10.0, 10.0, 2f, 4f, 1)
+            assertEquals(1, model.getCutConnectorCount(0))
+            Native.model_add_connector_on_plane(pointer, 0, 10.0, 10.0, 10.0, 2f, 4f, 2, 0.2, -0.1)
+            assertEquals(2, model.getCutConnectorCount(0))
+            Native.model_remove_connector(pointer, 0, 0)
+            assertEquals(1, model.getCutConnectorCount(0))
+            Native.model_clear_connectors(pointer, 0)
+            assertEquals(0, model.getCutConnectorCount(0))
+            assertEquals("removing connectors restores the original solid volume", beforeVolume,
+                model.getObjectVolume(0), 0.001)
+
+            configFile = SliceBeam.getCurrentConfigFile()
+            model.export3mf(configFile!!.absolutePath, projectFile.absolutePath)
+            restored = Model(projectFile, 1)
+            assertEquals("connector cleanup must survive 3MF reload", 0, restored.getCutConnectorCount(0))
+            assertHasExtrusion(sliceToGcode(context, restored, "native-connector-validation.gcode"))
+        } finally {
+            configFile?.delete()
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
+    fun invalidTransformAndSimplifyRequestsPreserveNativeModel() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "invalid-transform-edits.stl")
+        val model = Model(modelFile)
+        try {
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val originalBounds = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+
+            model.translate(-1, 10.0, 0.0, 0.0)
+            model.translate(0, Double.NaN, 0.0, 0.0)
+            model.scale(model.objectsCount, 2.0, 2.0, 2.0)
+            model.scale(0, 1.0, Double.POSITIVE_INFINITY, 1.0)
+            model.rotate(-1, 0.0, 0.0, 1.0)
+            model.rotate(0, 0.0, Double.NaN, 0.0)
+            model.ensureOnBed(model.objectsCount)
+            model.resetRotation(-1)
+            model.autoOrient(model.objectsCount)
+            model.translate(Double.NaN, 0.0, 0.0)
+            model.simplify(-1, 0.5f)
+            assertEquals("invalid simplify ratio is rejected", 0, model.simplify(0, Float.NaN))
+            assertEquals("out-of-range simplify ratio is rejected", 0, model.simplify(0, 1.1f))
+
+            // Exercise the transformation and surface-orientation JNI boundaries directly.
+            Native.model_scale(0L, 0, 2.0, 2.0, 2.0)
+            Native.model_scale(model.pointer, model.objectsCount, 2.0, 2.0, 2.0)
+            Native.model_scale(model.pointer, 0, Double.NaN, 2.0, 2.0)
+            Native.model_rotate(0L, 0, 0.1, 0.2, 0.3)
+            Native.model_rotate(model.pointer, model.objectsCount, 0.1, 0.2, 0.3)
+            Native.model_rotate(model.pointer, 0, Double.POSITIVE_INFINITY, 0.0, 0.0)
+            Native.model_auto_orient(0L, 0)
+            Native.model_auto_orient(model.pointer, model.objectsCount)
+            Native.model_flatten_rotate(0L, 0, 0L)
+            Native.model_flatten_rotate(model.pointer, model.objectsCount, 1L)
+            Native.model_flatten_rotate(model.pointer, 0, 0L)
+            assertEquals("invalid split handle is rejected", 0, Native.model_split(0L, 0))
+            assertEquals("invalid split index is rejected", 0, Native.model_split(model.pointer, model.objectsCount))
+            assertFalse("invalid handedness query is safe", Native.model_is_left_handed(0L, 0))
+            assertFalse("out-of-range handedness query is safe",
+                Native.model_is_left_handed(model.pointer, model.objectsCount))
+            assertEquals("invalid plane source returns an empty plane list", 0,
+                Native.model_create_flatten_planes(0L, 0).size)
+            assertEquals("out-of-range plane source returns an empty plane list", 0,
+                Native.model_create_flatten_planes(model.pointer, model.objectsCount).size)
+
+            assertEquals("invalid object triangle query is safe", 0, model.getTriangleCount(model.objectsCount))
+            assertEquals("invalid object volume query is safe", 0.0, model.getObjectVolume(-1), 0.0)
+            assertFalse("invalid object paint query is safe", model.hasPaint(model.objectsCount))
+            assertEquals("invalid object paint-tool query is safe", 0, model.paintMaxFilament(-1))
+            model.getBoundingBoxExact(model.objectsCount, min, max)
+            assertArrayEquals("invalid exact bounds return an empty box", DoubleArray(6),
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z), 0.0)
+            model.getBoundingBoxApprox(-1, min, max)
+            assertArrayEquals("invalid approximate bounds return an empty box", DoubleArray(6),
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z), 0.0)
+            val overlay = ru.ytkab0bp.slicebeam.slic3r.GLModel()
+            try {
+                assertEquals("invalid object paint overlay is safe", 0,
+                    model.buildPaintOverlay(model.objectsCount, overlay, 1))
+            } finally {
+                overlay.release()
+            }
+
+            assertEquals(1, model.objectsCount)
+            assertEquals(originalTriangles, model.getTriangleCount(0))
+            assertEquals(originalVolume, model.getObjectVolume(0), 1e-6)
+            model.getBoundingBoxExact(0, min, max)
+            doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z).forEachIndexed { axis, value ->
+                assertEquals("invalid edits preserve bounds on axis $axis", originalBounds[axis], value, 1e-6)
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun nativeSimplifyCopyAndTransformQueriesRejectInvalidRequestsSafely() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "native-copy-query-validation.stl")
+        val model = Model(modelFile)
+        try {
+            val pointer = model.pointer
+            val originalVolume = model.getObjectVolume(0)
+            val originalTriangles = model.getTriangleCount(0)
+
+            // Call JNI directly so these guards protect against stale indices below Kotlin wrappers.
+            assertEquals(0, Native.model_simplify(0L, 0, 0.5f))
+            assertEquals(0, Native.model_simplify(pointer, model.objectsCount, 0.5f))
+            assertEquals(0, Native.model_simplify(pointer, 0, Float.NaN))
+            assertEquals(0, Native.model_simplify(pointer, 0, Float.POSITIVE_INFINITY))
+            assertEquals(0, Native.model_simplify(pointer, 0, 0f))
+            assertEquals(0, Native.model_simplify(pointer, 0, 1.01f))
+
+            Native.model_add_object_from_another(0L, pointer, 0)
+            Native.model_add_object_from_another(pointer, 0L, 0)
+            Native.model_add_object_from_another(pointer, pointer, -1)
+            Native.model_add_object_from_another(pointer, pointer, model.objectsCount)
+
+            val emptyVector = DoubleArray(3)
+            for (query in listOf(
+                Native.model_get_rotation(0L, 0),
+                Native.model_get_mirror(0L, 0),
+                Native.model_get_scale(0L, 0),
+                Native.model_get_translation(0L, 0),
+                Native.model_get_rotation(pointer, -1),
+                Native.model_get_mirror(pointer, model.objectsCount),
+                Native.model_get_scale(pointer, -1),
+                Native.model_get_translation(pointer, model.objectsCount),
+            )) {
+                assertArrayEquals(emptyVector, query, 0.0)
+            }
+
+            assertEquals("invalid copy/simplify requests must not append or alter objects", 1, model.objectsCount)
+            assertEquals(originalTriangles, model.getTriangleCount(0))
+            assertEquals(originalVolume, model.getObjectVolume(0), 1e-6)
+            for (query in listOf(
+                Native.model_get_rotation(pointer, 0),
+                Native.model_get_mirror(pointer, 0),
+                Native.model_get_scale(pointer, 0),
+                Native.model_get_translation(pointer, 0),
+            )) {
+                assertEquals(3, query.size)
+                assertTrue("valid transform queries must return finite values", query.all { it.isFinite() })
+            }
+
+            // Valid native object-copy behavior remains available after rejecting bad requests.
+            Native.model_add_object_from_another(pointer, pointer, 0)
+            assertEquals(2, model.objectsCount)
+            assertEquals(originalVolume, model.getObjectVolume(1), 1e-6)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun invalidDuplicateDeleteAndSplitRequestsPreserveNativeModel() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "invalid-object-index-edits.stl")
+        val model = Model(modelFile)
+        try {
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            val originalBounds = DoubleArray(6).also { bounds ->
+                val min = Vec3d()
+                val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                bounds[0] = min.x; bounds[1] = min.y; bounds[2] = min.z
+                bounds[3] = max.x; bounds[4] = max.y; bounds[5] = max.z
+            }
+
+            assertEquals("linked duplication rejects a missing object", -1,
+                model.duplicateInstance(model.objectsCount, 0, Vec3d(10.0, 0.0, 0.0)))
+            assertEquals("linked duplication rejects a negative source instance", -1,
+                model.duplicateInstance(0, -1, Vec3d(10.0, 0.0, 0.0)))
+            model.deleteObject(model.objectsCount)
+            assertEquals("split rejects a negative object index", 0, model.split(-1))
+
+            assertEquals("invalid edits preserve the object count", 1, model.objectsCount)
+            assertEquals("invalid edits preserve the mesh", originalTriangles, model.getTriangleCount(0))
+            assertEquals("invalid edits preserve solid volume", originalVolume, model.getObjectVolume(0), 1e-6)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val after = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            originalBounds.forEachIndexed { axis, value ->
+                assertEquals("invalid edits preserve bounds on axis $axis", value, after[axis], 1e-6)
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun invalidJoinBooleanAndTextRequestsLeaveModelUntouched() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "invalid-model-edit-requests.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "invalid-model-edit-font.ttf")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            val originalCount = model.objectsCount
+            val originalFilaments = (0 until originalCount).map { model.getUsedFilaments(it) }
+            val min = Vec3d()
+            val max = Vec3d()
+            val originalBounds = (0 until originalCount).map { index ->
+                model.getBoundingBoxExact(index, min, max)
+                doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+
+            // Protect native callers too; Kotlin validation is not the JNI safety boundary.
+            assertEquals("invalid native join handle is rejected", -1,
+                Native.model_combine_objects_as_parts(0L, intArrayOf(0, 1)))
+            assertEquals("invalid native Boolean handle is rejected", -1,
+                Native.model_boolean_objects(0L, intArrayOf(0, 1), 0))
+            assertEquals("unsupported native Boolean operation is rejected", -1,
+                Native.model_boolean_objects(model.pointer, intArrayOf(0, 1), 3))
+            Native.model_emboss_text(0L, 0, fontFile.absolutePath, "Label", 12f, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, originalCount, fontFile.absolutePath, "Label", 12f, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, 0, fontFile.absolutePath, "Label", Float.NaN, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, 0, fontFile.absolutePath, "Label", 12f, 1.2f, 2,
+                90.0, 90.0, 0.0, 0.0, 0.0, 1.0)
+            Native.model_emboss_text(model.pointer, 0, fontFile.absolutePath, "Label", 12f, 1.2f, 0,
+                90.0, 90.0, 0.0, 0.0, 0.0, 0.0)
+
+            assertEquals("duplicate join indices are rejected", -1,
+                model.combineObjectsAsParts(intArrayOf(0, 0)))
+            assertEquals("out-of-range Boolean indices are rejected", -1,
+                model.booleanObjects(intArrayOf(0, originalCount), BooleanOperation.UNION))
+            assertEquals("blank standalone text is rejected", -1, model.createTextObject(
+                fontFile.absolutePath, "  ", 12f, 1.2f,
+                Vec3d(90.0, 90.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            ))
+            assertEquals("an invalid surface target is rejected", -1, model.createTextObject(
+                fontFile.absolutePath, "Label", 12f, 1.2f,
+                Vec3d(90.0, 90.0, 0.0), Vec3d(0.0, 0.0, 1.0), targetObjectIndex = originalCount,
+            ))
+
+            assertEquals("invalid model edits must not add, remove, or combine objects", originalCount,
+                model.objectsCount)
+            (0 until originalCount).forEach { index ->
+                assertArrayEquals("invalid edits preserve object $index filament assignments",
+                    originalFilaments[index], model.getUsedFilaments(index))
+                model.getBoundingBoxExact(index, min, max)
+                val after = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                originalBounds[index].forEachIndexed { axis, value ->
+                    assertEquals("invalid edits preserve object $index bounds on axis $axis", value,
+                        after[axis], 0.001)
+                }
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+            fontFile.delete()
+        }
+    }
+
+    @Test
+    fun copyingAnObjectFromEmptyOrReleasedModelIsIgnoredSafely() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val targetFile = copyCube(context, "safe-invalid-object-copy-target.stl")
+        val sourceFile = copyCube(context, "safe-invalid-object-copy-source.stl")
+        val target = Model(targetFile)
+        val empty = Model()
+        val released = Model(sourceFile)
+        try {
+            empty.addObject(empty, 0)
+            assertEquals("an empty model must not self-copy an unavailable object", 0, empty.objectsCount)
+
+            target.addObject(empty, 0)
+            assertEquals("an empty source must not append a native object", 1, target.objectsCount)
+
+            released.release()
+            target.addObject(released, 0)
+            assertEquals("a released source must not append a native object", 1, target.objectsCount)
+
+            target.addObject(target, target.objectsCount)
+            assertEquals("an out-of-range index must not append a native object", 1, target.objectsCount)
+        } finally {
+            target.release()
+            empty.release()
+            released.release()
+            targetFile.delete()
+            sourceFile.delete()
+        }
+    }
+
+    @Test
+    fun xAndYDistributedObjectsRemainOnBedAndProduceExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "distributed-group-slice.stl")
+        val model = Model(modelFile)
+        try {
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val depth = max.y - min.y
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, width * 2.0, depth * 2.0, 0.0)
+            model.translate(2, width * 6.0, depth * 6.0, 0.0)
+
+            for (axis in listOf(ObjectDistributionAxis.X, ObjectDistributionAxis.Y)) {
+                val bounds = linkedMapOf<Int, ObjectBounds3D>()
+                for (index in 0 until model.objectsCount) {
+                    model.getBoundingBoxExact(index, min, max)
+                    bounds[index] = ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+                }
+                val deltas = requireNotNull(ObjectGroupDistribution.plan(bounds, axis))
+                deltas.forEach { (index, delta) -> model.translate(index, delta.x, delta.y, delta.z) }
+                val dimension = if (axis == ObjectDistributionAxis.X) 0 else 1
+                val gapA = run {
+                    model.getBoundingBoxExact(0, min, max); val endFirst = if (dimension == 0) max.x else max.y
+                    model.getBoundingBoxExact(1, min, max); val startMiddle = if (dimension == 0) min.x else min.y
+                    startMiddle - endFirst
+                }
+                val gapB = run {
+                    model.getBoundingBoxExact(1, min, max); val endMiddle = if (dimension == 0) max.x else max.y
+                    model.getBoundingBoxExact(2, min, max); val startLast = if (dimension == 0) min.x else min.y
+                    startLast - endMiddle
+                }
+                assertEquals("equal clear gaps along $axis", gapA, gapB, 1e-6)
+                for (index in 0 until model.objectsCount) {
+                    model.getBoundingBoxExact(index, min, max)
+                    assertTrue("XY distribution must keep object $index on the bed", min.z >= -0.05)
+                }
+            }
+
+            val gcode = sliceToGcode(context, model, "distributed-group-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun splitMultipartObjectPreservesEachFilamentAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "split-multipart-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            assertEquals("Split should report both restored source bodies", 2, model.split(0))
+            assertEquals("Split should restore two separately editable objects", 2, model.objectsCount)
+            assertEquals(setOf(1, 2), (0 until model.objectsCount).flatMap { model.getUsedFilaments(it).toList() }.toSet())
+
+            val gcode = sliceToGcode(context, model, "split-multipart-slice.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("the split T1 body must still reach G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun successfulPlaneCutKeepsBothPrintablePiecesAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "successful-plane-cut-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.setUniformFilament(0, 1)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val originalVolume = model.getObjectVolume(0)
+            val originalFilaments = model.getUsedFilaments(0).toSet()
+            val cutHeight = (min.z + max.z) / 2.0
+
+            assertTrue("a centered plane through the cube should produce both cut pieces",
+                model.cut(0, cutHeight, 0.0, 0.0, keepUpper = true, keepLower = true))
+            assertEquals("the original object is replaced with upper and lower pieces", 2, model.objectsCount)
+
+            val pieceVolumes = (0 until model.objectsCount).map { index -> model.getObjectVolume(index) }
+            assertTrue("both cut pieces must contain printable volume", pieceVolumes.all { it > 0.0 })
+            val pieceBottoms = (0 until model.objectsCount).map { index ->
+                model.getBoundingBoxExact(index, min, max)
+                min.z
+            }
+            assertTrue("every cut piece must rest on the print bed, bottoms=$pieceBottoms",
+                pieceBottoms.all { it >= -0.05 && it <= 0.05 })
+            assertEquals("the cut should preserve the source solid volume", originalVolume,
+                pieceVolumes.sum(), originalVolume * 0.01)
+            assertEquals("cut pieces should preserve the source filament assignment", originalFilaments,
+                (0 until model.objectsCount).flatMap { model.getUsedFilaments(it).toList() }.toSet())
+
+            val gcode = sliceToGcode(context, model, "successful-plane-cut-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun surfacePlacedUnionDifferenceAndIntersectionRemainPrintable() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (operation in BooleanOperation.entries) {
+            val modelFile = copyCube(context, "surface-boolean-${operation.name.lowercase()}.stl")
+            val model = Model(modelFile)
+            try {
+                model.addObject(model, 0)
+                model.scale(1, 0.25, 0.25, 0.25)
+                model.translate(1, 100.0, 100.0, 100.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+
+                val targetMin = Vec3d(); val targetMax = Vec3d()
+                val toolMin = Vec3d(); val toolMax = Vec3d()
+                model.getBoundingBoxExact(0, targetMin, targetMax)
+                model.getBoundingBoxExact(1, toolMin, toolMax)
+                val targetVolume = model.getObjectVolume(0)
+                val delta = requireNotNull(ObjectPlacement.forSurfaceBoolean(
+                    ObjectBounds3D(toolMin.x, toolMin.y, toolMin.z, toolMax.x, toolMax.y, toolMax.z),
+                    Vec3d((targetMin.x + targetMax.x) / 2.0, (targetMin.y + targetMax.y) / 2.0, targetMax.z),
+                    Vec3d(0.0, 0.0, 1.0),
+                    penetrationMm = 0.8,
+                ))
+                model.translate(1, delta.x, delta.y, delta.z)
+
+                val result = model.booleanObjects(intArrayOf(0, 1), operation)
+                assertEquals("$operation should produce a surface-placed solid", 0, result)
+                assertEquals("the Boolean should replace target and tool atomically", 1, model.objectsCount)
+                assertEquals("the result should retain the base filament", listOf(1), model.getUsedFilaments(result).toList())
+                val resultVolume = model.getObjectVolume(result)
+                assertTrue("$operation should leave printable volume", resultVolume > 0.0)
+                when (operation) {
+                    BooleanOperation.UNION -> assertTrue(resultVolume > targetVolume)
+                    BooleanOperation.DIFFERENCE -> assertTrue(resultVolume < targetVolume)
+                    BooleanOperation.INTERSECTION -> {
+                        assertTrue(resultVolume < targetVolume)
+                        val intersectionMin = Vec3d(); val intersectionMax = Vec3d()
+                        model.getBoundingBoxExact(result, intersectionMin, intersectionMax)
+                        assertTrue("intersection should stay at the picked surface until explicitly arranged",
+                            intersectionMin.z > 0.0)
+                        // Intersection keeps its exact world-space location. As with any floating
+                        // result, arrange it on the bed before asking the slicer to emit G-code.
+                        model.ensureOnBed(result)
+                    }
+                }
+
+                val gcode = sliceToGcode(context, model, "surface-boolean-${operation.name.lowercase()}.gcode")
+                assertHasExtrusion(gcode)
+            } finally {
+                model.release()
+                modelFile.delete()
+            }
+        }
+    }
+
+    @Test
+    fun simplifiedMeshRemainsSolidAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "simplified-sphere-slice.stl")
+        val model = Model(modelFile)
+        try {
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            assertTrue("sphere fixture should contain enough triangles to simplify", originalTriangles > 8)
+
+            val simplifiedTriangles = model.simplify(0, 0.5f)
+            assertTrue("simplification should reduce triangle count", simplifiedTriangles in 4 until originalTriangles)
+            assertTrue("simplification should retain a positive solid volume", model.getObjectVolume(0) > 0.0)
+            assertTrue("the simplified mesh should remain a substantial part of its original volume",
+                model.getObjectVolume(0) / originalVolume in 0.7..1.3)
+
+            val gcode = sliceToGcode(context, model, "simplified-sphere-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun autoOrientedModelRemainsOnBedAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/pyramid.stl", "auto-oriented-pyramid-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.rotate(0, Math.toRadians(23.0), Math.toRadians(31.0), Math.toRadians(17.0))
+            model.autoOrient(0)
+            val min = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            val max = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            assertTrue("auto-orient should leave a finite, positive-height object", min.z.isFinite() && max.z > min.z)
+            assertTrue("auto-oriented model should remain on or above the build plate", min.z >= -0.05)
+            assertTrue("auto-orient should preserve the printable solid", model.getObjectVolume(0) > 0.0)
+
+            val gcode = sliceToGcode(context, model, "auto-oriented-pyramid-slice.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun separateObjectsAssignedToDifferentFilamentsEmitToolChange() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "separate-filaments-slice.stl")
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(listOf(1), model.getUsedFilaments(0).toList())
+            assertEquals(listOf(2), model.getUsedFilaments(1).toList())
+
+            val gcode = sliceToGcode(context, model, "separate-filaments-slice.gcode")
+
+            assertHasExtrusion(gcode)
+            assertTrue("the second object's T1 assignment must reach emitted G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun fillBedCopiesPreserveMaterialThroughThreeMfReloadAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "fill-bed-slice-cube.stl")
+        val projectFile = File(context.cacheDir, "fill-bed-slice-roundtrip.3mf")
+        val gcodeFile = File(context.cacheDir, "fill-bed-slice-roundtrip.gcode")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            model.translate(0, 13.0, 17.0, 5.0)
+            model.setUniformFilament(0, 2)
+
+            val added = FillBedModelOperation.run(
+                activeModel = model,
+                objectIndex = 0,
+                viewerEnabled = false,
+                estimatedCapacity = 3,
+            ) { candidate ->
+                for (index in 0 until candidate.objectsCount) {
+                    val current = Vec3d()
+                    candidate.getTranslation(index, current)
+                    candidate.translate(index, index * 28.0 - current.x, -current.y, -current.z)
+                }
+                candidate.objectsCount <= 3
+            }
+            assertEquals("fill-bed should commit both accepted copies", 2, added)
+            assertEquals(3, model.objectsCount)
+            for (index in 0 until model.objectsCount) {
+                assertEquals("every arranged copy should retain the selected T1 material", listOf(2),
+                    model.getUsedFilaments(index).toList())
+            }
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, projectFile.absolutePath)
+            restored = Model(projectFile, 1)
+            assertEquals("all packed objects should survive a 3MF reload", 3, restored.objectsCount)
+            for (index in 0 until restored.objectsCount) {
+                assertEquals("3MF reload should preserve T1 on packed object $index", listOf(2),
+                    restored.getUsedFilaments(index).toList())
+            }
+
+            result = restored.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the selected T1 material should reach the generated G-code",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("the packed objects must not unexpectedly select T0",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun combinedMultipartObjectKeepsBothFilamentsThroughSlicing() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "combined-filaments-slice.stl")
+        val roundTripFile = File(context.cacheDir, "combined-filaments-roundtrip.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        try {
+            model.addObject(model, 0)
+            model.scale(1, 1.3, 0.8, 1.2)
+            model.rotate(1, 0.35, -0.22, 0.48)
+            model.translate(1, 50.0, 50.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("both part assignments must remain on the combined object", listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, roundTripFile.absolutePath)
+            ZipFile(roundTripFile).use { archive ->
+                val entry = archive.getEntry("Metadata/Slic3r_PE_model.config")
+                val metadata = entry?.let { archive.getInputStream(it).bufferedReader().use { reader -> reader.readText() } }
+                assertTrue("second part's filament must be present in the 3MF volume metadata",
+                    metadata.orEmpty().contains("type=\"volume\" key=\"extruder\" value=\"2\""))
+            }
+            val roundTrip = Model(roundTripFile, 1).also { restored = it }
+            assertEquals(1, roundTrip.objectsCount)
+            assertEquals("both part assignments must survive 3MF save/reload", listOf(1, 2), roundTrip.getUsedFilaments(0).toList())
+
+            val gcode = sliceToGcode(context, roundTrip, "combined-filaments-slice.gcode")
+
+            assertHasExtrusion(gcode)
+            assertTrue("the second part's T1 assignment must reach emitted G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            roundTripFile.delete()
+        }
+    }
+
+    @Test
+    fun combiningLinkedCopiesWithAnotherObjectMaterializesAllInstancesAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "combine-linked-copies.stl")
+        val sourceFile = copyCube(context, "combine-linked-source.stl")
+        val projectFile = File(context.cacheDir, "combine-linked-roundtrip.3mf")
+        val outputFile = File(context.cacheDir, "combine-linked-roundtrip.gcode")
+        val model = Model(modelFile)
+        val linkedSource = Model(sourceFile)
+        var restored: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            val initialMin = Vec3d(); val initialMax = Vec3d()
+            model.getBoundingBoxExact(0, initialMin, initialMax)
+            val width = initialMax.x - initialMin.x
+            val trianglesPerCopy = model.getTriangleCount(0)
+            assertTrue("the linked copy should be created", model.duplicateInstance(
+                0, 0, Vec3d(width + 7.0, 0.0, 0.0),
+            ) >= 0)
+            linkedSource.setUniformFilament(0, 2)
+            model.addObject(linkedSource, 0)
+            model.translate(1, width * 2.0 + 14.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+
+            fun combinedWorldBounds(source: Model, index: Int): Pair<DoubleArray, DoubleArray> {
+                val min = Vec3d(); val max = Vec3d()
+                source.getBoundingBoxExact(index, min, max)
+                return doubleArrayOf(min.x, min.y, min.z) to doubleArrayOf(max.x, max.y, max.z)
+            }
+            val sourceBounds = listOf(combinedWorldBounds(model, 0), combinedWorldBounds(model, 1))
+            val expectedMin = DoubleArray(3) { axis -> sourceBounds.minOf { it.first[axis] } }
+            val expectedMax = DoubleArray(3) { axis -> sourceBounds.maxOf { it.second[axis] } }
+
+            assertEquals("linked object and separately placed object should combine", 0,
+                model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("all three world copies should become one printable object", 1, model.objectsCount)
+            assertEquals("the linked copy must be materialized as its own part",
+                trianglesPerCopy * 3, model.getTriangleCount(0))
+            assertEquals("each source tool assignment should survive grouping", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+            val joinedBounds = combinedWorldBounds(model, 0)
+            for (axis in 0..2) {
+                assertEquals("joined world minimum on axis $axis", expectedMin[axis], joinedBounds.first[axis], 0.02)
+                assertEquals("joined world maximum on axis $axis", expectedMax[axis], joinedBounds.second[axis], 0.02)
+            }
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, projectFile.absolutePath)
+            restored = Model(projectFile, 1)
+            assertEquals("the grouped project should reload as one object", 1, restored.objectsCount)
+            assertEquals("both materials should survive the 3MF round trip", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+            val restoredBounds = combinedWorldBounds(restored, 0)
+            for (axis in 0..2) {
+                assertEquals("reloaded world minimum on axis $axis", expectedMin[axis], restoredBounds.first[axis], 0.02)
+                assertEquals("reloaded world maximum on axis $axis", expectedMax[axis], restoredBounds.second[axis], 0.02)
+            }
+            sliceResult = restored.slice(SliceBeam.getCurrentConfigFile().absolutePath, outputFile.absolutePath, null)
+            val gcode = outputFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the original target should emit T0", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the joined source should emit T1", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            sliceResult?.release()
+            restored?.release()
+            linkedSource.release()
+            model.release()
+            modelFile.delete()
+            sourceFile.delete()
+            projectFile.delete()
+            outputFile.delete()
+        }
+    }
+
+    @Test
+    fun uniformReassignmentOfMultipart3mfSurvivesReloadAndSlicesWithNewSlot() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sourceFile = copyCube(context, "multipart-reassignment-source.stl")
+        val originalProject = File(context.cacheDir, "multipart-reassignment-original.3mf")
+        val remappedProject = File(context.cacheDir, "multipart-reassignment-remapped.3mf")
+        val output = File(context.cacheDir, "multipart-reassignment-remapped.gcode")
+        val model = Model(sourceFile)
+        var originalReload: Model? = null
+        var remappedReload: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("fixture starts as one object with two material volumes", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, originalProject.absolutePath)
+            originalReload = Model(originalProject, 1)
+            assertEquals("the source 3MF must reload both material assignments", listOf(1, 2),
+                originalReload.getUsedFilaments(0).toList())
+
+            // This is the same explicit uniform reassignment used by the model-to-filament UI.
+            originalReload.setUniformFilament(0, 2)
+            assertEquals("choosing slot 2 must replace the imported per-volume slot 1", listOf(2),
+                originalReload.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(originalReload)
+            originalReload.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, remappedProject.absolutePath)
+            remappedReload = Model(remappedProject, 1)
+            assertEquals("the chosen slot must survive the remapped 3MF round trip", listOf(2),
+                remappedReload.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(remappedReload)
+            result = remappedReload.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the chosen second slot must reach G-code as T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            remappedReload?.release()
+            originalReload?.release()
+            model.release()
+            sourceFile.delete()
+            originalProject.delete()
+            remappedProject.delete()
+            output.delete()
+        }
+    }
+
+    @Test
+    fun perSourceColorRemappingSurvives3mfReloadAndEmitsMappedTools() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sourceFile = copyCube(context, "per-color-remap-source.stl")
+        val firstRoundTrip = File(context.cacheDir, "per-color-remap-first.3mf")
+        val sharedRoundTrip = File(context.cacheDir, "per-color-remap-shared.3mf")
+        val firstOutput = File(context.cacheDir, "per-color-remap-first.gcode")
+        val sharedOutput = File(context.cacheDir, "per-color-remap-shared.gcode")
+        val model = Model(sourceFile)
+        var firstReload: Model? = null
+        var sharedReload: Model? = null
+        var firstResult: GCodeProcessorResult? = null
+        var sharedResult: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.translate(2, 60.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1, 2)))
+            assertEquals(listOf(1, 2, 3), model.getUsedFilaments(0).toList())
+
+            model.remapFilaments(intArrayOf(1, 2, 3), intArrayOf(2, 3, 3))
+            assertEquals("each 3MF material must map independently, including two sharing a target",
+                listOf(2, 3), model.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, firstRoundTrip.absolutePath)
+            firstReload = Model(firstRoundTrip, 1)
+            assertEquals("source color assignments must survive 3MF reload", listOf(2, 3),
+                firstReload.getUsedFilaments(0).toList())
+            firstResult = firstReload.slice(SliceBeam.getCurrentConfigFile().absolutePath,
+                firstOutput.absolutePath, null)
+            val firstGcode = firstOutput.readText()
+            assertHasExtrusion(firstGcode)
+            assertTrue("mapped source colors must use output tools T1 and T2",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(firstGcode) &&
+                    Regex("(?m)^T2(?:\\s|$)").containsMatchIn(firstGcode))
+            assertFalse("unmapped T0 must not be emitted", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(firstGcode))
+
+            firstReload.remapFilaments(intArrayOf(2, 3), intArrayOf(2, 2))
+            assertEquals("different model colors may intentionally share one filament slot", listOf(2),
+                firstReload.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(firstReload)
+            firstReload.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, sharedRoundTrip.absolutePath)
+            sharedReload = Model(sharedRoundTrip, 1)
+            assertEquals(listOf(2), sharedReload.getUsedFilaments(0).toList())
+            sharedResult = sharedReload.slice(SliceBeam.getCurrentConfigFile().absolutePath,
+                sharedOutput.absolutePath, null)
+            val sharedGcode = sharedOutput.readText()
+            assertHasExtrusion(sharedGcode)
+            assertTrue("the shared assignment must slice with target tool T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(sharedGcode))
+            assertFalse("the shared assignment must not retain target tool T2",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(sharedGcode))
+        } finally {
+            firstResult?.release()
+            sharedResult?.release()
+            firstReload?.release()
+            sharedReload?.release()
+            model.release()
+            sourceFile.delete()
+            firstRoundTrip.delete()
+            sharedRoundTrip.delete()
+            firstOutput.delete()
+            sharedOutput.delete()
+        }
+    }
+
+    @Test
+    fun kromacutColorFixtureCanMapBothSourceColorsToOneSlotAndSliceAfterReload() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val fixture = File(context.cacheDir, "kromacut-color-fixture-input.3mf")
+        val fixturePipe = instrumentation.uiAutomation.executeShellCommand("cat /data/local/tmp/kromacut.3mf")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(fixturePipe).use { input ->
+            fixture.outputStream().use { output -> input.copyTo(output) }
+        }
+        val fixtureAvailable = fixture.length() > 1_000_000L
+        if (!fixtureAvailable) fixture.delete()
+        assumeTrue(
+            "Push the user-provided KromaCut fixture to /data/local/tmp/kromacut.3mf to run this integration test",
+            fixtureAvailable,
+        )
+        val remappedProject = File(context.cacheDir, "kromacut-shared-filament.3mf")
+        val originalGcodeFile = File(context.cacheDir, "kromacut-original-colors.gcode")
+        val gcodeFile = File(context.cacheDir, "kromacut-shared-filament.gcode")
+        val model = Model(fixture, 1)
+        var reloaded: Model? = null
+        var originalSliceResult: GCodeProcessorResult? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            assertEquals("KromaCut's two colored layers should import as one assembled object", 1, model.objectsCount)
+            assertEquals("the source project should retain both imported colors", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+            assertEquals("the first source color should use its first logical filament", 1,
+                model.getVolumeExtruder(0, 0))
+            assertEquals("the second source color should use its second logical filament", 2,
+                model.getVolumeExtruder(0, 1))
+
+            SliceBeam.genCurrentConfig(model)
+            originalSliceResult = model.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath,
+                originalGcodeFile.absolutePath,
+                null,
+            )
+            val originalGcode = originalGcodeFile.readText()
+            assertHasExtrusion(originalGcode)
+            assertTrue("the original two-color KromaCut slice must switch to its second tool",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(originalGcode))
+            assertFalse("the original KromaCut project must not reference a third tool",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(originalGcode))
+
+            // A user may intentionally print both source colors with one physical slot.
+            model.remapFilaments(intArrayOf(1, 2), intArrayOf(2, 2))
+            assertEquals("both source colors should now share the chosen logical filament", listOf(2),
+                model.getUsedFilaments(0).toList())
+            assertEquals(2, model.getVolumeExtruder(0, 0))
+            assertEquals(2, model.getVolumeExtruder(0, 1))
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, remappedProject.absolutePath)
+            reloaded = Model(remappedProject, 1)
+            assertEquals("the chosen filament must survive the 3MF round trip", listOf(2),
+                reloaded.getUsedFilaments(0).toList())
+            assertEquals(2, reloaded.getVolumeExtruder(0, 0))
+            assertEquals(2, reloaded.getVolumeExtruder(0, 1))
+
+            SliceBeam.genCurrentConfig(reloaded)
+            sliceResult = reloaded.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the selected slot 2 must be emitted as G-code tool T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("the original slot 1 must not reappear after slicing",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("unassigned slot 3 must not be emitted",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            originalSliceResult?.release()
+            sliceResult?.release()
+            reloaded?.release()
+            model.release()
+            fixture.delete()
+            remappedProject.delete()
+            originalGcodeFile.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun placedObjectGroupRemainsPrintableAfterSurfacePlacement() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "placed-group-slice.stl")
+        val projectFile = File(context.cacheDir, "placed-group-roundtrip.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        try {
+            val trianglesPerCopy = model.getTriangleCount(0)
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, 30.0, -10.0, 8.0)
+            model.translate(2, 65.0, 12.0, 14.0)
+            assertTrue("the moving group should include a linked copy", model.duplicateInstance(
+                1, 0, Vec3d(24.0, 6.0, 0.0),
+            ) >= 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+
+            fun bounds(index: Int): ObjectBounds3D {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val target = bounds(0)
+            val movingGroup = requireNotNull(ObjectPlacement.enclosing(listOf(bounds(1), bounds(2))))
+            val surfacePoint = Vec3d(
+                (target.minX + target.maxX) / 2.0,
+                (target.minY + target.maxY) / 2.0,
+                target.maxZ,
+            )
+            val delta = requireNotNull(ObjectPlacement.onSurface(movingGroup, surfacePoint))
+            model.translate(1, delta.x, delta.y, delta.z)
+            model.translate(2, delta.x, delta.y, delta.z)
+
+            val placed = requireNotNull(ObjectPlacement.enclosing(listOf(bounds(1), bounds(2))))
+            assertEquals(target.maxZ, placed.minZ, 0.001)
+            // Orca rejects separate ModelObjects whose first printable layer is above
+            // the bed. A stacked assembly must become multipart geometry before slicing.
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1, 2)))
+            assertEquals(1, model.objectsCount)
+            assertEquals("the placed assembly should materialize all four printable copies",
+                trianglesPerCopy * 4, model.getTriangleCount(0))
+            assertEquals("surface placement assembly must retain target and placed-part tools",
+                listOf(1, 2, 3), model.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(model)
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals("surface-placed multipart object must survive project reload", 1, restored.objectsCount)
+            assertEquals("surface placement must retain the target and placed-part tools after reload",
+                listOf(1, 2, 3), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "placed-group-slice.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("the placed assembly's second material must reach G-code",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the placed assembly's third material must reach G-code",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
+    fun tiltedSurfacePlacementUsesExactMeshSupportAndIncludesLinkedInstances() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "tilted-surface-support.stl")
+        val model = Model(modelFile)
+        try {
+            model.translate(0, 13.0, -7.0, 4.0)
+            val direction = Vec3d(1.0, 0.0, 1.0)
+            val minimumProjection = requireNotNull(model.getMinimumProjection(intArrayOf(0), direction))
+            val unit = 1.0 / kotlin.math.sqrt(2.0)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val boundsMinimum = min.x * unit + min.z * unit
+            assertTrue("sphere mesh support should be tighter than its diagonal AABB corner",
+                minimumProjection > boundsMinimum + 0.05)
+
+            val targetPoint = Vec3d(40.0, 12.0, 25.0)
+            val bounds = ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            val delta = requireNotNull(ObjectPlacement.onSurface(bounds, targetPoint, direction, minimumProjection))
+            val targetProjection = targetPoint.x * unit + targetPoint.z * unit
+            assertEquals("the actual sphere mesh must touch the picked plane",
+                targetProjection, minimumProjection + delta.x * unit + delta.z * unit, 0.001)
+
+            val beforeLinkedInstance = minimumProjection
+            assertTrue(model.duplicateInstance(0, 0, Vec3d(-20.0, 0.0, 0.0)) >= 0)
+            val withLinkedInstance = requireNotNull(model.getMinimumProjection(intArrayOf(0), direction))
+            assertEquals("support should include linked instance transforms", beforeLinkedInstance - 20.0 * unit,
+                withLinkedInstance, 0.01)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun transformedMultiObjectGroupUsesLowestExactSupportAcrossInstances() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyAsset(context, "models/sphere.stl", "transformed-group-support.stl")
+        val model = Model(modelFile)
+        try {
+            model.rotate(0, 17.0, -11.0, 29.0)
+            model.scale(0, 1.4, 0.75, 1.2)
+            assertTrue("a linked copy should be added to the transformed target",
+                model.duplicateInstance(0, 0, Vec3d(-23.0, 8.0, 3.0)) >= 0)
+            model.addObject(model, 0)
+            assertEquals("a second transformed object should be added", 2, model.objectsCount)
+            model.translate(1, 41.0, -13.0, 19.0)
+
+            val normal = Vec3d(1.0, 0.7, 1.4)
+            val targetProjection = requireNotNull(model.getMinimumProjection(intArrayOf(0), normal))
+            val secondProjection = requireNotNull(model.getMinimumProjection(intArrayOf(1), normal))
+            val expectedGroupSupport = minOf(targetProjection, secondProjection)
+            val groupSupport = requireNotNull(model.getMinimumProjection(intArrayOf(0, 1), normal))
+            assertEquals("group support must use the lowest point across transformed objects and instances",
+                expectedGroupSupport, groupSupport, 1e-6)
+
+            val min0 = Vec3d(); val max0 = Vec3d()
+            val min1 = Vec3d(); val max1 = Vec3d()
+            model.getBoundingBoxExact(0, min0, max0)
+            model.getBoundingBoxExact(1, min1, max1)
+            val bounds = requireNotNull(ObjectPlacement.enclosing(listOf(
+                ObjectBounds3D(min0.x, min0.y, min0.z, max0.x, max0.y, max0.z),
+                ObjectBounds3D(min1.x, min1.y, min1.z, max1.x, max1.y, max1.z),
+            )))
+            val point = Vec3d(12.0, 31.0, 44.0)
+            val delta = requireNotNull(ObjectPlacement.onSurface(bounds, point, normal, groupSupport))
+            val normalLength = kotlin.math.sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z)
+            val unit = Vec3d(normal.x / normalLength, normal.y / normalLength, normal.z / normalLength)
+            val placedSupport = groupSupport + delta.x * unit.x + delta.y * unit.y + delta.z * unit.z
+            val planeProjection = point.x * unit.x + point.y * unit.y + point.z * unit.z
+            assertEquals("surface placement must seat the transformed group on the picked plane",
+                planeProjection, placedSupport, 1e-5)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun sideSurfacePlacedObjectsRemainPrintableAfterThreeMfReload() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "placed-side-surface.stl")
+        val projectFile = File(context.cacheDir, "placed-side-surface-roundtrip.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 40.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            fun bounds(index: Int): ObjectBounds3D {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val target = bounds(0)
+            val moving = bounds(1)
+            val point = Vec3d(
+                target.maxX,
+                (target.minY + target.maxY) / 2.0,
+                (target.minZ + target.maxZ) / 2.0,
+            )
+            val delta = requireNotNull(ObjectPlacement.onSurface(moving, point, Vec3d(1.0, 0.0, 0.0)))
+            model.translate(1, delta.x, delta.y, delta.z)
+            val placed = bounds(1)
+            assertEquals("the part should touch the selected side face", target.maxX, placed.minX, 0.001)
+            assertEquals("the part should center on the tapped face point",
+                (target.minY + target.maxY) / 2.0, (placed.minY + placed.maxY) / 2.0, 0.001)
+            assertEquals("side placement should retain bed contact", target.minZ, placed.minZ, 0.001)
+
+            assertEquals("side-by-side pieces should become one multipart printable object",
+                0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals("3MF reload must preserve both side-joined materials", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "placed-side-surface.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("the side-placed second material must reach G-code",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
+    fun standaloneTextCanBePlacedJoinedAndSlicedAsItsOwnFilamentPart() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "text-side-join-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "text-side-join-font.ttf")
+        val projectFile = File(context.cacheDir, "text-side-join-roundtrip.3mf")
+        val model = Model(cubeFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath, "A\nB", 6f, 1.2f,
+                Vec3d(100.0, 100.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("standalone text should be a separate editable object", 1, textIndex)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(textIndex, 2)
+
+            fun bounds(index: Int): ObjectBounds3D {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+            }
+            val target = bounds(0)
+            val text = bounds(textIndex)
+            assertTrue("both text lines must exist before placement and join", text.maxY - text.minY > 8.0)
+            val point = Vec3d(
+                target.maxX,
+                (target.minY + target.maxY) / 2.0,
+                (target.minZ + target.maxZ) / 2.0,
+            )
+            val delta = requireNotNull(ObjectPlacement.onSurface(text, point, Vec3d(1.0, 0.0, 0.0)))
+            model.translate(textIndex, delta.x, delta.y, delta.z)
+            val placedText = bounds(textIndex)
+            assertEquals("text should meet the chosen side face", target.maxX, placedText.minX, 0.001)
+            assertEquals("text should be centered at the picked face location", point.y,
+                (placedText.minY + placedText.maxY) / 2.0, 0.001)
+
+            assertEquals("text and model should become one multipart object", 0,
+                model.combineObjectsAsParts(intArrayOf(0, textIndex)))
+            assertEquals("text and base material assignments should both survive joining", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals(listOf(1, 2), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "text-side-join.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("base material should be emitted", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("joined standalone text material should be emitted", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun booleanResultUsesTargetObjectsFilamentAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-filament-slice.stl")
+        val projectFile = File(context.cacheDir, "boolean-filament-roundtrip.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 10.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+
+            assertEquals(0, model.booleanObjects(0, 1, BooleanOperation.UNION))
+            assertEquals("a single Boolean solid should keep the target material", listOf(1), model.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals("the Boolean result should survive project reload", 1, restored.objectsCount)
+            assertEquals("reload must keep the target material and omit the removed cutter material",
+                listOf(1), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "boolean-filament-slice.gcode")
+
+            assertHasExtrusion(gcode)
+            assertFalse("the removed Boolean tool's T1 must not remain assigned", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanOperationsPreservePaintedTargetFilamentsThroughThreeMfAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (operation in listOf(BooleanOperation.UNION, BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+            val modelFile = copyCube(context, "boolean-painted-${operation.name.lowercase()}.stl")
+            val projectFile = File(context.cacheDir, "boolean-painted-${operation.name.lowercase()}.3mf")
+            val model = Model(modelFile)
+            val paintOverlay = GLModel()
+            var restored: Model? = null
+            var generatedConfig: File? = null
+            try {
+                model.setUniformFilament(0, 1)
+                model.rotate(0, 0.0, 0.0, Math.toRadians(17.0))
+                model.translate(0, 10.0, 10.0, 0.0)
+                val min = Vec3d()
+                val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val paint = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+                try {
+                    assertTrue("the target cube should support facet painting", paint.isValid())
+                    paint.height(min.z + (max.z - min.z) * 0.25, min.z + (max.z - min.z) * 0.75, 2)
+                    paint.commit()
+                } finally {
+                    paint.end()
+                }
+                assertTrue("the target should contain a painted region before Boolean", model.hasPaint(0))
+                assertTrue(model.getUsedFilaments(0).contains(2))
+                val oneInstancePaintTriangles = model.buildPaintOverlay(0, paintOverlay, 2)
+                assertTrue("the target instance should render its painted facets", oneInstancePaintTriangles > 0)
+
+                val targetWidth = max.x - min.x
+                assertTrue("the painted target should accept a second linked instance",
+                    model.duplicateInstance(0, 0, Vec3d(targetWidth * 3.0, 0.0, 0.0)) >= 0)
+                model.addObject(model, 0)
+                model.translate(1, targetWidth * 0.25, 0.0, 0.0)
+                assertEquals("${operation.name} should succeed", 0, model.booleanObjects(0, 1, operation))
+                assertEquals(1, model.objectsCount)
+                assertTrue("${operation.name} must preserve target facet paint", model.hasPaint(0))
+                assertTrue("${operation.name} must retain target painted filament 2", model.getUsedFilaments(0).contains(2))
+                assertTrue("${operation.name} should remap painted facets from both linked instances",
+                    model.buildPaintOverlay(0, paintOverlay, 2) > oneInstancePaintTriangles)
+
+                SliceBeam.genCurrentConfig(model)
+                generatedConfig = SliceBeam.getCurrentConfigFile()
+                model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+                restored = Model(projectFile, 1)
+                assertTrue("${operation.name} paint must survive 3MF reload", restored.hasPaint(0))
+                assertTrue("${operation.name} filament 2 must survive 3MF reload", restored.getUsedFilaments(0).contains(2))
+                val gcode = sliceToGcode(context, restored, "boolean-painted-${operation.name.lowercase()}.gcode")
+                assertHasExtrusion(gcode)
+                assertTrue("${operation.name} G-code must select painted target tool T1",
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            } finally {
+                generatedConfig?.delete()
+                restored?.release()
+                model.release()
+                paintOverlay.release()
+                modelFile.delete()
+                projectFile.delete()
+            }
+        }
+    }
+
+    @Test
+    fun booleanUnionPreservesExistingEngravedNegativeVolumeThroughReloadAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-negative-volume-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-negative-volume-font.ttf")
+        val projectFile = File(context.cacheDir, "boolean-negative-volume-roundtrip.3mf")
+        val plain = Model(cubeFile)
+        val engraved = Model(cubeFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            fun addDisjointCutter(model: Model) {
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(0, min, max)
+                val width = max.x - min.x
+                model.addObject(model, 0)
+                model.translate(1, width * 3.0, 0.0, 0.0)
+            }
+
+            addDisjointCutter(plain)
+            assertEquals("plain control union should succeed", 0,
+                plain.booleanObjects(intArrayOf(0, 1), BooleanOperation.UNION))
+            val plainUnionVolume = plain.getObjectVolume(0)
+            assertTrue("plain union should have a valid solid volume", plainUnionVolume > 0.0)
+
+            val min = Vec3d(); val max = Vec3d()
+            engraved.getBoundingBoxExact(0, min, max)
+            engraved.setUniformFilament(0, 1)
+            engraved.embossText(
+                0, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            addDisjointCutter(engraved)
+            assertEquals("union with a previously engraved target should succeed", 0,
+                engraved.booleanObjects(intArrayOf(0, 1), BooleanOperation.UNION))
+            assertTrue("Boolean union must retain the existing engraved cut instead of restoring the solid surface",
+                engraved.getObjectVolume(0) < plainUnionVolume - 0.01)
+
+            SliceBeam.genCurrentConfig(engraved)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            engraved.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("Boolean result should remain one printable object after reload", 1, restored.objectsCount)
+            assertEquals("Boolean result should keep the target filament assignment", listOf(1),
+                restored.getUsedFilaments(0).toList())
+            assertTrue("the engraved cut should remain in the reloaded Boolean mesh",
+                restored.getObjectVolume(0) < plainUnionVolume - 0.01)
+            val gcode = sliceToGcode(context, restored, "boolean-negative-volume-roundtrip.gcode")
+            assertHasExtrusion(gcode)
+        } finally {
+            restored?.release()
+            plain.release()
+            engraved.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun booleanDifferenceAndIntersectionRespectExistingEngravedNegativeVolume() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-negative-volume-ops-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-negative-volume-ops-font.ttf")
+        try {
+            fun centerCutter(target: Model, cutter: Model, operation: BooleanOperation) {
+                val targetMin = Vec3d(); val targetMax = Vec3d()
+                target.getBoundingBoxExact(0, targetMin, targetMax)
+                val targetCenterX = (targetMin.x + targetMax.x) / 2.0
+                val targetCenterY = (targetMin.y + targetMax.y) / 2.0
+                val targetCenterZ = (targetMin.z + targetMax.z) / 2.0
+                when (operation) {
+                    BooleanOperation.DIFFERENCE -> cutter.scale(0, 0.35, 0.35, 0.35)
+                    // Keep the intersection connected to the build plate while still crossing
+                    // the engraved top face, so the resulting part can be sliced normally.
+                    BooleanOperation.INTERSECTION -> cutter.scale(0, 0.45, 0.45, 1.2)
+                    else -> error("Only targeted difference and intersection cases are expected")
+                }
+                val cutterMin = Vec3d(); val cutterMax = Vec3d()
+                cutter.getBoundingBoxExact(0, cutterMin, cutterMax)
+                val cutterCenterX = if (operation == BooleanOperation.DIFFERENCE) targetMax.x - 2.0 else targetCenterX
+                val cutterCenterY = targetCenterY
+                val cutterCenterZ = targetCenterZ
+                cutter.translate(
+                    0,
+                    cutterCenterX - (cutterMin.x + cutterMax.x) / 2.0,
+                    cutterCenterY - (cutterMin.y + cutterMax.y) / 2.0,
+                    cutterCenterZ - (cutterMin.z + cutterMax.z) / 2.0,
+                )
+            }
+
+            for (operation in listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+                val plainTarget = Model(cubeFile)
+                val plainCutter = Model(cubeFile)
+                val engravedTarget = Model(cubeFile)
+                val engravedCutter = Model(cubeFile)
+                try {
+                    centerCutter(plainTarget, plainCutter, operation)
+                    plainTarget.addObject(plainCutter, 0)
+                    assertEquals("plain ${operation.name} control should succeed", 0,
+                        plainTarget.booleanObjects(intArrayOf(0, 1), operation))
+                    val plainVolume = plainTarget.getObjectVolume(0)
+
+                    val min = Vec3d(); val max = Vec3d()
+                    engravedTarget.getBoundingBoxExact(0, min, max)
+                    engravedTarget.setUniformFilament(0, 1)
+                    engravedTarget.embossText(
+                        0, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                        Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                        Vec3d(0.0, 0.0, 1.0),
+                    )
+                    centerCutter(engravedTarget, engravedCutter, operation)
+                    engravedTarget.addObject(engravedCutter, 0)
+                    assertEquals("engraved ${operation.name} should succeed", 0,
+                        engravedTarget.booleanObjects(intArrayOf(0, 1), operation))
+                    assertTrue("${operation.name} must apply the engraved negative volume before its operation",
+                        engravedTarget.getObjectVolume(0) < plainVolume - 0.01)
+                    assertEquals("${operation.name} should retain the target material", listOf(1),
+                        engravedTarget.getUsedFilaments(0).toList())
+                    assertHasExtrusion(sliceToGcode(
+                        context, engravedTarget, "boolean-negative-${operation.name.lowercase()}.gcode",
+                    ))
+                } finally {
+                    plainTarget.release()
+                    plainCutter.release()
+                    engravedTarget.release()
+                    engravedCutter.release()
+                }
+            }
+        } finally {
+            cubeFile.delete()
+            fontFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanOperationsRespectEngravedNegativeVolumesOnToolAndPreserveTargetFilament() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-negative-tool-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-negative-tool-font.ttf")
+        try {
+            for (operation in listOf(
+                BooleanOperation.UNION,
+                BooleanOperation.DIFFERENCE,
+                BooleanOperation.INTERSECTION,
+            )) {
+                val plain = Model(cubeFile)
+                val engravedTool = Model(cubeFile)
+                val projectFile = File(context.cacheDir, "boolean-negative-tool-${operation.name.lowercase()}.3mf")
+                var restored: Model? = null
+                var generatedConfig: File? = null
+                try {
+                    fun configureOperands(model: Model, engraveTool: Boolean) {
+                        val min = Vec3d(); val max = Vec3d()
+                        model.getBoundingBoxExact(0, min, max)
+                        val width = max.x - min.x
+                        model.addObject(model, 0)
+                        model.setUniformFilament(0, 2)
+                        model.setUniformFilament(1, 3)
+                        if (engraveTool) {
+                            model.embossText(
+                                1, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                                Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                                Vec3d(0.0, 0.0, 1.0),
+                            )
+                        }
+                        // Keep the union disjoint so the target cannot fill the tool's engraved
+                        // cutout. Difference/intersection overlap at the engraved text to expose
+                        // whether the Boolean operation evaluates the tool's negative volume.
+                        val toolOffsetX = if (operation == BooleanOperation.UNION) width * 3.0 else width / 2.0
+                        model.translate(1, toolOffsetX, 0.0, 0.0)
+                    }
+
+                    configureOperands(plain, engraveTool = false)
+                    configureOperands(engravedTool, engraveTool = true)
+                    assertEquals("plain ${operation.name} control should succeed", 0,
+                        plain.booleanObjects(intArrayOf(0, 1), operation))
+                    assertEquals("${operation.name} with an engraved tool should succeed", 0,
+                        engravedTool.booleanObjects(intArrayOf(0, 1), operation))
+
+                    val plainVolume = plain.getObjectVolume(0)
+                    val engravedVolume = engravedTool.getObjectVolume(0)
+                    assertTrue("plain ${operation.name} control must remain printable", plainVolume > 0.0)
+                    when (operation) {
+                        BooleanOperation.UNION, BooleanOperation.INTERSECTION -> assertTrue(
+                            "${operation.name} must preserve the tool cutout instead of filling it",
+                            engravedVolume < plainVolume - 0.01,
+                        )
+                        BooleanOperation.DIFFERENCE -> assertTrue(
+                            "DIFFERENCE must subtract only the tool's printable shape, leaving its cutout in the target",
+                            engravedVolume > plainVolume + 0.01,
+                        )
+                    }
+                    assertEquals("Boolean output must use the target's second material, not the tool's third",
+                        listOf(2), engravedTool.getUsedFilaments(0).toList())
+
+                    SliceBeam.genCurrentConfig(engravedTool)
+                    generatedConfig = SliceBeam.getCurrentConfigFile()
+                    engravedTool.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+                    generatedConfig.delete()
+                    generatedConfig = null
+                    restored = Model(projectFile, 1)
+                    assertEquals("${operation.name} tool-side result should survive 3MF reload", 1,
+                        restored.objectsCount)
+                    assertEquals("3MF reload must retain the target material only", listOf(2),
+                        restored.getUsedFilaments(0).toList())
+                    assertEquals("${operation.name} volume must survive 3MF reload", engravedVolume,
+                        restored.getObjectVolume(0), maxOf(0.05, engravedVolume * 0.001))
+                    val gcode = sliceToGcode(
+                        context, restored, "boolean-negative-tool-${operation.name.lowercase()}.gcode",
+                    )
+                    assertHasExtrusion(gcode)
+                    assertTrue("sliced output must select the target's T1 slot",
+                        Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                    assertFalse("sliced output must not select the removed tool's T2 slot",
+                        Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+                } finally {
+                    restored?.release()
+                    plain.release()
+                    engravedTool.release()
+                    projectFile.delete()
+                    generatedConfig?.delete()
+                }
+            }
+        } finally {
+            cubeFile.delete()
+            fontFile.delete()
+        }
+    }
+
+    @Test
+    fun multipartJoinPreservesExistingEngravedNegativeVolumeThroughReloadAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "join-negative-volume-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "join-negative-volume-font.ttf")
+        val projectFile = File(context.cacheDir, "join-negative-volume-roundtrip.3mf")
+        val target = Model(cubeFile)
+        val part = Model(cubeFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            target.getBoundingBoxExact(0, min, max)
+            target.setUniformFilament(0, 1)
+            target.embossText(
+                0, fontFile.absolutePath, "B", 5f, 0.8f, 1,
+                Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            part.setUniformFilament(0, 2)
+            val partMin = Vec3d(); val partMax = Vec3d()
+            part.getBoundingBoxExact(0, partMin, partMax)
+            target.addObject(part, 0)
+            target.translate(1, (max.x - min.x) * 1.5, 0.0, 0.0)
+
+            assertEquals("joining the engraved object and another printable part should succeed", 0,
+                target.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("joined result should retain both assigned materials", listOf(1, 2),
+                target.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(target)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            target.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals("joined 3MF should retain both material parts", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+            val configText = ZipFile(projectFile).use { archive ->
+                val entry = archive.getEntry("Metadata/model_settings.config")
+                    ?: archive.getEntry("Metadata/Slic3r_PE_model.config")
+                    ?: error("3MF model config is missing")
+                archive.getInputStream(entry).bufferedReader().use { it.readText() }
+            }
+            assertTrue("multipart join should keep the engraved negative volume", configText.contains("negative_part"))
+            assertHasExtrusion(sliceToGcode(context, restored, "join-negative-volume-roundtrip.gcode"))
+        } finally {
+            restored?.release()
+            target.release()
+            part.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun booleanOnMultipartBaseUsesItsFirstPartMaterialAndSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-multipart-base.stl")
+        val projectFile = File(context.cacheDir, "boolean-multipart-base-roundtrip.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        try {
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            // The first base volume is deliberately not the lowest used filament.
+            model.setUniformFilament(0, 2)
+            model.setUniformFilament(1, 1)
+            model.setUniformFilament(2, 3)
+            model.translate(1, 50.0, 0.0, 0.0)
+            model.translate(2, 55.0, 0.0, 0.0)
+
+            assertEquals("the target should combine into a two-material multipart object", 0,
+                model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+            assertEquals("the cutter remains a separate third object", 2, model.objectsCount)
+
+            assertEquals("Boolean union should accept the disconnected multipart base", 0,
+                model.booleanObjects(0, 1, BooleanOperation.UNION))
+            assertEquals("Boolean uses the first base volume's material, even when it is not the lowest slot",
+                listOf(2), model.getUsedFilaments(0).toList())
+            assertTrue("multipart-base Boolean output remains printable", model.getObjectVolume(0) > 0.0)
+
+            SliceBeam.genCurrentConfig(model)
+            val exportConfig = SliceBeam.getCurrentConfigFile()
+            try {
+                model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+            } finally {
+                exportConfig.delete()
+            }
+            restored = Model(projectFile, 1)
+            assertEquals("the CSG output survives 3MF reload", 1, restored.objectsCount)
+            assertEquals("the documented first base-part material survives reload", listOf(2),
+                restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "boolean-multipart-base.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("the first base volume's filament should use T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("other base-part and cutter tools must not be emitted",
+                Regex("(?m)^(?:T0|T2)(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanUnionConsumesEverySelectedToolAndSlicesTheCombinedResult() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-multiple-tools.stl")
+        val projectFile = File(context.cacheDir, "boolean-multiple-tools.3mf")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            assertTrue("fixture must have a finite printable volume", sourceVolume > 0.0)
+
+            model.addObject(model, 0)
+            model.addObject(model, 0)
+            model.translate(1, width / 2.0, 0.0, 0.0)
+            model.translate(2, width, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.setUniformFilament(2, 3)
+
+            assertEquals("one target and both selected tools should be unioned", 0,
+                model.booleanObjects(intArrayOf(0, 1, 2), BooleanOperation.UNION))
+            assertEquals("every selected tool should be consumed", 1, model.objectsCount)
+            assertEquals("Boolean result should keep only the target object's material", listOf(1),
+                model.getUsedFilaments(0).toList())
+            assertEquals("three overlapping cubes should form a two-cube-wide solid", 2.0,
+                model.getObjectVolume(0) / sourceVolume, 0.04)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals(listOf(1), restored.getUsedFilaments(0).toList())
+            val gcode = sliceToGcode(context, restored, "boolean-multiple-tools.gcode")
+            assertHasExtrusion(gcode)
+            val toolChanges = Regex("(?m)^T\\d+.*$").findAll(gcode).map { it.value }.distinct().toList()
+            // A one-tool slice can use T0 implicitly without a redundant T0 command.
+            assertFalse("consumed tool materials must not leak into G-code; tools=$toolChanges",
+                Regex("(?m)^(?:T1|T2)(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun joiningLinkedInstancesSurvivesThreeMfAndSlicesEveryCopyWithItsMaterial() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "join-linked-instance-slice-cube.stl")
+        val projectFile = File(context.cacheDir, "join-linked-instance-slice.3mf")
+        val gcodeFile = File(context.cacheDir, "join-linked-instance-slice.gcode")
+        val model = Model(modelFile)
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val sourceVolume = model.getObjectVolume(0)
+            val sourceTriangles = model.getTriangleCount(0)
+            assertTrue("test cube must have positive size and volume", width > 0.0 && sourceVolume > 0.0)
+            assertEquals(1, model.duplicateInstance(0, 0, Vec3d(width + 8.0, 0.0, 0.0)))
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            model.translate(1, width * 3.0 + 24.0, 0.0, 0.0)
+
+            assertEquals("join should merge two two-instance objects", 0,
+                model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals("each linked instance must become a separately printable part",
+                sourceTriangles * 4, model.getTriangleCount(0))
+            assertEquals("all four copies must contribute printable volume", sourceVolume * 4.0,
+                model.getObjectVolume(0), sourceVolume * 0.001)
+            assertEquals("both source materials must stay mapped", listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            val joinedMin = Vec3d(); val joinedMax = Vec3d()
+            model.getBoundingBoxExact(0, joinedMin, joinedMax)
+            val expectedMaxX = width * 5.0 + 32.0
+            assertEquals("first copy stays at the original world-space origin", 0.0, joinedMin.x, 0.02)
+            assertEquals("last linked copy keeps its translated world-space position", expectedMaxX, joinedMax.x, 0.02)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals("3MF round-trip keeps all four converted parts", sourceTriangles * 4,
+                restored.getTriangleCount(0))
+            assertEquals("3MF round-trip retains both source filaments", listOf(1, 2),
+                restored.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("first joined material must reach G-code as T0",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("second joined material must reach G-code as T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            sliceResult?.release()
+            restored?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun booleanDifferenceAndIntersectionSurviveThreeMfReloadAndStillSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-operations-roundtrip.stl")
+        try {
+            listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION).forEach { operation ->
+                val projectFile = File(context.cacheDir, "boolean-${operation.name.lowercase()}-roundtrip.3mf")
+                val model = Model(modelFile)
+                var restored: Model? = null
+                try {
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val sourceVolume = model.getObjectVolume(0)
+                    model.addObject(model, 0)
+                    model.translate(1, (max.x - min.x) / 2.0, 0.0, 0.0)
+                    model.setUniformFilament(0, 1)
+                    model.setUniformFilament(1, 2)
+
+                    val result = model.booleanObjects(0, 1, operation)
+                    assertEquals("$operation should replace both operands", 0, result)
+                    assertEquals("$operation should leave one printable object", 1, model.objectsCount)
+                    assertEquals("$operation should produce the expected half-volume overlap", 0.5,
+                        model.getObjectVolume(result) / sourceVolume, 0.03)
+                    assertEquals("the Boolean output should use the target object's material",
+                        listOf(1), model.getUsedFilaments(result).toList())
+
+                    SliceBeam.genCurrentConfig(model)
+                    val exportConfig = SliceBeam.getCurrentConfigFile()
+                    try {
+                        model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+                    } finally {
+                        exportConfig.delete()
+                    }
+                    val modelXml = ZipFile(projectFile).use { archive ->
+                        archive.getInputStream(archive.getEntry("3D/3dmodel.model"))
+                            .bufferedReader().use { it.readText() }
+                    }
+                    assertFalse(
+                        "$operation's generated mesh must not retain stale source object metadata",
+                        listOf("key=\"source_file\"", "key=\"source_object_id\"", "key=\"source_volume_id\"")
+                            .any(modelXml::contains),
+                    )
+                    restored = Model(projectFile, 1)
+                    assertEquals("$operation result should survive 3MF reload", 1, restored.objectsCount)
+                    assertEquals("$operation reload must not restore the removed cutter's material",
+                        listOf(1), restored.getUsedFilaments(0).toList())
+                    assertEquals("$operation geometry volume should survive reload", 0.5,
+                        restored.getObjectVolume(0) / sourceVolume, 0.03)
+
+                    val gcode = sliceToGcode(context, restored, "boolean-${operation.name.lowercase()}-roundtrip.gcode")
+                    assertHasExtrusion(gcode)
+                    assertFalse("$operation G-code must not use the removed cutter's T1",
+                        Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                } finally {
+                    restored?.release()
+                    model.release()
+                    projectFile.delete()
+                }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanDifferenceAndIntersectionConsumeMultipleSelectedTools() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "boolean-multiple-cutters.stl")
+        try {
+            for (operation in listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+                val projectFile = File(context.cacheDir, "boolean-multiple-${operation.name.lowercase()}.3mf")
+                val model = Model(modelFile)
+                var restored: Model? = null
+                var generatedConfig: File? = null
+                try {
+                    val targetMin = Vec3d(); val targetMax = Vec3d()
+                    model.getBoundingBoxExact(0, targetMin, targetMax)
+                    val depth = targetMax.y - targetMin.y
+                    val targetVolume = model.getObjectVolume(0)
+                    model.addObject(model, 0)
+                    model.addObject(model, 0)
+
+                    val halfWidth = (targetMax.x - targetMin.x) / 2.0
+                    when (operation) {
+                        BooleanOperation.DIFFERENCE -> {
+                            // The first cutter removes the right half. The second removes a
+                            // smaller overlapping quarter from the remaining half.
+                            model.translate(1, halfWidth, 0.0, 0.0)
+                            model.translate(2, halfWidth / 2.0, depth / 2.0, 0.0)
+                        }
+                        BooleanOperation.INTERSECTION -> {
+                            // Intersect the target with its right half and upper half.
+                            model.translate(1, halfWidth, 0.0, 0.0)
+                            model.translate(2, 0.0, depth / 2.0, 0.0)
+                        }
+                        BooleanOperation.UNION -> error("not exercised by this test")
+                    }
+                    model.setUniformFilament(0, 1)
+                    model.setUniformFilament(1, 2)
+                    model.setUniformFilament(2, 3)
+
+                    assertEquals("$operation should apply both selected cutters in order", 0,
+                        model.booleanObjects(intArrayOf(0, 1, 2), operation))
+                    assertEquals("$operation should consume both tools", 1, model.objectsCount)
+                    assertEquals("$operation should retain the target's filament", listOf(1),
+                        model.getUsedFilaments(0).toList())
+                    val resultVolume = model.getObjectVolume(0)
+                    assertTrue("$operation should leave a non-empty changed solid; volume=$resultVolume",
+                        resultVolume > 0.0 && resultVolume < targetVolume)
+
+                    SliceBeam.genCurrentConfig(model)
+                    generatedConfig = SliceBeam.getCurrentConfigFile()
+                    model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+                    generatedConfig.delete()
+                    generatedConfig = null
+                    restored = Model(projectFile, 1)
+                    assertEquals("$operation result should survive 3MF reload", 1, restored.objectsCount)
+                    assertEquals(listOf(1), restored.getUsedFilaments(0).toList())
+                    val gcode = sliceToGcode(context, restored, "boolean-multiple-${operation.name.lowercase()}.gcode")
+                    assertHasExtrusion(gcode)
+                    assertFalse("$operation must not emit consumed cutter tools",
+                        Regex("(?m)^(?:T1|T2)(?:\\s|$)").containsMatchIn(gcode))
+                } finally {
+                    restored?.release()
+                    model.release()
+                    projectFile.delete()
+                    generatedConfig?.delete()
+                }
+            }
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun importedSvgSolidProducesExtrusionGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        val previousConfig = SliceBeam.CONFIG
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        config.presets = ConfigObject("presets").apply {
+            put("printer", requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle")).title)
+            put("print", requireNotNull(config.findPrint("0.16mm Standard")).title)
+            put("filament", requireNotNull(config.findFilament("Anycubic Generic PLA")).title)
+        }
+
+        val svgFile = File(context.cacheDir, "native-svg-slice-test.svg")
+        val gcodeFile = File(context.cacheDir, "native-svg-slice-test.gcode")
+        var model: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            svgFile.writeText(
+                """<svg xmlns="http://www.w3.org/2000/svg" width="24mm" height="18mm" viewBox="0 0 24 18">
+                    <path id="frame" fill="#202020" d="M1 1 H23 V17 H1 Z M7 6 H17 V12 H7 Z"/>
+                </svg>""".trimIndent(),
+            )
+            model = Model(svgFile)
+            assertEquals("SVG import must expose printable mesh geometry", 1, model.objectsCount)
+            assertTrue(model.getTriangleCount(0) > 0)
+            assertTrue(model.getObjectVolume(0) > 0.0)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("Imported SVG should produce non-empty G-code", gcode.isNotBlank())
+            assertTrue("Imported SVG should produce deposited toolpaths", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            Log.i("NativeSliceDeviceTest", "PASS SVG G-code bytes=${gcodeFile.length()}")
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            svgFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
+    fun suppliedMulticolorOmaSvgRoundTripsAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val svgFile = File(context.cacheDir, "supplied-oma-heart-slice.svg")
+        InstrumentationRegistry.getInstrumentation().context.assets
+            .open("models/Beste_Oma_Kind_Herz_3D_Druck.svg").use { input ->
+                svgFile.outputStream().use(input::copyTo)
+            }
+        val projectFile = File(context.cacheDir, "supplied-oma-heart-roundtrip.3mf")
+        val gcodeFile = File(context.cacheDir, "supplied-oma-heart.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            model = Model(svgFile)
+            assertEquals("the source SVG should load as one workspace model", 1, model.objectsCount)
+            assertTrue("the source SVG should contain printable mesh facets", model.getTriangleCount(0) > 0)
+            assertTrue("the source SVG should create a closed printable body", model.getObjectVolume(0) > 0.0)
+            assertEquals("the SVG's red, white, and black fill groups should map to three tools",
+                listOf(1, 2, 3), model.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+
+            restored = Model(projectFile, 1)
+            assertEquals("the exported project should retain the SVG model", 1, restored.objectsCount)
+            assertTrue("the 3MF round trip should retain printable geometry", restored.getTriangleCount(0) > 0)
+            assertEquals("the SVG's filament assignments should survive the project round trip",
+                model.getUsedFilaments(0).toList(), restored.getUsedFilaments(0).toList())
+            assertEquals("the 3MF round trip must preserve all three SVG color tools",
+                listOf(1, 2, 3), restored.getUsedFilaments(0).toList())
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            for (tool in 0..2) {
+                assertTrue("the multicolor SVG should emit tool T$tool", Regex("(?m)^T$tool(?:\\s|$)").containsMatchIn(gcode))
+            }
+            Log.i("NativeSliceDeviceTest", "PASS supplied multicolor SVG G-code bytes=${gcodeFile.length()}, " +
+                "facets=${restored.getTriangleCount(0)}, filaments=${restored.getUsedFilaments(0).toList()}")
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            restored?.release()
+            svgFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun disjointBooleanUnionKeepsItsInstanceBoundsAndProducesGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        val previousConfig = SliceBeam.CONFIG
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val modelFile = File(context.cacheDir, "boolean-disjoint-slice.stl")
+        val gcodeFile = File(context.cacheDir, "boolean-disjoint-slice.gcode")
+        var model: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            context.assets.open("models/xyz_cube.stl").use { input -> modelFile.outputStream().use(input::copyTo) }
+            model = Model(modelFile)
+            val initialMin = Vec3d(); val initialMax = Vec3d()
+            model.getBoundingBoxExact(0, initialMin, initialMax)
+            model.addObject(model, 0)
+            model.translate(1, (initialMax.x - initialMin.x) * 1.5, 0.0, 0.0)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+            assertEquals("Boolean union should leave one valid model object", 0, result)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals((initialMax.x - initialMin.x) * 2.5, resultMax.x - resultMin.x, 0.02)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("Native slicer should emit G-code for the disjoint Boolean result", gcode.isNotBlank())
+            assertTrue("G-code should include at least one deposited move", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            Log.i("NativeSliceDeviceTest", "PASS disjoint Boolean G-code bytes=${gcodeFile.length()}")
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            modelFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
+    fun booleanUnionHandlesLinkedTargetAndCutterCopiesAndStillSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val targetFile = copyCube(context, "boolean-linked-target.stl")
+        val cutterFile = copyCube(context, "boolean-linked-cutter.stl")
+        val outputFile = File(context.cacheDir, "boolean-linked-copies.gcode")
+        val model = Model(targetFile)
+        val cutter = Model(cutterFile)
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val width = max.x - min.x
+            val oneCubeVolume = model.getObjectVolume(0)
+            assertTrue("the target should have a second linked placement", model.duplicateInstance(
+                0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+            ) >= 0)
+            cutter.translate(0, width * 0.5, 0.0, 0.0)
+            assertTrue("the cutter should have a second linked placement", cutter.duplicateInstance(
+                0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+            ) >= 0)
+            model.addObject(cutter, 0)
+
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            val cutterMin = Vec3d(); val cutterMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            model.getBoundingBoxExact(1, cutterMin, cutterMax)
+            val expectedMinX = minOf(targetMin.x, cutterMin.x)
+            val expectedMaxX = maxOf(targetMax.x, cutterMax.x)
+
+            val result = model.booleanObjects(0, 1, BooleanOperation.UNION)
+            assertEquals("all selected linked copies should be combined", 0, result)
+            assertEquals("Boolean output should be one printable object", 1, model.objectsCount)
+            assertEquals("two half-overlapping pairs should preserve the combined volume",
+                oneCubeVolume * 3.0, model.getObjectVolume(result), oneCubeVolume * 0.03)
+            val resultMin = Vec3d(); val resultMax = Vec3d()
+            model.getBoundingBoxExact(result, resultMin, resultMax)
+            assertEquals("Boolean result should retain all linked-copy bounds", expectedMinX,
+                resultMin.x, 0.03)
+            assertEquals("Boolean result should retain all linked-copy bounds", expectedMaxX,
+                resultMax.x, 0.03)
+
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            sliceResult = model.slice(configFile.absolutePath, outputFile.absolutePath, null)
+            val gcode = outputFile.readText()
+            assertTrue("the linked-copy Boolean result should slice", gcode.isNotBlank())
+            assertHasExtrusion(gcode)
+        } finally {
+            sliceResult?.release()
+            cutter.release()
+            model.release()
+            targetFile.delete()
+            cutterFile.delete()
+            outputFile.delete()
+        }
+    }
+
+    @Test
+    fun booleanDifferenceAndIntersectionApplyAcrossLinkedCopiesAndStillSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val targetCube = copyCube(context, "boolean-linked-pair-target.stl")
+        val cutterCube = copyCube(context, "boolean-linked-pair-cutter.stl")
+        try {
+            for (operation in listOf(BooleanOperation.DIFFERENCE, BooleanOperation.INTERSECTION)) {
+                val suffix = if (operation == BooleanOperation.DIFFERENCE) "difference" else "intersection"
+                val projectFile = File(context.cacheDir, "boolean-linked-$suffix.3mf")
+                val gcodeFile = File(context.cacheDir, "boolean-linked-$suffix.gcode")
+                val model = Model(targetCube)
+                val cutter = Model(cutterCube)
+                var restored: Model? = null
+                var sliceResult: GCodeProcessorResult? = null
+                try {
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val width = max.x - min.x
+                    val oneCubeVolume = model.getObjectVolume(0)
+                    assertTrue("target should contain two linked copies", model.duplicateInstance(
+                        0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+                    ) >= 0)
+                    cutter.translate(0, width * 0.5, 0.0, 0.0)
+                    assertTrue("cutter should contain two corresponding linked copies", cutter.duplicateInstance(
+                        0, 0, Vec3d(width * 2.0, 0.0, 0.0),
+                    ) >= 0)
+                    model.setUniformFilament(0, 1)
+                    cutter.setUniformFilament(0, 2)
+                    model.addObject(cutter, 0)
+
+                    val result = model.booleanObjects(0, 1, operation)
+                    assertEquals("$suffix should apply to both linked pairs", 0, result)
+                    assertEquals("$suffix should replace the two inputs with one result", 1, model.objectsCount)
+                    assertEquals("$suffix should keep one half of each target copy",
+                        oneCubeVolume, model.getObjectVolume(result), oneCubeVolume * 0.03)
+                    val resultMin = Vec3d(); val resultMax = Vec3d()
+                    model.getBoundingBoxExact(result, resultMin, resultMax)
+                    val resultSpan = resultMax.x - resultMin.x
+                    assertTrue("$suffix should preserve both distant result components; x span=$resultSpan",
+                        resultSpan >= width * 2.0 && resultSpan <= width * 3.5)
+                    assertEquals("Boolean output should keep the target material", listOf(1),
+                        model.getUsedFilaments(result).toList())
+
+                    SliceBeam.genCurrentConfig(model)
+                    val exportConfig = SliceBeam.getCurrentConfigFile()
+                    try {
+                        model.export3mf(exportConfig.absolutePath, projectFile.absolutePath)
+                    } finally {
+                        exportConfig.delete()
+                    }
+                    restored = Model(projectFile, 1)
+                    assertEquals("$suffix 3MF reload should contain one result", 1, restored.objectsCount)
+                    assertEquals("$suffix 3MF reload should retain the target material", listOf(1),
+                        restored.getUsedFilaments(0).toList())
+                    SliceBeam.genCurrentConfig(restored)
+                    val sliceConfig = SliceBeam.getCurrentConfigFile()
+                    try {
+                        sliceResult = restored.slice(sliceConfig.absolutePath, gcodeFile.absolutePath, null)
+                    } finally {
+                        sliceConfig.delete()
+                    }
+                    val gcode = gcodeFile.readText()
+                    assertHasExtrusion(gcode)
+                    assertFalse("$suffix result should not use cutter T1", Regex("(?m)^T1(?:\\s|$)")
+                        .containsMatchIn(gcode))
+                } finally {
+                    sliceResult?.release()
+                    restored?.release()
+                    cutter.release()
+                    model.release()
+                    projectFile.delete()
+                    gcodeFile.delete()
+                }
+            }
+        } finally {
+            targetCube.delete()
+            cutterCube.delete()
+        }
+    }
+
+    @Test
+    fun raisedEngravedAndMultilineStandaloneTextSurviveThreeMfAndSliceWithTheirFilaments() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "text-edit-workflow-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "text-edit-workflow-font.ttf")
+        val projectFile = File(context.cacheDir, "text-edit-workflow.3mf")
+        val gcodeFile = File(context.cacheDir, "text-edit-workflow.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cubeFile)
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val centerX = (min.x + max.x) / 2.0
+            val centerY = (min.y + max.y) / 2.0
+            val originalTopZ = max.z
+
+            // Exercise the two in-place text modes on the selected cube's top face.
+            model.embossText(
+                0, fontFile.absolutePath, "A", 4f, 0.8f, 0,
+                Vec3d(centerX - 4.0, centerY, originalTopZ),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            val raisedTriangles = model.getTriangleCount(0)
+            val raisedVolume = model.getObjectVolume(0)
+            assertTrue("raised text should add native geometry", raisedTriangles > originalTriangles)
+            assertTrue("raised text should add printable solid volume", raisedVolume > originalVolume)
+
+            model.embossText(
+                0, fontFile.absolutePath, "B", 4f, 0.8f, 1,
+                Vec3d(centerX + 4.0, centerY, originalTopZ),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("in-place text edits must not create extra model objects", 1, model.objectsCount)
+
+            // A separate label is a second printable object and keeps an independent tool assignment.
+            val standaloneIndex = model.createTextObject(
+                fontFile.absolutePath, "C\n3D", 6f, 1f,
+                Vec3d(100.0, 100.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals(1, standaloneIndex)
+            model.setUniformFilament(standaloneIndex, 2)
+            assertTrue("standalone text should contain printable triangles", model.getTriangleCount(standaloneIndex) > 0)
+            val textMin = Vec3d(); val textMax = Vec3d()
+            model.getBoundingBoxExact(standaloneIndex, textMin, textMax)
+            assertTrue("standalone text should keep its second line as real mesh geometry",
+                textMax.y - textMin.y > 8.0)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            val modelXml = ZipFile(projectFile).use { archive ->
+                val configEntry = archive.getEntry("Metadata/model_settings.config")
+                    ?: archive.getEntry("Metadata/Slic3r_PE_model.config")
+                    ?: error("3MF model config is missing; entries: ${archive.entries().asSequence().map { it.name }.toList()}")
+                archive.getInputStream(configEntry)
+                    .bufferedReader().use { it.readText() }
+            }
+            assertTrue("engraving must be serialized as a negative 3MF volume",
+                modelXml.contains("negative_part"))
+
+            restored = Model(projectFile, 1)
+            assertEquals("raised/engraved base plus standalone text should remain two objects", 2, restored.objectsCount)
+            assertTrue("3MF reload should preserve the modified base geometry",
+                restored.getTriangleCount(0) > originalTriangles)
+            assertTrue("3MF reload should preserve the standalone text mesh", restored.getTriangleCount(1) > 0)
+            assertEquals("standalone text should retain its assigned tool", listOf(2),
+                restored.getUsedFilaments(1).toList())
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("base model with raised and engraved text should use target T0",
+                Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("separate text should use its assigned T1",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("no unrelated filament should be emitted",
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            restored?.release()
+            model?.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun standalonePrintableTextProducesExtrusionGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        val previousConfig = SliceBeam.CONFIG
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val fontFile = File(context.cacheDir, "standalone-text-slice-font.ttf")
+        val projectFile = File(context.cacheDir, "standalone-text-roundtrip.3mf")
+        val gcodeFile = File(context.cacheDir, "standalone-text-slice.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            context.assets.open("font/roboto_medium.ttf").use { input -> fontFile.outputStream().use(input::copyTo) }
+            model = Model()
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "ORKAN",
+                18f,
+                1.2f,
+                Vec3d(90.0, 90.0, 0.0),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals(0, textIndex)
+            assertTrue("standalone text should contain printable triangles", model.getTriangleCount(textIndex) > 0)
+            val secondTextIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "3D",
+                18f,
+                1.2f,
+                Vec3d(90.0, 125.0, 0.0),
+                Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("a second label should remain a separate object", 1, secondTextIndex)
+            assertTrue("the second standalone text should contain printable triangles",
+                model.getTriangleCount(secondTextIndex) > 0)
+            model.setUniformFilament(textIndex, 1)
+            model.setUniformFilament(secondTextIndex, 2)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("both standalone labels should remain separate after 3MF reload", 2, restored.objectsCount)
+            assertEquals("first text label should survive project reload", "ORKAN", restored.getObjectName(0))
+            assertEquals("second text label should survive project reload", "3D", restored.getObjectName(1))
+            assertEquals("the first text should keep its own filament", listOf(1),
+                restored.getUsedFilaments(0).toList())
+            assertEquals("the second text should keep its own filament", listOf(2),
+                restored.getUsedFilaments(1).toList())
+            assertTrue("reloaded first text should remain printable", restored.getTriangleCount(0) > 0)
+            assertTrue("reloaded second text should remain printable", restored.getTriangleCount(1) > 0)
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            sliceResult = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("native slicer should emit G-code for standalone text", gcode.isNotBlank())
+            assertTrue("text G-code should contain deposited moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            assertTrue("first text should use T0", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("second text should use T1", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            Log.i("NativeSliceDeviceTest", "PASS standalone text G-code bytes=${gcodeFile.length()}")
+        } finally {
+            sliceResult?.release()
+            restored?.release()
+            model?.release()
+            fontFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
+    fun booleanTextPlacementAndMultipartJoinKeepBothFilamentsThroughThreeMfAndSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cubeFile = copyCube(context, "boolean-text-placement-cube.stl")
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "boolean-text-placement-font.ttf")
+        val projectFile = File(context.cacheDir, "boolean-text-placement-project.3mf")
+        val gcodeFile = File(context.cacheDir, "boolean-text-placement.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cubeFile)
+            model.addObject(model, 0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            val baseMin = Vec3d(); val baseMax = Vec3d()
+            model.getBoundingBoxExact(0, baseMin, baseMax)
+            model.translate(1, (baseMax.x - baseMin.x) / 2.0, 0.0, 0.0)
+
+            val booleanIndex = model.booleanObjects(0, 1, BooleanOperation.UNION)
+            assertEquals("Boolean union should replace the overlapping solids", 0, booleanIndex)
+            assertEquals("Boolean result should retain target material", listOf(1), model.getUsedFilaments(0).toList())
+            assertTrue("Boolean union should create a printable solid", model.getObjectVolume(0) > 0.0)
+
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath, "A", 8f, 1.2f,
+                Vec3d(80.0, 80.0, 0.0), Vec3d(0.0, 0.0, 1.0),
+            )
+            assertEquals("standalone text should be a distinct object", 1, textIndex)
+            model.setUniformFilament(textIndex, 2)
+            val textMin = Vec3d(); val textMax = Vec3d()
+            model.getBoundingBoxExact(textIndex, textMin, textMax)
+            val targetMin = Vec3d(); val targetMax = Vec3d()
+            model.getBoundingBoxExact(0, targetMin, targetMax)
+            val textBounds = ObjectBounds3D(textMin.x, textMin.y, textMin.z, textMax.x, textMax.y, textMax.z)
+            val targetBounds = ObjectBounds3D(targetMin.x, targetMin.y, targetMin.z, targetMax.x, targetMax.y, targetMax.z)
+            val delta = requireNotNull(ObjectPlacement.onTop(textBounds, targetBounds))
+            model.translate(textIndex, delta.x, delta.y, delta.z)
+
+            assertEquals("text should join the printable target as a separate material part", 0,
+                model.combineObjectsAsParts(intArrayOf(0, textIndex)))
+            assertEquals(1, model.objectsCount)
+            assertTrue("joined Boolean body and text retain both assigned materials",
+                model.getUsedFilaments(0).toSet().containsAll(setOf(1, 2)))
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("round-trip keeps the joined assembly as one printable object", 1, restored.objectsCount)
+            assertTrue("round-trip retains body and text material assignments",
+                restored.getUsedFilaments(0).toSet().containsAll(setOf(1, 2)))
+            assertTrue("round-trip retains printable geometry", restored.getObjectVolume(0) > 0.0)
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the Boolean body material should use extruder T0", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the placed text material should use extruder T1", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            result?.release()
+            restored?.release()
+            model?.release()
+            cubeFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun curvedSurfaceTextSurvivesThreeMfReloadAndProducesExtrusionGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cylinderFile = createCylinderFixture("curved-text-slice-cylinder.stl", 25.0, 40.0, 96)
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "curved-text-slice-font.ttf")
+        val projectFile = File(context.cacheDir, "curved-text-surface-project.3mf")
+        val gcodeFile = File(context.cacheDir, "curved-text-surface.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cylinderFile)
+            val min = Vec3d(); val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val cylinderTriangles = model.getTriangleCount(0)
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "ORCA",
+                10f,
+                1.2f,
+                Vec3d(max.x, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0),
+                Vec3d(1.0, 0.0, 0.0),
+                targetObjectIndex = 0,
+            )
+            assertEquals("surface-conforming text should join the target printable object", 0, textIndex)
+            assertEquals("the text operation must not add a floating object", 1, model.objectsCount)
+            assertTrue(model.getTriangleCount(0) - cylinderTriangles > cylinderTriangles)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+            restored = Model(projectFile, 1)
+            assertEquals("surface text stays a part of its printable target", 1, restored.objectsCount)
+            assertTrue("the conforming text volume must survive 3MF reload",
+                restored.getTriangleCount(0) - cylinderTriangles > cylinderTriangles)
+
+            SliceBeam.genCurrentConfig(restored)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = restored.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            assertHasExtrusion(gcodeFile.readText())
+            Log.i("NativeSliceDeviceTest", "PASS curved surface text G-code bytes=${gcodeFile.length()}")
+        } finally {
+            result?.release()
+            restored?.release()
+            model?.release()
+            cylinderFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    @Test
+    fun curvedTextInheritsTheTappedMultipartVolumeFilament() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cylinderFile = createCylinderFixture("curved-text-filament-cylinder.stl", 25.0, 30.0, 96)
+        val fontFile = copyAsset(context, "font/roboto_medium.ttf", "curved-text-filament-font.ttf")
+        val projectFile = File(context.cacheDir, "curved-text-filament-project.3mf")
+        var model: Model? = null
+        var restored: Model? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(cylinderFile)
+            model.addObject(model, 0)
+            model.translate(1, 60.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(listOf(1, 2), model.getUsedFilaments(0).toList())
+
+            val textIndex = model.createTextObject(
+                fontFile.absolutePath,
+                "ORCA",
+                8f,
+                1.0f,
+                Vec3d(85.0, 0.0, 15.0),
+                Vec3d(1.0, 0.0, 0.0),
+                targetObjectIndex = 0,
+            )
+            assertEquals("curved text remains part of the tapped multipart object", 0, textIndex)
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            model.export3mf(generatedConfig.absolutePath, projectFile.absolutePath)
+            generatedConfig.delete()
+            generatedConfig = null
+
+            val volumeFilamentTwoEntries = ZipFile(projectFile).use { archive ->
+                val entry = archive.getEntry("Metadata/Slic3r_PE_model.config")
+                val metadata = requireNotNull(entry).let {
+                    archive.getInputStream(it).bufferedReader().use { reader -> reader.readText() }
+                }
+                Regex("type=\\\"volume\\\" key=\\\"extruder\\\" value=\\\"2\\\"")
+                    .findAll(metadata).count()
+            }
+            assertEquals("the source part and its surface text must both use filament 2", 2, volumeFilamentTwoEntries)
+
+            restored = Model(projectFile, 1)
+            assertEquals(listOf(1, 2), restored.getUsedFilaments(0).toList())
+            val gcodeFile = File(context.cacheDir, "curved-text-filament-project.gcode")
+            try {
+                val gcode = sliceToGcode(context, restored, gcodeFile.name)
+                assertTrue("the tapped part's filament must reach emitted tool changes",
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                assertHasExtrusion(gcode)
+            } finally {
+                gcodeFile.delete()
+            }
+        } finally {
+            model?.release()
+            restored?.release()
+            cylinderFile.delete()
+            fontFile.delete()
+            projectFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
     @Test
     fun bundledKobraProfileSlicesBoxLocally() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -72,5 +2772,206 @@ class NativeSliceDeviceTest {
             SliceBeam.getCurrentConfigFile().delete()
             gcodeFile.delete()
         }
+    }
+
+    @Test
+    fun bridgeSettingsReachNativeConfigAndGenerateBridgeGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        context.assets.open("orca_profiles/Anycubic.ini").use { input ->
+            SliceBeam.CONFIG = Slic3rConfigWrapper(input)
+        }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        process.put("bridge_line_width", "0.35")
+        process.put("bridge_flow", "1.05")
+        process.put("bridge_angle", "37")
+        process.put("internal_bridge_angle", "61")
+        process.put("relative_bridge_angle", "1")
+        filament.put("enable_pressure_advance", "1")
+        filament.put("pressure_advance", "0.042")
+
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val modelFile = File(context.cacheDir, "bridge-settings-device-test.stl")
+        val gcodeFile = File(context.cacheDir, "bridge-settings-device-test.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("models/OrcaCube_v2.stl").use { input ->
+                FileOutputStream(modelFile).use { output -> input.copyTo(output) }
+            }
+            model = Model(modelFile)
+            assertTrue("The Orca Cube fixture must load", model.objectsCount == 1)
+            SliceBeam.genCurrentConfig(model)
+            val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue(nativeConfig.contains("bridge_line_width = 0.35"))
+            assertTrue(nativeConfig.contains("bridge_flow = 1.05"))
+            assertTrue(nativeConfig.contains("bridge_angle = 37"))
+            assertTrue(nativeConfig.contains("internal_bridge_angle = 61"))
+            assertTrue(nativeConfig.contains("relative_bridge_angle = 1"))
+            assertTrue(nativeConfig.contains("enable_pressure_advance = 1"))
+            assertTrue(nativeConfig.contains("pressure_advance = 0.042"))
+
+            result = model.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath,
+                gcodeFile.absolutePath,
+                null,
+            )
+            assertTrue("Native Orca/libslic3r must produce bridge G-code",
+                gcodeFile.isFile && gcodeFile.length() > 0)
+            val gcode = gcodeFile.readText()
+            assertTrue("The Orca Cube slice must contain a bridge role", gcode.contains("TYPE:Bridge"))
+            assertTrue("A staged filament pressure-advance value must reach Klipper G-code",
+                gcode.contains("SET_PRESSURE_ADVANCE ADVANCE=0.042"))
+            Log.i("NativeSliceDeviceTest", "PASS bridge G-code bytes=${gcodeFile.length()}")
+        } finally {
+            result?.release()
+            model?.release()
+            modelFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            gcodeFile.delete()
+        }
+    }
+
+    @Test
+    fun selectedBedSurfaceTemperatureReachesNativeGcode() {
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+
+        context.assets.open("orca_profiles/Anycubic.ini").use { input ->
+            SliceBeam.CONFIG = Slic3rConfigWrapper(input)
+        }
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        printer.put("curr_bed_type", "Textured PEI Plate")
+        printer.put("support_multi_bed_types", "1")
+        printer.put("machine_start_gcode", "M140 S[bed_temperature_initial_layer_single]\\nM190 S[bed_temperature_initial_layer_single]")
+        filament.put("hot_plate_temp_initial_layer", "81")
+        filament.put("hot_plate_temp", "80")
+        filament.put("textured_plate_temp_initial_layer", "62")
+        filament.put("textured_plate_temp", "61")
+        filament.put("cool_plate_temp_initial_layer", "43")
+        filament.put("cool_plate_temp", "42")
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val modelFile = File(context.cacheDir, "bed-surface-temperature-device-test.stl")
+        val gcodeFile = File(context.cacheDir, "bed-surface-temperature-device-test.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("models/box.stl").use { input -> modelFile.outputStream().use { input.copyTo(it) } }
+            model = Model(modelFile)
+            SliceBeam.genCurrentConfig(model)
+            val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue(nativeConfig.contains("curr_bed_type = Textured PEI Plate"))
+            assertTrue(nativeConfig.contains("textured_plate_temp_initial_layer = 62"))
+            assertTrue(nativeConfig.contains("hot_plate_temp_initial_layer = 81"))
+
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("G-code must heat the selected Textured PEI surface at 62 C", gcode.contains("M140 S62"))
+            assertTrue("G-code must not substitute the high-temperature value", !gcode.contains("M140 S81"))
+            Log.i("NativeSliceDeviceTest", "PASS selected bed-surface G-code bytes=${gcodeFile.length()}")
+        } finally {
+            result?.release()
+            model?.release()
+            modelFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            gcodeFile.delete()
+        }
+    }
+
+    private inline fun withKobraProfile(block: () -> Unit) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            config.presets = ConfigObject("presets").apply {
+                put("printer", requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle")).title)
+                put("print", requireNotNull(config.findPrint("0.16mm Standard")).title)
+                put("filament", requireNotNull(config.findFilament("Anycubic Generic PLA")).title)
+            }
+            block()
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    private fun copyCube(context: Context, name: String): File = File(context.cacheDir, name).also { target ->
+        context.assets.open("models/xyz_cube.stl").use { input -> target.outputStream().use(input::copyTo) }
+    }
+
+    private fun copyAsset(context: Context, assetPath: String, name: String): File =
+        File(context.cacheDir, name).also { target ->
+            context.assets.open(assetPath).use { input -> target.outputStream().use(input::copyTo) }
+        }
+
+    private fun createCylinderFixture(name: String, radius: Double, height: Double, segments: Int): File {
+        val target = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        fun point(angle: Double, z: Double) = doubleArrayOf(radius * kotlin.math.cos(angle), radius * kotlin.math.sin(angle), z)
+        fun vertexLine(point: DoubleArray) = "vertex ${point[0]} ${point[1]} ${point[2]}\n"
+        val stl = StringBuilder("solid curved_text_cylinder\n")
+        for (index in 0 until segments) {
+            val a0 = 2.0 * Math.PI * index / segments
+            val a1 = 2.0 * Math.PI * (index + 1) / segments
+            val b0 = point(a0, 0.0); val b1 = point(a1, 0.0)
+            val t0 = point(a0, height); val t1 = point(a1, height)
+            val bottomCenter = doubleArrayOf(0.0, 0.0, 0.0)
+            val topCenter = doubleArrayOf(0.0, 0.0, height)
+            listOf(
+                arrayOf(b0, b1, t1), arrayOf(b0, t1, t0),
+                arrayOf(bottomCenter, b1, b0), arrayOf(topCenter, t0, t1),
+            ).forEach { triangle ->
+                stl.append("facet normal 0 0 0\nouter loop\n")
+                triangle.forEach { stl.append(vertexLine(it)) }
+                stl.append("endloop\nendfacet\n")
+            }
+        }
+        stl.append("endsolid curved_text_cylinder\n")
+        target.writeText(stl.toString())
+        return target
+    }
+
+    private fun sliceToGcode(context: Context, model: Model, name: String): String {
+        val gcodeFile = File(context.cacheDir, name)
+        var generatedConfig: File? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            return gcodeFile.readText()
+        } finally {
+            result?.release()
+            gcodeFile.delete()
+            generatedConfig?.delete()
+        }
+    }
+
+    private fun assertHasExtrusion(gcode: String) {
+        assertTrue("Slicing should produce non-empty G-code", gcode.isNotBlank())
+        assertTrue("Slicing should produce deposited moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
     }
 }

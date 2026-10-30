@@ -27,7 +27,7 @@ internal object PrefsValueCodec {
             } catch (_: NumberFormatException) {
                 DEFAULT_FILAMENT_COLOR
             }
-            slots.add(FilamentSlot(color, type))
+            slots.add(FilamentSlot(color, type.takeIf(String::isNotBlank)))
             if (slots.size >= Prefs.MAX_FILAMENT_COLORS) break
         }
         if (slots.isEmpty()) slots.add(FilamentSlot(DEFAULT_FILAMENT_COLOR, "PLA"))
@@ -37,7 +37,7 @@ internal object PrefsValueCodec {
     fun serializeFilamentSlots(slots: List<FilamentSlot>): String = buildString {
         slots.take(Prefs.MAX_FILAMENT_COLORS).forEachIndexed { index, slot ->
             if (index > 0) append(',')
-            append(slot.type)
+            append(slot.type.orEmpty())
                 .append('|')
                 .append(String.format(Locale.getDefault(), "%06X", slot.color and 0xFFFFFF))
         }

@@ -2,6 +2,7 @@ package ru.ytkab0bp.slicebeam.slic3r
 
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -18,6 +19,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     @Volatile
     private var geometryRevisionValue: Long = 0L
+    @Volatile
+    private var stateRevisionValue: Long = 0L
 
     private var boundingExact: DoubleArray? = null
     private var boundingApprox: DoubleArray? = null
@@ -39,16 +42,46 @@ open class Model private constructor(@JvmField var pointer: Long) {
     @Throws(Slic3rRuntimeError::class)
     constructor(file: File, plateId: Int, progress: ImportProgressCallback) : this(readModelPointer(file.absolutePath, plateId, progress))
 
+    @Throws(Slic3rRuntimeError::class)
+    constructor(file: File, plateId: Int, stepOptions: StepImportOptions, progress: ImportProgressCallback? = null) :
+        this(readModelPointer(file.absolutePath, plateId, progress, stepOptions))
+
     open fun getBoundingBoxExact(i: Int, min: Vec3d, max: Vec3d) {
+        if (!hasObject(i)) {
+            min.set(0.0, 0.0, 0.0)
+            max.set(0.0, 0.0, 0.0)
+            return
+        }
         val data = Native.model_get_bounding_box_exact(pointer, i)
         min.set(data[0], data[1], data[2])
         max.set(data[3], data[4], data[5])
     }
 
     open fun getBoundingBoxApprox(i: Int, min: Vec3d, max: Vec3d) {
+        if (!hasObject(i)) {
+            min.set(0.0, 0.0, 0.0)
+            max.set(0.0, 0.0, 0.0)
+            return
+        }
         val data = Native.model_get_bounding_box_approx(pointer, i)
         min.set(data[0], data[1], data[2])
         max.set(data[3], data[4], data[5])
+    }
+
+    /** Minimum world-space mesh projection for a group of printable objects along a direction. */
+    open fun getMinimumProjection(objectIndices: IntArray, direction: Vec3d): Double? {
+        if (pointer == 0L || objectIndices.isEmpty() || objectIndices.any { !hasObject(it) } ||
+            !direction.x.isFinite() || !direction.y.isFinite() || !direction.z.isFinite()
+        ) return null
+        val length = kotlin.math.sqrt(
+            direction.x * direction.x + direction.y * direction.y + direction.z * direction.z,
+        )
+        if (!length.isFinite() || length <= 1e-9) return null
+        return Native.model_get_minimum_projection(
+            pointer,
+            objectIndices,
+            doubleArrayOf(direction.x / length, direction.y / length, direction.z / length),
+        ).takeIf { it.isFinite() }
     }
 
     open val boundingBoxExactMin: Vec3d
@@ -87,38 +120,60 @@ open class Model private constructor(@JvmField var pointer: Long) {
         boundingExact = null
         boundingApprox = null
         geometryRevisionValue++
+        stateRevisionValue++
     }
 
     /** Revision for invalidating inexpensive analysis results tied to this model geometry. */
     open val geometryRevision: Long
         get() = geometryRevisionValue
 
+    /** Revision for rejecting background edit results if any model state changed meanwhile. */
+    open val stateRevision: Long
+        get() = stateRevisionValue
+
+    open fun markStateChanged() {
+        stateRevisionValue++
+    }
+
     open fun translate(i: Int, x: Double, y: Double, z: Double) {
+        if (!hasObject(i) || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_translate(pointer, i, x, y, z)
         resetBoundingBox()
     }
 
     open fun translate(x: Double, y: Double, z: Double) {
+        if (pointer == 0L || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_translate_global(pointer, x, y, z)
         resetBoundingBox()
     }
 
     open fun ensureOnBed(i: Int) {
+        if (!hasObject(i)) return
         Native.model_ensure_on_bed(pointer, i)
         resetBoundingBox()
     }
 
     open fun scale(i: Int, x: Double, y: Double, z: Double) {
+        if (!hasObject(i) || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_scale(pointer, i, x, y, z)
         resetBoundingBox()
     }
 
     open fun rotate(i: Int, x: Double, y: Double, z: Double) {
+        if (!hasObject(i) || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_rotate(pointer, i, x, y, z)
         resetBoundingBox()
     }
 
+    /** Reset rotations on all object volumes without changing their translations or scales. */
+    open fun resetRotation(i: Int) {
+        if (!hasObject(i)) return
+        Native.model_reset_rotation(pointer, i)
+        resetBoundingBox()
+    }
+
     open fun flattenRotate(i: Int, surface: GLModel) {
+        if (!hasObject(i) || surface.pointer == 0L) return
         Native.model_flatten_rotate(pointer, i, surface.pointer)
         resetBoundingBox()
     }
@@ -142,31 +197,100 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return trimmed.takeIf { it.isNotEmpty() }
     }
 
+    /** Number of printable mesh parts (volumes) represented by one object-list entry. */
+    open fun getObjectPartCount(i: Int): Int =
+        if (!hasObject(i)) 0 else Native.model_get_object_part_count(pointer, i)
+
+    /** One-based filament for the zero-based printable part index, ignoring modifier volumes. */
+    open fun getObjectPartExtruder(objectIndex: Int, partIndex: Int): Int =
+        if (!hasObject(objectIndex) || partIndex < 0) -1
+        else Native.model_get_object_part_extruder(pointer, objectIndex, partIndex)
+
+    /** Applies a relative transform to one printable part without detaching it from its parent object. */
+    open fun transformObjectPart(
+        objectIndex: Int,
+        partIndex: Int,
+        dx: Double,
+        dy: Double,
+        dz: Double,
+        scaleX: Double = 1.0,
+        scaleY: Double = 1.0,
+        scaleZ: Double = 1.0,
+        rotationXDegrees: Double = 0.0,
+        rotationYDegrees: Double = 0.0,
+        rotationZDegrees: Double = 0.0,
+    ): Boolean {
+        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex)) return false
+        if (listOf(dx, dy, dz, rotationXDegrees, rotationYDegrees, rotationZDegrees, scaleX, scaleY, scaleZ).any { !it.isFinite() } ||
+            listOf(dx, dy, dz).any { kotlin.math.abs(it) > 10_000.0 } ||
+            listOf(rotationXDegrees, rotationYDegrees, rotationZDegrees).any { kotlin.math.abs(it) > 36_000.0 } ||
+            listOf(scaleX, scaleY, scaleZ).any { it <= 0.0 }
+        ) return false
+        val changed = Native.model_transform_object_part(
+            pointer, objectIndex, partIndex, dx, dy, dz,
+            rotationXDegrees, rotationYDegrees, rotationZDegrees, scaleX, scaleY, scaleZ,
+        )
+        if (changed) resetBoundingBox()
+        return changed
+    }
+
     open fun getTriangleCount(i: Int): Int =
-        if (pointer == 0L) 0 else Native.model_get_triangle_count(pointer, i)
+        if (!hasObject(i)) 0 else Native.model_get_triangle_count(pointer, i)
 
     open fun simplify(i: Int, keepRatio: Float): Int {
+        if (!hasObject(i) || !keepRatio.isFinite() || keepRatio <= 0f || keepRatio > 1f) return 0
         val result = Native.model_simplify(pointer, i, keepRatio)
         resetBoundingBox()
         return result
     }
 
     open fun addObject(from: Model, i: Int) {
+        if (pointer == 0L || from.pointer == 0L || i !in 0 until from.objectsCount) {
+            android.util.Log.w(
+                "Model",
+                "Ignoring object copy with invalid native model or source index (index=$i, sourceCount=${from.objectsCount})",
+            )
+            return
+        }
         Native.model_add_object_from_another(pointer, from.pointer, i)
         resetBoundingBox()
     }
 
+    /** Atomically swaps this model's native contents with a prepared model on the GL thread. */
+    open fun replaceContentsFrom(other: Model) {
+        require(pointer != 0L && other.pointer != 0L && pointer != other.pointer)
+        Native.model_replace_contents(pointer, other.pointer)
+        resetBoundingBox()
+        other.resetBoundingBox()
+    }
+
+    /** Adds a linked instance of an object while preserving the source instance transform. */
+    open fun duplicateInstance(i: Int, sourceInstanceIndex: Int, offset: Vec3d): Int {
+        if (!hasObject(i) || sourceInstanceIndex < 0 ||
+            !offset.x.isFinite() || !offset.y.isFinite() || !offset.z.isFinite()
+        ) return -1
+        val instanceIndex = Native.model_duplicate_instance(
+            pointer, i, sourceInstanceIndex, offset.x, offset.y, offset.z,
+        )
+        if (instanceIndex >= 0) resetBoundingBox()
+        return instanceIndex
+    }
+
     open fun deleteObject(i: Int) {
+        if (!hasObject(i)) return
         Native.model_delete_object(pointer, i)
         resetBoundingBox()
     }
 
     /** Split object i into separate objects; returns the piece count, or 0 if nothing to split. */
     open fun split(i: Int): Int {
+        if (!hasObject(i)) return 0
         val result = Native.model_split(pointer, i)
         if (result > 0) resetBoundingBox()
         return result
     }
+
+    private fun hasObject(index: Int): Boolean = pointer != 0L && index in 0 until objectsCount
 
     open fun cut(
         objectIndex: Int,
@@ -180,6 +304,29 @@ open class Model private constructor(@JvmField var pointer: Long) {
         if (result) resetBoundingBox()
         return result
     }
+
+    /** Applies a cut and removes only newly committed, unprocessed connectors if it fails. */
+    open fun cutPreservingConnectorsOnFailure(
+        objectIndex: Int,
+        connectorCountBeforeCommit: Int,
+        zHeight: Double,
+        rotX: Double,
+        rotY: Double,
+        keepUpper: Boolean,
+        keepLower: Boolean,
+    ): Boolean {
+        val applied = cut(objectIndex, zHeight, rotX, rotY, keepUpper, keepLower)
+        if (!applied) {
+            val connectorCount = Native.model_get_cut_connector_count(pointer, objectIndex)
+            for (connectorIndex in connectorCount - 1 downTo connectorCountBeforeCommit) {
+                removeConnector(objectIndex, connectorIndex)
+            }
+        }
+        return applied
+    }
+
+    open fun getCutConnectorCount(objectIndex: Int): Int =
+        Native.model_get_cut_connector_count(pointer, objectIndex)
 
     open fun addConnector(
         objectIndex: Int,
@@ -233,6 +380,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
         vec.set(mirror[0], mirror[1], mirror[2])
     }
 
+    /** Mirrors every volume in an object around its current world-space bounds center. */
+    open fun mirror(i: Int, axis: ModelMirrorAxis) {
+        require(i in 0 until objectsCount) { "Invalid model object index: $i" }
+        Native.model_mirror(pointer, i, axis.nativeValue)
+        resetBoundingBox()
+    }
+
     open fun createFlattenPlanes(i: Int): List<GLModel> {
         val pointers = Native.model_create_flatten_planes(pointer, i)
         val models = ArrayList<GLModel>(pointers.size)
@@ -242,8 +396,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun getExtruder(i: Int): Int = Native.model_get_extruder(pointer, i)
 
+    /** One-based filament assigned to a specific volume, including object-level fallback. */
+    open fun getVolumeExtruder(objectIndex: Int, volumeIndex: Int): Int =
+        if (pointer == 0L) -1 else Native.model_get_volume_extruder(pointer, objectIndex, volumeIndex)
+
     open fun setExtruder(i: Int, extruder: Int) {
         Native.model_set_extruder(pointer, i, extruder)
+        markStateChanged()
     }
 
     /** One-based filament indices used by parts and painted facets of this object. */
@@ -251,14 +410,24 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     open fun setUniformFilament(i: Int, filament: Int) {
         Native.model_set_uniform_filament(pointer, i, filament)
+        markStateChanged()
+    }
+
+    /** Remaps imported logical filament IDs (one-based) throughout all model-part volumes and painted facets. */
+    open fun remapFilaments(sourceFilaments: IntArray, targetFilaments: IntArray) {
+        require(sourceFilaments.size == targetFilaments.size) { "Source and target filament arrays must match" }
+        Native.model_remap_filaments(pointer, sourceFilaments, targetFilaments)
+        markStateChanged()
     }
 
     open fun applyAdaptiveLayerHeight(i: Int, configPath: String, qualityFactor: Float) {
         Native.model_apply_adaptive_layer_height(pointer, i, configPath, qualityFactor)
+        markStateChanged()
     }
 
     open fun clearAdaptiveLayerHeight(i: Int) {
         Native.model_clear_adaptive_layer_height(pointer, i)
+        markStateChanged()
     }
 
     open fun hasAdaptiveLayerHeight(i: Int): Boolean = Native.model_has_adaptive_layer_height(pointer, i)
@@ -273,22 +442,86 @@ open class Model private constructor(@JvmField var pointer: Long) {
         position: Vec3d,
         normal: Vec3d,
     ) {
+        if (pointer == 0L || type !in 0..1) return
+        val placement = ModelEditRequestValidation.snapshotTextPlacement(position, normal)
+        if (!ModelEditRequestValidation.isValidTextRequest(
+                fontPath, text, size, depth, placement.position, placement.normal, i, objectsCount,
+            )
+        ) return
         Native.model_emboss_text(
             pointer, i, fontPath, text, size, depth, type,
-            position.x, position.y, position.z, normal.x, normal.y, normal.z,
+            placement.position.x, placement.position.y, placement.position.z,
+            placement.normal.x, placement.normal.y, placement.normal.z,
         )
         resetBoundingBox()
     }
 
+    /** Creates printable text; with a target index, conforms it to that surface and adds it as a target part. */
+    open fun createTextObject(
+        fontPath: String,
+        text: String,
+        size: Float,
+        depth: Float,
+        position: Vec3d,
+        normal: Vec3d,
+        targetObjectIndex: Int = -1,
+    ): Int {
+        if (pointer == 0L) return -1
+        val placement = ModelEditRequestValidation.snapshotTextPlacement(position, normal)
+        if (!ModelEditRequestValidation.isValidTextRequest(
+                fontPath, text, size, depth, placement.position, placement.normal, targetObjectIndex, objectsCount,
+            )
+        ) return -1
+        val index = Native.model_create_text_object(
+            pointer, fontPath, text, size, depth,
+            placement.position.x, placement.position.y, placement.position.z,
+            placement.normal.x, placement.normal.y, placement.normal.z,
+            targetObjectIndex,
+        )
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    /** Combines objects, materializing every linked instance as a placed multipart volume. */
+    open fun combineObjectsAsParts(objectIndices: IntArray): Int {
+        if (pointer == 0L) return -1
+        val stableIndices = ModelEditRequestValidation.distinctObjectIndicesSnapshot(objectIndices, objectsCount) ?: return -1
+        val index = Native.model_combine_objects_as_parts(pointer, stableIndices)
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    /**
+     * Applies a validated Orca/CGAL solid operation to the selected objects, including their instances.
+     * The first index is the target; remaining objects are applied in order. Returns the
+     * replacement object's index, or a negative status without changing inputs.
+     */
+    open fun booleanObjects(objectIndices: IntArray, operation: BooleanOperation): Int {
+        if (pointer == 0L) return -1
+        val stableIndices = ModelEditRequestValidation.distinctObjectIndicesSnapshot(objectIndices, objectsCount) ?: return -1
+        val index = Native.model_boolean_objects(pointer, stableIndices, operation.nativeValue)
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    open fun booleanObjects(targetIndex: Int, toolIndex: Int, operation: BooleanOperation): Int =
+        booleanObjects(intArrayOf(targetIndex, toolIndex), operation)
+
+    /** Absolute mesh volume in mm³ for one object, including its instance transform. */
+    open fun getObjectVolume(i: Int): Double =
+        if (!hasObject(i)) 0.0 else Native.model_get_object_volume(pointer, i)
+
     /** True if object i has any committed multi-color painting. */
-    open fun hasPaint(i: Int): Boolean = Native.model_has_paint(pointer, i)
+    open fun hasPaint(i: Int): Boolean = hasObject(i) && Native.model_has_paint(pointer, i)
 
     /** Fill a GLModel with object i's committed painting for the given filament; returns triangle count. */
     open fun buildPaintOverlay(i: Int, gl: GLModel, filamentIdx: Int): Int =
-        Native.model_build_paint_overlay(pointer, i, gl.pointer, filamentIdx)
+        if (!hasObject(i) || gl.pointer == 0L || filamentIdx < 1) 0
+        else Native.model_build_paint_overlay(pointer, i, gl.pointer, filamentIdx)
 
     /** Highest filament index (1-based) painted on object i, or 0 if none. */
-    open fun paintMaxFilament(i: Int): Int = Native.model_paint_max_filament(pointer, i)
+    open fun paintMaxFilament(i: Int): Int =
+        if (!hasObject(i)) 0 else Native.model_paint_max_filament(pointer, i)
 
     /** Highest 1-based tool referenced by the model's base assignments or painted facets. */
     open val requiredFilamentCount: Int
@@ -301,6 +534,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
         }
 
     open fun autoOrient(i: Int) {
+        if (!hasObject(i)) return
         Native.model_auto_orient(pointer, i)
         resetBoundingBox()
     }
@@ -327,9 +561,18 @@ open class Model private constructor(@JvmField var pointer: Long) {
         // Declare enough filament slots for object assignments and painted facets so native
         // slicing emits all required multi-material tool changes.
         val numFilaments = requiredFilamentCount
-        val palette = Prefs.getFilamentPalette()
         val colors = if (numFilaments > 1) {
-            IntArray(numFilaments) { i -> palette[minOf(i, palette.size - 1)] and 0xFFFFFF }
+            val configColors = runCatching {
+                File(configPath).useLines { lines ->
+                    lines.lastOrNull { it.startsWith("filament_colour = ") }
+                        ?.substringAfter("filament_colour = ")
+                }
+            }.getOrNull()
+            SliceFilamentColorResolver.resolve(
+                configColors,
+                numFilaments,
+                Prefs.getFilamentPalette(),
+            )
         } else {
             null
         }
@@ -340,7 +583,11 @@ open class Model private constructor(@JvmField var pointer: Long) {
             pointer, configPath, gcodePath, nativeListener, numFilaments, colors ?: IntArray(0),
             calibMode, calibStart, calibEnd, calibStep,
         )
-        return GCodeProcessorResult(resultPointer)
+        return GCodeProcessorResult(resultPointer).also { result ->
+            // Keep the effective ACE/profile palette with the result so the tool-color
+            // preview shows the same colors that the native slicer actually received.
+            result.previewToolColors = colors?.copyOf()
+        }
     }
 
     @Throws(Slic3rRuntimeError::class)
@@ -395,8 +642,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     companion object {
-        private fun readModelPointer(path: String, plateId: Int, progress: ImportProgressCallback? = null): Long {
-            val result = OrcaModelBridge.load(path, plateId, progress)
+        private fun readModelPointer(
+            path: String,
+            plateId: Int,
+            progress: ImportProgressCallback? = null,
+            stepOptions: StepImportOptions? = null,
+        ): Long {
+            val result = OrcaModelBridge.load(path, plateId, progress, stepOptions)
             if (!result.isSuccess()) {
                 throw Slic3rRuntimeError(result.errorMessage, result.cause)
             }
@@ -409,4 +661,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
             return Model(Native.models_merge(*pointers))
         }
     }
+}
+
+enum class BooleanOperation(val nativeValue: Int) {
+    UNION(0), DIFFERENCE(1), INTERSECTION(2),
 }

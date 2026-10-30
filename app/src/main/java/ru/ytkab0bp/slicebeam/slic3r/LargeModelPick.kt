@@ -5,15 +5,37 @@ import kotlin.math.abs
 
 /** Cheap selection for dense models; never changes the geometry used for slicing. */
 internal object LargeModelPick {
-    const val TRIANGLE_LIMIT = 100_000
+    // Surface paint creates topology data in addition to its raycast tree. Keep that heavier path
+    // bounded, but allow detailed multicolor 3MF artwork to be painted without destructively
+    // simplifying its on-bed mesh first. The original KromaCut artwork has 165,264 triangles.
+    const val TRIANGLE_LIMIT = 200_000
+    // A balanced raycast tree uses bounded memory and supports precise picks for common generated
+    // parts such as M12 fasteners. Truly massive meshes still use bounds-only selection.
+    const val EXACT_RAYCAST_TRIANGLE_LIMIT = 100_000
+    // Color painting is already bounded by TRIANGLE_LIMIT and needs facet-accurate
+    // hits. Build its dedicated precise tree up to that cap; normal selection keeps
+    // using the cheaper bounds-only path above EXACT_RAYCAST_TRIANGLE_LIMIT.
+    const val PAINT_RAYCAST_TRIANGLE_LIMIT = TRIANGLE_LIMIT
+    // Keep decimated meshes below the hard raycast cap to allow for simplifier variance.
+    const val SAFE_RAYCAST_TRIANGLE_TARGET = 80_000
 
     fun needsPreciseSurfaceSimplification(triangleCount: Int): Boolean = triangleCount > TRIANGLE_LIMIT
 
-    /** Leave headroom because decimators may return slightly more facets than requested. */
-    fun suggestedKeepRatio(triangleCount: Int): Float =
-        if (needsPreciseSurfaceSimplification(triangleCount))
-            (TRIANGLE_LIMIT * 0.8f / triangleCount).coerceIn(0.000001f, 0.99f)
-        else 1f
+    fun needsBoundsOnlyPicking(triangleCount: Int): Boolean = triangleCount > EXACT_RAYCAST_TRIANGLE_LIMIT
+
+    fun canUsePrecisePaintRaycast(triangleCount: Int): Boolean =
+        triangleCount in 1..PAINT_RAYCAST_TRIANGLE_LIMIT
+
+    /** Surface placement uses exact triangle hits while the lightweight raycast tree stays bounded. */
+    fun canUsePreciseSurfaceTools(triangleCount: Int): Boolean =
+        !needsBoundsOnlyPicking(triangleCount)
+
+    /** Leave headroom below the requested cap because decimators may return more facets. */
+    fun suggestedKeepRatio(triangleCount: Int, targetTriangleCount: Int = TRIANGLE_LIMIT): Float {
+        if (triangleCount <= targetTriangleCount || triangleCount <= 0 || targetTriangleCount <= 0) return 1f
+        val safeTarget = targetTriangleCount * 0.8f
+        return (safeTarget / triangleCount).coerceIn(0.000001f, 0.99f)
+    }
 
     fun hit(origin: Vec3d, direction: Vec3d, min: Vec3d, max: Vec3d): GLModel.HitResult? {
         val starts = doubleArrayOf(origin.x, origin.y, origin.z)

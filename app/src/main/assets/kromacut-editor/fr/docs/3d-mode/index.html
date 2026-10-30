@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Dimensions physiques, empilements de couleurs manuels, maillage et commandes d’aperçu." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/fr/docs/3d-mode">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Mode 3D | Documentation Kromacut" />
+        <meta property="og:description" content="Dimensions physiques, empilements de couleurs manuels, maillage et commandes d’aperçu." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/fr/docs/3d-mode" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="fr_FR" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Mode 3D | Documentation Kromacut" />
+        <meta name="twitter:description" content="Dimensions physiques, empilements de couleurs manuels, maillage et commandes d’aperçu." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Mode 3D | Documentation Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/3d-mode">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/3d-mode">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/3d-mode">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/3d-mode">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/3d-mode">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/3d-mode">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/3d-mode">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/3d-mode">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/3d-mode">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/3d-mode">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/3d-mode">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/3d-mode">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/3d-mode">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentation">
+                    <a href="/fr/">Aller à l’accueil</a>
+                    <a href="/app">Ouvrir Kromacut</a>
+                    <ul><li><a href="/fr/docs/overview">Présentation</a></li><li><a href="/fr/docs/quick-start">Démarrage rapide</a></li><li><a href="/fr/docs/loading-images">Chargement des images</a></li><li><a href="/fr/docs/image-adjustments">Réglages d’image</a></li><li><a href="/fr/docs/reducing-colors">Réduction des couleurs</a></li><li><a href="/fr/docs/dedithering-cleanup">Détramage et nettoyage</a></li><li><a href="/fr/docs/3d-mode">Mode 3D</a></li><li><a href="/fr/docs/auto-paint">Commandes de peinture automatique</a></li><li><a href="/fr/docs/calibration-theory">Théorie de l’étalonnage</a></li><li><a href="/fr/docs/flat-paint">Peinture à plat</a></li><li><a href="/fr/docs/calibration-workflows">Méthodes d’étalonnage</a></li><li><a href="/fr/docs/generating-exporting-output">Génération et export</a></li><li><a href="/fr/docs/settings-and-controls">Paramètres et commandes</a></li><li><a href="/fr/docs/troubleshooting">Dépannage</a></li><li><a href="/fr/docs/faq">FAQ</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="3d-mode">Mode 3D</h1>
+<p>Le mode 3D transforme les couleurs de l’image en couches physiques. Préparez l’image en 2D, choisissez les dimensions et une méthode d’impression, puis cliquez sur <strong>Générer le modèle 3D</strong>. Changer un réglage ne régénère pas automatiquement le modèle affiché.</p>
+<p>Utilisez <strong>Manuel</strong> pour choisir vous-même l’ordre des couleurs et leurs épaisseurs. Utilisez <strong>Peinture automatique</strong> pour prédire les mélanges de vos filaments réels et trouver un empilement adapté à l’image. Aucune méthode ne commande l’imprimante : exportez le modèle et vérifiez-le dans votre logiciel de découpe.</p>
+<h2 id="3d-print-settings">Paramètres d’impression 3D</h2>
+<table><thead><tr><th>Commande</th><th>Effet sur le modèle</th><th>Points à vérifier</th></tr></thead><tbody><tr><td><strong>Taille du pixel (XY)</strong></td><td>Millimètres par pixel de l’image dans les deux directions horizontales.</td><td>Le badge <strong>Modèle</strong> estime largeur, hauteur et profondeur physiques avant la génération.</td></tr><tr><td><strong>Hauteur de couche</strong></td><td>Pas vertical normal utilisé pour les hauteurs et les changements.</td><td>Faites correspondre le logiciel de découpe. Des couches plus fines donnent des choix de hauteur plus fins, pas des lignes d’extrusion plus étroites.</td></tr><tr><td><strong>Hauteur de première couche</strong></td><td>Premier palier au-dessus du plateau.</td><td>Faites-la correspondre séparément. La première couleur doit avoir au moins la plus grande des hauteurs normale et de première couche.</td></tr><tr><td><strong>Largeur de ligne effective</strong></td><td>Largeur d’extrusion utilisée pour les contrôles de détails imprimables et le tramage de hauteur en peinture automatique.</td><td>Faites correspondre la largeur de ligne prévue dans le logiciel de découpe, pas le diamètre de buse ni la taille du pixel. Cela ne change pas le profil de l’imprimante.</td></tr><tr><td><strong>Maillage lissé</strong></td><td>Remplace les frontières en escaliers de pixels par des contours connectés lissés.</td><td>Change la géométrie exportée, pas seulement l’éclairage. N’ajoute pas de détails à l’image et ne repasse pas la surface.</td></tr><tr><td><strong>Réinitialiser</strong></td><td>Rétablit 0,1 mm/pixel, des couches normales de 0,12 mm, une première couche de 0,2 mm, une largeur effective de 0,42 mm et le lissage désactivé.</td><td>Rétablit aussi les épaisseurs manuelles minimales, en conservant l’ordre actuel des couleurs.</td></tr></tbody></table>
+<h3 id="pixel-size-is-not-nozzle-size">La taille du pixel n’est pas celle de la buse</h3>
+<p>Une image de 1 000 pixels de large à <strong>0,1 mm/pixel</strong> produit un modèle d’environ <strong>100 mm</strong> de large. À <strong>0,2 mm/pixel</strong>, il mesure environ <strong>200 mm</strong>, avec exactement les mêmes pixels. Les marges extérieures transparentes sont exclues des dimensions du modèle.</p>
+<p><a href="/localized/fr/diagrams/10_physical_size.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : La même grille d’image s’agrandit physiquement lorsque la taille du pixel augmente ; redimensionner l’image change au contraire le nombre de pixels."><img src="/localized/fr/diagrams/10_physical_size.svg" alt="La même grille d’image s’agrandit physiquement lorsque la taille du pixel augmente ; redimensionner l’image change au contraire le nombre de pixels." loading="lazy"></a></p>
+<p><em>Schéma de principe. Dimensions XY, résolution de l’image et largeur d’extrusion sont des commandes distinctes.</em></p>
+<p>Pour conserver 100 mm de large avec 2 000 pixels, utilisez <strong>0,05 mm/pixel</strong>. Davantage de pixels peuvent décrire des contours plus fins, mais l’imprimante reste limitée par sa largeur d’extrusion. Définissez <strong>Largeur de ligne effective</strong> dans <strong>Paramètres d’impression 3D</strong>, puis utilisez l’<a href="/fr/docs/auto-paint#printable-detail">aperçu des détails imprimables</a> de peinture automatique pour examiner cette limite.</p>
+<p>Augmenter la taille du pixel ne réduit pas le nombre de pixels et n’allège pas intrinsèquement la génération du maillage. Pour une génération plus légère, redimensionnez ou recadrez en <a href="/fr/docs/loading-images">mode 2D</a>, ou simplifiez la palette.</p>
+<h3 id="effective-line-width">Largeur de ligne effective</h3>
+<p>Copiez la largeur d’extrusion prévue par le logiciel de découpe dans <strong>Largeur de ligne effective</strong>. La plage acceptée est de 0,1 à 2 mm. Réinitialiser <strong>Paramètres d’impression 3D</strong> rétablit 0,42 mm avec les autres valeurs par défaut de la section. Modifier ce champ ne change pas le profil de l’imprimante.</p>
+<p>La peinture automatique utilise cette largeur pour son aperçu d’avertissements de largeur, le nettoyage facultatif des points de couleur isolés et la taille des blocs de tramage de hauteur. Les commandes d’examen des avertissements et d’omission des points restent dans <a href="/fr/docs/auto-paint#printable-detail">Peinture automatique</a>. Un avertissement ne signifie pas qu’un détail sera supprimé ou ne peut pas être imprimé.</p>
+<h3 id="layer-heights-and-valid-boundaries">Hauteurs de couche et frontières valides</h3>
+<p>Avec une <strong>première couche de 0,20 mm</strong> et des <strong>couches normales de 0,08 mm</strong>, les sommets de couche sont à 0,20, 0,28, 0,36 et 0,44 mm, et non à 0,08, 0,16, 0,24 et 0,32 mm. Kromacut ajuste les épaisseurs de couleur à cette grille.</p>
+<p>Changer la <strong>Hauteur de couche</strong> réinitialise les épaisseurs manuelles au nouveau pas normal, puis applique le minimum de la première couleur. Changer la <strong>Hauteur de première couche</strong> réinitialise la première couleur à son nouveau minimum. Définissez-les avant d’affiner les curseurs et revérifiez le plan si elles changent.</p>
+<p>Les champs acceptent de larges plages : 0,01–10 mm/pixel pour la taille du pixel, 0,01–10 mm pour la hauteur de couche et 0–10 mm pour la première couche. Ce sont des limites de saisie, pas des réglages recommandés ; la première couleur reste ajustée à son minimum physique. Utilisez des valeurs compatibles avec votre buse, matériau et logiciel de découpe. Une hauteur plus fine modifie les recettes disponibles en peinture automatique ; elle ne rend pas automatiquement compatible l’étalonnage existant.</p>
+<h2 id="manual-mode">Mode Manuel</h2>
+<p><strong>Épaisseurs des couleurs</strong> répertorie les <strong>Couleurs de l’image</strong> non transparentes. Chaque ligne comporte une poignée de déplacement, un échantillon, un curseur d’épaisseur et une valeur en millimètres. Cette valeur est l’épaisseur de la séquence de couleur, pas la hauteur absolue de son sommet. Une séquence peut couvrir plusieurs couches du logiciel de découpe.</p>
+<p><a href="/localized/fr/diagrams/11_manual_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Trois séquences manuelles créent des hauteurs cumulées ; augmenter une séquence inférieure relève toutes les surfaces suivantes."><img src="/localized/fr/diagrams/11_manual_layers.svg" alt="Trois séquences manuelles créent des hauteurs cumulées ; augmenter une séquence inférieure relève toutes les surfaces suivantes." loading="lazy"></a></p>
+<p><em>Coupe schématique. Une surface d’une couleur ultérieure contient les séquences précédentes en dessous.</em></p>
+<p>Par exemple, réglez le noir à <strong>0,20 mm</strong>, le rouge à <strong>0,16 mm</strong> et le blanc à <strong>0,08 mm</strong>, avec des couches normales de 0,08 mm. Les zones noires s’arrêtent à 0,20 mm, les rouges à 0,36 mm et les blanches à 0,44 mm. Le rouge commence à la couche 2 du logiciel de découpe ; le blanc à la couche 4. Confirmez les instructions générées et l’interprétation du logiciel avant d’imprimer.</p>
+<h3 id="reorder-colors">Réordonner les couleurs</h3>
+<p>Faites glisser les lignes de haut en bas dans l’ordre d’impression. La première démarre sur le plateau. Les suivantes s’impriment sur les précédentes uniquement là où l’image les exige, formant un relief en paliers. Déplacer une couleur change son matériau de support, sa hauteur de surface et la séquence de changements. Une ligne déplacée en première position est relevée au minimum de première couche si nécessaire.</p>
+<p>L’aperçu et l’export manuels utilisent les couleurs de l’image, pas le modèle HD de peinture automatique. Une fine couche rouge sur du noir peut s’imprimer plus sombre que son échantillon même si l’aperçu manuel paraît rouge. Choisissez les matériaux et épaisseurs en conséquence.</p>
+<h3 id="adjust-and-reset-thicknesses">Régler et réinitialiser les épaisseurs</h3>
+<p>Déplacez un curseur puis relâchez-le pour valider. Les séquences suivantes avancent par pas de <strong>Hauteur de couche</strong>. La première part de son minimum et ajoute des pas normaux. Augmenter une séquence inférieure relève toutes les surfaces suivantes et déplace leurs changements, pas seulement les zones où la couleur inférieure reste visible.</p>
+<p>La réinitialisation des <strong>Épaisseurs des couleurs</strong> trie du sombre au clair selon la luminance et attribue les épaisseurs minimales. Elle diffère de celle des <strong>Paramètres d’impression 3D</strong>, qui modifie aussi les paramètres physiques mais conserve l’ordre.</p>
+<p>Les commandes manuelles et les instructions de changement prennent en charge <strong>64 couleurs</strong>. Réduisez les palettes plus grandes en 2D. Les pixels entièrement transparents ne créent aucune matière, pas un support blanc. Les îlots opaques déconnectés restent des pièces distinctes, sauf si l’image les relie.</p>
+<h2 id="smooth-meshing">Maillage lissé</h2>
+<p>Sans lissage, les contours suivent la grille carrée des pixels. Avec le lissage, les frontières connectées deviennent une géométrie lissée et soudée. La différence est exportée ; ce n’est pas un filtre d’aperçu.</p>
+<p>Adoucit les contours du modèle dans l’aperçu et les exports. Moyen reproduit le lissage d’origine. Reconstruisez pour appliquer.</p>
+<table><thead><tr><th>Force</th><th>Utilisation</th></tr></thead><tbody><tr><td><strong>Aucun</strong></td><td>Pixel art, contours carrés exacts ou génération la plus rapide.</td></tr><tr><td><strong>Minimal</strong></td><td>Nettoyage léger des angles irréguliers.</td></tr><tr><td><strong>Moyen</strong></td><td>Résultat familier de l’ancien réglage activé.</td></tr><tr><td><strong>Intensif</strong></td><td>Lissage plus fort le long des contours, y compris les marches restantes, avec la même limite de déplacement que Moyen.</td></tr></tbody></table>
+<p>Le déplacement reste inférieur à un demi-pixel. Reconstruisez le modèle, puis vérifiez l’aperçu du trancheur. Les anciens réglages activé/désactivé deviennent Moyen/Aucun.</p>
+<p><a href="/localized/fr/diagrams/12_smooth_boundaries.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Comparaison de contours diagonaux en escaliers et lissés sur la même grille source."><img src="/localized/fr/diagrams/12_smooth_boundaries.svg" alt="Comparaison de contours diagonaux en escaliers et lissés sur la même grille source." loading="lazy"></a></p>
+<p><em>Comparaison schématique de contours, pas une simulation de découpe.</em></p>
+<p>Utilisez-le pour des contours courbes ou diagonaux trop crénelés. Laissez-le désactivé pour un pixel art volontaire ou des bords suivant exactement la grille. Aucun choix ne répare des détails trop petits pour être imprimés ni n’invente une résolution source manquante.</p>
+<p>Le maillage lissé fonctionne aussi avec la <a href="/fr/docs/flat-paint">Peinture à plat</a>. Les deux orientations conservent une plaque plane et des frontières communes entre couleurs ; choisissez une intensité et reconstruisez pour l’appliquer.</p>
+<h2 id="auto-paint">Peinture automatique</h2>
+<p>La peinture automatique accepte les couleurs réelles de filament et leur <strong>Distance de masquage (HD)</strong>, prédit les mélanges et associe les couleurs de l’image à des hauteurs imprimables. Consultez <a href="/fr/docs/auto-paint">Commandes de peinture automatique</a> pour toutes les commandes de filaments, correspondance, détail et confiance.</p>
+<h2 id="calibrating-filament-hiding-distance">Étalonner la distance de masquage des filaments</h2>
+<p><strong>Étalonner</strong>, sous la liste des filaments, ouvre <strong>Distance de masquage</strong>, <strong>Épreuve de palette</strong> et <strong>Matrice d’empilements</strong>. Suivez <a href="/fr/docs/calibration-workflows">Méthodes d’étalonnage</a> pour imprimer et enregistrer les résultats, ou <a href="/fr/docs/calibration-theory">Théorie de l’étalonnage</a> pour le modèle optique.</p>
+<h2 id="filament-profiles">Profils de filaments</h2>
+<p>Les profils conservent des jeux nommés de filaments et les observations compatibles. Les modifications non enregistrées ne sont pas automatiquement réécrites dans le profil sélectionné. Consultez <a href="/fr/docs/auto-paint#filament-profiles">Filaments et profils</a> et <a href="/fr/docs/settings-and-controls#filament-profile-files">Fichiers de profils</a>.</p>
+<h3 id="templates">Modèles</h3>
+<p>Les modèles sont des références de fournisseurs en lecture seule, pas des mesures de vos bobines. Chargez, ajustez, étalonnez puis choisissez <strong>Enregistrer comme nouveau profil</strong>. Consultez <a href="/fr/docs/auto-paint#templates">Modèles</a>.</p>
+<h2 id="max-height">Hauteur maximale</h2>
+<p>La limite raccourcit les transitions de peinture automatique sur des frontières de couche valides, mais ne peut pas retirer la fondation opaque. Consultez <a href="/fr/docs/auto-paint#max-height">Hauteur maximale</a>, notamment la réserve concernant le support de peinture à plat.</p>
+<h2 id="printable-detail">Détails imprimables</h2>
+<p>Définissez <strong>Largeur de ligne effective</strong> dans <strong>Paramètres d’impression 3D</strong>, puis utilisez <strong>Ouvrir l’aperçu</strong> en peinture automatique pour examiner les zones étroites de couleurs sources. <strong>Omettre les points de couleur isolés</strong> remplace facultativement les couleurs uniquement présentes dans de minuscules points enclavés, tout en préservant les lignes fines et détails connectés. Les avertissements et les nombres de pixels réellement omis sont affichés séparément. Consultez <a href="/fr/docs/auto-paint#printable-detail">Détails imprimables</a>.</p>
+<h2 id="enhanced-color-matching">Correspondance des couleurs améliorée</h2>
+<p>Recherchez des ordres de matériaux avec répétitions, exigences de couleurs distinctes ou tramage spatial de hauteur. Ils offrent des compromis entre couverture des couleurs, épaisseur, changements et calcul. Consultez <a href="/fr/docs/auto-paint#enhanced-color-matching">Correspondance des couleurs améliorée</a>.</p>
+<h2 id="flat-paint">Peinture à plat</h2>
+<p>Créez une plaque multimatériau plutôt qu’un relief en paliers, soit face vers le bas avec un support transparent, soit face vers le haut sans support. Lisez <a href="/fr/docs/flat-paint">Peinture à plat</a> avant d’exporter : le sens d’observation et les affectations d’objets comptent.</p>
+<h2 id="optimizer-settings">Paramètres d’optimisation</h2>
+<p><strong>Algorithme</strong>, <strong>Priorité régionale</strong>, <strong>Détail des transitions</strong> et <strong>Graine</strong> règlent la correspondance, pas la vitesse de l’imprimante. Consultez <a href="/fr/docs/auto-paint#optimizer-settings">Paramètres d’optimisation</a>.</p>
+<h2 id="transition-zones-and-confidence">Zones de transition et confiance</h2>
+<p>Les zones décrivent les séquences physiques ; la confiance décrit les observations et les limites de modélisation, pas une exactitude d’impression mesurée. Consultez <a href="/fr/docs/auto-paint#transition-zones-and-confidence">Lire le résultat</a>.</p>
+<h2 id="palette-proof">Épreuve de palette</h2>
+<p>Comparez une éprouvette imprimée à des couleurs sélectionnées de l’image et notez les candidats correspondants. Consultez <a href="/fr/docs/calibration-workflows#palette-proof-compare-artwork-colors">Méthodes d’étalonnage</a>.</p>
+<h2 id="stack-matrix">Matrice d’empilements</h2>
+<p>Photographiez une planche de recettes enregistrée, vérifiez l’alignement et sauvegardez les couleurs mesurées pour les empilements compatibles. Consultez <a href="/fr/docs/calibration-workflows#stack-matrix-photograph-known-recipes">Méthodes d’étalonnage</a>.</p>
+<h2 id="preview-controls">Commandes d’aperçu</h2>
+<p>Faites glisser avec le bouton principal pour tourner autour du modèle, utilisez la molette pour zoomer et le bouton secondaire pour déplacer la vue. Les mouvements de caméra ne modifient jamais les dimensions physiques.</p>
+<table><thead><tr><th>Commande de barre d’outils</th><th>Utilité</th><th>Effet sur l’impression</th></tr></thead><tbody><tr><td><strong>Couleurs fidèles</strong></td><td>Comparer les échantillons choisis sans éclairage de scène ni rendu tonal cinématographique.</td><td>Aperçu uniquement. Dépend toujours du modèle et de l’écran ; ne valide pas l’étalonnage.</td></tr><tr><td><strong>Ombré</strong></td><td>Examiner le relief éclairé et la forme.</td><td>Aperçu uniquement ; l’éclairage change la couleur apparente.</td></tr><tr><td><strong>Transparent</strong></td><td>Voir les couches superposées.</td><td>Aperçu uniquement ; ne rend pas le filament transparent.</td></tr><tr><td><strong>Fil de fer</strong></td><td>Examiner les arêtes colorées par couche.</td><td>Aperçu uniquement ; ce ne sont pas des trajectoires d’extrusion.</td></tr><tr><td><strong>Couleurs de l’aperçu</strong></td><td>Alterner mélanges simulés de peinture automatique et couleurs physiques des filaments.</td><td>Aperçu uniquement. Les exports conservent les affectations réelles de matériaux.</td></tr><tr><td><strong>Basculer la caméra</strong></td><td>Alterner profondeur en perspective et alignement orthographique sans raccourcissement.</td><td>Aperçu uniquement. La position de caméra est conservée.</td></tr><tr><td><strong>Annuler / Rétablir</strong></td><td>Parcourir l’historique partagé de retouche d’image.</td><td>Pas un historique des champs 3D ou des filaments. Régénérez après une modification de l’image.</td></tr><tr><td><strong>Télécharger</strong></td><td>Exporter le STL ou 3MF généré.</td><td>Utilise le dernier modèle généré, pas les paramètres latéraux non appliqués.</td></tr></tbody></table>
+<p>Le mode de vue et le choix simulé/physique sont mémorisés. <strong>Couleurs de l’aperçu</strong> apparaît uniquement pour un modèle de peinture automatique déjà généré.</p>
+<h2 id="layer-preview">Aperçu des couches</h2>
+<p>Déplacez les poignées inférieure et supérieure de la barre du bas pour isoler une plage de hauteurs. Les positions s’alignent sur la grille de couches. Survolez les segments de matériau pour les informations de départ ou de changement.</p>
+<p><a href="/localized/fr/diagrams/19_preview_only.svg" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’illustration en taille réelle : Les poignées de limite masquent des couches pour l’examen, mais l’export contient toujours le modèle complet."><img src="/localized/fr/diagrams/19_preview_only.svg" alt="Les poignées de limite masquent des couches pour l’examen, mais l’export contient toujours le modèle complet." loading="lazy"></a></p>
+<p><em>Schéma de principe. Masquer une couche à l’écran ne la supprime jamais de l’export.</em></p>
+<p>La peinture à plat a une piste unie, car plusieurs matériaux peuvent occuper une couche imprimée. Tournez la vue sous la disposition par défaut face vers le bas pour voir l’illustration.</p>
+<p>Un calcul de peinture automatique échoué peut laisser la dernière génération réussie visible. Ne la considérez pas comme une preuve que les nouveaux réglages ont fonctionné. Les instructions d’impression utilisent l’instantané généré lorsqu’il existe. Résolvez l’erreur, régénérez, puis examinez et exportez.</p>
+<p>Suite : <a href="/fr/docs/auto-paint">Commandes de peinture automatique</a>, <a href="/fr/docs/flat-paint">Peinture à plat</a> ou <a href="/fr/docs/generating-exporting-output">Génération et export</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

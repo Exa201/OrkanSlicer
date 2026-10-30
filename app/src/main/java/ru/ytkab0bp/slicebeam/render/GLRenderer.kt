@@ -15,8 +15,10 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
+import ru.ytkab0bp.slicebeam.events.ObjectSurfacePlacementTapEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.GCodeViewer
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
@@ -24,6 +26,12 @@ import ru.ytkab0bp.slicebeam.slic3r.GLShaderProgram
 import ru.ytkab0bp.slicebeam.slic3r.GLShadersManager
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
+import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
+import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
+import ru.ytkab0bp.slicebeam.slic3r.ObjectGroupDistribution
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
+import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacementDelta
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rUtils
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
@@ -33,6 +41,13 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
+
+enum class ModelAlignmentAxis { MIN_X, CENTER_X, MAX_X, MIN_Y, CENTER_Y, MAX_Y, BASE_Z, CENTER_Z, MAX_Z }
+internal const val MODEL_EDIT_STALE_SELECTION = -2
+internal const val MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION = -3
+internal const val MODEL_EDIT_OPERATION_FAILED = -4
+internal const val MODEL_EDIT_ROLLBACK_FAILED = -5
+
 class GLRenderer(glView:GLView):GLSurfaceView.Renderer {
 var camera = Camera()
 var projectionMatrix = DoubleArray(16)
@@ -54,6 +69,8 @@ private var glModels = ArrayList<GLModel>()
 var model:Model? = null
 set(model) {
 field = model
+surfacePlacementTargetObject = -1
+surfacePlacementSelection = null
 if (previewPaletteModel !== model) {
     previewPaletteModel = null
     previewPalette = null
@@ -81,11 +98,16 @@ private var inactivePlateSimplePreview: Boolean? = null
 private val plateViewMatrix = DoubleArray(16)
 var gcodeResult: GCodeProcessorResult? = null
 var viewer: GCodeViewer? = null
-private var isViewerEnabled:Boolean = false
+internal var isViewerEnabled:Boolean = false
 // Primary selection (drives the transform gizmo, flatten, fill-bed, duplicate).
  // selectedObjects holds the full multi-selection; when non-empty it always contains selectedObject.
  var selectedObject = -1
 private val selectedObjects = LinkedHashSet<Int>()
+@Volatile private var surfacePlacementTargetObject = -1
+private var surfacePlacementSelection: ModelSelectionSnapshot? = null
+private var surfacePlacementBooleanOperation: BooleanOperation? = null
+val isSurfacePlacementActive: Boolean
+    get() = surfacePlacementTargetObject >= 0
 private var selX:Double = 0.toDouble()
 private var selY:Double = 0.toDouble()
 private var selZ:Double = 0.toDouble()
@@ -95,6 +117,8 @@ private var selRotZ:Double = 0.toDouble()
 private var selScaleX = 1.0
 private var selScaleY = 1.0
 private var selScaleZ = 1.0
+private var selectionTransformPivot = Vec3d()
+private var selectionTransformIsGroup = false
 private var lastDraw:Long = 0
 private lateinit var glView: GLView
 private var translate = Vec3d()
@@ -114,6 +138,7 @@ clearMeasurePoints()
 }
 }
 @get:Synchronized @set:Synchronized var isInEmbossMode = false
+@Volatile var isStandaloneTextPlacementMode = false
 private var measurePointA:Vec3d? = null
 private var measurePointB:Vec3d? = null
 private var measurePointModel:GLModel? = null
@@ -138,9 +163,20 @@ private var cutConnectorsVAO = -1
 private var cutConnectorsVertexCount = 0
 private var cutConnectorsVertexBuffer: java.nio.FloatBuffer? = null
 private var paintSession: PaintSession? = null
+@Volatile private var paintHistoryObserver: ((canUndo: Boolean, canRedo: Boolean) -> Unit)? = null
 var paintObject = -1
+/** Render-only base material preview while a color-paint session is still staged. */
+private var paintBaseFilamentPreview: Int? = null
+/** Avoid rebuilding full-mesh paint overlays for every high-frequency touch move. */
+private var lastPaintOverlayRebuildAtMs = 0L
+private var paintOverlayRebuildPending = false
+private var paintOverlayRefreshScheduled = false
+private var paintOverlayRefreshGeneration = 0L
+private val PAINT_OVERLAY_PREVIEW_INTERVAL_MS = 40L
+/** A size change reuses the EGL context; only a newly created context needs GL resource rebuild. */
+private var surfaceNeedsResourceRebuild = true
 // ---- Multi-color painting (all methods run on the GL thread) ----
- var isPaintMode:Boolean = false
+ @Volatile var isPaintMode:Boolean = false
 var paintFilament = 2 // 1-based palette index; 1 = base, so default to first painted color
 var paintTool = PAINT_TOOL_BRUSH
 var paintBrushRadius = 4.0 // mm
@@ -180,7 +216,573 @@ val selectedObjectsCount:Int
 get() {
 return selectedObjects.size
 }
+/** Returns a stable snapshot of the current multi-selection. Must be called on the GL thread. */
+fun selectedObjectIndices(): IntArray = selectedObjects.sorted().toIntArray()
+
+/** Captures the model and selection for a delayed dialog or multi-step model edit. GL-thread only. */
+internal fun captureSelectionSnapshot(allowEmptySelection: Boolean = false): ModelSelectionSnapshot? {
+    val activeModel = model ?: return null
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }.toIntArray()
+    val primary = selectedObject
+    if ((!allowEmptySelection && indices.isEmpty()) || (indices.isNotEmpty() && primary !in indices)) return null
+    return ModelSelectionSnapshot(activeModel, activeModel.geometryRevision, activeModel.objectsCount, primary, indices)
+}
+
+/** Revalidates a captured selection immediately before a delayed edit. GL-thread only. */
+internal fun isSelectionSnapshotCurrent(snapshot: ModelSelectionSnapshot): Boolean = snapshot.matches(
+    model,
+    selectedObject,
+    selectedObjectIndices(),
+)
+
+/** Revalidates model and selected objects while allowing consecutive edits to advance geometry. */
+internal fun isSelectionBindingCurrent(snapshot: ModelSelectionSnapshot): Boolean =
+    model === snapshot.model &&
+        snapshot.model.objectsCount == snapshot.objectCount &&
+        selectedObject == snapshot.primaryObject &&
+        selectedObjectIndices().contentEquals(snapshot.selectedIndices)
+
+/** Cache the common preview pivot while on the GL thread so group transforms preview as a unit. */
+fun prepareSelectionTransformPreview() {
+    val activeModel = model ?: run { selectionTransformIsGroup = false; return }
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    selectionTransformIsGroup = indices.size > 1
+    if (indices.isEmpty()) return
+    var minX = Double.POSITIVE_INFINITY
+    var minY = Double.POSITIVE_INFINITY
+    var minZ = Double.POSITIVE_INFINITY
+    var maxX = Double.NEGATIVE_INFINITY
+    var maxY = Double.NEGATIVE_INFINITY
+    var maxZ = Double.NEGATIVE_INFINITY
+    for (index in indices) {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        minX = minOf(minX, bbMin.x); minY = minOf(minY, bbMin.y); minZ = minOf(minZ, bbMin.z)
+        maxX = maxOf(maxX, bbMax.x); maxY = maxOf(maxY, bbMax.y); maxZ = maxOf(maxZ, bbMax.z)
+    }
+    selectionTransformPivot.set((minX + maxX) / 2.0, (minY + maxY) / 2.0, (minZ + maxZ) / 2.0)
+}
+
+/** Apply the same rotation to each selected model around the group bounds center. */
+fun rotateSelectedObjects(x: Double, y: Double, z: Double): Boolean {
+    val activeModel = model ?: return false
+    if (!listOf(x, y, z).all(Double::isFinite)) return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return false
+    val before = indices.associateWith { selectionObjectBounds(activeModel, it) }
+    val pivot = enclosingSelectionBounds(before.values).center()
+    val rotation = DoubleArray(16)
+    DoubleMatrix.setIdentityM(rotation, 0)
+    DoubleMatrix.rotateM(rotation, 0, Math.toDegrees(x), 1.0, 0.0, 0.0)
+    DoubleMatrix.rotateM(rotation, 0, Math.toDegrees(y), 0.0, 1.0, 0.0)
+    DoubleMatrix.rotateM(rotation, 0, Math.toDegrees(z), 0.0, 0.0, 1.0)
+    for (index in indices) {
+        val oldCenter = before.getValue(index).center()
+        val relative = doubleArrayOf(oldCenter.x - pivot.x, oldCenter.y - pivot.y, oldCenter.z - pivot.z, 0.0)
+        val rotated = DoubleArray(4)
+        DoubleMatrix.multiplyMV(rotated, 0, rotation, 0, relative, 0)
+        val desired = Vec3d(pivot.x + rotated[0], pivot.y + rotated[1], pivot.z + rotated[2])
+        activeModel.rotate(index, x, y, z)
+        val rotatedCenter = selectionObjectBounds(activeModel, index).center()
+        activeModel.translate(index, desired.x - rotatedCenter.x, desired.y - rotatedCenter.y, desired.z - rotatedCenter.z)
+        invalidateGlModel(index)
+    }
+    placeSelectionOnBed(activeModel, indices)
+    setSelectionRotation(0.0, 0.0, 0.0)
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Scale each selected object by the primary object's relative factor around the group center. */
+fun scaleSelectedObjects(targetX: Double, targetY: Double, targetZ: Double): Boolean {
+    val activeModel = model ?: return false
+    if (!listOf(targetX, targetY, targetZ).all { it.isFinite() && it > 0.0 }) return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return false
+    val primary = selectedObject.takeIf { it in indices } ?: return false
+    val primaryScale = Vec3d()
+    activeModel.getScale(primary, primaryScale)
+    if (listOf(primaryScale.x, primaryScale.y, primaryScale.z).any { !it.isFinite() || it <= 0.0 }) return false
+    val ratio = Vec3d(targetX / primaryScale.x, targetY / primaryScale.y, targetZ / primaryScale.z)
+    if (listOf(ratio.x, ratio.y, ratio.z).any { !it.isFinite() || it <= 0.0 }) return false
+    val before = indices.associateWith { selectionObjectBounds(activeModel, it) }
+    val pivot = enclosingSelectionBounds(before.values).center()
+    val targetScales = indices.associateWith { index ->
+        val currentScale = Vec3d()
+        activeModel.getScale(index, currentScale)
+        Vec3d(currentScale.x * ratio.x, currentScale.y * ratio.y, currentScale.z * ratio.z)
+    }
+    // Validate the full selection before mutating any object. A bad scale must never
+    // leave a partially transformed group.
+    if (targetScales.values.any { scale ->
+            listOf(scale.x, scale.y, scale.z).any { !it.isFinite() || it <= 0.0 }
+        }) return false
+    for (index in indices) {
+        val oldCenter = before.getValue(index).center()
+        val nextScale = targetScales.getValue(index)
+        activeModel.scale(index, nextScale.x, nextScale.y, nextScale.z)
+        val scaledCenter = selectionObjectBounds(activeModel, index).center()
+        val desired = Vec3d(
+            pivot.x + (oldCenter.x - pivot.x) * ratio.x,
+            pivot.y + (oldCenter.y - pivot.y) * ratio.y,
+            pivot.z + (oldCenter.z - pivot.z) * ratio.z,
+        )
+        activeModel.translate(index, desired.x - scaledCenter.x, desired.y - scaledCenter.y, desired.z - scaledCenter.z)
+        invalidateGlModel(index)
+    }
+    placeSelectionOnBed(activeModel, indices)
+    setSelectionScale(1.0, 1.0, 1.0)
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Mirror each selected object in place while keeping the selection's relative placement intact. */
+fun mirrorSelectedObjects(axis: ModelMirrorAxis): Boolean {
+    val activeModel = model ?: return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return false
+
+    // Snapshot all bounds before touching native geometry. Mirroring is centered per object,
+    // so X/Y placement and group spacing remain unchanged; Z is corrected for the group as
+    // a whole to keep every object's relative height intact.
+    for (index in indices) {
+        activeModel.mirror(index, axis)
+        invalidateGlModel(index)
+    }
+    val mirroredBounds = indices.map { selectionObjectBounds(activeModel, it) }
+    val groupMinZ = mirroredBounds.minOf { it.min.z }
+    val bedZ = bed?.getVolumeMin()?.z ?: 0.0
+    val deltaZ = bedZ - groupMinZ
+    if (deltaZ.isFinite() && kotlin.math.abs(deltaZ) > 1e-9) {
+        indices.forEach { index ->
+            activeModel.translate(index, 0.0, 0.0, deltaZ)
+            invalidateGlModel(index)
+        }
+    }
+    // Let the next transform preview use the current multi-selection pivot.
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Align the selected group to the primary object's X/Y center or Z base. GL-thread only. */
+internal fun alignSelectedObjects(axis: ModelAlignmentAxis, expectedSelection: ModelSelectionSnapshot? = null): Boolean {
+    val activeModel = model ?: return false
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.size < 2) return false
+    val primary = selectedObject.takeIf { it in indices } ?: indices.first()
+    val bounds = LinkedHashMap<Int, ObjectBounds3D>(indices.size)
+    for (index in indices) {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        val objectBounds = ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+        if (ObjectPlacement.enclosing(listOf(objectBounds)) == null) return false
+        bounds[index] = objectBounds
+    }
+    val reference = bounds[primary] ?: return false
+    val target = when (axis) {
+        ModelAlignmentAxis.MIN_X -> reference.minX
+        ModelAlignmentAxis.CENTER_X -> (reference.minX + reference.maxX) / 2.0
+        ModelAlignmentAxis.MAX_X -> reference.maxX
+        ModelAlignmentAxis.MIN_Y -> reference.minY
+        ModelAlignmentAxis.CENTER_Y -> (reference.minY + reference.maxY) / 2.0
+        ModelAlignmentAxis.MAX_Y -> reference.maxY
+        ModelAlignmentAxis.BASE_Z -> reference.minZ
+        ModelAlignmentAxis.CENTER_Z -> (reference.minZ + reference.maxZ) / 2.0
+        ModelAlignmentAxis.MAX_Z -> reference.maxZ
+    }
+    val deltas = indices.associateWith { index ->
+        val item = bounds.getValue(index)
+        when (axis) {
+            ModelAlignmentAxis.MIN_X -> target - item.minX
+            ModelAlignmentAxis.CENTER_X -> target - (item.minX + item.maxX) / 2.0
+            ModelAlignmentAxis.MAX_X -> target - item.maxX
+            ModelAlignmentAxis.MIN_Y -> target - item.minY
+            ModelAlignmentAxis.CENTER_Y -> target - (item.minY + item.maxY) / 2.0
+            ModelAlignmentAxis.MAX_Y -> target - item.maxY
+            ModelAlignmentAxis.BASE_Z -> target - item.minZ
+            ModelAlignmentAxis.CENTER_Z -> target - (item.minZ + item.maxZ) / 2.0
+            ModelAlignmentAxis.MAX_Z -> target - item.maxZ
+        }
+    }
+    if (deltas.values.any { !it.isFinite() }) return false
+    var changed = false
+    for (index in indices) {
+        val delta = deltas.getValue(index)
+        if (kotlin.math.abs(delta) <= 1e-9) continue
+        when (axis) {
+            ModelAlignmentAxis.MIN_X,
+            ModelAlignmentAxis.CENTER_X -> activeModel.translate(index, delta, 0.0, 0.0)
+            ModelAlignmentAxis.MAX_X -> activeModel.translate(index, delta, 0.0, 0.0)
+            ModelAlignmentAxis.MIN_Y,
+            ModelAlignmentAxis.CENTER_Y -> activeModel.translate(index, 0.0, delta, 0.0)
+            ModelAlignmentAxis.MAX_Y -> activeModel.translate(index, 0.0, delta, 0.0)
+            ModelAlignmentAxis.BASE_Z,
+            ModelAlignmentAxis.CENTER_Z,
+            ModelAlignmentAxis.MAX_Z -> activeModel.translate(index, 0.0, 0.0, delta)
+        }
+        invalidateGlModel(index)
+        changed = true
+    }
+    if (!changed) return false
+    activeModel.resetBoundingBox()
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Distribute three or more selected objects with equal clear gaps along one axis. GL-thread only. */
+internal fun distributeSelectedObjects(axis: ObjectDistributionAxis, expectedSelection: ModelSelectionSnapshot? = null): Boolean {
+    val activeModel = model ?: return false
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return false
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.size < 3) return false
+    val bounds = LinkedHashMap<Int, ObjectBounds3D>(indices.size)
+    for (index in indices) {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        val item = ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+        if (ObjectPlacement.enclosing(listOf(item)) == null) return false
+        bounds[index] = item
+    }
+    // Plan the entire operation before mutating native state, so invalid or crowded layouts
+    // cannot leave a partially distributed selection.
+    val deltas = ObjectGroupDistribution.plan(bounds, axis) ?: return false
+    val changed = deltas.filterValues { delta ->
+        kotlin.math.abs(delta.x) > 1e-9 || kotlin.math.abs(delta.y) > 1e-9 || kotlin.math.abs(delta.z) > 1e-9
+    }
+    if (changed.isEmpty()) return false
+    changed.forEach { (index, delta) ->
+        activeModel.translate(index, delta.x, delta.y, delta.z)
+        invalidateGlModel(index)
+    }
+    activeModel.resetBoundingBox()
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return true
+}
+
+/** Auto-orient the given objects individually while keeping each object's center fixed. GL-thread only. */
+private fun autoOrientObjectsAtFixedCenters(activeModel: Model, indices: List<Int>): Int {
+    if (indices.isEmpty()) return 0
+    indices.forEach { index ->
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        val centerX = (bbMin.x + bbMax.x) / 2.0
+        val centerY = (bbMin.y + bbMax.y) / 2.0
+        val centerZ = (bbMin.z + bbMax.z) / 2.0
+        activeModel.autoOrient(index)
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        activeModel.translate(
+            index,
+            centerX - (bbMin.x + bbMax.x) / 2.0,
+            centerY - (bbMin.y + bbMax.y) / 2.0,
+            centerZ - (bbMin.z + bbMax.z) / 2.0,
+        )
+        invalidateGlModel(index)
+    }
+    activeModel.resetBoundingBox()
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return indices.size
+}
+
+/** Auto-orient every selected object individually while keeping each object's position fixed. GL-thread only. */
+fun autoOrientSelectedObjects(): Int = autoOrientSelectedObjects(null)
+
+/** Keep delayed UI actions bound to the selection they were opened for. GL-thread only. */
+internal fun autoOrientSelectedObjects(expectedSelection: ModelSelectionSnapshot?): Int {
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return 0
+    val indices = (expectedSelection?.selectedIndices?.toList() ?: selectedObjectIndices().toList())
+        .filter { it in 0 until activeModel.objectsCount }
+    return autoOrientObjectsAtFixedCenters(activeModel, indices)
+}
+
+/** Auto-orient every workspace object individually without changing their placement. GL-thread only. */
+fun autoOrientAllObjects(): Int {
+    val activeModel = model ?: return 0
+    return autoOrientObjectsAtFixedCenters(activeModel, (0 until activeModel.objectsCount).toList())
+}
+
+private data class SelectionBounds(val min: Vec3d, val max: Vec3d) {
+    fun center() = Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0)
+}
+
+private fun selectionObjectBounds(activeModel: Model, index: Int): SelectionBounds {
+    val min = Vec3d(); val max = Vec3d()
+    activeModel.getBoundingBoxExact(index, min, max)
+    return SelectionBounds(min, max)
+}
+
+private fun enclosingSelectionBounds(bounds: Collection<SelectionBounds>): SelectionBounds {
+    require(bounds.isNotEmpty())
+    return SelectionBounds(
+        Vec3d(bounds.minOf { it.min.x }, bounds.minOf { it.min.y }, bounds.minOf { it.min.z }),
+        Vec3d(bounds.maxOf { it.max.x }, bounds.maxOf { it.max.y }, bounds.maxOf { it.max.z }),
+    )
+}
+
+private fun placeSelectionOnBed(activeModel: Model, indices: List<Int>) {
+    val group = enclosingSelectionBounds(indices.map { selectionObjectBounds(activeModel, it) })
+    val bedZ = bed?.getVolumeMin()?.z ?: 0.0
+    val deltaZ = bedZ - group.min.z
+    if (!deltaZ.isFinite() || kotlin.math.abs(deltaZ) < 1e-9) return
+    indices.forEach { index ->
+        activeModel.translate(index, 0.0, 0.0, deltaZ)
+        invalidateGlModel(index)
+    }
+}
+
+/** Replaces the selected models by one multipart object, retaining each source volume's material. */
+internal fun combineSelectedObjectsAsParts(expectedSelection: ModelSelectionSnapshot? = null): Int {
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val source = model ?: return -1
+    val selectedIndices = selectedObjectIndices()
+    if (selectedIndices.size < 2) return -1
+    // Keep the active object as the destination object. Its object-level settings and
+    // identity should lead the resulting multipart assembly, just as they do for Boolean edits.
+    val primaryIndex = selectedObject.takeIf { it in selectedIndices } ?: selectedIndices.first()
+    val indices = intArrayOf(primaryIndex) + selectedIndices.filter { it != primaryIndex }
+    val combined = ModelEditOperation.runSafely(
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
+        onFailure = { Log.e("GLRenderer", "Could not combine selected objects", it) },
+    ) { source.combineObjectsAsParts(indices) }
+    if (combined < 0) return combined
+    resetGlModels()
+    setSelectedObject(combined)
+    return combined
+}
+
+/** Split a multipart object so the requested part becomes a normal independently editable object. */
+internal fun splitObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    expectedSelection: ModelSelectionSnapshot,
+): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return -1
+    val partCount = activeModel.getObjectPartCount(objectIndex)
+    if (objectIndex !in 0 until activeModel.objectsCount || partIndex !in 0 until partCount) return -1
+    val oldObjectCount = activeModel.objectsCount
+    val splitCount = runCatching { activeModel.split(objectIndex) }.getOrElse { error ->
+        Log.e("GLRenderer", "Could not separate multipart model part", error)
+        0
+    }
+    if (splitCount <= 1 || partIndex >= splitCount) return 0
+    // Native split appends the generated objects and then removes the original entry.
+    val selectedPartIndex = oldObjectCount - 1 + partIndex
+    resetGlModels()
+    setSelectedObject(selectedPartIndex)
+    return splitCount
+}
+
+/** Transforms one printable volume while preserving its parent object and sibling parts. GL-thread only. */
+internal fun transformObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    dx: Double,
+    dy: Double,
+    dz: Double,
+    scaleX: Double,
+    scaleY: Double,
+    scaleZ: Double,
+    rotationXDegrees: Double = 0.0,
+    rotationYDegrees: Double = 0.0,
+    rotationZDegrees: Double = 0.0,
+    expectedSelection: ModelSelectionSnapshot,
+): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return MODEL_EDIT_OPERATION_FAILED
+    val result = ModelEditOperation.runSafely(
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
+        onFailure = { Log.e("GLRenderer", "Could not transform grouped model part", it) },
+    ) {
+        if (activeModel.transformObjectPart(
+                objectIndex, partIndex, dx, dy, dz,
+                scaleX, scaleY, scaleZ,
+                rotationXDegrees, rotationYDegrees, rotationZDegrees,
+            )) 1
+        else MODEL_EDIT_OPERATION_FAILED
+    }
+    if (result != 1) return result
+    invalidateGlModel(objectIndex)
+    activeModel.resetBoundingBox()
+    setSelectedObject(objectIndex)
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return 1
+}
+
+/** Places the current selection on a target while keeping every model object independent. */
+internal fun placeSelectedObjectsOnObject(
+    targetIndex: Int,
+    expectedSelection: ModelSelectionSnapshot? = null,
+): Int {
+    val activeModel = model ?: return -1
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val movingIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices)
+        return -1
+
+    fun bounds(index: Int): ObjectBounds3D {
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        return ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+    }
+    val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
+    val delta = ObjectPlacement.onTop(movingBounds, bounds(targetIndex)) ?: return -1
+
+    return placeObjectsWithoutCombining(movingIndices, delta)
+}
+
+/** Start a GL-thread-only interaction that seats the selected group at a picked top-surface point. */
+internal fun beginSurfacePlacement(targetIndex: Int, expectedSelection: ModelSelectionSnapshot? = null): Int {
+    // A new request replaces any pending tap target, including when the new target is
+    // invalid or too dense. Otherwise an old placement can remain active behind the error.
+    cancelSurfacePlacement()
+    val activeModel = model ?: return 0
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    if (targetIndex !in 0 until activeModel.objectsCount) return 0
+    // Dense meshes use bounds-only picking to avoid building Orca's expensive native
+    // face-neighbour index on a touch. Never start a surface-placement interaction unless
+    // the target can provide a precise triangle hit.
+    if (!LargeModelPick.canUsePreciseSurfaceTools(activeModel.getTriangleCount(targetIndex))) {
+        return MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION
+    }
+    val moving = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (moving.isEmpty() || targetIndex in moving || isInEmbossMode || isInMeasureMode || isPaintMode) return 0
+    surfacePlacementSelection = expectedSelection ?: captureSelectionSnapshot() ?: return 0
+    surfacePlacementTargetObject = targetIndex
+    surfacePlacementBooleanOperation = null
+    return 1
+}
+
+/** Starts a precise tap workflow that places selected tools on the selected Boolean target. */
+internal fun beginSurfaceBoolean(
+    targetIndex: Int,
+    operation: BooleanOperation,
+    expectedSelection: ModelSelectionSnapshot? = null,
+): Int {
+    cancelSurfacePlacement()
+    val activeModel = model ?: return 0
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    if (targetIndex !in 0 until activeModel.objectsCount) return 0
+    if (!LargeModelPick.canUsePreciseSurfaceTools(activeModel.getTriangleCount(targetIndex))) {
+        return MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION
+    }
+    val selected = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (selected.size < 2 || targetIndex !in selected || isInEmbossMode || isInMeasureMode || isPaintMode) return 0
+    surfacePlacementSelection = expectedSelection ?: captureSelectionSnapshot() ?: return 0
+    surfacePlacementTargetObject = targetIndex
+    surfacePlacementBooleanOperation = operation
+    return 1
+}
+
+internal fun cancelSurfacePlacement() {
+    surfacePlacementTargetObject = -1
+    surfacePlacementSelection = null
+    surfacePlacementBooleanOperation = null
+}
+
+/** Commits a surface-tap placement while keeping the moving group as one printable multipart object. */
+internal fun placeSelectedObjectsOnSurface(
+    targetIndex: Int,
+    position: Vec3d,
+    normal: Vec3d,
+    expectedSelection: ModelSelectionSnapshot? = surfacePlacementSelection,
+    booleanOperation: BooleanOperation? = surfacePlacementBooleanOperation,
+): Int {
+    return try {
+        val activeModel = model ?: return -1
+        if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) {
+            return MODEL_EDIT_STALE_SELECTION
+        }
+        if (surfacePlacementBooleanOperation != booleanOperation) return MODEL_EDIT_STALE_SELECTION
+        val movingIndices = selectedObjectIndices().filter {
+            it in 0 until activeModel.objectsCount && (booleanOperation == null || it != targetIndex)
+        }
+        if (movingIndices.isEmpty() || targetIndex !in 0 until activeModel.objectsCount || targetIndex in movingIndices) {
+            return -1
+        }
+        val min = Vec3d(); val max = Vec3d()
+        fun bounds(index: Int): ObjectBounds3D {
+            activeModel.getBoundingBoxExact(index, min, max)
+            return ObjectBounds3D(min.x, min.y, min.z, max.x, max.y, max.z)
+        }
+        val movingBounds = ObjectPlacement.enclosing(movingIndices.map(::bounds)) ?: return -1
+        val minimumSupportProjection = activeModel.getMinimumProjection(movingIndices.toIntArray(), normal) ?: return -1
+        val delta = if (booleanOperation == null) {
+            ObjectPlacement.onSurface(movingBounds, position, normal, minimumSupportProjection)
+        } else {
+            ObjectPlacement.forSurfaceBoolean(
+                movingBounds, position, normal, minimumSupportProjection = minimumSupportProjection,
+            )
+        } ?: return -1
+        if (booleanOperation == null) placeObjectsWithoutCombining(movingIndices, delta)
+        else placeAndBooleanWithTarget(targetIndex, movingIndices, delta, booleanOperation)
+    } finally {
+        cancelSurfacePlacement()
+    }
+}
+
+private fun placeAndBooleanWithTarget(
+    targetIndex: Int,
+    movingIndices: List<Int>,
+    delta: ObjectPlacementDelta,
+    operation: BooleanOperation,
+): Int {
+    val activeModel = model ?: return -1
+    val result = ModelPlacementTransaction.applyAndCommit(
+        items = movingIndices,
+        snapshot = { index -> Vec3d().also { activeModel.getTranslation(index, it) } },
+        apply = { index ->
+            activeModel.translate(index, delta.x, delta.y, delta.z)
+            invalidateGlModel(index)
+        },
+        restore = { index, before ->
+            val after = Vec3d()
+            activeModel.getTranslation(index, after)
+            activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+            invalidateGlModel(index)
+        },
+        commit = { activeModel.booleanObjects((listOf(targetIndex) + movingIndices).toIntArray(), operation) },
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
+        rollbackFailureResult = MODEL_EDIT_ROLLBACK_FAILED,
+        onError = { error -> Log.e("GLRenderer", "Surface Boolean failed; tool placement rolled back", error) },
+    )
+    if (result < 0) return result
+    resetGlModels()
+    setSelectedObject(result)
+    return result
+}
+
+private fun placeObjectsWithoutCombining(movingIndices: List<Int>, delta: ObjectPlacementDelta): Int {
+    val activeModel = model ?: return -1
+
+    val placed = ModelPlacementTransaction.applyAndCommit(
+        items = movingIndices,
+        snapshot = { index -> Vec3d().also { activeModel.getTranslation(index, it) } },
+        apply = { index ->
+            activeModel.translate(index, delta.x, delta.y, delta.z)
+            invalidateGlModel(index)
+        },
+        restore = { index, before ->
+            val after = Vec3d()
+            activeModel.getTranslation(index, after)
+            activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+            invalidateGlModel(index)
+        },
+        // Surface placement is only a geometric operation. Joining parts is a separate,
+        // explicit user action so overlapping objects remain independently editable.
+        commit = { 1 },
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
+        rollbackFailureResult = MODEL_EDIT_ROLLBACK_FAILED,
+        onError = { error -> Log.e("GLRenderer", "Could not place selected objects; placement rolled back", error) },
+    )
+    return placed
+}
+
 private var paintModeKind = PAINT_MODE_COLOR
+private var cutConnectorTargetObjectIndex = -1
 private class CutConnectorPreview {
 internal lateinit var position:Vec3d
 internal var radius:Float = 0.toFloat()
@@ -189,8 +791,9 @@ internal var type:Int = 0
 internal var rotX:Double = 0.toDouble()
 internal var rotY:Double = 0.toDouble()
 }
-@Synchronized fun setCutConnectorPlacement(enabled:Boolean) {
+@Synchronized fun setCutConnectorPlacement(enabled:Boolean, targetObjectIndex:Int = -1) {
 cutConnectorPlacement = enabled
+cutConnectorTargetObjectIndex = if (enabled) targetObjectIndex else -1
 }
 @Synchronized fun setCutConnectorDefaults(radius:Float, height:Float, type:Int) {
 cutConnectorRadius = Math.max(0.1f, radius)
@@ -205,15 +808,26 @@ if (this.model != null && objIdx >= 0 && objIdx < this.model!!.objectsCount)
 this.model!!.clearConnectors(objIdx)
 }
 }
+@Synchronized fun discardCutConnectorPreviewsForObject(objIdx:Int) {
+if (cutConnectorPreviews.remove(objIdx) != null) cutConnectorsDirty = true
+}
+@Synchronized fun commitCutConnectorsForObject(objIdx:Int) {
+val pending = cutConnectorPreviews.remove(objIdx) ?: return
+val activeModel = this.model
+if (activeModel == null || objIdx < 0 || objIdx >= activeModel.objectsCount) {
+cutConnectorsDirty = true
+return
+}
+for (connector in pending) {
+activeModel.addConnector(objIdx, connector.position, connector.radius, connector.height, connector.type, connector.rotX, connector.rotY)
+}
+cutConnectorsDirty = true
+}
 @Synchronized fun removeLastCutConnectorForObject(objIdx:Int) {
 val list = cutConnectorPreviews.get(objIdx)
 if (list == null || list.isEmpty()) return
 val idx = list.size - 1
 list.removeAt(idx)
-if (this.model != null && objIdx >= 0 && objIdx < this.model!!.objectsCount)
-{
-this.model!!.removeConnector(objIdx, idx)
-}
 cutConnectorsDirty = true
 }
 @Synchronized fun getCutConnectorCount(objIdx:Int):Int {
@@ -299,7 +913,7 @@ return primeTowerBedHits.get(0).position
 }
 fun tryStartPrimeTowerDrag(screenX:Float, screenY:Float):Boolean {
 if (isViewerEnabled || bed == null || !bed!!.isValid()) return false
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: return false
 if (!isPrimeTowerEnabled(cfg)) return false
 val p = raycastBed(screenX, screenY)
 if (p == null) return false
@@ -318,7 +932,7 @@ fun dragPrimeTower(screenX:Float, screenY:Float):Boolean {
 if (java.lang.Double.isNaN(primeTowerPreviewX) || java.lang.Double.isNaN(primeTowerPreviewY)) return false
 val p = raycastBed(screenX, screenY)
 if (p == null) return false
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: return false
 val w = towerWidth(cfg)
 val d = towerDepth(cfg, w)
 val min = bed!!.getVolumeMin()
@@ -343,7 +957,13 @@ fun finishPrimeTowerDrag(commit:Boolean):Boolean {
 if (java.lang.Double.isNaN(primeTowerPreviewX) || java.lang.Double.isNaN(primeTowerPreviewY)) return false
 if (commit)
 {
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: run {
+    primeTowerPreviewX = Double.NaN
+    primeTowerPreviewY = Double.NaN
+    primeTowerGrabOffsetX = Double.NaN
+    primeTowerGrabOffsetY = Double.NaN
+    return false
+}
 val xs = vectorWithValue(configValue(cfg, "wipe_tower_x", "15"), currentPlateIndex, primeTowerPreviewX)
 val ys = vectorWithValue(configValue(cfg, "wipe_tower_y", "15"), currentPlateIndex, primeTowerPreviewY)
 val pending = HashMap<String, String>()
@@ -380,11 +1000,13 @@ if (!viewer!!.isOptionVisible(GCodeViewer.OPTION_TYPE_SEAMS))
 {
 viewer!!.toggleOptionVisibility(GCodeViewer.OPTION_TYPE_SEAMS)
 }
-if (isModelMultiColor)
+val sliceToolColors = gcodeResult?.previewToolColors
+if (ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.shouldUseToolPreview(isModelMultiColor, sliceToolColors))
 {
-val pal = ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette()
-val rgb = IntArray(pal.size)
-for (i in pal.indices) rgb[i] = pal[i] and 0xFFFFFF
+val rgb = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.previewColors(
+    sliceToolColors,
+    ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette(),
+)
 viewer!!.setToolColors(rgb)
 viewer!!.viewType = GCodeViewer.VIEW_TYPE_TOOL
 }
@@ -423,17 +1045,24 @@ measurePointB = null
 init{
 this.glView = glView
 }
-override fun onSurfaceCreated(gl:GL10, config:EGLConfig) {}
+override fun onSurfaceCreated(gl:GL10, config:EGLConfig) {
+surfaceNeedsResourceRebuild = true
+}
 override fun onSurfaceChanged(gl:GL10, width:Int, height:Int) {
 if (width <= 0 || height <= 0) return
+// Opening the docked paint panel reduces the GL surface while preserving the camera
+// zoom. At a zoom above the bed-fit level that can crop the plate even though the new
+// orthographic projection is otherwise fitted correctly. Refit on a shrinking paint
+// viewport; the user can still zoom in again after the dock has settled.
+val paintViewportShrank = isPaintMode && viewportWidth > 0 && viewportHeight > 0 &&
+    (width < viewportWidth || height < viewportHeight)
 viewportWidth = width
 viewportHeight = height
-if (bed != null)
-{
-onDestroy()
-}
-onCreate()
+if (bed != null && surfaceNeedsResourceRebuild) onDestroy()
+if (bed == null) onCreate()
+surfaceNeedsResourceRebuild = false
 glViewport(0, 0, width, height)
+if (paintViewportShrank && camera.zoom > 1f) camera.zoom = 1f
 updateProjection()
 }
 fun updateProjection() {
@@ -446,11 +1075,26 @@ if (Prefs.isOrthoProjectionEnabled())
 {
 val min = bed!!.getVolumeMin()!!
 val max = bed!!.getVolumeMax()!!
-// The diagonal also fits the isometric bed in a narrow viewport, regardless of bed origin.
-val scale = (kotlin.math.hypot(max.x - min.x, max.y - min.y) / 2.0 + 10.0) * invZoom
-val ratioHorizontal = if (aspectRatio > 1) aspectRatio else 1f
-val ratioVertical = if (aspectRatio < 1) 1f / aspectRatio else 1f
-DoubleMatrix.orthoM(projectionMatrix, 0, (-scale * ratioHorizontal).toDouble(), (scale * ratioHorizontal).toDouble(), (-scale * ratioVertical).toDouble(), (scale * ratioVertical).toDouble(), NEAR_PLANE.toDouble(), FAR_PLANE.toDouble())
+// Fit the actual projected bed corners. The GL viewport gets shorter when a paint
+// dock opens; deriving scale only from the plate's XY diagonal kept the previous zoom
+// and clipped the plate on those narrow viewports.
+val viewMatrix = camera.getViewModelMatrix()
+var projectedHalfWidth = 0.0
+var projectedHalfHeight = 0.0
+for (x in doubleArrayOf(min.x, max.x)) {
+    for (y in doubleArrayOf(min.y, max.y)) {
+        val corner = doubleArrayOf(x, y, min.z, 1.0)
+        val inView = DoubleArray(4)
+        DoubleMatrix.multiplyMV(inView, 0, viewMatrix, 0, corner, 0)
+        projectedHalfWidth = maxOf(projectedHalfWidth, kotlin.math.abs(inView[0]))
+        projectedHalfHeight = maxOf(projectedHalfHeight, kotlin.math.abs(inView[1]))
+    }
+}
+val (halfWidth, halfHeight) = BuildPlateProjectionFit.halfExtents(
+    projectedHalfWidth, projectedHalfHeight, aspectRatio.toDouble(), camera.zoom.toDouble(),
+)
+DoubleMatrix.orthoM(projectionMatrix, 0, -halfWidth, halfWidth, -halfHeight, halfHeight,
+    NEAR_PLANE.toDouble(), FAR_PLANE.toDouble())
 }
 else
 {
@@ -483,6 +1127,28 @@ return true
 fun isSelected(i:Int):Boolean {
 return selectedObjects.contains(i)
 }
+/** Replace the active selection with a validated group from the object list. */
+ fun setSelectedObjects(indices: IntArray): Boolean {
+    val activeModel = model ?: return false
+    val normalized = indices.toSortedSet()
+    if (normalized.size != indices.size || normalized.any { it !in 0 until activeModel.objectsCount }) return false
+    val primary = selectedObject.takeIf { it in normalized } ?: normalized.firstOrNull() ?: -1
+    if (selectedObject == primary && selectedObjects == normalized) return false
+    selectedObject = primary
+    selectedObjects.clear()
+    selectedObjects.addAll(normalized)
+    selZ = 0.0
+    selY = selZ
+    selX = selY
+    selRotZ = 0.0
+    selRotY = selRotZ
+    selRotX = selRotY
+    selScaleZ = 1.0
+    selScaleY = selScaleZ
+    selScaleX = selScaleY
+    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+    return true
+ }
 /** Clear object-specific controls before replacing the active build-plate model. */
 fun clearSelectionForPlateSwitch() {
 val selection = ObjectTapSelectionPolicy.clearForPlateSwitch(selectedObject, selectedObjects)
@@ -785,8 +1451,18 @@ if (selected)
 {
 // Live move delta applies to the whole selection (group move).
  DoubleMatrix.translateM(modelMatrix, 0, selX, selY, selZ)
-// Live rotation/scale only previews on the primary object (the gizmo target).
- if (primary)
+// A multi-selection previews rotation/scale around its shared bounds center.
+ if (selectionTransformIsGroup)
+{
+DoubleMatrix.translateM(modelMatrix, 0, selectionTransformPivot.x, selectionTransformPivot.y, selectionTransformPivot.z)
+DoubleMatrix.rotateM(modelMatrix, 0, selRotX, (1).toDouble(), (0).toDouble(), (0).toDouble())
+DoubleMatrix.rotateM(modelMatrix, 0, selRotY, (0).toDouble(), (1).toDouble(), (0).toDouble())
+DoubleMatrix.rotateM(modelMatrix, 0, selRotZ, (0).toDouble(), (0).toDouble(), (1).toDouble())
+DoubleMatrix.scaleM(modelMatrix, 0, selScaleX, selScaleY, selScaleZ)
+DoubleMatrix.translateM(modelMatrix, 0, -selectionTransformPivot.x, -selectionTransformPivot.y, -selectionTransformPivot.z)
+}
+// Single-object preview remains around the object's existing origin.
+else if (primary)
 {
 this.model!!.getTranslation(i, translate)
 this.model!!.getRotation(i, rotate)
@@ -823,7 +1499,9 @@ val hovering = glModel.isHovering || selected
  val paintingThis = isPaintMode && i == paintObject
 // While painting, show the live session overlays; otherwise the persisted committed ones.
  val overlays = if (paintingThis) paintOverlays else getCommittedOverlays(i)
-val baseFilament = (this.model!!.getUsedFilaments(i).firstOrNull() ?: 1) - 1
+val baseFilament = ((if (paintingThis) paintBaseFilamentPreview else null)
+    ?: this.model!!.getUsedFilaments(i).firstOrNull()
+    ?: 1) - 1
 val baseColor = paintPalette.getOrNull(baseFilament) ?: color
 glModel.setColor(ColorUtils.blendARGB(baseColor, Color.WHITE, if (hovering) 0.4f else 0f))
 glModel.render()
@@ -955,16 +1633,18 @@ val enabled:Boolean
 val radius:Float
 val height:Float
 val type:Int
+val targetObjectIndex:Int
 synchronized (this) {
 enabled = cutConnectorPlacement
 radius = cutConnectorRadius
 height = cutConnectorHeight
 type = cutConnectorType
+targetObjectIndex = cutConnectorTargetObjectIndex
 }
-if (!enabled || this.model == null || selectedObject < 0 || selectedObject >= this.model!!.objectsCount) return false
+val activeModel = this.model
+if (!enabled || activeModel == null || targetObjectIndex < 0 || targetObjectIndex >= activeModel.objectsCount) return false
 val hit = raycastCutPlane(x, y)
 if (hit == null) return false
-this.model!!.addConnector(selectedObject, hit, radius, height, type, (cutPlaneRotX).toDouble(), (cutPlaneRotY).toDouble())
 val preview = CutConnectorPreview()
 preview.position = hit
 preview.radius = radius
@@ -973,11 +1653,11 @@ preview.type = type
 preview.rotX = cutPlaneRotX.toDouble()
 preview.rotY = cutPlaneRotY.toDouble()
 synchronized (this) {
-var list = cutConnectorPreviews.get(selectedObject)
+var list = cutConnectorPreviews.get(targetObjectIndex)
 if (list == null)
 {
 list = ArrayList()
-cutConnectorPreviews.put(selectedObject, list)
+cutConnectorPreviews.put(targetObjectIndex, list)
 }
 list.add(preview)
 cutConnectorsDirty = true
@@ -996,7 +1676,8 @@ private fun drawCutConnectors() {
 var previews:List<CutConnectorPreview> = emptyList()
 val dirty:Boolean
 synchronized (this) {
-val current = cutConnectorPreviews.get(selectedObject)
+val displayObject = if (cutConnectorPlacement) cutConnectorTargetObjectIndex else selectedObject
+val current = cutConnectorPreviews.get(displayObject)
 if (current == null || current.isEmpty()) return
 previews = ArrayList(current)
 dirty = cutConnectorsDirty
@@ -1181,7 +1862,7 @@ flat.stopUsing()
 }
 private fun drawPrimeTowerPreview(viewMatrix:DoubleArray) {
 if (isViewerEnabled || bed == null || !bed!!.isValid()) return
-val cfg = SliceBeam.buildCurrentConfigObject()
+val cfg = SliceBeam.buildCurrentConfigObjectOrNull() ?: return
 if (!isPrimeTowerEnabled(cfg)) return
 val x = towerX(cfg)
 val y = towerY(cfg)
@@ -1322,100 +2003,96 @@ selectedObjects.clear()
 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return true
 }
-/**
- * Batch-fill the bed with copies of the selected object.
- * Uses bounding box math to estimate capacity, adds all copies at once,
- * then arranges a single time â€” much faster than the old one-at-a-time approach.
- */
- fun fillBedWithSelectedObject():Int {
-if (this.model == null || bed == null || !bed!!.isValid() || isViewerEnabled || selectedObject == -1) return 0
-val maxAttempts = FillBedPlanner.copyAttemptsForLimit(this.model!!.objectsCount, MAX_FILL_BED_OBJECTS)
-if (maxAttempts == 0) return 0
-// Calculate how many copies can fit using bounding box math
- val estimatedCapacity = estimateBedCapacity(selectedObject)
-var copiesToAdd = Math.min(Math.max(estimatedCapacity - this.model!!.objectsCount, 0), maxAttempts)
-if (copiesToAdd <= 0) copiesToAdd = maxAttempts // Fallback if estimate fails
-val sourceObject = selectedObject
-val sourceModel = Model()
-var added = 0
-try
-{
-sourceModel.addObject(this.model!!, sourceObject)
-// Batch-add all copies first
- for (i in 0 until copiesToAdd)
-{
-this.model!!.addObject(sourceModel, 0)
-added++
-}
-this.model!!.resetBoundingBox()
-// Single arrange pass for all copies
- if (!bed!!.arrange(this.model!!))
-{
-// Arrange failed â€” remove copies that couldn't be placed
- // by trimming from the end until arrange succeeds
- while (added > 0)
-{
-this.model!!.deleteObject(this.model!!.objectsCount - 1)
-added--
-this.model!!.resetBoundingBox()
-if (bed!!.arrange(this.model!!)) break
-}
-}
-}
-finally
-{
-sourceModel.release()
-}
-if (added > 0)
-{
-this.model!!.resetBoundingBox()
-resetGlModels()
-SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
-}
-return added
-}
-/**
- * Batch-fill version that replaces the old step-by-step approach.
- * Adds all copies at once then arranges once, rather than arrange per copy.
- */
- fun fillBedWithSelectedObjectStep():Int {
-// Delegate to the batch method â€” no more step-by-step needed
- return fillBedWithSelectedObject()
+/** Packs a private model copy; the caller dispatches native bed arrangement to the GL thread. */
+/** Returns the number of copies placed, or zero when the model or bed cannot accept them. */
+internal fun fillBedModel(
+    activeModel: Model,
+    objectIndex: Int,
+    viewerEnabled: Boolean,
+    estimatedCapacity: Int,
+    arrangeCandidate: (Model) -> Boolean,
+): Int = FillBedModelOperation.run(
+    activeModel = activeModel,
+    objectIndex = objectIndex,
+    viewerEnabled = viewerEnabled,
+    estimatedCapacity = estimatedCapacity,
+    arrangeCandidate = arrangeCandidate,
+)
+fun arrangeObjects(): Boolean {
+    val activeModel = model ?: return false
+    val activeBed = bed ?: return false
+    if (!activeBed.isValid() || isViewerEnabled || activeModel.objectsCount == 0) return false
+    val translations = ArrayList<Vec3d>(activeModel.objectsCount)
+    for (index in 0 until activeModel.objectsCount) {
+        val translation = Vec3d()
+        activeModel.getTranslation(index, translation)
+        translations.add(translation)
+    }
+    val arranged = activeBed.arrange(activeModel)
+    if (!arranged) {
+        translations.forEachIndexed { index, before ->
+            val after = Vec3d()
+            activeModel.getTranslation(index, after)
+            activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+        }
+    }
+    activeModel.resetBoundingBox()
+    resetGlModels()
+    return arranged
 }
 /**
  * Estimate how many copies of an object can fit on the bed
  * based on bounding box dimensions.
  */
- private fun estimateBedCapacity(objectIndex:Int):Int {
-val bedMin = bed!!.getVolumeMin()
-val bedMax = bed!!.getVolumeMax()
+internal fun estimateBedCapacity(activeModel: Model, activeBed: Bed3D, objectIndex:Int):Int {
+val bedMin = activeBed.getVolumeMin()
+val bedMax = activeBed.getVolumeMax()
 val bedWidth = bedMax!!.x - bedMin!!.x
 val bedDepth = bedMax!!.y - bedMin!!.y
 val objMin = Vec3d()
 val objMax = Vec3d()
-this.model!!.getBoundingBoxApprox(objectIndex, objMin, objMax)
+activeModel.getBoundingBoxApprox(objectIndex, objMin, objMax)
 val objWidth = objMax.x - objMin.x
 val objDepth = objMax.y - objMin.y
-if (objWidth <= 0 || objDepth <= 0) return MAX_FILL_BED_OBJECTS
 // Add spacing between objects â€” must match the arrange min_obj_distance (6mm gap)
  val spacing = 6.0
-val cols = Math.max(1, ((bedWidth + spacing) / (objWidth + spacing)).toInt())
-val rows = Math.max(1, ((bedDepth + spacing) / (objDepth + spacing)).toInt())
-return cols * rows
+return FillBedPlanner.estimatedCapacity(bedWidth, bedDepth, objWidth, objDepth, spacing)
 }
 /**
  * Duplicate the currently selected object (single copy).
  */
  fun duplicateSelectedObject():Int {
-if (this.model == null || bed == null || !bed!!.isValid() || isViewerEnabled || selectedObject == -1) return 0
+val activeModel = model ?: return 0
+val activeBed = bed ?: return 0
+val sourceIndex = selectedObject
+if (!activeBed.isValid() || isViewerEnabled || sourceIndex !in 0 until activeModel.objectsCount) return 0
+val originalCount = activeModel.objectsCount
+val originalTranslations = ArrayList<Vec3d>(originalCount)
+for (index in 0 until originalCount) {
+    val translation = Vec3d()
+    activeModel.getTranslation(index, translation)
+    originalTranslations.add(translation)
+}
 val sourceModel = Model()
 try
 {
-sourceModel.addObject(this.model!!, selectedObject)
-this.model!!.addObject(sourceModel, 0)
-this.model!!.resetBoundingBox()
-bed!!.arrange(this.model!!)
-this.model!!.resetBoundingBox()
+sourceModel.addObject(activeModel, sourceIndex)
+activeModel.addObject(sourceModel, 0)
+activeModel.resetBoundingBox()
+if (!activeBed.arrange(activeModel)) {
+    // Arrange may have moved existing objects before reporting that the full plate cannot fit.
+    // Roll back both the new copy and every original placement so a failed action is atomic.
+    activeModel.deleteObject(activeModel.objectsCount - 1)
+    originalTranslations.forEachIndexed { index, before ->
+        val after = Vec3d()
+        activeModel.getTranslation(index, after)
+        activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+    }
+    activeModel.resetBoundingBox()
+    resetGlModels()
+    return 0
+}
+activeModel.resetBoundingBox()
 resetGlModels()
 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return 1
@@ -1425,13 +2102,61 @@ finally
 sourceModel.release()
 }
 }
-@JvmOverloads fun beginPaint(objIdx:Int, mode:Int = PAINT_MODE_COLOR) {
-if (this.model == null || objIdx < 0 || objIdx >= this.model!!.objectsCount) return
+/** Duplicates the current multi-selection as complete groups and arranges once. */
+fun duplicateSelectedObjects(copies: Int): Int {
+    return duplicateSelectedObjects(copies, null)
+}
+
+/** Duplicates only when the selection captured by the confirmation dialog is still current. */
+internal fun duplicateSelectedObjects(copies: Int, expectedSelection: ModelSelectionSnapshot?): Int {
+    val activeModel = model ?: return 0
+    val activeBed = bed ?: return 0
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection))
+        return MODEL_EDIT_STALE_SELECTION
+    if (!activeBed.isValid() || isViewerEnabled) return 0
+    val sourceIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (sourceIndices.isEmpty()) return 0
+    val groupCopies = copies.coerceIn(1, 50)
+    val originalCount = activeModel.objectsCount
+    val originalTranslations = ArrayList<Vec3d>(originalCount)
+    for (index in 0 until originalCount) {
+        val translation = Vec3d()
+        activeModel.getTranslation(index, translation)
+        originalTranslations.add(translation)
+    }
+    val sourceGroup = Model()
+    try {
+        sourceIndices.forEach { sourceGroup.addObject(activeModel, it) }
+        repeat(groupCopies) {
+            for (index in 0 until sourceGroup.objectsCount) activeModel.addObject(sourceGroup, index)
+        }
+        activeModel.resetBoundingBox()
+        if (!activeBed.arrange(activeModel)) {
+            while (activeModel.objectsCount > originalCount) activeModel.deleteObject(activeModel.objectsCount - 1)
+            originalTranslations.forEachIndexed { index, before ->
+                val after = Vec3d()
+                activeModel.getTranslation(index, after)
+                activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
+            }
+            activeModel.resetBoundingBox()
+            resetGlModels()
+            return 0
+        }
+        activeModel.resetBoundingBox()
+        resetGlModels()
+        SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
+        return groupCopies
+    } finally {
+        sourceGroup.release()
+    }
+}
+@JvmOverloads fun beginPaint(objIdx:Int, mode:Int = PAINT_MODE_COLOR): Boolean {
+if (this.model == null || objIdx < 0 || objIdx >= this.model!!.objectsCount) return false
 // A paint session copies facet state and overlays. Refuse the high-memory path even if
 // another caller skipped the UI check; the user may explicitly simplify first.
-if (LargeModelPick.needsPreciseSurfaceSimplification(this.model!!.getTriangleCount(objIdx))) return
+if (LargeModelPick.needsPreciseSurfaceSimplification(this.model!!.getTriangleCount(objIdx))) return false
 endPaintInternal(false)
-// Ensure the object's GLModel + raycast data exist (built lazily in onDrawFrame otherwise).
+// Ensure the object's GLModel + precise raycast tree exist (built lazily in onDrawFrame otherwise).
  while (glModels.size <= objIdx)
 {
 val gm = GLModel()
@@ -1440,18 +2165,55 @@ glModels.add(gm)
 }
 // Editing/painting must raycast against the full-resolution model, even if the
 // normal viewport was using a reduced mesh for this object.
-glModels[objIdx].reset()
-glModels[objIdx].initFrom(this.model!!, objIdx)
+if (!glModels[objIdx].initForPaint(this.model!!, objIdx)) {
+    Log.e("GLRenderer", "Could not prepare precise paint raycast for object=$objIdx")
+    return false
+}
 paintModeKind = mode
 paintSession = PaintSession(this.model!!, objIdx, mode)
 if (!paintSession!!.isValid()) {
 paintSession = null
-return
+Log.e("GLRenderer", "Could not start paint session for object=$objIdx mode=$mode")
+return false
 }
 paintObject = objIdx
 isPaintMode = true
+paintBaseFilamentPreview = null
+lastPaintOverlayRebuildAtMs = 0L
+paintOverlayRebuildPending = false
+paintOverlayRefreshGeneration++
+paintOverlayRefreshScheduled = false
 paintPalette = Prefs.getFilamentPalette()
 rebuildPaintOverlays()
+notifyPaintHistoryChanged()
+return true
+}
+fun setPaintHistoryObserver(observer: ((Boolean, Boolean) -> Unit)?) {
+    paintHistoryObserver = observer
+}
+fun refreshPaintHistoryState() {
+    notifyPaintHistoryChanged()
+}
+private fun notifyPaintHistoryChanged() {
+    val canUndo = paintSession?.canUndoStroke() == true
+    val canRedo = paintSession?.canRedoStroke() == true
+    ViewUtils.postOnMainThread { paintHistoryObserver?.invoke(canUndo, canRedo) }
+}
+fun beginPaintStroke() {
+    paintSession?.beginStroke()
+}
+fun endPaintStroke() {
+    paintSession?.endStroke()
+    if (paintOverlayRebuildPending) rebuildPaintOverlays(force = true)
+    notifyPaintHistoryChanged()
+}
+fun undoPaintStroke() {
+    if (paintSession?.undoStroke() == true) rebuildPaintOverlays(force = true)
+    notifyPaintHistoryChanged()
+}
+fun redoPaintStroke() {
+    if (paintSession?.redoStroke() == true) rebuildPaintOverlays(force = true)
+    notifyPaintHistoryChanged()
 }
 /** Overlay color for a painted state in the current paint mode. */
  private fun paintStateColor(f:Int):Int {
@@ -1464,9 +2226,15 @@ fun endPaint(commit:Boolean) {
 endPaintInternal(commit)
 }
 private fun endPaintInternal(commit:Boolean) {
+paintOverlayRefreshGeneration++
+paintOverlayRefreshScheduled = false
 if (paintSession != null)
 {
-if (commit) paintSession!!.commit()
+if (commit) {
+    paintSession!!.commit()
+    model?.markStateChanged()
+}
+paintSession!!.endStroke()
 paintSession!!.end()
 paintSession = null
 }
@@ -1474,7 +2242,10 @@ for (o in paintOverlays) o.model.release()
 paintOverlays.clear()
 if (paintObject != -1) invalidateCommittedOverlays(paintObject) // rebuild persisted view from committed data
 paintObject = -1
+paintBaseFilamentPreview = null
 isPaintMode = false
+paintOverlayRebuildPending = false
+notifyPaintHistoryChanged()
 }
 /** Set object i's base filament (1-based) and refresh its persisted colors. */
  fun setObjectBaseFilament(i:Int, filament:Int) {
@@ -1487,7 +2258,32 @@ if (this.model == null) return
 this.model!!.setUniformFilament(i, filament)
 invalidateCommittedOverlays(i)
 }
-fun paintAt(x:Float, y:Float) {
+/** Applies a delayed per-object assignment only if its opening model/selection is unchanged. */
+internal fun setObjectUniformFilamentIfCurrent(
+    i: Int,
+    filament: Int,
+    expectedSelection: ModelSelectionSnapshot,
+): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return 0
+    if (i !in 0 until activeModel.objectsCount || filament <= 0) return 0
+    activeModel.setUniformFilament(i, filament)
+    invalidateCommittedOverlays(i)
+    return 1
+}
+/** Stage a uniform base filament for live rendering without mutating the model before Done. */
+fun previewPaintBaseFilament(filament: Int) {
+if (paintSession == null || paintObject < 0 || filament <= 0) return
+if (paintBaseFilamentPreview == filament) return
+// A uniform base choice intentionally replaces any imported or newly painted facet
+// assignments in this draft. Clearing the session prevents commit from restoring them.
+paintSession!!.clear()
+paintSession!!.resetHistory()
+paintBaseFilamentPreview = filament
+rebuildPaintOverlays(force = true)
+notifyPaintHistoryChanged()
+}
+fun paintAt(x:Float, y:Float, rebuildPreview: Boolean = true) {
 if (paintSession == null || paintObject < 0 || paintObject >= glModels.size) return
 val gl = glModels.get(paintObject)
 gl.raycaster.raycast(this, raycastHits, x, y)
@@ -1506,9 +2302,9 @@ else
 {
 paintSession!!.brush(h, -1, paintBrushRadius, paintFilament, camera.position.asDoubleArray(), isBrushSphere)
 }
-// Don't commit on every drag event (expensive) â€” the live session overlays show the paint,
- // and endPaint() commits to the model. This keeps fast drags from painting sparsely.
- rebuildPaintOverlays()
+// Keep the native draft live while avoiding a full palette rebuild for every interpolated
+// point of a coalesced touch segment. Stroke completion always forces one final refresh.
+if (rebuildPreview) rebuildPaintOverlays(force = false) else paintOverlayRebuildPending = true
 }
 /** A bounding-box hit can select an object, but must never place paint or a surface tool. */
 private fun preciseSurfaceHit(): GLModel.HitResult? {
@@ -1526,38 +2322,65 @@ return null
 }
 fun heightPaint(zMin:Double, zMax:Double) {
 if (paintSession == null) return
+paintSession!!.beginStroke()
 paintSession!!.height(zMin, zMax, paintFilament)
-paintSession!!.commit()
-rebuildPaintOverlays()
+paintSession!!.endStroke()
+    rebuildPaintOverlays(force = true)
+notifyPaintHistoryChanged()
 }
 fun clearPaint() {
 if (paintSession == null) return
+paintSession!!.beginStroke()
 paintSession!!.clear()
-paintSession!!.commit()
+paintSession!!.endStroke()
 rebuildPaintOverlays()
+notifyPaintHistoryChanged()
 }
-private fun rebuildPaintOverlays() {
+private fun rebuildPaintOverlays(force: Boolean = true) {
+val now = android.os.SystemClock.uptimeMillis()
+if (!force && now - lastPaintOverlayRebuildAtMs < PAINT_OVERLAY_PREVIEW_INTERVAL_MS) {
+    paintOverlayRebuildPending = true
+    schedulePaintOverlayRefresh(PAINT_OVERLAY_PREVIEW_INTERVAL_MS - (now - lastPaintOverlayRebuildAtMs))
+    return
+}
+lastPaintOverlayRebuildAtMs = now
+paintOverlayRebuildPending = false
 for (o in paintOverlays) o.model.release()
 paintOverlays.clear()
 if (paintSession == null) return
 // Color mode covers the full filament palette; enforce/block modes only use states 1 and 2.
- val n = if (paintModeKind == PAINT_MODE_COLOR) Math.max(paintPalette.size, 1) else 2
-for (f in 1..n)
-{
-val gl = GLModel()
-val tris = paintSession!!.buildOverlay(gl, f)
-if (tris > 0)
-{
-val o = PaintOverlay()
-o.model = gl
-o.color = paintStateColor(f)
-paintOverlays.add(o)
-}
-else
-{
-gl.release()
+val n = if (paintModeKind == PAINT_MODE_COLOR) Math.max(paintPalette.size, 1) else 2
+val overlays = Array(n) { GLModel() }
+val triangleCounts = paintSession!!.buildOverlays(overlays, paintBaseFilamentPreview ?: 0)
+for (index in overlays.indices) {
+    val gl = overlays[index]
+    if (triangleCounts.getOrElse(index) { 0 } > 0) {
+        val overlay = PaintOverlay()
+        overlay.model = gl
+        overlay.color = paintStateColor(index + 1)
+        paintOverlays.add(overlay)
+    } else {
+        gl.release()
+    }
 }
 }
+/** Refresh a throttled paint draft even when the user pauses mid-stroke. */
+private fun schedulePaintOverlayRefresh(delayMs: Long) {
+    if (paintOverlayRefreshScheduled) return
+    val view = glView ?: return
+    paintOverlayRefreshScheduled = true
+    val generation = paintOverlayRefreshGeneration
+    val posted = view.postDelayed({
+        view.queueEvent {
+            if (generation != paintOverlayRefreshGeneration) return@queueEvent
+            paintOverlayRefreshScheduled = false
+            if (paintOverlayRebuildPending && paintSession != null) {
+                rebuildPaintOverlays(force = true)
+                view.requestRender()
+            }
+        }
+    }, delayMs.coerceAtLeast(1L))
+    if (!posted) paintOverlayRefreshScheduled = false
 }
 private fun getCommittedOverlays(i:Int):List<PaintOverlay> {
 var list = committedOverlays.get(i)
@@ -1632,13 +2455,46 @@ return j
 }
 fun onClick(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false
+val placementTarget = surfacePlacementTargetObject
+if (placementTarget >= 0) {
+    val placementSelection = surfacePlacementSelection
+    if (placementSelection != null && !isSelectionSnapshotCurrent(placementSelection)) {
+        cancelSurfacePlacement()
+        SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSelectionChanged))
+        return true
+    }
+    if (placementTarget !in 0 until (this.model?.objectsCount ?: 0)) {
+        cancelSurfacePlacement()
+        SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSurfacePlacementTargetUnavailable))
+        return true
+    }
+    // Require the tapped target to be the visible object under the pointer; otherwise a
+    // foreground model could make the user place the group through an occluding surface.
+    if (raycastObjectIndex(x, y) != placementTarget || placementTarget !in glModels.indices) return true
+    glModels[placementTarget].raycaster.raycast(this, raycastHits, x, y)
+    val hit = preciseSurfaceHit() ?: return true
+    if (hit.normal.z < -1e-6) {
+        SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent(R.string.ModelSurfacePlacementNeedsUpwardFace))
+        return true
+    }
+    surfacePlacementTargetObject = -1
+    SliceBeam.EVENT_BUS.fireEvent(
+        ObjectSurfacePlacementTapEvent(
+            placementTarget,
+            Vec3d(hit.position),
+            Vec3d(hit.normal),
+            surfacePlacementBooleanOperation,
+        ),
+    )
+    return true
+}
 if (isInEmbossMode)
 {
-var targetObj = selectedObject
-if (targetObj == -1)
-{
-targetObj = raycastObjectIndex(x, y)
-}
+// Standalone surface text is explicitly placed by tapping a target. Do not let an
+// unrelated preselection silently redirect the text to another object. Traditional
+// emboss/engrave still operates on the selected model when one is selected.
+var targetObj = if (isStandaloneTextPlacementMode) raycastObjectIndex(x, y) else selectedObject
+if (targetObj == -1) targetObj = raycastObjectIndex(x, y)
 if (targetObj != -1 && targetObj < glModels.size)
 {
 val glModel = glModels.get(targetObj)
@@ -1648,9 +2504,23 @@ if (preciseHit != null)
 {
 val position = preciseHit.position
 val normal = preciseHit.normal
-SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(position, normal))
+SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(position, normal, targetObjectIndex = targetObj))
 return true
 }
+}
+if (isStandaloneTextPlacementMode) {
+    val bedHit = raycastBed(x, y)
+    if (bedHit != null) {
+        val bedZ = bed?.getVolumeMin()?.z ?: bedHit.z
+        SliceBeam.EVENT_BUS.fireEvent(
+            ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent(
+                Vec3d(bedHit.x, bedHit.y, bedZ),
+                Vec3d(0.0, 0.0, 1.0),
+                isBuildPlatePlacement = true,
+            ),
+        )
+        return true
+    }
 }
 return false
 }
@@ -1721,22 +2591,7 @@ i++
 }
 if (minPlane != -1)
 {
-val glModel = flattenPlanes.get(minPlane)
-this.model!!.flattenRotate(selectedObject, glModel)
-this.model!!.ensureOnBed(selectedObject)
-invalidateGlModel(selectedObject)
-var k = 0
-val l = flattenPlanes.size
-while (k < l)
-{
-flattenPlanes.get(k).release()
-k++
-}
-flattenPlanes.clear()
-selectedObject = -1
-selectedObjects.clear()
-SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
-return true
+return applyFlattenPlane(minPlane)
 }
 return false
 }
@@ -1768,6 +2623,24 @@ selScaleX = selScaleY
 SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
 }
 return render
+}
+/** Applies a picked flatten plane. Must run on the GL thread. */
+fun applyFlattenPlane(planeIndex: Int): Boolean {
+    val currentModel = model ?: return false
+    if (!isInFlattenMode || selectedObject !in 0 until currentModel.objectsCount ||
+        planeIndex !in flattenPlanes.indices
+    ) return false
+
+    currentModel.flattenRotate(selectedObject, flattenPlanes[planeIndex])
+    currentModel.ensureOnBed(selectedObject)
+    invalidateGlModel(selectedObject)
+    flattenPlanes.forEach(GLModel::release)
+    flattenPlanes.clear()
+    selectedObject = -1
+    selectedObjects.clear()
+    SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ModelGeometryChangedEvent())
+    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+    return true
 }
 fun hover(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false
@@ -1922,41 +2795,74 @@ selX = selY
 }
 /** Move the current selection so its combined footprint is centered on the bed. */
  fun centerSelectionOnBed() {
-if (this.model == null || bed == null || !bed!!.isValid() || selectedObjects.isEmpty()) return
-val bedMin = bed!!.getVolumeMin()
-val bedMax = bed!!.getVolumeMax()
-val bedCx = (bedMin!!.x + bedMax!!.x) / 2.0
-val bedCy = (bedMin!!.y + bedMax!!.y) / 2.0
+    centerSelectionOnBed(null)
+}
+
+/** Center the selection captured by a delayed UI action; returns stale-selection when it changed. */
+internal fun centerSelectionOnBed(expectedSelection: ModelSelectionSnapshot?): Int {
+if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+val activeModel = model ?: return 0
+val activeBed = bed ?: return 0
+if (!activeBed.isValid()) return 0
+val indices = (expectedSelection?.selectedIndices?.toList() ?: selectedObjectIndices().toList())
+    .filter { it in 0 until activeModel.objectsCount }
+if (indices.isEmpty()) return 0
+val bedMin = activeBed.getVolumeMin() ?: return 0
+val bedMax = activeBed.getVolumeMax() ?: return 0
+val bedCx = (bedMin.x + bedMax.x) / 2.0
+val bedCy = (bedMin.y + bedMax.y) / 2.0
 var minX = Double.POSITIVE_INFINITY
 var minY = Double.POSITIVE_INFINITY
 var maxX = Double.NEGATIVE_INFINITY
 var maxY = Double.NEGATIVE_INFINITY
-for (idx in selectedObjects)
+for (idx in indices)
 {
-if (idx < 0 || idx >= this.model!!.objectsCount) continue
-this.model!!.getBoundingBoxExact(idx, bbMin, bbMax)
+activeModel.getBoundingBoxExact(idx, bbMin, bbMax)
 minX = Math.min(minX, bbMin.x)
 minY = Math.min(minY, bbMin.y)
 maxX = Math.max(maxX, bbMax.x)
 maxY = Math.max(maxY, bbMax.y)
 }
-if (minX > maxX) return
+if (minX > maxX) return 0
 val dx = bedCx - (minX + maxX) / 2.0
 val dy = bedCy - (minY + maxY) / 2.0
-for (idx in selectedObjects)
+for (idx in indices)
 {
-if (idx >= 0 && idx < this.model!!.objectsCount)
-{
-this.model!!.translate(idx, dx, dy, (0).toDouble())
+activeModel.translate(idx, dx, dy, 0.0)
 invalidateGlModel(idx)
-}
 }
 selZ = 0.0
 selY = selZ
 selX = selY
+return 1
+}
+/** Drops the complete selected group onto the printable bed using one shared Z translation. */
+internal fun placeSelectedObjectsOnBed(expectedSelection: ModelSelectionSnapshot? = null): Int {
+    if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return 0
+    val activeBed = bed ?: return 0
+    if (!activeBed.isValid() || selectedObjects.isEmpty()) return 0
+    val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return 0
+    val bounds = indices.map { index ->
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        ObjectBounds3D(bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z)
+    }
+    val groupBounds = ObjectPlacement.enclosing(bounds) ?: return 0
+    val bedMinZ = activeBed.getVolumeMin()?.z ?: return 0
+    val delta = ObjectPlacement.ontoBed(groupBounds, bedMinZ) ?: return 0
+    indices.forEach { index ->
+        activeModel.translate(index, delta.x, delta.y, delta.z)
+        invalidateGlModel(index)
+    }
+    selZ = 0.0
+    selY = 0.0
+    selX = 0.0
+    return 1
 }
 /** Delete every selected object. Returns how many were removed. */
- fun deleteSelectedObjects():Int {
+ internal fun deleteSelectedObjects(expectedSelection: ModelSelectionSnapshot? = null):Int {
+if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
 if (this.model == null || selectedObjects.isEmpty()) return 0
 val indices = ArrayList<Int>(selectedObjects)
 Collections.sort(indices, Collections.reverseOrder())
@@ -1992,7 +2898,8 @@ SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return removed
 }
 /** Remove every object from the bed. Returns how many were removed. */
- fun deleteAllObjects():Int {
+ internal fun deleteAllObjects(expectedModel: ModelSelectionSnapshot? = null):Int {
+if (expectedModel != null && !isSelectionSnapshotCurrent(expectedModel)) return MODEL_EDIT_STALE_SELECTION
 if (this.model == null) return 0
 val removed = this.model!!.objectsCount
 for (i in 0 until glModels.size) glModels.get(i).release()
@@ -2137,7 +3044,6 @@ companion object {
 private val FOV = 60f
 private val NEAR_PLANE = 10f
 private val FAR_PLANE = 1000f
-private val MAX_FILL_BED_OBJECTS = 256
 // --- Multi-color painting ---
  @JvmField
  val PAINT_TOOL_BRUSH = 0

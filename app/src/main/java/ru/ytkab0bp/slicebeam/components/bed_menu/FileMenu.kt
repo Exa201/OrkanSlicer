@@ -5,14 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.provider.MediaStore
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -26,11 +24,12 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.testTag
 import androidx.core.content.FileProvider
 import ru.ytkab0bp.eventbus.EventHandler
 import ru.ytkab0bp.slicebeam.BeamServerData
@@ -53,21 +52,19 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SetupActivity
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.cloud.CloudController
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu
+import ru.ytkab0bp.slicebeam.components.GeneratorWorkspaceDialog
 import ru.ytkab0bp.slicebeam.events.CloudFeaturesUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent
-import ru.ytkab0bp.slicebeam.events.NeedDismissAIGeneratorMenu
+import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
-import ru.ytkab0bp.slicebeam.ui.BeamComposeTheme
-import ru.ytkab0bp.slicebeam.ui.ThemeAwareComposeView
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
+import ru.ytkab0bp.slicebeam.view.GLView
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 import java.io.File
 import java.io.IOException
@@ -79,18 +76,14 @@ internal fun aiGenerationQuotaProgress(total: Int, generated: Int): Float =
 class FileMenu : ListBedMenu() {
     private var wasPortrait = false
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
+    private var observedBed: BedFragment? = null
+    private var selectionObserver: ModelMenuSelectionObserver? = null
 
-    override fun onCreateView(ctx: Context, portrait: Boolean): ThemeAwareComposeView {
+    @Composable
+    override fun WorkspaceContent(portrait: Boolean) {
         wasPortrait = portrait
-        val themedView = ThemeAwareComposeView(ctx)
-        themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-        composeActions.value = createComposeActions(portrait)
-        themedView.setContent {
-            BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                BedMenuActionsContent(composeActions.value, portrait)
-            }
-        }
-        return themedView
+        LaunchedEffect(this, portrait) { refreshComposeActions() }
+        CustomizableBedMenuActionsContent("project", composeActions.value, portrait)
     }
 
     private fun createComposeActions(portrait: Boolean): List<BedComposeMenuAction> =
@@ -118,46 +111,70 @@ class FileMenu : ListBedMenu() {
         composeActions.value = createComposeActions(wasPortrait)
     }
 
-    private fun hasModel(): Boolean =
-        fragment?.glView?.renderer?.model != null
-
-    private fun hasSelection(): Boolean {
-        val bed = fragment ?: return false
-        return bed.glView!!.renderer.model != null &&
-            bed.glView!!.renderer.selectedObject != -1
+    private fun modelSelectionState(): ModelMenuSelectionState {
+        val bed = fragment ?: return ModelMenuSelectionState()
+        if (observedBed !== bed) {
+            observedBed = bed
+            selectionObserver = ModelMenuSelectionObserver(bed, ::refreshComposeActions)
+        }
+        val observer = selectionObserver ?: return ModelMenuSelectionState()
+        observer.readIfNeeded()
+        return observer.state.value
     }
-
-    private fun hasObjects(): Boolean =
-        (fragment?.glView?.renderer?.model?.objectsCount ?: 0) > 0
 
     private fun showPositionMenu(view: View) {
         val bed = fragment ?: return
-        bed.showUnfoldMenu(OrientationPositionMenu(bed), view)
+        bed.showWorkspaceComposeTool(OrientationPositionMenu(bed))
     }
 
     private fun showRotationMenu(view: View) {
         val bed = fragment ?: return
-        bed.showUnfoldMenu(OrientationRotationMenu(bed), view)
+        bed.showWorkspaceComposeTool(OrientationRotationMenu(bed))
     }
 
     private fun showScaleMenu(view: View) {
         val bed = fragment ?: return
-        bed.showUnfoldMenu(TransformScaleMenu(bed), view)
+        bed.showWorkspaceComposeTool(TransformScaleMenu(bed))
     }
 
     private fun openModel(view: View) {
         val bed = fragment ?: return
-        if (!bed.glView!!.renderer.bed!!.isValid()) {
-            Toast.makeText(bed.getContext(), R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
-            return
+        val glView = bed.glView ?: return
+        openModelWhenBedReady(bed, glView, 0)
+    }
+
+    /** The workspace can become visible a moment before GLRenderer finishes creating its bed. */
+    private fun openModelWhenBedReady(bed: BedFragment, glView: GLView, attempt: Int) {
+        glView.queueEvent {
+            val rendererBed = glView.renderer.bed
+            val bedIsValid = rendererBed?.isValid() == true
+            ViewUtils.postOnMainThread {
+                if (fragment !== bed || bed.glView !== glView) return@postOnMainThread
+                if (!bedIsValid && attempt < OPEN_MODEL_BED_READY_RETRIES) {
+                    ViewUtils.postOnMainThread(
+                        { openModelWhenBedReady(bed, glView, attempt + 1) },
+                        OPEN_MODEL_BED_READY_RETRY_DELAY_MS,
+                    )
+                    return@postOnMainThread
+                }
+                val activity = bed.getContext() as? Activity ?: return@postOnMainThread
+                if (!bedIsValid) {
+                    Toast.makeText(activity, R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
+                    return@postOnMainThread
+                }
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
+                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                }
+                activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_OPEN_FILE)
+            }
         }
-        val activity = bed.getContext() as? Activity ?: return
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-        }
-        activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_OPEN_FILE)
+    }
+
+    private companion object {
+        const val OPEN_MODEL_BED_READY_RETRIES = 50
+        const val OPEN_MODEL_BED_READY_RETRY_DELAY_MS = 100L
     }
 
     private fun objectActions(): FileMenuObjectActions? =
@@ -213,25 +230,17 @@ class FileMenu : ListBedMenu() {
                                     ),
                                 )
                             } else {
-                                bed.showUnfoldMenu(AIGeneratorMenu(), view)
+                                showAIGeneratorWorkspace(bed)
                             }
                         }, 2500)
                         return@onClick
                     }
-                    bed.showUnfoldMenu(AIGeneratorMenu(), view)
+                    showAIGeneratorWorkspace(bed)
                 }
         }
 
-        items += BedMenuItem(R.string.MenuFileCalibrationsModels, R.drawable.deployed_code_24)
-            .onClick { view -> bed.showUnfoldMenu(CalibrationModelsMenu(), view) }
-        items += BedMenuItem(R.string.CalibrationPressureAdvanceShort, R.drawable.menu_calibrate_la_28)
-            .onClick {
-                if (!bed.glView!!.renderer.bed!!.isValid()) {
-                    Toast.makeText(bed.getContext(), R.string.BedConfigurationError, Toast.LENGTH_SHORT).show()
-                    return@onClick
-                }
-                CalibrationsMenu().startPressureAdvanceCalibration(bed.getContext()!!, bed)
-            }
+        items += BedMenuItem(R.string.MenuFileCalibrations, R.drawable.menu_calibrate_la_28)
+            .onClick { showCalibrationWorkspace(bed) }
         items += BedMenuItem(R.string.MenuFileImportProfiles, R.drawable.folder_simple_arrow_up_outline_28)
             .onClick {
                 val activity = bed.getContext() as? Activity ?: return@onClick
@@ -257,93 +266,110 @@ class FileMenu : ListBedMenu() {
             BedMenuItem(R.string.WorkspaceAddModelAction, R.drawable.folder_simple_plus_outline_28)
                 .onClick(::openModel),
             BedMenuItem(R.string.MenuFileExport3mf, R.drawable.arrow_down_to_square_outline_28)
-                .setEnabled(hasObjects())
-                .onClick {
-                    val activity = bed.getContext() as? Activity ?: return@onClick
-                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                        type = "application/3mf"
-                        putExtra(Intent.EXTRA_TITLE, "OrkanSlicer_project.3mf")
+                .setEnabled(modelSelectionState().objectCount > 0)
+                .onClick { view ->
+                    val launchExport = {
+                        val activity = bed.getContext() as? Activity
+                        if (activity != null) {
+                            val isMultiPlate = bed.plateCount > 1
+                            val fileName = if (isMultiPlate) {
+                                "OrkanSlicer_plate_${bed.currentPlateIndex + 1}.3mf"
+                            } else {
+                                "OrkanSlicer_project.3mf"
+                            }
+                            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                                type = "application/3mf"
+                                putExtra(Intent.EXTRA_TITLE, fileName)
+                            }
+                            activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_3MF)
+                        }
                     }
-                    activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_3MF)
+                    if (bed.plateCount > 1) {
+                        bed.showWorkspaceMessageDialog(
+                            title = view.context.getString(R.string.Project3mfExportActivePlateTitle),
+                            message = view.context.getString(
+                                R.string.Project3mfExportActivePlateMessage,
+                                bed.currentPlateIndex + 1,
+                                bed.plateCount,
+                            ),
+                            confirmLabel = view.context.getString(R.string.Project3mfExportActivePlateConfirm),
+                            dismissLabel = view.context.getString(android.R.string.cancel),
+                            onConfirm = launchExport,
+                        )
+                    } else {
+                        launchExport()
+                    }
                 },
         )
     }
 
     private fun showProfileExportDialog(view: View) {
-        val prints = Array<CharSequence>(SliceBeam.requireConfig().printConfigs.size) { index ->
-            SliceBeam.requireConfig().printConfigs[index].title ?: ""
-        }
-        val filaments = Array<CharSequence>(SliceBeam.requireConfig().filamentConfigs.size) { index ->
-            SliceBeam.requireConfig().filamentConfigs[index].title ?: ""
-        }
-        val printers = Array<CharSequence>(SliceBeam.requireConfig().printerConfigs.size) { index ->
-            SliceBeam.requireConfig().printerConfigs[index].title ?: ""
-        }
-        val enabledPrints = BooleanArray(prints.size) { true }
-        val enabledFilaments = BooleanArray(filaments.size) { true }
-        val enabledPrinters = BooleanArray(printers.size) { true }
-
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileExportProfilesPrints)
-            .setMultiChoiceItems(prints, enabledPrints) { _, which, checked -> enabledPrints[which] = checked }
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                BeamAlertDialogBuilder(view.context)
-                    .setTitle(R.string.MenuFileExportProfilesFilaments)
-                    .setMultiChoiceItems(filaments, enabledFilaments) { _, which, checked ->
-                        enabledFilaments[which] = checked
+        val bed = fragment ?: return
+        val context = view.context
+        val config = SliceBeam.requireConfig()
+        val printProfiles = config.printConfigs.toList()
+        val filamentProfiles = config.filamentConfigs.toList()
+        val printerProfiles = config.printerConfigs.toList()
+        val categories = listOf(
+            printProfiles.map { it.title ?: "" },
+            filamentProfiles.map { it.title ?: "" },
+            printerProfiles.map { it.title ?: "" },
+        )
+        bed.showWorkspaceComposeDialog { dismiss ->
+            ProfileExportSelectionDialog(
+                titles = listOf(
+                    context.getString(R.string.MenuFileExportProfilesPrints),
+                    context.getString(R.string.MenuFileExportProfilesFilaments),
+                    context.getString(R.string.MenuFileExportProfilesPrinters),
+                ),
+                categories = categories,
+                cancelLabel = context.getString(android.R.string.cancel),
+                backLabel = context.getString(R.string.MenuOrientationPositionBack),
+                nextLabel = context.getString(R.string.IntroNext),
+                exportLabel = context.getString(R.string.MenuFileExportProfiles),
+                onDismiss = dismiss,
+                onComplete = { selectedIndices ->
+                    dismiss()
+                    val selectedPrints = selectedIndices[0].mapNotNull(printProfiles::getOrNull)
+                    val selectedFilaments = selectedIndices[1].mapNotNull(filamentProfiles::getOrNull)
+                    val selectedPrinters = selectedIndices[2].mapNotNull(printerProfiles::getOrNull)
+                    if (selectedPrints.isEmpty() && selectedFilaments.isEmpty() && selectedPrinters.isEmpty()) {
+                        bed.showWorkspaceMessageDialog(
+                            context.getString(R.string.MenuFileExportProfiles),
+                            context.getString(R.string.MenuFileExportProfilesNoProfiles),
+                            context.getString(android.R.string.ok),
+                        )
+                        return@ProfileExportSelectionDialog
                     }
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        BeamAlertDialogBuilder(view.context)
-                            .setTitle(R.string.MenuFileExportProfilesPrinters)
-                            .setMultiChoiceItems(printers, enabledPrinters) { _, which, checked ->
-                                enabledPrinters[which] = checked
-                            }
-                            .setPositiveButton(android.R.string.ok) { _, _ ->
-                                val selectedPrints = SliceBeam.requireConfig().printConfigs.filterIndexed { index, _ ->
-                                    enabledPrints[index]
-                                }
-                                val selectedFilaments = SliceBeam.requireConfig().filamentConfigs.filterIndexed { index, _ ->
-                                    enabledFilaments[index]
-                                }
-                                val selectedPrinters = SliceBeam.requireConfig().printerConfigs.filterIndexed { index, _ ->
-                                    enabledPrinters[index]
-                                }
-                                if (selectedPrints.isEmpty() && selectedFilaments.isEmpty() && selectedPrinters.isEmpty()) {
-                                    BeamAlertDialogBuilder(view.context)
-                                        .setTitle(R.string.MenuFileExportProfiles)
-                                        .setMessage(R.string.MenuFileExportProfilesNoProfiles)
-                                        .setPositiveButton(android.R.string.ok, null)
-                                        .show()
-                                    return@setPositiveButton
-                                }
 
-                                MainActivity.EXPORTING_PRINTS = selectedPrints
-                                MainActivity.EXPORTING_FILAMENTS = selectedFilaments
-                                MainActivity.EXPORTING_PRINTERS = selectedPrinters
-                                val activity = fragment?.getContext() as? Activity ?: return@setPositiveButton
-                                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                                    type = "application/ini"
-                                    putExtra(Intent.EXTRA_TITLE, "OrcaSlicerMobile_config_bundle.ini")
-                                }
-                                activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_PROFILES)
-                            }
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show()
+                    MainActivity.EXPORTING_PRINTS = selectedPrints
+                    MainActivity.EXPORTING_FILAMENTS = selectedFilaments
+                    MainActivity.EXPORTING_PRINTERS = selectedPrinters
+                    val activity = bed.getContext() as? Activity ?: return@ProfileExportSelectionDialog
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        type = "application/ini"
+                        putExtra(Intent.EXTRA_TITLE, "OrcaSlicerMobile_config_bundle.ini")
                     }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+                    activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_EXPORT_PROFILES)
+                },
+            )
+        }
     }
 
     @EventHandler(runOnMainThread = true)
     fun onObjectsChanged(event: ObjectsListChangedEvent) {
+        selectionObserver?.invalidate()
         refreshComposeActions()
     }
 
     @EventHandler(runOnMainThread = true)
     fun onSelectionChanged(event: SelectedObjectChangedEvent) {
+        selectionObserver?.invalidate()
+        refreshComposeActions()
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onFlattenModeReset(event: FlattenModeResetEvent) {
         refreshComposeActions()
     }
 
@@ -352,126 +378,113 @@ class FileMenu : ListBedMenu() {
         refreshComposeActions()
     }
 
-    /** Camera, gallery and quota controls for the optional cloud model generator. */
-    class AIGeneratorMenu : UnfoldMenu() {
-        private var remainingLabel by mutableStateOf("")
-        private var quotaProgress by mutableFloatStateOf(0f)
+}
 
-        override fun getRequestedSize(into: FrameLayout, portrait: Boolean): Int =
-            if (portrait) {
-                ViewUtils.dp(52) + ViewUtils.dp(60) * 2 + ViewUtils.dp(28) + ViewUtils.dp(18) + ViewUtils.dp(2)
-            } else {
-                (into.width * 0.6f).toInt()
+/** Opens the optional cloud model generator through the exclusive workspace panel. */
+internal fun showAIGeneratorWorkspace(bed: BedFragment) {
+    val context = bed.getContext() ?: return
+    val activity = context as? MainActivity ?: return
+    bed.showWorkspaceComposeDialog { dismiss ->
+        GeneratorWorkspaceDialog(R.string.MenuFileAIGenerator, onDismiss = dismiss) {
+            val quota = remember(context) { AIGeneratorQuotaState(context) }
+            DisposableEffect(quota) {
+                quota.register()
+                onDispose { quota.unregister() }
             }
-
-        override fun onCreateView(ctx: Context, portrait: Boolean): View {
-            val themedView = ThemeAwareComposeView(ctx)
-            themedView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-            themedView.setContent {
-                BeamComposeTheme(themeRevision = themedView.themeRevision) {
-                    AIGeneratorMenuContent(
-                        remainingLabel = remainingLabel,
-                        quotaProgress = quotaProgress,
-                        onCamera = { openCamera(ctx) },
-                        onGallery = { openGallery(ctx) },
-                        onBack = { dismiss() },
-                    )
-                }
-            }
-            return themedView
-        }
-
-        override fun onCreate() {
-            super.onCreate()
-            SliceBeam.EVENT_BUS.registerListener(this)
-            updateRemaining()
-        }
-
-        @EventHandler(runOnMainThread = true)
-        fun onDismiss(event: NeedDismissAIGeneratorMenu) {
-            dismiss()
-        }
-
-        @EventHandler(runOnMainThread = true)
-        fun onRemainingUpdated(event: CloudModelsRemainingCountUpdatedEvent) {
-            updateRemaining()
-        }
-
-        override fun onDestroy() {
-            super.onDestroy()
-            SliceBeam.EVENT_BUS.unregisterListener(this)
-        }
-
-        private fun updateRemaining() {
-            val total = CloudController.getMaxGeneratedModels()
-            val generated = CloudController.getGeneratedModels()
-            remainingLabel = SliceBeam.requireInstance().getResources().getQuantityString(
-                R.plurals.MenuFileAIGeneratorRemaining,
-                total,
-                (total - generated).coerceAtLeast(0),
-                total,
-            )
-            quotaProgress = aiGenerationQuotaProgress(total, generated)
-        }
-
-        private fun canStartGeneration(): Boolean {
-            if (CloudController.getGeneratedModels() >= CloudController.getMaxGeneratedModels()) {
-                SliceBeam.EVENT_BUS.fireEvent(
-                    NeedSnackbarEvent(
-                        SnackbarsLayout.Type.ERROR,
-                        R.string.MenuFileAIGeneratorNoGenerationsLeft,
-                    ),
-                )
-                return false
-            }
-            if (MainActivity.IS_GENERATING_AI_MODEL) {
-                SliceBeam.EVENT_BUS.fireEvent(
-                    NeedSnackbarEvent(
-                        SnackbarsLayout.Type.WARNING,
-                        R.string.MenuFileAIGeneratorAlreadyGenerating,
-                    ),
-                )
-                return false
-            }
-            return true
-        }
-
-        private fun openCamera(context: Context) {
-            if (!canStartGeneration()) return
-            val activity = context as? MainActivity ?: return
-            try {
-                val photo = File.createTempFile("ai_capture", ".jpg")
-                MainActivity.aiTempFile = photo
-                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-                    putExtra(
-                        MediaStore.EXTRA_OUTPUT,
-                        FileProvider.getUriForFile(
-                            context,
-                            "${BuildConfig.APPLICATION_ID}.slicermore.files",
-                            photo,
-                        ),
-                    )
-                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                }
-                activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_AI_GENERATOR_TAKE_PHOTO)
-            } catch (error: IOException) {
-                android.util.Log.e("FileMenu", "Could not prepare a camera image for model generation", error)
-                SliceBeam.EVENT_BUS.fireEvent(
-                    NeedSnackbarEvent(SnackbarsLayout.Type.ERROR, R.string.MenuFileOpenFileFailed),
-                )
-            }
-        }
-
-        private fun openGallery(context: Context) {
-            if (!canStartGeneration()) return
-            val activity = context as? MainActivity ?: return
-            val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
-            activity.launchAppActivityResult(
-                Intent.createChooser(intent, ""),
-                MainActivity.REQUEST_CODE_AI_GENERATOR_CHOOSE_PHOTO,
+            AIGeneratorMenuContent(
+                remainingLabel = quota.remainingLabel,
+                quotaProgress = quota.progress,
+                onCamera = { openAIGeneratorCamera(context, activity, dismiss) },
+                onGallery = { openAIGeneratorGallery(activity, dismiss) },
             )
         }
     }
+}
+
+class AIGeneratorQuotaState(private val context: Context) {
+    var remainingLabel by mutableStateOf("")
+        private set
+    var progress by mutableStateOf(0f)
+        private set
+
+    fun register() {
+        SliceBeam.EVENT_BUS.registerListener(this)
+        refresh()
+    }
+
+    fun unregister() {
+        SliceBeam.EVENT_BUS.unregisterListener(this)
+    }
+
+    @EventHandler(runOnMainThread = true)
+    fun onFeaturedUpdated(event: CloudFeaturesUpdatedEvent) = refresh()
+
+    @EventHandler(runOnMainThread = true)
+    fun onRemainingUpdated(event: CloudModelsRemainingCountUpdatedEvent) = refresh()
+
+    private fun refresh() {
+        val total = CloudController.getMaxGeneratedModels()
+        val generated = CloudController.getGeneratedModels()
+        remainingLabel = context.resources.getQuantityString(
+            R.plurals.MenuFileAIGeneratorRemaining,
+            total,
+            (total - generated).coerceAtLeast(0),
+            total,
+        )
+        progress = aiGenerationQuotaProgress(total, generated)
+    }
+}
+
+private fun canStartAIGeneration(): Boolean {
+    if (CloudController.getGeneratedModels() >= CloudController.getMaxGeneratedModels()) {
+        SliceBeam.EVENT_BUS.fireEvent(
+            NeedSnackbarEvent(SnackbarsLayout.Type.ERROR, R.string.MenuFileAIGeneratorNoGenerationsLeft),
+        )
+        return false
+    }
+    if (MainActivity.IS_GENERATING_AI_MODEL) {
+        SliceBeam.EVENT_BUS.fireEvent(
+            NeedSnackbarEvent(SnackbarsLayout.Type.WARNING, R.string.MenuFileAIGeneratorAlreadyGenerating),
+        )
+        return false
+    }
+    return true
+}
+
+private fun openAIGeneratorCamera(context: Context, activity: MainActivity, dismiss: () -> Unit) {
+    if (!canStartAIGeneration()) return
+    try {
+        val photo = File.createTempFile("ai_capture", ".jpg")
+        MainActivity.aiTempFile = photo
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(
+                MediaStore.EXTRA_OUTPUT,
+                FileProvider.getUriForFile(
+                    context,
+                    "${BuildConfig.APPLICATION_ID}.slicermore.files",
+                    photo,
+                ),
+            )
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        dismiss()
+        activity.launchAppActivityResult(intent, MainActivity.REQUEST_CODE_AI_GENERATOR_TAKE_PHOTO)
+    } catch (error: IOException) {
+        android.util.Log.e("FileMenu", "Could not prepare a camera image for model generation", error)
+        SliceBeam.EVENT_BUS.fireEvent(
+            NeedSnackbarEvent(SnackbarsLayout.Type.ERROR, R.string.MenuFileOpenFileFailed),
+        )
+    }
+}
+
+private fun openAIGeneratorGallery(activity: MainActivity, dismiss: () -> Unit) {
+    if (!canStartAIGeneration()) return
+    val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
+    dismiss()
+    activity.launchAppActivityResult(
+        Intent.createChooser(intent, ""),
+        MainActivity.REQUEST_CODE_AI_GENERATOR_CHOOSE_PHOTO,
+    )
 }
 
 @Composable
@@ -480,25 +493,24 @@ private fun AIGeneratorMenuContent(
     quotaProgress: Float,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
-    onBack: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            AIGeneratorActionRow(
-                icon = R.drawable.camera_outline_28,
-                title = stringResource(R.string.MenuFileAIGeneratorFromCamera),
-                onClick = onCamera,
-            )
-            AIGeneratorActionRow(
-                icon = R.drawable.picture_outline_28,
-                title = stringResource(R.string.MenuFileAIGeneratorFromGallery),
-                onClick = onGallery,
-            )
-        }
+    Column(
+        modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)
+            .verticalScroll(rememberScrollState()).padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        AIGeneratorActionRow(
+            icon = R.drawable.camera_outline_28,
+            title = stringResource(R.string.MenuFileAIGeneratorFromCamera),
+            testTag = "ai-generator-camera",
+            onClick = onCamera,
+        )
+        AIGeneratorActionRow(
+            icon = R.drawable.picture_outline_28,
+            title = stringResource(R.string.MenuFileAIGeneratorFromGallery),
+            testTag = "ai-generator-gallery",
+            onClick = onGallery,
+        )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -519,35 +531,14 @@ private fun AIGeneratorMenuContent(
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.arrow_left_outline_28),
-                    contentDescription = null,
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
-                    modifier = Modifier.size(24.dp),
-                )
-                Text(
-                    text = stringResource(R.string.MenuOrientationPositionBack),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
     }
 }
 
 @Composable
-private fun AIGeneratorActionRow(icon: Int, title: String, onClick: () -> Unit) {
+private fun AIGeneratorActionRow(icon: Int, title: String, testTag: String, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Surface(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(shape)
+        modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(shape).testTag(testTag)
             .clickable(role = Role.Button, onClick = onClick),
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceVariant,

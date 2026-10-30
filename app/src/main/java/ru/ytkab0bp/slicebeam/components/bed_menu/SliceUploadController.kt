@@ -1,6 +1,5 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.app.ProgressDialog
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -15,7 +14,6 @@ import android.text.TextUtils
 import android.util.Base64
 import android.util.Log
 import android.view.PixelCopy
-import androidx.appcompat.app.AlertDialog
 import com.loopj.android.http.AsyncHttpClient
 import com.loopj.android.http.AsyncHttpResponseHandler
 import com.loopj.android.http.RequestParams
@@ -26,12 +24,13 @@ import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.BuildConfig
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
+import ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
+import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
 import ru.ytkab0bp.slicebeam.utils.GCodeIntegrityValidator
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
@@ -39,6 +38,7 @@ import ru.ytkab0bp.slicebeam.utils.MoonrakerResponseInspector
 import ru.ytkab0bp.slicebeam.utils.OctoPrintResponseInspector
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
+import ru.ytkab0bp.slicebeam.utils.PrinterUploadReservation
 import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.UploadFileValidator
@@ -49,9 +49,13 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /** Owns the complete post-slice file preparation, validation and printer upload flow. */
 object SliceUploadController {
+    /** One in-flight send/start per printer, including file preparation and upload. */
+    private val activeUploadHosts = PrinterUploadReservation()
+    private val uploadReservations = ConcurrentHashMap<PrinterUploadProgressDialog, String>()
     private val client = AsyncHttpClient().apply {
         setLoggingEnabled(true)
         // Moonraker on Kobra 3 can preprocess uploaded G-code before responding.
@@ -76,6 +80,7 @@ object SliceUploadController {
         print: Boolean,
         printer: ConfigObject,
         activeTools: IntArray,
+        precomputedAnycubicScan: AnycubicGCodeProcessor.ScanResult? = null,
     ) {
         val context = fragment.getContext() ?: return
         val slicedResult = fragment.glView?.renderer?.gcodeResult
@@ -83,14 +88,17 @@ object SliceUploadController {
             showPreparationFailure(fragment, context.getString(R.string.UploadSliceMissing))
             return
         }
-        val progress = ProgressDialog(context).apply {
-            setTitle(R.string.MenuSliceSendToPrinterLoading)
-            setMessage(context.getString(R.string.UploadPreparingGcode))
-            setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
-            isIndeterminate = true
-            setCancelable(false)
-            show()
+        val reservation = activeUploadHosts.reserve(host)
+        if (reservation == null) {
+            showPreparationFailure(fragment, "Für diesen Drucker läuft bereits ein Upload oder Druckstart. Bitte warte, bis der Auftrag abgeschlossen ist.")
+            return
         }
+        val progress = fragment.showPrinterUploadProgress(context.getString(R.string.UploadPreparingGcode))
+        if (progress == null) {
+            activeUploadHosts.release(reservation)
+            return
+        }
+        uploadReservations[progress] = reservation
         val name = slicedResult.getRecommendedName()
         val source = BedFragment.tempGCodePath
         val currentModel: Model? = fragment.currentModel
@@ -104,29 +112,49 @@ object SliceUploadController {
             var uploadFile: File? = null
             var preparationError: Exception? = null
             var integrityFailure: GCodeIntegrityValidator.Result? = null
-            val sourceCheck = GCodeIntegrityValidator.validate(source)
-            if (!sourceCheck.isValid()) {
+            // The remapped Anycubic output is validated after rewriting below. Validating
+            // the source first needlessly reads a potentially very large sliced file once
+            // more, while the prepared file is the one that will actually be uploaded.
+            // QIDI validates while it reads metadata for the package, so it does not
+            // need a separate full-file validation pass here.
+            val sourceCheck = if (anycubicKobra3 || qidiQ2) null else GCodeIntegrityValidator.validate(source)
+            if (sourceCheck != null && !sourceCheck.isValid()) {
                 integrityFailure = sourceCheck
             } else {
                 try {
+                    progress.setMessage(SliceBeam.requireInstance().getString(
+                        if (qidiQ2) R.string.UploadPackagingQidi else R.string.UploadPreparingAnycubic,
+                    ))
                     uploadFile = if (qidiQ2) prepareQidiUpload(source, printer, preview, uploadName)
-                    else prepareAnycubicUpload(source, printer, modelInstances, fragment, preview)
+                    else prepareAnycubicUpload(
+                        source, printer, modelInstances, fragment, preview, progress,
+                        precomputedAnycubicScan,
+                    )
                     if (uploadFile != null) {
                         if (qidiQ2) {
-                            if (!QidiGCode3mfPackager.verify(uploadFile!!)) {
-                                preparationError = IOException("The QIDI Q2 package failed its structure or checksum check.")
-                                uploadFile = null
-                            }
+                            // create() verifies the completed archive and its embedded
+                            // G-code checksum before returning. Re-running verify here
+                            // would decompress and hash the full toolpath a second time.
                         } else {
-                            val preparedCheck = GCodeIntegrityValidator.validate(uploadFile!!)
-                            if (!preparedCheck.isValid()) {
-                                integrityFailure = preparedCheck
-                                uploadFile = null
+                            // Non-Anycubic profiles upload the original source, already
+                            // checked above. Anycubic uploads a rewritten file and must
+                            // validate that transformed artifact before it can be sent.
+                            if (uploadFile !== source) {
+                                progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadValidatingPreparedGcode))
+                                val preparedCheck = GCodeIntegrityValidator.validate(uploadFile!!)
+                                if (!preparedCheck.isValid()) {
+                                    integrityFailure = preparedCheck
+                                    uploadFile = null
+                                }
                             }
                         }
                     }
                 } catch (error: Exception) {
-                    preparationError = error
+                    if (error is QidiGCode3mfPackager.InvalidGCodeException) {
+                        integrityFailure = error.validation
+                    } else {
+                        preparationError = error
+                    }
                     Log.e("SliceMenu", "Could not prepare printer file for upload", error)
                 }
             }
@@ -135,24 +163,23 @@ object SliceUploadController {
             val invalidGcode = integrityFailure
             ViewUtils.postOnMainThread {
                 if (fragment.getContext() == null) {
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                 } else if (invalidGcode != null) {
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                     showGCodeIntegrityFailure(fragment, invalidGcode)
                 } else if (failure != null) {
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                     showPreparationFailure(fragment, failure.message)
                 } else if (preparedFile != null) {
-                    progress.isIndeterminate = false
-                    progress.progress = 0
-                    progress.setMessage(fragment.getContext()!!.getString(R.string.UploadProgressPercent, 0))
+                    progress.setProgress(0, fragment.getContext()!!.getString(R.string.UploadProgressPercent, 0))
                     uploadPrepared(fragment, type, host, apiKey, uploadName, print, preparedFile, progress, qidiQ2)
                 } else {
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                 }
             }
         } }
         val startFilePreparation = {
+            progress.setMessage(context.getString(R.string.UploadCapturingPreview))
             if (qidiQ2 || anycubicKobra3) captureWorkspacePreview(fragment, continuePreparation)
             else continuePreparation(null)
         }
@@ -160,13 +187,13 @@ object SliceUploadController {
             progress.setMessage(context.getString(R.string.UploadAceChecking))
             MmuFilamentSync.synchronize(printer) { _, error ->
                 if (fragment.getContext() == null) {
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                 } else if (error != null) {
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                     showPreparationFailure(fragment, context.getString(R.string.UploadAceCheckFailed))
                 } else if (aceBefore == null || aceBefore != MmuFilamentSync.assignedGates(
                         printer.title.orEmpty(), activeTools)) {
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                     showPreparationFailure(fragment, context.getString(R.string.UploadAceAssignmentChanged))
                 } else {
                     progress.setMessage(context.getString(R.string.UploadPreparingGcode))
@@ -180,11 +207,12 @@ object SliceUploadController {
     fun showPreparationFailure(fragment: BedFragment, detail: String? = null) {
         ViewUtils.postOnMainThread {
             val context = fragment.getContext() ?: return@postOnMainThread
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.MenuSliceSendToPrinterFailed)
-                .setMessage(detail?.takeIf { it.isNotBlank() } ?: context.getString(R.string.AnycubicGcodePrepareFailed))
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.MenuSliceSendToPrinterFailed),
+                message = detail?.takeIf { it.isNotBlank() }
+                    ?: context.getString(R.string.AnycubicGcodePrepareFailed),
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 
@@ -196,11 +224,11 @@ object SliceUploadController {
         name: String,
         print: Boolean,
         uploadFile: File,
-        progress: ProgressDialog,
+        progress: PrinterUploadProgressDialog,
         qidiQ2: Boolean,
     ) {
         if (!UploadFileValidator.isReadyForUpload(uploadFile)) {
-            dismissSendProgress(progress)
+            dismissSendProgress(fragment, progress)
             showPreparationFailure(fragment)
             return
         }
@@ -252,7 +280,7 @@ object SliceUploadController {
                                 SliceBeam.requireInstance().getString(R.string.UploadFileNotConfirmed))), progress)
                         return
                     }
-                    dismissSendProgress(progress)
+                    dismissSendProgress(fragment, progress)
                     val outcome = acknowledgement.outcome(print)
                     val message = when (outcome) {
                         OctoPrintResponseInspector.UploadOutcome.PRINT_STARTED -> R.string.MenuSliceSendToPrinterPrintStarted
@@ -275,9 +303,9 @@ object SliceUploadController {
 
                 override fun onFailure(
                     statusCode: Int,
-                    headers: Array<Header>,
-                    responseBody: ByteArray,
-                    error: Throwable,
+                    headers: Array<Header>?,
+                    responseBody: ByteArray?,
+                    error: Throwable?,
                 ) {
                     showUploadFailure(fragment, statusCode, responseBody, error, progress)
                 }
@@ -295,7 +323,7 @@ object SliceUploadController {
         name: String,
         print: Boolean,
         uploadFile: File,
-        progress: ProgressDialog,
+        progress: PrinterUploadProgressDialog,
         qidiQ2: Boolean,
     ) {
         val uploadUrl = PrinterUploadUrl.endpoint(host, "/server/files/upload")
@@ -343,7 +371,7 @@ object SliceUploadController {
                         return
                     }
                     if (acknowledgement.printStarted || acknowledgement.printQueued) {
-                        dismissSendProgress(progress)
+                        dismissSendProgress(fragment, progress)
                         SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
                             SnackbarsLayout.Type.INFO,
                             if (acknowledgement.printStarted) R.string.UploadPrinterAlreadyStarted
@@ -352,7 +380,7 @@ object SliceUploadController {
                         return
                     }
                     if (!print) {
-                        dismissSendProgress(progress)
+                        dismissSendProgress(fragment, progress)
                         SliceBeam.EVENT_BUS.fireEvent(
                             NeedSnackbarEvent(SnackbarsLayout.Type.DONE, R.string.MenuSliceSendToPrinterOK),
                         )
@@ -373,19 +401,17 @@ object SliceUploadController {
                         startParams,
                         null,
                         object : AsyncHttpResponseHandler() {
-                            override fun onSuccess(code: Int, headers: Array<Header>, body: ByteArray) {
+                            override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
                                 PrinterResponseInspector.embeddedError(body)?.let { detail ->
                                     showUploadFailure(fragment, 0, body, IOException(detail), progress, printStartAttempt = true)
                                     return
                                 }
                                 if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
-                                    showUploadFailure(fragment, 0, null,
-                                        IOException(PrinterResponseInspector.missingAcknowledgement(body,
-                                            "Der Drucker hat den Druckstart nicht bestätigt. Bitte den Druckerstatus prüfen.")),
-                                        progress, printStartAttempt = true)
+                                    checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                        "Der Drucker hat den Druckstart nicht eindeutig bestätigt.")
                                     return
                                 }
-                                dismissSendProgress(progress)
+                                dismissSendProgress(fragment, progress)
                                 SliceBeam.EVENT_BUS.fireEvent(
                                     NeedSnackbarEvent(
                                         SnackbarsLayout.Type.INFO,
@@ -396,16 +422,22 @@ object SliceUploadController {
 
                             override fun onFailure(
                                 code: Int,
-                                headers: Array<Header>,
-                                body: ByteArray,
-                                error: Throwable,
+                                responseHeaders: Array<Header>?,
+                                body: ByteArray?,
+                                error: Throwable?,
                             ) {
-                                showUploadFailure(fragment, code, body, error, progress, printStartAttempt = true)
+                                checkUncertainPrintStart(fragment, host, responseHeaders ?: headers, acknowledgement.path, progress,
+                                    "Die Antwort auf den Druckstart war unklar${if (code > 0) " (HTTP $code)" else ""}: " +
+                                        PrinterResponseInspector.printStartFailureDetail(
+                                            body,
+                                            error?.localizedMessage ?: error?.toString(),
+                                        ))
                             }
                         },
                     )
                     } catch (error: RuntimeException) {
-                        showUploadFailure(fragment, 0, null, error, progress, printStartAttempt = true)
+                        checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                            "Die Startanfrage konnte nicht eindeutig abgeschlossen werden: ${error.localizedMessage ?: error}.")
                     }
                 }
 
@@ -415,9 +447,9 @@ object SliceUploadController {
 
                 override fun onFailure(
                     statusCode: Int,
-                    responseHeaders: Array<Header>,
-                    responseBody: ByteArray,
-                    error: Throwable,
+                    responseHeaders: Array<Header>?,
+                    responseBody: ByteArray?,
+                    error: Throwable?,
                 ) {
                     showUploadFailure(fragment, statusCode, responseBody, error, progress)
                 }
@@ -430,20 +462,17 @@ object SliceUploadController {
 
     private fun updateSendProgress(
         fragment: BedFragment,
-        progress: ProgressDialog,
+        progress: PrinterUploadProgressDialog,
         written: Long,
         total: Long,
     ) {
         if (total <= 0L) return
         val percent = (written * 100L / total).coerceIn(0L, 100L).toInt()
         ViewUtils.postOnMainThread {
-            if (!progress.isShowing) return@postOnMainThread
-            progress.isIndeterminate = false
-            progress.progress = percent
             val context = fragment.getContext()
-            progress.setMessage(
-                if (context == null) ""
-                else context.getString(
+            progress.setProgress(
+                percent,
+                if (context == null) "" else context.getString(
                     if (percent >= 100) R.string.UploadPrinterProcessing else R.string.UploadProgressPercent,
                     percent,
                 ),
@@ -451,9 +480,66 @@ object SliceUploadController {
         }
     }
 
-    private fun dismissSendProgress(progress: ProgressDialog) {
+    private fun dismissSendProgress(fragment: BedFragment, progress: PrinterUploadProgressDialog) {
+        uploadReservations.remove(progress)?.let(activeUploadHosts::release)
         ViewUtils.postOnMainThread {
-            if (progress.isShowing) progress.dismiss()
+            fragment.dismissPrinterUploadProgress(progress)
+        }
+    }
+
+    /** A start request can reach Klipper even when its HTTP response is lost; query once, never retry. */
+    private fun checkUncertainPrintStart(
+        fragment: BedFragment,
+        host: String,
+        headers: Array<Header>,
+        uploadedPath: String,
+        progress: PrinterUploadProgressDialog,
+        reason: String,
+    ) {
+        val statusUrl = PrinterUploadUrl.endpoint(host, "/printer/objects/query?print_stats")
+        if (statusUrl == null) {
+            showUploadFailure(fragment, 0, null, IOException("$reason Druckerstatus konnte nicht abgefragt werden."), progress,
+                printStartAttempt = true)
+            return
+        }
+        ViewUtils.postOnMainThread {
+            progress.setMessage("Druckstatus wird einmalig geprüft …")
+        }
+        val statusClient = AsyncHttpClient().apply {
+            setTimeout(10_000)
+            setConnectTimeout(5_000)
+            setMaxRetriesAndTimeout(0, 5_000)
+        }
+        try {
+            statusClient.get(SliceBeam.requireInstance(), statusUrl, headers, null,
+                object : AsyncHttpResponseHandler() {
+                    override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
+                        val status = MoonrakerResponseInspector.printStatus(body)
+                        if (status?.confirmsStartedFile(uploadedPath) == true) {
+                            dismissSendProgress(fragment, progress)
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                                SnackbarsLayout.Type.INFO, R.string.UploadPrinterFileActive,
+                            ))
+                        } else {
+                            val observed = status?.let { " Aktueller Status: ${it.state}" }
+                                ?: " Der Druckerstatus konnte nicht gelesen werden."
+                            showUploadFailure(fragment, 0, null,
+                                IOException("$reason$observed Es wurde kein weiterer Startbefehl gesendet; prüfe den Drucker, bevor du erneut startest."),
+                                progress, printStartAttempt = true)
+                        }
+                    }
+
+                    override fun onFailure(code: Int, responseHeaders: Array<Header>?, body: ByteArray?, error: Throwable?) {
+                        val detail = error?.localizedMessage?.takeIf { it.isNotBlank() } ?: "HTTP $code"
+                        showUploadFailure(fragment, code, body,
+                            IOException("$reason Die Statusabfrage ist fehlgeschlagen ($detail). Es wurde kein weiterer Startbefehl gesendet; prüfe den Drucker, bevor du erneut startest."),
+                            progress, printStartAttempt = true)
+                    }
+                })
+        } catch (error: RuntimeException) {
+            showUploadFailure(fragment, 0, null,
+                IOException("$reason Die Statusabfrage konnte nicht ausgeführt werden. Es wurde kein weiterer Startbefehl gesendet.", error),
+                progress, printStartAttempt = true)
         }
     }
 
@@ -462,21 +548,21 @@ object SliceUploadController {
         statusCode: Int,
         responseBody: ByteArray?,
         error: Throwable?,
-        progress: ProgressDialog,
+        progress: PrinterUploadProgressDialog,
         printStartAttempt: Boolean = false,
     ) {
-        dismissSendProgress(progress)
+        dismissSendProgress(fragment, progress)
         val detail = if (printStartAttempt)
             PrinterResponseInspector.printStartFailureDetail(responseBody, error?.localizedMessage ?: error?.toString())
         else PrinterResponseInspector.failureDetail(responseBody, error?.localizedMessage ?: error?.toString())
         ViewUtils.postOnMainThread {
             val context = fragment.getContext() ?: return@postOnMainThread
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.MenuSliceSendToPrinterFailed)
-                .setMessage((if (statusCode > 0) "HTTP $statusCode: " else "") +
-                    detail.ifBlank { context.getString(R.string.MenuSliceSendToPrinterFailed) })
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.MenuSliceSendToPrinterFailed),
+                message = (if (statusCode > 0) "HTTP $statusCode: " else "") +
+                    detail.ifBlank { context.getString(R.string.MenuSliceSendToPrinterFailed) },
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 
@@ -487,53 +573,68 @@ object SliceUploadController {
         modelInstances: Int,
         fragment: BedFragment,
         previewPng: ByteArray?,
+        progress: PrinterUploadProgressDialog,
+        precomputedScan: AnycubicGCodeProcessor.ScanResult?,
     ): File? {
         if (!isAnycubicKobra3(printer)) return source
 
         val parent = source.parentFile ?: return null
         val prepared = File(parent, "anycubic_${source.name}")
+        val scanStartedAt = android.os.SystemClock.elapsedRealtime()
+        val reusedScan = precomputedScan?.takeIf { it.matchesSource(source) }
         val scan = try {
-            AnycubicGCodeProcessor.scan(source)
+            reusedScan ?: AnycubicGCodeProcessor.scan(source)
         } catch (error: IOException) {
             Log.e("SliceMenu", "Could not scan G-code before Anycubic upload", error)
             showPreparationFailure(fragment)
             return null
         }
+        Log.i(
+            "SliceUploadPerf",
+            "Kobra upload scan reused=${reusedScan != null}, bytes=${source.length()}, elapsed=${android.os.SystemClock.elapsedRealtime() - scanStartedAt} ms",
+        )
         val logicalToolCount = maxOf(1, scan.maxTool + 1)
         val printerTitle = printer.title.orEmpty()
-        var gates = MmuFilamentSync.getSelectedGates(printerTitle, logicalToolCount)
-        if (gates == null) {
-            gates = IntArray(logicalToolCount)
-            val loaded = MmuFilamentSync.loadedGates(printerTitle)
-            if (loaded.isEmpty()) {
-                showAnycubicMappingError(fragment, R.string.MmuAssignmentNoLoadedSlots)
-                return null
-            }
-            for (tool in 0 until logicalToolCount) {
-                val preferred = MmuFilamentSync.defaultGateForTool(printerTitle, tool)
-                gates[tool] = if (preferred in loaded) preferred else loaded[0]
-            }
-            MmuFilamentSync.setSelectedGates(printerTitle, gates)
+        // The Anycubic metadata scan already reads every tool-selection command.
+        // Reuse it instead of scanning large G-code a second time.
+        val usedTools = if (scan.usedTools.isEmpty()) intArrayOf(0) else scan.usedTools
+        val loadedGates = MmuFilamentSync.loadedGates(printerTitle)
+        val routing = AnycubicAceRoutingPolicy.resolve(
+            logicalToolCount,
+            usedTools,
+            loadedGates,
+            IntArray(logicalToolCount) { tool -> MmuFilamentSync.defaultGateForTool(printerTitle, tool) },
+            MmuFilamentSync.getSelectedGates(printerTitle, logicalToolCount),
+        )
+        val unavailableTool = routing.unavailableTool
+        if (unavailableTool != null) {
+            showPreparationFailure(fragment, SliceBeam.requireInstance().getString(
+                R.string.MmuDirectSlotUnavailable, unavailableTool,
+                (routing.gates.getOrNull(unavailableTool) ?: unavailableTool) + 1,
+            ))
+            return null
         }
-
-        val remappedTools = IntArray(logicalToolCount)
-        for (tool in 0 until logicalToolCount) {
-            val loaded = MmuFilamentSync.loadedGates(printerTitle)
-            val gate = gates[tool]
-            val mappedTool = MmuFilamentSync.toolForGate(printerTitle, gate)
-            if (gate !in loaded || mappedTool < 0 || MmuFilamentSync.gateSlot(printerTitle, gate) == null) {
-                showAnycubicMappingError(fragment, R.plurals.MmuAssignmentToolMismatch, logicalToolCount)
-                return null
-            }
-            remappedTools[tool] = mappedTool
+        val currentSliceConfig = SliceBeam.buildCurrentConfigObject(logicalToolCount)
+        val incompatibleSharedTool = AnycubicAceRoutingPolicy.firstIncompatibleSharedGateTool(
+            usedTools,
+            routing.gates,
+            scan.materials.toList(),
+            AnycubicAceRoutingPolicy.toolValues(currentSliceConfig["nozzle_temperature_initial_layer"]),
+            AnycubicAceRoutingPolicy.toolValues(currentSliceConfig["nozzle_temperature"]),
+        )
+        if (incompatibleSharedTool != null) {
+            showAnycubicMappingError(fragment, R.plurals.MmuAssignmentSharedAceGate, incompatibleSharedTool + 1)
+            return null
         }
+        val gates = routing.gates
+        val remappedTools = routing.toolCommands
 
         val liveSlots = Prefs.getFilamentSlots()
         // Vendor metadata describes the ACE gate that receives the tool, not the
         // source 3MF palette. Keep slicer temperatures unchanged in the G-code.
         val physicalSlots = (0 until logicalToolCount).map { tool ->
             MmuFilamentSync.gateSlot(printerTitle, gates[tool])
-                ?: liveSlots.getOrNull(tool)
+                ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 ?: ru.ytkab0bp.slicebeam.utils.FilamentSlot(Color.rgb(25, 200, 160), "PLA")
         }
         val emittedPaintInfo = BooleanArray(4)
@@ -546,7 +647,8 @@ object SliceUploadController {
                 emittedPaintInfo[mappedTool] = true
                 if (hasPaintInfo) append(',')
                 hasPaintInfo = true
-                val slot = MmuFilamentSync.gateSlot(printerTitle, gates[tool]) ?: liveSlots.getOrNull(tool)
+                val slot = MmuFilamentSync.gateSlot(printerTitle, gates[tool])
+                    ?: (if (gates[tool] in loadedGates) liveSlots.getOrNull(tool) else null)
                 val material = slot?.type ?: scan.materials[minOf(tool, scan.materials.lastIndex)].trim()
                 val paintColor = slot?.color ?: Color.rgb(25, 200, 160)
                 append("{\"material_type\":").append(JSONObject.quote(material))
@@ -568,6 +670,8 @@ object SliceUploadController {
             smallThumbnail = thumbnails.first
             largeThumbnail = thumbnails.second
         }
+        progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadRewritingAnycubic))
+        val rewriteStartedAt = android.os.SystemClock.elapsedRealtime()
         return try {
             if (AnycubicGCodeProcessor.rewrite(source, prepared, scan, options)) prepared
             else {
@@ -583,6 +687,11 @@ object SliceUploadController {
             prepared.delete()
             showPreparationFailure(fragment)
             null
+        } finally {
+            Log.i(
+                "SliceUploadPerf",
+                "Kobra G-code rewrite bytes=${source.length()}, elapsed=${android.os.SystemClock.elapsedRealtime() - rewriteStartedAt} ms",
+            )
         }
     }
 
@@ -595,6 +704,7 @@ object SliceUploadController {
         val parent = source.parentFile ?: throw IOException("The temporary G-code folder is unavailable.")
         val safeName = uploadName.replace(Regex("[/\\\\]"), "_")
         val destination = File(parent, "qidi_$safeName")
+        val startedAt = android.os.SystemClock.elapsedRealtime()
         QidiGCode3mfPackager.create(
             sourceGcode = source,
             destination = destination,
@@ -603,6 +713,10 @@ object SliceUploadController {
             filamentSlots = Prefs.getFilamentSlots(),
             clientVersion = BuildConfig.VERSION_NAME,
             displayName = safeName,
+        )
+        Log.i(
+            "SliceUploadPerf",
+            "QIDI package sourceBytes=${source.length()}, packageBytes=${destination.length()}, elapsed=${android.os.SystemClock.elapsedRealtime() - startedAt} ms",
         )
         return destination
     }
@@ -721,15 +835,13 @@ object SliceUploadController {
                     context.getString(R.string.GCodeIntegrityEndBeforeLastLayer)
                 GCodeIntegrityValidator.Failure.MISSING_COMPLETION_MARKER ->
                     context.getString(R.string.GCodeIntegrityMissingCompletion)
-                GCodeIntegrityValidator.Failure.HEIGHT_MISMATCH ->
-                    context.getString(R.string.GCodeIntegrityHeightMismatch)
                 else -> context.getString(R.string.GCodeIntegrityGeneric)
             }
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.GCodeIntegrityTitle)
-                .setMessage(message)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.GCodeIntegrityTitle),
+                message = message,
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 
@@ -738,11 +850,11 @@ object SliceUploadController {
             val context = fragment.getContext() ?: return@postOnMainThread
             val text = if (count == null) context.getString(message)
             else context.resources.getQuantityString(message, count, count)
-            BeamAlertDialogBuilder(context)
-                .setTitle(R.string.MenuSliceSendToPrinterFailed)
-                .setMessage(text)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            fragment.showWorkspaceMessageDialog(
+                title = context.getString(R.string.MenuSliceSendToPrinterFailed),
+                message = text,
+                confirmLabel = context.getString(android.R.string.ok),
+            )
         }
     }
 

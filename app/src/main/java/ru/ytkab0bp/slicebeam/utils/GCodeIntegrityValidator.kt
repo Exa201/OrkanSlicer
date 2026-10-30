@@ -10,7 +10,6 @@ import java.util.regex.Pattern
 /** Checks that a sliced G-code has every declared layer and a completion marker after printing. */
 object GCodeIntegrityValidator {
     private val LAYER_TOTAL = Pattern.compile("(?i)^;\\s*(?:total layer number|total layers count)\\s*[:=]\\s*(\\d+)\\s*$")
-    private val Z_MARKER = Pattern.compile("(?i)^;Z:([0-9]+(?:\\.[0-9]+)?)\\s*$")
     private val NUMBERED_LAYER = Pattern.compile("(?i)^; BEFORE_LAYER_CHANGE (\\d+) @ ([0-9]+(?:\\.[0-9]+)?)mm\\s*$")
     private val EXTRUSION = Pattern.compile("(?:^|\\s)E([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(?:\\s|$)")
     private val MOTION_COMMAND = Pattern.compile("(?i)^G[0-3](?:\\s|$).*$")
@@ -28,7 +27,6 @@ object GCodeIntegrityValidator {
         LAST_LAYER_HAS_NO_EXTRUSION,
         END_BEFORE_LAST_LAYER,
         MISSING_COMPLETION_MARKER,
-        HEIGHT_MISMATCH,
         READ_ERROR
     }
 
@@ -46,109 +44,91 @@ object GCodeIntegrityValidator {
         }
     }
 
+    /** Incremental validator so package builders can validate during their metadata scan. */
+    class StreamingValidator {
+        private var declaredLayers = -1
+        private var declaredLayersAtEnd = -1
+        private var layerMarkers = 0
+        private var expectedNumber = 0
+        private var lastLayerHasExtrusion = false
+        private var sawNumberedLayers = false
+        private var completionAfterLastLayer = false
+        private var completionBeforeFinalLayer = false
+        private var foundAnyCompletion = false
+        private var numberingFailure: Result? = null
+
+        fun acceptLine(line: String) {
+            val trimmed = line.trim()
+            val count = LAYER_TOTAL.matcher(trimmed)
+            if (count.matches()) {
+                val parsed = count.group(1)?.toIntOrNull() ?: throw NumberFormatException("Invalid declared layer count")
+                if (trimmed.lowercase(Locale.ROOT).contains("total layer number")) declaredLayers = parsed
+                else declaredLayersAtEnd = parsed
+            }
+            if (trimmed.equals(";LAYER_CHANGE", ignoreCase = true) || LAYER_COMMAND.matcher(trimmed).matches()) {
+                layerMarkers++
+                lastLayerHasExtrusion = false
+            }
+            val numbered = NUMBERED_LAYER.matcher(trimmed)
+            if (numbered.matches()) {
+                sawNumberedLayers = true
+                val number = numbered.group(1)?.toIntOrNull() ?: throw NumberFormatException("Invalid numbered layer")
+                if (number != expectedNumber && numberingFailure == null) {
+                    numberingFailure = result(
+                        Failure.NUMBERING_GAP, declaredLayers, layerMarkers,
+                        "Layer numbering jumps from ${expectedNumber - 1} to $number."
+                    )
+                }
+                expectedNumber++
+            }
+            if (layerMarkers > 0 && hasPositiveExtrusion(trimmed)) lastLayerHasExtrusion = true
+            if (isCompletionMarker(trimmed)) {
+                foundAnyCompletion = true
+                if (layerMarkers == 0 || (declaredLayers > 0 && layerMarkers < declaredLayers)) completionBeforeFinalLayer = true
+                else completionAfterLastLayer = true
+            }
+        }
+
+        fun finish(): Result {
+            numberingFailure?.let { return it }
+            val expected = if (declaredLayers > 0) declaredLayers else declaredLayersAtEnd
+            if (expected <= 0) return result(Failure.MISSING_LAYER_COUNT, expected, layerMarkers, "No valid total layer count was found in the sliced file.")
+            if (layerMarkers != expected) return result(
+                Failure.LAYER_COUNT_MISMATCH, expected, layerMarkers,
+                "The file declares $expected layers but contains $layerMarkers layer starts."
+            )
+            if (sawNumberedLayers && expectedNumber != expected && expectedNumber != expected - 1) return result(
+                Failure.NUMBERING_GAP, expected, layerMarkers,
+                "Expected $expected layer numbers or $expected - 1 numbered transitions, but found $expectedNumber."
+            )
+            if (completionBeforeFinalLayer) return result(Failure.END_BEFORE_LAST_LAYER, expected, layerMarkers, "A print-completion command occurs before the final declared layer.")
+            if (!lastLayerHasExtrusion) return result(Failure.LAST_LAYER_HAS_NO_EXTRUSION, expected, layerMarkers, "The final layer has no positive extrusion move.")
+            if (!foundAnyCompletion || !completionAfterLastLayer) return result(Failure.MISSING_COMPLETION_MARKER, expected, layerMarkers, "No recognized print-completion marker follows the final layer.")
+            return result(Failure.NONE, expected, layerMarkers, "All declared layers and the print completion are present.")
+        }
+
+        fun readError(error: IOException): Result = result(Failure.READ_ERROR, declaredLayers, layerMarkers, error.toString())
+    }
+
     @JvmStatic
     fun validate(file: File?): Result {
         if (file == null || !file.isFile || file.length() == 0L) {
             return result(Failure.INVALID_FILE, 0, 0, "The sliced file is missing or empty.")
         }
-        var declaredLayers = -1
-        var declaredLayersAtEnd = -1
-        var layerMarkers = 0
-        var expectedNumber = 0
-        var lastZMarkerLayer = 0
-        var lastZ = Double.NaN
-        var declaredHeight = Double.NaN
-        var lastLayerHasExtrusion = false
-        var sawNumberedLayers = false
-        var completionAfterLastLayer = false
-        var completionBeforeFinalLayer = false
-        var foundAnyCompletion = false
+        val validator = StreamingValidator()
         try {
-            BufferedReader(FileReader(file)).use { reader ->
+            BufferedReader(FileReader(file), 64 * 1024).use { reader ->
                 while (true) {
                     val line = reader.readLine() ?: break
-                    val trimmed = line.trim()
-                    val count = LAYER_TOTAL.matcher(trimmed)
-                    if (count.matches()) {
-                        val parsed = count.group(1).toInt()
-                        if (trimmed.lowercase(Locale.ROOT).contains("total layer number")) {
-                            declaredLayers = parsed
-                        } else {
-                            declaredLayersAtEnd = parsed
-                        }
-                    }
-                    if (trimmed.lowercase(Locale.ROOT).startsWith("; max_z_height:")) {
-                        declaredHeight = parseDoubleAfterColon(trimmed)
-                    }
-                    val z = Z_MARKER.matcher(trimmed)
-                    if (z.matches() && layerMarkers > 0) {
-                        lastZMarkerLayer = layerMarkers
-                        lastZ = z.group(1).toDouble()
-                    }
-                    if (trimmed.equals(";LAYER_CHANGE", ignoreCase = true) || LAYER_COMMAND.matcher(trimmed).matches()) {
-                        layerMarkers++
-                        lastLayerHasExtrusion = false
-                    }
-                    val numbered = NUMBERED_LAYER.matcher(trimmed)
-                    if (numbered.matches()) {
-                        sawNumberedLayers = true
-                        val number = numbered.group(1).toInt()
-                        if (number != expectedNumber) {
-                            return result(
-                                Failure.NUMBERING_GAP,
-                                declaredLayers,
-                                layerMarkers,
-                                "Layer numbering jumps from ${expectedNumber - 1} to $number."
-                            )
-                        }
-                        expectedNumber++
-                    }
-                    if (layerMarkers > 0 && hasPositiveExtrusion(trimmed)) lastLayerHasExtrusion = true
-
-                    if (isCompletionMarker(trimmed)) {
-                        foundAnyCompletion = true
-                        if (layerMarkers == 0 || (declaredLayers > 0 && layerMarkers < declaredLayers)) {
-                            completionBeforeFinalLayer = true
-                        } else {
-                            completionAfterLastLayer = true
-                        }
-                    }
+                    validator.acceptLine(line)
                 }
             }
         } catch (error: IOException) {
-            return result(Failure.READ_ERROR, declaredLayers, layerMarkers, error.toString())
+            return validator.readError(error)
         } catch (error: NumberFormatException) {
-            return result(Failure.READ_ERROR, declaredLayers, layerMarkers, error.toString())
+            return result(Failure.READ_ERROR, 0, 0, error.toString())
         }
-
-        val expected = if (declaredLayers > 0) declaredLayers else declaredLayersAtEnd
-        if (expected <= 0) {
-            return result(Failure.MISSING_LAYER_COUNT, expected, layerMarkers, "No valid total layer count was found in the sliced file.")
-        }
-        if (declaredLayersAtEnd > 0 && declaredLayersAtEnd != expected) {
-            return result(Failure.LAYER_COUNT_MISMATCH, expected, layerMarkers, "Header and end-of-file layer counts disagree.")
-        }
-        if (layerMarkers != expected || (sawNumberedLayers && expectedNumber != expected)) {
-            return result(
-                Failure.LAYER_COUNT_MISMATCH,
-                expected,
-                layerMarkers,
-                "The file declares $expected layers but contains $layerMarkers layer starts."
-            )
-        }
-        if (completionBeforeFinalLayer) {
-            return result(Failure.END_BEFORE_LAST_LAYER, expected, layerMarkers, "A print-completion command occurs before the final declared layer.")
-        }
-        if (!lastLayerHasExtrusion) {
-            return result(Failure.LAST_LAYER_HAS_NO_EXTRUSION, expected, layerMarkers, "The final layer has no positive extrusion move.")
-        }
-        if (!foundAnyCompletion || !completionAfterLastLayer) {
-            return result(Failure.MISSING_COMPLETION_MARKER, expected, layerMarkers, "No recognized print-completion marker follows the final layer.")
-        }
-        if (lastZMarkerLayer == layerMarkers && !declaredHeight.isNaN() && kotlin.math.abs(lastZ - declaredHeight) > 0.01) {
-            return result(Failure.HEIGHT_MISMATCH, expected, layerMarkers, "The final layer height does not match the declared maximum print height.")
-        }
-        return result(Failure.NONE, expected, layerMarkers, "All declared layers and the print completion are present.")
+        return validator.finish()
     }
 
     private fun hasPositiveExtrusion(line: String): Boolean {
@@ -158,7 +138,7 @@ object GCodeIntegrityValidator {
         val extrusion = EXTRUSION.matcher(command)
         while (extrusion.find()) {
             try {
-                if (extrusion.group(1).toDouble() > 0.0) return true
+                if ((extrusion.group(1)?.toDoubleOrNull() ?: 0.0) > 0.0) return true
             } catch (_: NumberFormatException) {
                 // Ignore malformed extrusion values just as the previous Java implementation did.
             }
@@ -171,12 +151,6 @@ object GCodeIntegrityValidator {
                 || COMPLETION_COMMAND.matcher(line).matches()
                 || END_PRINT_COMMAND.matcher(line).matches()
                 || M73_COMPLETION.matcher(line).matches()
-
-    private fun parseDoubleAfterColon(line: String): Double = try {
-        line.substring(line.indexOf(':') + 1).trim().toDouble()
-    } catch (_: RuntimeException) {
-        Double.NaN
-    }
 
     private fun result(failure: Failure, expected: Int, actual: Int, details: String): Result =
         Result.create(failure, expected, actual, details)

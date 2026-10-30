@@ -2,7 +2,7 @@ package ru.ytkab0bp.slicebeam.components.bed_menu
 
 import kotlin.math.sqrt
 
-internal enum class CameraPreset {
+enum class CameraPreset {
     ISOMETRIC,
     TOP,
     BOTTOM,

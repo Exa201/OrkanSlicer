@@ -1,17 +1,14 @@
 package ru.ytkab0bp.slicebeam.components.bed_menu
 
-import android.text.InputType
 import android.view.View
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.Toast
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
-import ru.ytkab0bp.slicebeam.components.BeamAlertDialogBuilder
 import ru.ytkab0bp.slicebeam.events.SelectedObjectChangedEvent
+import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
-import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
@@ -19,181 +16,335 @@ import java.util.Locale
 
 /** Kotlin-owned object selection, duplication, filament and plate actions for the live File menu. */
 class FileMenuObjectActions(private val fragment: BedFragment) {
-    private fun hasSelection(): Boolean =
-        fragment.glView!!.renderer.selectedObject != -1 && fragment.glView!!.renderer.model != null
+    private fun captureSelection(
+        view: View,
+        allowEmpty: Boolean = false,
+        onUnavailable: () -> Unit = {},
+        onCaptured: (ru.ytkab0bp.slicebeam.view.GLView, ModelSelectionSnapshot) -> Unit,
+    ) {
+        val viewport = fragment.glView ?: return
+        viewport.queueEvent {
+            val snapshot = viewport.renderer.captureSelectionSnapshot(allowEmpty)
+            if (snapshot == null) {
+                ViewUtils.postOnMainThread(onUnavailable)
+                return@queueEvent
+            }
+            ViewUtils.postOnMainThread {
+                if (fragment.glView === viewport && fragment.canShowWorkspaceComposeDialog()) {
+                    onCaptured(viewport, snapshot)
+                }
+            }
+        }
+    }
+
+    private fun reportStaleSelection() {
+        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+    }
 
     fun showCopyMoveDialog(view: View) {
         val context = view.context
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MenuFileCopyMove)
-            .setItems(
-                arrayOf<CharSequence>(
-                    context.getString(R.string.MenuFileDuplicateCount),
-                    context.getString(R.string.MenuFileMoveToPlate),
-                ),
-            ) { _, which ->
-                if (which == 0) showDuplicateDialog(view) else showMoveToPlateDialog(view)
+        captureSelection(view) { viewport, snapshot ->
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = context.getString(R.string.MenuFileCopyMove),
+                    cancelLabel = context.getString(android.R.string.cancel),
+                    choices = listOf(
+                        context.getString(R.string.MenuFileDuplicateCount),
+                        context.getString(R.string.MenuFileMoveToPlate),
+                    ),
+                    onDismiss = dismiss,
+                    onSelect = { which ->
+                        dismiss()
+                        if (which == 0) showDuplicateDialog(view, viewport, snapshot)
+                        else showMoveToPlateDialog(view, snapshot)
+                    },
+                )
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
     }
 
     fun showObjectsDialog(view: View) {
-        val model = fragment.currentModel
-        val count = model?.objectsCount ?: 0
-        if (count == 0) {
-            Toast.makeText(view.context, R.string.MenuFileObjectsEmpty, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val objects = Array<CharSequence>(count) { index ->
-            model?.getObjectName(index)
-                ?: view.context.getString(R.string.MenuFileObjectNumber, index + 1)
-        }
-        val selected = fragment.glView!!.renderer.selectedObject
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileObjects)
-            .setSingleChoiceItems(objects, selected) { dialog, which ->
-                dialog.dismiss()
-                fragment.glView!!.selectModel(which) {
-                    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+        val context = view.context
+        val filamentSlots = Prefs.getFilamentSlots().toList()
+        captureSelection(
+            view,
+            allowEmpty = true,
+            onUnavailable = { Toast.makeText(context, R.string.MenuFileObjectsEmpty, Toast.LENGTH_SHORT).show() },
+        ) { viewport, snapshot ->
+            val rows = (0 until snapshot.objectCount).map { index ->
+                val name = snapshot.model.getObjectName(index)
+                    ?: context.getString(R.string.MenuFileObjectNumber, index + 1)
+                val tool = (snapshot.model.getExtruder(index) - 1).coerceAtLeast(0)
+                val slot = filamentSlots.getOrNull(tool)
+                val parts = (0 until snapshot.model.getObjectPartCount(index)).map { partIndex ->
+                    val partTool = (snapshot.model.getObjectPartExtruder(index, partIndex) - 1).coerceAtLeast(0)
+                    val partSlot = filamentSlots.getOrNull(partTool)
+                    ModelObjectPartRow(
+                        label = context.getString(R.string.ModelObjectPartNumber, partIndex + 1),
+                        tool = partTool,
+                        material = partSlot?.type?.takeIf(String::isNotBlank) ?: context.getString(R.string.FilamentType),
+                        color = partSlot?.color ?: 0xFF888888.toInt(),
+                    )
                 }
+                ModelObjectRow(
+                    name = name,
+                    tool = tool,
+                    material = slot?.type?.takeIf(String::isNotBlank) ?: context.getString(R.string.FilamentType),
+                    color = slot?.color ?: 0xFF888888.toInt(),
+                    selected = index in snapshot.selectedIndices,
+                    assignEnabled = filamentSlots.isNotEmpty(),
+                    parts = parts,
+                )
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            if (rows.isEmpty()) {
+                return@captureSelection
+            }
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelObjectsDialog(
+                    title = context.getString(R.string.MenuFileObjects),
+                    cancelLabel = context.getString(android.R.string.cancel),
+                    assignLabel = context.getString(R.string.ObjectActionAssignFilamentShort),
+                    rows = rows,
+                    onDismiss = dismiss,
+                    onSelect = { index ->
+                        dismiss()
+                        viewport.selectModelIfCurrent(index, snapshot) { result ->
+                            if (result == MODEL_EDIT_STALE_SELECTION) reportStaleSelection()
+                            else if (result == 1) SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+                        }
+                    },
+                    onAssign = { index ->
+                        dismiss()
+                        showObjectFilamentSlotDialog(view, index, snapshot)
+                    },
+                    onTransformPart = { index, partIndex ->
+                        dismiss()
+                        showObjectPartTransformDialog(view, index, partIndex, snapshot)
+                    },
+                    onEditPart = { index, partIndex ->
+                        dismiss()
+                        viewport.splitObjectPartIfCurrent(index, partIndex, snapshot) { result ->
+                            when {
+                                result == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                                result > 0 -> {
+                                    fragment.updateModel()
+                                    SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+                                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelObjectPartSeparated))
+                                }
+                                else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuToolbarSplitNothing))
+                            }
+                        }
+                    },
+                    onApplySelection = { indices ->
+                        dismiss()
+                        viewport.selectModelsIfCurrent(indices, snapshot) { result ->
+                            if (result == MODEL_EDIT_STALE_SELECTION) reportStaleSelection()
+                            // Applying a selection changes renderer UI state only. The
+                            // SelectedObjectChangedEvent refreshes the model menu; don't
+                            // append an identical model snapshot to Undo history.
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    private fun showObjectPartTransformDialog(
+        view: View,
+        objectIndex: Int,
+        partIndex: Int,
+        expectedSelection: ModelSelectionSnapshot,
+    ) {
+        val context = view.context
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelObjectPartTransformDialog(
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onApply = { dx, dy, dz, rx, ry, rz, sx, sy, sz ->
+                    dismiss()
+                    val viewport = fragment.glView ?: return@ModelObjectPartTransformDialog
+                    viewport.transformObjectPartIfCurrent(
+                        objectIndex, partIndex, dx, dy, dz, sx, sy, sz, rx, ry, rz, expectedSelection,
+                    ) { result ->
+                        when (result) {
+                            MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                            1 -> {
+                                fragment.updateModel()
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelObjectPartTransformApply))
+                            }
+                            else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelObjectPartTransformFailed))
+                        }
+                    }
+                },
+            )
+        }
     }
 
     fun showSelectedObjectActions(view: View) {
-        if (!hasSelection()) return
         val context = view.context
-        BeamAlertDialogBuilder(context)
-            .setTitle(R.string.MenuFileObjectActions)
-            .setItems(
-                arrayOf<CharSequence>(
-                    context.getString(R.string.MenuFileDuplicateCount),
-                    context.getString(R.string.MenuFileMoveToPlate),
-                    context.getString(R.string.ModelContextSelectFilamentSlot),
-                    context.getString(R.string.ModelContextCenterOnBed),
-                    context.getString(R.string.MenuOrientationArrange),
-                    context.getString(R.string.MenuToolbarSplit),
-                    context.getString(R.string.MenuFileDelete),
-                ),
-            ) { _, which ->
-                when (which) {
-                    0 -> showDuplicateDialog(view)
-                    1 -> showMoveToPlateDialog(view)
-                    2 -> showObjectFilamentSlotDialog(view)
-                    3 -> fragment.glView!!.centerSelectedOnBed(fragment::updateModel)
-                    4 -> {
-                        fragment.glView!!.arrange()
-                        fragment.updateModel()
-                    }
-                    5 -> fragment.splitSelectedObject()
-                    6 -> fragment.glView!!.deleteSelectedModel(fragment::updateModel)
-                }
+        captureSelection(view) { viewport, snapshot ->
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelChoiceDialog(
+                    title = context.getString(R.string.MenuFileObjectActions),
+                    cancelLabel = context.getString(android.R.string.cancel),
+                    choices = listOf(
+                        context.getString(R.string.MenuFileDuplicateCount),
+                        context.getString(R.string.MenuFileMoveToPlate),
+                        context.getString(R.string.MenuFileDelete),
+                    ),
+                    onDismiss = dismiss,
+                    onSelect = { which ->
+                        dismiss()
+                        when (which) {
+                            0 -> showDuplicateDialog(view, viewport, snapshot)
+                            1 -> showMoveToPlateDialog(view, snapshot)
+                            2 -> viewport.deleteSelectedModelsIfCurrent(snapshot) { removed ->
+                                when {
+                                    removed == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                                    removed > 0 -> fragment.updateModel()
+                                }
+                            }
+                        }
+                    },
+                )
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
     }
 
     /** Assigns a whole object to an ACE/slicer tool; fine-grained color painting stays separate. */
     fun showObjectFilamentSlotDialog(view: View) {
-        if (!hasSelection()) return
+        captureSelection(view) { _, snapshot ->
+            showObjectFilamentSlotDialog(view, snapshot.primaryObject, snapshot)
+        }
+    }
+
+    private fun showObjectFilamentSlotDialog(
+        view: View,
+        objectIndex: Int,
+        expectedSelection: ModelSelectionSnapshot,
+    ) {
         val slots: List<FilamentSlot> = Prefs.getFilamentSlots()
         if (slots.isEmpty()) return
+        if (objectIndex !in 0 until expectedSelection.objectCount) return
 
-        val selected = fragment.glView!!.renderer.selectedObject
-        val model = fragment.currentModel ?: return
-        val choices = Array<CharSequence>(minOf(4, slots.size)) { "" }
-        val currentTool = model.getExtruder(selected) - 1
-        for (tool in choices.indices) {
+        val context = view.context
+        val currentTool = expectedSelection.model.getExtruder(objectIndex) - 1
+        // Match the complete persisted Slicer palette. Limiting this picker to four made
+        // individually loaded objects impossible to assign to ACE Pro / larger tool palettes.
+        val choices = slots.indices.map { tool ->
             val slot = slots[tool]
-            val label = view.context.getString(
+            val label = context.getString(
                 R.string.ModelContextFilamentSlot,
                 tool,
                 slot.type,
                 String.format(Locale.ROOT, "#%06X", slot.color and 0xFFFFFF),
             )
-            choices[tool] = if (tool == currentTool) "✓ $label" else label
+            if (tool == currentTool) "✓ $label" else label
         }
-
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.ModelContextSelectFilamentSlot)
-            .setItems(choices) { _, which ->
-                val filament = which + 1 // libSlic3r object extruders are one-based.
-                fragment.glView!!.queueEvent {
-                    fragment.glView!!.renderer.setObjectBaseFilament(selected, filament)
-                    fragment.glView!!.requestRender()
-                    ViewUtils.postOnMainThread {
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.ModelContextSelectFilamentSlot),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = choices,
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    val viewport = fragment.glView ?: return@ModelChoiceDialog
+                    // Slicer extruders are one-based: T0 always maps to physical/UI slot 1.
+                    val filament = which + 1
+                    viewport.setObjectUniformFilamentIfCurrent(objectIndex, filament, expectedSelection) { result ->
+                        if (result == MODEL_EDIT_STALE_SELECTION) {
+                            reportStaleSelection()
+                            return@setObjectUniformFilamentIfCurrent
+                        }
+                        if (result != 1) return@setObjectUniformFilamentIfCurrent
+                        // An explicit object assignment must replace 3MF per-volume and paint
+                        // assignments too; changing only the object's base extruder leaves those
+                        // imported material overrides active during preview and slicing.
                         Toast.makeText(
-                            view.context,
-                            view.context.getString(R.string.ModelContextFilamentSlotApplied, which),
+                            context,
+                            context.getString(R.string.ModelContextFilamentSlotApplied, which),
                             Toast.LENGTH_SHORT,
                         ).show()
                     }
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+                },
+            )
+        }
     }
 
     fun showDuplicateDialog(view: View) {
-        val input = EditText(view.context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText("1")
-            setSelectAllOnFocus(true)
+        captureSelection(view) { viewport, snapshot ->
+            showDuplicateDialog(view, viewport, snapshot)
         }
-        val padding = ViewUtils.dp(24)
-        val container = FrameLayout(view.context).apply {
-            setPadding(padding, 0, padding, 0)
-            addView(
-                input,
-                FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+    }
+
+    private fun showDuplicateDialog(
+        view: View,
+        viewport: ru.ytkab0bp.slicebeam.view.GLView,
+        snapshot: ModelSelectionSnapshot,
+    ) {
+        val context = view.context
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            DuplicateModelDialog(
+                title = context.getString(R.string.MenuFileDuplicateCount),
+                hint = context.getString(R.string.MenuFileDuplicateCountHint),
+                confirmLabel = context.getString(R.string.ModelContextDuplicate),
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onConfirm = { copies ->
+                    dismiss()
+                    viewport.duplicateSelectedModelsIfCurrent(copies, snapshot) { addedCopies ->
+                        when {
+                            addedCopies == MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                            addedCopies > 0 -> {
+                                fragment.updateModel()
+                                Toast.makeText(
+                                    context,
+                                    context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, addedCopies, addedCopies),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                            else -> Toast.makeText(context, R.string.ModelContextFillBedNoRoom, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
             )
         }
-
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileDuplicateCount)
-            .setMessage(R.string.MenuFileDuplicateCountHint)
-            .setView(container)
-            .setPositiveButton(R.string.ModelContextDuplicate) { _, _ ->
-                val copies = input.text.toString().toIntOrNull()?.coerceIn(1, 50) ?: 1
-                fragment.glView!!.duplicateSelectedModel(copies) {
-                    fragment.updateModel()
-                    Toast.makeText(
-                        view.context,
-                        view.context.resources.getQuantityString(R.plurals.MenuFileDuplicatedCount, copies, copies),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 
     fun showMoveToPlateDialog(view: View) {
+        captureSelection(view) { _, snapshot -> showMoveToPlateDialog(view, snapshot) }
+    }
+
+    private fun showMoveToPlateDialog(view: View, snapshot: ModelSelectionSnapshot) {
         val plateCount = fragment.plateCount
         if (plateCount < 2) {
             Toast.makeText(view.context, R.string.MenuFileMoveNoOtherPlate, Toast.LENGTH_SHORT).show()
             return
         }
-
-        val current = fragment.currentPlateIndex
-        val targets = (0 until plateCount).filter { it != current }
-        val labels = targets.map { view.context.getString(R.string.PlateNumber, (it + 1).toString()) }
-        BeamAlertDialogBuilder(view.context)
-            .setTitle(R.string.MenuFileMoveToPlate)
-            .setItems(labels.toTypedArray()) { _, which ->
-                val target = targets[which]
-                fragment.moveSelectedObjectToPlate(target) {
-                    Toast.makeText(
-                        view.context,
-                        view.context.getString(R.string.MenuFileMovedToPlate, (target + 1).toString()),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        val context = view.context
+        val source = fragment.currentPlateIndex
+        val targets = (0 until plateCount).filter { it != source }
+        val labels = targets.map { context.getString(R.string.PlateNumber, (it + 1).toString()) }
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.MenuFileMoveToPlate),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = labels,
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    val target = targets.getOrNull(which) ?: return@ModelChoiceDialog
+                    if (target !in 0 until fragment.plateCount || target == fragment.currentPlateIndex) return@ModelChoiceDialog
+                    fragment.moveSelectedObjectsToPlateInternal(target, Runnable {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.MenuFileMovedToPlate, (target + 1).toString()),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }, snapshot)
+                },
+            )
+        }
     }
 }

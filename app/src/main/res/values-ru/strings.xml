@@ -1,4 +1,12 @@
 <resources>
+    <string name="AcePhysicalSlotCompactTool">%1$d · T%2$d</string>
+    <string name="ProfileSettingsFavoritesOnlyEnabled">Включено</string>
+    <string name="ProfileSettingsFavoritesOnlyDisabled">Выключено</string>
+    <string name="ObjectActionAssignFilamentShort">Назначить</string>
+    <string name="AcePhysicalSlotsScrollForward">Показать остальные слоты ACE</string>
+    <string name="PlatePickerSelectDescription">Выбрать платформу %1$s</string>
+    <string name="PrinterConnectionTitle">Подключение принтера</string>
+    <string name="PrinterOpenWebShort">Веб</string>
     <string name="LargeModelPreciseSurfaceUnavailable">Для этого инструмента нужна точная точка на поверхности. Сначала упростите модель; её по-прежнему можно выбрать.</string>
     <string name="LargeModelSurfaceTitle">Упростить модель для работы с поверхностью?</string>
     <string name="LargeModelSurfaceMessage">В этой модели %1$d треугольников. Для рисования и тиснения нужно не более %2$d. Упрощение меняет модель на платформе и может убрать детали; исходный файл сохраняется. После упрощения откройте инструмент снова.</string>
@@ -11,10 +19,18 @@
     <string name="ConverterProgressRemaining">Осталось примерно: %1$s</string>
     <string name="ConverterProgressComplete">Готово · 100%% · прошло %1$s</string>
     <string name="SlotBed">Просмотр</string>
+    <string name="MakerSectionToggleDescription">%1$s, %2$s</string>
+    <string name="MakerSectionOpenDescription">Открыть: %1$s</string>
     <string name="SlotPrintConfig">Печать</string>
     <string name="SlotPrintConfigTooltip">Профиль печати</string>
     <string name="SlotFilamentConfig">Филамент</string>
     <string name="FilamentSlotColor">Цвет</string>
+    <string name="FilamentSlotSave">Сохранить филамент</string>
+    <string name="WorkspaceFilamentPaletteTitle">Филаменты</string>
+    <string name="WorkspaceFilamentPaletteCount">Материалов: %1$d</string>
+    <string name="WorkspaceMoreTitle">Дополнительные инструменты</string>
+    <string name="WorkspaceFilamentPaletteEdit">Изменить</string>
+    <string name="WorkspaceFilamentAssignModel">Назначить филаменты модели</string>
     <string name="ColorChooserCustom">Свой цвет</string>
     <string name="ColorChooserCommon">Часто используемые цвета</string>
     <string name="ColorChooserCss">Цвета CSS</string>
@@ -24,10 +40,55 @@
     <string name="SlotPrinterConfigTooltip">Профиль принтера</string>
     <string name="SlotAppSettings">Приложение</string>
     <string name="SlotAppSettingsTooltip">Настройки приложения</string>
-    <string name="MenuFile">Файл</string>
+    <string name="MenuFile">Модель</string>
+    <string name="WorkspaceAddModelAction">Загрузить модель</string>
+    <string name="ModelMenuDuplicate">Дублировать выбранную модель</string>
+    <string name="ModelMenuSelectedObjectGroup">Выбор</string>
+    <string name="ModelMenuAllObjectsGroup">Пластина</string>
+    <string name="ModelMenuMoveToPlate">Переместить модель на другую пластину</string>
+    <string name="ModelMenuCenterOnBed">Центрировать модель на столе</string>
+    <string name="ModelMenuFillBed">Заполнить стол копиями этой модели</string>
+    <string name="ModelMenuAlignSelected">Выровнять выбранные объекты</string>
+    <string name="ModelMenuAlignCenterX">Выровнять центры по X</string>
+    <string name="ModelMenuAlignCenterY">Выровнять центры по Y</string>
+    <string name="ModelMenuAlignBaseZ">Выровнять основания по Z</string>
+    <string name="ModelMenuAlignCenterZ">Выровнять центры по Z</string>
+    <string name="ModelMenuAlignMaxZ">Выровнять верхние края по Z</string>
+    <string name="ModelMenuAlignDone">Выбранные объекты выровнены</string>
+    <string name="ModelMenuDistributeSelected">Распределить выбранные объекты</string>
+    <string name="ModelMenuDistributeX">Распределить по X</string>
+    <string name="ModelMenuDistributeY">Распределить по Y</string>
+    <string name="ModelMenuDistributeZ">Распределить по Z</string>
+    <string name="ModelMenuDistributeHint">Два крайних объекта остаются на месте, остальные распределяются равномерно. Ось Z перемещает модели по высоте и может оставить их над столом; проверьте положение перед нарезкой.</string>
+    <string name="ModelMenuDistributeDone">Выбранные объекты распределены</string>
+    <string name="ModelMenuDistributeNoSpace">Выберите не менее трёх объектов с достаточным местом для распределения.</string>
+    <string name="ModelMenuArrange">Расположить модели на столе</string>
+    <string name="ModelMenuOrientAll">Автоориентировать все модели</string>
+    <string name="ModelMenuAutoOrientSelected">Автоориентировать выбранную модель</string>
+    <string name="ModelMenuFlatten">Положить выбранную модель на грань</string>
+    <string name="ModelMenuDeleteSelected">Удалить выбранную модель</string>
+    <string name="ModelMenuSelectAll">Выбрать все модели</string>
+    <string name="ModelMenuDeleteAll">Удалить все модели</string>
+    <string name="ModelMenuDuplicateShort">Дублировать</string>
+    <string name="ModelMenuMoveToPlateShort">Другая пластина</string>
+    <string name="ModelMenuCenterOnBedShort">Центр</string>
+    <string name="ModelMenuFillBedShort">Заполнить копиями</string>
+    <string name="ModelMenuArrangeShort">Расположить модели</string>
+    <string name="ModelMenuOrientAllShort">Ориент. все</string>
+    <string name="ModelMenuAutoOrientSelectedShort">Ориент. модель</string>
+    <string name="ModelMenuFlattenShort">На грань</string>
+    <string name="ModelMenuDeleteSelectedShort">Удалить модель</string>
+    <string name="ModelMenuSelectAllShort">Выбрать все</string>
+    <string name="ModelMenuDeleteAllShort">Удалить все</string>
     <string name="MenuFileOpen">Открыть модель</string>
     <string name="MenuFileOpenFileLoaded">Файл загружен.</string>
     <string name="MenuFileOpenFileFailed">Не удалось открыть модель</string>
+    <string name="SvgSimplifyTitle">Упростить SVG?</string>
+    <string name="SvgSimplifyPrompt">%1$s\n\nУменьшить детализацию контуров и загрузить упрощённую копию? Исходный файл останется неизменным.</string>
+    <string name="SvgSimplifyUnavailable">%1$s\n\nНа этом устройстве нельзя упростить файлы размером более 25 МБ.</string>
+    <string name="SvgSimplifyAction">Упростить и загрузить</string>
+    <string name="SvgSimplifyFailedTitle">Не удалось упростить SVG</string>
+    <string name="SvgSimplifyFailedFallback">Не удалось безопасно уменьшить детализацию контуров.</string>
     <string name="MenuFileOpenFileFailedNullName">Не удалось определить имя файла.</string>
     <string name="MenuFileOpenFileBigObject">Файл содержит более 500к треугольников. Нарезка может быть медленной.</string>
     <string name="MenuFileOpenFileLoading">Загрузка файла…</string>
@@ -65,6 +126,7 @@
     <string name="MenuFileCalibrationsModelsPyramid">Пирамида</string>
     <string name="MenuFileCalibrationsModelsSphere">Сфера</string>
     <string name="MenuFileImportProfiles">Импорт. профилей</string>
+    <string name="MenuFileImportProfilesCompact">Импорт</string>
     <string name="MenuFileImportProfilesFailed">Не удалось импортировать</string>
     <string name="MenuFileImportProfilesFailedBaseProfileNotFound">Родительский профиль не найден: %s</string>
     <string name="MenuFileImportProfilesFailedNotIni">Не файл .ini</string>
@@ -89,6 +151,7 @@
     <plurals name="MenuFileImportProfilesImportedCount"><item quantity="one">Импортирован %1$d профиль.</item><item quantity="few">Импортировано %1$d профиля.</item><item quantity="many">Импортировано %1$d профилей.</item><item quantity="other">Импортировано профилей: %1$d.</item></plurals>
     <plurals name="MenuFileImportProfilesSkippedCount"><item quantity="one">Пропущен %1$d существующий профиль.</item><item quantity="few">Пропущено %1$d существующих профиля.</item><item quantity="many">Пропущено %1$d существующих профилей.</item><item quantity="other">Пропущено существующих профилей: %1$d.</item></plurals>
     <string name="MenuFileExportProfiles">Экспорт. профилей</string>
+    <string name="MenuFileExportProfilesCompact">Экспорт</string>
     <string name="MenuFileExportProfilesPrints">Профили печати</string>
     <string name="MenuFileExportProfilesFilaments">Филаменты</string>
     <string name="MenuFileExportProfilesPrinters">Принтеры</string>
@@ -96,8 +159,12 @@
     <string name="MenuFileExportProfilesSuccess">Профили успешно экспортированы.</string>
     <string name="MenuFileExport3mf">Экспорт. 3mf</string>
     <string name="MenuFileExport3mfSuccess">Успешно экспортировали проект.</string>
+    <string name="Project3mfExportActivePlateTitle">Экспортировать только активную пластину?</string>
+    <string name="Project3mfExportActivePlateMessage">Текущий экспорт включает только пластину %1$d из %2$d. Остальные пластины не будут сохранены. Полный экспорт многопластинного проекта пока недоступен.</string>
+    <string name="Project3mfExportActivePlateConfirm">Экспортировать активную пластину</string>
     <string name="MenuCamera">Камера</string>
     <string name="MenuCameraIsometric">Изомет.\nвид</string>
+    <string name="MenuCameraIsometricCompact">Изом.</string>
     <string name="MenuCameraTop">Вид\nсверху</string>
     <string name="MenuCameraBottom">Вид\nснизу</string>
     <string name="MenuCameraFront">Вид\nспереди</string>
@@ -116,6 +183,10 @@
     <string name="MenuOrientationFlatten">Поверхн.</string>
     <string name="MenuOrientationAutoOrient">Автомат.\nОриент.</string>
     <string name="MenuOrientationAutoOrientDone">Выровнено автоматически.</string>
+    <string name="ModelMenuPlaceOnObjectDone">Размещено на цели и объединено в печатаемую сборку.</string>
+    <string name="ModelMenuCombineFailed">Не удалось объединить объекты. Исходные объекты сохранены.</string>
+    <string name="ModelMenuPlaceFailed">Не удалось разместить объекты. Проверьте их положение перед продолжением.</string>
+    <string name="ModelMenuPlaceRollbackFailed">Не удалось разместить объекты, и как минимум один объект не удалось восстановить. Проверьте модель перед продолжением.</string>
     <string name="MenuOrientationPosition">Позиция</string>
     <string name="MenuOrientationPositionX">X</string>
     <string name="MenuOrientationPositionY">Y</string>
@@ -215,6 +286,11 @@
     <string name="SettingsInterfaceThemeDark">Тёмная</string>
     <string name="SettingsInterfaceColor">Первичный цвет</string>
     <string name="SettingsInterfaceColorReset">Цвет по-умолчанию</string>
+    <string name="CustomColorHue">Тон</string>
+    <string name="CustomColorSaturation">Насыщенность</string>
+    <string name="CustomColorBrightness">Яркость</string>
+    <string name="CustomColorApply">Применить цвет</string>
+    <string name="OpenCustomColorPicker">Выбрать свой цвет…</string>
     <string name="SettingsInterfaceResolutionScale">Масштаб разрешения 3D</string>
     <string name="SettingsInterfaceResolutionScaleDescription">Может увеличить производительность путём снижения разрешения</string>
     <string name="SettingsAbout">О приложении</string>
@@ -291,5 +367,23 @@
     <plurals name="ProfileSettingsPending"><item quantity="one">%1$d несохранённое изменение</item><item quantity="few">%1$d несохранённых изменения</item><item quantity="many">%1$d несохранённых изменений</item><item quantity="other">%1$d несохранённых изменений</item></plurals>
     <plurals name="GCodeIntegrityLayerMismatch"><item quantity="one">В файле указан %1$d слой, но найдено %2$s. Файл не отправлен.</item><item quantity="few">В файле указано %1$d слоя, но найдено %2$s. Файл не отправлен.</item><item quantity="many">В файле указано %1$d слоёв, но найдено %2$s. Файл не отправлен.</item><item quantity="other">В файле указано %1$d слоёв, но найдено %2$s. Файл не отправлен.</item></plurals>
     <string name="SetupOrcaCoreVersion">Движок печати OrcaSlicer</string>
+    <string name="CalibrationRecordResult">Сохранить результат калибровки</string>
+    <string name="CalibrationRecordResultDescription">Введите значение, выбранное после оценки напечатанного теста. Оно будет сохранено в активном профиле как ожидающее проверки изменение.</string>
+    <string name="CalibrationMeasuredValue">Измеренное значение</string>
+    <string name="CalibrationSaveResult">Добавить в профиль</string>
+    <string name="CalibrationResultInvalid">Введите допустимое значение и выберите активный профиль.</string>
+    <string name="CalibrationResultStaged">Результат добавлен к изменениям профиля. Проверьте и сохраните его в настройках филамента или печати.</string>
+    <string name="PaintBrushRadius">Радиус кисти: %1$.1f мм</string>
+    <string name="PaintEnableBrush">Включить рисование</string>
+    <string name="PaintDisableBrush">Приостановить рисование</string>
+    <string name="PaintUndoStroke">Отменить мазок</string>
+    <string name="PaintRedoStroke">Повторить мазок</string>
+    <string name="NavigationScrollMoreBelow">Другие пункты навигации ниже</string>
+    <string name="NavigationScrollMoreAbove">Другие пункты навигации выше</string>
     <plurals name="GCodeIntegrityLayerStarts"><item quantity="one">%1$d начало слоя</item><item quantity="few">%1$d начала слоя</item><item quantity="many">%1$d начал слоя</item><item quantity="other">%1$d начала слоя</item></plurals>
+    <string name="MenuCustomize">Настроить меню</string>
+    <string name="MenuCustomizeDragHint">Чтобы переместить пункт, удерживайте его и перетащите на новое место. Ниже можно скрывать и показывать пункты.</string>
+    <string name="MenuCustomizeReset">Сбросить</string>
+    <string name="MenuCustomizeMoveUp">Переместить выше</string>
+    <string name="MenuCustomizeMoveDown">Переместить ниже</string>
 </resources>

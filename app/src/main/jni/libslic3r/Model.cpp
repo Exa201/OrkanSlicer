@@ -195,7 +195,7 @@ Model Model::read_from_step(const std::string&                                  
     bool result = false;
     bool is_cb_cancel = false;
     Step::Step_Status status;
-    Step step_file(input_file, stepFn);
+    Step step_file(input_file, stepFn, stepIsUtf8Fn);
     status = step_file.load();
     if(status != Step::Step_Status::LOAD_SUCCESS) {
         goto _finished;
@@ -318,12 +318,16 @@ Model Model::read_from_file(const std::string&                                  
     else if (boost::algorithm::iends_with(input_file, ".amf"))
         //BBS: is_xxx is used for is_inches when load amf
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx);
-    else if (boost::algorithm::iends_with(input_file, ".3mf"))
-        //BBS: add part plate related logic
-        // BBS: backup & restore
-        //FIXME options & LoadStrategy::CheckVersion ?
-        //BBS: is_xxx is used for is_bbs_3mf when load 3mf
-        result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, is_xxx, nullptr, file_version, proFn, options, project, plate_id);
+    else if (boost::algorithm::iends_with(input_file, ".3mf")) {
+        // Route files carrying Slic3r per-volume metadata through the matching
+        // importer. The BBS importer treats legacy store_3mf output as a flattened
+        // mesh and drops per-volume filament assignments on reload.
+        PrusaFileParser prusa_file_parser;
+        if (prusa_file_parser.check_3mf_from_prusa(input_file))
+            result = load_3mf(input_file.c_str(), *config, *config_substitutions, &model, true);
+        else
+            result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, is_xxx, nullptr, file_version, proFn, options, project, plate_id);
+    }
 #ifdef __APPLE__
     else if (boost::algorithm::iends_with(input_file, ".usd") || boost::algorithm::iends_with(input_file, ".usda") ||
              boost::algorithm::iends_with(input_file, ".usdc") || boost::algorithm::iends_with(input_file, ".usdz") ||
@@ -1279,6 +1283,13 @@ ModelVolume* ModelObject::add_volume(const ModelVolume &other, ModelVolumeType t
     // BBS: backup
     Slic3r::save_object_mesh(*this);
     return v;
+}
+
+std::unique_ptr<ModelVolume> ModelObject::prepare_volume_copy(const ModelVolume &other)
+{
+    std::unique_ptr<ModelVolume> volume(new ModelVolume(this, other));
+    volume->cut_info = other.cut_info;
+    return volume;
 }
 
 ModelVolume* ModelObject::add_volume(const ModelVolume &other, TriangleMesh &&mesh)

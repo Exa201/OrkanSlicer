@@ -1,48 +1,59 @@
-diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 2908e32..dd0dc53 100644
---- a/CHANGELOG.md
-+++ b/CHANGELOG.md
-@@ -2,6 +2,12 @@
- 
- All notable changes to Kromacut are documented in this file.
- 
-+## Unreleased
-+
-+### Fixed
-+
-+- Anchored the image-size badge at the bottom of the canvas so it stays clear of wrapped toolbars in either orientation.
-+
- ## v4.0.0 - 2026-09-10
- 
- ### Upgrade notes
+diff --git a/package.json b/package.json
+index 597c07b..733f7d0 100644
+--- a/package.json
++++ b/package.json
+@@ -90,6 +90,7 @@
+         "eslint-plugin-react-hooks": "^5.2.0",
+         "eslint-plugin-react-refresh": "^0.4.20",
+         "globals": "^16.3.0",
++        "js-yaml": "4.3.2",
+         "postcss": "^8.5.6",
+         "prettier": "^3.6.2",
+         "tailwindcss": "^4.1.15",
+diff --git a/scripts/generate-docs-seo-pages.mjs b/scripts/generate-docs-seo-pages.mjs
+index 55a6096..b40b403 100644
+--- a/scripts/generate-docs-seo-pages.mjs
++++ b/scripts/generate-docs-seo-pages.mjs
+@@ -681,7 +681,7 @@ function verifyGeneratedOutput(docs) {
+         'root canonical URL is missing'
+     );
+     assertGenerated(
+-        /(?:src|href)="\/assets\//.test(rootHtml),
++        /(?:src|href)="(?:\/|\.\/)assets\//.test(rootHtml),
+         'root does not use root-relative built assets'
+     );
+     assertGenerated(
 diff --git a/src/App.tsx b/src/App.tsx
-index 4d57627..56cdb4c 100644
+index b0e36e1..af4017b 100644
 --- a/src/App.tsx
 +++ b/src/App.tsx
-@@ -58,6 +58,7 @@ import {
- import { buildDocsPath, parseDocsLocation } from './lib/docs/navigation';
+@@ -63,6 +63,7 @@ import { buildDocsPath, parseDocsLocation } from './lib/docs/navigation';
  import { applyAppSeo } from './lib/seo';
- import { appPath, markLaunched } from './lib/routes';
-+import { isOrcaMobile } from './lib/orcaMobile';
+ import { appPath, isDocsRoute, markLaunched } from './lib/routes';
  import { isTauri } from '@tauri-apps/api/core';
++import { isOrcaMobile } from './lib/orcaMobile';
  import {
      migrateLegacyFilamentTd,
-@@ -218,7 +219,9 @@ const saveAutoPaintPersisted = (value: AutoPaintPersisted) => {
- };
+     prewarmAutoPaintProfiles,
+@@ -223,7 +224,7 @@ const saveAutoPaintPersisted = (value: AutoPaintPersisted) => {
  
  function App(): React.ReactElement | null {
+     const { t } = useTranslation('common');
 -    const toolPath = appPath(isTauri());
-+    const toolPath = isOrcaMobile()
-+        ? '/assets/kromacut/index.html'
-+        : appPath(isTauri());
++    const toolPath = isOrcaMobile() ? '/assets/kromacut-editor/app/index.html' : appPath(isTauri());
      // Multi-plate mode (issue #35) is still a stub. Per the plan, the flow diverges
      // at *image upload*, not at app start — so until an image is uploaded the app
      // must look and behave exactly like today. The experimental "Multi-plate mode"
+@@ -1152,3 +1153,4 @@ function App(): React.ReactElement | null {
+ }
+ 
+ export default App;
++
 diff --git a/src/components/CanvasPreview.tsx b/src/components/CanvasPreview.tsx
-index e5876f3..323a982 100644
+index 7496757..b98e9ed 100644
 --- a/src/components/CanvasPreview.tsx
 +++ b/src/components/CanvasPreview.tsx
-@@ -1407,7 +1407,7 @@ const CanvasPreview = forwardRef<CanvasPreviewHandle, Props>(
+@@ -1400,7 +1400,7 @@ const CanvasPreview = forwardRef<CanvasPreviewHandle, Props>(
                  {/* small HUD showing image size and crop size (when active) */}
                  {imageLoaded && imgRef.current ? (
                      <div
@@ -52,18 +63,18 @@ index e5876f3..323a982 100644
                      >
                          {(() => {
 diff --git a/src/components/Header.tsx b/src/components/Header.tsx
-index e8c4050..044c9a7 100644
+index e14f402..ffe1970 100644
 --- a/src/components/Header.tsx
 +++ b/src/components/Header.tsx
-@@ -49,6 +49,7 @@ import {
+@@ -52,6 +52,7 @@ import {
  import logo from '../assets/logo.png';
  import redditIcon from '../assets/reddit.svg';
- import { landingPath } from '@/lib/routes';
+ import { landingPath, publicPath } from '@/lib/routes';
 +import { isOrcaMobile } from '@/lib/orcaMobile';
- import { isTauri } from '@tauri-apps/api/core';
+ import { invoke, isTauri } from '@tauri-apps/api/core';
  import {
      getAutoPaintDiagnosticsEnabled,
-@@ -254,7 +255,8 @@ export const Header: React.FC<Props> = ({ docsOpen, onBackToApp, onOpenDocs }) =
+@@ -288,7 +289,8 @@ export const Header: React.FC<Props> = ({ docsOpen, onBackToApp, onOpenDocs }) =
                      </button>
                  ) : (
                      <a
@@ -71,8 +82,8 @@ index e8c4050..044c9a7 100644
 +                        href={isOrcaMobile() ? '#' : landingPath(isTauri())}
 +                        onClick={isOrcaMobile() ? (event) => event.preventDefault() : undefined}
                          className="flex items-center gap-2 rounded-md p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                         aria-label="Kromacut home"
-                         title="Back to Kromacut home"
+                         aria-label={t('navigation.home')}
+                         title={t('navigation.backHome')}
 diff --git a/src/components/ResizableSplitter.tsx b/src/components/ResizableSplitter.tsx
 index b164c3d..8993522 100644
 --- a/src/components/ResizableSplitter.tsx
@@ -211,10 +222,18 @@ index b164c3d..8993522 100644
      );
  };
 diff --git a/src/hooks/saveBlobToFile.ts b/src/hooks/saveBlobToFile.ts
-index 0a604c9..be5531b 100644
+index 8946fcf..003bc3b 100644
 --- a/src/hooks/saveBlobToFile.ts
 +++ b/src/hooks/saveBlobToFile.ts
-@@ -8,6 +8,44 @@ export interface SaveBlobOptions {
+@@ -3,6 +3,7 @@ import { message, save } from '@tauri-apps/plugin-dialog';
+ import { open } from '@tauri-apps/plugin-fs';
+ import { translate } from '../lib/i18n';
+ import { translateRuntimeMessage } from '../lib/runtimeMessages';
++import { isOrcaMobile } from '../lib/orcaMobile';
+ 
+ export interface SaveBlobOptions {
+     defaultFileName: string;
+@@ -10,6 +11,40 @@ export interface SaveBlobOptions {
      filterName: string;
  }
  
@@ -226,19 +245,15 @@ index 0a604c9..be5531b 100644
 +}
 +
 +declare global {
-+    interface Window {
-+        OrcaMobile?: OrcaMobileBridge;
-+    }
++    interface Window { OrcaMobile?: OrcaMobileBridge; }
 +}
 +
-+async function writeBlobToOrcaMobile(fileName: string, blob: Blob) {
++async function writeBlobToOrcaMobile(fileName: string, blob: Blob): Promise<boolean> {
 +    const bridge = window.OrcaMobile;
 +    if (!bridge) return false;
-+
 +    try {
 +        bridge.beginDownload(fileName);
 +        const bytes = new Uint8Array(await blob.arrayBuffer());
-+        // Keep JavaScript strings and WebView bridge messages small on large 3MF exports.
 +        const chunkSize = 48 * 1024;
 +        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
 +            const chunk = bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length));
@@ -259,50 +274,56 @@ index 0a604c9..be5531b 100644
  async function writeBlobToTauriFile(filePath: string, blob: Blob) {
      const file = await open(filePath, {
          read: false,
-@@ -33,6 +71,10 @@ export async function saveBlobToFile(
-     blob: Blob,
-     options: SaveBlobOptions
- ): Promise<string | null> {
-+    if (await writeBlobToOrcaMobile(options.defaultFileName, blob)) {
+@@ -32,6 +67,9 @@ async function writeBlobToTauriFile(filePath: string, blob: Blob) {
+ }
+ 
+ export async function saveBlobToFile(blob: Blob, options: SaveBlobOptions): Promise<string | null> {
++    if (isOrcaMobile() && await writeBlobToOrcaMobile(options.defaultFileName, blob)) {
 +        return options.defaultFileName;
 +    }
-+
      if (isTauri()) {
          const filePath = await save({
-             title: `Save ${options.filterName}`,
+             title: translate('messages:files.save', {
+diff --git a/src/lib/orcaMobile.ts b/src/lib/orcaMobile.ts
+new file mode 100644
+index 0000000..e9a7e24
+--- /dev/null
++++ b/src/lib/orcaMobile.ts
+@@ -0,0 +1,3 @@
++export function isOrcaMobile(): boolean {
++    return typeof window !== 'undefined' && typeof window.OrcaMobile !== 'undefined';
++}
 diff --git a/src/main.tsx b/src/main.tsx
-index 04536a6..36279a0 100644
+index 8cebdf5..1ca5178 100644
 --- a/src/main.tsx
 +++ b/src/main.tsx
-@@ -5,6 +5,7 @@ import './index.css';
- import LandingPage from './components/LandingPage.tsx';
- import { applyThemeMode, getStoredThemeMode } from './lib/theme';
- import { applyAppSeo, applyHomeSeo } from './lib/seo';
+@@ -4,6 +4,7 @@ import { I18nextProvider } from 'react-i18next';
+ import { i18n } from './lib/i18n';
+ import { initializeAppLanguage, subscribeToLanguagePreference } from './i18n';
+ import { isTauri } from '@tauri-apps/api/core';
 +import { isOrcaMobile } from './lib/orcaMobile';
- import {
-     hasLaunched,
-     selectRoute,
-@@ -14,7 +15,8 @@ import {
+ import './index.css';
+ import './styles/language-layout.css';
+ import LandingPage from './components/LandingPage.tsx';
+@@ -15,7 +16,7 @@ import { hasLaunched, selectRoute, shouldRedirectHomeToApp } from './lib/routes'
  // Apply the saved theme preference before React paints.
  applyThemeMode(getStoredThemeMode());
  
 -const desktopRuntime = isTauri();
-+// The embedded editor is served from an Android asset path rather than public `/app`.
 +const desktopRuntime = isTauri() || isOrcaMobile();
  if (
      shouldRedirectHomeToApp(
          window.location,
 diff --git a/vite.config.ts b/vite.config.ts
-index af23ae0..f18b435 100644
+index d6413fc..4721722 100644
 --- a/vite.config.ts
 +++ b/vite.config.ts
-@@ -10,7 +10,8 @@ const packageJson = JSON.parse(
+@@ -52,7 +52,7 @@ function localizedManifests(): Plugin {
  
  // https://vite.dev/config/
  export default defineConfig({
 -    base: '/',
-+    // Relative paths allow the production bundle to run from Android's local asset host.
 +    base: './',
-     plugins: [react(), tailwindcss()],
+     plugins: [react(), tailwindcss(), localizedManifests()],
      define: {
          __APP_VERSION__: JSON.stringify(packageJson.version),

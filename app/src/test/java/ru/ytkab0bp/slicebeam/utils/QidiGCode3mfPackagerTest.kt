@@ -30,8 +30,12 @@ class QidiGCode3mfPackagerTest {
                     |; filament used [mm] = 1000,500
                     |; total filament used [g] = 5
                     |EXCLUDE_OBJECT_DEFINE NAME=clamp POLYGON=[[10,20],[30,20],[30,40],[10,40],[10,20]]
-                    |T0
+                    |;LAYER:0
+                    |G1 X10 Y20 E1
+                    |;LAYER:1
+                    |G1 X30 Y40 E1
                     |T1
+                    |M2
                     |""".trimMargin(),
             )
             val thumbnail = Base64.getDecoder().decode(
@@ -69,12 +73,23 @@ class QidiGCode3mfPackagerTest {
                 )
                 requiredEntries.forEach { assertTrue("Missing package entry $it", zip.getEntry(it) != null) }
                 val storedGcode = zip.getInputStream(zip.getEntry("Metadata/plate_1.gcode")).use { it.readBytes() }
-                assertTrue("The package must preserve the slicer's toolpath byte-for-byte", storedGcode.contentEquals(source.readBytes()))
+                assertTrue("The QIDI G-code must begin with an embedded preview", String(storedGcode, Charsets.US_ASCII).startsWith("; thumbnail begin 1x1 "))
+                assertTrue("The slicer's original toolpath must be preserved after the preview", storedGcode.takeLast(source.length().toInt()).toByteArray().contentEquals(source.readBytes()))
+                val thumbnailLines = String(storedGcode, Charsets.US_ASCII).lineSequence().toList()
+                val thumbnailStart = thumbnailLines.indexOfFirst { it.startsWith("; thumbnail begin ") }
+                val thumbnailEnd = thumbnailLines.indexOfFirst { it == "; thumbnail end" }
+                val embeddedImage = java.util.Base64.getDecoder().decode(
+                    thumbnailLines.subList(thumbnailStart + 1, thumbnailEnd).joinToString("") { it.removePrefix("; ") },
+                )
+                assertTrue("The embedded G-code preview must match the captured image", embeddedImage.contentEquals(thumbnail))
                 val sliceInfo = zip.getInputStream(zip.getEntry("Metadata/slice_info.config")).bufferedReader().use { it.readText() }
                 assertTrue(sliceInfo.contains("key=\"printer_model_id\" value=\"Q2\""))
                 assertTrue(sliceInfo.contains("key=\"filament_maps\" value=\"1 2\""))
                 assertTrue(sliceInfo.contains("type=\"PLA\" color=\"#FF0000\""))
                 assertTrue(sliceInfo.contains("name=\"clamp\""))
+                val relationships = zip.getInputStream(zip.getEntry("_rels/.rels")).bufferedReader().use { it.readText() }
+                assertTrue(relationships.contains("http://schemas.qiditech.com/package/2021/cover-thumbnail-middle"))
+                assertTrue(relationships.contains("http://schemas.qiditech.com/package/2021/cover-thumbnail-small"))
                 val storedPreview = zip.getInputStream(zip.getEntry("Metadata/plate_1.png")).use { it.readBytes() }
                 assertTrue(storedPreview.contentEquals(thumbnail))
             }
@@ -85,13 +100,55 @@ class QidiGCode3mfPackagerTest {
     }
 
     @Test
+    fun includesFullSettingsForQidiPrintDetailsIncludingSettingsAfterFormerLimit() {
+        val source = File.createTempFile("qidi-full-settings", ".gcode")
+        val target = File.createTempFile("qidi-full-settings", ".gcode.3mf")
+        val png = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+        )
+        try {
+            val settings = buildString {
+                appendLine("; total layer number: 1")
+                repeat(300) { appendLine("; test_setting_$it = value_$it") }
+                appendLine("; layer_height = 0.16")
+                appendLine("; first_layer_height = 0.24")
+                appendLine("; outer_wall_speed = 120")
+                appendLine("; travel_speed = 500")
+                appendLine("; filament_type = PLA,PETG")
+                appendLine("; filament_colour = #112233,#AABBCC")
+                appendLine("; filament_map = 1,2")
+                appendLine(";LAYER:0")
+                appendLine("G1 X1 Y1 E1")
+                appendLine("T0")
+                appendLine("M2")
+                appendLine("T1")
+            }
+            source.writeText(settings)
+            QidiGCode3mfPackager.create(source, target, png, qidiQ2(), emptyList(), "test", "details")
+            ZipFile(target).use { zip ->
+                val projectSettings = zip.getInputStream(zip.getEntry("Metadata/project_settings.config"))
+                    .bufferedReader().use { it.readText() }
+                assertTrue(projectSettings.contains("\"layer_height\": \"0.16\""))
+                assertTrue(projectSettings.contains("\"first_layer_height\": \"0.24\""))
+                assertTrue(projectSettings.contains("\"outer_wall_speed\": \"120\""))
+                assertTrue(projectSettings.contains("\"travel_speed\": \"500\""))
+                assertTrue(projectSettings.contains("\"test_setting_299\": \"value_299\""))
+                assertTrue(projectSettings.contains("\"filament_colour\": [\"#112233\", \"#AABBCC\"]"))
+            }
+        } finally {
+            source.delete()
+            target.delete()
+        }
+    }
+
+    @Test
     fun requiresARealPreviewAndDoesNotClassifyQ2CAsQ2() {
         assertFalse(QidiGCode3mfPackager.isQidiQ2(ConfigObject("Qidi Q2C 0.4 nozzle").apply { put("printer_model", "Q2C") }))
         assertTrue(QidiGCode3mfPackager.isQidiQ2(qidiQ2()))
         val source = File.createTempFile("qidi-no-preview", ".gcode")
         val target = File.createTempFile("qidi-no-preview", ".gcode.3mf")
         try {
-            source.writeText("; total layer number: 1\nT0\n")
+            source.writeText("; total layer number: 1\n;LAYER:0\nG1 X1 Y1 E1\nT0\nM2\n")
             try {
                 QidiGCode3mfPackager.create(source, target, null, qidiQ2(), emptyList(), "test", "print.gcode.3mf")
                 throw AssertionError("A missing preview must not create a package with a blank/fake picture")
@@ -110,7 +167,7 @@ class QidiGCode3mfPackagerTest {
         val source = File.createTempFile("qidi-bad-preview", ".gcode")
         val target = File.createTempFile("qidi-bad-preview", ".gcode.3mf")
         try {
-            source.writeText("; total layer number: 1\nT0\n")
+            source.writeText("; total layer number: 1\n;LAYER:0\nG1 X1 Y1 E1\nT0\nM2\n")
             val png = Base64.getDecoder().decode(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
             )
@@ -139,7 +196,7 @@ class QidiGCode3mfPackagerTest {
         )
         try {
             for (tool in listOf("T16", "T999999999999999999999999")) {
-                source.writeText("; total layer number: 1\n$tool\n")
+                source.writeText("; total layer number: 1\n;LAYER:0\nG1 X1 Y1 E1\n$tool\nM2\n")
                 try {
                     QidiGCode3mfPackager.create(source, target, png, qidiQ2(), emptyList(), "test", "part")
                     throw AssertionError("Accepted an unsupported tool: $tool")
@@ -162,7 +219,7 @@ class QidiGCode3mfPackagerTest {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
         )
         try {
-            source.writeText("; total layer number: 1\nT0\n")
+            source.writeText("; total layer number: 1\n;LAYER:0\nG1 X1 Y1 E1\nT0\nM2\n")
             QidiGCode3mfPackager.create(source, target, png, qidiQ2(), emptyList(), "test", "part")
             ZipFile(target).use { zip ->
                 ZipOutputStream(damaged.outputStream()).use { output ->

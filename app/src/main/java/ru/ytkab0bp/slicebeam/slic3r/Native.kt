@@ -52,7 +52,7 @@ class Native {
     @JvmStatic
     external fun glmodel_init_from_model_object_preview(ptr: Long, model: Long, i: Int, maxTriangles: Int): Unit
     @JvmStatic
-    external fun glmodel_init_raycast_data(ptr: Long): Unit
+    external fun glmodel_init_raycast_data(ptr: Long): Boolean
     @JvmStatic
     external fun glmodel_set_color(ptr: Long, red: Float, green: Float, blue: Float, alpha: Float): Unit
     @JvmStatic
@@ -94,18 +94,49 @@ class Native {
     @JvmStatic
     external fun model_create(): Long
     @JvmStatic
+    external fun model_replace_contents(ptr: Long, fromPtr: Long): Unit
+    @JvmStatic
     @Throws(Slic3rRuntimeError::class)
-    external fun model_read_from_file(path: String, baseName: String, plateId: Int, progress: ImportProgressCallback?): Long
+    external fun model_read_from_file(
+        path: String,
+        baseName: String,
+        plateId: Int,
+        progress: ImportProgressCallback?,
+        stepLinearDeflection: Double,
+        stepAngularDeflection: Double,
+        splitStepCompound: Boolean,
+    ): Long
     @JvmStatic
     external fun model_get_objects_count(ptr: Long): Int
     @JvmStatic
     external fun model_get_object_name(ptr: Long, i: Int): String
+    @JvmStatic
+    external fun model_get_object_part_count(ptr: Long, i: Int): Int
+    @JvmStatic
+    external fun model_get_object_part_extruder(ptr: Long, objectIndex: Int, partIndex: Int): Int
+    @JvmStatic
+    external fun model_transform_object_part(
+        ptr: Long,
+        objectIndex: Int,
+        partIndex: Int,
+        dx: Double,
+        dy: Double,
+        dz: Double,
+        rotationXDegrees: Double,
+        rotationYDegrees: Double,
+        rotationZDegrees: Double,
+        scaleX: Double,
+        scaleY: Double,
+        scaleZ: Double,
+    ): Boolean
     @JvmStatic
     external fun model_get_triangle_count(ptr: Long, i: Int): Int
     @JvmStatic
     external fun model_simplify(ptr: Long, i: Int, keepRatio: Float): Int
     @JvmStatic
     external fun model_add_object_from_another(ptr: Long, from: Long, i: Int): Unit
+    @JvmStatic
+    external fun model_duplicate_instance(ptr: Long, objectIndex: Int, sourceInstanceIndex: Int, dx: Double, dy: Double, dz: Double): Int
     @JvmStatic
     external fun model_delete_object(ptr: Long, i: Int): Unit
     @JvmStatic
@@ -117,9 +148,13 @@ class Native {
     @JvmStatic
     external fun model_get_mirror(ptr: Long, objectIndex: Int): DoubleArray
     @JvmStatic
+    external fun model_mirror(ptr: Long, objectIndex: Int, axis: Int): Unit
+    @JvmStatic
     external fun model_get_rotation(ptr: Long, objectIndex: Int): DoubleArray
     @JvmStatic
     external fun model_get_bounding_box_exact(ptr: Long, i: Int): DoubleArray
+    @JvmStatic
+    external fun model_get_minimum_projection(ptr: Long, objectIndices: IntArray, direction: DoubleArray): Double
     @JvmStatic
     external fun model_get_bounding_box_approx(ptr: Long, i: Int): DoubleArray
     @JvmStatic
@@ -139,6 +174,8 @@ class Native {
     @JvmStatic
     external fun model_rotate(ptr: Long, i: Int, x: Double, y: Double, z: Double): Unit
     @JvmStatic
+    external fun model_reset_rotation(ptr: Long, i: Int): Unit
+    @JvmStatic
     external fun model_flatten_rotate(ptr: Long, i: Int, surfacePtr: Long): Unit
     @JvmStatic
     external fun model_create_flatten_planes(ptr: Long, i: Int): LongArray
@@ -153,17 +190,23 @@ class Native {
     @JvmStatic
     external fun model_clear_connectors(ptr: Long, objIdx: Int): Unit
     @JvmStatic
+    external fun model_get_cut_connector_count(ptr: Long, objIdx: Int): Int
+    @JvmStatic
     external fun model_auto_orient(ptr: Long, i: Int): Unit
     @JvmStatic
     external fun model_is_big_object(ptr: Long, i: Int): Boolean
     @JvmStatic
     external fun model_get_extruder(ptr: Long, i: Int): Int
     @JvmStatic
+    external fun model_get_volume_extruder(ptr: Long, objectIndex: Int, volumeIndex: Int): Int
+    @JvmStatic
     external fun model_set_extruder(ptr: Long, i: Int, extruder: Int): Unit
     @JvmStatic
     external fun model_get_used_filaments(ptr: Long, i: Int): IntArray
     @JvmStatic
     external fun model_set_uniform_filament(ptr: Long, i: Int, filament: Int): Unit
+    @JvmStatic
+    external fun model_remap_filaments(ptr: Long, sourceFilaments: IntArray, targetFilaments: IntArray): Unit
     @JvmStatic
     external fun model_apply_adaptive_layer_height(ptr: Long, i: Int, configPath: String, qualityFactor: Float): Unit
     @JvmStatic
@@ -172,6 +215,15 @@ class Native {
     external fun model_has_adaptive_layer_height(ptr: Long, i: Int): Boolean
     @JvmStatic
     external fun model_emboss_text(ptr: Long, i: Int, fontPath: String, text: String, size: Float, depth: Float, type: Int, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double): Unit
+    @JvmStatic
+    external fun model_create_text_object(ptr: Long, fontPath: String, text: String, size: Float, depth: Float, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double, targetObjectIndex: Int): Int
+    @JvmStatic
+    external fun model_combine_objects_as_parts(ptr: Long, objectIndices: IntArray): Int
+    /** op: 0=union, 1=target minus tool, 2=intersection. Negative values mean no mutation was applied. */
+    @JvmStatic
+    external fun model_boolean_objects(ptr: Long, objectIndices: IntArray, op: Int): Int
+    @JvmStatic
+    external fun model_get_object_volume(ptr: Long, objectIndex: Int): Double
     @JvmStatic
     external fun paint_begin(modelPtr: Long, objIdx: Int, mode: Int): Long
     @JvmStatic
@@ -183,13 +235,29 @@ class Native {
     @JvmStatic
     external fun paint_height(sessionPtr: Long, zMin: Double, zMax: Double, filamentIdx: Int): Unit
     @JvmStatic
+    external fun paint_begin_stroke(sessionPtr: Long): Unit
+    @JvmStatic
+    external fun paint_end_stroke(sessionPtr: Long): Unit
+    @JvmStatic
+    external fun paint_can_undo(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_can_redo(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_undo_stroke(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_redo_stroke(sessionPtr: Long): Boolean
+    @JvmStatic
+    external fun paint_reset_history(sessionPtr: Long): Unit
+    @JvmStatic
     external fun paint_clear(sessionPtr: Long): Unit
     @JvmStatic
     external fun paint_commit(sessionPtr: Long): Unit
     @JvmStatic
     external fun paint_get_mesh(sessionPtr: Long, filamentIdx: Int): FloatArray
     @JvmStatic
-    external fun glmodel_init_from_paint(glPtr: Long, sessionPtr: Long, filamentIdx: Int): Int
+    external fun glmodel_init_from_paint(glPtr: Long, sessionPtr: Long, filamentIdx: Int, baseFilamentPreview: Int): Int
+    @JvmStatic
+    external fun paint_build_live_overlays(sessionPtr: Long, glModelPtrs: LongArray, baseFilamentPreview: Int): IntArray
     @JvmStatic
     external fun paint_end(sessionPtr: Long): Unit
     @JvmStatic

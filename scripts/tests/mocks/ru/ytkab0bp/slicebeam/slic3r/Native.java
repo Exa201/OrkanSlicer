@@ -474,6 +474,13 @@ public class Native {
         }
     }
 
+    public static void model_reset_rotation(long ptr, int i) {
+        MockModel model = models.get(ptr);
+        if (model != null && i >= 0 && i < model.objects.size()) {
+            model.objects.get(i).rotation = new double[]{0, 0, 0};
+        }
+    }
+
     public static void model_flatten_rotate(long ptr, int i, long surfacePtr) {}
     public static long[] model_create_flatten_planes(long ptr, int i) { return new long[0]; }
     public static void model_auto_orient(long ptr, int i) {}

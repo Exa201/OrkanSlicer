@@ -5,6 +5,24 @@ import org.junit.Test
 
 class OrientationTransformPolicyTest {
     @Test
+    fun positionRulerChangesOnlyItsOwnAxisAndPreservesFractionalCoordinates() {
+        val current = OrientationVector3(1.5, 2.5, 3.5)
+        val values = OrientationAxisValues(12, -7, 18)
+        assertEquals(
+            OrientationVector3(12.0, 2.5, 3.5),
+            OrientationTransformPolicy.positionFromRuler(current, values, OrientationAxis.X),
+        )
+        assertEquals(
+            OrientationVector3(1.5, -7.0, 3.5),
+            OrientationTransformPolicy.positionFromRuler(current, values, OrientationAxis.Y),
+        )
+        assertEquals(
+            OrientationVector3(1.5, 2.5, 18.0),
+            OrientationTransformPolicy.positionFromRuler(current, values, OrientationAxis.Z),
+        )
+    }
+
+    @Test
     fun updatesOnlyTheRequestedPositionOrRotationAxis() {
         val initial = OrientationAxisValues(-12, 24, 90)
 

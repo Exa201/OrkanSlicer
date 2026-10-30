@@ -450,40 +450,53 @@ Step::Step_Status Step::load()
     }
     std::atomic<bool> stop_load_flag = false;
     Handle(StepProgressIncdicator) incdicator = new StepProgressIncdicator(stop_load_flag);
-    bool task_result = false;
+    std::atomic<bool> task_result{false};
     bool cb_cancel = false;
-    int progress = 0;
+    std::atomic<int> progress{0};
     bool load_result = false;
     auto task = new boost::thread(Slic3r::create_thread([&]() -> void {
-
-        STEPCAFControl_Reader reader;
-        reader.SetNameMode(true);
-        IFSelect_ReturnStatus stat = reader.ReadFile(m_path.c_str());
-        if (cb_cancel) return;
-        progress = 3;
-        if (stat != IFSelect_RetDone || !reader.Transfer(m_doc, incdicator->Start())) {
+        try {
+            STEPCAFControl_Reader reader;
+            reader.SetNameMode(true);
+            IFSelect_ReturnStatus stat = reader.ReadFile(m_path.c_str());
+            if (stop_load_flag.load(std::memory_order_relaxed)) {
+                task_result.store(true, std::memory_order_release);
+                return;
+            }
+            progress.store(3, std::memory_order_relaxed);
+            if (stat != IFSelect_RetDone || !reader.Transfer(m_doc, incdicator->Start())) {
+                task_result.store(true, std::memory_order_release);
+                return;
+            }
+            if (stop_load_flag.load(std::memory_order_relaxed)) {
+                task_result.store(true, std::memory_order_release);
+                return;
+            }
+            progress.store(6, std::memory_order_relaxed);
+            m_shape_tool = XCAFDoc_DocumentTool::ShapeTool(m_doc->Main());
+            TDF_LabelSequence topLevelShapes;
+            m_shape_tool->GetFreeShapes(topLevelShapes);
+            unsigned int id{ 1 };
+            Standard_Integer topShapeLength = topLevelShapes.Length() + 1;
+            for (Standard_Integer iLabel = 1; iLabel < topShapeLength; ++iLabel) {
+                if (stop_load_flag.load(std::memory_order_relaxed)) {
+                    task_result.store(true, std::memory_order_release);
+                    return;
+                }
+                getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), m_name_solids);
+            }
+            progress.store(10, std::memory_order_relaxed);
+            load_result = true;
+        } catch (...) {
+            // An exception escaping a CAD worker would terminate the Android process.
+            // Translate it to the regular STEP load error handled by the caller.
             load_result = false;
-            task_result = true;
-            return;
         }
-        if (cb_cancel) return;
-        progress = 6;
-        m_shape_tool = XCAFDoc_DocumentTool::ShapeTool(m_doc->Main());
-        TDF_LabelSequence topLevelShapes;
-        m_shape_tool->GetFreeShapes(topLevelShapes);
-        unsigned int id{ 1 };
-        Standard_Integer topShapeLength = topLevelShapes.Length() + 1;
-        for (Standard_Integer iLabel = 1; iLabel < topShapeLength; ++iLabel) {
-            if (cb_cancel) return;
-            getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), m_name_solids);
-        }
-        progress = 10;
-        load_result = true;
-        task_result = true;
+        task_result.store(true, std::memory_order_release);
     }));
-    while (!task_result) {
+    while (!task_result.load(std::memory_order_acquire)) {
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
-        update_process(LOAD_STEP_STAGE_READ_FILE, progress, 10, cb_cancel);
+        update_process(LOAD_STEP_STAGE_READ_FILE, progress.load(std::memory_order_relaxed), 10, cb_cancel);
         if (cb_cancel) {
             stop_load_flag.store(true);
             if (task) {
@@ -516,35 +529,44 @@ Step::Step_Status Step::mesh(Model* model,
                              double angle_defletion/*= 0.5*/)
 
 {
-    bool task_result = false;
+    std::atomic<bool> task_result{false};
+    bool mesh_result = false;
     bool cb_cancel = false;
-    float progress = .0;
+    std::atomic<float> progress{0.0f};
     std::atomic<int> meshed_solid_num = 0;
     std::vector<NamedSolid> namedSolids;
-    float progress_2 = .0;
+    std::atomic<size_t> named_solid_count{0};
+    std::atomic<float> progress_2{0.0f};
+    m_stop_mesh.store(false, std::memory_order_relaxed);
+    is_cancel = false;
     ModelObject* new_object = model->add_object();
     const char* last_slash = strrchr(m_path.c_str(), DIR_SEPARATOR);
     new_object->name.assign((last_slash == nullptr) ? m_path.c_str() : last_slash + 1);
     new_object->input_file = m_path.c_str();
 
     auto task = new boost::thread(Slic3r::create_thread([&]() -> void {
+      try {
         TDF_LabelSequence topLevelShapes;
         m_shape_tool->GetFreeShapes(topLevelShapes);
         unsigned int id{ 1 };
         Standard_Integer topShapeLength = topLevelShapes.Length() + 1;
         
         for (Standard_Integer iLabel = 1; iLabel < topShapeLength; ++iLabel) {
-            progress = static_cast<double>(iLabel) / (topShapeLength-1);
-            if (cb_cancel) {
+            progress.store(static_cast<float>(iLabel) / static_cast<float>(topShapeLength - 1), std::memory_order_relaxed);
+            if (m_stop_mesh.load(std::memory_order_relaxed)) {
+                task_result.store(true, std::memory_order_release);
                 return;
             }
             getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), namedSolids, isSplitCompound);
         }
 
+        named_solid_count.store(namedSolids.size(), std::memory_order_relaxed);
         std::vector<stl_file> stl;
         stl.resize(namedSolids.size());
         tbb::parallel_for(tbb::blocked_range<size_t>(0, namedSolids.size()), [&](const tbb::blocked_range<size_t>& range) {
             for (size_t i = range.begin(); i < range.end(); i++) {
+                if (m_stop_mesh.load(std::memory_order_relaxed))
+                    continue;
                 BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_defletion, false, angle_defletion, true);
                 // BBS: calculate total number of the nodes and triangles
                 int aNbNodes = 0;
@@ -621,9 +643,11 @@ Step::Step_Status Step::mesh(Model* model,
 
 
         for (size_t i = 0; i < stl.size(); i++) {
-            progress_2 = static_cast<float>(i) / stl.size();
-            if (cb_cancel)
+            progress_2.store(static_cast<float>(i) / static_cast<float>(stl.size()), std::memory_order_relaxed);
+            if (m_stop_mesh.load(std::memory_order_relaxed)) {
+                task_result.store(true, std::memory_order_release);
                 return;
+            }
 
             //BBS: maybe mesh is empty from step file. Don't add
             if (stl[i].stats.number_of_facets > 0) {
@@ -636,29 +660,40 @@ Step::Step_Status Step::mesh(Model* model,
                 new_volume->source.volume_idx = (int)new_object->volumes.size() - 1;
             }
         }
-        task_result = true;
+        mesh_result = true;
+      } catch (...) {
+          // Do not let OpenCascade/TBB failures escape a native worker thread.
+          // An empty object is detected below and translated to MESH_ERROR.
+      }
+      task_result.store(true, std::memory_order_release);
     }));
 
-    while (!task_result) {
+    while (!task_result.load(std::memory_order_acquire)) {
         boost::this_thread::sleep_for(boost::chrono::milliseconds(300));
-        if (progress_2 > 0) {
+        const float meshProgress = progress_2.load(std::memory_order_relaxed);
+        if (meshProgress > 0) {
             // third progress
-            update_process(LOAD_STEP_STAGE_GET_MESH, static_cast<int>(progress_2 * 100), 100, cb_cancel);
+            update_process(LOAD_STEP_STAGE_GET_MESH, static_cast<int>(meshProgress * 100), 100, cb_cancel);
         }else {
             if (meshed_solid_num.load()) {
                 // second progress
                 int meshed_solid = meshed_solid_num.load();
-                update_process(LOAD_STEP_STAGE_GET_SOLID, static_cast<int>((float)meshed_solid / namedSolids.size() * 10) + 10, 20, cb_cancel);
+                const size_t solidCount = named_solid_count.load(std::memory_order_relaxed);
+                if (solidCount > 0)
+                    update_process(LOAD_STEP_STAGE_GET_SOLID, static_cast<int>(static_cast<float>(meshed_solid) / static_cast<float>(solidCount) * 10) + 10, 20, cb_cancel);
             } else {
-                if (progress > 0) {
+                const float solidProgress = progress.load(std::memory_order_relaxed);
+                if (solidProgress > 0) {
                     // first progress
-                    update_process(LOAD_STEP_STAGE_GET_SOLID, static_cast<int>(progress * 10), 20, cb_cancel);
+                    update_process(LOAD_STEP_STAGE_GET_SOLID, static_cast<int>(solidProgress * 10), 20, cb_cancel);
                 }
             }
         }
         
         
         if (cb_cancel) {
+            is_cancel = true;
+            m_stop_mesh.store(true, std::memory_order_relaxed);
             if (task) {
                 if (task->joinable()) {
                     task->join();
@@ -676,7 +711,7 @@ Step::Step_Status Step::mesh(Model* model,
     }
 
     //BBS: no valid shape from the step, delete the new object as well
-    if (new_object->volumes.size() == 0) {
+    if (!mesh_result || new_object->volumes.size() == 0) {
         model->delete_object(new_object);
         return Step_Status::MESH_ERROR;
     }

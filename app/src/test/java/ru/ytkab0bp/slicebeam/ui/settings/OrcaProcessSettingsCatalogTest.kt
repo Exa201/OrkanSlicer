@@ -149,4 +149,17 @@ class OrcaProcessSettingsCatalogTest {
         )))
         assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
     }
+
+    @Test
+    fun supportedPrecisionAndInfillOptionsAreExposedInTheirExistingGroups() {
+        val categories = OrcaProcessSettingsCatalog.categories()
+        val precision = categories.single { it.title == "Layers and perimeters" }
+            .sections.single { it.title == "Precision" }
+        val infill = categories.single { it.title == "Infill" }
+            .sections.single { it.title == "Infill" }
+
+        assertTrue("Elephant-foot layer density uses the native expert option", "elefant_foot_layers_density" in precision.keys)
+        assertTrue("Infill locking remains in the Orca infill settings", "infill_lock_depth" in infill.keys)
+        assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
+    }
 }

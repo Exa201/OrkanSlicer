@@ -43,11 +43,28 @@ class LargeModelPickTest {
         assertFalse(hit.approximate)
     }
 
-    @Test fun denseSurfaceToolSuggestionStaysBelowSafePickingLimit() {
-        assertFalse(LargeModelPick.needsPreciseSurfaceSimplification(100_000))
-        assertTrue(LargeModelPick.needsPreciseSurfaceSimplification(100_001))
-        assertEquals(1f, LargeModelPick.suggestedKeepRatio(100_000), 0f)
-        assertEquals(80_000f / 1_380_000f,
-            LargeModelPick.suggestedKeepRatio(1_380_000), 0.000001f)
+    @Test fun densePaintLimitPreservesDetailedArtworkAndBoundsRaycastSeparately() {
+        assertFalse(LargeModelPick.needsPreciseSurfaceSimplification(165_264))
+        assertFalse(LargeModelPick.needsPreciseSurfaceSimplification(200_000))
+        assertTrue(LargeModelPick.needsPreciseSurfaceSimplification(200_001))
+        assertTrue("the raycast ceiling must remain independent from the paint ceiling",
+            LargeModelPick.canUsePreciseSurfaceTools(LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT))
+        assertFalse("very dense bounds-only meshes must not enter precise surface tools",
+            LargeModelPick.canUsePreciseSurfaceTools(LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT + 1))
+        assertTrue("KromaCut artwork below the paint cap must retain precise paint hits",
+            LargeModelPick.canUsePrecisePaintRaycast(165_264))
+        assertTrue(LargeModelPick.canUsePrecisePaintRaycast(LargeModelPick.PAINT_RAYCAST_TRIANGLE_LIMIT))
+        assertFalse(LargeModelPick.canUsePrecisePaintRaycast(LargeModelPick.PAINT_RAYCAST_TRIANGLE_LIMIT + 1))
+        assertFalse(LargeModelPick.needsBoundsOnlyPicking(40_000))
+        assertTrue(LargeModelPick.needsBoundsOnlyPicking(100_001))
+        assertEquals(1f, LargeModelPick.suggestedKeepRatio(200_000), 0f)
+        assertEquals(160_000f / 400_000f,
+            LargeModelPick.suggestedKeepRatio(400_000), 0.000001f)
+        assertEquals(LargeModelPick.SAFE_RAYCAST_TRIANGLE_TARGET / 120_000f,
+            LargeModelPick.suggestedKeepRatio(120_000, LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT),
+            0.000001f)
+        assertEquals(1f,
+            LargeModelPick.suggestedKeepRatio(40_000, LargeModelPick.EXACT_RAYCAST_TRIANGLE_LIMIT),
+            0f)
     }
 }

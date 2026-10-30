@@ -22,11 +22,24 @@ import android.view.SurfaceHolder
 import android.view.ViewConfiguration
 import java.nio.IntBuffer
 import java.util.ArrayList
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.Executors
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
+import ru.ytkab0bp.slicebeam.render.DevicePerformancePolicy
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
+import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
+import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
+import ru.ytkab0bp.slicebeam.slic3r.Bed3D
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
+import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.theme.IThemeView
 import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.Prefs
@@ -43,8 +56,12 @@ private var onePointerGesture:Boolean = false
 private var twoPointerGesture:Boolean = false
 private var longClickGesture:Boolean = false
 private var longClickMoved:Boolean = false
+@Volatile private var touchGestureGeneration:Long = 0L
+@Volatile private var pointerDownForLongClick:Boolean = false
+@Volatile private var longClickActivationPending:Boolean = false
 private var isScaling:Boolean = false
-private var fillBedInProgress:Boolean = false
+@Volatile var isFillBedInProgress:Boolean = false
+    private set
 private var primeTowerGesture:Boolean = false
 private var primeTowerMoved:Boolean = false
 private var primeTowerDownX:Float = 0f
@@ -54,6 +71,9 @@ private var longClickTargetObject = -1
 private val tapGestureGate = TapGestureGate()
 // When true and the renderer is in paint mode, a single finger paints instead of orbiting.
  var isPaintBrushActive:Boolean = false
+private var paintStrokeActive = false
+private val paintInputCoalescer = PaintInputCoalescer()
+private var lastPaintPoint: PaintInputCoalescer.Point? = null
 private var tempVec = Vec3d()
 private var longClickOffset = Vec3d()
 private var longClickTranslation = Vec3d()
@@ -61,35 +81,113 @@ private var longClickHitResults = ArrayList<GLModel.HitResult>()
 private var lastActionTime = System.currentTimeMillis()
 // A few devices report a very short accessibility long-press threshold; keep ordinary presses from opening actions.
 private val longPressTimeoutMs = maxOf(ViewConfiguration.getLongPressTimeout(), 500).toLong()
-private val longClick = Runnable { if (longClickTargetObject == -1 || renderer.model == null || renderer.bed == null) return@Runnable
-tapGestureGate.invalidate()
-val renderScale = Prefs.getRenderScale()
-renderer.bed!!.raycaster.raycast(renderer, longClickHitResults, lastX * renderScale, lastY * renderScale)
-if (!longClickHitResults.isEmpty())
-{
-performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-longClickGesture = true
-longClickMoved = false
-longClickTranslation.set((0).toDouble(), (0).toDouble(), (0).toDouble())
-if (renderer.focusForDrag(longClickTargetObject))
-{
-requestRender()
+private val longClick = Runnable {
+    val generation = touchGestureGeneration
+    if (!pointerDownForLongClick) return@Runnable
+    longClickActivationPending = true
+    val x = surfaceTouchX(lastX)
+    val y = surfaceTouchY(lastY)
+    // Only a stationary long press needs an object pick. Running this on ACTION_DOWN
+    // used to build native raycast data before every camera orbit, stalling the GL queue
+    // behind potentially expensive mesh topology work.
+    queueEvent {
+        var hitFound = false
+        var target = -1
+        if (touchGestureGeneration == generation && pointerDownForLongClick) {
+            val activeModel = renderer.model
+            val bed = renderer.bed
+            if (renderer.gcodeResult == null && activeModel != null && bed != null) {
+                target = renderer.raycastObjectIndex(x, y)
+                if (target in 0 until activeModel.objectsCount) {
+                    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
+                    val hit = longClickHitResults.firstOrNull()
+                    if (hit != null) {
+                        activeModel.getTranslation(target, tempVec)
+                        longClickOffset.x = hit.position.x - tempVec.x
+                        longClickOffset.y = hit.position.y - tempVec.y
+                        if (renderer.focusForDrag(target)) requestRender()
+                        hitFound = true
+                    }
+                }
+            }
+        }
+        ViewUtils.postOnMainThread {
+            if (touchGestureGeneration != generation || !pointerDownForLongClick) return@postOnMainThread
+            longClickActivationPending = false
+            if (!hitFound) return@postOnMainThread
+            longClickTargetObject = target
+            tapGestureGate.invalidate()
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            longClickGesture = true
+            longClickMoved = false
+            longClickTranslation.set(0.0, 0.0, 0.0)
+        }
+    }
 }
-val result = longClickHitResults.get(0)
-renderer.model!!.getTranslation(longClickTargetObject, tempVec)
-longClickOffset.x = result.position.x - tempVec.x
-longClickOffset.y = result.position.y - tempVec.y
-} }
 private var path = Path()
 private var paint = Paint(Paint.ANTI_ALIAS_FLAG)
 private var xferPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 private var invalidBedText = TextPaint(Paint.ANTI_ALIAS_FLAG)
 private var invalidBedDescriptionLayout: StaticLayout? = null
 private var lastScale:Float = 0.toFloat()
+@Volatile private var glSurfaceWidth = 0
+@Volatile private var glSurfaceHeight = 0
+private fun surfaceTouchX(x: Float): Float =
+    DevicePerformancePolicy.mapTouchCoordinate(x, width, glSurfaceWidth)
+private fun surfaceTouchY(y: Float): Float =
+    DevicePerformancePolicy.mapTouchCoordinate(y, height, glSurfaceHeight)
 private fun paintAtScreen(x:Float, y:Float) {
-val renderScale = Prefs.getRenderScale()
-queueEvent({ renderer.paintAt(x * renderScale, y * renderScale)
-requestRender() })
+if (paintInputCoalescer.submit(surfaceTouchX(x), surfaceTouchY(y))) {
+    queueEvent { drainPaintInput() }
+}
+}
+private fun drainPaintInput() {
+    val segment = paintInputCoalescer.takePending()
+    if (segment != null) {
+        applyPaintSegment(segment)
+        requestRender()
+    }
+    if (paintInputCoalescer.finishDrain()) queueEvent { drainPaintInput() }
+}
+private fun endPaintStrokeOnGlThread() {
+    // A finger-up can be queued while a native preview build is still running. Apply the
+    // latest coalesced point before ending the native transaction so neither the preview nor
+    // the committed brush stroke loses the final section of a quick gesture.
+    paintInputCoalescer.flush()?.let(::applyPaintSegment)
+    renderer.endPaintStroke()
+    lastPaintPoint = null
+    requestRender()
+}
+private fun applyPaintSegment(segment: PaintInputCoalescer.Segment) {
+    // If the GL queue was busy when a stroke began, submit() may coalesce DOWN and several
+    // MOVE events together. Paint the first point before interpolating to the latest point so
+    // a fast initial swipe cannot lose its leading section.
+    if (lastPaintPoint == null) applyPaintPoint(segment.start)
+    if (segment.end != segment.start) applyPaintPoint(segment.end)
+}
+private fun applyPaintPoint(point: PaintInputCoalescer.Point) {
+    val previous = lastPaintPoint
+    if (previous == null || renderer.paintTool != GLRenderer.PAINT_TOOL_BRUSH) {
+        renderer.paintAt(point.x, point.y)
+    } else {
+        // Coalescing prevents a slow native preview from building a queue of stale events.
+        // Interpolate the skipped brush path at screen-space intervals so a quick drag still
+        // covers the same continuous surface instead of leaving gaps between samples.
+        val distance = kotlin.math.hypot(
+            (point.x - previous.x).toDouble(),
+            (point.y - previous.y).toDouble(),
+        )
+        val steps = kotlin.math.ceil(distance / 8.0).toInt().coerceAtLeast(1)
+        for (step in 1..steps) {
+            val fraction = step.toFloat() / steps
+            renderer.paintAt(
+                previous.x + (point.x - previous.x) * fraction,
+                previous.y + (point.y - previous.y) * fraction,
+                rebuildPreview = step == steps,
+            )
+        }
+    }
+    lastPaintPoint = point
 }
 fun interface FillBedCallback {
 fun onFillBedComplete(addedCopies:Int)
@@ -108,40 +206,181 @@ setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY)
 touchSlop = ViewConfiguration.get(context).getScaledTouchSlop()
 setWillNotDraw(false)
 }
-@JvmOverloads fun arrange(onComplete:Runnable? = null) {
-if (renderer.model == null) return
-queueEvent({ renderer.bed!!.arrange(renderer.model!!)
-renderer.resetGlModels()
-requestRender()
-if (onComplete != null) ViewUtils.postOnMainThread(onComplete) })
+fun arrange(onComplete: ((Boolean) -> Unit)? = null) {
+    if (renderer.model == null) return
+    queueEvent {
+        val arranged = renderer.arrangeObjects()
+        requestRender()
+        if (onComplete != null) ViewUtils.postOnMainThread { onComplete(arranged) }
+    }
 }
 fun fillBedWithSelectedModel(callback:FillBedCallback) {
-if (renderer.model == null || fillBedInProgress) return
-fillBedInProgress = true
-queueEvent({ val addedCopies = renderer.fillBedWithSelectedObject()
-requestRender()
-ViewUtils.postOnMainThread({ fillBedInProgress = false
-if (callback != null)
-{
-callback.onFillBedComplete(addedCopies)
-} }) })
+if (isFillBedInProgress) return
+isFillBedInProgress = true
+queueEvent {
+    val activeModel = renderer.model
+    val activeBed = renderer.bed
+    val selectedObject = renderer.selectedObject
+    val viewerEnabled = renderer.isViewerEnabled
+    if (activeModel == null || activeBed == null || !activeBed.isValid() || viewerEnabled ||
+        selectedObject !in 0 until activeModel.objectsCount
+    ) {
+        ViewUtils.postOnMainThread {
+            isFillBedInProgress = false
+            callback.onFillBedComplete(0)
+        }
+        return@queueEvent
+    }
+    val modelRevision = activeModel.geometryRevision
+    val modelStateRevision = activeModel.stateRevision
+    val bedRevision = activeBed.configurationRevision
+    val estimatedBedCapacity = renderer.estimateBedCapacity(activeModel, activeBed, selectedObject)
+    val selectedFilaments = (0 until activeModel.objectsCount).map { activeModel.getUsedFilaments(it) }
+    val selectedPaintState = (0 until activeModel.objectsCount).map {
+        activeModel.hasPaint(it) to activeModel.paintMaxFilament(it)
+    }
+    val workingModel = try {
+        Model.merge(activeModel)
+    } catch (error: Throwable) {
+        android.util.Log.e("GLView", "Failed to create fill-bed model snapshot", error)
+        ViewUtils.postOnMainThread {
+            isFillBedInProgress = false
+            callback.onFillBedComplete(0)
+        }
+        return@queueEvent
+    }
+    fillBedExecutor.execute {
+        val addedCopies = try {
+            renderer.fillBedModel(workingModel, selectedObject, viewerEnabled, estimatedBedCapacity) { candidate ->
+                arrangeFillBedCandidateOnGlThread(activeModel, activeBed, bedRevision, candidate)
+            }
+        } catch (error: Throwable) {
+            android.util.Log.e("GLView", "Failed to arrange model copies", error)
+            0
+        }
+        queueEvent {
+            val currentModel = renderer.model
+            val stillCurrent = currentModel === activeModel && renderer.bed === activeBed &&
+                activeBed.configurationRevision == bedRevision &&
+                renderer.isViewerEnabled == viewerEnabled &&
+                renderer.selectedObject == selectedObject &&
+                activeModel.geometryRevision == modelRevision &&
+                activeModel.stateRevision == modelStateRevision &&
+                activeModel.objectsCount == selectedFilaments.size &&
+                (0 until activeModel.objectsCount).all { index ->
+                    activeModel.getUsedFilaments(index).contentEquals(selectedFilaments[index]) &&
+                        (activeModel.hasPaint(index) to activeModel.paintMaxFilament(index)) == selectedPaintState[index]
+                }
+            var committedCopies = 0
+            try {
+                if (addedCopies > 0 && stillCurrent) {
+                    activeModel.replaceContentsFrom(workingModel)
+                    renderer.resetGlModels()
+                    SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
+                    committedCopies = addedCopies
+                }
+            } catch (error: Throwable) {
+                android.util.Log.e("GLView", "Failed to apply fill-bed result", error)
+            } finally {
+                workingModel.release()
+                requestRender()
+                ViewUtils.postOnMainThread {
+                    isFillBedInProgress = false
+                    callback.onFillBedComplete(committedCopies)
+                }
+            }
+        }
+    }
 }
-fun duplicateSelectedModel(onComplete:Runnable) {
-duplicateSelectedModel(1, onComplete)
 }
-fun duplicateSelectedModel(copies:Int, onComplete:Runnable) {
-queueEvent({ val count = Math.max(1, Math.min(copies, 50))
-for (i in 0 until count)
-{
-renderer.duplicateSelectedObject()
+
+/** Bed3D's native arrange path shares renderer configuration and must only run on the GL thread. */
+private fun arrangeFillBedCandidateOnGlThread(
+    expectedModel: Model,
+    expectedBed: Bed3D,
+    expectedBedRevision: Long,
+    candidateModel: Model,
+): Boolean {
+    val gate = Any()
+    var cancelled = false
+    val result = CompletableFuture<Boolean>()
+    queueEvent {
+        synchronized(gate) {
+            if (cancelled) return@queueEvent
+            if (renderer.model !== expectedModel || renderer.bed !== expectedBed ||
+                expectedBed.configurationRevision != expectedBedRevision || !expectedBed.isValid()) {
+                result.complete(false)
+                return@queueEvent
+            }
+            try {
+                result.complete(expectedBed.arrange(candidateModel))
+            } catch (error: Throwable) {
+                result.completeExceptionally(error)
+            }
+        }
+    }
+    return try {
+        result.get(60, TimeUnit.SECONDS)
+    } catch (error: TimeoutException) {
+        synchronized(gate) { cancelled = true }
+        android.util.Log.e("GLView", "Timed out arranging fill-bed candidate on GL thread", error)
+        false
+    } catch (error: InterruptedException) {
+        synchronized(gate) { cancelled = true }
+        Thread.currentThread().interrupt()
+        false
+    } catch (error: java.util.concurrent.ExecutionException) {
+        android.util.Log.e("GLView", "Native fill-bed arrangement failed", error.cause ?: error)
+        false
+    }
 }
-requestRender()
-ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+fun duplicateSelectedModel(onComplete: Runnable) {
+    duplicateSelectedModelWithResult { if (onComplete != null) onComplete.run() }
+}
+fun duplicateSelectedModel(copies: Int, onComplete: Runnable) {
+    duplicateSelectedModels(copies) { if (onComplete != null) onComplete.run() }
+}
+fun duplicateSelectedModelWithResult(onComplete: (Int) -> Unit) {
+    duplicateSelectedModels(1, onComplete)
+}
+fun duplicateSelectedModels(copies: Int, onComplete: (Int) -> Unit) {
+    queueEvent {
+        val count = copies.coerceIn(1, 50)
+        val added = renderer.duplicateSelectedObjects(count)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(added) }
+    }
+}
+internal fun duplicateSelectedModelsIfCurrent(
+    copies: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val added = renderer.duplicateSelectedObjects(copies.coerceIn(1, 50), expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(added) }
+    }
 }
 fun selectModel(objectIndex:Int, onComplete:Runnable) {
 queueEvent({ renderer.setSelectedObject(objectIndex)
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+}
+internal fun selectModelIfCurrent(
+    objectIndex: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = when {
+            !renderer.isSelectionSnapshotCurrent(expectedSelection) -> MODEL_EDIT_STALE_SELECTION
+            objectIndex !in 0 until (renderer.model?.objectsCount ?: 0) -> 0
+            else -> { renderer.setSelectedObject(objectIndex); 1 }
+        }
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
 }
 fun deleteSelectedModel(onComplete:Runnable) {
 queueEvent({ val sel = renderer.selectedObject
@@ -152,20 +391,258 @@ renderer.deleteObject(sel)
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
+/** Delete the complete current selection on the GL thread and report completion on main. */
+fun deleteSelectedModels(onComplete: Runnable? = null) {
+    queueEvent {
+        renderer.deleteSelectedObjects()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete?.run() }
+    }
+}
+internal fun deleteSelectedModelsIfCurrent(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val removed = renderer.deleteSelectedObjects(expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(removed) }
+    }
+}
 fun selectAllModels(onComplete:Runnable) {
 queueEvent({ renderer.selectAllObjects()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+}
+fun selectModels(objectIndices: IntArray, onComplete: Runnable? = null) {
+queueEvent({ renderer.setSelectedObjects(objectIndices)
+requestRender()
+ViewUtils.postOnMainThread({ onComplete?.run() }) })
+}
+internal fun selectModelsIfCurrent(
+    objectIndices: IntArray,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val model = renderer.model
+        val result = when {
+            !renderer.isSelectionSnapshotCurrent(expectedSelection) -> MODEL_EDIT_STALE_SELECTION
+            objectIndices.any { it !in 0 until (model?.objectsCount ?: 0) } -> 0
+            else -> { renderer.setSelectedObjects(objectIndices); 1 }
+        }
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
+internal fun setObjectUniformFilamentIfCurrent(
+    objectIndex: Int,
+    filament: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.setObjectUniformFilamentIfCurrent(objectIndex, filament, expectedSelection)
+        if (result == 1) requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
+internal fun combineSelectedObjectsAsParts(
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete:(Int)->Unit,
+) {
+queueEvent({
+    val result = renderer.combineSelectedObjectsAsParts(expectedSelection)
+    requestRender()
+    ViewUtils.postOnMainThread { onComplete(result) }
+})
+}
+internal fun splitObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.splitObjectPartIfCurrent(objectIndex, partIndex, expectedSelection)
+        if (result > 0) requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
+internal fun transformObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    dx: Double,
+    dy: Double,
+    dz: Double,
+    scaleX: Double,
+    scaleY: Double,
+    scaleZ: Double,
+    rotationXDegrees: Double = 0.0,
+    rotationYDegrees: Double = 0.0,
+    rotationZDegrees: Double = 0.0,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.transformObjectPartIfCurrent(
+            objectIndex, partIndex, dx, dy, dz,
+            scaleX, scaleY, scaleZ,
+            rotationXDegrees, rotationYDegrees, rotationZDegrees, expectedSelection,
+        )
+        if (result == 1) requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
+internal fun placeSelectedObjectsOnObject(
+    targetIndex: Int,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.placeSelectedObjectsOnObject(targetIndex, expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
+internal fun beginSurfacePlacement(
+    targetIndex: Int,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onStarted: (Int) -> Unit,
+) {
+    queueEvent {
+        val started = renderer.beginSurfacePlacement(targetIndex, expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onStarted(started) }
+    }
+}
+internal fun beginSurfaceBoolean(
+    targetIndex: Int,
+    operation: BooleanOperation,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onStarted: (Int) -> Unit,
+) {
+    queueEvent {
+        val started = renderer.beginSurfaceBoolean(targetIndex, operation, expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onStarted(started) }
+    }
+}
+fun cancelSurfacePlacement() {
+    queueEvent {
+        renderer.cancelSurfacePlacement()
+        requestRender()
+    }
+}
+fun placeSelectedObjectsOnSurface(
+    targetIndex: Int,
+    position: Vec3d,
+    normal: Vec3d,
+    booleanOperation: BooleanOperation? = null,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.placeSelectedObjectsOnSurface(
+            targetIndex, position, normal, booleanOperation = booleanOperation,
+        )
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
 }
 fun centerSelectedOnBed(onComplete:Runnable) {
 queueEvent({ renderer.centerSelectionOnBed()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
 }
+internal fun centerSelectedOnBed(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val centered = renderer.centerSelectionOnBed(expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(centered) }
+    }
+}
+internal fun placeSelectedObjectsOnBed(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val placed = renderer.placeSelectedObjectsOnBed(expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(placed) }
+    }
+}
+internal fun alignSelectedObjects(
+    axis: ModelAlignmentAxis,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val aligned = when {
+            expectedSelection != null && !renderer.isSelectionSnapshotCurrent(expectedSelection) -> -2
+            renderer.alignSelectedObjects(axis, expectedSelection) -> 1
+            else -> 0
+        }
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(aligned) }
+    }
+}
+internal fun distributeSelectedObjects(
+    axis: ObjectDistributionAxis,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val distributed = when {
+            expectedSelection != null && !renderer.isSelectionSnapshotCurrent(expectedSelection) -> -2
+            renderer.distributeSelectedObjects(axis, expectedSelection) -> 1
+            else -> 0
+        }
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(distributed) }
+    }
+}
+fun autoOrientSelectedObjects(onComplete: (Int) -> Unit) {
+    queueEvent {
+        val oriented = renderer.autoOrientSelectedObjects()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(oriented) }
+    }
+}
+internal fun autoOrientSelectedObjects(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val oriented = renderer.autoOrientSelectedObjects(expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(oriented) }
+    }
+}
+fun autoOrientAllObjects(onComplete: (Int) -> Unit) {
+    queueEvent {
+        if (renderer.invalidateFlattenMode()) requestRender()
+        val oriented = renderer.autoOrientAllObjects()
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(oriented) }
+    }
+}
 fun deleteAllModels(onComplete:Runnable) {
 queueEvent({ renderer.deleteAllObjects()
 requestRender()
 ViewUtils.postOnMainThread({ if (onComplete != null) onComplete.run() }) })
+}
+internal fun deleteAllModelsIfCurrent(
+    expectedModel: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val removed = renderer.deleteAllObjects(expectedModel)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(removed) }
+    }
 }
 private val previewBadgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
 fun drawOverlay(canvas:Canvas, toBitmap:Boolean) {
@@ -323,7 +800,7 @@ val y = e.getY(0) - e.getY(1)
 lastLength = (Math.sqrt((x * x + y * y).toDouble())).toFloat()
 }
 override fun onHoverEvent(event:MotionEvent):Boolean {
-if (if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT) renderer.stopHover() else renderer.hover(event.getX() * Prefs.getRenderScale(), event.getY() * Prefs.getRenderScale()))
+if (if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT) renderer.stopHover() else renderer.hover(surfaceTouchX(event.getX()), surfaceTouchY(event.getY())))
 {
 queueEvent(Runnable { requestRender() })
 }
@@ -334,13 +811,30 @@ override fun onTouchEvent(e:MotionEvent):Boolean {
 val deltaMs = System.currentTimeMillis() - lastActionTime
 lastActionTime = System.currentTimeMillis()
 val action = e.getActionMasked()
+if (paintStrokeActive && (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ||
+        action == MotionEvent.ACTION_POINTER_DOWN)) {
+    paintStrokeActive = false
+    queueEvent { endPaintStrokeOnGlThread() }
+}
+if (renderer.isPaintMode && isPaintBrushActive && e.getPointerCount() == 1 && action == MotionEvent.ACTION_DOWN) {
+    paintStrokeActive = true
+    queueEvent { renderer.beginPaintStroke() }
+}
 if (action == MotionEvent.ACTION_CANCEL) {
 tapGestureGate.invalidate()
 onePointerGesture = false
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
+removeCallbacks(longClick)
+longClickTargetObject = -1
 }
 if (e.getPointerCount() > 2)
 {
 tapGestureGate.invalidate()
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
 removeCallbacks(longClick)
 longClickGesture = false
 longClickMoved = false
@@ -352,8 +846,8 @@ onePointerGesture = false
 return true
 }
 // Paint mode: a single finger paints; two fingers still orbit/zoom via the normal path.
- if ((renderer.isPaintMode && isPaintBrushActive && e.getPointerCount() == 1
-&& (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE)))
+ if ((renderer.isPaintMode && isPaintBrushActive && e.getPointerCount() == 1 &&
+        (action == MotionEvent.ACTION_DOWN || (action == MotionEvent.ACTION_MOVE && paintStrokeActive))))
 {
 tapGestureGate.invalidate()
 paintAtScreen(e.getX(), e.getY())
@@ -362,9 +856,17 @@ return true
 if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN)
 {
     tapGestureGate.begin(e.getPointerCount(), e.getX(0), e.getY(0), e.getDownTime())
-if (action == MotionEvent.ACTION_DOWN) onePointerGesture = false
+if (action == MotionEvent.ACTION_DOWN) {
+    onePointerGesture = false
+    pointerDownForLongClick = true
+    longClickActivationPending = false
+    touchGestureGeneration++
+}
 if (e.getPointerCount() == 2)
 {
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
 if (primeTowerGesture)
 {
 renderer.finishPrimeTowerDrag(false)
@@ -383,8 +885,7 @@ lastX = e.getX()
 lastY = e.getY()
 longClickTargetObject = -1
 longClickMoved = false
-val renderScale = Prefs.getRenderScale()
-if (renderer.tryStartPrimeTowerDrag(lastX * renderScale, lastY * renderScale))
+if (renderer.tryStartPrimeTowerDrag(surfaceTouchX(lastX), surfaceTouchY(lastY)))
 {
 tapGestureGate.invalidate()
 removeCallbacks(longClick)
@@ -395,18 +896,18 @@ primeTowerDownY = lastY
 requestRender()
 return true
 }
-val j = renderer.raycastObjectIndex(lastX * renderScale, lastY * renderScale)
-if (renderer.gcodeResult == null && j != -1)
-{
-longClickTargetObject = j
-postDelayed(longClick, longPressTimeoutMs)
-}
+    // Defer object picking until the user actually holds still. Camera orbit gestures
+    // leave this callback cancelled when they cross touch slop, so the GL queue stays free.
+    postDelayed(longClick, longPressTimeoutMs)
 }
 return true
 }
 if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP || action == MotionEvent.ACTION_CANCEL)
 {
 removeCallbacks(longClick)
+pointerDownForLongClick = false
+longClickActivationPending = false
+touchGestureGeneration++
 if (primeTowerGesture)
 {
 tapGestureGate.invalidate()
@@ -469,9 +970,10 @@ val dispatchTap = tapGestureGate.finish(
 )
 if (dispatchTap)
 {
-if (renderer.onClick(e.getX() * Prefs.getRenderScale(), e.getY() * Prefs.getRenderScale()))
-{
-requestRender()
+val x = surfaceTouchX(e.getX())
+val y = surfaceTouchY(e.getY())
+queueEvent {
+if (renderer.onClick(x, y)) requestRender()
 }
 }
 lastX = e.getX(0)
@@ -498,8 +1000,7 @@ return true
 primeTowerMoved = true
 performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
 }
-val renderScale = Prefs.getRenderScale()
-if (renderer.dragPrimeTower(e.getX() * renderScale, e.getY() * renderScale))
+if (renderer.dragPrimeTower(surfaceTouchX(e.getX()), surfaceTouchY(e.getY())))
 {
 requestRender()
 }
@@ -580,6 +1081,7 @@ onePointerGesture = true
 tapGestureGate.invalidate()
 startingGesture = true
 removeCallbacks(longClick)
+if (!longClickGesture && !longClickActivationPending) touchGestureGeneration++
 }
 }
 if (onePointerGesture)
@@ -589,18 +1091,22 @@ if (!startingGesture)
 if (longClickGesture)
 {
 longClickMoved = true
-val renderScale = Prefs.getRenderScale()
-renderer.model!!.getTranslation(renderer.selectedObject, tempVec)
-renderer.bed!!.raycaster.raycast(renderer, longClickHitResults, e.getX() * renderScale, e.getY() * renderScale)
-if (!longClickHitResults.isEmpty())
-{
-val result = longClickHitResults.get(0)
-longClickTranslation.x = result.position.x - tempVec.x - longClickOffset.x
-longClickTranslation.y = result.position.y - tempVec.y - longClickOffset.y
-renderer.setSelectionTranslation(longClickTranslation.x, longClickTranslation.y, (0).toDouble())
-SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, true))
+val x = surfaceTouchX(e.getX())
+val y = surfaceTouchY(e.getY())
+queueEvent {
+    val activeModel = renderer.model ?: return@queueEvent
+    val selected = renderer.selectedObject
+    val bed = renderer.bed ?: return@queueEvent
+    if (selected !in 0 until activeModel.objectsCount) return@queueEvent
+    activeModel.getTranslation(selected, tempVec)
+    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
+    val result = longClickHitResults.firstOrNull() ?: return@queueEvent
+    longClickTranslation.x = result.position.x - tempVec.x - longClickOffset.x
+    longClickTranslation.y = result.position.y - tempVec.y - longClickOffset.y
+    renderer.setSelectionTranslation(longClickTranslation.x, longClickTranslation.y, 0.0)
+    SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, true))
+    requestRender()
 }
-requestRender()
 }
 else
 {
@@ -649,6 +1155,8 @@ super.surfaceCreated(holder)
 requestRender()
 }
 override fun surfaceChanged(holder:SurfaceHolder, format:Int, w:Int, h:Int) {
+glSurfaceWidth = w
+glSurfaceHeight = h
 super.surfaceChanged(holder, format, w, h)
 requestRender()
 }
@@ -661,5 +1169,8 @@ requestRender()
 }
 companion object {
 private val FILL_BED_STEP_DELAY_MS = 16L
+private val fillBedExecutor = Executors.newSingleThreadExecutor { task ->
+    Thread(task, "OrkanSlicer-FillBed").apply { isDaemon = true }
+}
 }
 }

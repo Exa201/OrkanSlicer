@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ro">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Înțelege reducerea în două etape, paletele fixe și diferența dintre recolorare și transparență." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ro/docs/reducing-colors">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Reducerea culorilor | Documentație Kromacut" />
+        <meta property="og:description" content="Înțelege reducerea în două etape, paletele fixe și diferența dintre recolorare și transparență." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ro/docs/reducing-colors" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ro_RO" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Reducerea culorilor | Documentație Kromacut" />
+        <meta name="twitter:description" content="Înțelege reducerea în două etape, paletele fixe și diferența dintre recolorare și transparență." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Reducerea culorilor | Documentație Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/reducing-colors">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/reducing-colors">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/reducing-colors">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/reducing-colors">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/reducing-colors">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/reducing-colors">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/reducing-colors">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/reducing-colors">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/reducing-colors">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/reducing-colors">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/reducing-colors">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/reducing-colors">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/reducing-colors">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentație">
+                    <a href="/ro/">Mergi la pagina principală</a>
+                    <a href="/app">Deschide Kromacut</a>
+                    <ul><li><a href="/ro/docs/overview">Prezentare generală</a></li><li><a href="/ro/docs/quick-start">Ghid rapid</a></li><li><a href="/ro/docs/loading-images">Încărcarea imaginilor</a></li><li><a href="/ro/docs/image-adjustments">Ajustările imaginii</a></li><li><a href="/ro/docs/reducing-colors">Reducerea culorilor</a></li><li><a href="/ro/docs/dedithering-cleanup">Eliminarea ditheringului și curățarea</a></li><li><a href="/ro/docs/3d-mode">Modul 3D</a></li><li><a href="/ro/docs/auto-paint">Comenzi Auto-paint</a></li><li><a href="/ro/docs/calibration-theory">Teoria calibrării</a></li><li><a href="/ro/docs/flat-paint">Flat Paint</a></li><li><a href="/ro/docs/calibration-workflows">Fluxuri de calibrare</a></li><li><a href="/ro/docs/generating-exporting-output">Generarea și exportul rezultatului</a></li><li><a href="/ro/docs/settings-and-controls">Setări și comenzi</a></li><li><a href="/ro/docs/troubleshooting">Depanare</a></li><li><a href="/ro/docs/faq">Întrebări frecvente</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="reducing-colors">Reducerea culorilor</h1>
+<p>Cuantizarea înlocuiește multe culori sursă cu un set mai mic, simplificând regiunile folosite de fluxurile 3D Manual și Auto-paint. O paletă 2D conține culori țintă ale imaginii, nu un profil de filamente Auto-paint sau predicții măsurate de imprimare.</p>
+<p>Decupează și redimensionează întâi. Dacă ai schimbat <a href="/ro/docs/image-adjustments">ajustările imaginii</a>, apasă Aplică în acel panou înainte de cuantizare.</p>
+<h2 id="the-two-stage-pipeline">Procesul în două etape</h2>
+<p><a href="/localized/ro/diagrams/34_quantization_pipeline.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Intensitatea algoritmului limitează paleta intermediară; Numărul de culori sau o paletă fixă selectată controlează a doua etapă."><img src="/localized/ro/diagrams/34_quantization_pipeline.svg" alt="Intensitatea algoritmului limitează paleta intermediară; Numărul de culori sau o paletă fixă selectată controlează a doua etapă." loading="lazy"></a></p>
+<p><strong>Intensitatea algoritmului</strong> și <strong>Numărul de culori</strong> au roluri diferite. K-means cu intensitatea 128 grupează mai întâi sursa în cel mult 128 de culori. Auto cu Număr de culori 16 unește apoi rezultatul în cel mult 16. Intensitatea nu este un procent, o opacitate sau un număr de filamente.</p>
+<table><thead><tr><th>Câmp sau acțiune</th><th>Semnificație</th></tr></thead><tbody><tr><td>Paletă: Auto</td><td>Găsește culori dependente de imagine, apoi le limitează numărul.</td></tr><tr><td>Paletă: încorporată, de furnizor sau personalizată</td><td>Mapează imaginea intermediară la culorile activate ale paletei selectate. Nu trebuie să apară fiecare culoare disponibilă.</td></tr><tr><td>Număr de culori</td><td>Limita finală superioară pentru Auto: 2–256, implicit 16. Dezactivat pentru o paletă fixă.</td></tr><tr><td>Intensitatea algoritmului</td><td>Bugetul paletei intermediare: 2–256, implicit 128. O valoare mai mare păstrează de obicei mai multe detalii intermediare, nu neapărat o potrivire finală mai bună.</td></tr><tr><td>Algoritm</td><td>Metoda de reducere din prima etapă. Implicit: K-means.</td></tr><tr><td>Aplică</td><td>Procesează imaginea de bază și creează un pas de anulare. Simpla schimbare a unei setări nu recolorează imaginea.</td></tr><tr><td>Săgeată de resetare</td><td>Restabilește Auto, 16 culori, intensitatea 128 și K-means. Nu restaurează o imagine anterioară.</td></tr></tbody></table>
+<p>Rezultatul poate conține mai puține culori decât s-au cerut. Mărirea țintei după reducere nu poate recupera culorile eliminate: folosește întâi <strong>Anulează</strong> pentru a compara alternative pe aceeași sursă.</p>
+<p>Cuantizarea păstrează pixelii complet transparenți, dar face <strong>toți pixelii parțial transparenți complet opaci</strong>. O margine alfa estompată nu reprezintă o margine imprimată parțial.</p>
+<h2 id="choose-an-algorithm">Alege un algoritm</h2>
+<p>Aceste metode grupează culori. Niciuna nu adaugă un model spațial de dithering și nu garantează că un element mic va supraviețui lățimii liniei duzei.</p>
+<table><thead><tr><th>Algoritm</th><th>Ce se schimbă</th><th>Comparație utilă</th></tr></thead><tbody><tr><td>Niciunul (doar postprocesare)</td><td>Omite cuantizatorul primei etape; Intensitatea este dezactivată. Reducerea numărului final sau maparea la paleta fixă se execută în continuare.</td><td>Mapează direct o imagine curată la o paletă cunoscută. Nu este un comutator universal „lasă imaginea neschimbată”.</td></tr><tr><td>Posterizare</td><td>Împarte canalele RGB în trepte discrete, apoi aplică limita de intensitate.</td><td>Grafică intenționat în trepte; nivelurile disponibile ale canalelor se schimbă prin salturi discrete.</td></tr><tr><td>Median-cut</td><td>Împarte distribuția culorilor în grupuri reprezentate de culori medii.</td><td>Compară când altă metodă pierde un grup tonal important.</td></tr><tr><td>K-means</td><td>Găsește grupuri de culori ponderate cu numărul de pixeli, pornind de la o inițializare aleatorie.</td><td>Un punct de pornire pentru fotografii și imagini mixte. Rulările pe aceeași sursă pot diferi ușor.</td></tr><tr><td>Wu</td><td>Folosește statisticile distribuției culorilor pentru a alege divizări cu variație internă mai mică.</td><td>Compară pe degradeuri și fotografii.</td></tr><tr><td>Octree</td><td>Grupează culorile prin subdiviziuni RGB și combină grupurile pentru a se încadra în buget.</td><td>Compară pe imagini cu multe regiuni distincte.</td></tr></tbody></table>
+<p>Nu există un algoritm universal optim. Inspectează subiectul, literele mici și accentele importante la dimensiunea fizică dorită.</p>
+<h2 id="fixed-and-supplier-palettes">Palete fixe și de furnizor</h2>
+<p>O paletă fixă oferă numai culorile sale selectate. După orice reducere din prima etapă, fiecare pixel netransparent este mapat la cea mai apropiată culoare disponibilă în spațiul de culoare Lab. Este potrivirea culorilor imaginii, nu simularea optică a filamentelor.</p>
+<p><strong>Paletele furnizorilor</strong> sunt seturi de referință neoficiale cu nume de filamente și culori hexazecimale publicate. Nu garantează disponibilitatea actuală a produselor sau precizia culorilor imprimate. De exemplu, culorile de referință Bambu folosesc <a href="https://store.bblcdn.com/s7/default/1084369ef84345bbaa5d704a492954e0/Bambu_PLA_Basic_Hex_Code.pdf" target="_blank" rel="noopener noreferrer">tabelul hexazecimal de filamente Bambu Lab</a>. Kromacut nu este afiliat și nu este susținut de producători.</p>
+<p>Paletele încorporate și cele ale furnizorilor sunt doar pentru citire. Clonează una pentru a o personaliza. Folosește separat <a href="/ro/docs/calibration-theory">calibrarea filamentelor</a> pentru comportamentul real al rolelor și straturilor.</p>
+<h2 id="custom-palettes">Palete personalizate</h2>
+<table><thead><tr><th>Comandă</th><th>Ce faci</th></tr></thead><tbody><tr><td>Creează paletă nouă</td><td>Denumește-o și adaugă cel puțin o culoare validă activată. Va deveni paleta selectată.</td></tr><tr><td>Editează paleta selectată</td><td>Schimbă o paletă personalizată, nu pixelii imaginii curente. Aplică apoi cuantizarea.</td></tr><tr><td>Adaugă culoare</td><td>Adaugă un selector, un câmp hexazecimal și un nume opțional. Intrările valide folosesc <code>#RGB</code> sau <code>#RRGGBB</code>; rândurile nevalide sunt omise la Salvare.</td></tr><tr><td>Nume opțional al culorii</td><td>Etichetează o culoare, de exemplu cu numele rolei. Nu schimbă potrivirea.</td></tr><tr><td>Comutatorul cu ochi</td><td>Dezactivează o culoare salvată fără să o șteargă. Trebuie să rămână activată cel puțin o culoare validă.</td></tr><tr><td>Elimină rândul</td><td>Șterge rândul; nu poți elimina ultimul rând.</td></tr><tr><td>Clonează</td><td>Copiază o paletă diferită de Auto într-o paletă personalizată editabilă, păstrând numele și stările dezactivate.</td></tr><tr><td>Importă</td><td>Citește un fișier <code>.kpal</code> și raportează intrările importate, suprascrise, duplicate sau redenumite. Selectează prima paletă importată când este cazul.</td></tr><tr><td>Exportă</td><td>Salvează paleta personalizată selectată ca <code>.kpal</code>, inclusiv numele și culorile dezactivate. Clonează întâi paletele încorporate pentru a exporta o copie editabilă.</td></tr><tr><td>Șterge paleta selectată</td><td>Elimină paleta salvată și readuce selecția la Auto. Nu șterge pixelii imaginii.</td></tr><tr><td>Salvează / Anulează</td><td>Confirmă sau abandonează ciorna editorului.</td></tr></tbody></table>
+<p>O etichetă precum <strong>Rolele mele (5/8)</strong> în selector înseamnă cinci culori activate din opt intrări salvate. Participă doar culorile activate. Paletele și selecția sunt salvate local; exportă copii de siguranță înainte de ștergerea datelor aplicației/browserului. Sunt separate de <a href="/ro/docs/settings-and-controls#filament-profile-files">profilurile de filamente</a>.</p>
+<h2 id="image-colors">Culorile imaginii</h2>
+<p>Culorile imaginii descrie imaginea de bază, nu ajustările live neaplicate. Indicatorul său exclude pixelii complet transparenți. Indiciile afișează codul hexazecimal, alfa și numărul de pixeli. Valori alfa diferite pot crea intrări separate cu același RGB. Imaginile foarte colorate au o listă afișată limitată, nu fiecare culoare fotografică.</p>
+<p>Apasă o mostră pentru <strong>Editează culoarea</strong>. Folosește selectorul RGBA sau câmpul hexazecimal, apoi Aplică. Codul cu șase cifre schimbă RGB păstrând alfa curent al selectorului; cel cu opt cifre include explicit alfa. Folosește comanda de transparență sau un sufix alfa explicit când contează opacitatea.</p>
+<p><a href="/localized/ro/diagrams/35_swatch_operations.svg" target="_blank" rel="noopener noreferrer" aria-label="Deschide ilustrația la dimensiune completă: Înlocuirea opacă recolorează fiecare potrivire exactă, alfa zero elimină acei pixeli, iar Șterge remapează culorile în loc să decupeze găuri."><img src="/localized/ro/diagrams/35_swatch_operations.svg" alt="Înlocuirea opacă recolorează fiecare potrivire exactă, alfa zero elimină acei pixeli, iar Șterge remapează culorile în loc să decupeze găuri." loading="lazy"></a></p>
+<table><thead><tr><th>Acțiune</th><th>Ce se schimbă</th></tr></thead><tbody><tr><td>Aplică o culoare opacă</td><td>Înlocuiește fiecare potrivire exactă RGB și alfa din întreaga imagine, inclusiv regiunile deconectate.</td></tr><tr><td>Aplică alfa complet transparent</td><td>Elimină pixelii identici din imaginea vizibilă și silueta imprimabilă. Dispar și pixelii identici ai subiectului.</td></tr><tr><td>Aplică mostrei transparente</td><td>Înlocuiește toți pixelii complet transparenți, putând adăuga un fundal sau umple găuri.</td></tr><tr><td>Șterge</td><td>Recuantizează folosind paleta țintă rămasă. <strong>Nu</strong> șterge pixeli. Algoritmul selectat pentru prima etapă rulează în continuare, deci se pot schimba și alte culori.</td></tr><tr><td>Închide / Escape</td><td>Abandonează editarea neconfirmată.</td></tr></tbody></table>
+<p>Alege <strong>Niciunul (doar postprocesare)</strong> înainte de Șterge pentru mapare directă la paleta rămasă. Folosește <a href="/ro/docs/loading-images#touch-up-pixels">Umplere sau Radieră</a> pentru o schimbare locală. Anulează dacă se schimbă mai mult din imagine decât intenționai.</p>
+<p>Instrucțiunile de schimbare manuală sunt dezactivate peste 64 de culori netransparente. O paletă mai mică poate simplifica stiva chiar sub această limită, dar mai puține ținte nu înseamnă automat mai puține schimbări de filament în Auto-paint.</p>
+<p>În continuare: <a href="/ro/docs/dedithering-cleanup">Eliminarea ditheringului și curățarea</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

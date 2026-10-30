@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="モデルを作成し、確認し、ファイルを書き出して印刷手順をコピーします。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ja/docs/generating-exporting-output">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="モデル生成と書き出し | Kromacutドキュメント" />
+        <meta property="og:description" content="モデルを作成し、確認し、ファイルを書き出して印刷手順をコピーします。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ja/docs/generating-exporting-output" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="モデル生成と書き出し | Kromacutドキュメント" />
+        <meta name="twitter:description" content="モデルを作成し、確認し、ファイルを書き出して印刷手順をコピーします。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>モデル生成と書き出し | Kromacutドキュメント</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/generating-exporting-output">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/generating-exporting-output">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/generating-exporting-output">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/generating-exporting-output">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/generating-exporting-output">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/generating-exporting-output">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/generating-exporting-output">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/generating-exporting-output">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/generating-exporting-output">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/generating-exporting-output">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/generating-exporting-output">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/generating-exporting-output">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="ドキュメント">
+                    <a href="/ja/">ホームへ戻る</a>
+                    <a href="/app">Kromacutを開く</a>
+                    <ul><li><a href="/ja/docs/overview">概要</a></li><li><a href="/ja/docs/quick-start">クイックスタート</a></li><li><a href="/ja/docs/loading-images">画像の読み込み</a></li><li><a href="/ja/docs/image-adjustments">画像調整</a></li><li><a href="/ja/docs/reducing-colors">減色</a></li><li><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></li><li><a href="/ja/docs/3d-mode">3Dモード</a></li><li><a href="/ja/docs/calibration-theory">校正の理論</a></li><li><a href="/ja/docs/auto-paint">自動ペイントの操作</a></li><li><a href="/ja/docs/flat-paint">フラット印刷</a></li><li><a href="/ja/docs/calibration-workflows">校正の手順</a></li><li><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></li><li><a href="/ja/docs/settings-and-controls">設定と操作</a></li><li><a href="/ja/docs/troubleshooting">トラブルシューティング</a></li><li><a href="/ja/docs/faq">よくある質問</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="generating-and-exporting-output">モデル生成と書き出し</h1>
+<p>書き出しの手順は、2D画像と3Dの設定が整ってから始まります。</p>
+<p><a href="/localized/ja/diagrams/40_build_export_snapshot.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：画像と設定を準備し、その時点のモデルを作成して確認し、積層全体を書き出します。設定の変更後は再作成が必要です。プレビューを絞っても書き出し範囲は変わりません。"><img src="/localized/ja/diagrams/40_build_export_snapshot.svg" alt="画像と設定を準備し、その時点のモデルを作成して確認し、積層全体を書き出します。設定の変更後は再作成が必要です。プレビューを絞っても書き出し範囲は変わりません。" loading="lazy"></a></p>
+<h2 id="before-you-export">書き出す前に</h2>
+<p>次の項目を確認します。</p>
+<ol><li>2Dモードで画像を実用的な色数に減色します。</li><li><strong>3D印刷設定</strong>の<strong>ピクセルサイズ（XY）</strong>で物理寸法を選びます。<strong>層の高さ</strong>と<strong>初層の高さ</strong>をスライサーに合わせ、自動ペイントの印刷可能な細部の確認と高さディザのために<strong>実効線幅</strong>を予定押出幅に合わせます。</li><li><strong>手動</strong>または<strong>自動ペイント</strong>を選びます。</li><li><strong>3Dモデルを作成</strong>をクリックします。</li><li>モデルと<strong>層プレビュー</strong>を確認します。</li></ol>
+<p>Kromacutに<strong>パフォーマンス警告</strong>が表示された場合、画像サイズ、ピクセル数、層数などの負荷により作成が遅くなる可能性があります。<strong>それでも作成</strong>で続行するか、キャンセルして作業を簡略化できます。</p>
+<h2 id="build-3d-model">3Dモデルを作成</h2>
+<p>現在の3D設定をプレビューと書き出し形状に反映させたいときは、<strong>3Dモデルを作成</strong>をクリックします。</p>
+<p>作成中は、画像の色層の読み取り、画像色の割り当て、色層の作成などの進捗が表示されます。進捗表示が消え、更新したモデルを確認できるようになると、書き出し操作を再び使えます。</p>
+<p>自動ペイントで新しい積層を計算することと、新しいメッシュを作成することは別です。書き出しは最後に作成したモデルを使い、印刷手順もその作成結果に結び付きます。画像の編集、プロファイルの変更、校正の保存、印刷設定の変更後は、現在の計算が終わるのを待ち、再作成してから書き出してください。新しい設定を計算中、または拒否した後も以前のプレビューが見える場合があります。その表示は、新しい設定が成功した証拠ではありません。</p>
+<h2 id="choose-stl-or-3mf">STLか3MFを選ぶ</h2>
+<p>3Dダウンロードメニューを開き、次から選びます。</p>
+<table><thead><tr><th>形式</th><th>適した用途</th></tr></thead><tbody><tr><td>STL</td><td>幅広く対応する単一形状モデルを使い、フィラメント交換を手動で設定する場合。</td></tr><tr><td>3MF</td><td>複数の色付きオブジェクトを保持できるスライサー向けに、色情報付きの出力が欲しい場合。</td></tr></tbody></table>
+<p>3MF書き出しは、自動ペイントで可能な限り物理フィラメント色を保持します。それでも印刷前にスライサーの割り当てを確認してください。</p>
+<p>自動ペイントのプレビューでは、少数の実物スプールから数十の混色が見えることがあります。3MFは予測混色ごとに材料を作るのではなく、物理層に実物のフィラメントを割り当てます。そのため、スライサーの通常のフィラメント色表示がKromacutの<strong>シミュレーション</strong>表示と違っても、材料割り当てが誤っているとは限りません。割り当ての確認には<strong>物理色</strong>と比較してください。</p>
+<p>STLにはフィラメント色や自動スプール割り当てが含まれません。コピーした交換計画を、スライサーの色変更操作とともに使います。3MFもモデルであり、そのまま実行できるGコードではありません。自分のプリンター、ノズル、フィラメントプロファイル、温度、速度を選んでスライスしてください。</p>
+<p><strong>フラット印刷</strong>モデルでは3MFのみダウンロードできます。物理フィラメントごとに1つのオブジェクトがあり、既定の裏向き配置には透明キャリアのオブジェクトもあります。任意の表向き配置ではキャリアを省きます。どちらの平板も、無色の単一形状STLでは意味を失います。どちらの向きでも<strong>滑らかなメッシュ</strong>のすべての強度を使用できます。強度を変更したらモデルを再作成して、プレビューとエクスポートする形状に反映してください。</p>
+<h2 id="print-instructions">印刷手順</h2>
+<p><strong>印刷手順</strong>パネルには次が表示されます。</p>
+<ul><li>推奨の外周数、充填率、層の高さ、初層の高さ。</li><li><strong>開始色</strong>。</li><li>層番号と概算高さを示す<strong>色交換計画</strong>。</li><li>計画全体をプレーンテキストで取得する<strong>コピー</strong>ボタン。</li></ul>
+<p>コピーした計画をスライサーのプレビューと並べて使います。層番号は<strong>層の高さ</strong>と<strong>初層の高さ</strong>に依存するため、これらの値を一致させてください。</p>
+<p><a href="/localized/ja/diagrams/41_swap_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：初層0.10 mmの後に0.04 mm層が続きます。4層目の前の交換は材料境界0.18 mmにあり、新しい層の上面は0.22 mmです。"><img src="/localized/ja/diagrams/41_swap_layers.svg" alt="初層0.10 mmの後に0.04 mm層が続きます。4層目の前の交換は材料境界0.18 mmにあり、新しい層の上面は0.22 mmです。" loading="lazy"></a></p>
+<p><strong>N層目で交換</strong>は、新しいフィラメントでN層目を印刷するという意味です。たとえば初層0.10 mm、通常層0.04 mmなら、1、2、3層目の上面は0.10、0.14、0.18 mmです。4層目から次のフィラメントにするには、3層目の後、4層目を押し出す前に交換します。その新しい層の上面は0.22 mmです。</p>
+<p>計画の概算高さには注意が必要です。手動方式では新しい層の上面Zを、自動ペイントでは材料交換の境界を示します。似たZ値だけで判断せず、層番号を使い、実際にスライスされた材料の切り替わりを確認してください。スライサーによって、選択層と挿入点のラベルが異なる場合があります。</p>
+<p>フラット印刷モードには手動交換計画がありません。代わりに選択した多材料方式の概要が表示されます。各3MFオブジェクトにフィラメントを割り当て、既定の裏向き印刷なら透明フィラメントを使って完成品を裏返すか、キャリアなしの配置を表向きで印刷します。どちらもスライサーで左右反転しないでください。</p>
+<h2 id="recommended-slicer-setup">推奨スライサー設定</h2>
+<p>Kromacutは次を推奨します。</p>
+<ul><li>外周数：<code>1</code></li><li>充填率：<code>100%</code></li><li>層の高さ：<strong>印刷手順</strong>に表示された値</li><li>初層の高さ：<strong>印刷手順</strong>に表示された値</li></ul>
+<p>印刷前には必ずスライサーのプレビューを確認してください。高さは概算であり、初層設定によってスライサーの層変更表示が異なる場合があります。</p>
+<p>書き出しは<strong>Z縮尺100%</strong>に保ち、モデルと一致する一定の層の高さを使います。Z縮尺を変えたり可変層高を有効にしたりすると、物理的な遷移位置が動き、コピーした計画は無効になります。別の層の高さが必要ならKromacutで設定して再作成してください。XY縮尺を変えるとノズルに対する印刷可能な細部も変わります。線幅確認が正しい寸法を使うよう、Kromacutで意図したサイズを設定してください。</p>
+<p>スライサーで小さな孤立領域、文字、透明な切り抜きによって分離した部品、土台、パージ/プライムの配置を確認します。輪郭を滑らかにしても、すべての細線が印刷可能になるわけではありません。このアプリはプリンターの流量、リトラクション、温度、機械設定を校正しません。</p>
+<h2 id="saving-and-cancelling">保存とキャンセル</h2>
+<p>デスクトップのファイル書き出しは<strong>名前を付けて保存</strong>ダイアログを開きます。ブラウザーではダウンロード設定を使うため、保存場所の確認が出るかどうかはブラウザーによります。ファイルダイアログをキャンセルしてもプリンターには何も送信されません。書き出し中の形状の書き込みや圧縮には時間がかかることがあります。保存が終わるまでアプリを閉じないでください。</p>
+<h2 id="export-tips">書き出しのヒント</h2>
+<ul><li>3D設定を変えたらモデルを作成します。</li><li>表示上の層プレビュー範囲だけに頼らないでください。書き出しにはモデル全体が含まれます。</li><li>メッシュが重すぎて作成やスライスが難しい場合は、2Dで元画像を切り抜くか縮小し、不要な色領域を減らします。<strong>ピクセルサイズ（XY）</strong>を大きくしても同じピクセルが拡大するだけで、数もメッシュの複雑さも減りません。</li><li>色数が多すぎて交換手順が無効な場合は、<a href="/ja/docs/reducing-colors#image-colors">減色</a>に戻ります。</li></ul>
+<p>次へ：<a href="/ja/docs/settings-and-controls">設定と操作</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

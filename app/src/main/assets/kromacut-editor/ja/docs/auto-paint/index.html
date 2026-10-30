@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="フィラメント入力、印刷可能な細部、色合わせ、高さ制約、信頼度。" />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/ja/docs/auto-paint">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="自動ペイントの操作 | Kromacutドキュメント" />
+        <meta property="og:description" content="フィラメント入力、印刷可能な細部、色合わせ、高さ制約、信頼度。" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/ja/docs/auto-paint" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="ja_JP" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="自動ペイントの操作 | Kromacutドキュメント" />
+        <meta name="twitter:description" content="フィラメント入力、印刷可能な細部、色合わせ、高さ制約、信頼度。" />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>自動ペイントの操作 | Kromacutドキュメント</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/auto-paint">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/auto-paint">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/auto-paint">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/auto-paint">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/auto-paint">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/auto-paint">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/auto-paint">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/auto-paint">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/auto-paint">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/auto-paint">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/auto-paint">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/auto-paint">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/auto-paint">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="ドキュメント">
+                    <a href="/ja/">ホームへ戻る</a>
+                    <a href="/app">Kromacutを開く</a>
+                    <ul><li><a href="/ja/docs/overview">概要</a></li><li><a href="/ja/docs/quick-start">クイックスタート</a></li><li><a href="/ja/docs/loading-images">画像の読み込み</a></li><li><a href="/ja/docs/image-adjustments">画像調整</a></li><li><a href="/ja/docs/reducing-colors">減色</a></li><li><a href="/ja/docs/dedithering-cleanup">ディザ除去とクリーンアップ</a></li><li><a href="/ja/docs/3d-mode">3Dモード</a></li><li><a href="/ja/docs/calibration-theory">校正の理論</a></li><li><a href="/ja/docs/auto-paint">自動ペイントの操作</a></li><li><a href="/ja/docs/flat-paint">フラット印刷</a></li><li><a href="/ja/docs/calibration-workflows">校正の手順</a></li><li><a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a></li><li><a href="/ja/docs/settings-and-controls">設定と操作</a></li><li><a href="/ja/docs/troubleshooting">トラブルシューティング</a></li><li><a href="/ja/docs/faq">よくある質問</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="auto-paint-controls">自動ペイントの操作</h1>
+<p>自動ペイントは薄いフィラメント層を重ねた見え方を予測し、準備した画像に印刷可能な高さを選びます。1種類の物理フィラメントでも、厚みの違いから複数の色が見えます。そのため画像の20色に20スプールが必要とは限りません。</p>
+<p><a href="/ja/docs/3d-mode#3d-print-settings">物理サイズ、層の高さ、実効線幅</a>を設定し、実際に使えるフィラメントを追加して計算を待ち、<strong>3Dモデルを作成</strong>します。入力変更で自動再計算しますが、表示形状は作成したときだけ更新されます。</p>
+<h2 id="filament-inputs">フィラメント入力</h2>
+<table><thead><tr><th>操作</th><th>入力または操作内容</th><th>効果</th></tr></thead><tbody><tr><td><strong>フィラメントを追加</strong></td><td>中立の灰色の新しい行を作ります。</td><td>利用可能な材料を追加し、プリンターの物理スロットは増やしません。</td></tr><tr><td><strong>色見本 / 16進数</strong></td><td>フィラメントの不透明な色を選ぶか16進数を入力します。</td><td>混色と書き出す材料色を変えます。欲しい出力色ではなく実物のスプール色を入力してください。</td></tr><tr><td><strong>名前</strong></td><td>わかりやすいスプール名を付けます。</td><td>識別用です。空欄にすると色に基づく自動名に戻ります。</td></tr><tr><td><strong>HD</strong></td><td>前面照明の遮蔽距離、0.01〜2 mm。</td><td>小さいHDは下の色を早く隠します。大きいHDは厚みが必要で、同じ厚みでは多く透過します。</td></tr><tr><td><strong>TDから変換</strong></td><td>従来のリトファン/背面照明の透過距離を入力し、<strong>変換</strong>します。</td><td>およそTD × 0.1に変換し、0.01 mmに丸め、HD範囲に制限します。HDを再変換しないでください。</td></tr><tr><td><strong>魔法の杖</strong></td><td>色からHDを推定します。</td><td>初期の推測であり、測定ではありません。</td></tr><tr><td><strong>状態バッジ</strong></td><td><strong>推定</strong>または校正信頼度を確認し、ポインターを重ねてRGBチャンネル値を見ます。</td><td>この行のHDデータを表し、画像全体の精度ではありません。</td></tr><tr><td><strong>ごみ箱</strong></td><td>行を削除します。</td><td>そのフィラメントは使えなくなります。保存するまで保存済みプロファイルは変わりません。</td></tr><tr><td><strong>校正</strong></td><td>遮蔽距離、配色見本、積層校正マトリクスを開きます。</td><td><a href="/ja/docs/calibration-workflows">校正の手順</a>で実物のデータを記録します。</td></tr></tbody></table>
+<p>HD値の確定、TD変換、魔法の杖の使用は、その行に保存したHD校正を消去します。校正済みフィラメントの色を変えると校正が無効になり、色由来の推定を使います。測定時の色に戻すと、途中で消去や置換をしていなければ保持された校正が再び有効になります。名前の変更は測定ではありません。</p>
+<p>測定したチャンネルの挙動は予測色と遷移の厚みの両方に影響します。材料や工程を変えた場合、以前のプレビューが引き続き検証済みとは考えないでください。</p>
+<h2 id="filament-profiles">フィラメントプロファイル</h2>
+<p>保存済みプロファイルを読み込むと作業中のフィラメント構成を置き換えます。<strong>未保存の変更</strong>は現在の構成が選択したプロファイルと違うことを示します。</p>
+<table><thead><tr><th>操作</th><th>結果</th></tr></thead><tbody><tr><td><strong>現在のプロファイルに変更を保存</strong></td><td>編集可能なプロファイルを現在の構成で上書きします。変更なし、未選択、テンプレート選択中は無効です。</td></tr><tr><td><strong>新しいプロファイルとして保存</strong></td><td>空でない名前を入力し、別に保存します。変更したテンプレートも含みます。</td></tr><tr><td><strong>選択したプロファイルの名前を変更</strong></td><td>フィラメントを変えずにラベルを変更します。テンプレートや未選択時は使えません。</td></tr><tr><td><strong>ファイルからプロファイルを読み込み</strong></td><td>標準の<code>.kfil</code>、従来の<code>.kapp</code>、JSON、対応するHueForgeスプールCSV/TSVを読みます。</td></tr><tr><td><strong>現在のフィラメントを.kfilファイルとして書き出し</strong></td><td>現在の構成を書き出します。デスクトップは保存ダイアログ、ブラウザーはダウンロード処理を使います。キャンセルしても校正は変わりません。</td></tr><tr><td><strong>選択したプロファイルを削除</strong></td><td>保存済みプロファイルを除きます。必要なら先にバックアップを書き出してください。テンプレートは削除できません。</td></tr></tbody></table>
+<p>見え方のデータは正確なフィラメント構成に属します。選択中のプロファイルに未保存の編集がある間、その保存済み見え方データは自動ペイントに渡されません。その編集を書き出すと、旧構成の非互換な見え方データを含めない別名のプロファイルを作ります。個別フィラメントの有効なHD校正と、プロファイル単位のマトリクス・配色見本データは別です。<a href="/ja/docs/settings-and-controls#filament-profile-files">プロファイルの互換性と取り込み処理</a>を参照してください。</p>
+<h3 id="templates">テンプレート</h3>
+<p>メーカーのテンプレートは公表色、名前、ブランド、推定HDを提供し、読み取り専用です。所有していない色を除いて校正し、<strong>新しいプロファイルとして保存</strong>します。メーカー参考色はロットや観察条件に対する保証ではありません。テンプレートは非公式で、メーカーの公認ではありません。</p>
+<h2 id="standard-matching">標準の色合わせ</h2>
+<p><strong>高度な色合わせがオフ</strong>の場合、Kromacutは輝度でフィラメントを暗い順から明るい順に並べ、遷移を計算します。行の追加順には従いません。画像から高さへの割り当ても輝度を使います。透明でない最暗・最明ピクセル間で明るさを正規化し、その範囲を土台表面と積層上端の間に配置して、印刷可能な層にスナップします。そのため、色相が異なっても明るさが同じなら同じ高さになることがあります。繰り返し、色の分離、高さディザ、最適化の操作は無効です。</p>
+<p>明るさを軸にしたレリーフの単純な基準として使ってください。高度な色合わせは材料順と印刷色の割り当ての両方に画像の色を考慮するため、色相の違いが重要ならこちらが適切です。</p>
+<h2 id="max-height">最大高さ</h2>
+<p><strong>最大高さ</strong>を空にするか<strong>自動</strong>を押すと、層に整合した計算上の積層高さになります。入力範囲は0.5〜20 mmです。上限は目標ではないため、結果はそれより低くなる場合があります。</p>
+<p>有効な層境界の間の上限は切り下げます。通常の遷移が高すぎる場合、Kromacutは圧縮し、比較用に自動の高さを表示します。</p>
+<p><a href="/localized/ja/diagrams/15_transition_height.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：自動の積層も高さ制限付きの積層も不透明な土台を保ち、上の遷移だけが短くなります。"><img src="/localized/ja/diagrams/15_transition_height.svg" alt="自動の積層も高さ制限付きの積層も不透明な土台を保ち、上の遷移だけが短くなります。" loading="lazy"></a></p>
+<p><em>模式図です。色帯は材料の連続区間であり、予測された混色の見え方ではありません。</em></p>
+<p>土台はモデル化した全RGBチャンネルで約95%の不透明度を満たす必要があります。上限が不足すると半透明の下地を不透明とみなさず、積層を拒否します。上限を増やすか、短いHDで土台に使えるフィラメントを選んでください。</p>
+<p>圧縮は有用な中間色を失う場合があります。同じ画像を均等に縮める処理ではありません。<strong>フラット印刷</strong>では透明キャリアが追加形状であり、初層配置もレリーフとは異なります。<strong>モデル</strong>の全寸法とスライサーの厚みを確認してください。最大高さはキャリア込みの板の厚みではありません。</p>
+<h2 id="printable-detail">印刷可能な細部</h2>
+<p><a href="/ja/docs/3d-mode#effective-line-width"><strong>3D印刷設定</strong>の<strong>実効線幅</strong></a>を、ノズル径やピクセルサイズではなくスライサーの予定押出幅に合わせます。自動ペイントの幅警告プレビューと任意の孤立点除去は同じ設定を使い、操作はここにあります。</p>
+<p>青い背景に<strong>2ピクセルの紫の線</strong>があると考えてください。<strong>0.10 mm/px</strong>なら線は<strong>幅0.20 mm</strong>です。予定押出線が<strong>幅0.40 mm</strong>なら、この線は押出線より細くなります。Kromacutは<strong>要注意</strong>と示せますが、クリーンアップをオンにしても線は保持します。画像上の細い領域が、その下ではずっと広い材料層の一部になっている場合があり、この画像のみの確認が警告する細部もスライサーのツールパスでは残る場合があります。</p>
+<p><a href="/localized/ja/diagrams/13_printable_detail.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：2ピクセルの紫線は予定押出幅より細くなっています。琥珀色は幅警告でありフィラメント色ではありません。孤立点除去は線を保ち、小さく囲まれたピンクの点だけを青に置き換えます。"><img src="/localized/ja/diagrams/13_printable_detail.svg" alt="2ピクセルの紫線は予定押出幅より細くなっています。琥珀色は幅警告でありフィラメント色ではありません。孤立点除去は線を保ち、小さく囲まれたピンクの点だけを青に置き換えます。" loading="lazy"></a></p>
+<p><em>これは幅の推定であり、正確なスライサーのツールパスではありません。色帯は幅を比較し、四角い図は画像例です。</em></p>
+<p><strong>孤立した色の点を除外</strong>には2つの選択肢があります。</p>
+<ul><li><strong>オフ：</strong>強調表示した全領域を含め、自動ペイントの入力に元の全ピクセルを保持します。</li><li><strong>オン：</strong>色合わせとモデル生成の前に、小さく密集し囲まれた点だけに使われる色を、周囲の広い色に置き換えます。点全体が実効線幅より小さく、周囲に明確な1色の広い領域が必要です。その元の色が画像内のどこかで線や大きな領域にも使われていれば、すべての場所で保持します。</li></ul>
+<p>細線、斜めの接続、広い領域につながる枝、画像端の細部、透明部分や複数色に接する点は保持します。クリーンアップはピクセルを穴にせず、元の2D画像も編集しません。意図的に慎重なため不要な点が残る場合があります。広範な画像編集には<a href="/ja/docs/dedithering-cleanup">2Dのクリーンアップ</a>を使ってください。</p>
+<p><strong>プレビューを開く</strong>で次を確認できます。</p>
+<ul><li><strong>要注意：</strong>広い色の近くの細い元色領域を琥珀色、広い近傍のない細い領域をピンクで示し、他は暗くします。これは警告であり、その細部が印刷できないという予測ではありません。</li><li><strong>結果：</strong>任意のクリーンアップ後、自動ペイントが受け取るピクセルです。スライサーのプレビューでも印刷可能性の保証でもありません。</li><li><strong>警告 / 対象 / 除外：</strong>幅警告の割合、孤立点ルールを満たすピクセル、実際の置換数です。<strong>保持した警告ピクセル</strong>は画像を変えない警告を明示的に数えます。</li></ul>
+<p>対象の点の色を除くと、自動ペイントは処理後の画像で目標色を数え、積層を計画します。目標色が丸ごとなくなると他の場所の色合わせも変わるため、再作成した結果を確認してください。警告率がゼロでなくても<strong>除外0ピクセル</strong>なら元の細部はすべて保持されています。</p>
+<p>切り替えを変えたら自動ペイントの計算終了を待ち、再び<strong>3Dモデルを作成</strong>します。解析が測るのはつながった元色領域であり、物理材料層、外壁、充填、可変幅押出ではありません。必ずスライスされたツールパスを確認してください。そこで本当に細部が失われるなら、モデルのXY寸法を増やす、2Dで太くする、またはプリンターとスライサーが対応する細い押出幅を選びます。</p>
+<h2 id="enhanced-color-matching">高度な色合わせ</h2>
+<p>高度な色合わせは現在の2Dパレットに合う材料順を探索します。有用な色域を増やさないフィラメントは省く場合があります。8スプールが使えても8区間になるとは限りません。</p>
+<p>最適化は準備したパレットを裏で再び減色することはありません。元の色が多いほど処理量が増えます。<a href="/ja/docs/reducing-colors">減色</a>で画像を準備し、3Dで実現可能な見え方を評価してください。</p>
+<p>高度な色合わせをオフにすると色の分離と高さディザも無効になります。新しい計算は古い計算をキャンセルし、進捗は概算です。計算が失敗しても無関係な手動積層に戻ることはありません。有効な新しい結果を作成するまで、古い作成済みモデルが表示される場合があります。</p>
+<h3 id="total-repeat-limit">合計繰り返し上限</h3>
+<p>積層全体で<strong>オフ</strong>、または最大<strong>2、4、6、8、12回の追加使用</strong>を選びます。フィラメントごとの許容量でも正確な交換回数でもありません。黒 → 黄 → 黒は黒の追加使用1回です。新しい下地の上で材料に戻ることで、別の混色経路が生まれます。</p>
+<p><a href="/localized/ja/diagrams/14_repeats_separation.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：共有の繰り返し許容量と異なる目標色割り当てを、色を落とした統合と比較します。"><img src="/localized/ja/diagrams/14_repeats_separation.svg" alt="共有の繰り返し許容量と異なる目標色割り当てを、色を落とした統合と比較します。" loading="lazy"></a></p>
+<p><em>概念的な順序と割り当てであり、材料の予測ではありません。</em></p>
+<p>繰り返しを増やすと探索が広がり、印刷中の材料交換が増える可能性があります。許容量は上限であり、不要な区間は省けます。</p>
+<h3 id="preserve-color-separation">色の分離を保持</h3>
+<p>通常の色合わせでは異なる画像色を同じ出力に割り当てる場合があります。背景と文字や隣り合う顔の色調など、区別が重要なら<strong>色の分離を保持</strong>を有効にします。</p>
+<p><strong>一意一致の上限（ΔE）</strong>は、画像色が独自の印刷可能出力を持つための厳密な最大色差です。範囲は1〜100、既定は6です。小さい値はより近い一致を要求し、満たすのが難しくなります。大きい値は大きい誤差を許すのであって、フィラメントを良くするものではありません。</p>
+<p><strong>すべての色に一意の一致を要求</strong>は既定で有効です。割り当てが不完全なら失敗します。オフにすると<strong>部分的なパレット</strong>となり、一致しない色は独自の出力を失い、残った割り当てに統合されます。画像は埋まったままですが区別が失われます。適格な色が1つもないと統合先がないため、部分モードでも失敗します。</p>
+<p>最適化はまず保持する色数と元画像のカバー率を最大化します。その後、上限内の誤差を小さくするより先に、繰り返し使用、材料区間、物理層が少ないものを優先します。繰り返し許容量は段階的に探索し、全色を保持できた時点で停止する場合があります。最後に削除検査を行い、これらの優先度を改善しない個別区間を除きます。</p>
+<p>厳密モードで失敗した場合、2D色数を減らす、高さや繰り返しを増やす、適したフィラメントを追加する、ΔE上限を上げる、部分統合を使うことを検討します。エラーを消すためだけに上限を上げず、実際に望むトレードオフを選んでください。</p>
+<p>色の分離と<strong>高さディザ</strong>は排他的です。一方を有効にすると他方がオフになります。</p>
+<h2 id="height-dithering">高さディザ</h2>
+<p>高さディザは、利用可能な層境界の中間高さが入力にあるとき、丸め誤差を隣接する印刷可能な高さの小ブロックに分散できます。その高さの違いは、離れて見ると中間の色調を感じさせる場合があります。高度な色合わせが必要で、2D元画像ではなく書き出す高さマップに作用します。</p>
+<p><a href="/localized/ja/diagrams/16_height_dithering.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：端数の高さがある場合の高さディザの仕組み：直接スナップする場合と、近隣の印刷可能な高さに丸め誤差を分散する場合を比較します。"><img src="/localized/ja/diagrams/16_height_dithering.svg" alt="端数の高さがある場合の高さディザの仕組み：直接スナップする場合と、近隣の印刷可能な高さに丸め誤差を分散する場合を比較します。" loading="lazy"></a></p>
+<p><em>仕組みの模式図であり、前後の結果を保証しません。上面の高さが違ってもスプール色が増えるわけではありません。</em></p>
+<p>ディザを有効にすると、自動ペイントは、選択した層と隣接する印刷可能層の混合で予測色の一致が改善する場合に、その間の高さを求めます。完全に一致する色とキャリブレーション済みのターゲットは選択された高さを維持し、有用な隣接混合がない領域も変わりません。設定を変更したらモデルを再作成し、プレビューとスライサー出力を比較してください。ディザを無効にすると、通常の離散的な層の割り当てに戻ります。</p>
+<p>点のサイズは<strong>3D印刷設定</strong>の<strong>実効線幅</strong>と<strong>ピクセルサイズ</strong>の比から、整数ピクセルのブロックに丸めて決まります。概算であり、正確な最小幅の保証ではありません。境界の乱れを抑えるため、端の領域には同じディザ処理をしません。スライサーで小さな孤立領域と余分な移動を確認してください。</p>
+<p>端数誤差がある場合、再分配は広い色調に役立ちますが、小さな図柄にノイズを加えたり形状を重くしたりすることもあります。不足する色域の追加や非対応の校正の検証はできません。小領域が多く生まれる場合、フラット印刷との併用は特に重くなります。各領域が占有領域全体を覆う層の中に含まれるためです。</p>
+<h2 id="optimizer-settings">最適化設定</h2>
+<p><a href="/localized/ja/diagrams/18_optimizer_choices.svg" target="_blank" rel="noopener noreferrer" aria-label="図を原寸で開く：同じ画像の均等、中央、端の優先度と、遷移細部を増やすことで高さの候補が増える様子を示します。"><img src="/localized/ja/diagrams/18_optimizer_choices.svg" alt="同じ画像の均等、中央、端の優先度と、遷移細部を増やすことで高さの候補が増える様子を示します。" loading="lazy"></a></p>
+<p><em>重みと選択肢の模式図であり、測定色や正確な層数ではありません。暗くした領域も画像から除かれず、優先度が低くなるだけです。</em></p>
+<table><thead><tr><th>操作</th><th>選択肢と効果</th></tr></thead><tbody><tr><td><strong>アルゴリズム</strong></td><td><strong>高速：</strong>狭く素早い探索。<strong>バランス：</strong>汎用の既定。<strong>綿密：</strong>複数の出発点による深い改善。<strong>深い探索：</strong>広く計算量の多い探索。<strong>基本順序の完全探索：</strong>適用可能な繰り返しなし順序を列挙。</td></tr><tr><td><strong>領域の優先度</strong></td><td><strong>均等：</strong>各ピクセルを同じ重み。<strong>中央重視：</strong>中央付近の色を優先。<strong>端重視：</strong>画像端付近の色を優先。色合わせの優先度を変え、切り抜きや押出は変えません。</td></tr><tr><td><strong>遷移の細部</strong></td><td><strong>コンパクト（80%）</strong>、<strong>詳細（90%、既定）</strong>、<strong>最大（95%）</strong>が遷移の不透明度終点を決めます。高い値はより高い遷移と多くの印刷可能中間色を許しますが、早期収束と高さ上限の制約を受けます。</td></tr><tr><td><strong>シード（任意）</strong></td><td><strong>自動</strong>は入力由来の安定したシードを使います。別の決定論的探索を比較するには整数を入力し、空にすると自動に戻ります。品質スライダーではありません。</td></tr></tbody></table>
+<p>遷移の細部は上の材料遷移に作用し、不透明な土台の要件は変えません。画像解像度を増やしたり線幅を狭めたりはしません。追加の遷移色が現在の画像に役立つとは限りません。</p>
+<p>同じシードでは、上位のヒューリスティック段階は下位の最良結果を保持します。それでも予測の最適化にすぎません。基本順序の完全探索は8フィラメントで109,600、9フィラメントで986,409の空でない順序を調べます。繰り返しは別の改善処理を使い、全繰り返し積層を網羅的に証明するものではありません。</p>
+<h2 id="transition-zones-and-confidence">遷移領域と信頼度</h2>
+<table><thead><tr><th>表示</th><th>解釈</th></tr></thead><tbody><tr><td><strong>遷移領域</strong></td><td>開始、終了、厚みを持つ物理材料の区間。圧縮バッジは理想より薄いことを示します。</td></tr><tr><td><strong>合計高さ / 物理層数</strong></td><td>計算した積層寸法であり、画像色数やスプール数ではありません。</td></tr><tr><td><strong>色の分離の状態</strong></td><td>保持・統合した色、印刷可能な容量、保持色の最大ΔE、繰り返し。統合した目標は上限超えで成功した一致ではありません。</td></tr><tr><td><strong>見え方モデル</strong></td><td>シミュレーション、当てはめた挙動、局所比較、マトリクスデータのどれが予測を支えるか。測定数があっても全出力を測定したとは限りません。</td></tr><tr><td><strong>予測信頼度：平均 / 最低</strong></td><td>実際に割り当てた色のデータの強さ。加重平均が隠す弱い領域を最低値で見つけられます。件数は測定、補間、当てはめ予測、シミュレーションを区別します。</td></tr><tr><td><strong>結果の信頼度</strong></td><td>HD校正、カバー率、圧縮の総合指標。実測精度の割合ではなく、予測信頼度とも異なります。</td></tr><tr><td><strong>校正 / カバー率 / 圧縮</strong></td><td>HDデータの質、元画像色へのフィラメントの対応範囲、高さ上限の影響。高スコアでも印刷を保証しません。</td></tr><tr><td><strong>品質スコア</strong></td><td>最適化上の比較であり、測定ではありません。非厳密の不完全な色分離では<strong>部分的なパレット</strong>になります。</td></tr><tr><td><strong>反復回数 / キャッシュ使用</strong></td><td>探索量と結果再利用。反復が多くても色が良い証拠ではありません。</td></tr><tr><td><strong>厳密な最適解 / 見つかった最良</strong></td><td>適用可能な繰り返しなし順序の完全比較と、ヒューリスティックまたは繰り返し積層の改善の違い。どちらも物理精度を証明しません。</td></tr><tr><td><strong>削除可能な区間なし</strong></td><td>1区間を削除しても選択した優先度を維持できません。複数区間の別の並べ替えなら、さらに良くなる可能性があります。</td></tr></tbody></table>
+<p>測定から離れた場合、近くの観測が食い違う場合、検証用に除いた予測が測定色を外す場合は、データの強さが低下します。通常の色合わせは上限付きの不確実性コストを含められます。色分離の適格性は生のΔEを使うため、不確実性によって上限外の色が有効になることはありません。</p>
+<p>工程や層の高さを変えたら、このデータの要約を確認してください。総合的な校正スコアが高くても、新しい全配合が裏付けられるとは限りません。<a href="/ja/docs/calibration-workflows">校正の手順</a>を参照してください。</p>
+<h2 id="suggest-next-filament">次のフィラメントを提案</h2>
+<p><strong>次のフィラメントを提案</strong>は結果があると表示されます。この画像のカバー率を改善しそうな仮想色を探します。製品一覧でも、プリンターにすでに入っているスプールでもありません。</p>
+<table><thead><tr><th>項目または操作</th><th>意味</th></tr></thead><tbody><tr><td><strong>16進数の色見本</strong></td><td>提案する不透明なフィラメント色。</td></tr><tr><td><strong>推定ΔE +…%</strong></td><td>追加した場合の混色を考慮した平均画像誤差の推定削減率。大きいほど良いですが信頼度ではありません。</td></tr><tr><td><strong>HD</strong></td><td>知覚色差が最も近い既存フィラメントから借りた初期推定。製品の測定ではありません。</td></tr><tr><td><strong>改善対象</strong></td><td>推定誤差が改善する画像ピクセルの割合。</td></tr><tr><td><strong>独立性</strong></td><td>現在のフィラメントからの区別を0〜1で表示。高いほど独立した色域の不足を示します。</td></tr><tr><td><strong>フィラメントに追加</strong></td><td><code>Kromacut-Suggestion-…</code>という作業行を追加し、再計算します。</td></tr></tbody></table>
+<p>提案が役立つなら実物のスプールを探し、その実際の色と校正を入力してください。仮想の行がすでに利用可能だと思って印刷しないでください。画像色やフィラメント構成が変わると提案はリセットされます。候補なしの結果は、この概算テストでは現在の構成が画像を十分にカバーしているという意味です。</p>
+<p>次へ：<a href="/ja/docs/flat-paint">フラット印刷</a>、<a href="/ja/docs/calibration-workflows">校正の手順</a>、<a href="/ja/docs/generating-exporting-output">モデル生成と書き出し</a>。</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>

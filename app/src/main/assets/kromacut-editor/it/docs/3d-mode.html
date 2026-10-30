@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="it">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+        <link rel="shortcut icon" href="./favicon.ico" />
+        <meta name="color-scheme" content="dark light" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="application-name" content="Kromacut" />
+        <meta name="description" content="Dimensioni fisiche, pile di colori manuali, mesh e controlli dell’anteprima." />
+        
+        <meta name="author" content="vycdev" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://kromacut.com/it/docs/3d-mode">
+
+        <!-- Open Graph / social -->
+        <meta property="og:title" content="Modalità 3D | Documentazione Kromacut" />
+        <meta property="og:description" content="Dimensioni fisiche, pile di colori manuali, mesh e controlli dell’anteprima." />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://kromacut.com/it/docs/3d-mode" />
+        <meta property="og:site_name" content="Kromacut" />
+        <meta property="og:locale" content="it_IT" />
+        <meta property="og:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:secure_url" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
+        <meta property="og:image:alt" content="Kromacut" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Modalità 3D | Documentazione Kromacut" />
+        <meta name="twitter:description" content="Dimensioni fisiche, pile di colori manuali, mesh e controlli dell’anteprima." />
+        <meta name="twitter:image" content="https://kromacut.com/android-chrome-512x512.png" />
+        <meta name="twitter:image:alt" content="Kromacut" />
+        <title>Modalità 3D | Documentazione Kromacut</title>
+        
+      <script type="module" crossorigin src="./assets/index-1yjEWcvn.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DUUVHawr.css">
+    <link rel="alternate" hreflang="en" href="https://kromacut.com/docs/3d-mode">
+<link rel="alternate" hreflang="fr" href="https://kromacut.com/fr/docs/3d-mode">
+<link rel="alternate" hreflang="de" href="https://kromacut.com/de/docs/3d-mode">
+<link rel="alternate" hreflang="it" href="https://kromacut.com/it/docs/3d-mode">
+<link rel="alternate" hreflang="ro" href="https://kromacut.com/ro/docs/3d-mode">
+<link rel="alternate" hreflang="es" href="https://kromacut.com/es/docs/3d-mode">
+<link rel="alternate" hreflang="ja" href="https://kromacut.com/ja/docs/3d-mode">
+<link rel="alternate" hreflang="zh-CN" href="https://kromacut.com/zh-CN/docs/3d-mode">
+<link rel="alternate" hreflang="hi" href="https://kromacut.com/hi/docs/3d-mode">
+<link rel="alternate" hreflang="pt-PT" href="https://kromacut.com/pt-PT/docs/3d-mode">
+<link rel="alternate" hreflang="uk" href="https://kromacut.com/uk/docs/3d-mode">
+<link rel="alternate" hreflang="bn" href="https://kromacut.com/bn/docs/3d-mode">
+<link rel="alternate" hreflang="x-default" href="https://kromacut.com/docs/3d-mode">
+</head>
+    <body>
+        <div id="root">
+            <main class="seo-doc-page">
+                <nav aria-label="Documentazione">
+                    <a href="/it/">Vai alla pagina iniziale</a>
+                    <a href="/app">Apri Kromacut</a>
+                    <ul><li><a href="/it/docs/overview">Panoramica</a></li><li><a href="/it/docs/quick-start">Guida rapida</a></li><li><a href="/it/docs/loading-images">Caricamento delle immagini</a></li><li><a href="/it/docs/image-adjustments">Regolazioni dell’immagine</a></li><li><a href="/it/docs/reducing-colors">Riduzione dei colori</a></li><li><a href="/it/docs/dedithering-cleanup">Rimozione dithering e pulizia</a></li><li><a href="/it/docs/3d-mode">Modalità 3D</a></li><li><a href="/it/docs/auto-paint">Controlli Auto-paint</a></li><li><a href="/it/docs/calibration-theory">Teoria della calibrazione</a></li><li><a href="/it/docs/flat-paint">Flat Paint</a></li><li><a href="/it/docs/calibration-workflows">Flussi di calibrazione</a></li><li><a href="/it/docs/generating-exporting-output">Generazione ed esportazione</a></li><li><a href="/it/docs/settings-and-controls">Impostazioni e controlli</a></li><li><a href="/it/docs/troubleshooting">Risoluzione dei problemi</a></li><li><a href="/it/docs/faq">Domande frequenti</a></li></ul>
+                </nav>
+                <article>
+                    <h1 id="3d-mode">Modalità 3D</h1>
+<p>La modalità 3D trasforma i colori dell’immagine in strati fisici. Prepara l’immagine in 2D, scegli dimensioni e metodo di stampa, quindi fai clic su <strong>Genera modello 3D</strong>. Cambiare un’impostazione non rigenera automaticamente il modello visualizzato.</p>
+<p>Usa <strong>Manuale</strong> per scegliere personalmente l’ordine dei colori e gli spessori. Usa <strong>Auto-paint</strong> per prevedere le miscele dei tuoi filamenti reali e trovare una pila adatta all’immagine. Nessun metodo aziona la stampante: esporta il modello e controllalo nello slicer.</p>
+<h2 id="3d-print-settings">Impostazioni di stampa 3D</h2>
+<table><thead><tr><th>Controllo</th><th>Effetto sul modello</th><th>Cosa controllare</th></tr></thead><tbody><tr><td><strong>Dimensione pixel (XY)</strong></td><td>Millimetri per pixel dell’immagine in entrambe le direzioni orizzontali.</td><td>L’indicatore <strong>Modello</strong> stima larghezza, altezza e profondità fisiche prima della generazione.</td></tr><tr><td><strong>Altezza dello strato</strong></td><td>Il passo verticale regolare usato per altezze e cambi.</td><td>Deve corrispondere allo slicer. Strati più sottili offrono altezze più precise, non linee di estrusione più strette.</td></tr><tr><td><strong>Altezza del primo strato</strong></td><td>Il primo passo sopra il piatto.</td><td>Va impostata separatamente. Il primo colore deve essere spesso almeno quanto il maggiore tra altezza regolare e altezza del primo strato.</td></tr><tr><td><strong>Larghezza effettiva della linea</strong></td><td>Larghezza di estrusione usata dai controlli dei dettagli stampabili e dal dithering dell’altezza di Auto-paint.</td><td>Usa la larghezza di linea prevista dallo slicer, non il diametro dell’ugello o la dimensione pixel. Non modifica il profilo della stampante.</td></tr><tr><td><strong>Mesh levigata</strong></td><td>Trasforma i bordi a gradini dei pixel in contorni connessi levigati.</td><td>Modifica la geometria esportata, non solo l’illuminazione. Non aggiunge dettagli all’immagine e non stira la superficie.</td></tr><tr><td><strong>Reimposta</strong></td><td>Ripristina 0,1 mm/pixel, strati regolari da 0,12 mm, primo strato da 0,2 mm, larghezza effettiva della linea da 0,42 mm e levigatura disattivata.</td><td>Riporta anche gli spessori manuali al minimo, mantenendo l’ordine attuale dei colori.</td></tr></tbody></table>
+<h3 id="pixel-size-is-not-nozzle-size">La dimensione pixel non è la dimensione dell’ugello</h3>
+<p>Un’immagine larga 1.000 pixel a <strong>0,1 mm/pixel</strong> produce un modello largo circa <strong>100 mm</strong>. A <strong>0,2 mm/pixel</strong>, diventa largo circa <strong>200 mm</strong> mantenendo esattamente gli stessi pixel. I margini esterni trasparenti sono esclusi dai limiti del modello.</p>
+<p><a href="/localized/it/diagrams/10_physical_size.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: La stessa griglia di immagine diventa fisicamente più grande aumentando la dimensione pixel; ridimensionare l’immagine modifica invece il numero di pixel."><img src="/localized/it/diagrams/10_physical_size.svg" alt="La stessa griglia di immagine diventa fisicamente più grande aumentando la dimensione pixel; ridimensionare l’immagine modifica invece il numero di pixel." loading="lazy"></a></p>
+<p><em>Schema. Dimensioni XY, risoluzione dell’immagine e larghezza di estrusione sono controlli separati.</em></p>
+<p>Per mantenere una larghezza di 100 mm con 2.000 pixel, usa <strong>0,05 mm/pixel</strong>. Più pixel possono descrivere bordi più fini, ma la stampante conserva il limite della larghezza di estrusione. Imposta <strong>Larghezza effettiva della linea</strong> nelle <strong>Impostazioni di stampa 3D</strong>, quindi usa l’<a href="/it/docs/auto-paint#printable-detail">anteprima dei dettagli stampabili</a> di Auto-paint per esaminare questo limite.</p>
+<p>Aumentare la dimensione pixel non riduce il numero di pixel né rende intrinsecamente più economica la generazione della mesh. Per una generazione più leggera, ridimensiona o ritaglia in <a href="/it/docs/loading-images">modalità 2D</a>, oppure semplifica la tavolozza.</p>
+<h3 id="effective-line-width">Larghezza effettiva della linea</h3>
+<p>Copia la larghezza di estrusione prevista dallo slicer in <strong>Larghezza effettiva della linea</strong>. Accetta valori da 0,1 a 2 mm. Reimpostare le <strong>Impostazioni di stampa 3D</strong> la riporta a 0,42 mm insieme agli altri valori predefiniti della sezione. Modificare questo campo non cambia il profilo della stampante.</p>
+<p>Auto-paint usa questa larghezza per l’anteprima degli avvisi di larghezza, la pulizia facoltativa dei puntini di colore isolati e la dimensione dei blocchi del dithering dell’altezza. I controlli per esaminare gli avvisi o escludere i puntini isolati restano in <a href="/it/docs/auto-paint#printable-detail">Auto-paint</a>. Un avviso non significa che un dettaglio verrà rimosso o non sia stampabile.</p>
+<h3 id="layer-heights-and-valid-boundaries">Altezze degli strati e limiti validi</h3>
+<p>Con un <strong>primo strato da 0,20 mm</strong> e <strong>strati regolari da 0,08 mm</strong>, le sommità degli strati si trovano a 0,20, 0,28, 0,36 e 0,44 mm. Non a 0,08, 0,16, 0,24 e 0,32 mm. Kromacut allinea gli spessori dei colori a questa griglia.</p>
+<p>Cambiare <strong>Altezza dello strato</strong> reimposta gli spessori manuali al nuovo passo regolare, poi applica il minimo del primo colore. Cambiare <strong>Altezza del primo strato</strong> reimposta il primo colore al nuovo minimo. Imposta questi valori prima di regolare i cursori e ricontrolla il piano se cambiano.</p>
+<p>I campi accettano intervalli ampi: 0,01–10 mm/pixel per la dimensione pixel, 0,01–10 mm per l’altezza dello strato e 0–10 mm per l’altezza del primo strato. Sono limiti di immissione, non impostazioni consigliate per la stampante; il primo colore viene comunque allineato al minimo fisico. Usa valori supportati da ugello, materiale e slicer. Un’altezza più fine modifica le ricette disponibili in Auto-paint; non rende automaticamente compatibile la calibrazione esistente.</p>
+<h2 id="manual-mode">Modalità manuale</h2>
+<p><strong>Altezze degli strati colore</strong> elenca i <strong>Colori dell’immagine</strong> non trasparenti. Ogni riga contiene una maniglia di trascinamento, un campione colore, un cursore dello spessore e il valore in millimetri. Questo valore è lo spessore della sequenza di quel colore, non l’altezza assoluta della sua sommità. Una sequenza può occupare più strati dello slicer.</p>
+<p><a href="/localized/it/diagrams/11_manual_layers.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Tre sequenze manuali formano altezze cumulative; aumentare una sequenza inferiore alza ogni superficie successiva."><img src="/localized/it/diagrams/11_manual_layers.svg" alt="Tre sequenze manuali formano altezze cumulative; aumentare una sequenza inferiore alza ogni superficie successiva." loading="lazy"></a></p>
+<p><em>Sezione schematica. Una superficie di un colore successivo contiene sotto di sé le sequenze precedenti.</em></p>
+<p>Per esempio, imposta il nero a <strong>0,20 mm</strong>, il rosso a <strong>0,16 mm</strong> e il bianco a <strong>0,08 mm</strong>, con strati regolari da 0,08 mm. Le regioni nere terminano a 0,20 mm, quelle rosse a 0,36 mm e quelle bianche a 0,44 mm. Il rosso inizia allo strato 2 dello slicer; il bianco allo strato 4. Verifica le istruzioni generate e l’interpretazione dello slicer prima di stampare.</p>
+<h3 id="reorder-colors">Riordinare i colori</h3>
+<p>Trascina le righe dall’alto verso il basso nell’ordine di stampa. La prima riga parte dal piatto. Le righe successive si stampano sopra le precedenti solo dove l’immagine lo richiede, formando un rilievo a gradini. Spostare un colore cambia il materiale sottostante, l’altezza della superficie e la sequenza dei cambi. Una riga spostata al primo posto viene alzata al minimo del primo strato quando necessario.</p>
+<p>L’anteprima e l’esportazione manuali usano i colori dell’immagine, non il modello HD di Auto-paint. Uno strato sottile di rosso sul nero può risultare più scuro del campione anche se l’anteprima manuale appare rossa. Scegli materiali e spessori di conseguenza.</p>
+<h3 id="adjust-and-reset-thicknesses">Regolare e reimpostare gli spessori</h3>
+<p>Trascina un cursore e rilascialo per confermare. Le sequenze successive avanzano per passi pari a <strong>Altezza dello strato</strong>. La prima parte dal proprio minimo e aggiunge passi regolari. Aumentare una sequenza inferiore alza tutte le superfici successive e sposta i loro cambi, non solo le regioni dove il colore inferiore resta visibile.</p>
+<p>La reimpostazione di <strong>Altezze degli strati colore</strong> ordina dal più scuro al più chiaro per luminanza e assegna gli spessori minimi. È diversa dalla reimpostazione delle <strong>Impostazioni di stampa 3D</strong>, che modifica anche i parametri fisici di stampa ma conserva l’ordine.</p>
+<p>I controlli manuali e le istruzioni di cambio supportano <strong>64 colori</strong>. Riduci le tavolozze più grandi in 2D. I pixel completamente trasparenti non creano materiale, non un fondo bianco. Le isole opache scollegate restano pezzi separati se l’immagine non le collega.</p>
+<h2 id="smooth-meshing">Mesh levigata</h2>
+<p>Con la levigatura disattivata, i contorni seguono la griglia quadrata dei pixel. Attivandola, i bordi connessi vengono levigati in una geometria saldata. La differenza viene esportata: non è un filtro dell’anteprima.</p>
+<p>Ammorbidisce i contorni del modello nell’anteprima e nelle esportazioni. Media mantiene la levigatura originale. Ricostruisci per applicare.</p>
+<table><thead><tr><th>Intensità</th><th>Utilizzo</th></tr></thead><tbody><tr><td><strong>Nessuna</strong></td><td>Pixel art, bordi esatti della griglia o generazione più rapida.</td></tr><tr><td><strong>Minima</strong></td><td>Pulizia leggera degli angoli frastagliati.</td></tr><tr><td><strong>Media</strong></td><td>Il risultato familiare della precedente impostazione attiva.</td></tr><tr><td><strong>Intensa</strong></td><td>Levigatura più intensa lungo i contorni, compresi i gradini residui, con lo stesso limite di spostamento di Media.</td></tr></tbody></table>
+<p>Lo spostamento rimane inferiore a mezzo pixel. Ricostruisci il modello e controlla l’anteprima nello slicer. Le impostazioni attiva/disattiva diventano Media/Nessuna.</p>
+<p><a href="/localized/it/diagrams/12_smooth_boundaries.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Confronto tra contorni diagonali a gradini e levigati sulla stessa griglia sorgente."><img src="/localized/it/diagrams/12_smooth_boundaries.svg" alt="Confronto tra contorni diagonali a gradini e levigati sulla stessa griglia sorgente." loading="lazy"></a></p>
+<p><em>Confronto schematico dei contorni, non una simulazione dello slicer.</em></p>
+<p>Usala per contorni curvi o diagonali che appaiono troppo scalettati. Lasciala disattivata per pixel art intenzionale o bordi esatti sulla griglia. Nessuna delle due scelte ripara dettagli troppo piccoli da stampare o inventa risoluzione assente nella sorgente.</p>
+<p>Mesh levigata funziona anche con <a href="/it/docs/flat-paint">Flat Paint</a>. Entrambi gli orientamenti mantengono una lastra piatta e confini condivisi tra colori; scegli un’intensità e ricrea il modello.</p>
+<h2 id="auto-paint">Auto-paint</h2>
+<p>Auto-paint accetta colori reali dei filamenti e <strong>Distanza di copertura (HD)</strong>, prevede le miscele e associa i colori dell’immagine ad altezze stampabili. Leggi <a href="/it/docs/auto-paint">Controlli Auto-paint</a> per tutti i controlli di filamenti, corrispondenza, dettagli e affidabilità.</p>
+<h2 id="calibrating-filament-hiding-distance">Calibrare la distanza di copertura del filamento</h2>
+<p><strong>Calibra</strong>, sotto l’elenco dei filamenti, apre <strong>Distanza di copertura</strong>, <strong>Palette Proof</strong> e <strong>Stack Matrix</strong>. Segui <a href="/it/docs/calibration-workflows">Flussi di calibrazione</a> per stampare e registrare i risultati, oppure <a href="/it/docs/calibration-theory">Teoria della calibrazione</a> per il modello ottico.</p>
+<h2 id="filament-profiles">Profili filamenti</h2>
+<p>I profili salvano set di filamenti con nome e dati compatibili. Le modifiche non salvate non vengono scritte automaticamente nel profilo selezionato. Vedi <a href="/it/docs/auto-paint#filament-profiles">Filamenti e profili</a> e <a href="/it/docs/settings-and-controls#filament-profile-files">file dei profili</a>.</p>
+<h3 id="templates">Modelli</h3>
+<p>I modelli sono set di riferimento dei fornitori in sola lettura, non misure delle tue bobine. Caricali, regolali, calibrali, quindi usa <strong>Salva come nuovo profilo</strong>. Vedi <a href="/it/docs/auto-paint#templates">Modelli</a>.</p>
+<h2 id="max-height">Altezza massima</h2>
+<p>Il limite accorcia le transizioni di Auto-paint su confini validi degli strati, ma non può rimuovere la base opaca. Leggi <a href="/it/docs/auto-paint#max-height">Altezza massima</a>, compresa l’avvertenza sul supporto trasparente di Flat Paint.</p>
+<h2 id="printable-detail">Dettagli stampabili</h2>
+<p>Imposta <strong>Larghezza effettiva della linea</strong> nelle <strong>Impostazioni di stampa 3D</strong>, quindi usa <strong>Apri anteprima</strong> in Auto-paint per esaminare le regioni sottili dei colori sorgente. <strong>Escludi puntini di colore isolati</strong> sostituisce facoltativamente i colori usati solo in minuscoli puntini circondati da un altro colore, mantenendo linee sottili e dettagli collegati. Gli avvisi e i conteggi dei pixel effettivamente esclusi sono mostrati separatamente. Vedi <a href="/it/docs/auto-paint#printable-detail">Dettagli stampabili</a>.</p>
+<h2 id="enhanced-color-matching">Corrispondenza colori avanzata</h2>
+<p>Cerca ordini dei materiali con ripetizioni, requisiti di colori distinti o dithering spaziale dell’altezza. Queste opzioni bilanciano copertura cromatica, spessore, cambi e calcolo. Vedi <a href="/it/docs/auto-paint#enhanced-color-matching">Corrispondenza colori avanzata</a>.</p>
+<h2 id="flat-paint">Flat Paint</h2>
+<p>Crea una lastra multimateriale anziché un rilievo a gradini, con la faccia in giù su un supporto trasparente oppure con la faccia in su senza supporto. Leggi <a href="/it/docs/flat-paint">Flat Paint</a> prima di esportare, perché direzione di osservazione e assegnazioni degli oggetti sono importanti.</p>
+<h2 id="optimizer-settings">Impostazioni ottimizzatore</h2>
+<p><strong>Algoritmo</strong>, <strong>Priorità delle regioni</strong>, <strong>Dettaglio delle transizioni</strong> e <strong>Seme</strong> regolano la corrispondenza, non la velocità della stampante. Vedi <a href="/it/docs/auto-paint#optimizer-settings">Impostazioni ottimizzatore</a>.</p>
+<h2 id="transition-zones-and-confidence">Zone di transizione e affidabilità</h2>
+<p>Le zone descrivono sequenze fisiche; l’affidabilità descrive dati disponibili e limiti del modello, non la precisione di stampa misurata. Vedi <a href="/it/docs/auto-paint#transition-zones-and-confidence">Leggere il risultato</a>.</p>
+<h2 id="palette-proof">Palette Proof</h2>
+<p>Confronta un provino stampato con colori selezionati dell’immagine e registra quali candidati corrispondono. Vedi <a href="/it/docs/calibration-workflows#palette-proof-compare-artwork-colors">Flussi di calibrazione</a>.</p>
+<h2 id="stack-matrix">Stack Matrix</h2>
+<p>Fotografa una tavola di ricette salvata, verifica l’allineamento e salva i colori misurati per pile compatibili. Vedi <a href="/it/docs/calibration-workflows#stack-matrix-photograph-known-recipes">Flussi di calibrazione</a>.</p>
+<h2 id="preview-controls">Controlli dell’anteprima</h2>
+<p>Trascina con il pulsante principale del mouse per orbitare, usa la rotellina per lo zoom e trascina con il pulsante secondario per spostare la vista. Muovere la camera non cambia mai le dimensioni fisiche.</p>
+<table><thead><tr><th>Controllo della barra</th><th>A cosa serve</th><th>Effetto sulla stampa</th></tr></thead><tbody><tr><td><strong>Colori fedeli</strong></td><td>Confrontare i campioni selezionati senza illuminazione di scena o mappatura tonale cinematografica.</td><td>Solo anteprima. Dipende comunque dal modello e dallo schermo; non convalida la calibrazione.</td></tr><tr><td><strong>Ombreggiato</strong></td><td>Esaminare rilievo e forma illuminati.</td><td>Solo anteprima; l’illuminazione cambia il colore apparente.</td></tr><tr><td><strong>Trasparente</strong></td><td>Vedere gli strati sovrapposti.</td><td>Solo anteprima; non rende trasparente il filamento.</td></tr><tr><td><strong>Reticolo</strong></td><td>Esaminare i bordi dei dettagli colorati per strato.</td><td>Solo anteprima; non sono percorsi di estrusione.</td></tr><tr><td><strong>Colori anteprima</strong></td><td>Alternare miscele simulate da Auto-paint e colori fisici dei filamenti.</td><td>Solo anteprima. Le esportazioni mantengono le assegnazioni reali dei materiali.</td></tr><tr><td><strong>Cambio camera</strong></td><td>Passare dalla profondità prospettica all’allineamento ortografico senza scorcio.</td><td>Solo anteprima. La posizione della camera viene mantenuta.</td></tr><tr><td><strong>Annulla / Ripeti</strong></td><td>Percorrere la cronologia condivisa delle modifiche all’immagine.</td><td>Non annulla i campi 3D o le modifiche ai filamenti. Rigenera dopo una modifica all’immagine.</td></tr><tr><td><strong>Scarica</strong></td><td>Esportare lo STL o il 3MF generato.</td><td>Usa l’ultimo modello generato, non le impostazioni della barra laterale non applicate.</td></tr></tbody></table>
+<p>La modalità di visualizzazione e la scelta tra colori simulati e fisici vengono ricordate. <strong>Colori anteprima</strong> appare solo per un modello Auto-paint già generato.</p>
+<h2 id="layer-preview">Anteprima degli strati</h2>
+<p>Trascina le maniglie inferiore e superiore della barra in basso per isolare un intervallo di altezze. Le posizioni si agganciano alla griglia degli strati. Passa sopra i segmenti dei materiali per informazioni sull’inizio o sui cambi.</p>
+<p><a href="/localized/it/diagrams/19_preview_only.svg" target="_blank" rel="noopener noreferrer" aria-label="Apri illustrazione a dimensione intera: Le maniglie di taglio nascondono strati per esaminarli, ma l’esportazione contiene comunque il modello completo."><img src="/localized/it/diagrams/19_preview_only.svg" alt="Le maniglie di taglio nascondono strati per esaminarli, ma l’esportazione contiene comunque il modello completo." loading="lazy"></a></p>
+<p><em>Schema. Nascondere uno strato sullo schermo non lo elimina mai dall’esportazione.</em></p>
+<p>Flat Paint ha una traccia semplice perché più materiali possono occupare lo stesso strato stampato. Orbita sotto la disposizione predefinita a faccia in giù per vedere l’immagine.</p>
+<p>Un calcolo Auto-paint fallito può lasciare visibile l’ultima generazione riuscita. Non considerarla una prova che le nuove impostazioni abbiano funzionato. Le istruzioni di stampa usano l’istantanea generata, quando esiste. Risolvi l’errore, genera nuovamente, poi esamina ed esporta.</p>
+<p>Prosegui con: <a href="/it/docs/auto-paint">Controlli Auto-paint</a>, <a href="/it/docs/flat-paint">Flat Paint</a> o <a href="/it/docs/generating-exporting-output">Generazione ed esportazione</a>.</p>
+                </article>
+            </main>
+        </div>
+    </body>
+</html>
