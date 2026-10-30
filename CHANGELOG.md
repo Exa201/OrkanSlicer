@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.412 — Nightly 2.5 experimental — 2026-10-30
+
+- Correct Qidi print filenames to use the initial active tool's material instead of always using filament T0.
+- ARM64 build and profile regression verification are pending. Qidi printer upload and physical device behavior have not been tested.
+
 ## 0.8.411 — Nightly 2.5 experimental — 2026-10-30
 
 - Preserve compatible per-slot user filament presets during printer/AMS synchronization when the reported tray has the same filament ID, including when empty trays shift list positions.
