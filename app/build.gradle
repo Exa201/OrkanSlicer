@@ -7,6 +7,10 @@ plugins {
 
 def commit = getGitCommitHash(file('.'))
 def usePrebuiltNative = (project.findProperty("usePrebuiltNative") ?: "false").toString().toBoolean()
+// Keep the native engine build identity separate from the Android package version.
+// Bumping an app-only release should not invalidate every C++ compilation unit.
+def nativeSlicerVersion = "0.8.408"
+def nativeSlicerBuildId = 443
 
 android {
     namespace 'ru.ytkab0bp.slicebeam'
@@ -17,8 +21,8 @@ android {
         applicationId "com.codemastercody3d.orcaslicermobile"
         minSdk 23
         targetSdk 36
-        versionCode 443
-        versionName "0.8.408"
+        versionCode 444
+        versionName "0.8.409"
         buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -29,8 +33,8 @@ android {
                 cmake {
                     arguments '-DANDROID_STL=c++_shared', '-DANDROID_PLATFORM=21',
                             '-DCMAKE_BUILD_TYPE=Release', // Disabling this results in drastically degradation of slicing times on debug builds
-                            "-DSLIC3R_VERSION=\"${defaultConfig.versionName}\"",
-                            "-DSLIC3R_BUILD_ID=\"${defaultConfig.versionCode}\""
+                            "-DSLIC3R_VERSION=\"${nativeSlicerVersion}\"",
+                            "-DSLIC3R_BUILD_ID=\"${nativeSlicerBuildId}\""
                 }
             }
         }

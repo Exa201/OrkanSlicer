@@ -1,3 +1,11 @@
+# OrkanSlicer 0.8.409 — OrcaSlicer 2.5 baseline publication — 2026-10-30
+
+- Orca upstream review: latest `main` `98b539c3e6b44e87bbde950e26d1b23c66691a0a`; latest 2.5 prerelease `v2.5.0-beta` (2026-10-27). This app build deliberately retains the existing Android native engine; no upstream 2.5 source is claimed as integrated.
+- Compared current upstream `src/libslic3r` against the Android port: 609 upstream files, 496 local files, 130 upstream-only paths, 17 Android-only paths. New upstream areas include belt printing, CAD/sketch APIs, and G-code sender code. This inventory is a path comparison, not a list of Android-ready features.
+- `:app:assembleDebug` succeeded for package version 0.8.409 / code 444. The native engine identity remains 0.8.408 / build ID 443; separating app and engine build IDs avoids needless native recompilation for an app-only release.
+- The preceding app code commit `b1c0236d8c390e7f1bec88e4d45ef7a4e467659e` passed 33 focused unit tests covering upload preparation, G-code integrity, and Qidi packaging. No full unit suite, printer transfer, Xiaomi test, or physical printer test was run for this version-metadata release build.
+- APK checksum, final commit, and GitHub asset are recorded in the release notes after the commit-pinned rebuild.
+
 # Kameraeingabe: Raycast erst nach echtem Langdruck — Android 16 — 2026-10-29
 
 - Der Xiaomi-Stacktrace passt zum produktiven `GLView.onTouchEvent`-Pfad: Bei jedem `ACTION_DOWN` wurde sofort `GLRenderer.raycastObjectIndex()` auf der GL-Warteschlange ausgeführt. Das konnte erstmals für ein Mesh `glmodel_init_raycast_data()` und den nativen Face-Neighbor-Aufbau auslösen; Kamera-Orbit-Frames standen dann hinter dieser Mesh-Arbeit an. Die Diagnose ist durch den Quellcodepfad und den vom Nutzer gelieferten Stacktrace belegt.

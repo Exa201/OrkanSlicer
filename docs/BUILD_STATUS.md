@@ -1,5 +1,11 @@
 # Build Status
 
+## Current publication and OrcaSlicer 2.5 review — 2026-10-30
+
+- App version 0.8.409 / code 444 built successfully from the existing Android engine baseline (native ID 0.8.408 / 443); APK hash and commit-pinned artifact are added after the release commit rebuild.
+- The official OrcaSlicer 2.5.0 beta and `main` were reviewed. The existing Android native port is not a drop-in desktop build; engine migration remains in the separate Nightly 2.5 repository until ARM64 compilation and slicing fixtures pass.
+- Current verified app-code tests: 33 focused tests on commit `b1c0236d8c390e7f1bec88e4d45ef7a4e467659e`; these are not a full regression suite for 0.8.409.
+
 ## Aktueller geprüfter Stand — 10.10.2026 — Farbslot-Übernahme und eigene Filamentprofile, Build 0.8.192
 
 - Eine ausdrücklich gewählte physische Farbslot-Zuordnung wird trotz abweichendem Materialnamen übernommen. Vor dem Slicen und nach dem Übernehmen erscheint ein Temperaturhinweis; ein späterer Sync weist dieselbe Auswahl nicht erneut allein wegen des Materialnamens zurück.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.409
+
+- Reduce printer upload preparation overhead for Kobra 3 V2 and Qidi Q2; avoid redundant native mesh conversions while packing Qidi preview files.
+- Publish the current app baseline before the isolated OrcaSlicer 2.5 Android-core update.
+- The preceding code commit passed 33 focused printer-upload, G-code integrity, and Qidi packaging unit tests; this release rebuild changes the app version metadata only. Xiaomi and printer hardware were not connected.
+
 ## 0.8.404
 
 - Keep the color-paint panel and its single filament palette active until the GL thread has finished committing or discarding the paint draft.
