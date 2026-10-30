@@ -5,6 +5,14 @@ The Android app uses the SliceBeam UI and a platform-adapted OrcaSlicer engine i
 upstream is configured as `orcaslicer-upstream`; reviewed revisions are recorded in
 `ORCA_NIGHTLY_LOCK.md`.
 
+## Nightly app validation — 2026-10-30 — 0.8.416
+
+- Code commit `098e65375f...`; app 0.8.416/code 451; native identity 0.8.412/build 447.
+- Selectively ported Orca `29e189957`: restore layer Z before a travel-capable toolchange over a compacted wipe tower. Both Android tower-generation paths now insert the lift at the toolchange boundary.
+- Full ARM64 native/app/instrumentation build succeeded; Debug and Slice JVM suites passed 686/686 each. New compacted-tower multi-color instrumentation regression compiled, but ADB reported no connected device, so it was not executed.
+- APK SHA-256: `12D7EF80F583D89356657122A1C499CD891CDBE30A3E6A91DBB54F98E29FA967`. The app remains arm64-only and debug-signed; no physical printer acceptance is claimed.
+- [Experimental Nightly 2.5 prerelease](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.416-nightly.1).
+
 ## Nightly app validation — 2026-10-30 — 0.8.415
 
 - 0.8.415 app/code commit: `7ec32de2c5677cd63ed10368992165f944eeeb6f`; native identity 0.8.411/build 446.

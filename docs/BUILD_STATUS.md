@@ -1,5 +1,13 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.416
+
+- App/code commit `098e65375f...`, app 0.8.416/code 451, native engine identity 0.8.412/build 447. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.
+- Full ARM64 `:app:assembleDebug :app:assembleSliceTestAndroidTest :app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` succeeded in 17m48s. Native `GCode.cpp`, `WipeTower.cpp`, and `WipeTower2.cpp` compiled; Android instrumentation APK compiled, but no device was connected to execute it.
+- APK `OrkanSlicer_098e653758.apk`, 239,655,755 bytes, SHA-256 `12D7EF80F583D89356657122A1C499CD891CDBE30A3E6A91DBB54F98E29FA967`. `aapt` verified package `com.codemastercody3d.orcaslicermobile`, version 0.8.416/code 451, and ABI `arm64-v8a`.
+- Ported Orca `29e189957`: restore the model layer Z before travel-capable toolchanges when a no-sparse wipe tower is below the model. New G-code instrumentation regression compiled but was not run; no printer acceptance is claimed.
+- Published as [OrkanSlicer Nightly 2.5 v0.8.416](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.416-nightly.1). This is a selective experimental port; the full Orca 2.5 engine lock is not advanced.
+
 ## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.415
 
 - App/code commit `7ec32de2c5677cd63ed10368992165f944eeeb6f`, app 0.8.415/code 450, native engine identity 0.8.411/build 446. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.

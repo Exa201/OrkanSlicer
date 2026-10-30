@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.416 — Nightly 2.5 experimental — 2026-10-30
+
+- Port OrcaSlicer `29e189957`: when a compacted/no-sparse wipe tower is below the current model layer, restore the model Z before a travel-capable custom macro or physical extruder change. The placeholder is wired into both Android wipe-tower generators.
+- Added an instrumentation regression for a tall multi-color object, compacted tower, and custom toolchange macro. The test compiles but could not run because no ADB device is connected.
+- Full ARM64 native/app/instrumentation build succeeded. Debug JVM and Slice JVM suites each passed 686/686, with no failures, errors, or skips. Physical printer behavior remains unverified.
+- APK: [OrkanSlicer Nightly 2.5 v0.8.416](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.416-nightly.1), SHA-256 `12D7EF80F583D89356657122A1C499CD891CDBE30A3E6A91DBB54F98E29FA967`.
+
 ## 0.8.415 — Nightly 2.5 experimental — 2026-10-30
 
 - Port OrcaSlicer `a4a510087`: classify tree-support continuation using the next layer's XY collision-clearance region for build-plate-only supports. This avoids treating the area inside support clearance as a free path to the build plate.
