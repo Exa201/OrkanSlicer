@@ -12,7 +12,11 @@ import java.util.Locale
 internal object SlicePreparationTools {
     data class PressureAdvanceCommands(val filament: List<String>, val custom: List<String>)
     data class ToolUsage(val used: IntArray, val firstAppearance: IntArray)
-    data class Preflight(val toolUsage: ToolUsage, val pressureAdvance: PressureAdvanceCommands)
+    data class Preflight(
+        val toolUsage: ToolUsage,
+        val pressureAdvance: PressureAdvanceCommands,
+        val filamentTypes: List<String>,
+    )
 
     private val klipperPa = Regex("^\\s*SET_PRESSURE_ADVANCE\\b.*?\\bADVANCE=([0-9]+(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
     private val marlinPa = Regex("^\\s*M900\\s+K([0-9]+(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
@@ -95,22 +99,28 @@ internal object SlicePreparationTools {
         val firstAppearance = linkedSetOf<Int>()
         val filament = linkedSetOf<String>()
         val custom = linkedSetOf<String>()
-        FileReader(gcode).buffered().useLines { lines ->
+        var filamentTypes = emptyList<String>()
+        FileReader(gcode).buffered(64 * 1024).useLines { lines ->
             lines.forEach { line ->
                 GCodeToolMapper.parseToolCommand(line).takeIf { it >= 0 }?.let { tool ->
                     used.add(tool)
                     firstAppearance.add(tool)
                 }
-                val value = klipperPa.find(line)?.groupValues?.get(1)
-                    ?: marlinPa.find(line)?.groupValues?.get(1)
-                    ?: return@forEach
+                if (line.startsWith("; filament_type = ")) {
+                    filamentTypes = line.substringAfter('=').trim().split(';').map(String::trim)
+                }
+                val value = pressureAdvanceValue(line) ?: return@forEach
                 val target = if (line.contains("Override pressure advance value", true)) filament else custom
                 if (target.size < 16) target.add(value)
             }
         }
         val toolUsage = if (used.isEmpty()) ToolUsage(intArrayOf(0), intArrayOf(0))
             else ToolUsage(used.toIntArray(), firstAppearance.toIntArray())
-        return Preflight(toolUsage, PressureAdvanceCommands(filament.toList(), custom.toList()))
+        return Preflight(
+            toolUsage,
+            PressureAdvanceCommands(filament.toList(), custom.toList()),
+            filamentTypes,
+        )
     }
 
     /** Kept for callers that only need the distinct selected tools. */
@@ -178,13 +188,24 @@ internal object SlicePreparationTools {
         val custom = linkedSetOf<String>()
         FileReader(gcode).buffered().useLines { lines ->
             lines.forEach { line ->
-                val value = klipperPa.find(line)?.groupValues?.get(1)
-                    ?: marlinPa.find(line)?.groupValues?.get(1)
-                    ?: return@forEach
+                val value = pressureAdvanceValue(line) ?: return@forEach
                 val target = if (line.contains("Override pressure advance value", true)) filament else custom
                 if (target.size < 16) target.add(value)
             }
         }
         return PressureAdvanceCommands(filament.toList(), custom.toList())
+    }
+
+    /** Avoid running two regular expressions over every motion line in large sliced files. */
+    private fun pressureAdvanceValue(line: String): String? {
+        var start = 0
+        while (start < line.length && Character.isWhitespace(line[start])) start++
+        return when {
+            line.regionMatches(start, "SET_PRESSURE_ADVANCE", 0, "SET_PRESSURE_ADVANCE".length, ignoreCase = true) ->
+                klipperPa.find(line)?.groupValues?.get(1)
+            line.regionMatches(start, "M900", 0, 4, ignoreCase = true) ->
+                marlinPa.find(line)?.groupValues?.get(1)
+            else -> null
+        }
     }
 }

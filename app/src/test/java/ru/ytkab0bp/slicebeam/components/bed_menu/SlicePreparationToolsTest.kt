@@ -116,6 +116,7 @@ class SlicePreparationToolsTest {
         try {
             file.writeText("""
                 ; T9 is only a comment
+                ; filament_type = PETG;PLA;ABS
                 T0
                 SET_PRESSURE_ADVANCE ADVANCE=0.11
                 T2
@@ -127,6 +128,7 @@ class SlicePreparationToolsTest {
             val preflight = SlicePreparationTools.readPreflight(file)
             assertArrayEquals(intArrayOf(0, 1, 2), preflight.toolUsage.used)
             assertArrayEquals(intArrayOf(0, 2, 1), preflight.toolUsage.firstAppearance)
+            assertEquals(listOf("PETG", "PLA", "ABS"), preflight.filamentTypes)
             assertEquals(
                 SlicePreparationTools.readPressureAdvanceCommands(file),
                 preflight.pressureAdvance,

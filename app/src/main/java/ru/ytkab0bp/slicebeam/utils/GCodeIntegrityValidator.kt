@@ -59,7 +59,7 @@ object GCodeIntegrityValidator {
         var completionBeforeFinalLayer = false
         var foundAnyCompletion = false
         try {
-            BufferedReader(FileReader(file)).use { reader ->
+            BufferedReader(FileReader(file), 64 * 1024).use { reader ->
                 while (true) {
                     val line = reader.readLine() ?: break
                     val trimmed = line.trim()

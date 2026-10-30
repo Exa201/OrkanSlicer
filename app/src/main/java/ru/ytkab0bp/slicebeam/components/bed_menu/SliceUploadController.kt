@@ -111,11 +111,17 @@ object SliceUploadController {
             var uploadFile: File? = null
             var preparationError: Exception? = null
             var integrityFailure: GCodeIntegrityValidator.Result? = null
-            val sourceCheck = GCodeIntegrityValidator.validate(source)
-            if (!sourceCheck.isValid()) {
+            // The remapped Anycubic output is validated after rewriting below. Validating
+            // the source first needlessly reads a potentially very large sliced file once
+            // more, while the prepared file is the one that will actually be uploaded.
+            val sourceCheck = if (anycubicKobra3) null else GCodeIntegrityValidator.validate(source)
+            if (sourceCheck != null && !sourceCheck.isValid()) {
                 integrityFailure = sourceCheck
             } else {
                 try {
+                    progress.setMessage(SliceBeam.requireInstance().getString(
+                        if (qidiQ2) R.string.UploadPackagingQidi else R.string.UploadPreparingAnycubic,
+                    ))
                     uploadFile = if (qidiQ2) prepareQidiUpload(source, printer, preview, uploadName)
                     else prepareAnycubicUpload(source, printer, modelInstances, fragment, preview)
                     if (uploadFile != null) {
@@ -125,10 +131,16 @@ object SliceUploadController {
                                 uploadFile = null
                             }
                         } else {
-                            val preparedCheck = GCodeIntegrityValidator.validate(uploadFile!!)
-                            if (!preparedCheck.isValid()) {
-                                integrityFailure = preparedCheck
-                                uploadFile = null
+                            // Non-Anycubic profiles upload the original source, already
+                            // checked above. Anycubic uploads a rewritten file and must
+                            // validate that transformed artifact before it can be sent.
+                            if (uploadFile !== source) {
+                                progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadValidatingPreparedGcode))
+                                val preparedCheck = GCodeIntegrityValidator.validate(uploadFile!!)
+                                if (!preparedCheck.isValid()) {
+                                    integrityFailure = preparedCheck
+                                    uploadFile = null
+                                }
                             }
                         }
                     }
@@ -158,6 +170,7 @@ object SliceUploadController {
             }
         } }
         val startFilePreparation = {
+            progress.setMessage(context.getString(R.string.UploadCapturingPreview))
             if (qidiQ2 || anycubicKobra3) captureWorkspacePreview(fragment, continuePreparation)
             else continuePreparation(null)
         }

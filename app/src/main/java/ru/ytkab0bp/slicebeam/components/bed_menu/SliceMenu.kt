@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
+import ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.IOUtils
@@ -53,23 +54,30 @@ class SliceMenu : ListBedMenu() {
         printer: ConfigObject,
         print: Boolean,
     ) {
+        val bed = fragment ?: return
+        val context = bed.getContext() ?: return
+        val progress = bed.showPrinterUploadProgress(
+            context.getString(if (SlicePrintPreparationDialog.isAnycubicKobra(printer))
+                R.string.UploadAceChecking else R.string.UploadAnalyzingGcode),
+        ) ?: return
         if (SlicePrintPreparationDialog.isAnycubicKobra(printer)) {
             MmuFilamentSync.synchronize(printer) { _, error ->
                 if (error != null) {
-                    val context = fragment?.getContext()
-                    if (context != null) {
-                        fragment?.showWorkspaceMessageDialog(
-                            title = context.getString(R.string.MmuSyncFailed),
-                            message = context.getString(R.string.MmuAssignmentSyncFailed),
-                            confirmLabel = context.getString(android.R.string.ok),
+                    bed.dismissPrinterUploadProgress(progress)
+                    val activeContext = bed.getContext()
+                    if (activeContext != null) {
+                        bed.showWorkspaceMessageDialog(
+                            title = activeContext.getString(R.string.MmuSyncFailed),
+                            message = activeContext.getString(R.string.MmuAssignmentSyncFailed),
+                            confirmLabel = activeContext.getString(android.R.string.ok),
                         )
                     }
                     return@synchronize
                 }
-                scanToolCountAndPrepare(type, host, apiKey, printer, print)
+                scanToolCountAndPrepare(type, host, apiKey, printer, print, progress)
             }
         } else {
-            scanToolCountAndPrepare(type, host, apiKey, printer, print)
+            scanToolCountAndPrepare(type, host, apiKey, printer, print, progress)
         }
     }
 
@@ -79,28 +87,27 @@ class SliceMenu : ListBedMenu() {
         apiKey: String?,
         printer: ConfigObject,
         print: Boolean,
+        progress: PrinterUploadProgressDialog,
     ) {
         val bed = fragment ?: return
         val gcode: File = BedFragment.tempGCodePath
+        progress.setMessage(bed.getContext()?.getString(R.string.UploadAnalyzingGcode).orEmpty())
         IOUtils.IO_POOL.execute {
             val preflight = try {
                 SlicePreparationTools.readPreflight(gcode)
             } catch (_: IOException) {
-                SliceUploadController.showPreparationFailure(bed)
-                return@execute
-            }
-            val sourceFilamentTypes = try {
-                SlicePreparationTools.readFilamentTypes(gcode)
-            } catch (_: IOException) {
+                bed.dismissPrinterUploadProgress(progress)
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
             }
             val toolUsage = preflight.toolUsage
             val pressureAdvance = preflight.pressureAdvance
+            val sourceFilamentTypes = preflight.filamentTypes
             val activeTools = toolUsage.used
             val toolCount = maxOf(1, (activeTools.maxOrNull() ?: 0) + 1)
             ViewUtils.postOnMainThread {
                 if (bed.getContext() != null) {
+                    bed.dismissPrinterUploadProgress(progress)
                     SlicePrintPreparationDialog.show(
                         bed,
                         printer,
@@ -131,6 +138,8 @@ class SliceMenu : ListBedMenu() {
                             activeTools,
                         )
                     }
+                } else {
+                    bed.dismissPrinterUploadProgress(progress)
                 }
             }
         }

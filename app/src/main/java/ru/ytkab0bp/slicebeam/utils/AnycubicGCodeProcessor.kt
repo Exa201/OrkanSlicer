@@ -120,7 +120,7 @@ class AnycubicGCodeProcessor private constructor() {
             val usedTools = sortedSetOf<Int>()
             val firstToolAppearance = linkedSetOf<Int>()
             var materials = arrayOf("PLA")
-            BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8)).use { reader ->
+            BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
                 while (true) {
                     val line = reader.readLine() ?: break
                     when {
@@ -200,8 +200,8 @@ class AnycubicGCodeProcessor private constructor() {
             var headerClosed = false
             var toolSelectionInserted = false
             try {
-                BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8)).use { reader ->
-                    BufferedWriter(OutputStreamWriter(FileOutputStream(destination, false), StandardCharsets.UTF_8)).use { writer ->
+                BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
+                    BufferedWriter(OutputStreamWriter(FileOutputStream(destination, false), StandardCharsets.UTF_8), 64 * 1024).use { writer ->
                         while (true) {
                             var line = reader.readLine() ?: break
                             if (line.trim().startsWith("; filament_colour_type")) continue

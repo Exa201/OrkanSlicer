@@ -729,6 +729,11 @@
     <string name="PrintPrepareSharedAceWarning">Das Modell verwendet %1$d Farben, aber die Zuordnung nutzt nur %2$d verschiedene ACE-Slots. Farben mit demselben Slot werden mit demselben Filament gedruckt. Prüfe die Zuordnung vor dem Druck. Wenn das absichtlich so ist, kannst du fortfahren.</string>
     <string name="PrintPrepareSharedAceConfirm">So drucken</string>
     <string name="UploadPreparingGcode">Druckdatei wird vorbereitet …</string>
+    <string name="UploadAnalyzingGcode">Slicedatei wird analysiert …</string>
+    <string name="UploadCapturingPreview">Druckvorschau wird erfasst …</string>
+    <string name="UploadPreparingAnycubic">ACE-Zuordnung und Druckdatei werden vorbereitet …</string>
+    <string name="UploadPackagingQidi">QIDI-Druckpaket wird erstellt …</string>
+    <string name="UploadValidatingPreparedGcode">Vorbereitete Druckdatei wird geprüft …</string>
     <string name="UploadAceChecking">ACE-Fächer werden vor dem Versand erneut geprüft …</string>
     <string name="UploadAceCheckFailed">Die aktuelle ACE-Belegung konnte nicht geprüft werden. Die Datei wurde nicht gesendet. Prüfe die Druckerverbindung und versuche es erneut.</string>
     <string name="UploadAceAssignmentChanged">Ein verwendetes ACE-Fach, dessen Material, Farbe oder Werkzeugzuordnung hat sich seit der Druckprüfung geändert. Die Datei wurde nicht gesendet. Öffne „Senden“ erneut und prüfe die Zuordnung.</string>
