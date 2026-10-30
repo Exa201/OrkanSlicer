@@ -1,7 +1,7 @@
 # OrcaSlicer 2.5 Android port delta audit
 
 Reviewed 2026-10-30 against official OrcaSlicer `main` commit
-`98b539c3e6b44e87bbde950e26d1b23c66691a0a` and beta tag `v2.5.0-beta`
+`a4a51008798934b55ae766aa7cc41d61c40d11e6` and beta tag `v2.5.0-beta`
 (`345efec64c7b95a05ce5cf96df0dde66a158835c`).
 
 ## What the comparison proves
@@ -13,7 +13,7 @@ Reviewed 2026-10-30 against official OrcaSlicer `main` commit
   additional G-code sender code.
 - Android-only code includes `GCode/PostProcessor`, `GCodeSender`, Clipper2 helpers,
   JumpPointSearch, and Shiny headers. Preserve these mobile integrations.
-- Since the 2.5 beta comparison point, `main` has 67 commits and is 5 commits diverged.
+- Since the 2.5 beta comparison point, `main` has 68 commits and is 5 commits diverged.
   The complete commit delta is not equivalent to Android-ready features.
 
 ## Core fixes already ported on `nightly-2.5`
@@ -26,6 +26,7 @@ Reviewed 2026-10-30 against official OrcaSlicer `main` commit
 | `9f39b8347f7492b11fdb905b220323001db96e6a`: use the material for the initial Qidi tool in output filenames | Change the 14 Qidi profile patterns that still selected `filament_type[0]`; add a regression test ensuring every Qidi material-aware filename pattern uses `initial_tool` | Debug and Slice JVM suites passed 686/686; ARM64 app and instrumentation builds succeeded. No physical Qidi was available |
 | `98b539c3e6b44e87bbde950e26d1b23c66691a0a`: use the active filament's retraction threshold and Z-hop policy | Use filament-ID-indexed values in G-code travel/retract and in writer Z-hop boundaries; import and expose the per-filament lift-enforcement setting | ARM64 native and instrumentation APK builds succeeded; Debug/Slice JVM suites 686/686 each. A two-filament native G-code test was added but not run: no ADB device |
 | `7125a546b`: don't invalidate G-code on unchanged auto-mapping state after slicing | Remove engine-derived `filament_map` from the full-config diff when the normalized map is carried forward | Full ARM64 build and instrumentation APK compilation succeeded for 0.8.414; Debug/Slice JVM suites 686/686 each. The upstream Catch2 repeat-apply regression isn't part of the Android test harness, and no device was connected for an end-to-end slice |
+| `a4a510087`: classify build-plate-only tree-support nodes against the next layer's XY-clearance collision region | Replace the raw model-outline containment check with the already-computed `next_collision` region | ARM64 native build and both JVM suites succeeded for 0.8.415 (686/686 each); the changed TreeSupport.cpp object was compiled. Instrumentation APK built but no ADB device was connected for a support-model slice |
 
 These are selective backports. The app must not be labeled as running the complete
 OrcaSlicer 2.5 engine yet; `ORCA_NIGHTLY_LOCK.md` remains unadvanced.

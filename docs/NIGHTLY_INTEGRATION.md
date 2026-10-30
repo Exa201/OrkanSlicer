@@ -1,23 +1,23 @@
 # OrcaSlicer 2.5 Android-core integration
 
 The Android app uses the SliceBeam UI and a platform-adapted OrcaSlicer engine in
-`app/src/main/jni`. The Android port is not a desktop source drop-in. There is no
-`orcaslicer-nightly` Git remote configured in this checkout; upstream revisions must be
-fetched explicitly and recorded in `ORCA_NIGHTLY_LOCK.md`.
+`app/src/main/jni`. The Android port is not a desktop source drop-in. The official
+upstream is configured as `orcaslicer-upstream`; reviewed revisions are recorded in
+`ORCA_NIGHTLY_LOCK.md`.
 
-## Latest Nightly app validation — 2026-10-30
+## Nightly app validation — 2026-10-30 — 0.8.415
 
-- 0.8.414 app/code commit: `5ec59ef50fdbf0768525a3859062a32c5e7a2f81`; native identity 0.8.410/build 445.
-- Orca `7125a546b` is selectively ported for derived automatic filament-map invalidation. Full ARM64 app/instrumentation build succeeded; Debug and Slice JVM suites passed 686/686 each.
-- Debug APK: `OrkanSlicer_5ec59ef50f.apk`, SHA-256 `55A8490808D4C7D8DD69015D3A6D4569653CF6160FDF17F3DF76455DDCD95ED4`. Device instrumentation and printer acceptance remain unverified because ADB had no device.
+- 0.8.415 app/code commit: `7ec32de2c5677cd63ed10368992165f944eeeb6f`; native identity 0.8.411/build 446.
+- Orca `a4a510087` tree-support clearance correction is selectively ported. Full ARM64 app/instrumentation build succeeded; Debug and Slice JVM suites passed 686/686 each.
+- Debug APK: `OrkanSlicer_7ec32de2c5.apk`, 239,654,238 bytes, SHA-256 `A4A479E891731E544203822843F2D6670A782D15199B476E88DCEEFAAE064DB7`. Device instrumentation and printer acceptance remain unverified because ADB had no device.
 - This release does not advance the full engine lock. Fixed 3MF/STL slicing and multi-material G-code validation remain required.
 
 ## Reviewed upstream (2026-10-30)
 
 - Official repository: <https://github.com/OrcaSlicer/OrcaSlicer>
-- Current `main`: `98b539c3e6b44e87bbde950e26d1b23c66691a0a`
+- Current `main`: `a4a51008798934b55ae766aa7cc41d61c40d11e6`
 - Latest 2.5 prerelease: `v2.5.0-beta`, published 2026-10-27
-- `main` has 67 commits since the beta comparison point and diverged by 5 commits.
+- `main` has 68 commits since the beta comparison point and diverged by 5 commits.
 - Official release assets are desktop distributions; none is a drop-in Android
   `libslic3r.so`.
 - The existing Android source baseline recorded in `ORCA_NIGHTLY_LOCK.md` is not

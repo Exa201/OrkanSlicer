@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.415
+
+- App/code commit `7ec32de2c5677cd63ed10368992165f944eeeb6f`, app 0.8.415/code 450, native engine identity 0.8.411/build 446. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.
+- Full ARM64 `:app:assembleDebug :app:assembleSliceTestAndroidTest :app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` succeeded. The first attempt hit a transient Windows Ninja dependency-file permission error; the retry completed the full native build and all requested tasks.
+- APK `OrkanSlicer_7ec32de2c5.apk`, 239,654,238 bytes, SHA-256 `A4A479E891731E544203822843F2D6670A782D15199B476E88DCEEFAAE064DB7`. `aapt` verified package `com.codemastercody3d.orcaslicermobile`, version 0.8.415/code 450, and ABI `arm64-v8a`.
+- Ported Orca `a4a510087`: tree-support continuation now checks the next layer's collision/XY-clearance region. ARM64 compilation included the changed `TreeSupport.cpp`. Instrumentation sources compiled, but no ADB device was connected; no support fixture or printer run is claimed. The full 2.5 engine lock remains unchanged.
+
 ## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.414
 
 - App/code commit `5ec59ef50fdbf0768525a3859062a32c5e7a2f81`, app 0.8.414/code 449, native engine identity 0.8.410/build 445. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.

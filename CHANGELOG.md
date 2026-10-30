@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.415 — Nightly 2.5 experimental — 2026-10-30
+
+- Port OrcaSlicer `a4a510087`: classify tree-support continuation using the next layer's XY collision-clearance region for build-plate-only supports. This avoids treating the area inside support clearance as a free path to the build plate.
+- Full ARM64 native/app/instrumentation APK build succeeded. Debug JVM and Slice JVM suites each passed 686/686, with no failures, errors, or skips.
+- The Android instrumentation APK compiled but no device was connected to run it. No support-heavy model or printer behavior is claimed; the Orca 2.5 engine remains a selective port.
+
 ## 0.8.414 — Nightly 2.5 experimental — 2026-10-30
 
 - Port OrcaSlicer `7125a546b`: stop derived automatic filament-map values from invalidating G-code again when the unchanged configuration is reapplied after slicing. This targets the extra-slice/repeated-processing path; the upstream Catch2 regression does not exist in the Android build system.

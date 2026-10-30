@@ -1,3 +1,10 @@
+# OrkanSlicer Nightly 2.5 — tree-support XY-clearance correction — 2026-10-30
+
+- Code commit `7ec32de2c5677cd63ed10368992165f944eeeb6f`; app 0.8.415/code 450; native engine identity 0.8.411/build 446.
+- Full ARM64 app/native/instrumentation build succeeded. Debug JVM: 686/686; Slice JVM: 686/686; 0 failures/errors/skips. Initial Ninja run had a transient Windows dependency-file access failure; the repeated full build succeeded.
+- APK `OrkanSlicer_7ec32de2c5.apk`, 239,654,238 bytes, SHA-256 `A4A479E891731E544203822843F2D6670A782D15199B476E88DCEEFAAE064DB7`. `aapt` confirmed application ID, version/code, and `arm64-v8a`.
+- Android instrumentation compiled but was not run because ADB had no device. No support-heavy fixture, Qidi transfer, or print was tested. This is a selective Orca backport, not a full 2.5 engine migration.
+
 # OrkanSlicer Nightly 2.5 — automatic filament-map invalidation fix — 2026-10-30
 
 - App/code commit `5ec59ef50fdbf0768525a3859062a32c5e7a2f81`; app 0.8.414/code 449; native engine identity 0.8.410/build 445.
