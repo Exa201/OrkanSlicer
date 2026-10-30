@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -29,6 +31,7 @@ import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.components.FastenerFormLogic
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelBooleanDialog
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectPartTransformDialog
 import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
 import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -44,6 +47,48 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun groupedPartTransformDialogAppliesMillimeterDeltasAndPercentScale() {
+        val applied = AtomicReference<List<Double>?>(null)
+        compose.setContent {
+            BeamComposeTheme {
+                ModelObjectPartTransformDialog(
+                    cancelLabel = "Cancel",
+                    onDismiss = {},
+                    onApply = { dx, dy, dz, sx, sy, sz -> applied.set(listOf(dx, dy, dz, sx, sy, sz)) },
+                )
+            }
+        }
+        compose.onNodeWithTag("model-object-part-transform-field-0").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-0").performTextInput("2.5")
+        compose.onNodeWithTag("model-object-part-transform-field-1").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-1").performTextInput("-3")
+        compose.onNodeWithTag("model-object-part-transform-field-2").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-2").performTextInput("4")
+        compose.onNodeWithTag("model-object-part-transform-field-3").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-3").performTextInput("150")
+        compose.onNodeWithTag("model-object-part-transform-apply").performClick()
+
+        assertEquals(listOf(2.5, -3.0, 4.0, 1.5, 1.0, 1.0), applied.get())
+    }
+
+    @Test fun groupedPartTransformDialogRejectsZeroOrOutOfRangeScale() {
+        val applied = AtomicBoolean(false)
+        compose.setContent {
+            BeamComposeTheme {
+                ModelObjectPartTransformDialog(
+                    cancelLabel = "Cancel",
+                    onDismiss = {},
+                    onApply = { _, _, _, _, _, _ -> applied.set(true) },
+                )
+            }
+        }
+        compose.onNodeWithTag("model-object-part-transform-field-3").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-3").performTextInput("0")
+        compose.onNodeWithTag("model-object-part-transform-error").assertIsDisplayed()
+        compose.onNodeWithTag("model-object-part-transform-apply").performClick()
+        assertFalse("invalid scale must not invoke the model mutation", applied.get())
+    }
 
     @Test fun objectPlacementJoiningStandaloneTextAndBooleanActionsHaveGermanLabels() {
         val base = InstrumentationRegistry.getInstrumentation().targetContext
@@ -439,6 +484,47 @@ class ModelEditingNativeDeviceTest {
             assertEquals("the selected destination material should lead the joined parts", 3,
                 model.getVolumeExtruder(0, 0))
             assertEquals(listOf(1, 2, 3), model.getUsedFilaments(0).toList())
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test fun groupedPartCanMoveAndScaleWithoutSplittingTheParentOrLosingMaterial() {
+        val modelFile = createCubeFixture("grouped-part-transform-cube.stl", 20f)
+        val model = Model(modelFile)
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 30.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            assertEquals(2, model.getObjectPartCount(0))
+            val originalTriangles = model.getTriangleCount(0)
+            val originalVolume = model.getObjectVolume(0)
+            val minBefore = Vec3d(); val maxBefore = Vec3d()
+            model.getBoundingBoxExact(0, minBefore, maxBefore)
+
+            assertTrue(model.transformObjectPart(0, 1, 5.0, -2.0, 3.0, 2.0, 1.0, 1.0))
+
+            assertEquals("editing a grouped part must keep one parent object", 1, model.objectsCount)
+            assertEquals("editing a grouped part must keep both children", 2, model.getObjectPartCount(0))
+            assertEquals("a part transform must not change mesh topology", originalTriangles, model.getTriangleCount(0))
+            assertEquals("material assignments must remain attached to their original parts", listOf(1, 2),
+                (0 until model.getObjectPartCount(0)).map { model.getObjectPartExtruder(0, it) })
+            assertTrue("scaling one of two grouped parts should change the total volume",
+                model.getObjectVolume(0) > originalVolume)
+            val minAfter = Vec3d(); val maxAfter = Vec3d()
+            model.getBoundingBoxExact(0, minAfter, maxAfter)
+            assertTrue("part movement should update the parent bounds", maxAfter.x > maxBefore.x + 4.9)
+            assertTrue("the part's Z movement should be reflected in the model bounds", maxAfter.z > maxBefore.z + 2.9)
+
+            val volumeAfter = model.getObjectVolume(0)
+            assertFalse("singular scale must be rejected", model.transformObjectPart(0, 1, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0))
+            assertFalse("extreme part movement must be rejected", model.transformObjectPart(0, 1, 10_001.0, 0.0, 0.0))
+            assertEquals("rejected transforms must leave the model untouched", volumeAfter, model.getObjectVolume(0), 0.001)
+            assertEquals(2, model.getObjectPartCount(0))
         } finally {
             model.release()
             modelFile.delete()

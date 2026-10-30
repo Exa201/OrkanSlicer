@@ -117,6 +117,10 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                         dismiss()
                         showObjectFilamentSlotDialog(view, index, snapshot)
                     },
+                    onTransformPart = { index, partIndex ->
+                        dismiss()
+                        showObjectPartTransformDialog(view, index, partIndex, snapshot)
+                    },
                     onEditPart = { index, partIndex ->
                         dismiss()
                         viewport.splitObjectPartIfCurrent(index, partIndex, snapshot) { result ->
@@ -142,6 +146,37 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     },
                 )
             }
+        }
+    }
+
+    private fun showObjectPartTransformDialog(
+        view: View,
+        objectIndex: Int,
+        partIndex: Int,
+        expectedSelection: ModelSelectionSnapshot,
+    ) {
+        val context = view.context
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelObjectPartTransformDialog(
+                cancelLabel = context.getString(android.R.string.cancel),
+                onDismiss = dismiss,
+                onApply = { dx, dy, dz, sx, sy, sz ->
+                    dismiss()
+                    val viewport = fragment.glView ?: return@ModelObjectPartTransformDialog
+                    viewport.transformObjectPartIfCurrent(
+                        objectIndex, partIndex, dx, dy, dz, sx, sy, sz, expectedSelection,
+                    ) { result ->
+                        when (result) {
+                            MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                            1 -> {
+                                fragment.updateModel()
+                                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelObjectPartTransformApply))
+                            }
+                            else -> SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelObjectPartTransformFailed))
+                        }
+                    }
+                },
+            )
         }
     }
 

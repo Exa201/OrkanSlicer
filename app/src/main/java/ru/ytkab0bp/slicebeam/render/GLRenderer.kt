@@ -576,6 +576,36 @@ internal fun splitObjectPartIfCurrent(
     return splitCount
 }
 
+/** Transforms one printable volume while preserving its parent object and sibling parts. GL-thread only. */
+internal fun transformObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    dx: Double,
+    dy: Double,
+    dz: Double,
+    scaleX: Double,
+    scaleY: Double,
+    scaleZ: Double,
+    expectedSelection: ModelSelectionSnapshot,
+): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return MODEL_EDIT_OPERATION_FAILED
+    val result = ModelEditOperation.runSafely(
+        failureResult = MODEL_EDIT_OPERATION_FAILED,
+        onFailure = { Log.e("GLRenderer", "Could not transform grouped model part", it) },
+    ) {
+        if (activeModel.transformObjectPart(objectIndex, partIndex, dx, dy, dz, scaleX, scaleY, scaleZ)) 1
+        else MODEL_EDIT_OPERATION_FAILED
+    }
+    if (result != 1) return result
+    invalidateGlModel(objectIndex)
+    activeModel.resetBoundingBox()
+    setSelectedObject(objectIndex)
+    prepareSelectionTransformPreview()
+    glView.requestRender()
+    return 1
+}
+
 /** Places the current selection on a target while keeping every model object independent. */
 internal fun placeSelectedObjectsOnObject(
     targetIndex: Int,

@@ -195,7 +195,19 @@
     <string name="ModelObjectPartNumber">Teil %1$d</string>
     <string name="ModelObjectEditPart">Zum Bearbeiten lösen</string>
     <string name="ModelObjectPartSeparated">Teil getrennt; es kann jetzt einzeln verschoben oder skaliert werden</string>
-    <string name="ModelObjectMultipartHelp">Modelle stehen als ein Eintrag mit ihren Teilen darunter in der Liste. Löse ein Teil, um es einzeln zu verschieben oder zu skalieren. Platzieren verbindet nicht; nutze dafür „Teile verbinden“.</string>
+    <string name="ModelObjectMultipartHelp">Modelle stehen als ein Eintrag mit ihren Teilen darunter in der Liste. Transformiere ein Teil innerhalb der Gruppe oder löse es zum Bearbeiten als eigenes Objekt. Platzieren verbindet nicht; nutze dafür „Teile verbinden“.</string>
+    <string name="ModelObjectPartTransform">Teil transformieren</string>
+    <string name="ModelObjectPartTransformTitle">Gruppenteil transformieren</string>
+    <string name="ModelObjectPartTransformHint" formatted="false">Die Änderung betrifft nur dieses Teil und lässt es in der Gruppe. Verschiebung in mm entlang der Gruppenachsen; relative Skalierung in Prozent. 100 % lässt die Achse unverändert.</string>
+    <string name="ModelObjectPartMoveX">X verschieben (mm)</string>
+    <string name="ModelObjectPartMoveY">Y verschieben (mm)</string>
+    <string name="ModelObjectPartMoveZ">Z verschieben (mm)</string>
+    <string name="ModelObjectPartScaleX">X skalieren (%)</string>
+    <string name="ModelObjectPartScaleY">Y skalieren (%)</string>
+    <string name="ModelObjectPartScaleZ">Z skalieren (%)</string>
+    <string name="ModelObjectPartTransformApply">Transformation anwenden</string>
+    <string name="ModelObjectPartTransformInvalid" formatted="false">Gib endliche Verschiebungswerte und Skalierungen von 1 % bis 1000 % ein.</string>
+    <string name="ModelObjectPartTransformFailed">Das Teil konnte nicht transformiert werden.</string>
     <string name="ModelObjectExpandParts">Teile anzeigen (%1$d)</string>
     <string name="ModelObjectCollapseParts">Teile ausblenden (%1$d)</string>
     <string name="ModelMenuPlaceFailed">Die Platzierung ist fehlgeschlagen. Prüfe die Objektpositionen, bevor du fortfährst.</string>

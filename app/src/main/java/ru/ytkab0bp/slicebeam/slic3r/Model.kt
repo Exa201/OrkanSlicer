@@ -206,6 +206,29 @@ open class Model private constructor(@JvmField var pointer: Long) {
         if (!hasObject(objectIndex) || partIndex < 0) -1
         else Native.model_get_object_part_extruder(pointer, objectIndex, partIndex)
 
+    /** Applies a relative transform to one printable part without detaching it from its parent object. */
+    open fun transformObjectPart(
+        objectIndex: Int,
+        partIndex: Int,
+        dx: Double,
+        dy: Double,
+        dz: Double,
+        scaleX: Double = 1.0,
+        scaleY: Double = 1.0,
+        scaleZ: Double = 1.0,
+    ): Boolean {
+        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex)) return false
+        if (listOf(dx, dy, dz, scaleX, scaleY, scaleZ).any { !it.isFinite() } ||
+            listOf(dx, dy, dz).any { kotlin.math.abs(it) > 10_000.0 } ||
+            listOf(scaleX, scaleY, scaleZ).any { it <= 0.0 }
+        ) return false
+        val changed = Native.model_transform_object_part(
+            pointer, objectIndex, partIndex, dx, dy, dz, scaleX, scaleY, scaleZ,
+        )
+        if (changed) resetBoundingBox()
+        return changed
+    }
+
     open fun getTriangleCount(i: Int): Int =
         if (!hasObject(i)) 0 else Native.model_get_triangle_count(pointer, i)
 

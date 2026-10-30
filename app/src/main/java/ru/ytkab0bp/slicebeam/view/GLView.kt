@@ -469,6 +469,26 @@ internal fun splitObjectPartIfCurrent(
         ViewUtils.postOnMainThread { onComplete(result) }
     }
 }
+internal fun transformObjectPartIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    dx: Double,
+    dy: Double,
+    dz: Double,
+    scaleX: Double,
+    scaleY: Double,
+    scaleZ: Double,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.transformObjectPartIfCurrent(
+            objectIndex, partIndex, dx, dy, dz, scaleX, scaleY, scaleZ, expectedSelection,
+        )
+        if (result == 1) requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
 internal fun placeSelectedObjectsOnObject(
     targetIndex: Int,
     expectedSelection: ModelSelectionSnapshot? = null,

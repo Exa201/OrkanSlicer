@@ -124,6 +124,46 @@ class WorkspaceRuntimeCompositionDeviceTest {
             assertTrue("redo of join restores both source filaments",
                 onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toSet().containsAll(setOf(1, 2)) })
 
+            fun groupedMaxX(): Double = onGl(glView) { view ->
+                val current = requireNotNull(view.renderer.model)
+                val min = Vec3d(); val max = Vec3d()
+                current.getBoundingBoxExact(0, min, max)
+                max.x
+            }
+            val groupedPartMaxXBefore = groupedMaxX()
+            val partTransformApplied = onGl(glView) { view ->
+                view.renderer.setSelectedObject(0)
+                val expected = requireNotNull(view.renderer.captureSelectionSnapshot())
+                view.renderer.transformObjectPartIfCurrent(
+                    objectIndex = 0,
+                    partIndex = 1,
+                    dx = 5.0,
+                    dy = -2.0,
+                    dz = 3.0,
+                    scaleX = 2.0,
+                    scaleY = 1.0,
+                    scaleZ = 1.0,
+                    expectedSelection = expected,
+                ) == 1
+            }
+            assertTrue("renderer should transform only the requested grouped part", partTransformApplied)
+            commitEdit()
+            assertEquals("the part remains grouped with its target", 2,
+                onGl(glView) { requireNotNull(it.renderer.model).getObjectPartCount(0) })
+            assertEquals("part filaments survive a grouped transform", listOf(1, 2),
+                onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toList() })
+            val groupedPartMaxXAfter = groupedMaxX()
+            assertTrue("grouped part transform should update the rendered parent bounds",
+                groupedPartMaxXAfter > groupedPartMaxXBefore + 4.9)
+            instrumentation.runOnMainSync { bed.undoModelEdit() }
+            assertEquals("undo keeps the parent and both parts grouped", 2,
+                onGl(glView) { requireNotNull(it.renderer.model).getObjectPartCount(0) })
+            assertEquals(groupedPartMaxXBefore, groupedMaxX(), 0.05)
+            instrumentation.runOnMainSync { bed.redoModelEdit() }
+            assertEquals("redo keeps the parent and both parts grouped", 2,
+                onGl(glView) { requireNotNull(it.renderer.model).getObjectPartCount(0) })
+            assertEquals(groupedPartMaxXAfter, groupedMaxX(), 0.05)
+
             editOnGl { model ->
                 model.addObject(model, 0)
                 model.setUniformFilament(1, 2)
@@ -167,6 +207,7 @@ class WorkspaceRuntimeCompositionDeviceTest {
             assertTrue("standalone text remains printable after redo", triangleCount(glView, 1) > 0)
             assertEquals("standalone text redo retains its separate filament slot", listOf(2),
                 onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(1).toList() })
+
         } finally {
             instrumentation.runOnMainSync {
                 (runCatching { activity.navigationDelegate.getCurrentFragment() as? BedFragment }.getOrNull())

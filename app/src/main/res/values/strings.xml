@@ -203,7 +203,19 @@
     <string name="ModelObjectPartNumber">Part %1$d</string>
     <string name="ModelObjectEditPart">Separate to edit</string>
     <string name="ModelObjectPartSeparated">Part separated; it can now be moved or scaled independently</string>
-    <string name="ModelObjectMultipartHelp">Models appear as one row with parts below. Separate a part to move or scale it alone. Placing never joins objects; use Combine selected when you choose.</string>
+    <string name="ModelObjectMultipartHelp">Models appear as one row with parts below. Transform a part inside the group or separate it to edit it as an object. Placing never joins objects; use Combine selected when you choose.</string>
+    <string name="ModelObjectPartTransform">Transform part</string>
+    <string name="ModelObjectPartTransformTitle">Transform grouped part</string>
+    <string name="ModelObjectPartTransformHint" formatted="false">Changes apply only to this part and keep it in the group. Movement is in mm along the group axes; scale is relative percent. 100% leaves that axis unchanged.</string>
+    <string name="ModelObjectPartMoveX">Move X (mm)</string>
+    <string name="ModelObjectPartMoveY">Move Y (mm)</string>
+    <string name="ModelObjectPartMoveZ">Move Z (mm)</string>
+    <string name="ModelObjectPartScaleX">Scale X (%)</string>
+    <string name="ModelObjectPartScaleY">Scale Y (%)</string>
+    <string name="ModelObjectPartScaleZ">Scale Z (%)</string>
+    <string name="ModelObjectPartTransformApply">Apply transform</string>
+    <string name="ModelObjectPartTransformInvalid" formatted="false">Enter finite movement values and scale values from 1% to 1000%.</string>
+    <string name="ModelObjectPartTransformFailed">The part could not be transformed.</string>
     <string name="ModelObjectExpandParts">Show parts (%1$d)</string>
     <string name="ModelObjectCollapseParts">Hide parts (%1$d)</string>
     <string name="ModelMenuCombineUnsupported">Select at least two single-instance objects to combine.</string>

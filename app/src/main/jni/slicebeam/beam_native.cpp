@@ -763,6 +763,54 @@ extern "C" {
         return -1;
     }
 
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1transform_1object_1part(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint part_index,
+        jdouble dx, jdouble dy, jdouble dz, jdouble scale_x, jdouble scale_y, jdouble scale_z) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() ||
+            part_index < 0 || !std::isfinite(dx) || !std::isfinite(dy) || !std::isfinite(dz) ||
+            std::fabs(dx) > 10000.0 || std::fabs(dy) > 10000.0 || std::fabs(dz) > 10000.0 ||
+            !std::isfinite(scale_x) || !std::isfinite(scale_y) || !std::isfinite(scale_z) ||
+            scale_x < 0.01 || scale_x > 10.0 || scale_y < 0.01 || scale_y > 10.0 || scale_z < 0.01 || scale_z > 10.0)
+            return JNI_FALSE;
+
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr) return JNI_FALSE;
+        jint current_part = 0;
+        ModelVolume* target = nullptr;
+        for (ModelVolume* volume : object->volumes) {
+            if (volume == nullptr || volume->type() != ModelVolumeType::MODEL_PART || volume->mesh().facets_count() < 3)
+                continue;
+            if (current_part++ == part_index) {
+                target = volume;
+                break;
+            }
+        }
+        if (target == nullptr) return JNI_FALSE;
+
+        const BoundingBoxf3 bounds = target->mesh().bounding_box();
+        if (target->mesh().empty() || !bounds.min.allFinite() || !bounds.max.allFinite()) return JNI_FALSE;
+        const Vec3d center = bounds.center().cast<double>();
+        if (!center.allFinite()) return JNI_FALSE;
+
+        // Scale in the part's local axes around its own mesh center. The parent object and its
+        // instances remain intact, so the edited component stays grouped with its siblings.
+        Transform3d local_scale = Transform3d::Identity();
+        local_scale.translate(center);
+        local_scale.scale(Vec3d(scale_x, scale_y, scale_z));
+        local_scale.translate(-center);
+        Transform3d translation = Transform3d::Identity();
+        translation.translate(Vec3d(dx, dy, dz));
+        const Transform3d updated = translation * target->get_matrix() * local_scale;
+        const double determinant = updated.linear().determinant();
+        if (!updated.matrix().allFinite() || !std::isfinite(determinant) || std::fabs(determinant) <= 1e-12)
+            return JNI_FALSE;
+
+        target->set_transformation(updated);
+        object->invalidate_bounding_box();
+        return JNI_TRUE;
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1triangle_1count(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;

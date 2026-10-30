@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -68,6 +70,7 @@ internal fun ModelObjectsDialog(
     onDismiss: () -> Unit,
     onSelect: (Int) -> Unit,
     onAssign: (Int) -> Unit,
+    onTransformPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onEditPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onApplySelection: (IntArray) -> Unit,
 ) {
@@ -147,23 +150,38 @@ internal fun ModelObjectsDialog(
                         }
                         if (index in expandedGroups) {
                             row.parts.forEachIndexed { partIndex, part ->
-                                Row(
+                                Column(
                                     Modifier.fillMaxWidth().padding(start = 28.dp, end = 8.dp, bottom = 4.dp)
                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                                         .testTag("model-object-part-row-$index-$partIndex")
                                         .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Box(Modifier.size(14.dp).background(Color(part.color), CircleShape))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(part.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text("T${part.tool}: ${part.material}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Box(Modifier.size(14.dp).background(Color(part.color), CircleShape))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(part.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("T${part.tool}: ${part.material}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
                                     }
-                                    TextButton(
-                                        onClick = { onEditPart(index, partIndex) },
-                                        modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-edit-part-$index-$partIndex"),
-                                    ) { Text(stringResource(R.string.ModelObjectEditPart)) }
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End,
+                                    ) {
+                                        TextButton(
+                                            onClick = { onTransformPart(index, partIndex) },
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                                .testTag("model-object-transform-part-$index-$partIndex"),
+                                        ) { Text(stringResource(R.string.ModelObjectPartTransform)) }
+                                        TextButton(
+                                            onClick = { onEditPart(index, partIndex) },
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                                .testTag("model-object-edit-part-$index-$partIndex"),
+                                        ) { Text(stringResource(R.string.ModelObjectEditPart)) }
+                                    }
                                 }
                             }
                         }
@@ -176,6 +194,69 @@ internal fun ModelObjectsDialog(
                 onClick = { onApplySelection(stagedSelection.sorted().toIntArray()) },
                 modifier = Modifier.heightIn(min = 48.dp).testTag("model-objects-selection-confirm"),
             ) { Text(stringResource(R.string.ModelMenuApplySelection, stagedSelection.size)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(cancelLabel) }
+        },
+    )
+}
+
+@Composable
+internal fun ModelObjectPartTransformDialog(
+    cancelLabel: String,
+    onDismiss: () -> Unit,
+    onApply: (dx: Double, dy: Double, dz: Double, sx: Double, sy: Double, sz: Double) -> Unit,
+) {
+    val values = remember { mutableStateListOf("0", "0", "0", "100", "100", "100") }
+    val labels = listOf(
+        R.string.ModelObjectPartMoveX,
+        R.string.ModelObjectPartMoveY,
+        R.string.ModelObjectPartMoveZ,
+        R.string.ModelObjectPartScaleX,
+        R.string.ModelObjectPartScaleY,
+        R.string.ModelObjectPartScaleZ,
+    )
+    val parsed = values.map { it.trim().replace(',', '.').toDoubleOrNull() }
+    val valid = parsed.all { it != null && it.isFinite() } &&
+        parsed.take(3).all { kotlin.math.abs(requireNotNull(it)) <= 10_000.0 } &&
+        parsed.drop(3).all { requireNotNull(it) in 1.0..1000.0 }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ModelObjectPartTransformTitle)) },
+        text = {
+            Column(
+                Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(stringResource(R.string.ModelObjectPartTransformHint))
+                if (!valid) Text(
+                    stringResource(R.string.ModelObjectPartTransformInvalid),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("model-object-part-transform-error"),
+                )
+                labels.forEachIndexed { index, label ->
+                    OutlinedTextField(
+                        value = values[index],
+                        onValueChange = { input ->
+                            values[index] = input.filter { it.isDigit() || it == '-' || it == '.' || it == ',' }.take(16)
+                        },
+                        label = { Text(stringResource(label)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth().testTag("model-object-part-transform-field-$index"),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = valid,
+                onClick = {
+                    val numbers = parsed.map { requireNotNull(it) }
+                    onApply(numbers[0], numbers[1], numbers[2], numbers[3] / 100.0, numbers[4] / 100.0, numbers[5] / 100.0)
+                },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-part-transform-apply"),
+            ) { Text(stringResource(R.string.ModelObjectPartTransformApply)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(cancelLabel) }
