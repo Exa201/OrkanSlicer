@@ -836,6 +836,21 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         end_filament_gcode_str = toolchange_retract_str + object_end_label_temp + end_filament_gcode_str;
 
+        // With compacted (non-sparse) tower layers, the tower may be below the
+        // tallest model layer. A custom macro or a physical extruder switch can
+        // move the toolhead away from the tower, so restore the object's layer Z
+        // before emitting that toolchange. The tower generator places this
+        // placeholder after filament_end_gcode and immediately before the change.
+        std::string restore_layer_z_str;
+        const bool tool_may_travel = !change_filament_gcode.empty()
+            || (new_extruder_id >= 0 && gcodegen.writer().filament() != nullptr
+                && gcodegen.writer().filament()->extruder_id() != unsigned(new_extruder_id));
+        if (gcodegen.config().wipe_tower_no_sparse_layers.value && tool_may_travel
+            && gcodegen.writer().get_position().z() < current_z - EPSILON) {
+            restore_layer_z_str = gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
+            check_add_eol(restore_layer_z_str);
+        }
+
         std::string wipe_next_start_point_str;
         bool        need_travel_after_change_filament_gcode = false; // travel need be after the filament changed to get the correct "m_curr_extruder_id"
         if (! change_filament_gcode.empty()) {
@@ -1077,6 +1092,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // Insert the end filament, toolchange, and start filament gcode into the generated gcode.
         DynamicConfig config;
         config.set_key_value("filament_end_gcode", new ConfigOptionString(end_filament_gcode_str));
+        config.set_key_value("restore_layer_z_before_toolchange", new ConfigOptionString(restore_layer_z_str));
         config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
         config.set_key_value("filament_start_gcode", new ConfigOptionString(start_filament_gcode_str));
         std::string tcr_gcode, tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_filament_id, &config);
@@ -1189,6 +1205,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcode += gcodegen.writer().unretract();
         }
 
+        std::string restore_layer_z_str;
+
         std::string toolchange_gcode_str;
         std::string deretraction_str;
         int toolchange_temp_override = -1;
@@ -1201,6 +1219,18 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (interface_temp == -1)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(new_extruder_id);
                 toolchange_temp_override = interface_temp;
+            }
+            // No-sparse-layer towers can be below the current model layer. Raise
+            // before a macro or a physical tool switch, which may travel over the
+            // printed part. The generated tower sequence inserts this immediately
+            // before [change_filament_gcode].
+            const bool tool_may_travel = !gcodegen.config().change_filament_gcode.value.empty()
+                || (new_extruder_id >= 0 && gcodegen.writer().filament() != nullptr
+                    && gcodegen.writer().filament()->extruder_id()
+                        != unsigned(get_extruder_index(*m_print_config, new_extruder_id)));
+            if (will_go_down && tool_may_travel && gcodegen.config().enable_prime_tower.value) {
+                restore_layer_z_str = gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
+                check_add_eol(restore_layer_z_str);
             }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override); // TODO: toolchange_z vs print_z
             if (gcodegen.config().enable_prime_tower) {
@@ -1354,6 +1384,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         DynamicConfig config;
         config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
+        config.set_key_value("restore_layer_z_before_toolchange", new ConfigOptionString(restore_layer_z_str));
         config.set_key_value("deretraction_from_wipe_tower_generator", new ConfigOptionString(deretraction_str));
         config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));

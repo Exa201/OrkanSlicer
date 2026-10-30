@@ -180,6 +180,75 @@ class ThreeMfMulticolorDeviceTest {
         }
     }
 
+    @Test fun compactedTowerRestoresModelLayerBeforeCustomMulticolorToolchange() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        val previousConfig = SliceBeam.CONFIG
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        val source = copyFixture(context.cacheDir, "three-color-compacted-tower.3mf")
+        val destination = File(context.cacheDir, "three-color-compacted-tower.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        var processValues: Map<String, String>? = null
+        var printerValues: Map<String, String>? = null
+        var process: ConfigObject? = null
+        var printer: ConfigObject? = null
+        try {
+            context.assets.open("orca_profiles/Anycubic.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = SliceBeam.requireConfig()
+            config.presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+            process = requireNotNull(config.findPrint(config.presets?.get("print")))
+            printer = requireNotNull(config.findPrinter(config.presets?.get("printer")))
+            processValues = process.values.toMap()
+            printerValues = printer.values.toMap()
+            process.put("enable_prime_tower", "1")
+            process.put("wipe_tower_no_sparse_layers", "1")
+            process.put("top_surface_filament_id", "2")
+            printer.put("change_filament_gcode", "; NIGHTLY_TOOLCHANGE_MARK\n")
+            requireNotNull(config.findFilament("Anycubic Generic PLA"))
+                .put("filament_start_gcode", "")
+
+            val settings = readSettings(source)
+            model = Model(source, 1)
+            assertEquals("The fixture must expose all three model tools", 3, model.requiredFilamentCount)
+            // Keep one assigned object taller than the other colors. The top-surface
+            // filament then switches after the compacted tower has skipped lower layers.
+            model.scale(0, 1.0, 1.0, 3.0)
+            TemporaryProjectSettings.activate(settings)
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(configFile.absolutePath, destination.absolutePath, null)
+
+            val lines = destination.readLines()
+            val toolchangeIndex = lines.indexOfLast { it.contains("NIGHTLY_TOOLCHANGE_MARK") }
+            val restoreIndex = if (toolchangeIndex > 0) {
+                (0 until toolchangeIndex).lastOrNull {
+                    lines[it].contains("Restore layer Z before toolchange")
+                } ?: -1
+            } else -1
+            assertTrue("A compacted tower must restore model Z before the custom toolchange", restoreIndex >= 0)
+            assertTrue("The restore move must precede the travel-capable custom macro",
+                toolchangeIndex > restoreIndex)
+            assertTrue("The multi-color slice must still generate deposited extrusion",
+                lines.any { it.startsWith("G1 ") && Regex("\\bE[0-9.-]+").containsMatchIn(it) })
+        } finally {
+            result?.release()
+            model?.release()
+            destination.delete()
+            source.delete()
+            process?.values?.let { values -> values.clear(); values.putAll(processValues.orEmpty()) }
+            printer?.values?.let { values -> values.clear(); values.putAll(printerValues.orEmpty()) }
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+        }
+    }
+
     @Test fun fillBedCopiesSelectedThreeMfColorWithoutChangingOtherObjectsAndSlicesAllTools() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         SliceBeam.INSTANCE = context.applicationContext as SliceBeam
