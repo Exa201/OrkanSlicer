@@ -5,6 +5,14 @@ The Android app uses the SliceBeam UI and a platform-adapted OrcaSlicer engine i
 upstream is configured as `orcaslicer-upstream`; reviewed revisions are recorded in
 `ORCA_NIGHTLY_LOCK.md`.
 
+## Nightly app validation — 2026-10-30 — 0.8.417
+
+- Code commit `862402e50c954a521a815fd84875b79203410e6e`; app 0.8.417/code 452; native identity 0.8.413/build 448.
+- Ported Orca `b7ecf1b29`: multi-nozzle printable-area validation now checks actual polygon intersections, avoiding false warnings for inset regions while preserving out-of-range detection.
+- ARM64 app and instrumentation APK build succeeded. Debug and Slice JVM suites passed 686/686 each; focused Qidi package tests passed. The Qidi 3MF path embeds the captured workspace PNG in `Metadata/plate_1.gcode` and package preview entries and checks the G-code MD5. No device was connected, so upload/physical Qidi behavior remains unverified.
+- APK SHA-256: `6E27FD90458F84A2A24ED9304463C187EFC79B8568F2431CC0A8EFD84D6663B1`; ARM64-only and debug-signed.
+- [Experimental Nightly 2.5 prerelease](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.417-nightly.1).
+
 ## Nightly app validation — 2026-10-30 — 0.8.416
 
 - Code commit `098e65375f...`; app 0.8.416/code 451; native identity 0.8.412/build 447.

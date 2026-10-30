@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.417 — Nightly 2.5 experimental — 2026-10-30
+
+- Port OrcaSlicer `b7ecf1b29`: validate multi-nozzle extrusion paths against the actual inset printable polygon instead of its bounding box, avoiding false out-of-range warnings while retaining rejection of paths that cross the true forbidden area. Ignore malformed/empty filament-map entries safely.
+- Full ARM64 native app and instrumentation APK build succeeded. Debug JVM and Slice JVM suites each passed 686/686 (0 failures, 0 errors, 0 skipped). Qidi package tests passed, including embedded G-code thumbnail, matching PNG assets, and package checksum checks.
+- The instrumentation APK compiled, but no ADB device was connected; physical Qidi upload/print behavior and the new printable-area scenario remain unverified. Selective Orca 2.5 backport only; engine lock not advanced.
+- APK: [OrkanSlicer Nightly 2.5 v0.8.417](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.417-nightly.1), SHA-256 `6E27FD90458F84A2A24ED9304463C187EFC79B8568F2431CC0A8EFD84D6663B1`.
+
 ## 0.8.416 — Nightly 2.5 experimental — 2026-10-30
 
 - Port OrcaSlicer `29e189957`: when a compacted/no-sparse wipe tower is below the current model layer, restore the model Z before a travel-capable custom macro or physical extruder change. The placeholder is wired into both Android wipe-tower generators.

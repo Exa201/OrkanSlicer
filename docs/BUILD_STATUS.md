@@ -1,5 +1,13 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.417
+
+- App/code commit `862402e50c954a521a815fd84875b79203410e6e`, app 0.8.417/code 452. Native engine identity 0.8.413/build 448.
+- Full ARM64 `:app:assembleDebug :app:assembleSliceTestAndroidTest :app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` succeeded in 17m58s. Debug JVM 686/686 and Slice JVM 686/686, with 0 failures, 0 errors, and 0 skipped. Instrumentation APK compiled; it was not run because `adb devices -l` reported no devices.
+- APK `OrkanSlicer_862402e50c.apk`, 239,656,527 bytes, SHA-256 `6E27FD90458F84A2A24ED9304463C187EFC79B8568F2431CC0A8EFD84D6663B1`. `aapt` verified package `com.codemastercody3d.orcaslicermobile`, version 0.8.417/code 452, ABI `arm64-v8a`.
+- Ported Orca `b7ecf1b29`: multi-nozzle G-code path checks now use the actual inset printable polygon, avoiding bounding-box false positives. The Qidi Q2 package tests pass and verify the rendered PNG in G-code and package preview entries plus MD5. No physical Qidi acceptance or device execution is claimed.
+- Published as [OrkanSlicer Nightly 2.5 v0.8.417](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.417-nightly.1). This is a selective experimental port; the full Orca 2.5 engine lock is not advanced.
+
 ## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.416
 
 - App/code commit `098e65375f...`, app 0.8.416/code 451, native engine identity 0.8.412/build 447. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.
