@@ -111,6 +111,32 @@ class SlicePreparationToolsTest {
     }
 
     @Test
+    fun combinedPreflightMatchesSeparateToolAndPressureAdvanceReaders() {
+        val file = File.createTempFile("slice-preflight", ".gcode")
+        try {
+            file.writeText("""
+                ; T9 is only a comment
+                T0
+                SET_PRESSURE_ADVANCE ADVANCE=0.11
+                T2
+                G1 X2 E0.1
+                T1
+                SET_PRESSURE_ADVANCE ADVANCE=0.04; Override pressure advance value
+                T0
+            """.trimIndent())
+            val preflight = SlicePreparationTools.readPreflight(file)
+            assertArrayEquals(intArrayOf(0, 1, 2), preflight.toolUsage.used)
+            assertArrayEquals(intArrayOf(0, 2, 1), preflight.toolUsage.firstAppearance)
+            assertEquals(
+                SlicePreparationTools.readPressureAdvanceCommands(file),
+                preflight.pressureAdvance,
+            )
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun warnsForSparseAceSlotsInTheThreeColorKobraJob() {
         val tools = intArrayOf(0, 1, 2)
         val toolCount = 3

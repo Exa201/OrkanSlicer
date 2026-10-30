@@ -12,6 +12,7 @@ import java.util.Locale
 internal object SlicePreparationTools {
     data class PressureAdvanceCommands(val filament: List<String>, val custom: List<String>)
     data class ToolUsage(val used: IntArray, val firstAppearance: IntArray)
+    data class Preflight(val toolUsage: ToolUsage, val pressureAdvance: PressureAdvanceCommands)
 
     private val klipperPa = Regex("^\\s*SET_PRESSURE_ADVANCE\\b.*?\\bADVANCE=([0-9]+(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
     private val marlinPa = Regex("^\\s*M900\\s+K([0-9]+(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
@@ -81,6 +82,35 @@ internal object SlicePreparationTools {
         }
         if (used.isEmpty()) return ToolUsage(intArrayOf(0), intArrayOf(0))
         return ToolUsage(used.toIntArray(), firstAppearance.toIntArray())
+    }
+
+    /** Reads tool routing and executable pressure-advance commands in one sequential pass. */
+    @JvmStatic
+    @Throws(IOException::class)
+    fun readPreflight(gcode: File?): Preflight {
+        if (gcode == null || !gcode.isFile || gcode.length() == 0L) {
+            throw IOException("Sliced G-code is missing or empty")
+        }
+        val used = sortedSetOf<Int>()
+        val firstAppearance = linkedSetOf<Int>()
+        val filament = linkedSetOf<String>()
+        val custom = linkedSetOf<String>()
+        FileReader(gcode).buffered().useLines { lines ->
+            lines.forEach { line ->
+                GCodeToolMapper.parseToolCommand(line).takeIf { it >= 0 }?.let { tool ->
+                    used.add(tool)
+                    firstAppearance.add(tool)
+                }
+                val value = klipperPa.find(line)?.groupValues?.get(1)
+                    ?: marlinPa.find(line)?.groupValues?.get(1)
+                    ?: return@forEach
+                val target = if (line.contains("Override pressure advance value", true)) filament else custom
+                if (target.size < 16) target.add(value)
+            }
+        }
+        val toolUsage = if (used.isEmpty()) ToolUsage(intArrayOf(0), intArrayOf(0))
+            else ToolUsage(used.toIntArray(), firstAppearance.toIntArray())
+        return Preflight(toolUsage, PressureAdvanceCommands(filament.toList(), custom.toList()))
     }
 
     /** Kept for callers that only need the distinct selected tools. */

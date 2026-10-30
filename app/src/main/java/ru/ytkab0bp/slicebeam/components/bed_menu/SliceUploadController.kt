@@ -565,13 +565,9 @@ object SliceUploadController {
         }
         val logicalToolCount = maxOf(1, scan.maxTool + 1)
         val printerTitle = printer.title.orEmpty()
-        val usedTools = try {
-            SlicePreparationTools.readToolUsage(source).used
-        } catch (error: IOException) {
-            Log.e("SliceMenu", "Could not inspect ACE tool usage before upload", error)
-            showPreparationFailure(fragment, error.message)
-            return null
-        }
+        // The Anycubic metadata scan already reads every tool-selection command.
+        // Reuse it instead of scanning large G-code a second time.
+        val usedTools = if (scan.usedTools.isEmpty()) intArrayOf(0) else scan.usedTools
         val loadedGates = MmuFilamentSync.loadedGates(printerTitle)
         val routing = AnycubicAceRoutingPolicy.resolve(
             logicalToolCount,

@@ -83,8 +83,8 @@ class SliceMenu : ListBedMenu() {
         val bed = fragment ?: return
         val gcode: File = BedFragment.tempGCodePath
         IOUtils.IO_POOL.execute {
-            val toolUsage = try {
-                SlicePreparationTools.readToolUsage(gcode)
+            val preflight = try {
+                SlicePreparationTools.readPreflight(gcode)
             } catch (_: IOException) {
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
@@ -95,12 +95,8 @@ class SliceMenu : ListBedMenu() {
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
             }
-            val pressureAdvance = try {
-                SlicePreparationTools.readPressureAdvanceCommands(gcode)
-            } catch (_: IOException) {
-                SliceUploadController.showPreparationFailure(bed)
-                return@execute
-            }
+            val toolUsage = preflight.toolUsage
+            val pressureAdvance = preflight.pressureAdvance
             val activeTools = toolUsage.used
             val toolCount = maxOf(1, (activeTools.maxOrNull() ?: 0) + 1)
             ViewUtils.postOnMainThread {

@@ -28,6 +28,8 @@ class AnycubicGCodeProcessor private constructor() {
         @JvmField val hasFilamentMap: Boolean,
         @JvmField val hasToolSelection: Boolean,
         @JvmField val materials: Array<String>,
+        @JvmField val usedTools: IntArray,
+        @JvmField val firstToolAppearance: IntArray,
     ) {
         companion object {
             internal fun create(
@@ -43,9 +45,11 @@ class AnycubicGCodeProcessor private constructor() {
                 hasFilamentMap: Boolean,
                 hasToolSelection: Boolean,
                 materials: Array<String>,
+                usedTools: IntArray,
+                firstToolAppearance: IntArray,
             ) = ScanResult(maxTool, density, densities, volume, totalMass, hasReportedTotalMass,
                 computedFilamentMasses, needsMassBreakdownRewrite, hasFilamentMass, hasFilamentMap,
-                hasToolSelection, materials)
+                hasToolSelection, materials, usedTools, firstToolAppearance)
         }
     }
 
@@ -113,6 +117,8 @@ class AnycubicGCodeProcessor private constructor() {
             var hasFilamentMass = false
             var hasFilamentMap = false
             var hasToolSelection = false
+            val usedTools = sortedSetOf<Int>()
+            val firstToolAppearance = linkedSetOf<Int>()
             var materials = arrayOf("PLA")
             BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8)).use { reader ->
                 while (true) {
@@ -143,6 +149,8 @@ class AnycubicGCodeProcessor private constructor() {
                     if (tool >= 0) {
                         hasToolSelection = true
                         maxTool = maxOf(maxTool, tool)
+                        usedTools.add(tool)
+                        firstToolAppearance.add(tool)
                     }
                 }
             }
@@ -164,7 +172,8 @@ class AnycubicGCodeProcessor private constructor() {
             val totalMass = if (hasReportedTotalMass) reportedTotalMass else computedMasses.sum()
             return ScanResult.create(maxTool, normalizedDensities.first(), normalizedDensities, volume,
                 totalMass, hasReportedTotalMass, computedMasses, needsMassBreakdownRewrite,
-                hasFilamentMass, hasFilamentMap, hasToolSelection, materials)
+                hasFilamentMass, hasFilamentMap, hasToolSelection, materials,
+                usedTools.toIntArray(), firstToolAppearance.toIntArray())
         }
 
         /** Writes vendor-compatible G-code. Returns false when no header block was found. */

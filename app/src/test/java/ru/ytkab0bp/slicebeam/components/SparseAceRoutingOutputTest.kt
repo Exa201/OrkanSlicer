@@ -23,6 +23,8 @@ class SparseAceRoutingOutputTest {
             )
             val scan = AnycubicGCodeProcessor.scan(source)
             assertEquals(2, scan.maxTool)
+            assertArrayEquals(intArrayOf(0, 2), scan.usedTools)
+            assertArrayEquals(intArrayOf(0, 2), scan.firstToolAppearance)
             assertTrue(AnycubicGCodeProcessor.rewrite(source, output, scan,
                 AnycubicGCodeProcessor.Options().apply {
                     remappedTools = intArrayOf(0, 1, 2)
