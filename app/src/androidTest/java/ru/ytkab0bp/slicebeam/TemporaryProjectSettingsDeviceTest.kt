@@ -54,9 +54,16 @@ class TemporaryProjectSettingsDeviceTest {
         savedFile?.let { SliceBeam.getConfigFile().writeBytes(it) } ?: SliceBeam.getConfigFile().delete()
     }
 
-    private fun loadProject(): ThreeMfProjectSettings {
+    private fun loadProject(
+        liftAbove: List<String> = emptyList(),
+        liftEnforce: List<String> = emptyList(),
+    ): ThreeMfProjectSettings {
         val file = File(context.cacheDir, "temporary-project-device-test.3mf")
         try {
+            val liftOverrides = buildString {
+                if (liftAbove.isNotEmpty()) append(",\"filament_retract_lift_above\":${liftAbove.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }}")
+                if (liftEnforce.isNotEmpty()) append(",\"filament_retract_lift_enforce\":${liftEnforce.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }}")
+            }
             ZipOutputStream(file.outputStream()).use { zip ->
                 zip.putNextEntry(ZipEntry("Metadata/project_settings.config"))
                 zip.write("""{
@@ -70,7 +77,7 @@ class TemporaryProjectSettingsDeviceTest {
                     "z_offset":"5", "print_host":"attacker.invalid", "host_type":"moonraker",
                     "printhost_apikey":"synthetic-project-secret", "printhost_webui":"https://attacker.invalid",
                     "nozzle_diameter":["0.8"],
-                    "machine_start_gcode":"BAD" }""".toByteArray())
+                    "machine_start_gcode":"BAD" $liftOverrides }""".toByteArray())
                 zip.closeEntry()
             }
             val processKeys = Slic3rConfigWrapper.PRINT_CONFIG_KEYS.toSet() +
@@ -137,18 +144,19 @@ class TemporaryProjectSettingsDeviceTest {
         var result: GCodeProcessorResult? = null
         try {
             context.assets.open("models/box.stl").use { input -> modelFile.outputStream().use { input.copyTo(it) } }
-            model = Model(modelFile)
-            model.addObject(model, 0)
-            model.translate(1, 30.0, 0.0, 0.0)
-            model.setExtruder(0, 1)
-            model.setExtruder(1, 2)
-            assertEquals(2, model.requiredFilamentCount)
-            SliceBeam.genCurrentConfig(model)
+            val loadedModel = Model(modelFile)
+            model = loadedModel
+            loadedModel.addObject(loadedModel, 0)
+            loadedModel.translate(1, 30.0, 0.0, 0.0)
+            loadedModel.setExtruder(0, 1)
+            loadedModel.setExtruder(1, 2)
+            assertEquals(2, loadedModel.requiredFilamentCount)
+            SliceBeam.genCurrentConfig(loadedModel)
             val configText = SliceBeam.getCurrentConfigFile().readText()
             assertTrue(configText.contains("nozzle_temperature = 211,236"))
             assertTrue(configText.contains("pressure_advance = 0.04,0.06"))
             assertTrue(configText.contains("layer_height = 0.24"))
-            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            result = loadedModel.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
             val gcode = gcodeFile.readText()
             assertTrue(gcode.length > 1000)
             assertTrue("PLA temperature command", Regex("M10[49].*S21[12]\\b").containsMatchIn(gcode))
@@ -165,6 +173,74 @@ class TemporaryProjectSettingsDeviceTest {
             savedGcode.writeText(gcode)
         } finally {
             result?.release(); model?.release(); modelFile.delete(); gcodeFile.delete()
+        }
+    }
+
+    @Test fun nativeGcodeUsesTheActiveFilamentsLiftThresholdAndEnforcement() {
+        val modelFile = File(context.cacheDir, "filament-lift-overrides.stl")
+        val gcodeFile = File(context.cacheDir, "filament-lift-overrides.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            context.assets.open("models/box.stl").use { input -> modelFile.outputStream().use { input.copyTo(it) } }
+            val loadedModel = Model(modelFile)
+            model = loadedModel
+            loadedModel.addObject(loadedModel, 0)
+            loadedModel.translate(1, 30.0, 0.0, 0.0)
+
+            fun liftLayers(gcode: String): Set<Double> {
+                val lifts = sortedSetOf<Double>()
+                var layerZ = 0.0
+                gcode.lineSequence().forEach { line ->
+                    if (line.startsWith(";Z:")) {
+                        layerZ = line.substringAfter(";Z:").toDouble()
+                    } else if (layerZ > 0.0 && (line.startsWith("G1 ") || line.startsWith("G0 "))) {
+                        val move = line.substringBefore(';')
+                        Regex("\\bZ([-0-9.]+)").find(move)?.groupValues?.get(1)?.toDoubleOrNull()
+                            ?.takeIf { it > layerZ + 0.3 }?.let { lifts += layerZ }
+                    }
+                }
+                return lifts
+            }
+
+            // A single-nozzle printer with two logical filaments: each object is assigned
+            // to the same active filament for one run, just as Orca's native regression.
+            for ((setting, filamentId, values) in listOf(
+                Triple("lift threshold", 1, listOf("0", "1")),
+                Triple("lift threshold", 2, listOf("0", "1")),
+                Triple("lift enforcement", 1, listOf("All Surfaces", "Bottom Only")),
+                Triple("lift enforcement", 2, listOf("All Surfaces", "Bottom Only")),
+            )) {
+                TemporaryProjectSettings.activate(
+                    if (setting == "lift threshold") loadProject(liftAbove = values)
+                    else loadProject(liftEnforce = values),
+                )
+                loadedModel.setExtruder(0, filamentId)
+                loadedModel.setExtruder(1, filamentId)
+                SliceBeam.genCurrentConfig(loadedModel)
+                val sliced = loadedModel.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+                result = sliced
+                val lifts = liftLayers(gcodeFile.readText())
+                assertTrue("$setting for filament $filamentId should produce at least one lifted travel", lifts.isNotEmpty())
+                if (setting == "lift threshold" && filamentId == 2) {
+                    assertTrue("Filament 2 must honor its 1 mm lower Z-hop boundary", lifts.first() > 1.0 - 1e-6)
+                } else if (setting == "lift enforcement" && filamentId == 2) {
+                    assertTrue("Bottom-only filament must not lift after the first layer", lifts.last() <= 0.24 + 1e-6)
+                } else {
+                    assertTrue("Unrestricted filament should lift on early layers", lifts.first() <= 0.24 + 1e-6)
+                    assertTrue("Unrestricted filament should lift on higher layers", lifts.last() > 1.0)
+                }
+                sliced.release()
+                result = null
+                gcodeFile.delete()
+                SliceBeam.getCurrentConfigFile().delete()
+            }
+        } finally {
+            result?.release()
+            model?.release()
+            modelFile.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
         }
     }
 }
