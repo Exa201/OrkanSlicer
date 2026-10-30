@@ -6401,6 +6401,31 @@ class InitialProjectMenuDeviceTest {
             val afterRedo = readScaleOnGl(glView, 0)
             assertEquals("Redo should restore the latest confirmed scale", original.x * 1.5, afterRedo.x, 0.002)
 
+            compose.onNodeWithContentDescription("Z, Z =", substring = true).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ScaleManualPercent))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val zScaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            zScaleField.performTextClearance()
+            zScaleField.performTextInput("140")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).z - original.z * 1.4) < 0.002
+            }
+            val afterZScale = readScaleOnGl(glView, 0)
+            assertEquals("confirmed Z=140% must scale native Z", original.z * 1.4, afterZScale.z, 0.002)
+            assertEquals("unlinked Z scaling must preserve X", original.x * 1.5, afterZScale.x, 0.002)
+            assertEquals("unlinked Z scaling must preserve Y", original.y, afterZScale.y, 0.002)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).z - original.z) < 0.002
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 0).z - original.z * 1.4) < 0.002
+            }
+
             val workspaceController = BedFragment::class.java.getDeclaredField("workspaceController")
                 .apply { isAccessible = true }.get(bed)
             assertTrue("workspace host should consume Back while the scale tool is active", bed.onBackPressed())
@@ -6423,12 +6448,18 @@ class InitialProjectMenuDeviceTest {
             val afterReset = readScaleOnGl(glView, 0)
             assertEquals("Reset Scale should restore the original native X scale", original.x,
                 afterReset.x, 0.002)
+            assertEquals("Reset Scale should restore the original native Z scale", original.z,
+                afterReset.z, 0.002)
             compose.runOnUiThread { bed.undoModelEdit() }
             assertEquals("Undo should restore the explicitly confirmed scale after reset", original.x * 1.5,
                 readScaleOnGl(glView, 0).x, 0.002)
+            assertEquals("Undo of reset should restore the explicitly confirmed Z scale", original.z * 1.4,
+                readScaleOnGl(glView, 0).z, 0.002)
             compose.runOnUiThread { bed.redoModelEdit() }
             assertEquals("Redo should restore the reset scale", original.x,
                 readScaleOnGl(glView, 0).x, 0.002)
+            assertEquals("Redo of reset should restore original Z scale", original.z,
+                readScaleOnGl(glView, 0).z, 0.002)
         } finally {
             Prefs.setScaleLinked(previousLinked)
             Prefs.setScaleInputInMM(previousMillimeters)
