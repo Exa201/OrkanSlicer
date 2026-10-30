@@ -2,6 +2,7 @@
 #include "Model.hpp"
 #include "Print.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <cfloat>
 
@@ -1201,7 +1202,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         if (map_mode < fmmManual) {
             if (print_diff_set.find("filament_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_map");
-                //full_config_diff.erase("filament_map");
+                // This mapping is written back as derived state; don't invalidate G-code again
+                // when the unchanged normalized config is applied after a successful slice.
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_map", true);
                 old_opt->set(new_opt);
