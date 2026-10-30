@@ -124,13 +124,13 @@ class WorkspaceRuntimeCompositionDeviceTest {
             assertTrue("redo of join restores both source filaments",
                 onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toSet().containsAll(setOf(1, 2)) })
 
-            fun groupedMaxX(): Double = onGl(glView) { view ->
+            fun groupedBounds(): Pair<Double, Double> = onGl(glView) { view ->
                 val current = requireNotNull(view.renderer.model)
                 val min = Vec3d(); val max = Vec3d()
                 current.getBoundingBoxExact(0, min, max)
-                max.x
+                max.x to max.y
             }
-            val groupedPartMaxXBefore = groupedMaxX()
+            val groupedPartBoundsBefore = groupedBounds()
             val partTransformApplied = onGl(glView) { view ->
                 view.renderer.setSelectedObject(0)
                 val expected = requireNotNull(view.renderer.captureSelectionSnapshot())
@@ -143,6 +143,7 @@ class WorkspaceRuntimeCompositionDeviceTest {
                     scaleX = 2.0,
                     scaleY = 1.0,
                     scaleZ = 1.0,
+                    rotationZDegrees = 90.0,
                     expectedSelection = expected,
                 ) == 1
             }
@@ -152,17 +153,21 @@ class WorkspaceRuntimeCompositionDeviceTest {
                 onGl(glView) { requireNotNull(it.renderer.model).getObjectPartCount(0) })
             assertEquals("part filaments survive a grouped transform", listOf(1, 2),
                 onGl(glView) { requireNotNull(it.renderer.model).getUsedFilaments(0).toList() })
-            val groupedPartMaxXAfter = groupedMaxX()
+            val groupedPartBoundsAfter = groupedBounds()
             assertTrue("grouped part transform should update the rendered parent bounds",
-                groupedPartMaxXAfter > groupedPartMaxXBefore + 4.9)
+                groupedPartBoundsAfter.first > groupedPartBoundsBefore.first + 4.9)
+            assertTrue("grouped-part rotation should update the rendered Y bounds",
+                groupedPartBoundsAfter.second > groupedPartBoundsBefore.second + 7.9)
             instrumentation.runOnMainSync { bed.undoModelEdit() }
             assertEquals("undo keeps the parent and both parts grouped", 2,
                 onGl(glView) { requireNotNull(it.renderer.model).getObjectPartCount(0) })
-            assertEquals(groupedPartMaxXBefore, groupedMaxX(), 0.05)
+            assertEquals(groupedPartBoundsBefore.first, groupedBounds().first, 0.05)
+            assertEquals(groupedPartBoundsBefore.second, groupedBounds().second, 0.05)
             instrumentation.runOnMainSync { bed.redoModelEdit() }
             assertEquals("redo keeps the parent and both parts grouped", 2,
                 onGl(glView) { requireNotNull(it.renderer.model).getObjectPartCount(0) })
-            assertEquals(groupedPartMaxXAfter, groupedMaxX(), 0.05)
+            assertEquals(groupedPartBoundsAfter.first, groupedBounds().first, 0.05)
+            assertEquals(groupedPartBoundsAfter.second, groupedBounds().second, 0.05)
 
             editOnGl { model ->
                 model.addObject(model, 0)

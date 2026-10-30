@@ -205,13 +205,16 @@ internal fun ModelObjectsDialog(
 internal fun ModelObjectPartTransformDialog(
     cancelLabel: String,
     onDismiss: () -> Unit,
-    onApply: (dx: Double, dy: Double, dz: Double, sx: Double, sy: Double, sz: Double) -> Unit,
+    onApply: (dx: Double, dy: Double, dz: Double, rx: Double, ry: Double, rz: Double, sx: Double, sy: Double, sz: Double) -> Unit,
 ) {
-    val values = remember { mutableStateListOf("0", "0", "0", "100", "100", "100") }
+    val values = remember { mutableStateListOf("0", "0", "0", "0", "0", "0", "100", "100", "100") }
     val labels = listOf(
         R.string.ModelObjectPartMoveX,
         R.string.ModelObjectPartMoveY,
         R.string.ModelObjectPartMoveZ,
+        R.string.ModelObjectPartRotateX,
+        R.string.ModelObjectPartRotateY,
+        R.string.ModelObjectPartRotateZ,
         R.string.ModelObjectPartScaleX,
         R.string.ModelObjectPartScaleY,
         R.string.ModelObjectPartScaleZ,
@@ -219,13 +222,14 @@ internal fun ModelObjectPartTransformDialog(
     val parsed = values.map { it.trim().replace(',', '.').toDoubleOrNull() }
     val valid = parsed.all { it != null && it.isFinite() } &&
         parsed.take(3).all { kotlin.math.abs(requireNotNull(it)) <= 10_000.0 } &&
-        parsed.drop(3).all { requireNotNull(it) in 1.0..1000.0 }
+        parsed.drop(3).take(3).all { kotlin.math.abs(requireNotNull(it)) <= 36_000.0 } &&
+        parsed.drop(6).all { requireNotNull(it) in 1.0..1000.0 }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ModelObjectPartTransformTitle)) },
         text = {
             Column(
-                Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(stringResource(R.string.ModelObjectPartTransformHint))
@@ -234,17 +238,22 @@ internal fun ModelObjectPartTransformDialog(
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.testTag("model-object-part-transform-error"),
                 )
-                labels.forEachIndexed { index, label ->
-                    OutlinedTextField(
-                        value = values[index],
-                        onValueChange = { input ->
-                            values[index] = input.filter { it.isDigit() || it == '-' || it == '.' || it == ',' }.take(16)
-                        },
-                        label = { Text(stringResource(label)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth().testTag("model-object-part-transform-field-$index"),
-                    )
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 260.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    labels.forEachIndexed { index, label ->
+                        OutlinedTextField(
+                            value = values[index],
+                            onValueChange = { input ->
+                                values[index] = input.filter { it.isDigit() || it == '-' || it == '.' || it == ',' }.take(16)
+                            },
+                            label = { Text(stringResource(label)) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth().testTag("model-object-part-transform-field-$index"),
+                        )
+                    }
                 }
             }
         },
@@ -253,7 +262,11 @@ internal fun ModelObjectPartTransformDialog(
                 enabled = valid,
                 onClick = {
                     val numbers = parsed.map { requireNotNull(it) }
-                    onApply(numbers[0], numbers[1], numbers[2], numbers[3] / 100.0, numbers[4] / 100.0, numbers[5] / 100.0)
+                    onApply(
+                        numbers[0], numbers[1], numbers[2],
+                        numbers[3], numbers[4], numbers[5],
+                        numbers[6] / 100.0, numbers[7] / 100.0, numbers[8] / 100.0,
+                    )
                 },
                 modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-part-transform-apply"),
             ) { Text(stringResource(R.string.ModelObjectPartTransformApply)) }

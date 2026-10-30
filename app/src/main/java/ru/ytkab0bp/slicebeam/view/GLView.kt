@@ -478,12 +478,17 @@ internal fun transformObjectPartIfCurrent(
     scaleX: Double,
     scaleY: Double,
     scaleZ: Double,
+    rotationXDegrees: Double = 0.0,
+    rotationYDegrees: Double = 0.0,
+    rotationZDegrees: Double = 0.0,
     expectedSelection: ModelSelectionSnapshot,
     onComplete: (Int) -> Unit,
 ) {
     queueEvent {
         val result = renderer.transformObjectPartIfCurrent(
-            objectIndex, partIndex, dx, dy, dz, scaleX, scaleY, scaleZ, expectedSelection,
+            objectIndex, partIndex, dx, dy, dz,
+            scaleX, scaleY, scaleZ,
+            rotationXDegrees, rotationYDegrees, rotationZDegrees, expectedSelection,
         )
         if (result == 1) requestRender()
         ViewUtils.postOnMainThread { onComplete(result) }

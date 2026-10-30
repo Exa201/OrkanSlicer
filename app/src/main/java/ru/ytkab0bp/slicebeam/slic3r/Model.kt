@@ -216,14 +216,19 @@ open class Model private constructor(@JvmField var pointer: Long) {
         scaleX: Double = 1.0,
         scaleY: Double = 1.0,
         scaleZ: Double = 1.0,
+        rotationXDegrees: Double = 0.0,
+        rotationYDegrees: Double = 0.0,
+        rotationZDegrees: Double = 0.0,
     ): Boolean {
         if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex)) return false
-        if (listOf(dx, dy, dz, scaleX, scaleY, scaleZ).any { !it.isFinite() } ||
+        if (listOf(dx, dy, dz, rotationXDegrees, rotationYDegrees, rotationZDegrees, scaleX, scaleY, scaleZ).any { !it.isFinite() } ||
             listOf(dx, dy, dz).any { kotlin.math.abs(it) > 10_000.0 } ||
+            listOf(rotationXDegrees, rotationYDegrees, rotationZDegrees).any { kotlin.math.abs(it) > 36_000.0 } ||
             listOf(scaleX, scaleY, scaleZ).any { it <= 0.0 }
         ) return false
         val changed = Native.model_transform_object_part(
-            pointer, objectIndex, partIndex, dx, dy, dz, scaleX, scaleY, scaleZ,
+            pointer, objectIndex, partIndex, dx, dy, dz,
+            rotationXDegrees, rotationYDegrees, rotationZDegrees, scaleX, scaleY, scaleZ,
         )
         if (changed) resetBoundingBox()
         return changed

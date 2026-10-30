@@ -55,7 +55,9 @@ class ModelEditingNativeDeviceTest {
                 ModelObjectPartTransformDialog(
                     cancelLabel = "Cancel",
                     onDismiss = {},
-                    onApply = { dx, dy, dz, sx, sy, sz -> applied.set(listOf(dx, dy, dz, sx, sy, sz)) },
+                    onApply = { dx, dy, dz, rx, ry, rz, sx, sy, sz ->
+                        applied.set(listOf(dx, dy, dz, rx, ry, rz, sx, sy, sz))
+                    },
                 )
             }
         }
@@ -65,11 +67,13 @@ class ModelEditingNativeDeviceTest {
         compose.onNodeWithTag("model-object-part-transform-field-1").performTextInput("-3")
         compose.onNodeWithTag("model-object-part-transform-field-2").performTextClearance()
         compose.onNodeWithTag("model-object-part-transform-field-2").performTextInput("4")
-        compose.onNodeWithTag("model-object-part-transform-field-3").performTextClearance()
-        compose.onNodeWithTag("model-object-part-transform-field-3").performTextInput("150")
+        compose.onNodeWithTag("model-object-part-transform-field-5").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-5").performTextInput("90")
+        compose.onNodeWithTag("model-object-part-transform-field-6").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-6").performTextInput("150")
         compose.onNodeWithTag("model-object-part-transform-apply").performClick()
 
-        assertEquals(listOf(2.5, -3.0, 4.0, 1.5, 1.0, 1.0), applied.get())
+        assertEquals(listOf(2.5, -3.0, 4.0, 0.0, 0.0, 90.0, 1.5, 1.0, 1.0), applied.get())
     }
 
     @Test fun groupedPartTransformDialogRejectsZeroOrOutOfRangeScale() {
@@ -79,12 +83,12 @@ class ModelEditingNativeDeviceTest {
                 ModelObjectPartTransformDialog(
                     cancelLabel = "Cancel",
                     onDismiss = {},
-                    onApply = { _, _, _, _, _, _ -> applied.set(true) },
+                    onApply = { _, _, _, _, _, _, _, _, _ -> applied.set(true) },
                 )
             }
         }
-        compose.onNodeWithTag("model-object-part-transform-field-3").performTextClearance()
-        compose.onNodeWithTag("model-object-part-transform-field-3").performTextInput("0")
+        compose.onNodeWithTag("model-object-part-transform-field-6").performTextClearance()
+        compose.onNodeWithTag("model-object-part-transform-field-6").performTextInput("0")
         compose.onNodeWithTag("model-object-part-transform-error").assertIsDisplayed()
         compose.onNodeWithTag("model-object-part-transform-apply").performClick()
         assertFalse("invalid scale must not invoke the model mutation", applied.get())
@@ -506,7 +510,10 @@ class ModelEditingNativeDeviceTest {
             val minBefore = Vec3d(); val maxBefore = Vec3d()
             model.getBoundingBoxExact(0, minBefore, maxBefore)
 
-            assertTrue(model.transformObjectPart(0, 1, 5.0, -2.0, 3.0, 2.0, 1.0, 1.0))
+            assertTrue(model.transformObjectPart(
+                0, 1, 5.0, -2.0, 3.0, 2.0, 1.0, 1.0,
+                rotationXDegrees = 0.0, rotationYDegrees = 0.0, rotationZDegrees = 90.0,
+            ))
 
             assertEquals("editing a grouped part must keep one parent object", 1, model.objectsCount)
             assertEquals("editing a grouped part must keep both children", 2, model.getObjectPartCount(0))
@@ -518,6 +525,7 @@ class ModelEditingNativeDeviceTest {
             val minAfter = Vec3d(); val maxAfter = Vec3d()
             model.getBoundingBoxExact(0, minAfter, maxAfter)
             assertTrue("part movement should update the parent bounds", maxAfter.x > maxBefore.x + 4.9)
+            assertTrue("part rotation should update the parent's Y bounds", maxAfter.y > maxBefore.y + 7.9)
             assertTrue("the part's Z movement should be reflected in the model bounds", maxAfter.z > maxBefore.z + 2.9)
 
             val volumeAfter = model.getObjectVolume(0)

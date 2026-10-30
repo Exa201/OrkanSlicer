@@ -765,11 +765,14 @@ extern "C" {
 
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1transform_1object_1part(
         JNIEnv*, jclass, jlong ptr, jint object_index, jint part_index,
-        jdouble dx, jdouble dy, jdouble dz, jdouble scale_x, jdouble scale_y, jdouble scale_z) {
+        jdouble dx, jdouble dy, jdouble dz, jdouble rotation_x_degrees, jdouble rotation_y_degrees,
+        jdouble rotation_z_degrees, jdouble scale_x, jdouble scale_y, jdouble scale_z) {
         ModelRef* model = (ModelRef*) (intptr_t) ptr;
         if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() ||
             part_index < 0 || !std::isfinite(dx) || !std::isfinite(dy) || !std::isfinite(dz) ||
             std::fabs(dx) > 10000.0 || std::fabs(dy) > 10000.0 || std::fabs(dz) > 10000.0 ||
+            !std::isfinite(rotation_x_degrees) || !std::isfinite(rotation_y_degrees) || !std::isfinite(rotation_z_degrees) ||
+            std::fabs(rotation_x_degrees) > 36000.0 || std::fabs(rotation_y_degrees) > 36000.0 || std::fabs(rotation_z_degrees) > 36000.0 ||
             !std::isfinite(scale_x) || !std::isfinite(scale_y) || !std::isfinite(scale_z) ||
             scale_x < 0.01 || scale_x > 10.0 || scale_y < 0.01 || scale_y > 10.0 || scale_z < 0.01 || scale_z > 10.0)
             return JNI_FALSE;
@@ -799,9 +802,16 @@ extern "C" {
         local_scale.translate(center);
         local_scale.scale(Vec3d(scale_x, scale_y, scale_z));
         local_scale.translate(-center);
+        const double radians = M_PI / 180.0;
+        Transform3d local_rotation = Transform3d::Identity();
+        local_rotation.translate(center);
+        local_rotation.rotate(Eigen::AngleAxisd(rotation_z_degrees * radians, Vec3d::UnitZ()) *
+                              Eigen::AngleAxisd(rotation_y_degrees * radians, Vec3d::UnitY()) *
+                              Eigen::AngleAxisd(rotation_x_degrees * radians, Vec3d::UnitX()));
+        local_rotation.translate(-center);
         Transform3d translation = Transform3d::Identity();
         translation.translate(Vec3d(dx, dy, dz));
-        const Transform3d updated = translation * target->get_matrix() * local_scale;
+        const Transform3d updated = translation * target->get_matrix() * local_rotation * local_scale;
         const double determinant = updated.linear().determinant();
         if (!updated.matrix().allFinite() || !std::isfinite(determinant) || std::fabs(determinant) <= 1e-12)
             return JNI_FALSE;

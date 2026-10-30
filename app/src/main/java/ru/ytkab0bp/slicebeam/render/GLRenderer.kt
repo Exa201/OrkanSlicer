@@ -586,6 +586,9 @@ internal fun transformObjectPartIfCurrent(
     scaleX: Double,
     scaleY: Double,
     scaleZ: Double,
+    rotationXDegrees: Double = 0.0,
+    rotationYDegrees: Double = 0.0,
+    rotationZDegrees: Double = 0.0,
     expectedSelection: ModelSelectionSnapshot,
 ): Int {
     if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
@@ -594,7 +597,11 @@ internal fun transformObjectPartIfCurrent(
         failureResult = MODEL_EDIT_OPERATION_FAILED,
         onFailure = { Log.e("GLRenderer", "Could not transform grouped model part", it) },
     ) {
-        if (activeModel.transformObjectPart(objectIndex, partIndex, dx, dy, dz, scaleX, scaleY, scaleZ)) 1
+        if (activeModel.transformObjectPart(
+                objectIndex, partIndex, dx, dy, dz,
+                scaleX, scaleY, scaleZ,
+                rotationXDegrees, rotationYDegrees, rotationZDegrees,
+            )) 1
         else MODEL_EDIT_OPERATION_FAILED
     }
     if (result != 1) return result

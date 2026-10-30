@@ -160,11 +160,11 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
             ModelObjectPartTransformDialog(
                 cancelLabel = context.getString(android.R.string.cancel),
                 onDismiss = dismiss,
-                onApply = { dx, dy, dz, sx, sy, sz ->
+                onApply = { dx, dy, dz, rx, ry, rz, sx, sy, sz ->
                     dismiss()
                     val viewport = fragment.glView ?: return@ModelObjectPartTransformDialog
                     viewport.transformObjectPartIfCurrent(
-                        objectIndex, partIndex, dx, dy, dz, sx, sy, sz, expectedSelection,
+                        objectIndex, partIndex, dx, dy, dz, sx, sy, sz, rx, ry, rz, expectedSelection,
                     ) { result ->
                         when (result) {
                             MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
