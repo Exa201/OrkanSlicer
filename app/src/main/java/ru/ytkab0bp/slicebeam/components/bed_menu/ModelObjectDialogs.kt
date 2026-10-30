@@ -89,6 +89,15 @@ internal fun ModelObjectsDialog(
                 ) {
                     Text(stringResource(if (groupSelectionMode) R.string.ModelMenuCancelGroupSelection else R.string.ModelMenuSelectGroup))
                 }
+                if (rows.any { it.parts.size > 1 }) {
+                    Text(
+                        stringResource(R.string.ModelObjectMultipartHelp),
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            .testTag("model-objects-multipart-help"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 LazyColumn(
                     Modifier.fillMaxWidth().heightIn(max = 420.dp)
                         .testTag("model-objects-dialog-rows"),

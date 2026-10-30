@@ -1003,6 +1003,7 @@ class InitialProjectMenuDeviceTest {
                 compose.onAllNodesWithTag("model-object-row-0").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("model-object-row-0").assertIsDisplayed()
+            compose.onNodeWithTag("model-objects-multipart-help").assertIsDisplayed()
             compose.onNodeWithTag("model-object-part-row-0-0").assertIsDisplayed()
             compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
             compose.onNodeWithTag("model-object-edit-part-0-1").performClick()
@@ -1015,6 +1016,36 @@ class InitialProjectMenuDeviceTest {
                 readUsedFilamentsOnGl(glView, 0).toList())
             assertEquals("the selected child must preserve its own material", listOf(2),
                 readUsedFilamentsOnGl(glView, 1).toList())
+
+            // Once detached, the chosen part is the active standalone object and the
+            // regular transform menu edits its native geometry independently.
+            val originalScale = readScaleOnGl(glView, 1)
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.MenuTransformScale)
+            compose.onNodeWithContentDescription(activity.getString(R.string.MenuTransformScale))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithContentDescription("X, X =", substring = true).assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) {
+                compose.onAllNodesWithText(activity.getString(R.string.ScaleManualPercent))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val scaleField = compose.onNodeWithText(activity.getString(R.string.ScaleManualPercent))
+            scaleField.performTextClearance()
+            scaleField.performTextInput("125")
+            compose.onNodeWithText(activity.getString(android.R.string.ok)).performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 1).x - originalScale.x * 1.25) < 0.002
+            }
+            assertEquals("scaling a detached part must leave the sibling part unchanged", 1.0,
+                readScaleOnGl(glView, 0).x, 0.002)
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 1).x - originalScale.x) < 0.002
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                kotlin.math.abs(readScaleOnGl(glView, 1).x - originalScale.x * 1.25) < 0.002
+            }
         } finally {
             modelFile.delete()
         }
@@ -1621,7 +1652,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun objectListCanSelectAndPlaceAGroupOnAnotherModel() {
+    fun objectListPlacesGroupWithoutJoiningUntilExplicitlyCombined() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -1736,37 +1767,65 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuPlaceOnObject))
                 .assertIsDisplayed().assertIsEnabled().performClick()
             compose.onNodeWithTag("model-choice-option-0").assertIsDisplayed().performClick()
-            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 1 }
+            compose.waitUntil(timeoutMillis = 15_000) { readObjectCountOnGl(glView) == 3 }
 
             val after = AtomicReference<List<DoubleArray>>()
-            val placedFilaments = AtomicReference<IntArray>()
             val afterReady = CountDownLatch(1)
             glView.queueEvent {
                 val model = glView.renderer.model
-                if (model != null && model.objectsCount == 1) {
+                if (model != null && model.objectsCount == 3) {
                     after.set((0 until model.objectsCount).map { index ->
                         val min = Vec3d(); val max = Vec3d()
                         model.getBoundingBoxExact(index, min, max)
                         doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
                     })
-                    placedFilaments.set(model.getUsedFilaments(0))
                 }
                 afterReady.countDown()
             }
             assertTrue("post-placement bounds should be collected on the GL thread", afterReady.await(15, TimeUnit.SECONDS))
             val original = requireNotNull(before.get())
             val placed = requireNotNull(after.get())
-            assertEquals("placing selected objects on a model should create one printable multipart object", 1, placed.size)
-            assertArrayEquals("the combined model should retain each source object's filament assignment",
-                intArrayOf(1, 2, 3), requireNotNull(placedFilaments.get()))
-            assertEquals("group placement centers the selected group over the target on X",
-                (original[2][0] + original[2][3]) / 2.0, (placed[0][0] + placed[0][3]) / 2.0, 0.02)
-            assertEquals("group placement centers the selected group over the target on Y",
-                (original[2][1] + original[2][4]) / 2.0, (placed[0][1] + placed[0][4]) / 2.0, 0.02)
-            assertEquals("the assembly still includes the target down to its original bottom",
-                original[2][2], placed[0][2], 0.02)
-            assertEquals("the selected group is stacked above the target object's top",
-                original[2][5] + (original[0][5] - original[0][2]), placed[0][5], 0.02)
+            assertEquals("placing a group on another model must keep all three objects separate", 3, placed.size)
+            assertArrayEquals("placement must not change target geometry", original[2], placed[2], 0.02)
+            val movingGroup = listOf(0, 1).map { original[it] }
+            val groupMinX = movingGroup.minOf { it[0] }
+            val groupMinY = movingGroup.minOf { it[1] }
+            val groupMinZ = movingGroup.minOf { it[2] }
+            val groupMaxX = movingGroup.maxOf { it[3] }
+            val groupMaxY = movingGroup.maxOf { it[4] }
+            val dx = (original[2][0] + original[2][3]) / 2.0 - (groupMinX + groupMaxX) / 2.0
+            val dy = (original[2][1] + original[2][4]) / 2.0 - (groupMinY + groupMaxY) / 2.0
+            val dz = original[2][5] - groupMinZ
+            movingGroup.forEachIndexed { index, bounds ->
+                val expected = doubleArrayOf(bounds[0] + dx, bounds[1] + dy, bounds[2] + dz,
+                    bounds[3] + dx, bounds[4] + dy, bounds[5] + dz)
+                assertArrayEquals("placed group member ${index + 1} must remain independently editable",
+                    expected, placed[index], 0.02)
+            }
+            assertArrayEquals("the three original filament assignments remain on separate objects",
+                intArrayOf(1, 2, 3), (0..2).map { readUsedFilamentsOnGl(glView, it).single() }.toIntArray())
+
+            // Joining is a separate, explicit action. The object-list workflow is covered
+            // independently above; select the verified objects here to test that the menu's
+            // Combine action is the only step that turns them into one assembly.
+            val explicitJoinSelectionReady = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObject(0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1, 2))
+                glView.requestRender()
+                explicitJoinSelectionReady.countDown()
+            }
+            assertTrue("all three objects should remain selected for an explicit join",
+                explicitJoinSelectionReady.await(10, TimeUnit.SECONDS))
+            openModelMenu(activity)
+            selectSingleObjectScope()
+            revealMenuAction(activity, R.string.ModelMenuCombineSelected)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuCombineSelected))
+                .assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag("workspace-message-confirm").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 15_000) { bed.currentModel?.objectsCount == 1 }
+            assertArrayEquals("explicitly combining keeps all source object materials", intArrayOf(1, 2, 3),
+                readUsedFilamentsOnGl(glView, 0))
 
             // Verify the exact real menu operation survives project serialization and slicing.
             activity.assets.open("orca_profiles/Anycubic.ini").use {

@@ -201,8 +201,9 @@
     <string name="ModelMenuCombineDone">Objects combined as multipart object</string>
     <string name="ModelMenuSplit">Separate parts</string>
     <string name="ModelObjectPartNumber">Part %1$d</string>
-    <string name="ModelObjectEditPart">Edit separately</string>
+    <string name="ModelObjectEditPart">Separate to edit</string>
     <string name="ModelObjectPartSeparated">Part separated; it can now be moved or scaled independently</string>
+    <string name="ModelObjectMultipartHelp">Models appear as one row with parts below. Separate a part to move or scale it alone. Placing never joins objects; use Combine selected when you choose.</string>
     <string name="ModelObjectExpandParts">Show parts (%1$d)</string>
     <string name="ModelObjectCollapseParts">Hide parts (%1$d)</string>
     <string name="ModelMenuCombineUnsupported">Select at least two single-instance objects to combine.</string>
