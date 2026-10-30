@@ -5,7 +5,7 @@
 - Reduce Qidi Q2 send preparation by removing a redundant full decompression/hash pass over the newly generated G-code 3MF. The package writer's streaming MD5 is still checked against the stored MD5; required package entries and every PNG preview are validated. The public deep verifier continues to hash the complete G-code.
 - Keep the captured model image both embedded in `Metadata/plate_1.gcode` and in the Qidi 3MF preview entries. Added a regression proving deep verification rejects a toolpath changed after packaging.
 - ARM64 app/instrumentation APK build succeeded. Debug JVM and Slice JVM suites each passed 687/687; focused Qidi package tests passed 7/7. No ADB device was connected; Qidi upload timing and physical printer display remain unverified.
-- APK: [OrkanSlicer Nightly 2.5 v0.8.418](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.418-nightly.1), SHA-256 will be recorded after the final-commit build.
+- APK `OrkanSlicer_37d9ed1d64.apk` (239,656,516 bytes), SHA-256 `E7C97CD46DC421F2C1BBA1BE3D215C8CBB8078763339EAC7A6A15D0ADCAC54F7`; [Nightly 2.5 v0.8.418](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.418-nightly.1).
 
 ## 0.8.417 — Nightly 2.5 experimental — 2026-10-30
 
