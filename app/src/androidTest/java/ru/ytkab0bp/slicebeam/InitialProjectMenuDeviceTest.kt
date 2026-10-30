@@ -1052,6 +1052,72 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun groupedPartTransformFromObjectListKeepsAssemblyAndSupportsUndoRedo() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "object-list-grouped-part-transform-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                model.translate(1, 24.0, 0.0, 0.0)
+                model.setUniformFilament(0, 1)
+                model.setUniformFilament(1, 2)
+                assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+                glView.renderer.setSelectedObject(0)
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("grouped transform test model should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            compose.runOnUiThread { FileMenuObjectActions(bed).showObjectsDialog(glView) }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag("model-object-part-row-0-1").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
+            val boundsBefore = readExactBoundsOnGl(glView, 0).single()
+            compose.onNodeWithTag("model-object-transform-part-0-1").performScrollTo().performClick()
+            compose.onNodeWithTag("model-object-part-transform-field-0").performTextClearance()
+            compose.onNodeWithTag("model-object-part-transform-field-0").performTextInput("5")
+            compose.onNodeWithTag("model-object-part-transform-field-5").performTextClearance()
+            compose.onNodeWithTag("model-object-part-transform-field-5").performTextInput("90")
+            compose.onNodeWithTag("model-object-part-transform-field-6").performTextClearance()
+            compose.onNodeWithTag("model-object-part-transform-field-6").performTextInput("150")
+            compose.onNodeWithTag("model-object-part-transform-apply").performClick()
+
+            compose.waitUntil(timeoutMillis = 15_000) {
+                !readExactBoundsOnGl(glView, 0).single().contentEquals(boundsBefore)
+            }
+            val boundsAfter = readExactBoundsOnGl(glView, 0).single()
+            assertEquals("part rotation and scale must preserve both assembly parts", 2,
+                readPartCountOnGl(glView, 0))
+            assertEquals("the grouped transform must preserve each part's filament", listOf(1, 2),
+                readUsedFilamentsOnGl(glView, 0).toList())
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readExactBoundsOnGl(glView, 0).single().contentEquals(boundsBefore)
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                readExactBoundsOnGl(glView, 0).single().contentEquals(boundsAfter)
+            }
+            assertEquals("redo must preserve the multipart assembly", 2, readPartCountOnGl(glView, 0))
+            assertEquals("redo must preserve per-part filament assignments", listOf(1, 2),
+                readUsedFilamentsOnGl(glView, 0).toList())
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun selectedObjectActionDialogRejectsStaleSplitAndDelete() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -9961,6 +10027,17 @@ class InitialProjectMenuDeviceTest {
             finished.countDown()
         }
         assertTrue("GL thread did not return used filament assignments", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(value.get())
+    }
+
+    private fun readPartCountOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Int {
+        val finished = CountDownLatch(1)
+        val value = AtomicReference<Int>()
+        glView.queueEvent {
+            value.set(requireNotNull(glView.renderer.model).getObjectPartCount(index))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return grouped object part count", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(value.get())
     }
 
