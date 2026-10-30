@@ -24,8 +24,10 @@ The selective ports on `nightly-2.5` include empty-layer guards, 64-bit filament
 AMS same-filament preset preservation, Qidi initial-tool filenames, and per-filament
 retraction threshold/Z-hop enforcement. The latter is adapted to this Android fork's
 filament-ID indexing; upstream's newer variant-column API is not present here. The
-0.8.413 native build and tests are pending. Device instrumentation and fixed slicing
-fixtures remain necessary, so this is not a completed engine migration.
+0.8.413 ARM64 native build succeeded and Debug/Slice JVM suites pass 686/686 each.
+A dedicated multi-filament lift test was added and compiles into the instrumentation APK,
+but it has not run because no ADB device is connected. Fixed slicing fixtures and printer
+validation remain necessary, so this is not a completed engine migration.
 
 1. Work in the separate `Exa201/OrkanSlicer-Nightly-2.5` repository; keep the stable
    app repository and its release branch independent.

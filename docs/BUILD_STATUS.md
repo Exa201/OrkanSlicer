@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.413
+
+- Code commit `e722cf6612426bc97ff4764c338fb439131cfbcf`, native core identity 0.8.409 / build 444, app version 0.8.413 / code 448. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.
+- ARM64 `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` succeeded. APK `OrkanSlicer_e722cf6612.apk`, 239,653,454 bytes, SHA-256 `C3546B158C6D6A424D57C4FB4658ADE0FA9BAABCF4150B8DB55DAFFE9B75C320`. Android package/version/ABI verified as `com.codemastercody3d.orcaslicermobile`, 0.8.413/code 448, `arm64-v8a`.
+- Ported OrcaSlicer `98b539c3e6b44e87bbde950e26d1b23c66691a0a`: travel threshold and lift-enforcement read the active filament settings; Android uses filament ID because upstream's variant-column API is absent. Added profile import/editor routing for lift enforcement and a two-filament G-code instrumentation regression test. That test compiles but was not run because ADB has no connected device. No physical printer, uploaded job, or actual print was tested.
+- The source and app remain a selective experimental port; the Orca engine lock is not advanced to 2.5.
+
 ## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.412
 
 - Code commit `92648a381a028eba983f795d8f796b1426f317df`, package 0.8.412 / code 447. Debug JVM: 686/686 passed; Slice JVM: 686/686 passed; 0 failures/errors/skips.

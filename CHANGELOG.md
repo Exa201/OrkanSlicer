@@ -4,7 +4,7 @@
 
 - Backport OrcaSlicer's per-filament retraction travel threshold and Z-hop enforcement. The Android port indexes the active filament by its filament ID, retaining its existing native model while fixing single-nozzle multi-filament G-code settings.
 - Expose `filament_retract_lift_enforce` in filament profile import and the Travel lift editor so imported/custom filament overrides are not silently lost.
-- Native ARM64 build and JVM/device test results are pending. No printer, G-code fixture, or physical device behavior is claimed until verified.
+- ARM64 native build and Debug/Slice JVM suites passed 686/686 each. A dual-filament Z-hop regression test was added and compiles in the instrumentation APK, but no device was connected to execute it. No physical printer behavior is claimed.
 
 ## 0.8.412 — Nightly 2.5 experimental — 2026-10-30
 

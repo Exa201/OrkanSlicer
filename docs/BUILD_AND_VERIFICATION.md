@@ -1,3 +1,10 @@
+# OrkanSlicer Nightly 2.5 — per-filament lift G-code fix — 2026-10-30
+
+- Code commit `e722cf6612426bc97ff4764c338fb439131cfbcf`; app 0.8.413/code 448, native engine identity 0.8.409/build 444. Orca change `98b539c3e6b44e87bbde950e26d1b23c66691a0a` was adapted to the Android fork: `GCode::travel_to` and `GCode::retract` now read the active filament's threshold/enforcement, and `GCodeWriter` reads lift boundaries and Z-hop by filament ID. Filament profile import and UI now also include lift enforcement.
+- Build command `:app:assembleDebug :app:assembleSliceTestAndroidTest :app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` succeeded, including the ARM64 native library and instrumentation source compilation. Debug JVM and Slice JVM: 686/686 passed each. The new `nativeGcodeUsesTheActiveFilamentsLiftThresholdAndEnforcement` test is packaged in the instrumentation APK but was not run: `adb devices` returned no devices.
+- APK `OrkanSlicer_e722cf6612.apk`, 239,653,454 bytes, SHA-256 `C3546B158C6D6A424D57C4FB4658ADE0FA9BAABCF4150B8DB55DAFFE9B75C320`. Package metadata: `com.codemastercody3d.orcaslicermobile`, 0.8.413/code 448, ARM64. Debug-signed. No physical printer upload or print was tested.
+- Published experimental prerelease: [v0.8.413-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.413-nightly.1). This is a selective port, not a complete OrcaSlicer 2.5 core update.
+
 # OrkanSlicer Nightly 2.5 — Qidi filename and AMS preset fixes — 2026-10-30
 
 - Code commit `92648a381a028eba983f795d8f796b1426f317df`; package 0.8.412 / code 447. Debug and Slice JVM suites: 686/686 each, no failures, errors, or skips.
