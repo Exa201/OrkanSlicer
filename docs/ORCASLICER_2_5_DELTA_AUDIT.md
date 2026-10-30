@@ -20,8 +20,8 @@ Reviewed 2026-10-30 against official OrcaSlicer `main` commit
 
 | Upstream change | Android port | Verification |
 | --- | --- | --- |
-| `59f0cc3806ab6424d081978fde331088c55d9f0f`: avoid indexing an empty layer list for objects too thin to create a layer | Guard the brim grouping path and precise-Z layer alignment; add a device regression test expecting a normal “No layers were detected” error | Android test source added; no ADB device is currently connected, so the instrumentation test is not yet executed |
-| `5ea64864ef5f409c3422237263894e8ba1ea165e`: extruder bit masks overflow at 32-bit shifts | Store and serialize `limit_filament_maps` as `uint64_t` and use 64-bit shifts | Native compile pending in this branch; the upstream test covers nozzle indices 1, 31, 32 and 63 |
+| `59f0cc3806ab6424d081978fde331088c55d9f0f`: avoid indexing an empty layer list for objects too thin to create a layer | Guard the brim grouping path and precise-Z layer alignment; add a device regression test expecting a normal “No layers were detected” error | ARM64 native build and instrumentation APK compilation succeeded; no ADB device is connected, so the instrumentation test is not executed |
+| `5ea64864ef5f409c3422237263894e8ba1ea165e`: extruder bit masks overflow at 32-bit shifts | Store and serialize `limit_filament_maps` as `uint64_t` and use 64-bit shifts | ARM64 native build succeeded; no Android execution or 32/63-nozzle regression test has been run |
 
 These are selective backports. The app must not be labeled as running the complete
 OrcaSlicer 2.5 engine yet; `ORCA_NIGHTLY_LOCK.md` remains unadvanced.

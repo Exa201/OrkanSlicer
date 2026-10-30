@@ -15,7 +15,8 @@ fetched explicitly and recorded in `ORCA_NIGHTLY_LOCK.md`.
   `libslic3r.so`.
 - The existing Android source baseline recorded in `ORCA_NIGHTLY_LOCK.md` is not
   sufficient proof of the exact code ancestry. The lock remains unchanged until that
-  ancestry and an Android build are verified.
+  ancestry and fixed slicing fixtures are verified. The ARM64 build now passes, but
+  build success alone does not prove slicing correctness.
 
 ## Safe update sequence
 
@@ -32,8 +33,8 @@ fetched explicitly and recorded in `ORCA_NIGHTLY_LOCK.md`.
    single- and multi-material assignments, layer metadata, thumbnails, and
    printer-specific G-code in OrkanSlicer.
 6. Advance the engine lock only after the above checks pass on the exact recorded
-   upstream commit. Until then the 2.5 branch is experimental and the current app is
-   still on its previously released engine baseline.
+   upstream commit. Until then the 2.5 branch is experimental, and its native engine
+   baseline remains the previously released Android port with selective backports.
 
 ## Current source comparison
 

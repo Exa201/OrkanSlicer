@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30
+
+- `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` succeeded from app-code commit `7d304fa51893bcc3e88c24739c99e4e41e9d7ab2`. Android package 0.8.410 / code 445; native engine identity remains 0.8.408 / ID 443 because the complete upstream engine lock is not advanced.
+- APK `OrkanSlicer_7d304fa518.apk`, 239,652,439 bytes; SHA-256 `DAAAAC5F913C1B6FEDCBC2C1154EA45CE225154A3979F22C7FF7AF449826BFFF`. Android `aapt` confirmed package ID, version, ARM64 ABI, and debug signing metadata.
+- ARM64 native build succeeded. Production, slice-test, and instrumentation sources compiled and APKs were packaged. The regression was not run because no ADB device is connected. No fixed slicing fixture, Qidi/Kobra upload, G-code, or physical printer result is claimed.
+- APK is debug-signed. The 2.5 core port is experimental and selective; use the stable OrkanSlicer repository for production work.
+
 ## Current publication and OrcaSlicer 2.5 review — 2026-10-30
 
 - App version 0.8.409 / code 444 built successfully from commit `07602f6dc1cea93849a74639c464d37c678fbac7` on the existing Android engine baseline (native ID 0.8.408 / 443). APK `OrkanSlicer_0.8.409_debug.apk`, 239,646,412 bytes, SHA-256 `2A978E125F1BEEB2F54D99A67F13E391BB9F98009E8C2CBBD8B6560F5E099B48`; Android package metadata verified.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.410 — Nightly 2.5 experimental — 2026-10-30
+
+- Port OrcaSlicer 2.5 empty-layer crash guards and widen filament/extruder masks to 64 bits.
+- ARM64 debug APK and instrumentation APK build successfully. The thin-object regression test compiles but has not run on a device; no slicing fixture, physical printer, or G-code output was validated for this build.
+- This selective backport is not the complete OrcaSlicer 2.5 core. The engine lock stays at the current Android baseline pending fixture and device validation.
+- Debug-signed APK published as an experimental prerelease in the Nightly 2.5 repository.
+
 ## 0.8.409
 
 - Reduce printer upload preparation overhead for Kobra 3 V2 and Qidi Q2; avoid redundant native mesh conversions while packing Qidi preview files.

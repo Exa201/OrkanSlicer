@@ -2,9 +2,9 @@
 
 Experimental Android port for the official [OrcaSlicer 2.5](https://github.com/OrcaSlicer/OrcaSlicer) engine. The GitHub repository slug is `OrkanSlicer-Nightly-2.5`; this is an independent Exa201 project, not an official OrcaSlicer release.
 
-The branch starts from OrkanSlicer 0.8.409 and applies the first two narrowly scoped 2.5 engine fixes. It is **not yet a complete 2.5 core update**. The Android-specific JNI bridge, CMake source list, native dependencies, printer profiles, and full slicing behavior must be validated before a Nightly APK is distributed.
+The branch starts from OrkanSlicer 0.8.409 and applies the first two narrowly scoped 2.5 engine fixes. It is **not yet a complete 2.5 core update**. An experimental debug APK is available in this repository's prereleases; its ARM64 native build and test-source compilation passed, but the new regression was not run on a device and slicing fixtures are still pending. Treat the APK as a test build, not a verified production slicer.
 
-For the stable app APK use [OrkanSlicer Releases](https://github.com/Exa201/OrkanSlicer/releases). This repository's Nightly branch is source-only until its Android engine build and slicing fixtures pass. Android 6.0 or newer and a 64-bit ARM device are required; always inspect the G-code preview and printer/material assignments before printing.
+For the stable app APK use [OrkanSlicer Releases](https://github.com/Exa201/OrkanSlicer/releases). The Nightly APK and its limitations are listed in [this repository's prereleases](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases). Android 6.0 or newer and a 64-bit ARM device are required; always inspect the G-code preview and printer/material assignments before printing.
 
 The app includes STL, OBJ, STEP and 3MF import, Orca profiles, multi-color painting, on-device slicing and G-code preview, printer upload, and offline maker tools. Imported 3MF process and filament values are kept as temporary project settings; saved user profiles remain separate. A model's logical T0/T1 colors can be assigned to physical ACE slots before slicing, and the model preview shows the selected slot colors.
 

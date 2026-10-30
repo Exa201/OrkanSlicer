@@ -1,3 +1,9 @@
+# OrkanSlicer Nightly 2.5 — experimental selective backport — 2026-10-30
+
+- App-code commit `7d304fa51893bcc3e88c24739c99e4e41e9d7ab2`; package 0.8.410 / code 445. ARM64 `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` succeeded. Production, test, and instrumentation sources compiled. Instrumented tests were not run because ADB had no connected device.
+- APK `OrkanSlicer_7d304fa518.apk`, 239,652,439 bytes, SHA-256 `DAAAAC5F913C1B6FEDCBC2C1154EA45CE225154A3979F22C7FF7AF449826BFFF`; `aapt` verified application ID, version, and `arm64-v8a`. This is debug-signed.
+- Two OrcaSlicer 2.5 changes are ported: empty-layer guards and 64-bit filament masks. No fixed slicing fixture, multi-color output, G-code, printer upload, Xiaomi, Honor, or physical-printer validation was performed. Do not treat this as a completed 2.5 engine update.
+
 # OrkanSlicer 0.8.409 — OrcaSlicer 2.5 baseline publication — 2026-10-30
 
 - Orca upstream review: latest `main` `98b539c3e6b44e87bbde950e26d1b23c66691a0a`; latest 2.5 prerelease `v2.5.0-beta` (2026-10-27). This app build deliberately retains the existing Android native engine; no upstream 2.5 source is claimed as integrated.
