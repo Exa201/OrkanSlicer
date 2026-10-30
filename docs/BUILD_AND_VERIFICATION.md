@@ -2,9 +2,9 @@
 
 - Orca upstream review: latest `main` `98b539c3e6b44e87bbde950e26d1b23c66691a0a`; latest 2.5 prerelease `v2.5.0-beta` (2026-10-27). This app build deliberately retains the existing Android native engine; no upstream 2.5 source is claimed as integrated.
 - Compared current upstream `src/libslic3r` against the Android port: 609 upstream files, 496 local files, 130 upstream-only paths, 17 Android-only paths. New upstream areas include belt printing, CAD/sketch APIs, and G-code sender code. This inventory is a path comparison, not a list of Android-ready features.
-- `:app:assembleDebug` succeeded for package version 0.8.409 / code 444. The native engine identity remains 0.8.408 / build ID 443; separating app and engine build IDs avoids needless native recompilation for an app-only release.
+- `:app:assembleDebug` succeeded for commit `07602f6dc1cea93849a74639c464d37c678fbac7`, package version 0.8.409 / code 444. The native engine identity remains 0.8.408 / build ID 443; separating app and engine build IDs avoids needless native recompilation for an app-only release. APK `OrkanSlicer_0.8.409_debug.apk`, 239,646,412 bytes, SHA-256 `2A978E125F1BEEB2F54D99A67F13E391BB9F98009E8C2CBBD8B6560F5E099B48`. Package metadata was checked with Android `aapt`; application ID and version match.
 - The preceding app code commit `b1c0236d8c390e7f1bec88e4d45ef7a4e467659e` passed 33 focused unit tests covering upload preparation, G-code integrity, and Qidi packaging. No full unit suite, printer transfer, Xiaomi test, or physical printer test was run for this version-metadata release build.
-- APK checksum, final commit, and GitHub asset are recorded in the release notes after the commit-pinned rebuild.
+- The APK is debug-signed. It was not installed on a physical phone or printer; no print was started.
 
 # Kameraeingabe: Raycast erst nach echtem Langdruck — Android 16 — 2026-10-29
 
