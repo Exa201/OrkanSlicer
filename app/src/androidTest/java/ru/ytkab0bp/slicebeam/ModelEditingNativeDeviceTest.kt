@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam
 
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -1610,7 +1611,10 @@ class ModelEditingNativeDeviceTest {
             model.setUniformFilament(1, 4)
             model.translate(1, (max.x - min.x) / 2.0, 0.0, 0.0)
 
+            val booleanStarted = System.nanoTime()
             val resultIndex = model.booleanObjects(0, 1, operation)
+            val booleanMillis = (System.nanoTime() - booleanStarted) / 1_000_000
+            Log.i("BooleanPerfTest", "${operation.name} two-cube boolean: ${booleanMillis}ms")
 
             assertEquals("boolean replaces both source objects only after success", 0, resultIndex)
             assertEquals(1, model.objectsCount)

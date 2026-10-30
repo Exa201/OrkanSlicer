@@ -2083,13 +2083,13 @@ extern "C" {
             if (!has_valid_boolean_state(target)) return -2;
 
             auto valid_operand = [](const TriangleMesh& mesh) {
-                if (mesh.empty() || mesh.stats().open_edges != 0 ||
-                    !std::isfinite(mesh.stats().volume) || std::fabs(mesh.stats().volume) <= 1e-9f)
-                    return false;
-                auto cgal = MeshBoolean::cgal::triangle_mesh_to_cgal(mesh);
-                return cgal && !MeshBoolean::cgal::empty(*cgal) &&
-                    MeshBoolean::cgal::does_bound_a_volume(*cgal) &&
-                    !MeshBoolean::cgal::does_self_intersect(*cgal);
+                return !mesh.empty() && mesh.stats().open_edges == 0 &&
+                    std::isfinite(mesh.stats().volume) && std::fabs(mesh.stats().volume) > 1e-9f;
+            };
+            auto valid_cgal_operand = [](const MeshBoolean::cgal::CGALMesh& mesh) {
+                return !MeshBoolean::cgal::empty(mesh) &&
+                    MeshBoolean::cgal::does_bound_a_volume(mesh) &&
+                    !MeshBoolean::cgal::does_self_intersect(mesh);
             };
             auto printable_mesh = [](const ModelObject& object) {
                 const bool has_negative_volume = std::any_of(
@@ -2153,13 +2153,13 @@ extern "C" {
             if (indices.size() == 2) {
                 // Keep the common single-operation path on EPIC for its lower cost.
                 auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
-                if (!resultCgal) return -3;
+                if (!resultCgal || !valid_cgal_operand(*resultCgal)) return -3;
                 ModelObject* tool = ref->model.objects[indices[1]];
                 if (!has_valid_boolean_state(tool)) return -2;
                 TriangleMesh toolMesh = printable_mesh(*tool);
                 if (!valid_operand(toolMesh)) return -3;
                 auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
-                if (!toolCgal) return -3;
+                if (!toolCgal || !valid_cgal_operand(*toolCgal)) return -3;
                 applyBoolean(*resultCgal, *toolCgal);
                 if (MeshBoolean::cgal::empty(*resultCgal) ||
                     !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
@@ -2170,14 +2170,14 @@ extern "C" {
                 // Keep intermediate multi-operand results in CGAL instead of
                 // round-tripping through the slicer's float mesh after every step.
                 auto resultCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(resultMesh);
-                if (!resultCgal) return -3;
+                if (!resultCgal || !valid_cgal_operand(*resultCgal)) return -3;
                 for (size_t n = 1; n < indices.size(); ++n) {
                     ModelObject* tool = ref->model.objects[indices[n]];
                     if (!has_valid_boolean_state(tool)) return -2;
                     TriangleMesh toolMesh = printable_mesh(*tool);
                     if (!valid_operand(toolMesh)) return -3;
                     auto toolCgal = MeshBoolean::cgal::triangle_mesh_to_cgal(toolMesh);
-                    if (!toolCgal) return -3;
+                    if (!toolCgal || !valid_cgal_operand(*toolCgal)) return -3;
                     applyBoolean(*resultCgal, *toolCgal);
                     if (MeshBoolean::cgal::empty(*resultCgal) ||
                         !MeshBoolean::cgal::does_bound_a_volume(*resultCgal) ||
