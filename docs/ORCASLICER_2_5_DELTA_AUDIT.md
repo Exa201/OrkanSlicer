@@ -23,19 +23,23 @@ Reviewed 2026-10-30 against official OrcaSlicer `main` commit
 | `59f0cc3806ab6424d081978fde331088c55d9f0f`: avoid indexing an empty layer list for objects too thin to create a layer | Guard the brim grouping path and precise-Z layer alignment; add a device regression test expecting a normal “No layers were detected” error | ARM64 native build and instrumentation APK compilation succeeded; no ADB device is connected, so the instrumentation test is not executed |
 | `5ea64864ef5f409c3422237263894e8ba1ea165e`: extruder bit masks overflow at 32-bit shifts | Store and serialize `limit_filament_maps` as `uint64_t` and use 64-bit shifts | ARM64 native build succeeded; no Android execution or 32/63-nozzle regression test has been run |
 | `23fe91393658b7908ea42db1d0a4f2a65d643eef`: retain custom filament preset overrides when printer sync reports the same filament | In `PresetBundle::sync_ams_list`, keep a compatible non-system preset only when its `filament_id` matches the synced preset; apply the check to mapped, placeholder, and append/deduplication paths | ARM64 native build and 685/685 Debug + Slice JVM suites passed; no device-level AMS-sync scenario was available |
+| `9f39b8347f7492b11fdb905b220323001db96e6a`: use the material for the initial Qidi tool in output filenames | Change the 14 Qidi profile patterns that still selected `filament_type[0]`; add a regression test ensuring every Qidi material-aware filename pattern uses `initial_tool` | Debug and Slice JVM suites passed 686/686; ARM64 app and instrumentation builds succeeded. No physical Qidi was available |
 
 These are selective backports. The app must not be labeled as running the complete
 OrcaSlicer 2.5 engine yet; `ORCA_NIGHTLY_LOCK.md` remains unadvanced.
 
 ## High-priority 2.5 changes still to assess/port
 
-1. Qidi Box mapping and printer-agent start behavior (`b6ca378b`): compare per-filament
-   Box persistence and print-start semantics with Android's Qidi Moonraker upload path.
+1. Qidi Box mapping (`b6ca378b`): Android already uploads the packaged Q2 G-code 3MF
+   through Moonraker and starts via `/printer/print/start`. The desktop-agent `SAVE_VARIABLE`
+   Box-slot persistence is not ported; the Android UI does not yet provide a Qidi Box slot
+   selection to safely populate `value_t<n>`. Printer-agent UI behavior is desktop-only.
 2. Multi-material preset slot synchronization fixes (`5897d95d`, `23fe9139`,
    `db35f3d0`): map the desktop state changes to OrkanSlicer's filament profile and
    ACE/MMU sync flows without overwriting user selections.
-3. Qidi filename and Q2/Q2C profile updates (`9f39b834`): update only after comparing
-   the Android profile format and verifying output names and slot metadata.
+3. Qidi filename and Q2/Q2C profile updates (`9f39b834`): the initial-tool filename fix
+   is ported to the Qidi Android profile and covered by a host regression test. Broader
+   printer profile changes still need a field-by-field compatibility comparison.
 4. 3MF variant round-trip and import/export fixes (`c0efd44e`, `45a29d39`): review the
    Android 3MF serializer before porting.
 5. Belt printing and CAD/design functionality: blocked on Android UI, geometry,

@@ -3,7 +3,8 @@
 ## 0.8.412 — Nightly 2.5 experimental — 2026-10-30
 
 - Correct Qidi print filenames to use the initial active tool's material instead of always using filament T0.
-- ARM64 build and profile regression verification are pending. Qidi printer upload and physical device behavior have not been tested.
+- Debug and Slice JVM suites passed 686/686 each, including a regression test for all Qidi profile filename placeholders. ARM64 debug and instrumentation APK builds succeeded.
+- Qidi upload and physical printer behavior have not been tested. This remains an experimental selective OrcaSlicer 2.5 backport.
 
 ## 0.8.411 — Nightly 2.5 experimental — 2026-10-30
 

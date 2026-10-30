@@ -1,8 +1,8 @@
-# OrkanSlicer Nightly 2.5 — AMS preset preservation — 2026-10-30
+# OrkanSlicer Nightly 2.5 — Qidi filename and AMS preset fixes — 2026-10-30
 
-- Code commit `d956a77e9359ad80c9db0a857cff898451ded8c7`; package 0.8.411 / code 446. Debug and Slice JVM suites: 685/685 each, no failures, errors, or skips.
-- `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` passed, compiling the native ARM64 engine, app, slice tests, and instrumentation APK. APK `OrkanSlicer_d956a77e93.apk`, 239,653,724 bytes, SHA-256 `4A33AED6052F18A564D38F526F15D6D14BB89D845EAFFB694BD0D73A419D320A`; `aapt` verified package/version/ABI. APK is debug-signed.
-- Added the Orca AMS-sync fix that retains a compatible user filament preset when the tray reports the same filament ID. The code compiled but its device-level sync scenario was not run. No physical device, slicing fixture, multicolor G-code, printer upload, or printer was tested; no actual print was started.
+- Code commit `92648a381a028eba983f795d8f796b1426f317df`; package 0.8.412 / code 447. Debug and Slice JVM suites: 686/686 each, no failures, errors, or skips.
+- `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` passed, compiling the native ARM64 engine, app, slice tests, and instrumentation APK. APK `OrkanSlicer_92648a381a.apk`, 239,653,706 bytes, SHA-256 `A31D2986C10E0AE52CB6AB738E69751608C13B155C1CC17935E6CC348E647EEC`; `aapt` verified package/version/ABI. APK is debug-signed.
+- Ported same-filament AMS preset preservation and Qidi initial-tool filename selection; the Qidi profile regression test passed. The AMS behavior was not exercised on hardware. No device, slicing fixture, multicolor G-code, printer upload, or physical printer was tested; no actual print was started.
 - This is a selective Orca 2.5 port, not the complete updated core.
 
 # OrkanSlicer Nightly 2.5 — experimental selective backport — 2026-10-30

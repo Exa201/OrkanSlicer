@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.412
+
+- Code commit `92648a381a028eba983f795d8f796b1426f317df`, package 0.8.412 / code 447. Debug JVM: 686/686 passed; Slice JVM: 686/686 passed; 0 failures/errors/skips.
+- `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` succeeded; ARM64 native, app and instrumentation APKs compiled. APK `OrkanSlicer_92648a381a.apk`, 239,653,706 bytes, SHA-256 `A31D2986C10E0AE52CB6AB738E69751608C13B155C1CC17935E6CC348E647EEC`.
+- `aapt` verified application ID, version 0.8.412/code 447 and ABI `arm64-v8a`; generated BuildConfig records `92648a381a`.
+- The new Qidi profile filename regression test passed. ADB has no connected device, so instrumentation, Qidi transfer/start, model slicing, G-code/preview, and physical printer behavior remain unverified. APK is debug-signed; the engine remains a selective port, not the complete OrcaSlicer 2.5 core.
+
 ## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.411
 
 - Code commit `d956a77e9359ad80c9db0a857cff898451ded8c7`, Android package 0.8.411 / code 446. Debug and Slice JVM suites: 685/685 passed each, 0 failures/errors/skips.
