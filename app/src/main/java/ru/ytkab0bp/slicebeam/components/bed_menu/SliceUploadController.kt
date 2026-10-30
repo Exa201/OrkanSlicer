@@ -80,6 +80,7 @@ object SliceUploadController {
         print: Boolean,
         printer: ConfigObject,
         activeTools: IntArray,
+        precomputedAnycubicScan: AnycubicGCodeProcessor.ScanResult? = null,
     ) {
         val context = fragment.getContext() ?: return
         val slicedResult = fragment.glView?.renderer?.gcodeResult
@@ -114,7 +115,9 @@ object SliceUploadController {
             // The remapped Anycubic output is validated after rewriting below. Validating
             // the source first needlessly reads a potentially very large sliced file once
             // more, while the prepared file is the one that will actually be uploaded.
-            val sourceCheck = if (anycubicKobra3) null else GCodeIntegrityValidator.validate(source)
+            // QIDI validates while it reads metadata for the package, so it does not
+            // need a separate full-file validation pass here.
+            val sourceCheck = if (anycubicKobra3 || qidiQ2) null else GCodeIntegrityValidator.validate(source)
             if (sourceCheck != null && !sourceCheck.isValid()) {
                 integrityFailure = sourceCheck
             } else {
@@ -123,13 +126,15 @@ object SliceUploadController {
                         if (qidiQ2) R.string.UploadPackagingQidi else R.string.UploadPreparingAnycubic,
                     ))
                     uploadFile = if (qidiQ2) prepareQidiUpload(source, printer, preview, uploadName)
-                    else prepareAnycubicUpload(source, printer, modelInstances, fragment, preview)
+                    else prepareAnycubicUpload(
+                        source, printer, modelInstances, fragment, preview, progress,
+                        precomputedAnycubicScan,
+                    )
                     if (uploadFile != null) {
                         if (qidiQ2) {
-                            if (!QidiGCode3mfPackager.verify(uploadFile!!)) {
-                                preparationError = IOException("The QIDI Q2 package failed its structure or checksum check.")
-                                uploadFile = null
-                            }
+                            // create() verifies the completed archive and its embedded
+                            // G-code checksum before returning. Re-running verify here
+                            // would decompress and hash the full toolpath a second time.
                         } else {
                             // Non-Anycubic profiles upload the original source, already
                             // checked above. Anycubic uploads a rewritten file and must
@@ -145,7 +150,11 @@ object SliceUploadController {
                         }
                     }
                 } catch (error: Exception) {
-                    preparationError = error
+                    if (error is QidiGCode3mfPackager.InvalidGCodeException) {
+                        integrityFailure = error.validation
+                    } else {
+                        preparationError = error
+                    }
                     Log.e("SliceMenu", "Could not prepare printer file for upload", error)
                 }
             }
@@ -564,18 +573,26 @@ object SliceUploadController {
         modelInstances: Int,
         fragment: BedFragment,
         previewPng: ByteArray?,
+        progress: PrinterUploadProgressDialog,
+        precomputedScan: AnycubicGCodeProcessor.ScanResult?,
     ): File? {
         if (!isAnycubicKobra3(printer)) return source
 
         val parent = source.parentFile ?: return null
         val prepared = File(parent, "anycubic_${source.name}")
+        val scanStartedAt = android.os.SystemClock.elapsedRealtime()
+        val reusedScan = precomputedScan?.takeIf { it.matchesSource(source) }
         val scan = try {
-            AnycubicGCodeProcessor.scan(source)
+            reusedScan ?: AnycubicGCodeProcessor.scan(source)
         } catch (error: IOException) {
             Log.e("SliceMenu", "Could not scan G-code before Anycubic upload", error)
             showPreparationFailure(fragment)
             return null
         }
+        Log.i(
+            "SliceUploadPerf",
+            "Kobra upload scan reused=${reusedScan != null}, bytes=${source.length()}, elapsed=${android.os.SystemClock.elapsedRealtime() - scanStartedAt} ms",
+        )
         val logicalToolCount = maxOf(1, scan.maxTool + 1)
         val printerTitle = printer.title.orEmpty()
         // The Anycubic metadata scan already reads every tool-selection command.
@@ -653,6 +670,8 @@ object SliceUploadController {
             smallThumbnail = thumbnails.first
             largeThumbnail = thumbnails.second
         }
+        progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadRewritingAnycubic))
+        val rewriteStartedAt = android.os.SystemClock.elapsedRealtime()
         return try {
             if (AnycubicGCodeProcessor.rewrite(source, prepared, scan, options)) prepared
             else {
@@ -668,6 +687,11 @@ object SliceUploadController {
             prepared.delete()
             showPreparationFailure(fragment)
             null
+        } finally {
+            Log.i(
+                "SliceUploadPerf",
+                "Kobra G-code rewrite bytes=${source.length()}, elapsed=${android.os.SystemClock.elapsedRealtime() - rewriteStartedAt} ms",
+            )
         }
     }
 
@@ -680,6 +704,7 @@ object SliceUploadController {
         val parent = source.parentFile ?: throw IOException("The temporary G-code folder is unavailable.")
         val safeName = uploadName.replace(Regex("[/\\\\]"), "_")
         val destination = File(parent, "qidi_$safeName")
+        val startedAt = android.os.SystemClock.elapsedRealtime()
         QidiGCode3mfPackager.create(
             sourceGcode = source,
             destination = destination,
@@ -688,6 +713,10 @@ object SliceUploadController {
             filamentSlots = Prefs.getFilamentSlots(),
             clientVersion = BuildConfig.VERSION_NAME,
             displayName = safeName,
+        )
+        Log.i(
+            "SliceUploadPerf",
+            "QIDI package sourceBytes=${source.length()}, packageBytes=${destination.length()}, elapsed=${android.os.SystemClock.elapsedRealtime() - startedAt} ms",
         )
         return destination
     }

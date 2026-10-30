@@ -7,6 +7,29 @@ import java.io.File
 
 class GCodeIntegrityValidatorTest {
     @Test
+    fun streamingValidatorMatchesFileValidation() {
+        val contents = """; total layer number: 2
+            |;LAYER_CHANGE
+            |G1 X1 E1
+            |;LAYER_CHANGE
+            |G1 X2 E1
+            |M2
+            |""".trimMargin()
+        val file = gcodeFile(contents)
+        try {
+            val streaming = GCodeIntegrityValidator.StreamingValidator()
+            contents.lineSequence().forEach(streaming::acceptLine)
+            val expected = GCodeIntegrityValidator.validate(file)
+            val actual = streaming.finish()
+            assertEquals(expected.failure, actual.failure)
+            assertEquals(expected.expectedLayers, actual.expectedLayers)
+            assertEquals(expected.actualLayers, actual.actualLayers)
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun acceptsOneNumberedTransitionBetweenTwoDeclaredLayers() {
         val file = gcodeFile(
             """; total layer number: 2

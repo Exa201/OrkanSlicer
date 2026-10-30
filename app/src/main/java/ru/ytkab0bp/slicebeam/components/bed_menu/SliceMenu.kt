@@ -8,8 +8,10 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.components.PrinterUploadProgressDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
+import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import java.io.File
 import java.io.IOException
@@ -18,6 +20,7 @@ import java.io.IOException
 class SliceMenu : ListBedMenu() {
     private var portrait = true
     private val composeActions = mutableStateOf<List<BedComposeMenuAction>>(emptyList())
+    @Volatile private var preflightAnycubicScan: AnycubicGCodeProcessor.ScanResult? = null
 
     override fun onCreateItems(portrait: Boolean): List<BedMenuItem> = emptyList()
 
@@ -56,6 +59,7 @@ class SliceMenu : ListBedMenu() {
     ) {
         val bed = fragment ?: return
         val context = bed.getContext() ?: return
+        preflightAnycubicScan = null
         val progress = bed.showPrinterUploadProgress(
             context.getString(if (SlicePrintPreparationDialog.isAnycubicKobra(printer))
                 R.string.UploadAceChecking else R.string.UploadAnalyzingGcode),
@@ -93,12 +97,39 @@ class SliceMenu : ListBedMenu() {
         val gcode: File = BedFragment.tempGCodePath
         progress.setMessage(bed.getContext()?.getString(R.string.UploadAnalyzingGcode).orEmpty())
         IOUtils.IO_POOL.execute {
+            val qidiPreflight = QidiGCode3mfPackager.isQidiQ2(printer)
+            val preflightStartedAt = android.os.SystemClock.elapsedRealtime()
             val preflight = try {
-                SlicePreparationTools.readPreflight(gcode)
+                if (SlicePreparationTools.isAnycubicKobra3Model(printer.get("printer_model"))) {
+                    val startedAt = android.os.SystemClock.elapsedRealtime()
+                    val scan = AnycubicGCodeProcessor.scan(gcode)
+                    preflightAnycubicScan = scan
+                    android.util.Log.i(
+                        "SliceUploadPerf",
+                        "Kobra preflight scanned ${gcode.length()} bytes in ${android.os.SystemClock.elapsedRealtime() - startedAt} ms",
+                    )
+                    SlicePreparationTools.Preflight(
+                        SlicePreparationTools.ToolUsage(
+                            if (scan.usedTools.isEmpty()) intArrayOf(0) else scan.usedTools,
+                            if (scan.firstToolAppearance.isEmpty()) intArrayOf(0) else scan.firstToolAppearance,
+                        ),
+                        SlicePreparationTools.PressureAdvanceCommands(
+                            scan.filamentPressureAdvance,
+                            scan.customPressureAdvance,
+                        ),
+                        scan.materials.toList(),
+                    )
+                } else SlicePreparationTools.readPreflight(gcode)
             } catch (_: IOException) {
                 bed.dismissPrinterUploadProgress(progress)
                 SliceUploadController.showPreparationFailure(bed)
                 return@execute
+            }
+            if (qidiPreflight) {
+                android.util.Log.i(
+                    "SliceUploadPerf",
+                    "QIDI preflight scanned ${gcode.length()} bytes in ${android.os.SystemClock.elapsedRealtime() - preflightStartedAt} ms",
+                )
             }
             val toolUsage = preflight.toolUsage
             val pressureAdvance = preflight.pressureAdvance
@@ -136,6 +167,7 @@ class SliceMenu : ListBedMenu() {
                             shouldPrint,
                             targetPrinter,
                             activeTools,
+                            preflightAnycubicScan,
                         )
                     }
                 } else {

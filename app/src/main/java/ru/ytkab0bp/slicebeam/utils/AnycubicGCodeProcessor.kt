@@ -30,7 +30,17 @@ class AnycubicGCodeProcessor private constructor() {
         @JvmField val materials: Array<String>,
         @JvmField val usedTools: IntArray,
         @JvmField val firstToolAppearance: IntArray,
+        @JvmField val filamentPressureAdvance: List<String>,
+        @JvmField val customPressureAdvance: List<String>,
+        private val sourcePath: String,
+        private val sourceLength: Long,
+        private val sourceLastModified: Long,
     ) {
+        /** Cached scan data is reusable only for the exact file version it inspected. */
+        fun matchesSource(file: File): Boolean =
+            file.isFile && file.absolutePath == sourcePath && file.length() == sourceLength &&
+                file.lastModified() == sourceLastModified
+
         companion object {
             internal fun create(
                 maxTool: Int,
@@ -47,9 +57,13 @@ class AnycubicGCodeProcessor private constructor() {
                 materials: Array<String>,
                 usedTools: IntArray,
                 firstToolAppearance: IntArray,
+                filamentPressureAdvance: List<String>,
+                customPressureAdvance: List<String>,
+                source: File,
             ) = ScanResult(maxTool, density, densities, volume, totalMass, hasReportedTotalMass,
                 computedFilamentMasses, needsMassBreakdownRewrite, hasFilamentMass, hasFilamentMap,
-                hasToolSelection, materials, usedTools, firstToolAppearance)
+                hasToolSelection, materials, usedTools, firstToolAppearance, filamentPressureAdvance,
+                customPressureAdvance, source.absolutePath, source.length(), source.lastModified())
         }
     }
 
@@ -67,6 +81,8 @@ class AnycubicGCodeProcessor private constructor() {
 
     companion object {
         private val LIST_SEPARATOR = Pattern.compile("[,;]")
+        private val KLIPPER_PA = Pattern.compile("^\\s*SET_PRESSURE_ADVANCE\\b.*?\\bADVANCE=([0-9]+(?:\\.[0-9]+)?)", Pattern.CASE_INSENSITIVE)
+        private val MARLIN_PA = Pattern.compile("^\\s*M900\\s+K([0-9]+(?:\\.[0-9]+)?)", Pattern.CASE_INSENSITIVE)
         private val HEATER_TOOL_SELECTOR = Pattern.compile("(?i)(\\bM(?:104|109)\\b[^;]*?\\bT)(\\d+)(?=\\s|$)")
         private val EXTRUSION_MOVE = Pattern.compile("(?i)^G[0-3](?=\\s|$).*\\sE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:\\s|$).*")
         private const val DEFAULT_FILAMENT_DENSITY = 1.24
@@ -119,6 +135,8 @@ class AnycubicGCodeProcessor private constructor() {
             var hasToolSelection = false
             val usedTools = sortedSetOf<Int>()
             val firstToolAppearance = linkedSetOf<Int>()
+            val filamentPressureAdvance = linkedSetOf<String>()
+            val customPressureAdvance = linkedSetOf<String>()
             var materials = arrayOf("PLA")
             BufferedReader(InputStreamReader(FileInputStream(source), StandardCharsets.UTF_8), 64 * 1024).use { reader ->
                 while (true) {
@@ -152,6 +170,18 @@ class AnycubicGCodeProcessor private constructor() {
                         usedTools.add(tool)
                         firstToolAppearance.add(tool)
                     }
+                    val pressureAdvance = when {
+                        startsWithCommand(line, "SET_PRESSURE_ADVANCE") ->
+                            KLIPPER_PA.matcher(line).takeIf { it.find() }?.group(1)
+                        startsWithCommand(line, "M900") ->
+                            MARLIN_PA.matcher(line).takeIf { it.find() }?.group(1)
+                        else -> null
+                    }
+                    if (pressureAdvance != null) {
+                        val target = if (line.contains("Override pressure advance value", ignoreCase = true))
+                            filamentPressureAdvance else customPressureAdvance
+                        if (target.size < 16) target.add(pressureAdvance)
+                    }
                 }
             }
             val normalizedDensities = normalizeDensities(densities)
@@ -173,7 +203,8 @@ class AnycubicGCodeProcessor private constructor() {
             return ScanResult.create(maxTool, normalizedDensities.first(), normalizedDensities, volume,
                 totalMass, hasReportedTotalMass, computedMasses, needsMassBreakdownRewrite,
                 hasFilamentMass, hasFilamentMap, hasToolSelection, materials,
-                usedTools.toIntArray(), firstToolAppearance.toIntArray())
+                usedTools.toIntArray(), firstToolAppearance.toIntArray(), filamentPressureAdvance.toList(),
+                customPressureAdvance.toList(), source)
         }
 
         /** Writes vendor-compatible G-code. Returns false when no header block was found. */
@@ -296,6 +327,12 @@ class AnycubicGCodeProcessor private constructor() {
             } catch (_: NumberFormatException) {
                 0.0
             }
+        }
+
+        private fun startsWithCommand(line: String, command: String): Boolean {
+            var start = 0
+            while (start < line.length && Character.isWhitespace(line[start])) start++
+            return line.regionMatches(start, command, 0, command.length, ignoreCase = true)
         }
 
         private fun parseNumbers(value: String): DoubleArray = LIST_SEPARATOR.split(value.trim()).map { part ->

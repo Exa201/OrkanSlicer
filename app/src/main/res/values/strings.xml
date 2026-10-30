@@ -741,6 +741,7 @@
     <string name="UploadAnalyzingGcode">Analyzing sliced file …</string>
     <string name="UploadCapturingPreview">Capturing print preview …</string>
     <string name="UploadPreparingAnycubic">Preparing ACE routing and print file …</string>
+    <string name="UploadRewritingAnycubic">Writing the ACE slot mapping into G-code …</string>
     <string name="UploadPackagingQidi">Building QIDI print package …</string>
     <string name="UploadValidatingPreparedGcode">Validating prepared print file …</string>
     <string name="UploadAceChecking">Checking ACE slots again before sending …</string>

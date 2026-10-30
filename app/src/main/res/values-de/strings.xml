@@ -732,6 +732,7 @@
     <string name="UploadAnalyzingGcode">Slicedatei wird analysiert …</string>
     <string name="UploadCapturingPreview">Druckvorschau wird erfasst …</string>
     <string name="UploadPreparingAnycubic">ACE-Zuordnung und Druckdatei werden vorbereitet …</string>
+    <string name="UploadRewritingAnycubic">ACE-Slot-Zuordnung wird in den G-Code geschrieben …</string>
     <string name="UploadPackagingQidi">QIDI-Druckpaket wird erstellt …</string>
     <string name="UploadValidatingPreparedGcode">Vorbereitete Druckdatei wird geprüft …</string>
     <string name="UploadAceChecking">ACE-Fächer werden vor dem Versand erneut geprüft …</string>
