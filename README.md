@@ -1,16 +1,18 @@
-# OrkanSlicer for Android
+# OrkanSlicer Nightly 2.5
 
-OrkanSlicer is an experimental Android slicer built on [OrcaSlicer Mobile](https://github.com/CodeMasterCody3D/OrcaSlicer-Mobile), [Slice Beam](https://github.com/utkabobr/SliceBeam), and an Android-adapted native [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) slicing engine. This is the independent `Exa201` fork. It is not an official OrcaSlicer release. OrcaSlicer 2.5 Android-core integration is tracked separately and remains experimental until the native port and slicing fixtures pass validation.
+Experimental Android port for the official [OrcaSlicer 2.5](https://github.com/OrcaSlicer/OrcaSlicer) engine. The GitHub repository slug is `OrkanSlicer-Nightly-2.5`; this is an independent Exa201 project, not an official OrcaSlicer release.
 
-Download the current arm64 APK from [Releases](https://github.com/Exa201/OrkanSlicer/releases). Android 6.0 or newer and a 64-bit ARM device are required. This is an alpha build: inspect the G-code preview and printer/material assignments before starting a print.
+The branch starts from OrkanSlicer 0.8.409 and applies the first two narrowly scoped 2.5 engine fixes. It is **not yet a complete 2.5 core update**. The Android-specific JNI bridge, CMake source list, native dependencies, printer profiles, and full slicing behavior must be validated before a Nightly APK is distributed.
+
+For the stable app APK use [OrkanSlicer Releases](https://github.com/Exa201/OrkanSlicer/releases). This repository's Nightly branch is source-only until its Android engine build and slicing fixtures pass. Android 6.0 or newer and a 64-bit ARM device are required; always inspect the G-code preview and printer/material assignments before printing.
 
 The app includes STL, OBJ, STEP and 3MF import, Orca profiles, multi-color painting, on-device slicing and G-code preview, printer upload, and offline maker tools. Imported 3MF process and filament values are kept as temporary project settings; saved user profiles remain separate. A model's logical T0/T1 colors can be assigned to physical ACE slots before slicing, and the model preview shows the selected slot colors.
 
 ## Source and builds
 
 ```bash
-git clone https://github.com/Exa201/OrkanSlicer.git
-cd OrkanSlicer
+git clone --branch nightly-2.5 https://github.com/Exa201/OrkanSlicer-Nightly-2.5.git
+cd OrkanSlicer-Nightly-2.5
 ./gradlew assembleDebug
 ```
 

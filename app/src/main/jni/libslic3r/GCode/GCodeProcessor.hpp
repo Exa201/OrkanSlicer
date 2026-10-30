@@ -255,7 +255,8 @@ class Print;
         std::vector<float> filament_costs;
         std::vector<int> filament_vitrification_temperature;
         std::vector<int>   filament_maps;
-        std::vector<int>   limit_filament_maps;
+        // Per filament, bit i is set when extruder i + 1 cannot print it.
+        std::vector<uint64_t> limit_filament_maps;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
         bool spiral_vase_mode;

@@ -1926,7 +1926,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     filament_to_object_id.first  = iter->first;
                     filament_to_object_id.second = object_label_id;
                     m_result.gcode_check_result.print_height_error_infos[extruder_id].push_back(filament_to_object_id);
-                    m_result.limit_filament_maps[iter->first] |= (1 << extruder_id);
+                    m_result.limit_filament_maps[iter->first] |= uint64_t(1) << extruder_id;
                     valid = false;
                 }
 
@@ -1935,7 +1935,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                         poly.translate(plate_offset);
                         if (!poly.bounding_box().overlap(bbox)) continue;
 
-                        m_result.limit_filament_maps[iter->first] |= (1 << i);
+                        m_result.limit_filament_maps[iter->first] |= uint64_t(1) << i;
                     }
                 }
             }
@@ -1946,7 +1946,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     for (int extruder_id = 0; extruder_id < unprintable_filament_types.size(); ++extruder_id) {
         const std::set<int> &filament_ids = unprintable_filament_types[extruder_id];
         for (int filament_id : filament_ids) {
-            m_result.limit_filament_maps[filament_id] |= (1 << extruder_id);
+            m_result.limit_filament_maps[filament_id] |= uint64_t(1) << extruder_id;
         }
     };
 

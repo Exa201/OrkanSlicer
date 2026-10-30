@@ -10,6 +10,7 @@ fetched explicitly and recorded in `ORCA_NIGHTLY_LOCK.md`.
 - Official repository: <https://github.com/OrcaSlicer/OrcaSlicer>
 - Current `main`: `98b539c3e6b44e87bbde950e26d1b23c66691a0a`
 - Latest 2.5 prerelease: `v2.5.0-beta`, published 2026-10-27
+- `main` has 67 commits since the beta comparison point and diverged by 5 commits.
 - Official release assets are desktop distributions; none is a drop-in Android
   `libslic3r.so`.
 - The existing Android source baseline recorded in `ORCA_NIGHTLY_LOCK.md` is not
@@ -34,10 +35,14 @@ fetched explicitly and recorded in `ORCA_NIGHTLY_LOCK.md`.
    upstream commit. Until then the 2.5 branch is experimental and the current app is
    still on its previously released engine baseline.
 
-## Historical comparison
+## Current source comparison
 
-An earlier source comparison recorded 545 upstream `src/libslic3r` files versus 496 in
-the Android port, and 116 added CMake lines at that time. Those counts predate the
-reviewed 2.5 beta and are historical, not a current 2.5 diff. A fresh pinned source
-comparison is required before claiming which 2.5 features are missing from the Android
-app.
+At the reviewed `main` commit, `src/libslic3r` has 609 paths versus 496 in the Android
+port: 130 upstream-only paths and 17 Android-only paths. New source groups include
+Belt printing, CAD/sketch solving, and G-code sender support. Android-only code includes
+the mobile postprocessor/sender and geometry helpers; these files must be preserved.
+
+The first two upstream core fixes are ported on `nightly-2.5`: return safely when a
+thin model produces an empty layer series, and store/serialize filament-to-unprintable-
+extruder masks as 64-bit values. The full 2.5 lock remains pending a native build, a
+device slice, and G-code/preview checks.

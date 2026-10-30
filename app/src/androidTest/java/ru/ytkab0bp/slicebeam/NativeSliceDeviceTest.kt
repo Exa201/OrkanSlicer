@@ -21,6 +21,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
@@ -36,6 +37,56 @@ import java.util.zip.ZipFile
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun tooThinObjectWithRaftReturnsSlicingErrorInsteadOfCrashing() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val modelFile = copyCube(context, "orca25-too-thin-with-raft.stl")
+        val gcodeFile = File(context.cacheDir, "orca25-too-thin-with-raft.gcode")
+        var model: Model? = null
+        var generatedConfig: File? = null
+        var sliceResult: GCodeProcessorResult? = null
+        try {
+            val loadedModel = Model(modelFile)
+            model = loadedModel
+            loadedModel.scale(0, 1.0, 1.0, 0.0001) // 20 mm cube -> 0.002 mm tall, below min layer height.
+            process.put("layer_height", "0.2")
+            process.put("initial_layer_print_height", "0.2")
+            process.put("min_layer_height", "0.07")
+
+            for (raftLayers in listOf(0, 2)) {
+                for (preciseZHeight in listOf(false, true)) {
+                    process.put("raft_layers", raftLayers.toString())
+                    process.put("precise_z_height", if (preciseZHeight) "1" else "0")
+                    SliceBeam.genCurrentConfig(loadedModel)
+                    val currentConfig = SliceBeam.getCurrentConfigFile()
+                    generatedConfig = currentConfig
+                    val failure = try {
+                        sliceResult = loadedModel.slice(currentConfig.absolutePath, gcodeFile.absolutePath, null)
+                        null
+                    } catch (error: Slic3rRuntimeError) {
+                        error
+                    }
+                    sliceResult?.release()
+                    sliceResult = null
+                    assertNotNull("empty layers should produce a normal slicing error (raft=$raftLayers, preciseZ=$preciseZHeight)", failure)
+                    assertTrue("unexpected error: ${failure?.message}", failure?.message?.contains("No layers were detected") == true)
+                    gcodeFile.delete()
+                    currentConfig.delete()
+                    generatedConfig = null
+                }
+            }
+        } finally {
+            sliceResult?.release()
+            model?.release()
+            modelFile.delete()
+            generatedConfig?.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun nativeDeleteTranslateAndBedPlacementRejectInvalidObjectsAndValues() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

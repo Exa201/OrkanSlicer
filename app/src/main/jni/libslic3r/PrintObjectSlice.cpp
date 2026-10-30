@@ -797,6 +797,10 @@ std::string fix_slicing_errors(PrintObject* object, LayerPtrs &layers, const std
 
 void groupingVolumesForBrim(PrintObject* object, LayerPtrs& layers, int firstLayerReplacedBy)
 {
+    // Empty layer lists are reported later by slice(); do not dereference front() first.
+    if (layers.empty())
+        return;
+
     const auto           scaled_resolution = scaled<double>(object->print()->config().resolution.value);
     auto partsObjSliceByVolume = findPartVolumes(object->firstLayerObjSliceMod(), object->model_object()->volumes);
     groupingVolumes(partsObjSliceByVolume, object->firstLayerObjGroupsMod(), scaled_resolution, firstLayerReplacedBy);

@@ -8219,7 +8219,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
                 if (plate_data->limit_filament_maps.size() > 0) {
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LIMIT_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
-                    add_vector<int>(stream, plate_data->limit_filament_maps);
+                    add_vector<uint64_t>(stream, plate_data->limit_filament_maps);
                     stream << "\"/>\n";
                 }
 
