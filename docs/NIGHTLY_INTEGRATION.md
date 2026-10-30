@@ -5,6 +5,12 @@ The Android app uses the SliceBeam UI and a platform-adapted OrcaSlicer engine i
 upstream is configured as `orcaslicer-upstream`; reviewed revisions are recorded in
 `ORCA_NIGHTLY_LOCK.md`.
 
+## Nightly app validation — 2026-10-30 — 0.8.418
+
+- Qidi Q2 package preparation now avoids re-opening and decompressing the entire newly written G-code 3MF solely to repeat its MD5 calculation. The package creation path checks the already-streamed source digest against the MD5 entry and validates required entries and all preview PNGs; the public deep verifier still hashes the full stored toolpath.
+- The captured workspace image is still embedded in the G-code thumbnail block and Qidi 3MF image entries. Qidi package tests passed 7/7, including corruption detection; Debug and Slice JVM suites passed 687/687 each, with the ARM64 app and instrumentation APKs built.
+- Physical Qidi upload, observed package-preparation timing, and printer-screen preview were not tested: no ADB device was connected. This release is a selective Android port, not a full upstream 2.5 replacement.
+
 ## Nightly app validation — 2026-10-30 — 0.8.417
 
 - Code commit `862402e50c954a521a815fd84875b79203410e6e`; app 0.8.417/code 452; native identity 0.8.413/build 448.

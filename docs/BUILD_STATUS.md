@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.418
+
+- App 0.8.418/code 453; native engine identity remains 0.8.413/build 448. APK will be rebuilt and recorded against the final source commit before publication.
+- ARM64 app and instrumentation APK builds succeeded. Debug JVM 687/687 and Slice JVM 687/687; 0 failures, 0 errors, 0 skipped. Focused `QidiGCode3mfPackagerTest`: 7/7 passed, including rejection of a post-package G-code modification by the deep verifier.
+- Qidi package generation no longer decompresses and hashes its just-written large G-code entry a second time. It compares the stored checksum with the digest calculated while streaming source bytes into the ZIP, and continues checking package structure and all image previews. The separate deep verifier still reads and hashes the archived toolpath.
+- The captured workspace image remains embedded in Qidi G-code and all package preview PNG entries. Physical Qidi upload, measured latency, and printer display were not tested because ADB reported no connected device.
+
 ## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.417
 
 - App/code commit `862402e50c954a521a815fd84875b79203410e6e`, app 0.8.417/code 452. Native engine identity 0.8.413/build 448.

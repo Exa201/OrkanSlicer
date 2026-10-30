@@ -160,6 +160,18 @@ object QidiGCode3mfPackager {
 
     @JvmStatic
     fun verify(packageFile: File): Boolean {
+        return verifyPackage(packageFile, generatedGcodeMd5 = null)
+    }
+
+    /**
+     * Full public verification hashes the decompressed toolpath. During creation, however,
+     * the digest was already calculated over every uncompressed G-code byte as it entered
+     * the ZIP stream. Re-reading the newly written, potentially very large 3MF just to
+     * calculate the same digest again adds an unnecessary full decompression pass before
+     * upload. The creation path verifies that streamed digest against the stored MD5 entry,
+     * and still reads and validates every preview PNG and required package entry.
+     */
+    private fun verifyPackage(packageFile: File, generatedGcodeMd5: String?): Boolean {
         return try {
             ZipFile(packageFile).use { zip ->
                 val requiredEntries = listOf(
@@ -188,7 +200,9 @@ object QidiGCode3mfPackager {
                 if (md5Entry.size !in 1L..64L) return false
                 val expected = zip.getInputStream(md5Entry).bufferedReader(StandardCharsets.US_ASCII).use { it.readText() }.trim()
                 if (!expected.matches(Regex("[0-9A-Fa-f]{32}"))) return false
-                val actual = zip.getInputStream(codeEntry).use { input -> digest(input) }
+                if (codeEntry.size <= 0L) return false
+                val actual = generatedGcodeMd5 ?: zip.getInputStream(codeEntry).use { input -> digest(input) }
+                if (!expected.equals(actual, ignoreCase = true)) return false
                 val previewPaths = listOf("plate_$PLATE.png", "plate_no_light_$PLATE.png", "top_$PLATE.png", "pick_$PLATE.png")
                 val previews = previewPaths.map { path ->
                     val entry = zip.getEntry("Metadata/$path") ?: return false
@@ -207,7 +221,7 @@ object QidiGCode3mfPackager {
                     if (!isPng(bytes)) return false
                     bytes
                 }
-                expected.equals(actual, ignoreCase = true) && previews.all { it.contentEquals(previews[0]) } &&
+                previews.all { it.contentEquals(previews[0]) } &&
                     infoEntry.size > 0 && modelEntry.size > 0
             }
         } catch (_: Exception) {
@@ -216,7 +230,7 @@ object QidiGCode3mfPackager {
     }
 
     private fun verify(packageFile: File, expectedMd5: String, preview: ByteArray) {
-        check(verify(packageFile)) { "The generated QIDI package failed its checksum or preview validation." }
+        check(verifyPackage(packageFile, expectedMd5)) { "The generated QIDI package failed its checksum or preview validation." }
         ZipFile(packageFile).use { zip ->
             val actualMd5 = zip.getInputStream(zip.getEntry("Metadata/plate_$PLATE.gcode.md5"))
                 .bufferedReader(StandardCharsets.US_ASCII).use { it.readText().trim() }

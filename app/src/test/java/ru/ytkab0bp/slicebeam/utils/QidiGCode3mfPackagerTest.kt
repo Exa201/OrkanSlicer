@@ -239,6 +239,40 @@ class QidiGCode3mfPackagerTest {
         }
     }
 
+    @Test
+    fun deepVerificationStillRejectsGcodeChangedAfterPackageCreation() {
+        val source = File.createTempFile("qidi-gcode-check", ".gcode")
+        val target = File.createTempFile("qidi-gcode-check", ".gcode.3mf")
+        val damaged = File.createTempFile("qidi-gcode-damaged", ".gcode.3mf")
+        val png = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+        )
+        try {
+            source.writeText("; total layer number: 1\n;LAYER:0\nG1 X1 Y1 E1\nT0\nM2\n")
+            QidiGCode3mfPackager.create(source, target, png, qidiQ2(), emptyList(), "test", "part")
+            ZipFile(target).use { zip ->
+                ZipOutputStream(damaged.outputStream()).use { output ->
+                    zip.entries().asSequence().forEach { entry ->
+                        output.putNextEntry(ZipEntry(entry.name))
+                        if (entry.name == "Metadata/plate_1.gcode") {
+                            val bytes = zip.getInputStream(entry).use { it.readBytes() }
+                            bytes[bytes.lastIndex] = (bytes.last().toInt() xor 1).toByte()
+                            output.write(bytes)
+                        } else {
+                            zip.getInputStream(entry).use { it.copyTo(output) }
+                        }
+                        output.closeEntry()
+                    }
+                }
+            }
+            assertFalse("Deep verification must detect a toolpath that no longer matches its MD5", QidiGCode3mfPackager.verify(damaged))
+        } finally {
+            source.delete()
+            target.delete()
+            damaged.delete()
+        }
+    }
+
     private fun qidiQ2() = ConfigObject("Qidi Q2 0.4 nozzle").apply {
         put("printer_model", "Q2")
         put("nozzle_diameter", "0.4")
