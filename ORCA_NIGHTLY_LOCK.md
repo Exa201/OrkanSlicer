@@ -6,6 +6,7 @@
 - Reviewed upstream `main` head: `98b539c3e6b44e87bbde950e26d1b23c66691a0a` (2026-10-30)
 - Reviewed upstream beta: `v2.5.0-beta`, published 2026-10-27
 - First 2.5 fixes ported: `59f0cc3806ab6424d081978fde331088c55d9f0f` (empty-layer crash guards), `5ea64864ef5f409c3422237263894e8ba1ea165e` (64-bit filament/extruder masks)
+- Additional selective ports: `23fe91393658b7908ea42db1d0a4f2a65d643eef` (preserve compatible AMS filament presets), `9f39b8347f7492b11fdb905b220323001db96e6a` (Qidi active-tool output filename), `98b539c3e6b44e87bbde950e26d1b23c66691a0a` (per-filament retraction threshold and Z-hop enforcement; adapted to this port's filament-ID indexing).
 - ARM64 `assembleDebug` and `assembleSliceTestAndroidTest` succeeded through app commit `92648a381a028eba983f795d8f796b1426f317df`; Debug and Slice JVM suites passed 686/686 each. The thin-object test source compiles but neither it nor AMS preset-preservation behavior has run on a device; no fixed 3MF/STL slice fixture has been verified. Android engine lock: **not yet advanced to 2.5**; port remains partial.
 
 This project keeps its Android JNI port in `app/src/main/jni`. The port is based on

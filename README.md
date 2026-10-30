@@ -2,7 +2,7 @@
 
 Experimental Android port for the official [OrcaSlicer 2.5](https://github.com/OrcaSlicer/OrcaSlicer) engine. The GitHub repository slug is `OrkanSlicer-Nightly-2.5`; this is an independent Exa201 project, not an official OrcaSlicer release.
 
-The branch starts from OrkanSlicer 0.8.409 and applies the first two narrowly scoped 2.5 engine fixes. It is **not yet a complete 2.5 core update**. An experimental debug APK is available in this repository's prereleases; its ARM64 native build and test-source compilation passed, but the new regression was not run on a device and slicing fixtures are still pending. Treat the APK as a test build, not a verified production slicer.
+The branch starts from OrkanSlicer 0.8.409 and applies reviewed, selective OrcaSlicer 2.5 fixes, including empty-layer guards, 64-bit filament masks, AMS preset preservation, Qidi multi-material filenames, and per-filament travel-lift settings. It is **not yet a complete 2.5 core update**. Current verification and each APK's limitations are recorded in [`docs/BUILD_STATUS.md`](docs/BUILD_STATUS.md); treat Nightly prereleases as test builds, not verified production slicers.
 
 For the stable app APK use [OrkanSlicer Releases](https://github.com/Exa201/OrkanSlicer/releases). The Nightly APK and its limitations are listed in [this repository's prereleases](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases). Android 6.0 or newer and a 64-bit ARM device are required; always inspect the G-code preview and printer/material assignments before printing.
 

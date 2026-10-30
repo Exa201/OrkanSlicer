@@ -279,6 +279,7 @@ open class Slic3rConfigWrapper {
                 "filament_retract_lift",
                 "filament_retract_lift_above",
                 "filament_retract_lift_below",
+                "filament_retract_lift_enforce",
                 "filament_retract_speed",
                 "filament_deretract_speed",
                 "filament_retract_restart_extra",

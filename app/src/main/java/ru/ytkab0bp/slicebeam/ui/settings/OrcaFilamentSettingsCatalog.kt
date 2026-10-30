@@ -44,7 +44,7 @@ object OrcaFilamentSettingsCatalog {
         OrcaSettingsCategory(
             "Filament Overrides", R.drawable.settings_outline_28, listOf(
                 section("Ironing", "filament_ironing_flow", "filament_ironing_spacing", "filament_ironing_inset", "filament_ironing_speed"),
-                section("Travel lift", "filament_z_hop", "filament_retract_lift_above", "filament_retract_lift_below"),
+                section("Travel lift", "filament_z_hop", "filament_retract_lift_above", "filament_retract_lift_below", "filament_retract_lift_enforce"),
                 section("Retraction", "filament_retraction_length", "filament_retraction_speed", "filament_deretraction_speed", "filament_retract_restart_extra", "filament_retraction_minimum_travel", "filament_retract_when_changing_layer", "filament_wipe", "filament_retract_before_wipe"),
             ),
         ),
