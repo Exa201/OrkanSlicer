@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.411 — Nightly 2.5 experimental — 2026-10-30
+
+- Preserve compatible per-slot user filament presets during printer/AMS synchronization when the reported tray has the same filament ID, including when empty trays shift list positions.
+- ARM64 native and Android builds are pending for this change. Device slicing and filament-assignment checks remain pending.
+
 ## 0.8.410 — Nightly 2.5 experimental — 2026-10-30
 
 - Port OrcaSlicer 2.5 empty-layer crash guards and widen filament/extruder masks to 64 bits.

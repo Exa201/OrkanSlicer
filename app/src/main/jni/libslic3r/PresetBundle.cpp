@@ -3293,6 +3293,14 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts *   filament_map = project_config.option<ConfigOptionInts>("filament_map");
+    // A compatible user preset for the same filament must keep its overrides when a
+    // printer sync reports the corresponding system preset for that slot.
+    auto synced_preset_name = [this](const std::string &current_name, const std::string &ams_name) -> std::string {
+        const Preset *current = filaments.find_preset(current_name, false);
+        const Preset *synced  = filaments.find_preset(ams_name, false);
+        return current && synced && !current->is_system && current->is_compatible &&
+               !synced->filament_id.empty() && current->filament_id == synced->filament_id ? current_name : ams_name;
+    };
     if (color_only) {
         auto get_map_index = [&ams_infos](const std::vector<AMSMapInfo> &infos, const AMSMapInfo &temp) {
             for (int i = 0; i < infos.size(); i++) {
@@ -3447,9 +3455,9 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                                       ams_multi_color_filment.end());
         if (need_append_colors.size() > 0 && enable_append) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "need_append_colors.size() > 0 && enable_append";
-            auto get_idx_in_array = [](std::vector<std::string> &presets, std::vector<std::string> &colors, const std::string &preset, const std::string &color) -> int {
+            auto get_idx_in_array = [&synced_preset_name](std::vector<std::string> &presets, std::vector<std::string> &colors, const std::string &preset, const std::string &color) -> int {
                 for (size_t i = 0; i < presets.size(); i++) {
-                    if (presets[i] == preset && colors[i] == color) {
+                    if (synced_preset_name(presets[i], preset) == presets[i] && colors[i] == color) {
                         return i;
                     }
                 }
@@ -3499,7 +3507,9 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     // Loaded tray: use tray's filament data
                     result_colors.push_back(ams_filament_colors[i]);
                     result_color_types.push_back(ams_filament_color_types[i]);
-                    result_presets.push_back(ams_filament_presets[i]);
+                    result_presets.push_back(i < exist_presets.size()
+                                                 ? synced_preset_name(exist_presets[i], ams_filament_presets[i])
+                                                 : ams_filament_presets[i]);
                     result_multi_colors.push_back(
                         i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
                                                            : std::vector<std::string>{ams_filament_colors[i]});
@@ -3532,6 +3542,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             // BBL: existing wholesale replace
             filament_color->values = ams_filament_colors;
             filament_color_type->values = ams_filament_color_types;
+            // Empty trays may be omitted, so keep a user preset only when it is for
+            // the same filament; never retain it just because the indices line up.
+            for (size_t i = 0; i < std::min(ams_filament_presets.size(), this->filament_presets.size()); i++)
+                ams_filament_presets[i] = synced_preset_name(this->filament_presets[i], ams_filament_presets[i]);
             this->filament_presets = ams_filament_presets;
             filament_map->values.resize(ams_filament_colors.size(), 1);
         }
