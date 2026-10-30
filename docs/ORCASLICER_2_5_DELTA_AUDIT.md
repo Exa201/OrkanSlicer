@@ -22,6 +22,7 @@ Reviewed 2026-10-30 against official OrcaSlicer `main` commit
 | --- | --- | --- |
 | `59f0cc3806ab6424d081978fde331088c55d9f0f`: avoid indexing an empty layer list for objects too thin to create a layer | Guard the brim grouping path and precise-Z layer alignment; add a device regression test expecting a normal “No layers were detected” error | ARM64 native build and instrumentation APK compilation succeeded; no ADB device is connected, so the instrumentation test is not executed |
 | `5ea64864ef5f409c3422237263894e8ba1ea165e`: extruder bit masks overflow at 32-bit shifts | Store and serialize `limit_filament_maps` as `uint64_t` and use 64-bit shifts | ARM64 native build succeeded; no Android execution or 32/63-nozzle regression test has been run |
+| `23fe91393658b7908ea42db1d0a4f2a65d643eef`: retain custom filament preset overrides when printer sync reports the same filament | In `PresetBundle::sync_ams_list`, keep a compatible non-system preset only when its `filament_id` matches the synced preset; apply the check to mapped, placeholder, and append/deduplication paths | ARM64 native build and 685/685 Debug + Slice JVM suites passed; no device-level AMS-sync scenario was available |
 
 These are selective backports. The app must not be labeled as running the complete
 OrcaSlicer 2.5 engine yet; `ORCA_NIGHTLY_LOCK.md` remains unadvanced.

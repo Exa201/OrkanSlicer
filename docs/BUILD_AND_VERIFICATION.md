@@ -1,3 +1,10 @@
+# OrkanSlicer Nightly 2.5 — AMS preset preservation — 2026-10-30
+
+- Code commit `d956a77e9359ad80c9db0a857cff898451ded8c7`; package 0.8.411 / code 446. Debug and Slice JVM suites: 685/685 each, no failures, errors, or skips.
+- `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` passed, compiling the native ARM64 engine, app, slice tests, and instrumentation APK. APK `OrkanSlicer_d956a77e93.apk`, 239,653,724 bytes, SHA-256 `4A33AED6052F18A564D38F526F15D6D14BB89D845EAFFB694BD0D73A419D320A`; `aapt` verified package/version/ABI. APK is debug-signed.
+- Added the Orca AMS-sync fix that retains a compatible user filament preset when the tray reports the same filament ID. The code compiled but its device-level sync scenario was not run. No physical device, slicing fixture, multicolor G-code, printer upload, or printer was tested; no actual print was started.
+- This is a selective Orca 2.5 port, not the complete updated core.
+
 # OrkanSlicer Nightly 2.5 — experimental selective backport — 2026-10-30
 
 - App-code commit `7d304fa51893bcc3e88c24739c99e4e41e9d7ab2`; package 0.8.410 / code 445. ARM64 `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` succeeded. Production, test, and instrumentation sources compiled. Instrumented tests were not run because ADB had no connected device.

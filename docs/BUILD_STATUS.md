@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.411
+
+- Code commit `d956a77e9359ad80c9db0a857cff898451ded8c7`, Android package 0.8.411 / code 446. Debug and Slice JVM suites: 685/685 passed each, 0 failures/errors/skips.
+- `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` succeeded; C++ ARM64, app Kotlin, slice-test Kotlin, and instrumentation APK compilation succeeded. APK `OrkanSlicer_d956a77e93.apk`, 239,653,724 bytes, SHA-256 `4A33AED6052F18A564D38F526F15D6D14BB89D845EAFFB694BD0D73A419D320A`.
+- `aapt` verified application ID `com.codemastercody3d.orcaslicermobile`, version 0.8.411/code 446, and `arm64-v8a`; generated BuildConfig records commit `d956a77e93`.
+- ADB reported no devices. Instrumentation was compiled, not run. No device AMS sync, slicing fixture, multi-color G-code, Qidi/Kobra upload, physical printer, Xiaomi, or Honor test is claimed. The APK is debug-signed and experimental; the complete 2.5 engine lock remains unchanged.
+
 ## Nightly 2.5 experimental APK — 2026-10-30
 
 - `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` succeeded from app-code commit `7d304fa51893bcc3e88c24739c99e4e41e9d7ab2`. Android package 0.8.410 / code 445; native engine identity remains 0.8.408 / ID 443 because the complete upstream engine lock is not advanced.

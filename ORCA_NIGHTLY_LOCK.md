@@ -6,7 +6,7 @@
 - Reviewed upstream `main` head: `98b539c3e6b44e87bbde950e26d1b23c66691a0a` (2026-10-30)
 - Reviewed upstream beta: `v2.5.0-beta`, published 2026-10-27
 - First 2.5 fixes ported: `59f0cc3806ab6424d081978fde331088c55d9f0f` (empty-layer crash guards), `5ea64864ef5f409c3422237263894e8ba1ea165e` (64-bit filament/extruder masks)
-- ARM64 `assembleDebug` and `assembleSliceTestAndroidTest` succeeded on 2026-10-30 after these source changes. The thin-object test source compiles; it has not run on a device, and no fixed 3MF/STL slice fixtures have been verified. Android engine lock: **not yet advanced to 2.5**; port remains partial.
+- ARM64 `assembleDebug` and `assembleSliceTestAndroidTest` succeeded through app commit `d956a77e9359ad80c9db0a857cff898451ded8c7`; Debug and Slice JVM suites passed 685/685 each. The thin-object test source compiles but neither it nor the AMS preset-preservation behavior has run on a device; no fixed 3MF/STL slice fixture has been verified. Android engine lock: **not yet advanced to 2.5**; port remains partial.
 
 This project keeps its Android JNI port in `app/src/main/jni`. The port is based on
 SliceBeam and cannot safely consume the desktop source tree as a drop-in replacement:

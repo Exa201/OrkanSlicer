@@ -3,7 +3,8 @@
 ## 0.8.411 — Nightly 2.5 experimental — 2026-10-30
 
 - Preserve compatible per-slot user filament presets during printer/AMS synchronization when the reported tray has the same filament ID, including when empty trays shift list positions.
-- ARM64 native and Android builds are pending for this change. Device slicing and filament-assignment checks remain pending.
+- Debug and Slice JVM suites passed 685/685 each. ARM64 debug APK and instrumentation APK compiled successfully. The thin-object instrumentation regression and filament sync behavior were not run on a device; slicing fixtures and printer/G-code checks remain pending.
+- Selective OrcaSlicer 2.5 port only; the engine lock is not advanced and this debug APK is experimental.
 
 ## 0.8.410 — Nightly 2.5 experimental — 2026-10-30
 

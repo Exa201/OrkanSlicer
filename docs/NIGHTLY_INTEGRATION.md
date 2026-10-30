@@ -20,6 +20,11 @@ fetched explicitly and recorded in `ORCA_NIGHTLY_LOCK.md`.
 
 ## Safe update sequence
 
+The first three selective ports now present on `nightly-2.5` are the empty-layer
+guards, 64-bit filament masks, and AMS same-filament preset preservation. They compile
+for ARM64; the two JVM suites pass 685/685 each. Device instrumentation and fixed
+slicing fixtures are still outstanding, so this is not a completed engine migration.
+
 1. Work in the separate `Exa201/OrkanSlicer-Nightly-2.5` repository; keep the stable
    app repository and its release branch independent.
 2. Pin upstream source and profiles to reviewed immutable commits. Record each commit,
