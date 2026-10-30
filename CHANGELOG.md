@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.414 — Nightly 2.5 experimental — 2026-10-30
+
+- Port OrcaSlicer `7125a546b`: stop derived automatic filament-map values from invalidating G-code again when the unchanged configuration is reapplied after slicing. This targets the extra-slice/repeated-processing path; the upstream Catch2 regression does not exist in the Android build system.
+- Full ARM64 native/debug and instrumentation APK build succeeded. Debug JVM and Slice JVM suites each passed 686/686, with no failures, errors, or skips.
+- APK is debug-signed and ARM64-only. No ADB device was connected, so Android instrumentation and real printer/G-code behavior were not run. The Orca 2.5 engine baseline remains selectively backported, not fully advanced.
+
 ## 0.8.413 — Nightly 2.5 experimental — 2026-10-30
 
 - Backport OrcaSlicer's per-filament retraction travel threshold and Z-hop enforcement. The Android port indexes the active filament by its filament ID, retaining its existing native model while fixing single-nozzle multi-filament G-code settings.

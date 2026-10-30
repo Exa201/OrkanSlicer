@@ -24,9 +24,17 @@ Reviewed 2026-10-30 against official OrcaSlicer `main` commit
 | `5ea64864ef5f409c3422237263894e8ba1ea165e`: extruder bit masks overflow at 32-bit shifts | Store and serialize `limit_filament_maps` as `uint64_t` and use 64-bit shifts | ARM64 native build succeeded; no Android execution or 32/63-nozzle regression test has been run |
 | `23fe91393658b7908ea42db1d0a4f2a65d643eef`: retain custom filament preset overrides when printer sync reports the same filament | In `PresetBundle::sync_ams_list`, keep a compatible non-system preset only when its `filament_id` matches the synced preset; apply the check to mapped, placeholder, and append/deduplication paths | ARM64 native build and 685/685 Debug + Slice JVM suites passed; no device-level AMS-sync scenario was available |
 | `9f39b8347f7492b11fdb905b220323001db96e6a`: use the material for the initial Qidi tool in output filenames | Change the 14 Qidi profile patterns that still selected `filament_type[0]`; add a regression test ensuring every Qidi material-aware filename pattern uses `initial_tool` | Debug and Slice JVM suites passed 686/686; ARM64 app and instrumentation builds succeeded. No physical Qidi was available |
+| `98b539c3e6b44e87bbde950e26d1b23c66691a0a`: use the active filament's retraction threshold and Z-hop policy | Use filament-ID-indexed values in G-code travel/retract and in writer Z-hop boundaries; import and expose the per-filament lift-enforcement setting | ARM64 native and instrumentation APK builds succeeded; Debug/Slice JVM suites 686/686 each. A two-filament native G-code test was added but not run: no ADB device |
+| `7125a546b`: don't invalidate G-code on unchanged auto-mapping state after slicing | Remove engine-derived `filament_map` from the full-config diff when the normalized map is carried forward | Full ARM64 build and instrumentation APK compilation succeeded for 0.8.414; Debug/Slice JVM suites 686/686 each. The upstream Catch2 repeat-apply regression isn't part of the Android test harness, and no device was connected for an end-to-end slice |
 
 These are selective backports. The app must not be labeled as running the complete
 OrcaSlicer 2.5 engine yet; `ORCA_NIGHTLY_LOCK.md` remains unadvanced.
+
+The Android Qidi Q2 package path already embeds a validated `; thumbnail begin ...`
+Base64 image block at the beginning of `Metadata/plate_1.gcode` and includes the PNG in
+the package's plate/top/pick preview entries. Host tests compare the extracted image to
+the captured preview and validate the G-code MD5; physical Qidi acceptance is still
+unverified.
 
 ## High-priority 2.5 changes still to assess/port
 

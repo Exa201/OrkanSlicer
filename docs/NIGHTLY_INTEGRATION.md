@@ -5,6 +5,13 @@ The Android app uses the SliceBeam UI and a platform-adapted OrcaSlicer engine i
 `orcaslicer-nightly` Git remote configured in this checkout; upstream revisions must be
 fetched explicitly and recorded in `ORCA_NIGHTLY_LOCK.md`.
 
+## Latest Nightly app validation — 2026-10-30
+
+- 0.8.414 app/code commit: `5ec59ef50fdbf0768525a3859062a32c5e7a2f81`; native identity 0.8.410/build 445.
+- Orca `7125a546b` is selectively ported for derived automatic filament-map invalidation. Full ARM64 app/instrumentation build succeeded; Debug and Slice JVM suites passed 686/686 each.
+- Debug APK: `OrkanSlicer_5ec59ef50f.apk`, SHA-256 `55A8490808D4C7D8DD69015D3A6D4569653CF6160FDF17F3DF76455DDCD95ED4`. Device instrumentation and printer acceptance remain unverified because ADB had no device.
+- This release does not advance the full engine lock. Fixed 3MF/STL slicing and multi-material G-code validation remain required.
+
 ## Reviewed upstream (2026-10-30)
 
 - Official repository: <https://github.com/OrcaSlicer/OrcaSlicer>

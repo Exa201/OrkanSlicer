@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.414
+
+- App/code commit `5ec59ef50fdbf0768525a3859062a32c5e7a2f81`, app 0.8.414/code 449, native engine identity 0.8.410/build 445. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.
+- Full ARM64 `:app:assembleDebug :app:assembleSliceTestAndroidTest :app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` succeeded in 18m03s. APK `OrkanSlicer_5ec59ef50f.apk`, 239,654,253 bytes, SHA-256 `55A8490808D4C7D8DD69015D3A6D4569653CF6160FDF17F3DF76455DDCD95ED4`. `aapt` verified package `com.codemastercody3d.orcaslicermobile`, version 0.8.414/code 449, and ABI `arm64-v8a`.
+- Ported OrcaSlicer `7125a546b`: engine-derived automatic filament mapping is removed from the config diff when the normalized mapping is reapplied, avoiding unnecessary invalidation of G-code after slicing. The upstream Catch2 regression is not part of the Android test harness. Instrumentation APK compilation succeeded, but `adb devices` had no connected device; no end-to-end slice or printer behavior is claimed.
+- APK is debug-signed and experimental. The Orca 2.5 engine lock remains unchanged; this is a selective backport, not a complete engine migration.
+
 ## Nightly 2.5 experimental APK — 2026-10-30 — 0.8.413
 
 - Code commit `e722cf6612426bc97ff4764c338fb439131cfbcf`, native core identity 0.8.409 / build 444, app version 0.8.413 / code 448. Debug JVM: 686/686; Slice JVM: 686/686; no failures, errors, or skips.

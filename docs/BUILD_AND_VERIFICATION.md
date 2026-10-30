@@ -1,3 +1,10 @@
+# OrkanSlicer Nightly 2.5 — automatic filament-map invalidation fix — 2026-10-30
+
+- App/code commit `5ec59ef50fdbf0768525a3859062a32c5e7a2f81`; app 0.8.414/code 449; native engine identity 0.8.410/build 445.
+- Full ARM64 build and instrumentation APK compilation succeeded with `:app:assembleDebug :app:assembleSliceTestAndroidTest :app:testDebugUnitTest :app:testSliceTestUnitTest --no-daemon` (18m03s). Debug JVM: 686/686; Slice JVM: 686/686; 0 failures/errors/skips.
+- APK `OrkanSlicer_5ec59ef50f.apk`, 239,654,253 bytes, SHA-256 `55A8490808D4C7D8DD69015D3A6D4569653CF6160FDF17F3DF76455DDCD95ED4`. `aapt` confirmed application ID, 0.8.414/code 449, and `arm64-v8a`.
+- Orca `7125a546b` derived-map diff behavior is selectively ported. APK is debug-signed. No ADB device was connected, so instrumentation, fixed-fixture slicing, and printer acceptance were not tested. The engine remains a selective Android port, not the complete Orca 2.5 core.
+
 # OrkanSlicer Nightly 2.5 — per-filament lift G-code fix — 2026-10-30
 
 - Code commit `e722cf6612426bc97ff4764c338fb439131cfbcf`; app 0.8.413/code 448, native engine identity 0.8.409/build 444. Orca change `98b539c3e6b44e87bbde950e26d1b23c66691a0a` was adapted to the Android fork: `GCode::travel_to` and `GCode::retract` now read the active filament's threshold/enforcement, and `GCodeWriter` reads lift boundaries and Z-hop by filament ID. Filament profile import and UI now also include lift enforcement.
