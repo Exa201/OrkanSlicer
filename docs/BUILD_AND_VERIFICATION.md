@@ -2,7 +2,8 @@
 
 - Code commit `92648a381a028eba983f795d8f796b1426f317df`; package 0.8.412 / code 447. Debug and Slice JVM suites: 686/686 each, no failures, errors, or skips.
 - `:app:assembleDebug :app:assembleSliceTestAndroidTest --no-daemon` passed, compiling the native ARM64 engine, app, slice tests, and instrumentation APK. APK `OrkanSlicer_92648a381a.apk`, 239,653,706 bytes, SHA-256 `A31D2986C10E0AE52CB6AB738E69751608C13B155C1CC17935E6CC348E647EEC`; `aapt` verified package/version/ABI. APK is debug-signed.
-- Ported same-filament AMS preset preservation and Qidi initial-tool filename selection; the Qidi profile regression test passed. The AMS behavior was not exercised on hardware. No device, slicing fixture, multicolor G-code, printer upload, or physical printer was tested; no actual print was started.
+- Ported same-filament AMS preset preservation and Qidi initial-tool filename selection; the Qidi profile regression test passed. The AMS behavior was not exercised on hardware. No phone was connected; available AVDs are x86_64 but the APK is arm64-v8a only. No slicing fixture, multicolor G-code, printer upload, or physical printer was tested; no actual print was started.
+- Published as [v0.8.412-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.412-nightly.1); the release tag points to the Nightly 2.5 source branch.
 - This is a selective Orca 2.5 port, not the complete updated core.
 
 # OrkanSlicer Nightly 2.5 — experimental selective backport — 2026-10-30
