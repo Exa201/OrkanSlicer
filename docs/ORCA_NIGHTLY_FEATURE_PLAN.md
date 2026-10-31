@@ -242,3 +242,11 @@ Die bestehenden 13 OpenEYE-Prozessprofile übernehmen nun die Werte aus Orcas ak
 Der bestehende `orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice`-Ende-zu-Ende-Test prüft diese Werte für alle 13 Prozessprofile, kontrolliert die generierte native Konfiguration und slicet anschließend auf dem 0,4-mm-Profil. Extrusions-G-Code und `START_PRINT` bleiben vorhanden. API 35 und API 36 bestanden je 1/1.
 
 Der zweite Nightly-Batch steht jetzt bei **8/10**. Zwei weitere geprüfte Produktänderungen sind erforderlich, bevor die APK gebaut und als Nightly-Prerelease veröffentlicht wird.
+
+## Orca `efd65b733` — OpenEYE modellbezogene G-Code-Dateinamen (2026-10-31)
+
+Alle 13 OpenEYE-Prozessprofile verwenden jetzt Orcas Dateinamentemplate mit Modellname (oder STL-Basisname als Fallback), optionalem Plattennamen, Materialtyp und Druckzeit. OrkanSlicer übernimmt den resultierenden nativen empfohlenen Dateinamen für Senden/Export bereits über `GCodeProcessorResult.getRecommendedName()`; daher wirkt die Profiländerung unmittelbar auf den Nutzerpfad.
+
+Der instrumentierte OpenEYE-Slice prüft den tatsächlichen empfohlenen Namen: Modellbasis vorhanden, Material `PLA`, nichtleerer Druckzeitanteil, `.gcode`-Endung und keine ungelösten Platzhalter. Zusätzlich müssen Extrusionswege und `START_PRINT` bestehen bleiben. API 35 und API 36 bestanden je 1/1.
+
+Der zweite Nightly-Batch steht damit bei **9/10**. Eine weitere abgeschlossene Änderung vor dem nächsten APK-/Nightly-Prerelease-Build.

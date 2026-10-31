@@ -73,6 +73,7 @@ class NativeSliceDeviceTest {
                 assertEquals("10", openEyeProcess["seam_slope_min_length"])
                 assertEquals("10%", openEyeProcess["seam_slope_start_height"])
                 assertEquals("0.15", openEyeProcess["support_ironing_spacing"])
+                assertTrue(requireNotNull(openEyeProcess["filename_format"]).contains("{filament_type[initial_tool]}"))
             }
             val filament = requireNotNull(config.findFilament("Generic PLA"))
             config.presets = ConfigObject("presets").apply {
@@ -95,6 +96,15 @@ class NativeSliceDeviceTest {
                 val gcode = output.readText()
                 assertHasExtrusion(gcode)
                 assertTrue("The OpenEYE profile must retain its configured start macro", gcode.contains("START_PRINT"))
+                val recommendedName = sliceResult.getRecommendedName()
+                assertTrue("The recommended filename must begin with the imported model name: $recommendedName",
+                    recommendedName.startsWith("openeye-peacock-v2-cube"))
+                assertTrue("The recommended filename must include material and print time: $recommendedName",
+                    recommendedName.contains("_PLA_") && recommendedName.endsWith(".gcode"))
+                assertTrue("The recommended filename must include a non-empty print-time value: $recommendedName",
+                    recommendedName.substringAfter("_PLA_").removeSuffix(".gcode").isNotBlank())
+                assertFalse("The recommended name must not contain unresolved placeholders: $recommendedName",
+                    recommendedName.contains('{') || recommendedName.contains('}'))
             } finally {
                 sliceResult.release()
             }
