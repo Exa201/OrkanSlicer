@@ -50,6 +50,8 @@ class Native {
     @JvmStatic
     external fun glmodel_init_from_model_object(ptr: Long, model: Long, i: Int): Unit
     @JvmStatic
+    external fun glmodel_init_from_model_object_volume(ptr: Long, model: Long, objectIndex: Int, volumeIndex: Int): Unit
+    @JvmStatic
     external fun glmodel_init_from_model_object_preview(ptr: Long, model: Long, i: Int, maxTriangles: Int): Unit
     @JvmStatic
     external fun glmodel_init_raycast_data(ptr: Long): Boolean
@@ -112,6 +114,18 @@ class Native {
     external fun model_get_object_name(ptr: Long, i: Int): String
     @JvmStatic
     external fun model_get_object_part_count(ptr: Long, i: Int): Int
+    @JvmStatic
+    external fun model_add_modifier_box(ptr: Long, objectIndex: Int, type: Int, x: Double, y: Double, z: Double, width: Double, depth: Double, height: Double): Int
+    @JvmStatic
+    external fun model_get_modifier_volume_indices(ptr: Long, objectIndex: Int): IntArray
+    @JvmStatic
+    external fun model_get_modifier_volume_box_state(ptr: Long, objectIndex: Int, volumeIndex: Int): DoubleArray
+    @JvmStatic
+    external fun model_update_modifier_box(ptr: Long, objectIndex: Int, volumeIndex: Int, x: Double, y: Double, z: Double, width: Double, depth: Double, height: Double): Boolean
+    @JvmStatic
+    external fun model_get_volume_type(ptr: Long, objectIndex: Int, volumeIndex: Int): Int
+    @JvmStatic
+    external fun model_delete_volume(ptr: Long, objectIndex: Int, volumeIndex: Int): Boolean
     @JvmStatic
     external fun model_get_object_part_extruder(ptr: Long, objectIndex: Int, partIndex: Int): Int
     @JvmStatic

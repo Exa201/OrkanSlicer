@@ -1499,4 +1499,20 @@
     <string name="WorkspaceFilamentButtonDescription">Model filament colors, %1$d slots</string>
     <string name="WorkspaceToolsOpen">Tool menu open</string>
     <string name="WorkspaceToolsClosed">Tool menu closed</string>
+    <string name="ModelMenuModifiers">Modifier volumes</string>
+    <string name="ModelModifiersHelp">Add Orca-compatible volumes to the selected object. They remain separate volumes and are saved with the project.</string>
+    <string name="ModelModifierNegative">Negative volume</string>
+    <string name="ModelModifierParameter">Parameter modifier</string>
+    <string name="ModelModifierSupportBlocker">Support blocker</string>
+    <string name="ModelModifierSupportEnforcer">Support enforcer</string>
+    <string name="ModelModifierAddBox">Add box</string>
+    <string name="ModelModifierExisting">Existing modifiers</string>
+    <string name="ModelModifierPosition">Position X / Y / Z (mm)</string>
+    <string name="ModelModifierSize">Size X / Y / Z (mm)</string>
+    <string name="ModelModifierAdded">Modifier volume added</string>
+    <string name="ModelModifierRemoved">Modifier volume removed</string>
+    <string name="ModelModifierDelete">Remove</string>
+    <string name="ModelModifierEdit">Edit</string>
+    <string name="ModelModifierSaveChanges">Save changes</string>
+    <string name="ModelModifierInvalid">Enter valid coordinates and sizes between 0.2 and 500 mm.</string>
 </resources>

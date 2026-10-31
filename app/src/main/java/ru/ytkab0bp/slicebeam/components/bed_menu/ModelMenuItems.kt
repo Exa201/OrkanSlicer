@@ -53,6 +53,9 @@ internal class ModelMenuItems(
                     fragment.splitSelectedObjectInternal(snapshot)
                 }
             }, enabled = availability.hasSelectedObject),
+            BedComposeMenuAction(R.string.ModelMenuModifiers, R.drawable.square_stack_up_outline_28, { anchor ->
+                showModifierVolumesDialog(anchor, currentSelection.selectedObject)
+            }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.view_in_ar_24, { anchor ->
                 val activeGlView = fragment.glView ?: return@BedComposeMenuAction
                 captureSelectionSnapshot(activeGlView) { snapshot ->
@@ -516,6 +519,83 @@ internal class ModelMenuItems(
                                                 NeedSnackbarEvent(message)
                                             },
                                         )
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    private fun showModifierVolumesDialog(anchor: android.view.View, objectIndex: Int) {
+        val glView = fragment.glView ?: return
+        glView.queueEvent {
+            val renderer = glView.renderer
+            val model = renderer.model
+            if (model == null || objectIndex !in 0 until model.objectsCount || renderer.selectedObject != objectIndex) return@queueEvent
+            val modelRevision = model.geometryRevision
+            val objectCount = model.objectsCount
+            val existing = model.getModifierVolumeIndices(objectIndex).asSequence()
+                .mapNotNull { model.getModifierVolumeBoxState(objectIndex, it) }.toList()
+            ViewUtils.postOnMainThread {
+                if (!fragment.canShowWorkspaceComposeDialog()) return@postOnMainThread
+                fragment.showWorkspaceComposeDialog { dismiss ->
+                    ModelModifierVolumesDialog(
+                        existing = existing,
+                        onDismiss = dismiss,
+                        onAdd = { type, position, size ->
+                            dismiss()
+                            glView.queueEvent {
+                                val activeRenderer = glView.renderer
+                                val activeModel = activeRenderer.model
+                                if (activeModel !== model || activeModel.objectsCount != objectCount ||
+                                    activeModel.geometryRevision != modelRevision || activeRenderer.selectedObject != objectIndex) return@queueEvent
+                                val volumeIndex = activeModel.addModifierBox(
+                                    objectIndex, type, position[0], position[1], position[2], size[0], size[1], size[2],
+                                )
+                                if (volumeIndex >= 0) {
+                                    activeRenderer.resetGlModels()
+                                    activeRenderer.setSelectedObject(objectIndex, false)
+                                    glView.requestRender()
+                                    fragment.updateModelOnGlThread()
+                                    ViewUtils.postOnMainThread {
+                                        Toast.makeText(anchor.context, R.string.ModelModifierAdded, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        },
+                        onUpdate = { volumeIndex, position, size ->
+                            dismiss()
+                            glView.queueEvent {
+                                val activeRenderer = glView.renderer
+                                val activeModel = activeRenderer.model
+                                if (activeModel !== model || activeModel.objectsCount != objectCount ||
+                                    activeModel.geometryRevision != modelRevision || activeRenderer.selectedObject != objectIndex) return@queueEvent
+                                if (activeModel.updateModifierBox(
+                                        objectIndex, volumeIndex, position[0], position[1], position[2], size[0], size[1], size[2],
+                                    )) {
+                                    activeRenderer.resetGlModels()
+                                    glView.requestRender()
+                                    fragment.updateModelOnGlThread()
+                                }
+                            }
+                        },
+                        onDelete = { volumeIndex ->
+                            dismiss()
+                            glView.queueEvent {
+                                val activeRenderer = glView.renderer
+                                val activeModel = activeRenderer.model
+                                if (activeModel !== model || activeModel.objectsCount != objectCount ||
+                                    activeModel.geometryRevision != modelRevision || activeRenderer.selectedObject != objectIndex) return@queueEvent
+                                if (activeModel.deleteModifierVolume(objectIndex, volumeIndex)) {
+                                    activeRenderer.resetGlModels()
+                                    activeRenderer.setSelectedObject(objectIndex, false)
+                                    glView.requestRender()
+                                    fragment.updateModelOnGlThread()
+                                    ViewUtils.postOnMainThread {
+                                        Toast.makeText(anchor.context, R.string.ModelModifierRemoved, Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }

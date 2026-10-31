@@ -751,6 +751,117 @@ extern "C" {
         return count;
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1modifier_1box(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint type, jdouble x, jdouble y, jdouble z,
+        jdouble width, jdouble depth, jdouble height) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() ||
+            type < static_cast<int>(ModelVolumeType::NEGATIVE_VOLUME) || type > static_cast<int>(ModelVolumeType::SUPPORT_ENFORCER) ||
+            !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) ||
+            !std::isfinite(width) || !std::isfinite(depth) || !std::isfinite(height) ||
+            std::fabs(x) > 10000.0 || std::fabs(y) > 10000.0 || std::fabs(z) > 10000.0 ||
+            width < 0.2 || width > 500.0 || depth < 0.2 || depth > 500.0 || height < 0.2 || height > 500.0)
+            return -1;
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr) return -1;
+        TriangleMesh mesh = make_cube(width, depth, height);
+        // Orca stores modifier transforms around the volume's local center. Center the mesh at
+        // creation time so 3MF load/save does not shift a corner-origin box by half its size.
+        mesh.translate(Vec3f(float(-width * 0.5), float(-depth * 0.5), float(-height * 0.5)));
+        ModelVolume* volume = object->add_volume(std::move(mesh), static_cast<ModelVolumeType>(type), false);
+        if (volume == nullptr) return -1;
+        volume->set_offset(Vec3d(x + width * 0.5, y + depth * 0.5, z + height * 0.5));
+        volume->name = type == static_cast<int>(ModelVolumeType::NEGATIVE_VOLUME) ? "Negative volume" :
+            type == static_cast<int>(ModelVolumeType::PARAMETER_MODIFIER) ? "Parameter modifier" :
+            type == static_cast<int>(ModelVolumeType::SUPPORT_BLOCKER) ? "Support blocker" : "Support enforcer";
+        return static_cast<jint>(object->volumes.size() - 1);
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1modifier_1volume_1indices(
+        JNIEnv* env, jclass, jlong ptr, jint object_index) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        std::vector<jint> indices;
+        if (model != nullptr && object_index >= 0 && static_cast<size_t>(object_index) < model->model.objects.size()) {
+            const ModelObject* object = model->model.objects[object_index];
+            if (object != nullptr) for (size_t i = 0; i < object->volumes.size(); ++i) {
+                const ModelVolume* volume = object->volumes[i];
+                if (volume != nullptr && volume->type() != ModelVolumeType::MODEL_PART && volume->mesh().facets_count() >= 3)
+                    indices.push_back(static_cast<jint>(i));
+            }
+        }
+        jintArray result = env->NewIntArray(static_cast<jsize>(indices.size()));
+        if (result != nullptr && !indices.empty()) env->SetIntArrayRegion(result, 0, static_cast<jsize>(indices.size()), indices.data());
+        return result;
+    }
+
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1modifier_1volume_1box_1state(
+        JNIEnv* env, jclass, jlong ptr, jint object_index, jint volume_index) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || volume_index < 0 ||
+            static_cast<size_t>(object_index) >= model->model.objects.size()) return nullptr;
+        const ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || static_cast<size_t>(volume_index) >= object->volumes.size() || object->volumes[volume_index] == nullptr ||
+            object->volumes[volume_index]->type() == ModelVolumeType::MODEL_PART) return nullptr;
+        const ModelVolume* volume = object->volumes[volume_index];
+        const BoundingBoxf3 bounds = volume->mesh().bounding_box();
+        const Vec3d geometry_size = (bounds.max - bounds.min).cast<double>().cwiseProduct(volume->get_scaling_factor()).cwiseAbs();
+        const Vec3d center = volume->get_offset();
+        const jdouble values[6] = {
+            center.x() - geometry_size.x() * 0.5, center.y() - geometry_size.y() * 0.5, center.z() - geometry_size.z() * 0.5,
+            geometry_size.x(), geometry_size.y(), geometry_size.z(),
+        };
+        jdoubleArray result = env->NewDoubleArray(6);
+        if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 6, values);
+        return result;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1update_1modifier_1box(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint volume_index,
+        jdouble x, jdouble y, jdouble z, jdouble width, jdouble depth, jdouble height) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || volume_index < 0 ||
+            static_cast<size_t>(object_index) >= model->model.objects.size() ||
+            !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) ||
+            !std::isfinite(width) || !std::isfinite(depth) || !std::isfinite(height) ||
+            std::fabs(x) > 10000.0 || std::fabs(y) > 10000.0 || std::fabs(z) > 10000.0 ||
+            width < 0.2 || width > 500.0 || depth < 0.2 || depth > 500.0 || height < 0.2 || height > 500.0)
+            return JNI_FALSE;
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || static_cast<size_t>(volume_index) >= object->volumes.size() || object->volumes[volume_index] == nullptr)
+            return JNI_FALSE;
+        ModelVolume* volume = object->volumes[volume_index];
+        if (volume->type() == ModelVolumeType::MODEL_PART) return JNI_FALSE;
+        const BoundingBoxf3 bounds = volume->mesh().bounding_box();
+        const Vec3d base_size = (bounds.max - bounds.min).cast<double>();
+        if (!base_size.allFinite() || (base_size.array() <= 1e-9).any()) return JNI_FALSE;
+        volume->set_offset(Vec3d(x + width * 0.5, y + depth * 0.5, z + height * 0.5));
+        volume->set_scaling_factor(Vec3d(width / base_size.x(), depth / base_size.y(), height / base_size.z()));
+        return JNI_TRUE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1delete_1volume(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint volume_index) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() || volume_index < 0)
+            return JNI_FALSE;
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || static_cast<size_t>(volume_index) >= object->volumes.size() ||
+            object->volumes[volume_index] == nullptr || object->volumes[volume_index]->type() == ModelVolumeType::MODEL_PART)
+            return JNI_FALSE;
+        object->delete_volume(volume_index);
+        return JNI_TRUE;
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1volume_1type(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint volume_index) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || volume_index < 0 ||
+            static_cast<size_t>(object_index) >= model->model.objects.size()) return -1;
+        const ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || static_cast<size_t>(volume_index) >= object->volumes.size() || object->volumes[volume_index] == nullptr) return -1;
+        return static_cast<jint>(object->volumes[volume_index]->type());
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1part_1extruder(
         JNIEnv*, jclass, jlong ptr, jint object_index, jint part_index) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
@@ -2866,6 +2977,21 @@ extern "C" {
         std::lock_guard<std::mutex> lock(ref->picking_mutex);
         ref->raycast_tree.reset();
         ref->mesh = mRef->model.objects[i]->mesh();
+        ref->model.init_from(ref->mesh.its);
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1init_1from_1model_1object_1volume(
+        JNIEnv*, jclass, jlong ptr, jlong model, jint object_index, jint volume_index) {
+        GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        ModelRef* model_ref = (ModelRef*) (intptr_t) model;
+        if (ref == nullptr || model_ref == nullptr || object_index < 0 || volume_index < 0 ||
+            static_cast<size_t>(object_index) >= model_ref->model.objects.size()) return;
+        ModelObject* object = model_ref->model.objects[object_index];
+        if (object == nullptr || static_cast<size_t>(volume_index) >= object->volumes.size() || object->volumes[volume_index] == nullptr) return;
+        std::lock_guard<std::mutex> lock(ref->picking_mutex);
+        ref->raycast_tree.reset();
+        ref->mesh = object->volumes[volume_index]->mesh();
+        ref->mesh.transform(object->volumes[volume_index]->get_matrix());
         ref->model.init_from(ref->mesh.its);
     }
 

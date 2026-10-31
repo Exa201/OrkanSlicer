@@ -12,6 +12,13 @@ import java.nio.charset.StandardCharsets
 import java.util.ArrayList
 import java.util.UUID
 
+data class ModifierVolumeBoxState(
+    val volumeIndex: Int,
+    val type: Int,
+    val position: DoubleArray,
+    val size: DoubleArray,
+)
+
 /** Java-compatible wrapper for an Orca model owned by the native slicer. */
 open class Model private constructor(@JvmField var pointer: Long) {
     @JvmField
@@ -200,6 +207,42 @@ open class Model private constructor(@JvmField var pointer: Long) {
     /** Number of printable mesh parts (volumes) represented by one object-list entry. */
     open fun getObjectPartCount(i: Int): Int =
         if (!hasObject(i)) 0 else Native.model_get_object_part_count(pointer, i)
+
+    /** Adds an Orca-compatible modifier volume to the selected model object. Type: 1 negative, 2 parameter, 3 support blocker, 4 support enforcer. */
+    open fun addModifierBox(objectIndex: Int, type: Int, x: Double, y: Double, z: Double, width: Double, depth: Double, height: Double): Int {
+        if (!hasObject(objectIndex) || type !in 1..4) return -1
+        if (listOf(x, y, z, width, depth, height).any { !it.isFinite() }) return -1
+        val index = Native.model_add_modifier_box(pointer, objectIndex, type, x, y, z, width, depth, height)
+        if (index >= 0) resetBoundingBox()
+        return index
+    }
+
+    open fun getModifierVolumeIndices(objectIndex: Int): IntArray =
+        if (!hasObject(objectIndex)) intArrayOf() else Native.model_get_modifier_volume_indices(pointer, objectIndex)
+
+    open fun getVolumeType(objectIndex: Int, volumeIndex: Int): Int =
+        if (!hasObject(objectIndex) || volumeIndex < 0) -1 else Native.model_get_volume_type(pointer, objectIndex, volumeIndex)
+
+    open fun getModifierVolumeBoxState(objectIndex: Int, volumeIndex: Int): ModifierVolumeBoxState? {
+        if (!hasObject(objectIndex) || volumeIndex < 0) return null
+        val values = Native.model_get_modifier_volume_box_state(pointer, objectIndex, volumeIndex)
+        if (values.size != 6 || values.any { !it.isFinite() }) return null
+        return ModifierVolumeBoxState(volumeIndex, getVolumeType(objectIndex, volumeIndex), values.copyOfRange(0, 3), values.copyOfRange(3, 6))
+    }
+
+    open fun updateModifierBox(objectIndex: Int, volumeIndex: Int, x: Double, y: Double, z: Double, width: Double, depth: Double, height: Double): Boolean {
+        if (!hasObject(objectIndex) || volumeIndex < 0 || listOf(x, y, z, width, depth, height).any { !it.isFinite() }) return false
+        val updated = Native.model_update_modifier_box(pointer, objectIndex, volumeIndex, x, y, z, width, depth, height)
+        if (updated) resetBoundingBox()
+        return updated
+    }
+
+    open fun deleteModifierVolume(objectIndex: Int, volumeIndex: Int): Boolean {
+        if (!hasObject(objectIndex) || volumeIndex < 0) return false
+        val removed = Native.model_delete_volume(pointer, objectIndex, volumeIndex)
+        if (removed) resetBoundingBox()
+        return removed
+    }
 
     /** One-based filament for the zero-based printable part index, ignoring modifier volumes. */
     open fun getObjectPartExtruder(objectIndex: Int, partIndex: Int): Int =

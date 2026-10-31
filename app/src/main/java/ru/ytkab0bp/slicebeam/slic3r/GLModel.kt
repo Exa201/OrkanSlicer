@@ -36,6 +36,12 @@ open class GLModel internal constructor(
         Native.glmodel_init_from_model_object(pointer, model.pointer, i)
     }
 
+    @Synchronized
+    open fun initFromVolume(model: Model, objectIndex: Int, volumeIndex: Int) {
+        clearPicking()
+        Native.glmodel_init_from_model_object_volume(pointer, model.pointer, objectIndex, volumeIndex)
+    }
+
     /** Initialize the full-resolution mesh and a precise raycast tree for an active paint session. */
     @Synchronized
     open fun initForPaint(model: Model, i: Int): Boolean {

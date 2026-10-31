@@ -36,6 +36,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectPartTransformDialog
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectsDialog
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectRow
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectPartRow
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelModifierVolumesDialog
 import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
 import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -51,6 +52,97 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun modifierVolumeDialogCreatesTypedBoxWithMillimeterInputs() {
+        val created = AtomicReference<Triple<Int, List<Double>, List<Double>>?>(null)
+        compose.setContent {
+            BeamComposeTheme {
+                ModelModifierVolumesDialog(
+                    existing = emptyList(), onDismiss = {},
+                    onAdd = { type, position, size -> created.set(Triple(type, position.toList(), size.toList())) },
+                    onUpdate = { _, _, _ -> },
+                    onDelete = {},
+                )
+            }
+        }
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        compose.onNodeWithText(context.getString(R.string.ModelModifierNegative)).performClick()
+        compose.onNodeWithText(context.getString(R.string.ModelModifierAddBox)).performClick()
+        assertEquals(Triple(1, listOf(0.0, 0.0, 0.0), listOf(10.0, 10.0, 10.0)), created.get())
+    }
+
+    @Test fun nativeModifierVolumesCanBeCreatedRemovedAndRoundTripThroughThreeMf() {
+        val modelFile = copyAsset("models/xyz_cube.stl", "modifier-volume-source.stl")
+        val projectFile = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "modifier-volume-roundtrip.3mf")
+        val model = Model(modelFile)
+        var reloaded: Model? = null
+        var undoSnapshot: Model? = null
+        var redoSnapshot: Model? = null
+        try {
+            val negative = model.addModifierBox(0, 1, 2.0, 3.0, 1.0, 4.0, 5.0, 6.0)
+            val blocker = model.addModifierBox(0, 3, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0)
+            assertTrue("native box volumes should be appended", negative >= 0 && blocker > negative)
+            assertEquals(listOf(negative, blocker), model.getModifierVolumeIndices(0).toList())
+            assertEquals(1, model.getVolumeType(0, negative))
+            assertEquals(3, model.getVolumeType(0, blocker))
+            val initialBox = requireNotNull(model.getModifierVolumeBoxState(0, negative))
+            assertEquals(listOf(2.0, 3.0, 1.0), initialBox.position.toList())
+            assertEquals(listOf(4.0, 5.0, 6.0), initialBox.size.toList())
+            assertTrue("modifier box should be independently editable", model.updateModifierBox(0, negative, -3.0, 4.0, 5.0, 8.0, 9.0, 10.0))
+            val editedBox = requireNotNull(model.getModifierVolumeBoxState(0, negative))
+            assertEquals(listOf(-3.0, 4.0, 5.0), editedBox.position.toList())
+            assertEquals(listOf(8.0, 9.0, 10.0), editedBox.size.toList())
+            undoSnapshot = Model.merge(model)
+            assertTrue("removing a volume should be a reversible model edit", model.deleteModifierVolume(0, blocker))
+            assertEquals(1, model.getModifierVolumeIndices(0).size)
+            redoSnapshot = Model.merge(model)
+            model.replaceContentsFrom(requireNotNull(undoSnapshot))
+            assertEquals("the model snapshot must restore deleted modifier volumes", 2, model.getModifierVolumeIndices(0).size)
+            model.replaceContentsFrom(requireNotNull(redoSnapshot))
+            assertEquals("redo snapshot must restore the deletion", 1, model.getModifierVolumeIndices(0).size)
+            model.replaceContentsFrom(requireNotNull(redoSnapshot))
+            assertEquals("undo snapshot can restore the modifier again", 2, model.getModifierVolumeIndices(0).size)
+            undoSnapshot?.release(); undoSnapshot = null
+            redoSnapshot?.release(); redoSnapshot = null
+            val originalObjectPosition = Vec3d()
+            model.getTranslation(0, originalObjectPosition)
+            val expectedWorldPosition = listOf(
+                originalObjectPosition.x + editedBox.position[0],
+                originalObjectPosition.y + editedBox.position[1],
+                originalObjectPosition.z + editedBox.position[2],
+            )
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, projectFile.absolutePath)
+            reloaded = Model(projectFile)
+            val roundTrip = reloaded.getModifierVolumeIndices(0)
+            assertEquals("the slicer project must retain both modifier volumes", 2, roundTrip.size)
+            assertEquals(1, reloaded.getVolumeType(0, roundTrip[0]))
+            assertEquals(3, reloaded.getVolumeType(0, roundTrip[1]))
+            val savedBox = requireNotNull(reloaded.getModifierVolumeBoxState(0, roundTrip[0]))
+            savedBox.position.zip(listOf(-3.0, 4.0, 5.0)).forEach { (actual, expected) -> assertEquals(expected, actual, 1e-4) }
+            savedBox.size.zip(listOf(8.0, 9.0, 10.0)).forEach { (actual, expected) -> assertEquals(expected, actual, 1e-4) }
+            val reloadedObjectPosition = Vec3d()
+            reloaded.getTranslation(0, reloadedObjectPosition)
+            val savedWorldPosition = listOf(
+                reloadedObjectPosition.x + savedBox.position[0],
+                reloadedObjectPosition.y + savedBox.position[1],
+                reloadedObjectPosition.z + savedBox.position[2],
+            )
+            savedWorldPosition.zip(expectedWorldPosition).forEach { (actual, expected) -> assertEquals(expected, actual, 1e-4) }
+            assertEquals(listOf(8.0, 9.0, 10.0), savedBox.size.toList())
+            assertTrue("volume deletion must reject a printable model part", !reloaded.deleteModifierVolume(0, 0))
+            assertTrue("modifier deletion should succeed", reloaded.deleteModifierVolume(0, roundTrip[0]))
+            assertEquals(1, reloaded.getModifierVolumeIndices(0).size)
+            assertEquals("invalid dimensions must be rejected", -1,
+                reloaded.addModifierBox(0, 2, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0))
+        } finally {
+            reloaded?.release()
+            undoSnapshot?.release()
+            redoSnapshot?.release()
+            model.release()
+            modelFile.delete()
+            projectFile.delete()
+        }
+    }
 
     @Test fun multipartObjectListExposesASeparatePartFilamentAction() {
         val assigned = AtomicReference<Pair<Int, Int>?>(null)

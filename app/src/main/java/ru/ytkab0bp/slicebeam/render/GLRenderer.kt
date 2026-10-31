@@ -26,6 +26,7 @@ import ru.ytkab0bp.slicebeam.slic3r.GLShaderProgram
 import ru.ytkab0bp.slicebeam.slic3r.GLShadersManager
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.ModelMirrorAxis
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
@@ -66,6 +67,8 @@ private var shadersManager: GLShadersManager? = null
 private var backgroundModel: GLModel? = null
 private var selectionModel: GLModel? = null
 private var glModels = ArrayList<GLModel>()
+private data class ModifierPreview(val volumeIndex: Int, val type: Int, val model: GLModel)
+private val modifierPreviews = HashMap<Int, MutableList<ModifierPreview>>()
 var model:Model? = null
 set(model) {
 field = model
@@ -1022,6 +1025,7 @@ if (result !== this.gcodeResult)
 if (result != null) {
     // Retain the editable model, but release its rebuildable GPU meshes before
     // allocating the G-code viewer. Inactive-plate metadata stays available.
+    clearModifierPreviews()
     clearAllCommittedOverlays()
     for (mesh in glModels) mesh.release()
     glModels.clear()
@@ -1244,6 +1248,7 @@ selectionModel!!.reset()
 }
 }
 fun resetGlModels() {
+clearModifierPreviews()
 if (this.model == null) return
 clearAllCommittedOverlays()
 while (glModels.size > this.model!!.objectsCount) glModels.removeAt(glModels.lastIndex).release()
@@ -1257,6 +1262,7 @@ initObjectPreview(glModel, i)
 }
 /** Release mesh buffers that can be rebuilt from the retained native model. */
  fun releaseMeshResources() {
+clearModifierPreviews()
 for (glModel in glModels) glModel.release()
 glModels.clear()
 for (plateModels in inactivePlateGlModels)
@@ -1511,6 +1517,7 @@ val baseFilament = ((if (paintingThis) paintBaseFilamentPreview else null)
 val baseColor = paintPalette.getOrNull(baseFilament) ?: color
 glModel.setColor(ColorUtils.blendARGB(baseColor, Color.WHITE, if (hovering) 0.4f else 0f))
 glModel.render()
+renderModifierVolumes(i, this.model!!, outModelMatrix, left)
 if (!overlays.isEmpty())
 {
 // Painted facets share the object's surface; offset to avoid z-fighting.
@@ -1521,6 +1528,7 @@ for (o in overlays)
 o.model.setColor(ColorUtils.blendARGB(o.color, Color.WHITE, if (hovering) 0.4f else 0f))
 o.model.render()
 }
+
 glPolygonOffset(0f, 0f)
 glDisable(GL_POLYGON_OFFSET_FILL)
 }
@@ -1581,6 +1589,44 @@ if (afterFrameActions.isNotEmpty()) {
     for (action in ready) glView?.postOnAnimation(action)
 }
 }
+/** Draw Orca-compatible negative/modifier/support volumes as translucent overlays on their parent object. */
+private fun renderModifierVolumes(objectIndex: Int, source: Model, objectViewMatrix: DoubleArray, mirrored: Boolean) {
+    var previews = modifierPreviews[objectIndex]
+    if (previews == null) {
+        previews = source.getModifierVolumeIndices(objectIndex).map { volumeIndex ->
+            val preview = GLModel()
+            preview.initFromVolume(source, objectIndex, volumeIndex)
+            ModifierPreview(volumeIndex, Native.model_get_volume_type(source.pointer, objectIndex, volumeIndex), preview)
+        }.toMutableList()
+        modifierPreviews[objectIndex] = previews
+    }
+    if (previews.isEmpty()) return
+    val blendWasEnabled = glIsEnabled(GL_BLEND)
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    val shader = shadersManager!!.get(GLShadersManager.SHADER_GOURAUD_LIGHT)
+    shader.setUniformMatrix4fv("view_model_matrix", objectViewMatrix)
+    shader.setUniformMatrix4fv("projection_matrix", projectionMatrix)
+    shader.setUniform("volume_mirrored", mirrored)
+    for (preview in previews) {
+        val color = when (preview.type) {
+            1 -> Color.argb(125, 239, 83, 80)
+            2 -> Color.argb(125, 255, 193, 7)
+            3 -> Color.argb(125, 66, 165, 245)
+            4 -> Color.argb(125, 102, 187, 106)
+            else -> Color.argb(110, 180, 180, 180)
+        }
+        preview.model.setColor(color)
+        preview.model.render()
+    }
+    if (!blendWasEnabled) glDisable(GL_BLEND)
+}
+
+private fun clearModifierPreviews() {
+    for (previews in modifierPreviews.values) for (preview in previews) preview.model.release()
+    modifierPreviews.clear()
+}
+
 private fun rotatedCutPlaneVector(x:Double, y:Double, z:Double, rotX:Double, rotY:Double):Vec3d {
 val m = DoubleArray(16)
 val `in` = doubleArrayOf(x, y, z, 0.0)
@@ -1968,6 +2014,7 @@ flat.stopUsing()
 fun deleteObject(i:Int):Boolean {
 if (this.model == null) return false
 ru.ytkab0bp.slicebeam.utils.DebugUtils.assertTrue(i >= 0 && i < this.model!!.objectsCount)
+clearModifierPreviews()
 this.model!!.deleteObject(i)
 if (glModels.size > i)
 {

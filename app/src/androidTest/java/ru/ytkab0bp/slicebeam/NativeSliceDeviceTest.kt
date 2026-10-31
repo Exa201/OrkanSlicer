@@ -38,6 +38,73 @@ import java.util.zip.ZipFile
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun modifierVolumesSurviveThreeMfAndChangeNativeSliceOutput() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "modifier-slice-source.stl")
+        val project = File(context.cacheDir, "modifier-slice-roundtrip.3mf")
+        val baselineFile = File(context.cacheDir, "modifier-slice-baseline.gcode")
+        val modifiedFile = File(context.cacheDir, "modifier-slice-modified.gcode")
+        val model = Model(source)
+        var restored: Model? = null
+        var baselineResult: GCodeProcessorResult? = null
+        var modifiedResult: GCodeProcessorResult? = null
+        try {
+            model.setUniformFilament(0, 1)
+            SliceBeam.genCurrentConfig(model)
+            baselineResult = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, baselineFile.absolutePath, null)
+            val baselineExtrusions = baselineFile.readLines().count { it.startsWith("G1") && it.contains(" E") }
+            assertTrue("the baseline test cube should produce extrusion", baselineExtrusions > 0)
+            baselineResult.release()
+            baselineResult = null
+
+            val min = Vec3d(); val max = Vec3d(); val translation = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            model.getTranslation(0, translation)
+            val sizeX = max.x - min.x
+            val sizeY = max.y - min.y
+            val sizeZ = max.z - min.z
+            val cutWidth = sizeX * 0.35
+            val cutDepth = sizeY * 0.35
+            assertTrue("native negative volume is created", model.addModifierBox(
+                0, 1,
+                min.x - translation.x + sizeX * 0.325,
+                min.y - translation.y + sizeY * 0.325,
+                min.z - translation.z - 0.5,
+                cutWidth, cutDepth, sizeZ + 1.0,
+            ) >= 0)
+            assertTrue("native support blocker is created", model.addModifierBox(
+                0, 3,
+                min.x - translation.x + sizeX * 0.1,
+                min.y - translation.y + sizeY * 0.1,
+                min.z - translation.z,
+                sizeX * 0.2, sizeY * 0.2, sizeZ,
+            ) >= 0)
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+
+            restored = Model(project)
+            val modifierVolumes = restored.getModifierVolumeIndices(0)
+            assertEquals("the slice input must retain both modifier types", 2, modifierVolumes.size)
+            assertEquals(1, restored.getVolumeType(0, modifierVolumes[0]))
+            assertEquals(3, restored.getVolumeType(0, modifierVolumes[1]))
+            SliceBeam.genCurrentConfig(restored)
+            modifiedResult = restored.slice(SliceBeam.getCurrentConfigFile().absolutePath, modifiedFile.absolutePath, null)
+            val modifiedGcode = modifiedFile.readLines()
+            assertTrue("modifier project should still produce printable extrusion",
+                modifiedGcode.any { it.startsWith("G1") && it.contains(" E") })
+            val modifiedExtrusions = modifiedGcode.count { it.startsWith("G1") && it.contains(" E") }
+            assertTrue("the negative volume must affect generated toolpaths", modifiedExtrusions != baselineExtrusions)
+        } finally {
+            baselineResult?.release()
+            modifiedResult?.release()
+            restored?.release()
+            model.release()
+            source.delete(); project.delete(); baselineFile.delete(); modifiedFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun physicalExtruderMapReachesNativeSliceAndLayerChangeGcode() = withToolChangerProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)

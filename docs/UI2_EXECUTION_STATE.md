@@ -3257,3 +3257,13 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Noch offen: physische GPU-Leistungsmessung; Renderername ist eine konservative Heuristik und kein gemessener Benchmark. Orca-Portierungsplan: fünf von zehn priorisierten Featuregruppen umgesetzt. Keine APK oder Release in diesem Durchgang.
 - Nächster konkreter Featurepunkt: allgemeine Modifier-Volumen (UI, sichtbare Vorschau, unabhängige Bearbeitung, Undo/Redo, 3MF-Rundlauf und Slice-Nachweis). Änderungen aus diesem Abschnitt sind noch nicht committet.
 
+# Nightly 2.5 — Orca-Funktionsport, Feature 6/10, 2026-10-31
+
+- Nightly-Branch: `nightly-2.5`; Basis-Commit `d82535dabcb287be9ae7eb7b7613ac450c393a54`. Stable-Repository und Stable-App wurden nicht verändert.
+- Feature 6 implementiert: Compose-Aktion „Modifikator-Volumen“ am ausgewählten Objekt; Quader als Negativvolumen, Stützstruktur-Blocker oder Stützerzwinger; Position und Größe bearbeiten; bestehende nicht druckbare Volumen entfernen. Der GLRenderer zeigt die Volumen farbcodiert und transparent über dem Elternobjekt.
+- Kernkorrektur: Der Orca-3MF-Importer akzeptiert jetzt die eigenen serialisierten Volumentyp-Bezeichner (`negative_part`, `support_blocker`, `support_enforcer` usw.). Quader werden zentriert gespeichert, damit Position und Maße beim 3MF-Rundlauf stabil bleiben.
+- Verifikation auf Android-16-ARM64-Emulator: `ModelEditingNativeDeviceTest#modifierVolumeDialogCreatesTypedBoxWithMillimeterInputs` bestanden; `ModelEditingNativeDeviceTest#nativeModifierVolumesCanBeCreatedRemovedAndRoundTripThroughThreeMf` bestanden (einschließlich Editieren, Entfernen, Undo/Redo-Snapshotwechsel, Typ/Position/Größe nach 3MF); `NativeSliceDeviceTest#modifierVolumesSurviveThreeMfAndChangeNativeSliceOutput` bestanden (Slicing des wiedergeladenen 3MF; Negativvolumen verändert Extrusions-Toolpaths, G-Code bleibt druckbar). `:app:compileDebugKotlin` und ARM64-Native-/Instrumentation-Build erfolgreich.
+- Einschränkung: UI erstellt Geometrie-Modifikatoren; frei konfigurierbare Orca-Prozessparameter innerhalb eines Parameter-Modifikators sind ein separater offener Punkt, nicht als implementiert gezählt.
+- Zähler: 6/10 priorisierte Featuregruppen abgeschlossen. Noch keine APK/Release erstellt; Cadence bleibt eine APK nach zehn abgeschlossenen Änderungen.
+- Nächster Featurepunkt: SVG auf Modelloberflächen führen, Tiefe/Vorschau, commit/cancel, Undo/Redo und 3MF-/Slice-Nachweis.
+

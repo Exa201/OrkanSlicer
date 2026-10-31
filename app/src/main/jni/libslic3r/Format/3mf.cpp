@@ -379,6 +379,14 @@ ModelVolumeType type_from_string(const std::string &s)
     // Legacy support
     if (s == "1") return ModelVolumeType::PARAMETER_MODIFIER;
     // New type (supporting the support enforcers & blockers)
+    // Orca's own serializer emits these values from ModelVolume::type_to_string().
+    // Accept them here as well as the descriptive spellings used by other 3MF writers;
+    // otherwise a save/reopen silently turns modifiers into printable model parts.
+    if (s == "normal_part") return ModelVolumeType::MODEL_PART;
+    if (s == "negative_part") return ModelVolumeType::NEGATIVE_VOLUME;
+    if (s == "modifier_part") return ModelVolumeType::PARAMETER_MODIFIER;
+    if (s == "support_enforcer") return ModelVolumeType::SUPPORT_ENFORCER;
+    if (s == "support_blocker") return ModelVolumeType::SUPPORT_BLOCKER;
     if (s == "ModelPart") return ModelVolumeType::MODEL_PART;
     if (s == "NegativeVolume") return ModelVolumeType::NEGATIVE_VOLUME;
     if (s == "ParameterModifier") return ModelVolumeType::PARAMETER_MODIFIER;

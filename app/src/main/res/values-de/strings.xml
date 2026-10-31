@@ -1599,4 +1599,20 @@
     <string name="WorkspaceToolsClosed">Werkzeugmenü geschlossen</string>
     <string name="NavigationScrollMoreBelow">Weitere Navigationspunkte unten</string>
     <string name="NavigationScrollMoreAbove">Weitere Navigationspunkte oben</string>
+    <string name="ModelMenuModifiers">Modifikator-Volumen</string>
+    <string name="ModelModifiersHelp">Füge Orca-kompatible Volumen zum ausgewählten Objekt hinzu. Die Volumen bleiben separat und werden mit dem Projekt gespeichert.</string>
+    <string name="ModelModifierNegative">Negativvolumen</string>
+    <string name="ModelModifierParameter">Parameter-Modifikator</string>
+    <string name="ModelModifierSupportBlocker">Stützstruktur-Blocker</string>
+    <string name="ModelModifierSupportEnforcer">Stützstruktur erzwingen</string>
+    <string name="ModelModifierAddBox">Quader hinzufügen</string>
+    <string name="ModelModifierExisting">Vorhandene Modifikatoren</string>
+    <string name="ModelModifierPosition">Position X / Y / Z (mm)</string>
+    <string name="ModelModifierSize">Größe X / Y / Z (mm)</string>
+    <string name="ModelModifierAdded">Modifikator-Volumen hinzugefügt</string>
+    <string name="ModelModifierRemoved">Modifikator-Volumen entfernt</string>
+    <string name="ModelModifierDelete">Entfernen</string>
+    <string name="ModelModifierEdit">Bearbeiten</string>
+    <string name="ModelModifierSaveChanges">Änderungen speichern</string>
+    <string name="ModelModifierInvalid">Bitte gültige Positionen und Größen zwischen 0,2 und 500 mm eingeben.</string>
 </resources>
