@@ -258,3 +258,17 @@ Der Orca-Platzhalter `{printing_filament_types}` wird jetzt im nativen Slice-Exp
 `NativeSliceDeviceTest#recommendedFilenameListsDistinctFilamentTypesActuallyUsedByThePlate` baut ein zusammengesetztes Zweifilamentmodell, setzt für den Slice kontrolliert `PLA` und `PETG`, prüft echte Extrusion und den nativen empfohlenen Dateinamen und wiederholt den Slice mit zweimal `PLA`, um die Deduplizierung nachzuweisen. API 35 und API 36 bestanden je 1/1. ARM64-Native-Build und Instrumentierungs-Kotlin-Kompilierung bestanden ebenfalls.
 
 Damit ist Batch 2 bei **10/10 fokussiert verifizierten Änderungen**. Vor APK und Nightly-Prerelease laufen jetzt noch die gebündelten Debug-/Slice-JVM-Regressionen; danach folgen APK-Identitäts-/Hashprüfung, Installation und Start auf dem verfügbaren Testemulator sowie Veröffentlichung.
+
+## Orca-Upstream-Funktionsprüfung nach `v0.8.421-nightly.1` — 2026-10-31
+
+Der Upstream-Zeiger wurde bis `1093ff0714e26ca8d81f3d7fe15d782cc047346f` aktualisiert. Die drei neuen Orca-Änderungen wurden gegen aktive Android-Aufrufpfade geprüft:
+
+- `041df4031` verbessert die Anordnung kurzer Modelle bei „Drucken nach Objekt“. Der native Arrange-Kern enthält bereits die nötigen sequenziellen Druckparameter, aber Androids `Native.bed_arrange` erhält aktuell nur Bett und Modell; die aktive Druckkonfiguration wird nicht übergeben. Kein isolierter Kernpatch wird gezählt. Nächster Schritt für diesen Kandidaten: Konfigurationsübergabe über Anordnen, Duplizieren, Bettfüllen und Import auf dem GL-Thread entwerfen und mit echter By-Object-Platzierungs-/Clearance-Regression testen.
+- `c77020e65` behandelt bei Orca unbekannte, aber farblich bekannte Creality-CFS-Spulen. Android besitzt keinen Creality-CFS-Agenten, liest aber ein kompatibles generisches Moonraker-MMU-Schema. Die Anpassung hält ein belegtes Fach mit gültiger Farbe unter seinem physischen Index verfügbar, verwendet sichtbar `Generic PLA` als Orca-Fallback und lässt unbekannte/ungültige Farbe weiterhin durch die bestehende Material-/Uploadwarnung beziehungsweise den Slotfehler absichern. Sie verändert nicht die Zuordnung der übrigen Fächer.
+- `1093ff071` repariert Retry-Zustände der Desktop-`PostProcessor`-/Plugin-Pipeline nach Fehlern. Android registriert keine Desktop-Skripte/Plugins und hat keinen entsprechenden Ausführungspfad; der Fix ist aktuell nicht portierbar.
+
+### Nightly Batch 3 — 1/10
+
+1. Unbekannte geladene MMU-Spule sichtbar und indexstabil halten; Farbformen RGB, RGB+Alpha und Creality `0RRGGBB` parsen. Leere und ungültige Slots bleiben nicht auswählbar; Materialabweichungen bleiben im Zuordnungsdialog erkennbar.
+
+`MmuFilamentSyncDeviceTest` bestand 18/18 auf Android API 35 und 18/18 auf API 36. Abgedeckt sind Slotindex, Farbe, Verfügbarkeit, `Generic PLA`-Fallback, Materialabweichung, leere Fächer und ungültige Farben. Debug-Unit und Slice-Unit bestanden jeweils 705/705 (0 failures, errors oder skips). `git diff --check` bestanden. Keine physische Creality-/Moonraker-Hardware wurde für dieses Paket getestet. Der APK-/Release-Gate wird erst bei 10/10 erreicht.

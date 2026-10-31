@@ -3443,3 +3443,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Batch 2 steht bei **5/10**; noch fünf verifizierte Produktänderungen bis zur nächsten APK. Die frühere 2/10-Angabe war vor Einrechnung der Low-GPU-Vorschau, BenFab und RF50.
 - Letzter Code-HEAD: `6dacbf757` auf `nightly-2.5`, auf `nightly25` gepusht. Letzte veröffentlichte APK bleibt `v0.8.420-nightly.1` auf `0db4f11d3`; aus dem aktuellen HEAD wurde noch keine APK erstellt.
 - Orca-Upstream wurde erneut bis `4045a87b70fc4745d586bda69d844b2e7b09f74e` geholt; seit dem bisherigen Pin enthalten die geprüften Commits Drucker-/Filamentprofile und Übersetzungen, keine neue `src/libslic3r`-Änderung. Nächster konkreter Schritt: geeignete Orca-Änderungen mit aktivem Android-Laufzeitpfad im Backlog prüfen und den nächsten unabhängigen Punkt implementieren und instrumentiert verifizieren. Texture Displacement bleibt ein späterer Kandidat mit noch nötigem ARM64-/RAM-sicherem Mesh-Bake, 3MF-Rundlauf und Slice-Nachweis.
+
+# Nightly 2.5 — aktueller Fortsetzungsstand 2026-10-31
+
+- Releasebasis: `v0.8.421-nightly.1`; Arbeitsbranch `nightly-2.5`, Paket-ID `com.exa201.orkanslicer.nightly25`. Stable-App/Repository unverändert.
+- Neuer Nightly Batch 3: 1/10. Orca `c77020e65` adaptiert: unbekannter, aber farblich bekannter belegter Moonraker-MMU-Slot bleibt mit physischem Index verfügbar, erhält Orcas `Generic PLA`-Fallback und wird über bestehende Materialabweichungsprüfung sichtbar gekennzeichnet. Leere/ungültige Slots bleiben unzuweisbar.
+- Verifikation: `MmuFilamentSyncDeviceTest` 18/18 auf API 35 und 18/18 auf API 36; Debug-Unit 705/705 und Slice-Unit 705/705, jeweils 0 Fehler/Errors/Skips. `git diff --check` erfolgreich.
+- Orca-Upstream aktuell `1093ff0714e26ca8d81f3d7fe15d782cc047346f`. `041df4031` (By-Object-Anordnung kurzer Objekte) bleibt offen, bis die Android-Anordnungsaufrufe die aktive Druckkonfiguration GL-sicher übergeben; `1093ff071` hat keinen Android-PostProcessor-Aufrufpfad.
+- Nächster konkreter Schritt: `Bed3D.arrange`-/JNI-Aufrufketten für manuelles Anordnen, Duplizieren, Bettfüllen und Import auf sichere Konfigurationsübergabe prüfen; dann den Orca-By-Object-Arrange-Fix vollständig oder mit konkreter Inapplicability-Begründung abnehmen. APK erst bei Batch 3 10/10.
+- Letzter Code-Commit vor diesem Teilpaket: `a485000a66a09f00c92430fc55da57baf45748ef`. Die aktuellen MMU-Änderungen und diese Statusnotiz sind noch lokal/uncommitted.

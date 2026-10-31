@@ -29,6 +29,7 @@ class MmuFilamentSync private constructor() {
         private const val CHOICE_GATES = "mmu_choice_gates"
         private const val PALETTE_PRINTER = "mmu_palette_printer"
         private const val PALETTE_GATES = "mmu_palette_gates"
+        private const val UNKNOWN_LOADED_FILAMENT = "Generic PLA"
 
         @JvmStatic
         fun synchronize(printer: ConfigObject, callback: Callback) {
@@ -291,9 +292,9 @@ class MmuFilamentSync private constructor() {
                 return "ACE ${gate + 1}"
             }
             if (statuses.optInt(gate, 0) <= 0) return "ACE ${gate + 1} · leer"
-            val material = materials.optString(gate, "Filament")
-            var rawColor = colors.optString(gate, "")
-            if (rawColor.length >= 6) rawColor = "#${rawColor.substring(0, 6)}"
+            val filament = gateSlots(mmu).getOrNull(gate)
+            val material = filament?.type ?: materials.optString(gate, "Filament")
+            val rawColor = filament?.let { String.format(java.util.Locale.ROOT, "#%06X", it.color and 0xFFFFFF) }.orEmpty()
             return "ACE ${gate + 1} · $material" +
                 (if (TextUtils.isEmpty(rawColor)) "" else " · $rawColor")
         }
@@ -326,30 +327,41 @@ class MmuFilamentSync private constructor() {
                     slots.add(null)
                     continue
                 }
-                val material = materials.optString(gate, "").trim()
-                var color = colors.optString(gate, "").trim()
-                if (material.isEmpty() || material.equals("unknown", ignoreCase = true) || color.isEmpty()
-                ) {
+                val rawMaterial = materials.optString(gate, "").trim()
+                val rawColor = colors.optString(gate, "").trim()
+                val color = parseGateColor(rawColor)
+                val material = rawMaterial.takeUnless {
+                    it.isEmpty() || it.equals("unknown", ignoreCase = true) || it.equals("null", ignoreCase = true)
+                }
+                // Some printer firmware reports a loaded RFID spool's color but cannot identify
+                // its material. Keep the physical gate at its original index and expose it with
+                // Orca's generic PLA fallback; a later material mismatch remains visible to the
+                // normal assignment confirmation flow.
+                if (material == null && color != null) {
+                    slots.add(FilamentSlot(color, UNKNOWN_LOADED_FILAMENT))
+                    continue
+                }
+                if (material == null || color == null) {
                     slots.add(null)
                     continue
                 }
-                if (color.startsWith("#")) color = color.substring(1)
-                if (color.length != 6 && color.length != 8) {
-                    slots.add(null)
-                    continue
-                }
-                if (!color.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) {
-                    slots.add(null)
-                    continue
-                }
-                try {
-                    val rgb = color.substring(0, 6).toLong(16).toInt()
-                    slots.add(FilamentSlot(rgb, material))
-                } catch (_: NumberFormatException) {
-                    slots.add(null)
-                }
+                slots.add(FilamentSlot(color, material))
             }
             return slots
+        }
+
+        /** Accepts RGB, ARGB and Creality's `0RRGGBB` color form. */
+        private fun parseGateColor(raw: String): Int? {
+            var digits = raw.trim().removePrefix("#").removePrefix("0x").removePrefix("0X")
+            if (!digits.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) return null
+            digits = when {
+                digits.length == 6 -> digits
+                digits.length == 7 && digits[0] == '0' -> digits.drop(1)
+                // Keep Moonraker's established eight-digit convention (RGB followed by alpha).
+                digits.length == 8 -> digits.take(6)
+                else -> return null
+            }
+            return digits.toLongOrNull(16)?.toInt()
         }
     }
 }
