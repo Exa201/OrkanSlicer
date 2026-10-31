@@ -42,6 +42,65 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun orcaBlocksRf50SixTenthNozzleKeepsPressureAdvanceAsExecutableGcode() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        val source = copyCube(context, "blocks-rf50-06-profile-cube.stl")
+        val output = File(context.cacheDir, "blocks-rf50-06-profile-cube.gcode")
+        var model: Model? = null
+        try {
+            context.assets.open("orca_profiles/Blocks.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val printer = requireNotNull(config.findPrinter("BLOCKS RF50 0.6 nozzle"))
+            val process = requireNotNull(config.findPrint("0.26mm Standard 0.6 nozzle"))
+            val filament = requireNotNull(config.findFilament("Blocks Generic PLA"))
+            val profileStart = printer["machine_start_gcode"].orEmpty()
+            assertTrue(profileStart.contains("PRINT_START EXTRUDER="))
+            assertTrue(profileStart.contains("\nSET_PRESSURE_ADVANCE ADVANCE=0.046"))
+            assertFalse(profileStart.contains(";SET_PRESSURE_ADVANCE"))
+            config.presets = ConfigObject("presets").apply {
+                put("printer", printer.title)
+                put("print", process.title)
+                put("filament", filament.title)
+            }
+
+            val activeModel = Model(source)
+            model = activeModel
+            activeModel.ensureOnBed(0)
+            val effectiveStart = requireNotNull(
+                SliceBeam.buildCurrentConfigObject(activeModel.requiredFilamentCount)["machine_start_gcode"]
+            )
+            assertTrue(effectiveStart.contains("\nSET_PRESSURE_ADVANCE ADVANCE=0.046"))
+            SliceBeam.genCurrentConfig(activeModel)
+            val sliceResult = activeModel.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null
+            )
+            try {
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                assertTrue("Pressure advance must be emitted as an executable G-code line",
+                    gcode.lineSequence().any { it.trim() == "SET_PRESSURE_ADVANCE ADVANCE=0.046" })
+                assertFalse("Pressure advance must not be swallowed by the preceding comment",
+                    gcode.lineSequence().any { it.contains(";SET_PRESSURE_ADVANCE ADVANCE=0.046") })
+            } finally {
+                sliceResult.release()
+            }
+            Log.i("NativeSliceDeviceTest", "PASS Orca Blocks RF50 0.6 nozzle start G-code")
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun orca25BenFab450NozzleProfilesLoadAndSliceOnTheirConfiguredBed() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
