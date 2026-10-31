@@ -94,7 +94,8 @@ def main() -> None:
         "ProfileConfigLoadWarning.InvalidValue", "ProfileConfigLoadWarning.ValidationUnavailable",
         "MenuFileImportProfilesWarningInvalidValue", "MenuFileImportProfilesWarningValidationUnavailable",
         "MenuFileImportProfilesWarningsTitle", "MenuFileImportProfilesConflictTitle",
-        "MenuFileImportProfilesExisting", "applyImport(true)", "applyImport(false)",
+        "MenuFileImportProfilesExisting", "applyImport(true, selectedProfiles)",
+        "applyImport(false, selectedProfiles)",
         "MenuFileImportProfilesSkipExisting",
     ):
         if import_contract not in profile_import_ui:
@@ -312,7 +313,7 @@ def main() -> None:
     if "resources.displayMetrics" in profile_fragment or "widthPixels" in profile_fragment:
         errors.append("Profile layout still derives its shape from physical display metrics")
     bed_fragment = uncommented(read(JAVA / "fragment/BedFragment.kt"))
-    if "usesCompactPortraitLayout(" not in bed_fragment or "AdaptiveNavigationPolicy.isPortraitWindow(" not in bed_fragment:
+    if "usesCompactPortraitLayout(" not in bed_fragment or "AdaptiveNavigationPolicy.usesCompactPortraitLayout(" not in bed_fragment:
         errors.append("3D workspace layout does not use the shared app-window size policy")
     if "widthPixels < heightPixels" in bed_fragment or "widthPixels / dm.density" in bed_fragment:
         errors.append("3D workspace layout still derives breakpoints from physical display metrics")
@@ -536,7 +537,6 @@ def main() -> None:
         "Slic3rUtils.layerHeightFitsNozzle(",
         "Slic3rUtils.lineWidthFitsNozzle(",
         "seenTitles.add(profile.title.orEmpty())",
-        "MmuFilamentSync.synchronizeAll(printer)",
         "flush_volumes_matrix",
         "wipe_tower_x",
         "wipe_tower_y",
@@ -554,8 +554,8 @@ def main() -> None:
             errors.append(f"Kotlin printer profile screen lost required behavior: {retained_behavior}")
     if "MmuFilamentSync.synchronizeAll(" in printer_fragment:
         errors.append("ACE synchronization must have one entry point in the process screen, not a duplicate printer-screen action")
-    if "MmuFilamentSync.synchronizeAll(printer)" not in process_fragment:
-        errors.append("Process screen must retain the single ACE synchronization entry point")
+    if "MmuFilamentSync.synchronizeAll(printer)" not in bed_fragment:
+        errors.append("Workspace filament palette must retain the single ACE synchronization entry point")
     if "OrcaPrinterSettingsCatalog.leadingCategories()" not in printer_builder or "OrcaPrinterSettingsCatalog.trailingCategories()" not in printer_builder:
         errors.append("Kotlin printer builder does not render both fixed setting groups")
     if "repeat(extruderCount)" not in printer_builder or "extruderCount == 1) -1 else index" not in printer_builder:
@@ -672,7 +672,7 @@ def main() -> None:
         "class SettingsFragment : Fragment()", "ComposeView(ctx)", "BeamComposeTheme",
         "expandedSections by mutableStateOf(emptySet<Int>())", "BeamServerData.isCloudAvailable()",
         "Prefs.setThemeMode(which)", "Prefs.setAccentColor(color)",
-        "SetupActivity.AccentColors.DEFAULT.color", "Prefs.setRenderScale(variants[which])",
+        "SetupActivity.AccentColors.DEFAULT.color", "Prefs.setRenderScaleOverridePercent(percentages[index])",
         "ConverterStorage.createFolderPickerIntent()", "REQUEST_CODE_CONVERTER_ROOT_SETTINGS",
         "SetupActivity.EXTRA_ADD_PRINTER",
         "SetupActivity.EXTRA_ABOUT", "SetupActivity.EXTRA_BOOSTY_ONLY", "SliceBeam.getConfigFile().delete()",
@@ -726,7 +726,7 @@ def main() -> None:
         "createNavigationHost(ctx)", "ComposeView(ctx)", "AdaptiveWorkspaceNavigation(",
         "ViewCompositionStrategy.DisposeOnDetachedFromWindow", "updateSelectedNavigationSlot(",
         "navigationThemeRevision++", "MobileNavigationPolicy.destinations().map { slot ->",
-        "accessibilityLabel = ctx.getString(getSlotNavigationTitle(slot))", "const val SETTINGS_SLOT = 5",
+        "accessibilityLabel = ctx.getString(fullTitle)", "const val SETTINGS_SLOT = 5",
         "AdaptiveNavigationPolicy.navigationRailWidthDp(configuration.fontScale)",
         "lastPrimarySlot", "override fun onBackPressed()", "super.onBackPressed()",
         "fun onConfigurationChanged(configuration: Configuration)",
@@ -739,9 +739,8 @@ def main() -> None:
         errors.append("Adaptive navigation must preserve the active screen while changing layout")
     adaptive_navigation = uncommented(read(JAVA / "ui/navigation/AdaptiveWorkspaceNavigation.kt"))
     for retained_component in (
-        "Row(Modifier.fillMaxWidth().selectableGroup())", "Column(",
-        "Role.Tab", "maxLines = 2", "softWrap = true",
-        "OrkanUiTokens.navigationLabelSize", "accessibilityLabel",
+        "selectableGroup()", "Column(", "Role.Tab", "maxLines = 1",
+        "softWrap = false", "navigationLabelSize", "accessibilityLabel",
     ):
         if retained_component not in adaptive_navigation:
             errors.append(f"Compose adaptive navigation is missing {retained_component}")
@@ -796,7 +795,7 @@ def main() -> None:
         errors.append("Kotlin profile host does not provide the shared option model with edit callbacks")
     if "class OptionElement extends ProfileOptionElement" in profile_host:
         errors.append("Profile option rows are still wrapped in a nested Java type")
-    if "controller.showOptionHelp(context, definition)" not in profile_host:
+    if "controller.showOptionHelp(definition)" not in profile_host:
         errors.append("Orca option help and favorite actions are not routed through the profile filter controller")
     if "ProfileOptionHelpController.show(" not in profile_filter_controller:
         errors.append("Profile filter controller does not delegate Orca option help to Kotlin")
@@ -827,8 +826,8 @@ def main() -> None:
     for compose_contract in (
         "ProfileStringVectorCodec.parse(valueProvider.get().orEmpty())", "ProfileVectorValueValidator.Kind.INTS",
         "ProfilePointValueValidator.Kind.POINT3", "GUIType.I_ENUM_OPEN",
-        "PrinterHostOctoPrint", "PrinterHostMoonr", "ColorChooserSheet(",
-        "ColorChooserSheet.OnColorChosen", 'onChanged.accept(String.format("#%06X", color and 0xFFFFFF))',
+        "PrinterHostOctoPrint", "PrinterHostMoonr", "ComposeProfileColorOption.create(",
+        'onChanged.accept(String.format("#%06X", color and 0xFFFFFF))',
     ):
         if compose_contract not in option_presenter:
             errors.append(f"Kotlin profile option presenter lost a setting type or behavior: {compose_contract}")

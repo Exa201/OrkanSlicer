@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <stdexcept>
 
 #include <thread>
 
@@ -17,6 +18,7 @@
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/Emboss.hpp"
+#include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/MeshBoolean.hpp"
@@ -2044,6 +2046,109 @@ extern "C" {
                 vol->config.set("extruder", surface_extruder);
             vol->name = text;
             obj->invalidate_bounding_box();
+        } catch (const std::exception& e) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+        }
+    }
+
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1emboss_1svg(
+        JNIEnv* env, jclass, jlong ptr, jint object_index, jstring svg_path, jfloat width, jfloat depth,
+        jint operation, jdouble px, jdouble py, jdouble pz, jdouble nx, jdouble ny, jdouble nz) {
+        try {
+            ModelRef* ref = (ModelRef*) (intptr_t) ptr;
+            if (ref == nullptr || svg_path == nullptr || object_index < 0 ||
+                static_cast<size_t>(object_index) >= ref->model.objects.size())
+                throw std::invalid_argument("SVG-Zielmodell ist nicht mehr verfügbar");
+            if (!std::isfinite(width) || width < 0.5f || width > 500.f ||
+                !std::isfinite(depth) || depth < 0.1f || depth > 100.f || operation < 0 || operation > 1 ||
+                !std::isfinite(px) || !std::isfinite(py) || !std::isfinite(pz) ||
+                !std::isfinite(nx) || !std::isfinite(ny) || !std::isfinite(nz))
+                throw std::invalid_argument("SVG-Abmessungen oder Platzierung sind ungültig");
+
+            ModelObject* target = ref->model.objects[object_index];
+            const double normal_length_squared = nx * nx + ny * ny + nz * nz;
+            if (target == nullptr || target->instances.empty() || target->volumes.empty() ||
+                !std::isfinite(normal_length_squared) || normal_length_squared <= 1e-18 ||
+                std::any_of(target->instances.begin(), target->instances.end(), [](const ModelInstance* instance) {
+                    return instance == nullptr;
+                }) || std::any_of(target->volumes.begin(), target->volumes.end(), [](const ModelVolume* volume) {
+                    return volume == nullptr;
+                })) throw std::runtime_error("Das Zielmodell besitzt keine gültige druckbare Oberfläche");
+
+            const char* path_chars = env->GetStringUTFChars(svg_path, JNI_FALSE);
+            if (path_chars == nullptr) return;
+            EmbossShape::SvgFile source_svg{std::string(path_chars)};
+            env->ReleaseStringUTFChars(svg_path, path_chars);
+            NSVGimage* image = init_image(source_svg);
+            if (image == nullptr || !std::isfinite(image->width) || image->width <= 1e-6f)
+                throw std::runtime_error("SVG-Datei kann nicht gelesen oder geparst werden");
+
+            // Convert a 0.05 mm chord error to SVG units, with a defensive upper bound for
+            // unusually large viewBoxes. A huge fixed tolerance collapses curved paths to
+            // coarse polygons, which is especially visible in lettering and logos.
+            const double tessellation_tolerance = std::clamp(
+                static_cast<double>(image->width) * 0.05 / static_cast<double>(width), 0.01, 10.0);
+            NSVGLineParams params(tessellation_tolerance);
+            EmbossShape shape;
+            shape.shapes_with_ids = create_shape_with_ids(*image, params);
+            if (shape.shapes_with_ids.empty())
+                throw std::runtime_error("SVG enthält keine druckbaren Flächen");
+
+            // NanoSVG's parsed width is in millimetres. The engine stores polygon points in
+            // SCALING_FACTOR units, so scaling the projection preserves a user-selected print width.
+            const double scale = static_cast<double>(SCALING_FACTOR) *
+                static_cast<double>(width) / static_cast<double>(image->width);
+            if (!std::isfinite(scale) || scale <= 0.0)
+                throw std::runtime_error("SVG-Breite ist ungültig");
+            ExPolygons outlines = union_with_delta(shape, Emboss::UNION_DELTA, Emboss::UNION_MAX_ITERATIN);
+            if (outlines.empty()) throw std::runtime_error("SVG-Konturen konnten nicht verbunden werden");
+
+            auto project_z = std::make_unique<Emboss::ProjectZ>(static_cast<double>(depth) / scale);
+            Emboss::ProjectScale projection(std::move(project_z), scale);
+            indexed_triangle_set mesh = Emboss::polygons2model(outlines, projection);
+            if (mesh.indices.empty()) throw std::runtime_error("SVG erzeugte kein geschlossenes Prägemodell");
+
+            // Center on the picked point and sink half the depth into the target for a clean
+            // union/subtraction. The SVG's proportions and holes are preserved by native vector geometry.
+            const BoundingBoxf3 mesh_bounds = bounding_box(mesh);
+            const Vec3d center = mesh_bounds.center();
+            its_translate(mesh, Vec3f(static_cast<float>(-center.x()), static_cast<float>(-center.y()),
+                                     static_cast<float>(-depth / 2.0f)));
+
+            Vec3d position(px, py, pz);
+            Vec3d normal(nx, ny, nz);
+            normal.normalize();
+            const Transform3d world_transform = Emboss::create_transformation_onto_surface(position, normal);
+            const std::vector<Transform3d> instances = model_instance_transforms(*target);
+            if (instances.empty()) throw std::runtime_error("Das Zielmodell hat keine platzierte Instanz");
+            size_t instance_index = 0;
+            if (instances.size() > 1) {
+                TriangleMesh target_mesh = target->raw_mesh();
+                if (target_mesh.its.vertices.empty() || target_mesh.its.indices.empty())
+                    throw std::runtime_error("Das Zielmodell hat keine druckbare Oberfläche");
+                AABBMesh raycaster(target_mesh);
+                const BoundingBoxf3 bounds = bounding_box(target_mesh.its);
+                const double ray_distance = std::max(100., 4. * (bounds.max - bounds.min).norm() + 10.);
+                instance_index = find_instance_for_world_surface(instances, raycaster, position, normal, ray_distance);
+                if (instance_index == instances.size())
+                    throw std::runtime_error("Bitte die SVG auf eine sichtbare Modellfläche setzen");
+            }
+            const Transform3d instance_transform = instances[instance_index];
+            const ModelVolumeType volume_type = operation == 0 ?
+                ModelVolumeType::MODEL_PART : ModelVolumeType::NEGATIVE_VOLUME;
+            ModelVolume* volume = target->add_volume(TriangleMesh(std::move(mesh)), volume_type, false);
+            if (volume == nullptr) throw std::runtime_error("SVG konnte dem Zielmodell nicht hinzugefügt werden");
+            volume->set_transformation(Geometry::Transformation(instance_transform.inverse() * world_transform));
+            volume->name = operation == 0 ? "SVG emboss" : "SVG engraving";
+            if (operation == 0) {
+                for (const ModelVolume* part : target->volumes) {
+                    if (part != nullptr && part != volume && part->is_model_part() && part->extruder_id() > 0) {
+                        volume->config.set("extruder", part->extruder_id());
+                        break;
+                    }
+                }
+            }
+            target->invalidate_bounding_box();
         } catch (const std::exception& e) {
             env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
         }

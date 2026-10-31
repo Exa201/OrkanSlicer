@@ -1,13 +1,18 @@
 package ru.ytkab0bp.slicebeam.view
 
 import android.content.Context
+import android.content.ContextWrapper
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.EmbossSurfaceClickedEvent
+import ru.ytkab0bp.slicebeam.events.EmbossSvgSelectedEvent
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.io.File
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /** Keeps emboss event handling and GL mutations outside the Compose presentation. */
 internal class EmbossModeController(
@@ -30,18 +35,26 @@ internal class EmbossModeController(
     @Volatile private var fontFilePath: String? = null
     private val sessionGate = EmbossSessionGate()
     private val eventBridge = EmbossModeEventBridge(::onSurfaceClicked)
+    private val svgSelectionBridge = EmbossSvgSelectionBridge { path ->
+        ViewUtils.postOnMainThread { selectedSvgPath = path }
+    }
+    var selectedSvgPath by mutableStateOf<String?>(null)
+        private set
 
     fun start() {
         if (sessionGate.begin() == null) return
         fontFilePath = resolveFontFile(EmbossFontPreset.ROBOTO_MEDIUM)
         glView.renderer.isStandaloneTextPlacementMode = options.standaloneMode
         SliceBeam.EVENT_BUS.registerListener(eventBridge)
+        SliceBeam.EVENT_BUS.registerListener(svgSelectionBridge)
     }
 
     fun stop() {
         if (!sessionGate.end()) return
         glView.renderer.isStandaloneTextPlacementMode = false
         SliceBeam.EVENT_BUS.unregisterListener(eventBridge)
+        SliceBeam.EVENT_BUS.unregisterListener(svgSelectionBridge)
+        clearSelectedSvg()
     }
 
     fun update(
@@ -55,7 +68,9 @@ internal class EmbossModeController(
         standaloneFilament: Int = 1,
     ) {
         options = EmbossModeOptions.create(
-            parameters = EmbossTextInputValidator.validate(text, size, depth),
+            parameters = EmbossTextInputValidator.validate(
+                text, size, depth, svgMode = selectedSvgPath != null && !standaloneMode,
+            ),
             addMode = addMode,
             standaloneMode = standaloneMode,
             followSurface = followSurface,
@@ -67,6 +82,19 @@ internal class EmbossModeController(
 
     fun availableFontPresets(): List<EmbossFontPreset> =
         EmbossFontPreset.entries.filter { it.isAvailable() }
+
+    fun openSvgPicker() {
+        var current = context
+        while (current is ContextWrapper && current !is ru.ytkab0bp.slicebeam.MainActivity) {
+            current = current.baseContext
+        }
+        (current as? ru.ytkab0bp.slicebeam.MainActivity)?.openSvgEmbossPicker()
+    }
+
+    fun clearSelectedSvg() {
+        selectedSvgPath?.let { File(it).delete() }
+        selectedSvgPath = null
+    }
 
     private fun onSurfaceClicked(event: EmbossSurfaceClickedEvent) {
         val session = sessionGate.current() ?: return
@@ -86,8 +114,9 @@ internal class EmbossModeController(
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.SelectObjectFirst))
             return
         }
+        val svgPath = selectedSvgPath
         val fontPath = fontFilePath
-        if (fontPath == null) {
+        if (svgPath == null && fontPath == null) {
             SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossFailed, "Schriftart konnte nicht geladen werden"))
             return
         }
@@ -100,6 +129,24 @@ internal class EmbossModeController(
             if (!sessionGate.isCurrent(session)) return@queueEvent
             try {
                 val model = glView.renderer.model ?: return@queueEvent
+                if (svgPath != null && !createSeparateObject) {
+                    if (!model.embossSvg(
+                        selectedObject, File(svgPath), safeSize, safeDepth, !editOptions.addMode,
+                        event.position, event.normal,
+                    )) {
+                        ViewUtils.postOnMainThread {
+                            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossSvgInvalidTarget))
+                        }
+                        return@queueEvent
+                    }
+                    glView.renderer.invalidateGlModel(selectedObject)
+                    onModelChanged()
+                    glView.requestRender()
+                    ViewUtils.postOnMainThread {
+                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossSvgSuccess))
+                    }
+                    return@queueEvent
+                }
                 val affectedObject = if (createSeparateObject) {
                     val targetObjectIndex = if (editOptions.followSurface && !event.isBuildPlatePlacement) {
                         event.targetObjectIndex
@@ -107,7 +154,7 @@ internal class EmbossModeController(
                         -1
                     }
                     model.createTextObject(
-                        fontPath, safeText, safeSize, safeDepth, event.position, event.normal,
+                        requireNotNull(fontPath), safeText, safeSize, safeDepth, event.position, event.normal,
                         targetObjectIndex = targetObjectIndex,
                     )
                         .also {
@@ -124,7 +171,7 @@ internal class EmbossModeController(
                         }
                 } else {
                     model.embossText(
-                        selectedObject, fontPath, safeText, safeSize, safeDepth,
+                        selectedObject, requireNotNull(fontPath), safeText, safeSize, safeDepth,
                         if (editOptions.addMode) 0 else 1,
                         event.position, event.normal,
                     )
@@ -149,7 +196,12 @@ internal class EmbossModeController(
                     if (errorMessage?.contains("complete text must fit on the visible model surface") == true) {
                         SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.TextModelSurfaceFitError))
                     } else {
-                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.EmbossFailed, errorMessage))
+                        SliceBeam.EVENT_BUS.fireEvent(
+                            NeedSnackbarEvent(
+                                if (svgPath != null) R.string.EmbossSvgFailed else R.string.EmbossFailed,
+                                errorMessage ?: "",
+                            ),
+                        )
                     }
                 }
             }
@@ -237,13 +289,13 @@ internal object EmbossTextInputValidator {
     data class Result(val value: Parameters?, val error: Error?)
     enum class Error { EMPTY_TEXT, TEXT_TOO_LONG, INVALID_SIZE, INVALID_DEPTH }
 
-    fun validate(text: String, size: String, depth: String): Result {
+    fun validate(text: String, size: String, depth: String, svgMode: Boolean = false): Result {
         val normalizedText = text.trim()
         val error = when {
-            normalizedText.isEmpty() -> Error.EMPTY_TEXT
-            normalizedText.codePointCount(0, normalizedText.length) > MAX_TEXT_CODE_POINTS -> Error.TEXT_TOO_LONG
-            parsePositive(size) == null -> Error.INVALID_SIZE
-            parsePositive(depth) == null -> Error.INVALID_DEPTH
+            !svgMode && normalizedText.isEmpty() -> Error.EMPTY_TEXT
+            !svgMode && normalizedText.codePointCount(0, normalizedText.length) > MAX_TEXT_CODE_POINTS -> Error.TEXT_TOO_LONG
+            !isValidSize(parsePositive(size), svgMode) -> Error.INVALID_SIZE
+            !isValidDepth(parsePositive(depth), svgMode) -> Error.INVALID_DEPTH
             else -> null
         }
         if (error != null) return Result(null, error)
@@ -253,8 +305,18 @@ internal object EmbossTextInputValidator {
         )
     }
 
+    private fun isValidSize(value: Float?, svgMode: Boolean): Boolean = value != null &&
+        if (svgMode) value in SVG_MIN_WIDTH_MM..SVG_MAX_WIDTH_MM else value > 0f
+
+    private fun isValidDepth(value: Float?, svgMode: Boolean): Boolean = value != null &&
+        if (svgMode) value in SVG_MIN_DEPTH_MM..SVG_MAX_DEPTH_MM else value > 0f
+
     private fun parsePositive(value: String): Float? = value.replace(',', '.').toFloatOrNull()
         ?.takeIf { it.isFinite() && it > 0f }
 
     private const val MAX_TEXT_CODE_POINTS = 256
+    private const val SVG_MIN_WIDTH_MM = 0.5f
+    private const val SVG_MAX_WIDTH_MM = 500f
+    private const val SVG_MIN_DEPTH_MM = 0.1f
+    private const val SVG_MAX_DEPTH_MM = 100f
 }

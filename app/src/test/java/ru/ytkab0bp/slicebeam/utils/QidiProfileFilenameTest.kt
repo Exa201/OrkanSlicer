@@ -6,16 +6,20 @@ import org.junit.Test
 import java.io.File
 
 class QidiProfileFilenameTest {
-    @Test
-    fun qidiFilenameUsesTheInitiallySelectedToolInsteadOfAlwaysT0() {
-        val profile = generateSequence(File(System.getProperty("user.dir"))) { it.parentFile }
+    private fun qidiProfile(): String {
+        val profile = generateSequence(File(requireNotNull(System.getProperty("user.dir")))) { it.parentFile }
             .map { File(it, "app/src/main/assets/orca_profiles/Qidi.ini") }
             .firstOrNull(File::isFile)
         assertTrue("Qidi profile asset must be available from the project checkout", profile != null)
+        return requireNotNull(profile).readText()
+    }
 
-        val filenameFormats = requireNotNull(profile).readLines()
+    @Test
+    fun qidiFilenameUsesTheInitiallySelectedToolInsteadOfAlwaysT0() {
+        val filenameFormats = qidiProfile().lineSequence()
             .filter { it.startsWith("output_filename_format =") }
             .filter { it.contains("{filament_type[") }
+            .toList()
 
         assertTrue("Qidi profile should include material-aware output filenames", filenameFormats.isNotEmpty())
         assertFalse(
@@ -26,5 +30,26 @@ class QidiProfileFilenameTest {
             "Qidi material-aware filenames should use the initial active tool",
             filenameFormats.all { it.contains("{filament_type[initial_tool]}") },
         )
+    }
+
+    @Test
+    fun qidiQ2AndQ2cProfilesUseSelectedBedTemperatureAndInitialTool() {
+        val sections = qidiProfile().split(Regex("(?=^\\[)", RegexOption.MULTILINE))
+        val qidiMultiMaterialPrinters = sections.filter { section ->
+            val header = section.lineSequence().firstOrNull().orEmpty()
+            header.startsWith("[printer:Qidi Q2 ") || header.startsWith("[printer:Qidi Q2C ")
+        }
+
+        assertTrue("Qidi Q2/Q2C nozzle variants should be present", qidiMultiMaterialPrinters.size >= 8)
+        qidiMultiMaterialPrinters.forEach { section ->
+            val header = section.lineSequence().first()
+            val startGcode = section.lineSequence()
+                .firstOrNull { it.startsWith("start_gcode =") }
+                .orEmpty()
+            assertTrue("$header must heat the selected plate type", startGcode.contains("BED=[bed_temperature_initial_layer_single]"))
+            assertTrue("$header must set the selected plate temperature", startGcode.contains("M140 S[bed_temperature_initial_layer_single]"))
+            assertTrue("$header must start with the initial model tool", startGcode.contains("T[initial_tool]"))
+            assertTrue("$header must initialize Qidi Box tool mapping", startGcode.contains("INIT_MAPPING_VALUE"))
+        }
     }
 }

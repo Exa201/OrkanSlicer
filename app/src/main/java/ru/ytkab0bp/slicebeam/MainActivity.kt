@@ -361,7 +361,49 @@ return
 }
 if (resultCode == Activity.RESULT_OK)
 {
-if (requestCode == REQUEST_CODE_IMAGE_TO_STL)
+if (requestCode == REQUEST_CODE_EMBOSS_SVG)
+{
+val uri = data?.data
+if (uri != null)
+{
+IOUtils.IO_POOL.submit {
+var copied: File? = null
+try
+{
+val name = "surface-emboss-${UUID.randomUUID()}.svg"
+val destination = File(SliceBeam.getModelCacheDir(), name)
+copied = destination
+val input = contentResolver.openInputStream(uri)
+    ?: throw FileNotFoundException("Die ausgewählte SVG-Datei ist nicht lesbar.")
+input.use { source ->
+destination.outputStream().use { output ->
+val buffer = ByteArray(8192)
+var total = 0L
+while (true)
+{
+val read = source.read(buffer)
+if (read < 0) break
+total += read
+if (total > 5L * 1024L * 1024L) throw IOException("SVG-Dateien für die Flächenprägung dürfen höchstens 5 MB groß sein.")
+output.write(buffer, 0, read)
+}
+}
+}
+val problem = ru.ytkab0bp.slicebeam.components.SvgImportGuard.validate(destination)
+if (problem != null) throw IOException(problem)
+SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.EmbossSvgSelectedEvent(destination.absolutePath))
+}
+catch (error: Exception)
+{
+copied?.delete()
+ViewUtils.postOnMainThread {
+android.widget.Toast.makeText(this, error.message ?: getString(R.string.SvgSimplifyFailedFallback), android.widget.Toast.LENGTH_LONG).show()
+}
+}
+}
+}
+}
+else if (requestCode == REQUEST_CODE_IMAGE_TO_STL)
 {
 val current = navigationDelegate.getCurrentFragment()
 if (current is BedFragment && data != null)
@@ -620,6 +662,16 @@ internal fun launchRegisteredActivityResult(intent: Intent, requestCode: Int) {
     val launcher = activityResultLaunchers[requestCode]
         ?: throw IllegalArgumentException("No activity-result launcher registered for request code $requestCode")
     launcher.launch(intent)
+}
+
+internal fun openSvgEmbossPicker() {
+    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        // Providers often label SVG as application/octet-stream or text/xml. The importer
+        // validates the SVG root and rejects non-SVG/unsafe content after selection.
+        type = "*/*"
+    }
+    launchRegisteredActivityResult(intent, REQUEST_CODE_EMBOSS_SVG)
 }
 
 private fun loadConvertedProfile(uri:Uri) {
@@ -2273,6 +2325,8 @@ val REQUEST_CODE_IMAGE_TO_STL = 8
 @JvmField
 val REQUEST_CODE_SAVE_CONVERTED_FILE = 9
 @JvmField
+val REQUEST_CODE_EMBOSS_SVG = 15
+@JvmField
 val REQUEST_CODE_CONVERTER_ROOT_FIRST_LAUNCH = 12
 @JvmField
 val REQUEST_CODE_CONVERTER_ROOT_SETTINGS = 13
@@ -2288,6 +2342,7 @@ private val ACTIVITY_RESULT_REQUEST_CODES = intArrayOf(
     REQUEST_CODE_AI_GENERATOR_CHOOSE_PHOTO,
     REQUEST_CODE_IMAGE_TO_STL,
     REQUEST_CODE_SAVE_CONVERTED_FILE,
+    REQUEST_CODE_EMBOSS_SVG,
     REQUEST_CODE_CONVERTER_ROOT_FIRST_LAUNCH,
     REQUEST_CODE_CONVERTER_ROOT_SETTINGS,
     REQUEST_CODE_CONVERTER_ROOT_SAVE,

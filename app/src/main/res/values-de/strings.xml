@@ -1250,6 +1250,15 @@
     <string name="EmbossDefaultFontSize">10,0</string>
     <string name="EmbossDefaultDepth">1,0</string>
     <string name="EmbossFontSize">Schriftgröße (mm):</string>
+    <string name="EmbossSvgChoose">SVG-Relief auswählen</string>
+    <string name="EmbossSvgClear">Entfernen</string>
+    <string name="EmbossSvgSelected">Vektorgrafik: %1$s</string>
+    <string name="EmbossSvgTapInstruction">Breite und Tiefe einstellen, Erhaben oder Gravur wählen und eine Modellfläche antippen.</string>
+    <string name="EmbossSvgWidth">SVG-Breite (mm):</string>
+    <string name="EmbossSvgInvalidParameters">SVG-Breite: 0,5 bis 500 mm; Tiefe: 0,1 bis 100 mm.</string>
+    <string name="EmbossSvgInvalidTarget">SVG wurde nicht angewendet, da das Zielmodell nicht mehr verfügbar ist.</string>
+    <string name="EmbossSvgFailed">SVG konnte nicht angewendet werden: %1$s</string>
+    <string name="EmbossSvgSuccess">SVG-Geometrie wurde dem Modell hinzugefügt.</string>
     <string name="EmbossDepth">Tiefe (mm):</string>
     <string name="EmbossOperation">Vorgang:</string>
     <string name="EmbossRaise">Erhaben</string>

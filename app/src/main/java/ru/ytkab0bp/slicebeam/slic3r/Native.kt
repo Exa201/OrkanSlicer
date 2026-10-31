@@ -232,6 +232,8 @@ class Native {
     @JvmStatic
     external fun model_emboss_text(ptr: Long, i: Int, fontPath: String, text: String, size: Float, depth: Float, type: Int, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double): Unit
     @JvmStatic
+    external fun model_emboss_svg(ptr: Long, objectIndex: Int, svgPath: String, width: Float, depth: Float, operation: Int, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double): Unit
+    @JvmStatic
     external fun model_create_text_object(ptr: Long, fontPath: String, text: String, size: Float, depth: Float, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double, targetObjectIndex: Int): Int
     @JvmStatic
     external fun model_combine_objects_as_parts(ptr: Long, objectIndices: IntArray): Int

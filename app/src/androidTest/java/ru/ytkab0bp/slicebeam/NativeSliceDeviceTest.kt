@@ -32,7 +32,10 @@ import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 import java.io.FileOutputStream
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
+import java.util.zip.CRC32
 
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
@@ -2303,6 +2306,205 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun suppliedSvgCanBeRaisedOrEngravedOnASurfaceAndStillSlicesAfterThreeMfReload() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val svgFile = copyAsset(context, "models/Beste_Oma_Kind_Herz_3D_Druck.svg", "surface-emboss-oma.svg")
+        val cubeFile = copyCube(context, "surface-emboss-target.stl")
+        val projectFile = File(context.cacheDir, "surface-emboss-roundtrip.3mf")
+        val baselineFile = File(context.cacheDir, "surface-emboss-baseline.gcode")
+        val gcodeFile = File(context.cacheDir, "surface-emboss-roundtrip.gcode")
+        try {
+            for (engraved in listOf(false, true)) {
+                val model = Model(cubeFile)
+                var restored: Model? = null
+                var baselineResult: GCodeProcessorResult? = null
+                var result: GCodeProcessorResult? = null
+                try {
+                    model.ensureOnBed(0)
+                    SliceBeam.genCurrentConfig(model)
+                    baselineResult = model.slice(
+                        SliceBeam.getCurrentConfigFile().absolutePath,
+                        baselineFile.absolutePath,
+                        null,
+                    )
+                    val baselineToolpaths = baselineFile.readLines().filter { it.startsWith("G1") && it.contains(" E") }
+                    assertTrue("the unmodified cube should produce extrusion", baselineToolpaths.isNotEmpty())
+                    baselineResult.release()
+                    baselineResult = null
+
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val tap = Vec3d((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, max.z)
+                    val trianglesBefore = model.getTriangleCount(0)
+                    model.embossSvg(0, svgFile, 12f, 0.8f, engraved, tap, Vec3d(0.0, 0.0, 1.0))
+                    assertEquals("surface SVG editing must keep the target object", 1, model.objectsCount)
+                    if (engraved) {
+                        assertTrue("engraving must be represented as a native negative volume",
+                            model.getModifierVolumeIndices(0).isNotEmpty())
+                    } else {
+                        assertTrue("raised SVG must add printable mesh geometry",
+                            model.getTriangleCount(0) > trianglesBefore)
+                    }
+
+                    SliceBeam.genCurrentConfig(model)
+                    model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, projectFile.absolutePath)
+                    restored = Model(projectFile, 1)
+                    assertEquals("the target remains one object after 3MF reload", 1, restored.objectsCount)
+                    if (engraved) {
+                        assertTrue("negative SVG volume must survive 3MF reload",
+                            restored.getModifierVolumeIndices(0).isNotEmpty())
+                    } else {
+                        assertTrue("raised SVG triangles must survive 3MF reload",
+                            restored.getTriangleCount(0) > trianglesBefore)
+                    }
+
+                    SliceBeam.genCurrentConfig(restored)
+                    result = restored.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+                    val gcode = gcodeFile.readText()
+                    assertHasExtrusion(gcode)
+                    assertTrue("the G-code must contain the original model extrusion",
+                        Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+                    val modifiedToolpaths = gcode.lineSequence()
+                        .filter { it.startsWith("G1") && it.contains(" E") }
+                        .toList()
+                    assertTrue(
+                        if (engraved) "engraving must alter the sliced extrusion path"
+                        else "raised SVG must alter the sliced extrusion path",
+                        modifiedToolpaths != baselineToolpaths,
+                    )
+                } finally {
+                    baselineResult?.release()
+                    result?.release()
+                    restored?.release()
+                    model.release()
+                }
+                projectFile.delete()
+                gcodeFile.delete()
+            }
+        } finally {
+            svgFile.delete()
+            cubeFile.delete()
+            baselineFile.delete()
+            projectFile.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun mirroredThreeMfBuildTransformsSurviveOrcaAndPrusaImporterRoundTrips() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cube = copyCube(context, "mirrored-3mf-source.stl")
+        val prusaBase = File(context.cacheDir, "mirrored-prusa-base.3mf")
+        val bbsBase = copyAsset(context, "models/two-color-project.3mf", "mirrored-bbs-base.3mf")
+        val prusaInput = File(context.cacheDir, "mirrored-prusa-input.3mf")
+        val bbsInput = File(context.cacheDir, "mirrored-bbs-input.3mf")
+        val roundTrip = File(context.cacheDir, "mirrored-roundtrip.3mf")
+        val mirroredTransform = "4.4408921e-16 1 -5.55111512e-17 " +
+            "0.819152044 -4.4408921e-16 -0.573576436 " +
+            "0.573576436 -1.11022302e-16 0.819152044 70.41477 30.069061 23.392571"
+        try {
+            val sourceModel = Model(cube)
+            try {
+                sourceModel.ensureOnBed(0)
+                SliceBeam.genCurrentConfig(sourceModel)
+                sourceModel.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, prusaBase.absolutePath)
+            } finally {
+                sourceModel.release()
+            }
+
+            rewriteThreeMfBuildTransform(prusaBase, prusaInput, mirroredTransform)
+            rewriteThreeMfBuildTransform(bbsBase, bbsInput, mirroredTransform)
+
+            for (input in listOf(prusaInput, bbsInput)) {
+                val restored = Model(input, 1)
+                try {
+                    SliceBeam.genCurrentConfig(restored)
+                    restored.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, roundTrip.absolutePath)
+                    val serialized = ZipFile(roundTrip).use { archive ->
+                        archive.getInputStream(requireNotNull(archive.getEntry("3D/3dmodel.model")))
+                            .bufferedReader().use { it.readText() }
+                    }
+                    val values = Regex("""<item[^>]*transform="([^"]+)"""")
+                        .find(serialized)?.groupValues?.get(1)
+                        ?.split(Regex("\\s+"))?.map(String::toDouble)
+                    assertNotNull("re-exported 3MF must include its build transform", values)
+                    val m = requireNotNull(values)
+                    assertEquals("3MF affine transform has 12 coefficients", 12, m.size)
+                    val determinant = m[0] * (m[4] * m[8] - m[7] * m[5]) -
+                        m[3] * (m[1] * m[8] - m[7] * m[2]) +
+                        m[6] * (m[1] * m[5] - m[4] * m[2])
+                    assertTrue("the mirrored transform determinant must remain negative", determinant < 0.0)
+                } finally {
+                    restored.release()
+                    roundTrip.delete()
+                }
+            }
+        } finally {
+            cube.delete(); prusaBase.delete(); bbsBase.delete(); prusaInput.delete(); bbsInput.delete()
+            roundTrip.delete(); SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun oversizedZip64ThreeMfXmlIsRejectedWithoutAllocatingItsDeclaredSize() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val fixture = File(context.cacheDir, "oversized-xml-entry.3mf")
+        try {
+            val xml = "<?xml version=\"1.0\"?><model xmlns=\"http://schemas.microsoft.com/3dmanufacturing/core/2015/02\"><resources/><build/></model>"
+                .toByteArray(Charsets.UTF_8)
+            val declaredSize = Int.MAX_VALUE.toLong() + 1L
+            writeZip64EntryWithDeclaredSize(
+                fixture,
+                "3D/3dmodel.model",
+                xml,
+                declaredSize,
+            )
+            ZipFile(fixture).use { archive ->
+                val entry = requireNotNull(archive.getEntry("3D/3dmodel.model"))
+                assertEquals("ZIP64 entry declares the intended oversized XML length", declaredSize, entry.size)
+                assertEquals("the hostile fixture itself remains tiny", xml.size.toLong(), entry.compressedSize)
+            }
+
+            val failure = runCatching { Model(fixture, 0) }.exceptionOrNull()
+            assertTrue(
+                "An XML entry whose ZIP64 uncompressed size exceeds Expat's int limit must fail as a normal import error",
+                failure is Slic3rRuntimeError,
+            )
+        } finally {
+            fixture.delete()
+        }
+    }
+
+    @Test
+    fun qidiQ2SliceResolvesSelectedBedTemperatureAndInitialToolInGeneratedGcode() = withQidiQ2Profile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "qidi-q2-start-gcode-source.stl")
+        val model = Model(source)
+        try {
+            model.ensureOnBed(0)
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val process = requireNotNull(config.presets?.get("print")?.let(config::findPrint))
+            process.put("bed_temperature_initial_layer_single", "67")
+            val gcode = sliceToGcode(context, model, "qidi-q2-start-gcode.gcode")
+            assertTrue("Qidi start sequence should pass the selected bed temperature to PRINT_START",
+                gcode.contains("PRINT_START BED=67"))
+            assertTrue("Qidi start sequence should heat the selected bed temperature",
+                Regex("(?m)^M140 S67(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("Qidi start sequence should resolve the initial logical tool",
+                Regex("(?m)^T\\d+(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("Qidi start G-code must not retain an unresolved bed-temperature placeholder",
+                gcode.contains("M140 S[bed_temperature_initial_layer_single]"))
+            assertFalse("Qidi start G-code must not retain an unresolved initial-tool placeholder",
+                gcode.contains("T[initial_tool]"))
+        } finally {
+            model.release()
+            source.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun disjointBooleanUnionKeepsItsInstanceBoundsAndProducesGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
@@ -3080,6 +3282,29 @@ class NativeSliceDeviceTest {
         }
     }
 
+    private inline fun withQidiQ2Profile(block: () -> Unit) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            context.assets.open("orca_profiles/Qidi.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val printer = requireNotNull(config.findPrinter("Qidi Q2 0.4 nozzle"))
+            val process = requireNotNull(config.findPrint(printer.get("default_print_profile")))
+            val filament = requireNotNull(config.findFilament(printer.get("default_filament_profile")))
+            config.presets = ConfigObject("presets").apply {
+                put("printer", printer.title)
+                put("print", process.title)
+                put("filament", filament.title)
+            }
+            block()
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
     private inline fun withToolChangerProfile(block: () -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
@@ -3111,6 +3336,78 @@ class NativeSliceDeviceTest {
         File(context.cacheDir, name).also { target ->
             context.assets.open(assetPath).use { input -> target.outputStream().use(input::copyTo) }
         }
+
+    private fun rewriteThreeMfBuildTransform(source: File, destination: File, transform: String) {
+        val itemPattern = Regex("""<item\b[^>]*>""")
+        val transformPattern = Regex("""transform="[^"]*"""")
+        var changed = false
+        ZipFile(source).use { archive ->
+            ZipOutputStream(destination.outputStream()).use { output ->
+                archive.entries().asSequence().forEach { entry ->
+                    val original = archive.getInputStream(entry).use { it.readBytes() }
+                    val bytes = if (entry.name == "3D/3dmodel.model") {
+                        val xml = original.toString(Charsets.UTF_8)
+                        val item = requireNotNull(itemPattern.find(xml))
+                        val transformAttribute = requireNotNull(transformPattern.find(item.value))
+                        val replacedItem = item.value.replaceRange(
+                            transformAttribute.range,
+                            "transform=\"$transform\"",
+                        )
+                        val updated = xml.replaceRange(item.range, replacedItem)
+                        changed = replacedItem != item.value
+                        updated.toByteArray(Charsets.UTF_8)
+                    } else original
+                    output.putNextEntry(ZipEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                }
+            }
+        }
+        check(changed) { "3MF model XML did not contain an item build transform" }
+    }
+
+    /** Writes one small ZIP member whose central directory claims a ZIP64-sized XML payload. */
+    private fun writeZip64EntryWithDeclaredSize(file: File, entryName: String, content: ByteArray, declaredSize: Long) {
+        require(declaredSize > Int.MAX_VALUE)
+        val name = entryName.toByteArray(Charsets.UTF_8)
+        val crc = CRC32().apply { update(content) }.value
+        val zip64ExtraSize = 12 // ZIP64 extra id + data length + uncompressed size
+        val localHeaderSize = 30 + name.size + zip64ExtraSize
+        val centralOffset = localHeaderSize + content.size
+        val centralSize = 46 + name.size + zip64ExtraSize
+        val output = FileOutputStream(file)
+
+        fun write16(value: Long) {
+            output.write((value and 0xff).toInt())
+            output.write(((value ushr 8) and 0xff).toInt())
+        }
+        fun write32(value: Long) {
+            repeat(4) { shift -> output.write(((value ushr (shift * 8)) and 0xff).toInt()) }
+        }
+        fun write64(value: Long) {
+            repeat(8) { shift -> output.write(((value ushr (shift * 8)) and 0xff).toInt()) }
+        }
+
+        output.use {
+            // Local file header; the payload itself remains tiny and uncompressed.
+            write32(0x04034b50L); write16(45); write16(0); write16(0)
+            write16(0); write16(0); write32(crc)
+            write32(content.size.toLong()); write32(0xffffffffL)
+            write16(name.size.toLong()); write16(zip64ExtraSize.toLong()); output.write(name)
+            write16(0x0001); write16(8); write64(declaredSize); output.write(content)
+
+            // Central directory: only the uncompressed size is represented in ZIP64 extra data.
+            write32(0x02014b50L); write16(45); write16(45); write16(0); write16(0)
+            write16(0); write16(0); write32(crc); write32(content.size.toLong())
+            write32(0xffffffffL); write16(name.size.toLong()); write16(zip64ExtraSize.toLong())
+            write16(0); write16(0); write16(0); write32(0); write32(0)
+            output.write(name); write16(0x0001); write16(8); write64(declaredSize)
+
+            // Classic EOCD is sufficient because archive and central-directory offsets remain ZIP32-sized.
+            write32(0x06054b50L); write16(0); write16(0); write16(1); write16(1)
+            write32(centralSize.toLong()); write32(centralOffset.toLong()); write16(0)
+        }
+    }
 
     private fun createCylinderFixture(name: String, radius: Double, height: Double, segments: Int): File {
         val target = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)

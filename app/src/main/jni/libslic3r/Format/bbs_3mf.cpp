@@ -2466,19 +2466,24 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         XML_SetEntityDeclHandler(m_xml_parser, nullptr);
         XML_SetExternalEntityRefHandler(m_xml_parser, nullptr);
 
-        void* parser_buffer = XML_GetBuffer(m_xml_parser, (int)stat.m_uncomp_size);
+        if (stat.m_uncomp_size > static_cast<mz_uint64>(std::numeric_limits<int>::max())) {
+            add_error("Found invalid size");
+            return false;
+        }
+        const int xml_size = static_cast<int>(stat.m_uncomp_size);
+        void* parser_buffer = XML_GetBuffer(m_xml_parser, xml_size);
         if (parser_buffer == nullptr) {
             add_error("Unable to create buffer");
             return false;
         }
 
-        mz_bool res = mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename, parser_buffer, (size_t)stat.m_uncomp_size, 0);
+        mz_bool res = mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename, parser_buffer, static_cast<size_t>(xml_size), 0);
         if (res == 0) {
             add_error("Error while reading config data to buffer");
             return false;
         }
 
-        if (!XML_ParseBuffer(m_xml_parser, (int)stat.m_uncomp_size, 1)) {
+        if (!XML_ParseBuffer(m_xml_parser, xml_size, 1)) {
             char error_buf[1024];
             ::snprintf(error_buf, 1024, "Error (%s) while parsing xml file at line %d", XML_ErrorString(XML_GetErrorCode(m_xml_parser)), (int)XML_GetCurrentLineNumber(m_xml_parser));
             add_error(error_buf);
@@ -4242,12 +4247,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
     void _BBS_3MF_Importer::_apply_transform(ModelInstance& instance, const Transform3d& transform)
     {
-        Slic3r::Geometry::Transformation t(transform);
-        // invalid scale value, return
-        if (!t.get_scaling_factor().all())
+        // Decomposing a valid mirrored transform into rotation and scale can be unstable
+        // across Eigen versions. Validate the affine matrix directly before preserving it.
+        if (!transform.matrix().allFinite() || !transform.linear().fullPivLu().isInvertible())
             return;
 
-        instance.set_transformation(t);
+        instance.set_transformation(Slic3r::Geometry::Transformation(transform));
     }
 
     bool _BBS_3MF_Importer::_handle_start_config(const char** attributes, unsigned int num_attributes)

@@ -13,11 +13,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,11 +55,13 @@ internal fun EmbossModePanel(
     var standaloneFilament by remember { mutableIntStateOf(1) }
     val filamentSlots = remember(controller) { Prefs.getFilamentSlots() }
     val availableFonts = remember(controller) { controller.availableFontPresets() }
-    val validation = EmbossTextInputValidator.validate(text, size, depth)
+    val svgMode = controller.selectedSvgPath != null && !standaloneMode
+    val validation = EmbossTextInputValidator.validate(text, size, depth, svgMode = svgMode)
 
     fun sync() = controller.update(
         text, size, depth, addMode, standaloneMode, followSurface, fontPreset, standaloneFilament,
     )
+    LaunchedEffect(controller.selectedSvgPath, standaloneMode) { sync() }
     DisposableEffect(controller) {
         controller.start()
         sync()
@@ -79,6 +83,31 @@ internal fun EmbossModePanel(
             label = { Text(stringResource(R.string.TextModelCreateSeparate)) },
             modifier = Modifier.testTag("emboss-standalone-mode"),
         )
+        if (!standaloneMode) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = controller::openSvgPicker,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("emboss-svg-pick"),
+                ) {
+                    Text(stringResource(R.string.EmbossSvgChoose))
+                }
+                if (controller.selectedSvgPath != null) {
+                    OutlinedButton(
+                        onClick = controller::clearSelectedSvg,
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("emboss-svg-clear"),
+                    ) {
+                        Text(stringResource(R.string.EmbossSvgClear))
+                    }
+                }
+            }
+            controller.selectedSvgPath?.let { path ->
+                Text(
+                    stringResource(R.string.EmbossSvgSelected, java.io.File(path).name),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(stringResource(R.string.EmbossSvgTapInstruction), style = MaterialTheme.typography.bodySmall)
+            }
+        }
         if (standaloneMode) {
             Text(stringResource(R.string.EmbossFontLabel), style = MaterialTheme.typography.labelLarge)
             FlowRow(
@@ -144,7 +173,7 @@ internal fun EmbossModePanel(
         OutlinedTextField(
             value = size,
             onValueChange = { size = it; sync() },
-            label = { Text(stringResource(R.string.EmbossFontSize)) },
+            label = { Text(stringResource(if (controller.selectedSvgPath == null) R.string.EmbossFontSize else R.string.EmbossSvgWidth)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             isError = validation.error == EmbossTextInputValidator.Error.INVALID_SIZE,
             modifier = Modifier.fillMaxWidth().testTag("emboss-font-size"),
@@ -159,7 +188,7 @@ internal fun EmbossModePanel(
         )
         if (validation.error != null) {
             Text(
-                stringResource(R.string.EmbossInvalidParameters),
+                stringResource(if (svgMode) R.string.EmbossSvgInvalidParameters else R.string.EmbossInvalidParameters),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.testTag("emboss-input-error"),

@@ -508,6 +508,30 @@ open class Model private constructor(@JvmField var pointer: Long) {
         resetBoundingBox()
     }
 
+    /** Adds a validated vector SVG as a surface-aligned raised or engraved volume. */
+    open fun embossSvg(
+        objectIndex: Int,
+        svgFile: File,
+        width: Float,
+        depth: Float,
+        engraved: Boolean,
+        position: Vec3d,
+        normal: Vec3d,
+    ): Boolean {
+        if (pointer == 0L || objectIndex !in 0 until objectsCount || !svgFile.isFile ||
+            !svgFile.name.endsWith(".svg", ignoreCase = true) || svgFile.length() !in 1..(5L * 1024L * 1024L) ||
+            !width.isFinite() || width !in 0.5f..500f || !depth.isFinite() || depth !in 0.1f..100f
+        ) return false
+        val placement = ModelEditRequestValidation.snapshotTextPlacement(position, normal)
+        Native.model_emboss_svg(
+            pointer, objectIndex, svgFile.absolutePath, width, depth, if (engraved) 1 else 0,
+            placement.position.x, placement.position.y, placement.position.z,
+            placement.normal.x, placement.normal.y, placement.normal.z,
+        )
+        resetBoundingBox()
+        return true
+    }
+
     /** Creates printable text; with a target index, conforms it to that surface and adds it as a target part. */
     open fun createTextObject(
         fontPath: String,

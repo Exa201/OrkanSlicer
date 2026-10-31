@@ -103,4 +103,29 @@ class EmbossTextInputValidatorTest {
             )
         }
     }
+
+    @Test
+    fun svgDimensionsMatchNativeBoundsAndDoNotRequireUnusedText() {
+        listOf("0,5" to "0,1", "500" to "100").forEach { (width, depth) ->
+            assertNull(
+                "SVG dimensions $width x $depth should be accepted at native limits",
+                EmbossTextInputValidator.validate("", width, depth, svgMode = true).error,
+            )
+        }
+
+        listOf("0,49", "500,01", "NaN", "Infinity").forEach { width ->
+            assertEquals(
+                "SVG width $width must be rejected before native silently ignores it",
+                EmbossTextInputValidator.Error.INVALID_SIZE,
+                EmbossTextInputValidator.validate("", width, "1", svgMode = true).error,
+            )
+        }
+        listOf("0,09", "100,01", "NaN", "Infinity").forEach { depth ->
+            assertEquals(
+                "SVG depth $depth must be rejected before native silently ignores it",
+                EmbossTextInputValidator.Error.INVALID_DEPTH,
+                EmbossTextInputValidator.validate("", "10", depth, svgMode = true).error,
+            )
+        }
+    }
 }

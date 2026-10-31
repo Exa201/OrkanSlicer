@@ -3,8 +3,8 @@
 ## Verified status (2026-10-16)
 
 The original counts below are historical and must not be read as the current UI coverage.
-The current source audit reports 887 parsed native keys and 490 visible setting rows routed
-to native definitions (319 process, 100 filament, 71 printer; 483 distinct catalog keys).
+The current source audit reports 887 parsed native keys and 492 visible setting rows routed
+to native definitions (319 process, 101 filament, 72 printer; 485 distinct catalog keys).
 The row count includes keys that appear in more than one editor. The profile route checker
 also verifies that those rows reach matching profile parsers. Run
 `scripts/check_profile_setting_routes.py` and `scripts/audit_orca_feature_gap_doc.py` to
@@ -48,8 +48,8 @@ coverage estimate. It remains here only to explain earlier prioritization.
   `OrcaPrinterSettingsCatalog`; the route checker also verifies profile parser routing.
 - Model tools are inspected from the current model, edit, camera, and slice menus.
 
-Current source audit: **887** parsed native keys and **490** visible setting rows routed to native
-definitions (319 process, 100 filament, 71 printer; 483 distinct catalog keys). These counts do
+Current source audit: **887** parsed native keys and **492** visible setting rows routed to native
+definitions (319 process, 101 filament, 72 printer; 485 distinct catalog keys). These counts do
 not measure desktop parity: some native keys are runtime/internal, while model tools use separate
 object-level APIs. Run `scripts/check_profile_setting_routes.py` and
 `scripts/audit_orca_feature_gap_doc.py` to recalculate them.
@@ -109,14 +109,14 @@ Missing vs OrcaSlicer desktop:
 | Tool | Status | Notes |
 |------|--------|-------|
 | **Cut** (plane, connectors, keep upper/lower) | ✅ | `TransformCutMenu`, `Model.cut`, native `CutUtils`; connector and plane controls are in the model menu |
-| **Color / MMU painting** | ✅ | `PaintModeView` and native `PaintSession`; painted facet data is preserved in 3MF. Compound-volume hit identification remains limited |
+| **Color / MMU painting** | ✅ | `PaintModeView` and native `PaintSession`; per-volume ray ownership, live overlays, undo/redo, 3MF reload and generated tool changes are covered by device tests. |
 | **Support painting** | ✅ | Native facet annotations and support paint mode; tested for touch state and commit |
 | **Seam painting** | ✅ | Native facet annotations and seam paint mode |
 | **Fuzzy-skin painting** | ✅ | Native facet annotations and fuzzy paint mode |
 | **Text emboss / engrave** | ✅ | `EmbossModeView` and `Native.model_emboss_text`; engrave uses a negative volume |
-| **SVG import / emboss** | ❌ | SVG guard/simplification exists, but there is no surface-placement SVG emboss workflow |
+| **SVG import / emboss** | ⚠️ | SAF picker, bounded validation and surface-tap emboss/engrave workflow are implemented; integration source compiles, but the new ARM64 slice/3MF round-trip test still requires a compatible device. |
 | **Measure** | ✅ | `MeasureModePanel` and renderer surface-point measurement |
-| **Negative / Modifier / Support-blocker volumes** | ⚠️ | Native volume types, cut connectors and text engraving exist; no general UI to add/import, place, and edit these volumes |
+| **Negative / Modifier / Support-blocker volumes** | ✅ | Model menu adds, places, resizes and removes native Orca modifier types; mesh overlays, undo/redo, 3MF round-trip and slice behavior have device coverage. Arbitrary per-volume setting overrides remain out of scope. |
 | **Per-object / per-part setting overrides** | ❌ | No mobile editing/apply workflow for model-object or volume config overrides |
 | **Variable / adaptive layer height** | ✅ | Model menu opens the layer-height profile editor and writes the native object layer-height profile; this does not use the commented-out `adaptive_layer_height` preset key |
 | **Split to objects / parts** | ✅ | `splitSelectedObject()` invokes native `Model.split` |
@@ -127,8 +127,8 @@ Missing vs OrcaSlicer desktop:
 
 ## 5. Prioritized recommendations
 
-1. **Per-object / per-part setting overrides and modifier volumes** — largest remaining Orca workflow gap; needs a model-aware editor and explicit native application of per-object configuration.
-2. **SVG surface emboss** — the native SVG and emboss code exists, but the app needs a bounded import, placement, depth, and add/engrave workflow.
+1. **Per-object / per-part setting overrides** — largest remaining Orca workflow gap; needs a model-aware editor and explicit native application of per-object configuration.
+2. **SVG surface emboss verification** — workflow is implemented; complete ARM64 slice/3MF round-trip verification and add a live placement preview/cancel path.
 3. **Mesh boolean operations** — MCUT is bundled; expose only after validating memory use, cancellation, and undo for mobile-sized meshes.
 4. **Complex multi-volume painting** — extend raycast results with volume/facet ownership before claiming support for arbitrary compound 3MF objects.
 5. **Remaining profile options** — `adaptive_layer_height` is commented out in the native preset schema; `brim_use_efc_outline` carries a fusion warning; sequence choice requires related setting state. Keep these hidden until their behavior can be represented safely.

@@ -1262,6 +1262,15 @@
     <string name="EmbossDefaultFontSize">10.0</string>
     <string name="EmbossDefaultDepth">1.0</string>
     <string name="EmbossFontSize">Font size (mm):</string>
+    <string name="EmbossSvgChoose">Choose SVG relief</string>
+    <string name="EmbossSvgClear">Remove</string>
+    <string name="EmbossSvgSelected">Selected vector: %1$s</string>
+    <string name="EmbossSvgTapInstruction">Set width and depth, choose Raise or Engrave, then tap a model surface.</string>
+    <string name="EmbossSvgWidth">SVG width (mm):</string>
+    <string name="EmbossSvgInvalidParameters">Set an SVG width from 0.5 to 500 mm and a depth from 0.1 to 100 mm.</string>
+    <string name="EmbossSvgInvalidTarget">The SVG was not applied because the target model is no longer available.</string>
+    <string name="EmbossSvgFailed">Could not apply the SVG: %1$s</string>
+    <string name="EmbossSvgSuccess">SVG geometry added to the model.</string>
     <string name="EmbossDepth">Depth (mm):</string>
     <string name="EmbossInvalidParameters">Enter text (up to 256 characters), a positive font size, and a positive depth.</string>
     <string name="EmbossOperation">Operation:</string>
