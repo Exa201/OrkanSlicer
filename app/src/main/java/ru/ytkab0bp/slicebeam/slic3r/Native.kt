@@ -88,7 +88,7 @@ class Native {
     @JvmStatic
     external fun bed_init_triangles_mesh(ptr: Long, triangles: Long): Unit
     @JvmStatic
-    external fun bed_arrange(ptr: Long, modelPtr: Long): Boolean
+    external fun bed_arrange(ptr: Long, modelPtr: Long, arrangeConfig: String): Boolean
     @JvmStatic
     external fun bed_release(ptr: Long): Unit
     @JvmStatic

@@ -64,7 +64,13 @@ open class Bed3D {
     }
 
     @Synchronized
-    open fun arrange(model: Model): Boolean = Native.bed_arrange(pointer, model.pointer)
+    open fun arrange(model: Model): Boolean = Native.bed_arrange(
+        pointer,
+        model.pointer,
+        // Arrangement is invoked on the GL thread so every placement path (manual arrange,
+        // duplicate, fill-bed and import) uses the same active By-Object safety configuration.
+        ru.ytkab0bp.slicebeam.SliceBeam.buildCurrentConfigObjectOrNull()?.serialize().orEmpty(),
+    )
 
     @Synchronized
     open fun getVolumeMin(): Vec3d? {

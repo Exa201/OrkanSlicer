@@ -272,3 +272,11 @@ Der Upstream-Zeiger wurde bis `1093ff0714e26ca8d81f3d7fe15d782cc047346f` aktuali
 1. Unbekannte geladene MMU-Spule sichtbar und indexstabil halten; Farbformen RGB, RGB+Alpha und Creality `0RRGGBB` parsen. Leere und ungültige Slots bleiben nicht auswählbar; Materialabweichungen bleiben im Zuordnungsdialog erkennbar.
 
 `MmuFilamentSyncDeviceTest` bestand 18/18 auf Android API 35 und 18/18 auf API 36. Abgedeckt sind Slotindex, Farbe, Verfügbarkeit, `Generic PLA`-Fallback, Materialabweichung, leere Fächer und ungültige Farben. Debug-Unit und Slice-Unit bestanden jeweils 705/705 (0 failures, errors oder skips). `git diff --check` bestanden. Keine physische Creality-/Moonraker-Hardware wurde für dieses Paket getestet. Der APK-/Release-Gate wird erst bei 10/10 erreicht.
+
+## Orca `041df4031` — By-Object-Clearance in Android-Anordnung (2026-10-31)
+
+Die Android-Anordnung übergibt jetzt die aktuelle Druckkonfiguration über `Bed3D` und JNI an den nativen Arrange-Kern, während die Build-Volume-Geometrie weiter aus dem aktiven Druckbett stammt. Für By-Object werden Instanzpolygone mit Orcas konfigurationsbewusster `get_instance_arrange_poly`-Routine aufgebaut. Das ist wichtig, weil der generische Android-Helfer keine Instanzhöhe lieferte und Orcas Arrange-Logik damit alle Objekte fälschlich als kurz einstufte. Nun können aktive Düsen-/Gantry-Clearance, Objekt-/Skirt-Abstand und Sequenzmodus sicher in die Platzierung einfließen. By-Layer behält den bisherigen 6-mm-Abstand.
+
+`byObjectArrangeUsesActiveClearanceAndKeepsObjectsApart` setzt ein isoliertes 20-mm-Testmodell, By-Object, 0,1-mm-Düsenhöhe und 30-mm-Clearance und prüft, dass die zwei Modelle nach echter nativer Anordnung mindestens 29,5 mm Abstand haben. Der bestehende `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` deckt den By-Layer-Weg einschließlich Undo/Redo und Workspace-Wiederherstellung ab. Beide Tests bestanden auf Android API 35 und API 36 (je 1/1). Debug- und Slice-Unit-Suiten jeweils 705/705 ohne Fehler oder Skips; ARM64-Native-Build und `git diff --check` bestanden.
+
+Batch 3 steht jetzt bei **2/10**. Die Änderung ist noch lokal, nicht committet oder gepusht. APK/Prerelease wird erst nach zehn fokussiert verifizierten Änderungen erstellt.

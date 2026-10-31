@@ -1,4 +1,12 @@
-# Fortsetzung 2026-10-31 — Nightly-Batch 2 / APK-Gate
+# Aktueller Fortsetzungsstand — 2026-10-31, Nightly-Batch 3 (2/10)
+
+- Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert. Letzter gepushter HEAD `010259b81cca01d9c5b2b6aa5c97a6cb6bd69f2d`; aktuelle Arbeit ist lokal und noch nicht committet.
+- Batch 3, Änderung 1/10: unbekannte, aber farblich bekannte Moonraker-MMU-Fächer bleiben indexstabil auswählbar; `MmuFilamentSyncDeviceTest` 18/18 auf API 35 und 36.
+- Batch 3, Änderung 2/10: Orca `041df4031` By-Object-Anordnung übernimmt jetzt die aktive Druckkonfiguration und beachtet reale Instanzhöhen, Gantry-Clearance, Bettform und Skirt-Abstand. Ursache für zuvor wirkungslose Clearance war, dass der Android-UI-Arrange-Helfer Instanzhöhen nicht befüllte.
+- Verifikation Änderung 2: `byObjectArrangeUsesActiveClearanceAndKeepsObjectsApart` und der bestehende `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` bestanden jeweils auf API 35 und 36 (je Test 1/1 pro Emulator). Debug-Unit und Slice-Unit jeweils 705/705, 0 failures/errors/skips; ARM64-native Build und `git diff --check` bestanden.
+- Noch kein APK/Release für Batch 3. Nächster konkreter Schritt: weitere Orca-Upstream-Kandidaten mit aktivem Android-Aufrufpfad auswählen und Änderung 3 samt fokussierter Regression umsetzen. Batch-APK/Prerelease erst nach 10/10.
+
+# Historie: Fortsetzung 2026-10-31 — Nightly-Batch 2 / APK-Gate
 
 - Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert.
 - Code-/APK-Commit: `669c46d161575cac5b59735ea1b5f9f376a3b4bb`; Nightly-Branch gepusht.

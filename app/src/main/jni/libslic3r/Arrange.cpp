@@ -92,22 +92,18 @@ void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* prin
     params.brim_skirt_distance = skirt_distance;
     params.bed_shrink_x += params.brim_skirt_distance;
     params.bed_shrink_y += params.brim_skirt_distance;
-    // for sequential print, we need to inflate the bed because clearance_radius is so large
-    if (params.is_seq_print) {
-        params.bed_shrink_x -= params.clearance_radius / 2;
-        params.bed_shrink_y -= params.clearance_radius / 2;
-    }
 }
 
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params) {
     // do not inflate brim_width. Objects are allowed to have overlapped brim.
-    Points      bedpts = get_shrink_bedpts(print_cfg, params);
-    BoundingBox bedbb = Polygon(bedpts).bounding_box();
+    BoundingBox bedbb = Polygon(get_bed_shape(*print_cfg)).bounding_box();
     // set obj distance for auto seq_print
     if (params.is_seq_print) {
         bool all_objects_are_short = std::all_of(selected.begin(), selected.end(), [&](ArrangePolygon& ap) { return ap.height < params.nozzle_height; });
         if (all_objects_are_short) {
-            params.min_obj_distance = std::max(params.min_obj_distance, scaled(std::max(MAX_OUTER_NOZZLE_DIAMETER/2.f, params.object_skirt_offset*2)+0.001));
+            // Match Print::sequential_print_clearance_valid(): short objects still need
+            // at least one maximum nozzle diameter between their outlines.
+            params.min_obj_distance = std::max(params.min_obj_distance, scaled(std::max(float(MAX_OUTER_NOZZLE_DIAMETER), params.object_skirt_offset*2)+0.001));
         }
         else
             params.min_obj_distance = std::max(params.min_obj_distance, scaled(params.clearance_radius + 0.001)); // +0.001mm to avoid clearance check fail due to rounding error
@@ -123,25 +119,48 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         // 3. otherwise, use each object's own brim width
         ap.inflation = params.min_obj_distance != 0 ? params.min_obj_distance / 2 :
             plate_has_tree_support ? scaled(brim_max / 2) : scaled(ap.brim_width);
+        if (params.min_obj_distance != 0)
+            return; // Do not shrink an explicit object clearance to fit the bed.
         BoundingBox apbb = ap.poly.contour.bounding_box();
-        auto        diffx = bedbb.size().x() - apbb.size().x() - 5;
-        auto        diffy = bedbb.size().y() - apbb.size().y() - 5;
-        if (diffx > 0 && diffy > 0) {
-            auto min_diff = std::min(diffx, diffy);
-            ap.inflation = std::min(min_diff / 2, ap.inflation);
-        }
+        auto        diffx = bedbb.size().x() - apbb.size().x();
+        auto        diffy = bedbb.size().y() - apbb.size().y();
+        ap.inflation = std::max<coord_t>(0, std::min({ ap.inflation, diffx / 2, diffy / 2 }));
         });
+
+    // For sequential printing, inflation separates objects and may extend beyond the bed edge.
+    // Measure the rotated inflated outline, then grow the arrange bed by half the spacing so the
+    // objects themselves retain the edge margin. This avoids rejecting short objects unnecessarily.
+    if (params.is_seq_print && !selected.empty()) {
+        coord_t max_width = 0, max_height = 0;
+        for (const ArrangePolygon& ap : selected) {
+            const ExPolygons inflated = offset_ex(ap.poly, float(ap.inflation), jtSquare);
+            Polygon outline = inflated.empty() ? ap.poly.contour : inflated.front().contour;
+            outline.rotate(ap.rotation);
+            const BoundingBox bounds = outline.bounding_box();
+            const coord_t inflation = scaled(EPSILON) - (inflated.empty() ? 0 : ap.inflation);
+            max_width = std::max(max_width, bounds.size().x() + 2 * inflation);
+            max_height = std::max(max_height, bounds.size().y() + 2 * inflation);
+        }
+        auto margin = [](coord_t bed, coord_t item) { return std::max(0., unscale<double>(bed - item) / 2.); };
+        params.bed_shrink_x = std::min<double>(params.bed_shrink_x,
+            std::max<double>(params.brim_skirt_distance, margin(bedbb.size().x(), max_width)));
+        params.bed_shrink_y = std::min<double>(params.bed_shrink_y,
+            std::max<double>(params.brim_skirt_distance, margin(bedbb.size().y(), max_height)));
+        params.bed_shrink_x -= unscale<float>(params.min_obj_distance) / 2;
+        params.bed_shrink_y -= unscale<float>(params.min_obj_distance) / 2;
+    }
 }
 
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params)
 {
     float exclusion_gap = 1.f;
     if (params.is_seq_print) {
-        // bed_shrink_x is typically (-params.clearance_radius / 2+5) for seq_print
-        exclusion_gap = std::max(exclusion_gap, params.clearance_radius / 2 + params.bed_shrink_x + 1.f);  // +1mm gap so the exclusion region is not too close
-        // dont forget to move the excluded region
+        // bed_shrink_x includes bed growth by half the object spacing. Restore that offset
+        // for exclusions and move virtual regions only when the bed has actually grown.
+        exclusion_gap = std::max(exclusion_gap, unscale<float>(params.min_obj_distance) / 2 + params.bed_shrink_x + 1.f);
         for (auto& region : unselected) {
-            if (region.is_virt_object) region.poly.translate(scaled(params.bed_shrink_x), scaled(params.bed_shrink_y));
+            if (region.is_virt_object)
+                region.poly.translate(scaled(std::min(0.f, params.bed_shrink_x)), scaled(std::min(0.f, params.bed_shrink_y)));
         }
     }
     // For occulusion regions, inflation should be larger to prevent genrating brim on them.
@@ -931,13 +950,18 @@ std::function<double(const Item &, const ItemGroup&)> AutoArranger<ExPolygon>::g
     };
 }
 
-template<class Bin> void remove_large_items(std::vector<Item> &items, Bin &&bin)
+// Keep excluded fixed items that partly intersect a shrunken sequential-print bed. Only
+// objects on entirely different/outside regions should be removed from the nesting inputs.
+template<class Bin> void remove_items_outside_bin(std::vector<Item> &items, const Bin &bin)
 {
+    const auto binbb = sl::boundingBox(bin);
     auto it = items.begin();
     while (it != items.end())
     {
         //BBS: skip virtual object
-        if (!it->is_virt_object && !sl::isInside(it->transformedShape(), bin))
+        const auto bb = it->boundingBox();
+        if (!it->is_virt_object && (bb.maxCorner().x() < binbb.minCorner().x() || bb.minCorner().x() > binbb.maxCorner().x() ||
+                                    bb.maxCorner().y() < binbb.minCorner().y() || bb.minCorner().y() > binbb.maxCorner().y()))
             it = items.erase(it);
         else
             it++;
@@ -983,7 +1007,7 @@ void _arrange(
 
     AutoArranger<BinT> arranger{corrected_bin, mod_params, progressfn, stopfn};
 
-    remove_large_items(excludes, corrected_bin);
+    remove_items_outside_bin(excludes, corrected_bin);
 
     // If there is something on the plate
     if (!excludes.empty()) arranger.preload(excludes);

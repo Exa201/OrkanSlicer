@@ -3511,15 +3511,30 @@ extern "C" {
         bed_util_init_triangles_its(contour, &tRef->mesh.its);
     }
 
-    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange(JNIEnv* env, jclass, jlong ptr, jlong model) {
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange(JNIEnv* env, jclass, jlong ptr, jlong model, jstring arrange_config) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
 
         try {
+            // Keep the active build volume from BedRef, but use the current printer/process
+            // settings to make sequential (By-Object) placement safe for the selected printer.
+            DynamicPrintConfig config = ref->config;
+            if (arrange_config != nullptr) {
+                const char* config_chars = env->GetStringUTFChars(arrange_config, nullptr);
+                if (config_chars == nullptr)
+                    return JNI_FALSE;
+                try {
+                    config.load_from_ini_string(config_chars, ForwardCompatibilitySubstitutionRule::EnableSilent);
+                } catch (...) {
+                    env->ReleaseStringUTFChars(arrange_config, config_chars);
+                    throw;
+                }
+                env->ReleaseStringUTFChars(arrange_config, config_chars);
+            }
+
             // OrcaSlicer's arrange API takes the bed as Points (scaled bed shape) plus ArrangeParams,
             // rather than the arr2::ArrangeBed/ArrangeSettings types of newer PrusaSlicer.
-            DynamicPrintConfig config = ref->config;
-            Points bed = get_bed_shape(config);
+            Points bed = get_bed_shape(ref->config);
             ArrangeParams arrange_cfg;
             arrange_cfg.min_obj_distance = scaled(6.0);
 
@@ -3528,12 +3543,65 @@ extern "C" {
             // to be pre-inflated (the desktop does this via update_selected_items_inflation()). Without it,
             // parts pack edge-to-edge. Inflate each real object by half the min distance so neighbouring
             // parts end up a full min_obj_distance (6mm) apart, which keeps them separable/printable.
+            const bool sequential_print = config.has("print_sequence") &&
+                config.opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject;
+
             ModelInstancePtrs instances;
-            ArrangePolygons input = get_arrange_polys(mRef->model, instances);
-            const coord_t inflation = arrange_cfg.min_obj_distance / 2;
-            for (ArrangePolygon& ap : input)
-                if (!ap.is_virt_object)
-                    ap.inflation = inflation;
+            ArrangePolygons input;
+            if (sequential_print) {
+                // By-Object clearance depends on each instance's real height and print settings.
+                // The generic UI helper omits those values, unlike Orca's plater helper.
+                for (ModelObject* object : mRef->model.objects) {
+                    for (ModelInstance* instance : object->instances) {
+                        input.emplace_back(get_instance_arrange_poly(instance, config));
+                        instances.emplace_back(instance);
+                    }
+                }
+            } else {
+                input = get_arrange_polys(mRef->model, instances);
+            }
+
+            if (sequential_print) {
+                arrange_cfg.is_seq_print = true;
+                arrange_cfg.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
+                arrange_cfg.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
+                arrange_cfg.clearance_radius = config.has("extruder_clearance_radius")
+                    ? static_cast<float>(config.opt_float("extruder_clearance_radius")) : 0.f;
+                arrange_cfg.clearance_height_to_rod = config.has("extruder_clearance_height_to_rod")
+                    ? static_cast<float>(config.opt_float("extruder_clearance_height_to_rod")) : 0.f;
+                arrange_cfg.clearance_height_to_lid = config.has("extruder_clearance_height_to_lid")
+                    ? static_cast<float>(config.opt_float("extruder_clearance_height_to_lid")) : 0.f;
+                arrange_cfg.nozzle_height = config.has("nozzle_height")
+                    ? static_cast<float>(config.opt_float("nozzle_height")) : 0.f;
+                arrange_cfg.printable_height = config.has("printable_height")
+                    ? static_cast<float>(config.opt_float("printable_height")) : 256.f;
+
+                // A per-object skirt must also remain clear of neighboring objects. This is
+                // deliberately conservative: use the configured skirt distance plus one nozzle
+                // width per loop rather than risk packing an object into its skirt envelope.
+                if (config.has("skirt_type") && config.opt_enum<SkirtType>("skirt_type") == stPerObject &&
+                    config.has("skirt_loops") && config.opt_int("skirt_loops") > 0) {
+                    const float skirt_distance = config.has("skirt_distance")
+                        ? static_cast<float>(config.opt_float("skirt_distance")) : 0.f;
+                    float nozzle_width = 0.4f;
+                    if (config.has("nozzle_diameter")) {
+                        const auto& nozzle_diameters = config.option<ConfigOptionFloats>("nozzle_diameter")->values;
+                        if (!nozzle_diameters.empty())
+                            nozzle_width = *std::max_element(nozzle_diameters.begin(), nozzle_diameters.end());
+                    }
+                    arrange_cfg.object_skirt_offset = skirt_distance +
+                        static_cast<float>(config.opt_int("skirt_loops")) * nozzle_width;
+                }
+
+                arrangement::update_arrange_params(arrange_cfg, &config, input);
+                arrangement::update_selected_items_inflation(input, &config, arrange_cfg);
+                bed = arrangement::get_shrink_bedpts(&config, arrange_cfg);
+            } else {
+                const coord_t inflation = arrange_cfg.min_obj_distance / 2;
+                for (ArrangePolygon& ap : input)
+                    if (!ap.is_virt_object)
+                        ap.inflation = inflation;
+            }
             arrangement::arrange(input, bed, arrange_cfg);
             return apply_arrange_polys(input, instances, throw_if_out_of_bed);
         } catch (const std::exception& e) {

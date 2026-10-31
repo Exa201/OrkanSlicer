@@ -87,6 +87,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewCubeGeometry
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceViewFace
 import ru.ytkab0bp.slicebeam.components.PreSliceFilamentDialog
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
@@ -5735,6 +5736,71 @@ class InitialProjectMenuDeviceTest {
                 readUsedFilamentsOnGl(glView, 0))
             assertCurrentWorkspaceModelRoundTripsAndSlices("arrange")
         } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun byObjectArrangeUsesActiveClearanceAndKeepsObjectsApart() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "by-object-arrange-test.stl")
+        val printProfile = ConfigObject.PROFILE_LIST_PRINT
+        val previousDraft = ProfileSettingsRepository.pendingEntries(printProfile)
+        try {
+            assertFalse("test fixture must not inherit a temporary 3MF project", TemporaryProjectSettings.active)
+            ProfileSettingsRepository.clearDraft(printProfile)
+            // Deliberately make this 20 mm fixture taller than the synthetic nozzle height so
+            // the By-Object branch must honor the active 30 mm gantry clearance. By-Layer's
+            // existing 6 mm arrangement gap would not satisfy this assertion.
+            ProfileSettingsRepository.setPendingValues(printProfile, mapOf(
+                "print_sequence" to "by object",
+                "nozzle_height" to "0.1",
+                "extruder_clearance_radius" to "30",
+            ))
+            val effectiveArrangeConfig = SliceBeam.buildCurrentConfigObject()
+            assertEquals("by object", effectiveArrangeConfig["print_sequence"])
+            assertEquals("0.1", effectiveArrangeConfig["nozzle_height"])
+            assertEquals("30", effectiveArrangeConfig["extruder_clearance_radius"])
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                model.addObject(model, 0)
+                glView.renderer.setSelectedObject(0)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("two overlapping test objects should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            instrumentationWaitForGlIdle()
+            compose.runOnUiThread { bed.updateModel() }
+            val before = readExactBoundsOnGl(glView, 0, 1)
+            assertTrue("fixture objects should overlap before arranging",
+                maxOf(before[0][0], before[1][0]) < minOf(before[0][3], before[1][3]) &&
+                    maxOf(before[0][1], before[1][1]) < minOf(before[0][4], before[1][4]))
+
+            val arrangeFinished = CountDownLatch(1)
+            val arrangeResult = AtomicReference<Boolean?>()
+            glView.queueEvent {
+                arrangeResult.set(requireNotNull(glView.renderer.bed).arrange(model))
+                glView.requestRender()
+                arrangeFinished.countDown()
+            }
+            assertTrue("native By-Object arrangement should return", arrangeFinished.await(15, TimeUnit.SECONDS))
+            assertEquals("both models should fit with the active clearance", true, arrangeResult.get())
+            val after = readExactBoundsOnGl(glView, 0, 1)
+            val xGap = maxOf(after[0][0], after[1][0]) - minOf(after[0][3], after[1][3])
+            val yGap = maxOf(after[0][1], after[1][1]) - minOf(after[0][4], after[1][4])
+            assertTrue("By-Object arrangement must apply the active 30 mm gantry clearance (x=$xGap, y=$yGap)",
+                maxOf(xGap, yGap) >= 29.5)
+            assertEquals("arranging must preserve both models", 2, readObjectCountOnGl(glView))
+        } finally {
+            ProfileSettingsRepository.clearDraft(printProfile)
+            if (previousDraft.isNotEmpty()) ProfileSettingsRepository.setPendingValues(printProfile, previousDraft)
             modelFile.delete()
         }
     }
