@@ -62,6 +62,30 @@ source routing, not desktop completeness or runtime verification.
 - Reassess other Orca desktop functions only after inspecting their native dependencies, Android
   UI feasibility, mobile memory cost, and license/build requirements.
 
+### OrcaSlicer 2.5 Alpha capability review (2026-10-31)
+
+The official 2.5.0 Alpha notes describe a large desktop release, not a drop-in Android package.
+The following candidates are ranked by whether they can safely use the existing native engine and
+mobile interaction model. Do not count a candidate as implemented until its Android action and
+regression evidence exist.
+
+| Upstream capability | Android evidence / feasibility | Port decision |
+|---|---|---|
+| Texture Displacement | Native mesh displacement and texture sampling could run on Android, but it can greatly increase triangle count and RAM. | High-value later candidate; prototype bounded resolution, cancellation, memory guard, undo/redo, and slice parity before exposing. |
+| Parametric Design tab | Requires a sketch/CAD constraint solver, feature tree, replay, and 3MF persistence; it is a separate CAD subsystem. | Do not imitate with static mesh generators. First scope solver dependencies and an independently versioned parametric project format. |
+| Python plugins | Arbitrary code, filesystem, network, and process access create a large security and lifecycle surface on Android. | Not a direct port. Consider only a sandboxed, permissioned extension API after threat modeling; no arbitrary plugin execution in this plan. |
+| Color mixing | Depends on compatible multi-input hardware and firmware semantics, unlike ordinary single-nozzle MMU tool changes. | Defer until a supported mixer hardware profile and firmware-safe G-code contract are identified. |
+| IDEX/IQEX parallel printing | Requires independent carriage collision planning and printer-specific G-code/start sequencing. | Defer pending a complete, testable dual-carriage printer profile; never infer support from generic extruder count. |
+| Belt printers | Coordinate transforms, bed geometry, and print sequencing differ from planar beds. | Defer until belt printer machine limits and G-code are ported as a coherent profile family. |
+| Speed Dial / action launcher | Mobile already has searchable menus and configurable bottom actions; parity should not duplicate those entry points. | Revisit only if the menu audit finds a measured discoverability gap. |
+| Faster startup, slicing, and G-code export | Upstream contains many independent native changes and fixes. | Port individually against pinned commits with Android ARM64 regression tests; do not mass-update the engine lock. |
+| Precise Seam modifiers and new infill options | Some native engine support may already exist; UI coverage and serialization need verification. | Audit current keys/enum paths first, then expose only safe, tested gaps in backlog item 10. |
+| Mixed nozzle sizes / new printer support | Depends on per-tool nozzle geometry, profile definitions, and G-code validation. | Treat as profile-family work with fixture-based export tests, not a generic UI toggle. |
+
+Primary upstream source: [OrcaSlicer V2.5.0 Alpha release notes](https://github.com/OrcaSlicer/OrcaSlicer/releases).
+The existing backlog items 7–10 remain the active implementation sequence; this review adds candidates
+for prioritization after those items and is not itself counted as a shipped feature.
+
 ## Delivery cadence and gates
 
 1. Keep a numbered implementation log for the ten backlog items above.
