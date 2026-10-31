@@ -722,6 +722,44 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun objectTooThinForAnyLayerWithRaftOrPreciseZReportsSlicingErrorInsteadOfCrashing() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val thinHeight = 0.002
+        val source = createThinCubeFixture("thin-object-no-layers.stl", 20.0, 20.0, thinHeight)
+        val output = File(context.cacheDir, "thin-object-no-layers.gcode")
+        val model = Model(source)
+        try {
+            process.put("layer_height", "0.2")
+            process.put("initial_layer_print_height", "0.2")
+            process.put("min_layer_height", "0.07")
+            for (raftLayers in listOf(0, 2)) {
+                for (preciseZ in listOf(false, true)) {
+                    process.put("raft_layers", raftLayers.toString())
+                    process.put("precise_z_height", if (preciseZ) "1" else "0")
+                    SliceBeam.genCurrentConfig(model)
+                    val configFile = SliceBeam.getCurrentConfigFile()
+                    try {
+                        val failure = runCatching {
+                            model.slice(configFile.absolutePath, output.absolutePath, null)
+                        }.exceptionOrNull()
+                        assertNotNull("a ${thinHeight}mm object must not generate any 0.2mm print layers", failure)
+                        assertTrue(
+                            "raft=$raftLayers preciseZ=$preciseZ must report the normal no-layers error; got $failure",
+                            failure.toString().contains("No layers were detected"),
+                        )
+                    } finally {
+                        configFile.delete()
+                        output.delete()
+                    }
+                }
+            }
+        } finally {
+            model.release()
+            source.delete()
+        }
+    }
+    @Test
     fun insetMultiSideExtruderAreaDoesNotRejectPathInsideItsPrintablePolygon() = withToolChangerProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val printer = requireNotNull(SliceBeam.CONFIG?.findPrinter("MyToolChanger 0.4 nozzle"))
@@ -1713,6 +1751,144 @@ class NativeSliceDeviceTest {
                     generatedConfig.delete()
                     gcodeFile.delete()
                 }
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun assignedInnerWallFilamentIsUsedForOverhangSegments() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard"))
+        val modelFile = createOverhangWallFixture("inner-wall-overhang-filament.stl")
+        val model = Model(modelFile)
+        try {
+            // Keep both tools active in the object config while the feature-specific wall IDs are tested.
+            model.setUniformFilament(0, 2)
+            process.put("wall_loops", "2")
+            process.put("outer_wall_filament_id", "1")
+            process.put("inner_wall_filament_id", "2")
+            process.put("sparse_infill_filament_id", "1")
+            process.put("internal_solid_filament_id", "1")
+            process.put("top_surface_filament_id", "1")
+            process.put("bottom_surface_filament_id", "1")
+            process.put("detect_overhang_wall", "1")
+            process.put("extra_perimeters_on_overhangs", "0")
+            process.put("enable_support", "0")
+            process.put("skirt_loops", "0")
+            process.put("brim_type", "no_brim")
+
+            for (wallGenerator in listOf("classic", "arachne")) {
+                process.put("wall_generator", wallGenerator)
+                SliceBeam.genCurrentConfig(model)
+                val configFile = SliceBeam.getCurrentConfigFile()
+                val gcodeFile = File(context.cacheDir, "inner-wall-overhang-$wallGenerator.gcode")
+                var result: GCodeProcessorResult? = null
+                try {
+                    val configText = configFile.readText()
+                    assertTrue("the generated slice config must retain both explicit wall tools",
+                        Regex("(?m)^outer_wall_filament_id\\s*=\\s*1\\s*$").containsMatchIn(configText) &&
+                            Regex("(?m)^inner_wall_filament_id\\s*=\\s*2\\s*$").containsMatchIn(configText))
+                    result = model.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+                    val gcode = gcodeFile.readText()
+                    assertHasExtrusion(gcode)
+                    assertEquals("$wallGenerator outer walls must use T0", setOf(0), toolsForFeature(gcode, "Outer wall"))
+                    assertEquals("$wallGenerator inner walls, including overhang segments, must use T1; tools=${toolsForFeature(gcode, "Inner wall")}", setOf(1), toolsForFeature(gcode, "Inner wall"))
+                    assertEquals("$wallGenerator overhang segments must preserve both wall levels; tools=${toolsForFeature(gcode, "Overhang wall")}", setOf(0, 1), toolsForFeature(gcode, "Overhang wall"))
+                } finally {
+                    result?.release()
+                    configFile.delete()
+                    gcodeFile.delete()
+                }
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun gapFillBetweenWallsDoesNotScheduleTheSparseInfillFilament() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard"))
+        val modelFile = createThinCubeFixture("gap-fill-between-walls.stl", 20.0, 1.9, 5.0)
+        val model = Model(modelFile)
+        try {
+            model.setUniformFilament(0, 1)
+            process.put("wall_generator", "classic")
+            process.put("wall_loops", "2")
+            process.put("outer_wall_filament_id", "1")
+            process.put("inner_wall_filament_id", "1")
+            process.put("sparse_infill_filament_id", "2")
+            process.put("internal_solid_filament_id", "1")
+            process.put("top_surface_filament_id", "1")
+            process.put("bottom_surface_filament_id", "1")
+            process.put("skirt_loops", "0")
+            process.put("brim_type", "no_brim")
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            val gcodeFile = File(context.cacheDir, "gap-fill-between-walls.gcode")
+            var result: GCodeProcessorResult? = null
+            try {
+                result = model.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+                val gcode = gcodeFile.readText()
+                assertHasExtrusion(gcode)
+                assertTrue("the narrow model must contain wall-to-wall gap fill", toolsForFeature(gcode, "Gap infill").isNotEmpty())
+                assertEquals("gap fill between walls must use the wall filament T0", setOf(0), toolsForFeature(gcode, "Gap infill"))
+                assertTrue("there must not be a sparse infill path/tool change", toolsForFeature(gcode, "Sparse infill").isEmpty())
+                assertFalse("unused sparse-infill filament T1 must not trigger a tool change", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            } finally {
+                result?.release()
+                configFile.delete()
+                gcodeFile.delete()
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun topAndBottomGapFillUseTheirSurfaceFilaments() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard"))
+        val modelFile = createCylinderFixture("surface-gap-fill-filaments.stl", 10.0, 10.0, 96)
+        val model = Model(modelFile)
+        try {
+            // Keep all four configured tools within the generated filament arrays.
+            model.setUniformFilament(0, 4)
+            process.put("wall_generator", "arachne")
+            process.put("gap_fill_target", "topbottom")
+            process.put("outer_wall_filament_id", "1")
+            process.put("inner_wall_filament_id", "1")
+            process.put("sparse_infill_filament_id", "1")
+            process.put("internal_solid_filament_id", "2")
+            process.put("top_surface_filament_id", "3")
+            process.put("bottom_surface_filament_id", "4")
+            process.put("skirt_loops", "0")
+            process.put("brim_type", "no_brim")
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            val gcodeFile = File(context.cacheDir, "surface-gap-fill-filaments.gcode")
+            var result: GCodeProcessorResult? = null
+            try {
+                val configText = configFile.readText()
+                assertTrue("generated config must retain surface filament assignments",
+                    Regex("(?m)^top_surface_filament_id\\s*=\\s*3\\s*$").containsMatchIn(configText) &&
+                        Regex("(?m)^bottom_surface_filament_id\\s*=\\s*4\\s*$").containsMatchIn(configText))
+                result = model.slice(configFile.absolutePath, gcodeFile.absolutePath, null)
+                val gcode = gcodeFile.readText()
+                assertHasExtrusion(gcode)
+                assertEquals("top/bottom surface gap fill must use the associated surface tools", setOf(2, 3), toolsForFeature(gcode, "Gap infill"))
+                assertEquals("top surfaces must use T2", setOf(2), toolsForFeature(gcode, "Top surface"))
+                assertEquals("bottom surfaces must use T3", setOf(3), toolsForFeature(gcode, "Bottom surface"))
+                assertEquals("tool changes must not leave a tool idle on the layer", 0, idleToolChanges(gcode))
+            } finally {
+                result?.release()
+                configFile.delete()
+                gcodeFile.delete()
             }
         } finally {
             model.release()
@@ -4434,6 +4610,70 @@ class NativeSliceDeviceTest {
         }
     }
 
+    private fun createThinCubeFixture(name: String, width: Double, depth: Double, height: Double): File {
+        val points = arrayOf(
+            doubleArrayOf(0.0, 0.0, 0.0), doubleArrayOf(width, 0.0, 0.0),
+            doubleArrayOf(width, depth, 0.0), doubleArrayOf(0.0, depth, 0.0),
+            doubleArrayOf(0.0, 0.0, height), doubleArrayOf(width, 0.0, height),
+            doubleArrayOf(width, depth, height), doubleArrayOf(0.0, depth, height),
+        )
+        val faces = arrayOf(
+            intArrayOf(0, 2, 1), intArrayOf(0, 3, 2), intArrayOf(4, 5, 6), intArrayOf(4, 6, 7),
+            intArrayOf(0, 1, 5), intArrayOf(0, 5, 4), intArrayOf(1, 2, 6), intArrayOf(1, 6, 5),
+            intArrayOf(2, 3, 7), intArrayOf(2, 7, 6), intArrayOf(3, 0, 4), intArrayOf(3, 4, 7),
+        )
+        fun vertexLine(index: Int) = "vertex ${points[index][0]} ${points[index][1]} ${points[index][2]}\n"
+        val stl = buildString {
+            append("solid thin_cube\n")
+            faces.forEach { face ->
+                append("facet normal 0 0 0\nouter loop\n")
+                face.forEach { append(vertexLine(it)) }
+                append("endloop\nendfacet\n")
+            }
+            append("endsolid thin_cube\n")
+        }
+        return File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name).also { it.writeText(stl) }
+    }
+
+    private fun createOverhangWallFixture(name: String): File {
+        val faces = arrayOf(
+            intArrayOf(0, 2, 1), intArrayOf(0, 3, 2), intArrayOf(4, 5, 6), intArrayOf(4, 6, 7),
+            intArrayOf(0, 1, 5), intArrayOf(0, 5, 4), intArrayOf(1, 2, 6), intArrayOf(1, 6, 5),
+            intArrayOf(2, 3, 7), intArrayOf(2, 7, 6), intArrayOf(3, 0, 4), intArrayOf(3, 4, 7),
+        )
+        val boxes = listOf(
+            doubleArrayOf(8.0, 8.0, 0.0, 12.0, 12.0, 5.0),
+            doubleArrayOf(0.0, 0.0, 5.0, 20.0, 20.0, 7.0),
+        )
+        val stl = buildString {
+            append("solid overhang_walls\n")
+            boxes.forEach { box ->
+                val x0 = box[0]
+                val y0 = box[1]
+                val z0 = box[2]
+                val x1 = box[3]
+                val y1 = box[4]
+                val z1 = box[5]
+                val points = arrayOf(
+                    doubleArrayOf(x0, y0, z0), doubleArrayOf(x1, y0, z0),
+                    doubleArrayOf(x1, y1, z0), doubleArrayOf(x0, y1, z0),
+                    doubleArrayOf(x0, y0, z1), doubleArrayOf(x1, y0, z1),
+                    doubleArrayOf(x1, y1, z1), doubleArrayOf(x0, y1, z1),
+                )
+                faces.forEach { face ->
+                    append("facet normal 0 0 0\nouter loop\n")
+                    face.forEach { index ->
+                        val point = points[index]
+                        append("vertex ${point[0]} ${point[1]} ${point[2]}\n")
+                    }
+                    append("endloop\nendfacet\n")
+                }
+            }
+            append("endsolid overhang_walls\n")
+        }
+        return File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name).also { it.writeText(stl) }
+    }
+
     private fun createCylinderFixture(name: String, radius: Double, height: Double, segments: Int): File {
         val target = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
         fun point(angle: Double, z: Double) = doubleArrayOf(radius * kotlin.math.cos(angle), radius * kotlin.math.sin(angle), z)
@@ -4533,5 +4773,30 @@ class NativeSliceDeviceTest {
             }
         }
         return tools
+    }
+
+    private fun idleToolChanges(gcode: String): Int {
+        var inLayers = false
+        var changedTool = false
+        var extrudedAfterChange = false
+        var idleChanges = 0
+        val toolChange = Regex("^T\\d+(?:\\s|$)")
+        for (line in gcode.lineSequence()) {
+            val isToolChange = toolChange.containsMatchIn(line)
+            val isLayerChange = line.contains(";LAYER_CHANGE")
+            if (isToolChange || isLayerChange) {
+                if (changedTool && !extrudedAfterChange) idleChanges++
+                inLayers = inLayers || isLayerChange
+                changedTool = isToolChange && inLayers
+                extrudedAfterChange = false
+            } else if (changedTool && line.startsWith("G1 ") &&
+                Regex("\\bE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(line) &&
+                (Regex("\\bX[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(line) ||
+                    Regex("\\bY[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(line))) {
+                extrudedAfterChange = true
+            }
+        }
+        if (changedTool && !extrudedAfterChange) idleChanges++
+        return idleChanges
     }
 }

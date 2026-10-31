@@ -98,6 +98,37 @@ unsigned int LayerTools::internal_solid_filament_id(const PrintRegion &region) c
 	return ((this->extruder_override == 0) ? region.config().internal_solid_filament_id.value : this->extruder_override) - 1;
 }
 
+// Resolve the tool from the actual extrusion entities. A single collection may contain
+// multiple roles (notably gap fill and overhang walls), so its aggregate role is not enough.
+static unsigned int region_filament(const ExtrusionEntityCollection &extrusions, const PrintRegionConfig &config)
+{
+    if (extrusions.has_infill()) {
+        if (!extrusions.has_solid_infill())
+            return config.sparse_infill_filament_id.value;
+
+        // Gap fill inherits the surface type it fills; ignore it when determining the role.
+        ExtrusionRole role = erNone;
+        for (const ExtrusionEntity *entity : extrusions.entities) {
+            const ExtrusionRole entity_role = entity->role();
+            if (entity_role != erGapFill)
+                role = (role == erNone || role == entity_role) ? entity_role : erMixed;
+        }
+        if (role == erTopSolidInfill || role == erIroning)
+            return config.top_surface_filament_id.value;
+        if (role == erBottomSurface)
+            return config.bottom_surface_filament_id.value;
+        return config.internal_solid_filament_id.value;
+    }
+
+    // Gap fill between walls uses the wall filament. Inset metadata distinguishes inner
+    // overhang segments whose extrusion role alone cannot identify the wall level.
+    const ExtrusionEntitiesPtr &walls = extrusions.entities;
+    const bool all_inner = !walls.empty() && std::all_of(walls.begin(), walls.end(), [](const ExtrusionEntity *entity) {
+        return is_inner_wall(*entity);
+    });
+    return all_inner ? config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
+}
+
 // Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
 {
@@ -106,30 +137,8 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().internal_solid_filament_id.value > 0);
 	assert(region.config().top_surface_filament_id.value > 0);
 	assert(region.config().bottom_surface_filament_id.value > 0);
-	// 1 based extruder ID.
-    unsigned int extruder = 1;
-    if (this->extruder_override == 0) {
-        if (extrusions.has_infill()) {
-            if (extrusions.has_solid_infill()) {
-                ExtrusionRole role = extrusions.role();
-                if (role == erTopSolidInfill || role == erIroning)
-                    extruder = region.config().top_surface_filament_id;
-                else if (role == erBottomSurface)
-                    extruder = region.config().bottom_surface_filament_id;
-                else
-                    extruder = region.config().internal_solid_filament_id;
-            } else {
-                extruder = region.config().sparse_infill_filament_id;
-            }
-        } else {
-            const ExtrusionRole role = extrusions.role();
-            if (role == erPerimeter)
-                extruder = region.config().inner_wall_filament_id.value;
-            else
-                extruder = region.config().outer_wall_filament_id.value;
-        }
-    } else
-        extruder = this->extruder_override;
+	// Region filament IDs are one based; the G-code writer uses zero based tool indices.
+    const unsigned int extruder = this->extruder_override == 0 ? region_filament(extrusions, region.config()) : this->extruder_override;
 
     return (extruder == 0) ? 0 : extruder - 1;
 }
@@ -706,7 +715,13 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 
                 if (something_nonoverriddable){
                		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
-                    if (extruder_override == 0 && region.config().wall_loops.value > 1)
+                    const bool has_inner_wall = std::any_of(layerm->perimeters.entities.begin(), layerm->perimeters.entities.end(), [](const ExtrusionEntity *island) {
+                        const auto *walls = dynamic_cast<const ExtrusionEntityCollection*>(island);
+                        return walls != nullptr && std::any_of(walls->entities.begin(), walls->entities.end(), [](const ExtrusionEntity *wall) {
+                            return is_inner_wall(*wall);
+                        });
+                    });
+                    if (extruder_override == 0 && region.config().wall_loops.value > 1 && has_inner_wall)
                         layer_tools.extruders.emplace_back(region.config().inner_wall_filament_id.value);
                     if (layerCount == 0) {
                         firstLayerExtruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
@@ -716,23 +731,13 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 layer_tools.has_object = true;
             }
 
-            bool has_infill             = false;
-            bool has_internal_solid     = false;
-            bool has_top_solid_surface  = false;
-            bool has_bottom_surface     = false;
+            std::vector<unsigned int> fill_filaments;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
-                ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
-                if (role == erTopSolidInfill || role == erIroning)
-                    has_top_solid_surface = true;
-                else if (role == erBottomSurface)
-                    has_bottom_surface = true;
-                else if (is_solid_infill(role))
-                    has_internal_solid = true;
-                else if (role != erNone)
-                    has_infill = true;
+                if (!fill->entities.empty())
+                    fill_filaments.emplace_back(region_filament(*fill, region.config()));
 
                 if (m_print_config_ptr) {
                     if (! layer_tools.wiping_extrusions().is_overriddable_and_mark(*fill, *m_print_config_ptr, object, region))
@@ -741,19 +746,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
 
             if (something_nonoverriddable || !m_print_config_ptr) {
-            	if (extruder_override == 0) {
-                    if (has_internal_solid)
-                        layer_tools.extruders.emplace_back(region.config().internal_solid_filament_id);
-                    if (has_top_solid_surface)
-                        layer_tools.extruders.emplace_back(region.config().top_surface_filament_id);
-                    if (has_bottom_surface)
-                        layer_tools.extruders.emplace_back(region.config().bottom_surface_filament_id);
-	                if (has_infill)
-	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
-                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
-            		layer_tools.extruders.emplace_back(extruder_override);
+                if (extruder_override == 0)
+                    layer_tools.extruders.insert(layer_tools.extruders.end(), fill_filaments.begin(), fill_filaments.end());
+                else if (!fill_filaments.empty())
+                    layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            if (!fill_filaments.empty())
                 layer_tools.has_object = true;
         }
         layerCount++;
