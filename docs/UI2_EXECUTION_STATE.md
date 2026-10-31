@@ -3395,3 +3395,8 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Ein parallel angeschlossener Emulator verursachte im Gradle-Testoutput-Plugin einen Connection-timeout; der Gesamt-Gradle-Aufruf endete fehlgeschlagen. Die erfolgreiche Geräte-Testdatei weist den Einzellauf auf emulator-5554 separat als PASSED aus; der zweite Emulator wird nicht als getestet gezählt.
 - Änderungen an Test und Dokumentation sind noch uncommitted; `git diff --check` erfolgreich.
 - Nächster konkreter Schritt: #11 Sample außerhalb der Infill-Grenze direkt instrumentieren oder einen ungeeigneten Backlog-Kandidaten durch einen verifizierbaren Android-Funktionsport ersetzen.
+# Orca feature-filament default semantics — 2026-10-31
+
+- Upstream `304924a69` wurde gegen den Nightly-Kern geprüft. Der funktionale Fix war bereits in `6d8f78d9d` vorhanden und ist in Release `v0.8.420-nightly.1` enthalten; kein neuer Feature-Zähler.
+- `NativeSliceDeviceTest#oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures` erneut auf Android 16 ausgeführt: 1/1 bestanden. Die Prüfung ändert nacheinander Sparse Infill, internes Infill, obere und untere Fläche und kontrolliert jeweils die tatsächlichen G-Code-T-Werkzeuge.
+- Nächste Aufgabe bleibt: neue, auf Android tatsächlich nutzbare Orca-Funktionen aus den Kandidaten 11–20 bzw. deren Ersatzkandidaten priorisieren. #12 und #18 haben keinen passenden Android-Laufzeitpfad und zählen nicht als implementiert; keine APK vor zehn neuen, abgenommenen Featurepunkten.
