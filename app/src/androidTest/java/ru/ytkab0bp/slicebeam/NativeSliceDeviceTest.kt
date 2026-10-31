@@ -940,6 +940,41 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun temperatureTowerTargetsTheAssignedToolOnEveryLayer() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "orca25-temperature-tower-tool-source.stl")
+        val output = File(context.cacheDir, "orca25-temperature-tower-tool.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            // T1 is a different heated tool from the printer's first nozzle.
+            model.setUniformFilament(0, 2)
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath,
+                output.absolutePath,
+                null,
+                6, // CalibMode::Calib_Temp_Tower
+                200.0,
+                220.0,
+                5.0,
+            )
+            val temperatureChanges = output.readLines().filter { it.startsWith("M104 S") }
+            assertTrue("the calibration must emit changing layer temperatures", temperatureChanges.size >= 2)
+            assertTrue(
+                "each temperature tower step must explicitly address assigned tool T1: $temperatureChanges",
+                temperatureChanges.all { Regex("\\bT1\\b").containsMatchIn(it) },
+            )
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun objectsWithDifferentNozzleLayerLimitsCanSharePrimeTower() = withToolChangerProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)

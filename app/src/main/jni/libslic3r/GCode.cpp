@@ -4668,7 +4668,13 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_Temp_Tower: {
-            gcode += writer().set_temperature(this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start), static_cast<float>(print.calib_params().end), 5.0f));
+            // Address the active tool explicitly. A bare M104 may change a different nozzle
+            // on multi-tool printers, even though this calibration object uses another filament.
+            const int tool = m_writer.filament() ? static_cast<int>(m_writer.filament()->id()) : -1;
+            gcode += writer().set_temperature(
+                this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start),
+                                                      static_cast<float>(print.calib_params().end), 5.0f),
+                false, tool);
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
