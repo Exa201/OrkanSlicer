@@ -23,6 +23,14 @@
 - Status: Quellcode-/Build-Nachweis vorhanden, Hardware-/ARM64-Verifikation offen. Nicht als abgeschlossenes Release-Feature gezählt; es gehört als nächster Regressionseintrag in den laufenden 10er-Batch.
 - Nächster Schritt: Regressionstest auf Honor/Xiaomi oder ARM64-Emulator ausführen; danach eine Mehrfarben-3MF-Zuweisung nach 3MF-Rundlauf, Slicing und G-Code-Toolwechsel ergänzend gegen diese Kaskade prüfen.
 
+## Orca 2.5 Importabsturz bei fehlenden/leeren Projekteinstellungen — Android-Portbewertung, 2026-10-31
+
+- Upstream `eda4062d6` behebt einen Orca-Desktop-`Plater::load_files`-Fehler: optionale `filament_colour`-/Infill-Werte wurden vor dem Zusammenführen der Defaults dereferenziert; leere oder als nicht importierbar verworfene Projektkonfigurationen liefen in dieselben Reads. Ein weiterer Importpfad sortiert danach Filamente anhand der tatsächlich geladenen Datei.
+- Diese GUI-Methode existiert in der Android-App nicht. Der Android-Einstieg liest die Settings über `ThreeMfProjectSettingsReader`; `MainActivity` bietet den Settings-Import nur an, wenn `ThreeMfProjectSettings.hasSettings` wahr ist. Leere/fehlende Werte werden nicht durch den Desktop-Codepfad dereferenziert. Deshalb wurde der Desktop-Patch nicht mechanisch auf die Android-App übertragen.
+- Regression ergänzt: fehlende, leere, reine Whitespace- und leere-JSON-Projekteinstellungen bleiben geometry-only und synthetisieren weder Prozess- noch Filamentüberschreibungen. `ThreeMfProjectSettingsReaderTest`: 20/20 bestanden (0 Fehler/Übersprünge); `git diff --check` bestanden.
+- Verbleibende Abdeckung: die Regression prüft den Android-Settingsreader, nicht den vollständigen nativen 3MF-Geometrieimport/-Render auf ARM64. Dafür ist ein passendes Gerät erforderlich.
+- Orca-2.5-Fähigkeitsprüfung fortsetzen: einzelne Native-/GUI-Upstreamänderungen nur nach Android-Äquivalenzprüfung übernehmen; die Desktop-Plater-Fixfamilie ist für diesen Android-Einstieg nicht direkt portierbar.
+
 
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 

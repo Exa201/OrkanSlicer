@@ -230,6 +230,19 @@ class ThreeMfProjectSettingsReaderTest {
         assertEquals(1, malformed.ignoredValues)
     }
 
+    @Test fun missingOrEmptyProjectSettingsRemainGeometryOnlyAndDoNotOfferSettingsImport() {
+        val withoutSettings = read(mapOf("3D/3dmodel.model" to "<model/>"))
+        val emptySettings = read(mapOf("Metadata/project_settings.config" to ""))
+        val whitespaceSettings = read(mapOf("Metadata/project_settings.config" to " \r\n\t "))
+        val emptyJsonSettings = read(mapOf("Metadata/project_settings.config" to "{}"))
+
+        listOf(withoutSettings, emptySettings, whitespaceSettings, emptyJsonSettings).forEach { project ->
+            assertFalse("A 3MF without usable settings must not offer a settings import", project.hasSettings)
+            assertTrue("A geometry-only project must not synthesize filament overrides", project.process.isEmpty())
+            assertTrue(project.filaments.isEmpty())
+        }
+    }
+
     @Test(expected = IOException::class) fun oversizedSettingsAreBoundedEvenWhenHighlyCompressed() {
         read(mapOf("Metadata/project_settings.config" to " ".repeat(8 * 1024 * 1024 + 1)))
     }
