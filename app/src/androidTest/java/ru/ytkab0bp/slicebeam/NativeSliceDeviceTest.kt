@@ -898,6 +898,32 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun cutDowelToleranceDoesNotShiftTheCutPlaneAnchor() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "orca25-centered-dowel-cut.stl")
+        val model = Model(modelFile)
+        try {
+            // Cylinder geometry starts at its local Z origin; place its lower end 2 mm
+            // below the 10 mm cut plane so both cut halves contain connector geometry.
+            Native.model_add_connector(model.pointer, 0, 10.0, 10.0, 8.0, 2f, 4f, 1)
+            assertEquals(1, model.getCutConnectorCount(0))
+            assertTrue("the cube should split through the centered dowel", model.cut(0, 10.0, 0.0, 0.0, true, true))
+            assertEquals("the cut should retain both halves and the generated dowel", 3, model.objectsCount)
+
+            val upperConnector = model.getModifierVolumeIndices(0).single()
+            val lowerConnector = model.getModifierVolumeIndices(1).single()
+            val upperHeight = requireNotNull(model.getModifierVolumeBoxState(0, upperConnector)).size[2]
+            val lowerHeight = requireNotNull(model.getModifierVolumeBoxState(1, lowerConnector)).size[2]
+            assertTrue("both halves of a cut-plane dowel must keep positive depth", upperHeight > 1.5 && lowerHeight > 1.5)
+            assertEquals("dowel tolerance must not move the lower cut-plane anchor", 2.0, lowerHeight, 0.02)
+            assertEquals("the tolerance extension belongs at the far end", 2.1, upperHeight, 0.02)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun nativeDeleteTranslateAndBedPlacementRejectInvalidObjectsAndValues() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyAsset(context, "models/sphere.stl", "native-invalid-edit-requests.stl")
