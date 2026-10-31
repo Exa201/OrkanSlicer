@@ -194,7 +194,10 @@ class TemporaryProjectSettingsDeviceTest {
                 gcode.lineSequence().forEach { line ->
                     if (line.startsWith(";Z:")) {
                         layerZ = line.substringAfter(";Z:").toDouble()
-                    } else if (layerZ > 0.0 && (line.startsWith("G1 ") || line.startsWith("G0 "))) {
+                    } else if (layerZ > 0.0 &&
+                        (line.startsWith("G1 ") || line.startsWith("G0 ")) &&
+                        !line.contains("Move print head further up", ignoreCase = true)
+                    ) {
                         val move = line.substringBefore(';')
                         Regex("\\bZ([-0-9.]+)").find(move)?.groupValues?.get(1)?.toDoubleOrNull()
                             ?.takeIf { it > layerZ + 0.3 }?.let { lifts += layerZ }
@@ -221,11 +224,18 @@ class TemporaryProjectSettingsDeviceTest {
                 val sliced = loadedModel.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
                 result = sliced
                 val lifts = liftLayers(gcodeFile.readText())
+                val gcodeText = gcodeFile.readText()
                 assertTrue("$setting for filament $filamentId should produce at least one lifted travel", lifts.isNotEmpty())
                 if (setting == "lift threshold" && filamentId == 2) {
                     assertTrue("Filament 2 must honor its 1 mm lower Z-hop boundary", lifts.first() > 1.0 - 1e-6)
                 } else if (setting == "lift enforcement" && filamentId == 2) {
-                    assertTrue("Bottom-only filament must not lift after the first layer", lifts.last() <= 0.24 + 1e-6)
+                    val zEvidence = gcodeText.lineSequence().filter {
+                        it.startsWith(";Z:") || ((it.startsWith("G1 ") || it.startsWith("G0 ")) && Regex("\\bZ[-0-9.]+").containsMatchIn(it))
+                    }.toList().takeLast(24).joinToString("\n")
+                    val configEvidence = SliceBeam.getCurrentConfigFile().readLines().filter {
+                        it.contains("retract_lift_enforce")
+                    }.joinToString("\n")
+                    assertTrue("Bottom-only filament must not lift after the first layer: $lifts\n$configEvidence\n$zEvidence", lifts.last() <= 0.24 + 1e-6)
                 } else {
                     assertTrue("Unrestricted filament should lift on early layers", lifts.first() <= 0.24 + 1e-6)
                     assertTrue("Unrestricted filament should lift on higher layers", lifts.last() > 1.0)

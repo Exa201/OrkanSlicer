@@ -1,4 +1,14 @@
-# Aktueller Fortsetzungsstand — 2026-10-31, Nightly-Batch 1 abgeschlossen (10/10)
+# Aktueller Fortsetzungsstand — 2026-10-31, Batch 2 Laufzeitnachweise
+
+- Nightly-Branch `nightly-2.5`; veröffentlichter Stand bleibt `v0.8.420-nightly.1` (`39c6aeb07`). Kein neues APK/Release: Batch 2 ist noch nicht vollständig verifiziert.
+- API-35-x86_64-AVD mit ARM64-Bridge (`emulator-5556`) erneut gestartet. Fokussierte native Slice-Instrumentierung bestanden: Lightning-Infill-Smoke-Test #11 (1/1), unterschiedliche Düsen-Layergrenzen mit gemeinsamem Prime Tower #13 (1/1), filamentabhängige Lift-Schwelle/-Policy #15 (1/1), kompaktierter Turm/Werkzeugwechsel #17 (1/1), dünnes Modell mit Raft #19 (1/1), Enum-Listen-Standardwerte/JNI-Metadaten #20 (1/1). Die #20-Probe führte zusätzlich einen Box-Slice aus. Der exakte überhangspezifische #11-Loop-Test ist noch offen.
+- #15-Testkorrektur: „Move print head further up“ am Druckende ist kein Z-Hop und wird von der G-Code-Auswertung ausgeschlossen. Der native Projekt-Override enthält nachweislich `filament_retract_lift_enforce = All Surfaces,Bottom Only`; die konfigurierte Bottom-Only-Policy verhält sich nach Ausschluss des Endbewegungsbefehls erwartungsgemäß.
+- #13-Testkorrektur: Ein erster Versuch mit absichtlich verschiedenen adaptiven Layerprofilen wurde vom Slicer korrekt abgelehnt. Der finale Upstream-Regressionsfall verwendet gleiche tatsächliche Schichtfolgen bei unterschiedlichen Düsen-Grenzwerten und bestätigt, dass die Objekte gemeinsam mit Prime Tower gesliced werden.
+- Native ARM64-Bibliothek, Slice-Instrumentierung und fokussierte Test-APK wurden erfolgreich neu gebaut. Die vollständigen JVM-Suiten wurden in diesem Durchgang nicht erneut ausgeführt. Physische Drucker-/GPU-Verifikation steht weiterhin aus.
+- Batch 2 ist offen: #12 betrifft Preset-Vererbung ohne aktiven Android-PresetBundle-Aufrufpfad; #14 Baumstütz-Kollisionsgrenze und #16 asymmetrische Druckbereichsgrenze benötigen gezielte Laufzeitregressionen; #18 `Print::apply`-Wiederverwendung muss auf tatsächliche Android-Relevanz geprüft werden. #21 bleibt defensive Formatparität und zählt derzeit nicht als neue abgeschlossene Funktion.
+- Nächster konkreter Schritt: tatsächlichen Android-Aufrufpfad für #12/#18 endgültig abgrenzen und reproduzierbare native Grenztests für #14/#16 ergänzen. Erst nach Abnahme von zehn geeigneten Featuregruppen folgen APK, SHA-256 und Nightly-Prerelease.
+
+# Vorheriger Fortsetzungsstand — Nightly-Batch 1 abgeschlossen (10/10)
 
 - Ziel bleibt aktiv: selektive OrcaSlicer-2.5-Portierung und OrkanSlicer UI 2.0 Nightly. Stable-App und Stable-Repository bleiben getrennt.
 - Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Ausgangs-HEAD `082a938fb951e92f7e17a0dfa540ae7e45cfaf50`. Orca-Upstream geprüft bis `27cafaa06c5856c1502025b39acb9d5c9c344250`.

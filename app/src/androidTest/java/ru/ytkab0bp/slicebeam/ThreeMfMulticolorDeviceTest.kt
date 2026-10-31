@@ -222,19 +222,31 @@ class ThreeMfMulticolorDeviceTest {
             // filament then switches after the compacted tower has skipped lower layers.
             model.scale(0, 1.0, 1.0, 3.0)
             TemporaryProjectSettings.activate(settings)
+            // The 3MF fixture owns process settings and otherwise replaces these
+            // profile values during config generation. Make the test's intended
+            // compact-tower scenario explicit as project-local overrides.
+            TemporaryProjectSettings.setValue(ConfigObject.PROFILE_LIST_PRINT, "enable_prime_tower", "1")
+            TemporaryProjectSettings.setValue(ConfigObject.PROFILE_LIST_PRINT, "wipe_tower_no_sparse_layers", "1")
+            TemporaryProjectSettings.setValue(ConfigObject.PROFILE_LIST_PRINT, "top_surface_filament_id", "2")
             SliceBeam.genCurrentConfig(model)
             result = model.slice(configFile.absolutePath, destination.absolutePath, null)
 
             val lines = destination.readLines()
-            val toolchangeIndex = lines.indexOfLast { it.contains("NIGHTLY_TOOLCHANGE_MARK") }
-            val restoreIndex = if (toolchangeIndex > 0) {
-                (0 until toolchangeIndex).lastOrNull {
-                    lines[it].contains("Restore layer Z before toolchange")
-                } ?: -1
-            } else -1
-            assertTrue("A compacted tower must restore model Z before the custom toolchange", restoreIndex >= 0)
-            assertTrue("The restore move must precede the travel-capable custom macro",
-                toolchangeIndex > restoreIndex)
+            var layerZ = 0.0
+            var commandedZ = 0.0
+            val zAtToolchanges = mutableListOf<Pair<Double, Double>>()
+            val zValue = Regex("\\bZ([-0-9.]+)")
+            for (line in lines) {
+                if (line.startsWith(";Z:")) layerZ = line.substringAfter(";Z:").toDoubleOrNull() ?: layerZ
+                if (line.startsWith("G1 ") || line.startsWith("G0 ")) {
+                    zValue.find(line.substringBefore(';'))?.groupValues?.get(1)?.toDoubleOrNull()?.let { commandedZ = it }
+                }
+                if (line.contains("NIGHTLY_TOOLCHANGE_MARK")) zAtToolchanges += layerZ to commandedZ
+            }
+            assertTrue("The taller model must produce a toolchange above the initial layers: $zAtToolchanges",
+                zAtToolchanges.any { it.first > 0.5 })
+            assertTrue("A compacted tower must be at the active model Z before each travel-capable macro: $zAtToolchanges",
+                zAtToolchanges.all { (modelLayerZ, toolheadZ) -> toolheadZ + 0.01 >= modelLayerZ })
             assertTrue("The multi-color slice must still generate deposited extrusion",
                 lines.any { it.startsWith("G1 ") && Regex("\\bE[0-9.-]+").containsMatchIn(it) })
         } finally {

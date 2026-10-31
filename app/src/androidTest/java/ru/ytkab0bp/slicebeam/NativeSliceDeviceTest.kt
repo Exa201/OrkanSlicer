@@ -20,6 +20,7 @@ import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.Native
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
+import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rRuntimeError
 import ru.ytkab0bp.slicebeam.render.GLRenderer
@@ -41,6 +42,36 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun enumListDefaultsRetainNamedValuesInTheNativeOptionCatalog() = withKobraProfile {
+        val enumListOptions = PrintConfigDef.getInstance().options.values.filter {
+            it.type == ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType.ENUMS
+        }
+        assertTrue("The native option catalog must expose enum-list defaults", enumListOptions.isNotEmpty())
+
+        val nozzleType = requireNotNull(PrintConfigDef.getInstance().options["nozzle_type"])
+        assertEquals("ENUMS", nozzleType.type.name)
+        assertTrue("Nozzle enum names must remain available", requireNotNull(nozzleType.enumValues).contains("undefine"))
+        assertEquals("The nullable enum-list default must serialize to its Orca key", "undefine", nozzleType.defaultValue)
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "enum-list-defaults.stl")
+        val gcodeFile = File(context.cacheDir, "enum-list-defaults.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            assertHasExtrusion(gcodeFile.readText())
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun lightningInfillSlicesAndProducesExtrusion() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
@@ -56,7 +87,11 @@ class NativeSliceDeviceTest {
             result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
             val gcode = output.readText()
             assertHasExtrusion(gcode)
-            assertTrue("Lightning must emit sparse-infill moves", gcode.contains(";TYPE:Internal infill"))
+            assertTrue(
+                "Lightning must emit sparse-infill moves",
+                gcode.contains(";TYPE:Sparse infill", ignoreCase = true) ||
+                    gcode.contains(";TYPE:Internal infill", ignoreCase = true)
+            )
         } finally {
             result?.release()
             model.release()
@@ -169,6 +204,47 @@ class NativeSliceDeviceTest {
         } finally {
             firstResult?.release()
             secondResult?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun objectsWithDifferentNozzleLayerLimitsCanSharePrimeTower() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("MyToolChanger 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.20mm Standard"))
+        // The first and third logical nozzles intentionally have different layer limits.
+        printer.put("min_layer_height", "0.04,0.08,0.12,0.16,0.20")
+        printer.put("max_layer_height", "0.48,0.32,0.24,0.16,0.60")
+        process.put("layer_height", "0.12")
+        process.put("initial_layer_print_height", "0.12")
+        process.put("enable_prime_tower", "1")
+
+        val source = copyCube(context, "orca25-object-nozzle-layer-limits.stl")
+        val output = File(context.cacheDir, "orca25-object-nozzle-layer-limits.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 35.0, 0.0, 0.0)
+            model.rotate(1, 0.0, 0.0, 12.0)
+            model.setExtruder(0, 1)
+            model.setExtruder(1, 3)
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            assertTrue(configFile.readText().contains("min_layer_height = 0.04,0.08,0.12,0.16,0.20"))
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertTrue("Both assigned filaments must be emitted", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode) &&
+                Regex("(?m)^T2(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("Prime-tower-compatible objects must complete slicing", gcode.contains("; total layer number:"))
+            assertHasExtrusion(gcode)
+        } finally {
+            result?.release()
             model.release()
             source.delete()
             output.delete()

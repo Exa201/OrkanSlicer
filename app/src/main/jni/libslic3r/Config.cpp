@@ -299,21 +299,21 @@ ConfigOption* ConfigOptionDef::create_default_option() const
         if (type == coEnum)
             return new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->getInt());
 
+        // Clone once, then attach this definition's enum-key map to enum-list
+        // defaults.  Static config options are constructed without a map; without
+        // this assignment their serialized values become empty tokens.  Keeping
+        // ownership in a unique_ptr also avoids leaking the unused intermediate
+        // clone that this path previously allocated for every enum-list default.
+        std::unique_ptr<ConfigOption> option(this->default_value->clone());
         if (type == coEnums) {
-            auto dft = this->default_value->clone();
-            if (dft->nullable()) {
-                ConfigOptionEnumsGenericNullable *opt = dynamic_cast<ConfigOptionEnumsGenericNullable *>(this->default_value->clone());
-                opt->keys_map = this->enum_keys_map;
-                return opt;
-            } else {
-                ConfigOptionEnumsGeneric *opt = dynamic_cast<ConfigOptionEnumsGeneric *>(this->default_value->clone());
-                opt->keys_map = this->enum_keys_map;
-                return opt;
-            }
-            delete dft;
+            if (auto *nullable = dynamic_cast<ConfigOptionEnumsGenericNullable *>(option.get()))
+                nullable->keys_map = this->enum_keys_map;
+            else if (auto *enums = dynamic_cast<ConfigOptionEnumsGeneric *>(option.get()))
+                enums->keys_map = this->enum_keys_map;
+            else
+                throw ConfigurationError("ConfigOptionDef enum-list default has an incompatible option type");
         }
-
-        return this->default_value->clone();
+        return option.release();
     }
     return this->create_empty_option();
 }

@@ -570,6 +570,14 @@ extern "C" {
             }
 
             const ConfigOption* defValue = nCfgDef->get_default_value<ConfigOption>();
+            std::unique_ptr<ConfigOption> serializedEnumDefault;
+            if (defValue != nullptr && nCfgDef->type == Slic3r::coEnums) {
+                // Enum-list defaults may have been created before their definition's
+                // key map was attached. Serialize the normalized default so Kotlin
+                // receives the Orca string key instead of an empty value.
+                serializedEnumDefault.reset(nCfgDef->create_default_option());
+                defValue = serializedEnumDefault.get();
+            }
             if (defValue != nullptr) {
                 jobject defValueObj = env->NewStringUTF(defValue->serialize().c_str());
                 env->SetObjectField(cfgDef, defaultValueField, defValueObj);
