@@ -20,6 +20,20 @@ class DevicePerformancePolicyTest {
         assertEquals(50, DevicePerformancePolicy.initialLayerBlockSize(false))
     }
 
+    @Test fun automaticViewportPolicyUsesKnownWeakGlRendererWithoutGuessingUnknownHardware() {
+        assertTrue(DevicePerformancePolicy.isKnownLowEndRenderer("Adreno (TM) 530"))
+        assertTrue(DevicePerformancePolicy.isKnownLowEndRenderer("Mali-G57"))
+        assertTrue(DevicePerformancePolicy.isKnownLowEndRenderer("Google SwiftShader"))
+        assertFalse(DevicePerformancePolicy.isKnownLowEndRenderer("Adreno (TM) 740"))
+        assertFalse(DevicePerformancePolicy.isKnownLowEndRenderer("Unknown GPU"))
+        assertFalse(DevicePerformancePolicy.isKnownLowEndRenderer(null))
+        assertEquals(0.8f, DevicePerformancePolicy.defaultRenderScale(false, "Mali-G57"))
+        assertEquals(0.7f, DevicePerformancePolicy.defaultRenderScale(true, "Mali-G57"))
+        assertEquals(1f, DevicePerformancePolicy.defaultRenderScale(false, "Adreno (TM) 740"))
+        assertEquals(0.8f, DevicePerformancePolicy.renderScale(false, 0, "Google SwiftShader"))
+        assertEquals(1f, DevicePerformancePolicy.renderScale(false, 100, "Google SwiftShader"))
+    }
+
     @Test fun viewportQualityOverrideIsClampedToSupportedChoicesAndAutomaticFollowsDevice() {
         assertEquals(0.7f, DevicePerformancePolicy.renderScale(true, 0))
         assertEquals(1f, DevicePerformancePolicy.renderScale(false, 0))

@@ -2,12 +2,34 @@ package ru.ytkab0bp.slicebeam.render
 
 /** Defaults for the viewport only; slicing always uses the original model. */
 object DevicePerformancePolicy {
-    fun defaultRenderScale(lowRamDevice: Boolean): Float = if (lowRamDevice) 0.7f else 1f
+    /**
+     * Keep the viewport responsive on devices whose GL implementation is known to be
+     * software-rendered or from an older low-end GPU family. Unknown renderers retain
+     * full quality; a renderer name is a conservative capability hint, not a benchmark.
+     */
+    fun isKnownLowEndRenderer(renderer: String?): Boolean {
+        val name = renderer?.trim()?.lowercase().orEmpty()
+        if (name.isEmpty()) return false
+        if (listOf("swiftshader", "llvmpipe", "softpipe", "software rasterizer").any(name::contains)) return true
+        if (listOf("mali-400", "mali-450", "mali-t", "powervr sgx", "vivante").any(name::contains)) return true
+
+        val adreno = Regex("adreno(?: \\(tm\\))?\\s*(\\d{3,4})").find(name)?.groupValues?.get(1)?.toIntOrNull()
+        if (adreno != null && adreno < 600) return true
+
+        val maliG = Regex("mali-g(\\d+)").find(name)?.groupValues?.get(1)?.toIntOrNull()
+        return maliG != null && maliG <= 57
+    }
+
+    fun defaultRenderScale(lowRamDevice: Boolean, renderer: String? = null): Float = when {
+        lowRamDevice -> 0.7f
+        isKnownLowEndRenderer(renderer) -> 0.8f
+        else -> 1f
+    }
 
     /** A zero preference follows the device policy; explicit values are viewport-only. */
-    fun renderScale(lowRamDevice: Boolean, overridePercent: Int): Float = when (overridePercent) {
+    fun renderScale(lowRamDevice: Boolean, overridePercent: Int, renderer: String? = null): Float = when (overridePercent) {
         50, 65, 80, 100 -> overridePercent / 100f
-        else -> defaultRenderScale(lowRamDevice)
+        else -> defaultRenderScale(lowRamDevice, renderer)
     }
 
     /** Convert View pixels to the actual GL surface coordinate space. */

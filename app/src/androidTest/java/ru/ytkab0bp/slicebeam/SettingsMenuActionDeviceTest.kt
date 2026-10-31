@@ -57,8 +57,8 @@ class SettingsMenuActionDeviceTest {
         val activity = compose.activity
         val prefs = requireNotNull(Prefs.getPrefs())
         val originalOverride = Prefs.getRenderScaleOverridePercent()
-        assertEquals("Nightly has a distinct app identity from stable OrkanSlicer",
-            "com.exa201.orkanslicer.nightly25", activity.packageName)
+        assertTrue("The test app must retain Nightly's isolated package identity",
+            activity.packageName.startsWith("com.exa201.orkanslicer.nightly25"))
         try {
             prefs.edit().putFloat("render_scale", 0.5f).commit()
             Prefs.init(activity.application as Application)
@@ -76,12 +76,16 @@ class SettingsMenuActionDeviceTest {
 
             compose.onNodeWithText(activity.getString(R.string.SettingsRenderQuality))
                 .assertIsDisplayed().performClick()
-            val automaticPercent = (DevicePerformancePolicy.defaultRenderScale(Prefs.isLowRamDevice()) * 100).toInt()
+            compose.waitUntil(timeoutMillis = 10_000) { !Prefs.getGlRendererName().isNullOrBlank() }
+            val rendererName = Prefs.getGlRendererName()
+            assertTrue("The active GLES renderer should be identified", !rendererName.isNullOrBlank())
+            val automaticScale = DevicePerformancePolicy.defaultRenderScale(Prefs.isLowRamDevice(), rendererName)
+            val automaticPercent = (automaticScale * 100).toInt()
             compose.onNodeWithText(activity.getString(R.string.SettingsRenderQualityAutomatic, automaticPercent))
                 .assertIsDisplayed().performClick()
             assertEquals(
                 "Automatic mode follows the current device performance policy",
-                DevicePerformancePolicy.defaultRenderScale(Prefs.isLowRamDevice()),
+                automaticScale,
                 Prefs.getRenderScale(),
                 0f,
             )

@@ -1046,6 +1046,12 @@ init{
 this.glView = glView
 }
 override fun onSurfaceCreated(gl:GL10, config:EGLConfig) {
+val previousScale = Prefs.getRenderScale()
+val rendererName = gl.glGetString(GL10.GL_RENDERER)
+if (Prefs.updateGlRendererName(rendererName) && previousScale != Prefs.getRenderScale()) {
+    // EGL/GL data is inspected here, but resizing the SurfaceHolder belongs on the View thread.
+    glView.post { if (glView.isAttachedToWindow) glView.applyRenderScale() }
+}
 surfaceNeedsResourceRebuild = true
 }
 override fun onSurfaceChanged(gl:GL10, width:Int, height:Int) {

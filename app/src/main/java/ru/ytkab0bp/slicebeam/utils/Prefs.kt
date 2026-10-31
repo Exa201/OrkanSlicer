@@ -28,6 +28,7 @@ open class Prefs {
 
         private var mPrefs: SharedPreferences? = null
         private var lowRamDevice = false
+        @Volatile private var glRendererName: String? = null
 
         private fun isSupportedRenderScaleOverride(percent: Int): Boolean = when (percent) {
             0, 50, 65, 80, 100 -> true
@@ -47,6 +48,19 @@ open class Prefs {
 
         @JvmStatic
         fun isLowRamDevice(): Boolean = lowRamDevice
+
+        /** The renderer is read from GL_RENDERER on the GL thread and is never persisted. */
+        @JvmStatic
+        fun getGlRendererName(): String? = glRendererName
+
+        /** Returns true only when a new renderer identity should refresh the viewport policy. */
+        @JvmStatic
+        fun updateGlRendererName(renderer: String?): Boolean {
+            val normalized = renderer?.trim()?.takeIf { it.isNotEmpty() }
+            if (glRendererName == normalized) return false
+            glRendererName = normalized
+            return true
+        }
 
         /** May be null before application bootstrap has initialized preferences. */
         @JvmStatic
@@ -187,9 +201,16 @@ open class Prefs {
         fun isVibrationEnabled(): Boolean = requirePrefs().getBoolean("vibration", true)
 
         @JvmStatic
+        fun getAutomaticRenderScale(): Float = DevicePerformancePolicy.defaultRenderScale(
+            lowRamDevice,
+            glRendererName,
+        )
+
+        @JvmStatic
         fun getRenderScale(): Float = DevicePerformancePolicy.renderScale(
             lowRamDevice,
             requirePrefs().getInt("viewport_render_scale_percent", 0),
+            glRendererName,
         )
 
         /** 0 = automatic device policy, otherwise one of 50/65/80/100 percent. */

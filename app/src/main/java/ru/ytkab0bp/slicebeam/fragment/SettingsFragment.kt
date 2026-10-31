@@ -123,7 +123,7 @@ class SettingsFragment : Fragment() {
                             accentColor = "#%08X".format(Prefs.getAccentColor()),
                             uiTextScale = "${(Prefs.getUiTextScale() * 100).toInt()}%",
                             renderScale = if (Prefs.getRenderScaleOverridePercent() == 0) {
-                                ctx.getString(R.string.SettingsRenderQualityAutomatic, (Prefs.getRenderScale() * 100).toInt())
+                                ctx.getString(R.string.SettingsRenderQualityAutomatic, (Prefs.getAutomaticRenderScale() * 100).toInt())
                             } else "${Prefs.getRenderScaleOverridePercent()}%",
                             converterRoot = ConverterStorage.getRootDisplayName(ctx),
                             cameraProjection = ctx.getString(if (Prefs.isOrthoProjectionEnabled()) R.string.SettingsCameraOrthographic else R.string.SettingsCameraPerspective),
@@ -258,7 +258,7 @@ class SettingsFragment : Fragment() {
         val labels = percentages.map { percent ->
             if (percent == 0) context.getString(
                 R.string.SettingsRenderQualityAutomatic,
-                (Prefs.getRenderScale() * 100).toInt(),
+                (Prefs.getAutomaticRenderScale() * 100).toInt(),
             ) else "$percent%"
         }
         showChoiceDialog(

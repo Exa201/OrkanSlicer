@@ -3248,3 +3248,12 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Spiegeln und gruppierte Objektlisten-/Flächenplatzierung auf Honor jeweils 1/1 bestanden. Insgesamt fünf gezielte Geräteprüfungen erfolgreich. Vollständige Unit-Suiten und APK-Build wurden in dieser Arbeitsgruppe nicht ausgeführt.
 - Nächster Schritt: die nächsten nicht vollständig abgenommenen Modellaktionen samt Mehrfachauswahl, Materialerhalt und Undo/Redo weiterprüfen; danach die Modellbearbeitungs- und Slice-Regressionsläufe gebündelt ausführen.
 
+# Nightly 2.5 — adaptive GPU-Vorschau und Qualitätsauswahl, 2026-10-31
+
+- Arbeits-Repository `OrkanSlicer-Nightly-2.5`, Branch `nightly-2.5`; Ausgangs-HEAD `4e303ac5999c886d375eac886af175ccc6ceedab`. Nightly applicationId ist `com.exa201.orkanslicer.nightly25`; Daten bleiben durch Androids Paket-Sandbox getrennt.
+- Vorschau-Automatik erweitert: `GL_RENDERER` wird auf dem GL-Thread erkannt und nur zur Laufzeit verwendet. Niedrige Qualitätsstufe 70% bei Android-Low-RAM, 80% bei bekannten Software-/Legacy-GPU-Familien, 100% bei unbekannten Renderern. Eine explizite Qualitätswahl bleibt als Nutzer-Override verfügbar; keine Änderung an Modell/Slicing.
+- Nebenbei reproduzierter und behobener UI-Fehler: während eines manuellen Overrides zeigte die Option „Automatisch“ fälschlich den Override-Wert als Automatik-Auflösung. Übersichtszeile und Auswahl verwenden jetzt den separaten Geräte-Policy-Wert.
+- Verifikation: `DevicePerformancePolicyTest` erfolgreich; Android-16-Emulator `SettingsMenuActionDeviceTest#viewportQualityCanBeChangedAndAutomaticModeUsesDevicePolicy` 1/1 bestanden, einschließlich GLSurface-Rendererkennung und Rückkehr in Automatik. `git diff --check` erfolgreich. Ein erster Instrumentierungslauf fand eine bereits falsche Paket-ID-Erwartung (`.slicetest`-Variante); Test wurde variantensicher korrigiert und der gezielte Lauf bestanden.
+- Noch offen: physische GPU-Leistungsmessung; Renderername ist eine konservative Heuristik und kein gemessener Benchmark. Orca-Portierungsplan: fünf von zehn priorisierten Featuregruppen umgesetzt. Keine APK oder Release in diesem Durchgang.
+- Nächster konkreter Featurepunkt: allgemeine Modifier-Volumen (UI, sichtbare Vorschau, unabhängige Bearbeitung, Undo/Redo, 3MF-Rundlauf und Slice-Nachweis). Änderungen aus diesem Abschnitt sind noch nicht committet.
+
