@@ -627,6 +627,101 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun pressureAdvanceLineCalibrationUsesAssignedFilamentFlowAndVolumetricLimit() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "orca25-pa-line-filament-source.stl")
+        val output = File(context.cacheDir, "orca25-pa-line-filament.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.setUniformFilament(0, 2)
+            val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+            process.put("outer_wall_speed", "200")
+            process.put("initial_layer_print_height", "0.2")
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            var configText = configFile.readText()
+            fun setConfig(key: String, value: String) {
+                val line = Regex("(?m)^${Regex.escape(key)}\\s*=.*$")
+                configText = if (line.containsMatchIn(configText)) {
+                    configText.replace(line, "$key = $value")
+                } else {
+                    "$configText\n$key = $value\n"
+                }
+            }
+            // Filament 2 has a distinct diameter, flow ratio, and volumetric cap from filament 1.
+            setConfig("filament_diameter", "1.75,2.85")
+            setConfig("filament_flow_ratio", "1,0.9")
+            setConfig("filament_max_volumetric_speed", "21,4")
+            setConfig("filament_map", "1,1")
+            configFile.writeText(configText)
+
+            result = model.slice(configFile.absolutePath, output.absolutePath, null, 1, 0.0, 0.02, 0.002)
+            val gcode = output.readText()
+            val marker = maxOf(gcode.lastIndexOf(";LAYER_CHANGE"), gcode.lastIndexOf(";_LAYER_CHANGE"))
+            assertTrue("PA calibration output must contain its own layer marker", marker >= 0)
+            val calibrationStartLine = gcode.substring(0, marker).count { it == '\n' }
+
+            data class Extrusion(val feedrate: Double, val ePerMm: Double)
+            val extrusions = mutableListOf<Extrusion>()
+            val wordPattern = Regex("([XYEF])([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))")
+            var x = 0.0
+            var y = 0.0
+            var e = 0.0
+            var feedrate = 0.0
+            var relativeE = false
+            for ((lineIndex, line) in gcode.lineSequence().withIndex()) {
+                if (line.startsWith("M83")) relativeE = true
+                if (line.startsWith("M82")) relativeE = false
+                val command = line.substringBefore(';').trim()
+                if (!command.startsWith("G0 ") && !command.startsWith("G1 ") && !command.startsWith("G92 ")) continue
+                var nextX = x
+                var nextY = y
+                var nextE: Double? = null
+                for (match in wordPattern.findAll(command)) {
+                    val value = match.groupValues[2].toDouble()
+                    when (match.groupValues[1]) {
+                        "X" -> nextX = value
+                        "Y" -> nextY = value
+                        "E" -> nextE = value
+                        "F" -> feedrate = value
+                    }
+                }
+                if (command.startsWith("G92 ")) {
+                    nextE?.let { e = it }
+                    continue
+                }
+                val length = kotlin.math.hypot(nextX - x, nextY - y)
+                if (lineIndex > calibrationStartLine && nextE != null && length > 0.0) {
+                    val deltaE = if (relativeE) nextE else nextE - e
+                    if (feedrate > 0.0) extrusions += Extrusion(feedrate, deltaE / length)
+                }
+                nextE?.let { e = if (relativeE) e + it else it }
+                x = nextX
+                y = nextY
+            }
+            assertTrue("calibration must emit extruding XY moves", extrusions.isNotEmpty())
+            // The numeric labels use a fixed 3600 mm/min speed; exclude those when checking the PA lines.
+            val fastest = extrusions.filter { kotlin.math.abs(it.feedrate - 3600.0) > 1.0 }.maxBy { it.feedrate }
+            // A 0.6 mm x 0.2 mm line uses ~0.1114 mm³/mm, so the selected 4 mm³/s cap
+            // gives about 35 mm/s (2100 mm/min). Filament 1 would instead run near 188 mm/s.
+            assertTrue("fast PA lines must respect filament 2's volumetric limit; got ${fastest.feedrate} mm/min; " +
+                "all feedrates=${extrusions.map { it.feedrate }.distinct().sorted()}",
+                fastest.feedrate in 1950.0..2250.0)
+            val expectedEPerMm = (0.2 * 0.4 + Math.PI * 0.2 * 0.2 / 4.0) * 0.9 /
+                (Math.PI * 2.85 * 2.85 / 4.0)
+            assertTrue("PA line extrusion must use filament 2's diameter and flow ratio; got ${fastest.ePerMm}, expected $expectedEPerMm",
+                kotlin.math.abs(fastest.ePerMm - expectedEPerMm) <= expectedEPerMm * 0.03)
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun insetMultiSideExtruderAreaDoesNotRejectPathInsideItsPrintablePolygon() = withToolChangerProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val printer = requireNotNull(SliceBeam.CONFIG?.findPrinter("MyToolChanger 0.4 nozzle"))
