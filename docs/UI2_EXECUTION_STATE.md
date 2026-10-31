@@ -47,6 +47,12 @@
 - ARM64 `:app:externalNativeBuildDebug` bestanden; kein Laufzeittest für 2-auf-4-Düsen-Roundtrip vorhanden, daher noch nicht als verifiziert gezählt.
 - Nächster Schritt: echten 2-Düsen-Eltern-/4-Düsen-Kinder-Presetfall über den importierten Profile-/Presetpfad erzeugen und alle erweiterten Vektoren nach Laden/Speichern prüfen.
 
+## Per-Objekt-Düsen-Layergrenzen und Prime-Tower-Abgleich — Port, 2026-10-31
+
+- Upstream `fcd96ad91` fand zwei Android-Kernabweichungen. `PrintRegion` liefert Objekt-Extruder nullbasiert, `min_layer_height_from_nozzle` indiziert jedoch einsbasiert; die bisherige Schleife las daher die falsche Düse. Außerdem lehnte `equal_layering` Prime-Tower-Objekte schon wegen verschiedener min/max-Grenzen ab, obwohl `Print::validate()` die tatsächlich erzeugten variablen Layerhöhenprofile getrennt vergleicht.
+- Port in `Slicing.cpp` (extruder ID + 1) und `Slicing.hpp` (min/max aus dem einfachen Gleichheitsvergleich entfernt; Profilvergleich bleibt in `Print::validate`).
+- ARM64 `:app:externalNativeBuildDebug` erfolgreich; Laufzeittest mit zwei verschieden zugewiesenen Objekten, abweichenden Düsen-Grenzen und Prime Tower steht noch aus.
+
 
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
