@@ -27,11 +27,13 @@ class DevicePerformancePolicyTest {
         assertFalse(DevicePerformancePolicy.isKnownLowEndRenderer("Adreno (TM) 740"))
         assertFalse(DevicePerformancePolicy.isKnownLowEndRenderer("Unknown GPU"))
         assertFalse(DevicePerformancePolicy.isKnownLowEndRenderer(null))
-        assertEquals(0.8f, DevicePerformancePolicy.defaultRenderScale(false, "Mali-G57"))
+        assertEquals(0.65f, DevicePerformancePolicy.defaultRenderScale(false, "Mali-G57"))
         assertEquals(0.7f, DevicePerformancePolicy.defaultRenderScale(true, "Mali-G57"))
         assertEquals(1f, DevicePerformancePolicy.defaultRenderScale(false, "Adreno (TM) 740"))
-        assertEquals(0.8f, DevicePerformancePolicy.renderScale(false, 0, "Google SwiftShader"))
+        assertEquals(0.65f, DevicePerformancePolicy.renderScale(false, 0, "Google SwiftShader"))
         assertEquals(1f, DevicePerformancePolicy.renderScale(false, 100, "Google SwiftShader"))
+        assertTrue(DevicePerformancePolicy.isLowPerformanceDevice(false, "Adreno 530"))
+        assertFalse(DevicePerformancePolicy.isLowPerformanceDevice(false, "Adreno 740"))
     }
 
     @Test fun viewportQualityOverrideIsClampedToSupportedChoicesAndAutomaticFollowsDevice() {
@@ -48,7 +50,10 @@ class DevicePerformancePolicyTest {
     @Test fun inactivePlatesCanUseCheapPreviewWithoutChangingTheActiveModel() {
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(true, false))
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(false, true))
+        assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(false, false, true))
         assertFalse(DevicePerformancePolicy.useSimpleInactivePlatePreview(false, false))
+        assertEquals(35, DevicePerformancePolicy.initialLayerBlockSize(false, true))
+        assertEquals(180_000, DevicePerformancePolicy.activePreviewTriangleBudget(false, false, true))
     }
 
     @Test fun activePreviewHasABoundedMeshOnlyInPerformanceOrLowRamMode() {

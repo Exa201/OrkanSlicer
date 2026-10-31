@@ -106,7 +106,7 @@ class MainActivityTouchDeviceTest {
             assertTrue("Generated M12 should load", loaded.await(60, TimeUnit.SECONDS))
             loadFailure.get()?.let { throw AssertionError("Generated M12 could not load", it) }
 
-            for (qualityPercent in listOf(50, 100)) {
+            for (qualityPercent in listOf(50, 65, 100)) {
                 if (qualityPercent != Prefs.getRenderScaleOverridePercent()) {
                     scenario.onActivity {
                         Prefs.setRenderScaleOverridePercent(qualityPercent)

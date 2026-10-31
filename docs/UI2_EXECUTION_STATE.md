@@ -2,11 +2,19 @@
 
 - Nightly-HEAD bei Start: `04a921939da2fdbca0daf5e7697bbf144d2ee8ae`; Branch `nightly-2.5`.
 - Orca-Upstream frisch bis `4045a87b70fc4745d586bda69d844b2e7b09f74e` aktualisiert. Seit dem bisherigen Pin `5cc5fb7f` kamen Profile/Übersetzungen hinzu, aber keine `src/libslic3r`-Engine-Änderung.
-- Schwache-GPU-Vorschau ist bereits implementiert: automatische 70% für Low-RAM, 80% für erkannte alte/Software-Renderer, 100% sonst; manuelle 50/65/80/100%; Vorschau-Mesh- und Layerbegrenzungen im Leistungsmodus. `DevicePerformancePolicyTest` 6/6 bestanden. `viewportQualityCanBeChangedAndAutomaticModeUsesDevicePolicy` bestand auf API 35 und API 36. Kein physischer GPU-Leistungsvergleich.
+- Schwache-GPU-Vorschau erweitert: automatische 70% für Low-RAM, 65% für erkannte alte/Software-Renderer, 100% sonst; manuelle 50/65/80/100%; erkannte Low-GPU erhält 35 Layer pro initialem G-Code-Previewblock, vereinfachte inaktive Plattenvorschau und 180.000 Dreiecke im aktiven Preview. Low-RAM behält strengere Budgets. Vollständige Debug- und Slice-JVM-Suiten: je 704/704, 0 Fehler/Errors/Skips. Gezielte Settings-Interaktion und GL-Touch/Picking bei 50/65/100% bestanden auf API 15 und 16 (Settings-Test erster API-15-Versuch scheiterte vor der Zielaktion bei UI-Lokalisierung, Wiederholung erfolgreich). Kein physischer GPU-Leistungsvergleich.
 - Nightly-Identität bleibt isoliert: `com.exa201.orkanslicer.nightly25`, sichtbarer Name `OrkanSlicer Nightly 2.5`; getrennte App-ID bedeutet getrennte private Daten. Stable-App bleibt unberührt.
-- Batch 2: 2/10 neue Produktcodeänderungen seit `v0.8.420-nightly.1`; dieser Prüfdurchgang fügte keine Produktänderung hinzu. Kein APK/Release.
+- Batch 2: 3/10 neue Produktcodeänderungen seit `v0.8.420-nightly.1`; die aktuelle Änderung zählt als #3. Kein APK/Release bis 10/10.
 - Plan aktualisiert auf Orca-Upstream `4045a87b`; neue Kandidaten priorisiert: erst offene native G-Code-Regressionsnachweise, danach begrenzter Texture-Displacement-Prototyp. Parametric Design, Python-Plugins, Color Mixing und IDEX bleiben wegen fehlender Subsysteme/Sicherheits- oder Hardwareverträge zurückgestellt.
 - Nächste konkrete Implementierung: den offenen Lightning-Out-of-bounds-Grenzfall (#11) mit exakter synthetischer Unsupported-Sample-Grenze absichern; danach die verbleibenden Batch-2-Nachweise einzeln fortsetzen. Erst bei 10 echten, fokussiert geprüften Produktänderungen APK und Nightly-Prerelease erstellen.
+
+# Aktueller Fortsetzungsstand — 2026-10-31, Low-GPU-Preview-Erweiterung
+
+- Ausgangs-HEAD `14aae1fec` auf Branch `nightly-2.5`; Produktcodeänderung noch uncommitted bei Statusaufnahme. Stable-Repository/App unverändert.
+- Low-GPU-Policy angepasst: erkannte Low-End-GL-Renderer wechseln automatisch auf 65% Renderauflösung (vorher 80%); Low-RAM bleibt 70%. Erkannte Low-GPU nutzt außerdem kleinere G-Code-Previewblöcke, vereinfachte inaktive Druckplattenvorschauen und ein begrenztes aktives Preview-Mesh. Keine Änderung an Modellgeometrie oder Slicing.
+- Verifikation: `DevicePerformancePolicyTest` gezielt bestanden; Settings-Interaktion auf API 15/16 nach erfolgreichem Wiederholungslauf bestanden; GL-Oberfläche/Picking bei 50/65/100% auf API 15/16 bestanden. Vollständige JVM-Suiten: Debug 704/704, Slice 704/704, jeweils 0 failures/errors/skips. `git diff --check` sauber. Die physischen Xiaomi/Honor-Leistungswerte bleiben ungemessen.
+- Batch 2: 3/10 Produktänderungen; kein APK/Release bis zehn abgenommene Änderungen.
+- Nächster Schritt nach Dokumentation: Orca-2.5-Kandidaten mit einem konkreten Android-Aufrufpfad und eigenständiger Regression weiter prüfen; reine Formatparität oder nicht aufgerufene Desktop-Subsysteme nicht als Produktfunktion zählen.
 
 # Aktueller Fortsetzungsstand — 2026-10-31, Batch 2 Laufzeitnachweise
 

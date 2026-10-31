@@ -49,6 +49,12 @@ open class Prefs {
         @JvmStatic
         fun isLowRamDevice(): Boolean = lowRamDevice
 
+        @JvmStatic
+        fun isLowPerformancePreviewDevice(): Boolean = DevicePerformancePolicy.isLowPerformanceDevice(
+            lowRamDevice,
+            glRendererName,
+        )
+
         /** The renderer is read from GL_RENDERER on the GL thread and is never persisted. */
         @JvmStatic
         fun getGlRendererName(): String? = glRendererName

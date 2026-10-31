@@ -989,11 +989,13 @@ viewer = GCodeViewer()
 viewer!!.initGL()
 viewer!!.setThemeColors()
 val performance = Prefs.isPerformanceModeEnabled()
-viewer!!.applyPerformanceMode(performance || Prefs.isLowRamDevice())
+val lowGpu = !Prefs.isLowRamDevice() && Prefs.isLowPerformancePreviewDevice()
+val reducedPreview = performance || Prefs.isLowPerformancePreviewDevice()
+viewer!!.applyPerformanceMode(reducedPreview)
 viewer!!.load(gcodeResult!!)
 val preview = ru.ytkab0bp.slicebeam.slic3r.GCodePreviewPolicy.initial(
-    viewer!!.getLayersCount(), performance || Prefs.isLowRamDevice(), gcodeResult!!.previewSelection,
-    DevicePerformancePolicy.initialLayerBlockSize(Prefs.isLowRamDevice()),
+    viewer!!.getLayersCount(), reducedPreview, gcodeResult!!.previewSelection,
+    DevicePerformancePolicy.initialLayerBlockSize(Prefs.isLowRamDevice(), lowGpu),
 )
 gcodeResult!!.previewSelection = preview
 gcodeResult!!.previewLayerCount = viewer!!.getLayersCount().coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
@@ -1231,7 +1233,8 @@ invalidateCommittedOverlays(i)
 private fun initObjectPreview(glModel: GLModel, index: Int) {
     val source = model ?: return
     val budget = DevicePerformancePolicy.activePreviewTriangleBudget(
-        Prefs.isPerformanceModeEnabled(), Prefs.isLowRamDevice()
+        Prefs.isPerformanceModeEnabled(), Prefs.isLowRamDevice(),
+        !Prefs.isLowRamDevice() && Prefs.isLowPerformancePreviewDevice(),
     )
     // Painted facets require the exact surface for color placement and touch tools.
     if (budget != null && source.getTriangleCount(index) > budget && !source.hasPaint(index) &&
@@ -1386,7 +1389,8 @@ viewer!!.render(viewMatrix, projectionMatrix)
  if (viewer == null && !isViewerEnabled && !inactivePlateModels.isEmpty())
 {
 val simplePreview = DevicePerformancePolicy.useSimpleInactivePlatePreview(
-    Prefs.isPerformanceModeEnabled(), Prefs.isLowRamDevice()
+    Prefs.isPerformanceModeEnabled(), Prefs.isLowRamDevice(),
+    !Prefs.isLowRamDevice() && Prefs.isLowPerformancePreviewDevice(),
 )
 if (inactivePlateSimplePreview != simplePreview) {
     for (models in inactivePlateGlModels) {

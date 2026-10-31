@@ -90,7 +90,7 @@ object SliceMenuItems {
                 Prefs.setPerformanceModeEnabled(enabled)
                 val viewport = fragment.glView ?: return@BedComposeMenuAction
                 viewport.queueEvent {
-                    viewport.renderer.viewer?.applyPerformanceMode(enabled || Prefs.isLowRamDevice())
+                    viewport.renderer.viewer?.applyPerformanceMode(enabled || Prefs.isLowPerformancePreviewDevice())
                     // Rebuild the active model as well; otherwise the quality switch only
                     // affects G-code until a model is loaded again.
                     viewport.renderer.resetGlModels()

@@ -22,9 +22,12 @@ object DevicePerformancePolicy {
 
     fun defaultRenderScale(lowRamDevice: Boolean, renderer: String? = null): Float = when {
         lowRamDevice -> 0.7f
-        isKnownLowEndRenderer(renderer) -> 0.8f
+        isKnownLowEndRenderer(renderer) -> 0.65f
         else -> 1f
     }
+
+    fun isLowPerformanceDevice(lowRamDevice: Boolean, renderer: String? = null): Boolean =
+        lowRamDevice || isKnownLowEndRenderer(renderer)
 
     /** A zero preference follows the device policy; explicit values are viewport-only. */
     fun renderScale(lowRamDevice: Boolean, overridePercent: Int, renderer: String? = null): Float = when (overridePercent) {
@@ -36,14 +39,26 @@ object DevicePerformancePolicy {
     fun mapTouchCoordinate(inputPx: Float, viewSizePx: Int, surfaceSizePx: Int): Float =
         if (viewSizePx > 0 && surfaceSizePx > 0) inputPx * surfaceSizePx / viewSizePx else inputPx
 
-    fun useSimpleInactivePlatePreview(performanceMode: Boolean, lowRamDevice: Boolean): Boolean =
-        performanceMode || lowRamDevice
+    fun useSimpleInactivePlatePreview(
+        performanceMode: Boolean,
+        lowRamDevice: Boolean,
+        lowGpuDevice: Boolean = false,
+    ): Boolean = performanceMode || lowRamDevice || lowGpuDevice
 
-    fun initialLayerBlockSize(lowRamDevice: Boolean): Int = if (lowRamDevice) 25 else 50
+    fun initialLayerBlockSize(lowRamDevice: Boolean, lowGpuDevice: Boolean = false): Int = when {
+        lowRamDevice -> 25
+        lowGpuDevice -> 35
+        else -> 50
+    }
 
     /** Limit only the on-screen mesh. The Model retained for slicing is never changed. */
-    fun activePreviewTriangleBudget(performanceMode: Boolean, lowRamDevice: Boolean): Int? = when {
+    fun activePreviewTriangleBudget(
+        performanceMode: Boolean,
+        lowRamDevice: Boolean,
+        lowGpuDevice: Boolean = false,
+    ): Int? = when {
         lowRamDevice -> 120_000
+        lowGpuDevice -> 180_000
         performanceMode -> 250_000
         else -> null
     }
