@@ -56,6 +56,7 @@ object OrcaPrinterSettingsBuilder {
         section: OrcaSettingsSection,
         extruderIndex: Int,
     ) {
+        if (section.keys == listOf("physical_extruder_map") && fragment.getConfiguredExtruderCount() <= 1) return
         items.add(ProfileOptionElement(ProfileSubHeader(localized(section.title))))
         section.keys.forEach { key ->
             val option = definition.options[key]

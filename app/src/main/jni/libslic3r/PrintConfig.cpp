@@ -9641,6 +9641,10 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
             return;
         }
+        if (opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": extruder_type or nozzle_volume_type has no values, skipping variant remap";
+            return;
+        }
         std::vector<int> variant_index;
 
         if (extruder_id > 0 && extruder_id <= static_cast<unsigned> (extruder_count)) {
@@ -9689,10 +9693,22 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: can not find opt define for %2%")%__LINE__%key;
                 continue;
             }
+            // A preset may omit an option even though its key is present in the
+            // global extruder-variant set. In that case there is nothing to
+            // resize or remap. The old code dereferenced the missing option in
+            // each typed branch, crashing native slicing for sparse/custom
+            // printer profiles.
+            const ConfigOption *source_option = this->option(key);
+            const auto *source_vector = dynamic_cast<const ConfigOptionVectorBase*>(source_option);
+            if (!source_option || (source_vector && source_vector->empty())) {
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": skipping absent or empty extruder option " << key;
+                continue;
+            }
             switch (optdef->type) {
                 case coStrings:
                 {
                     ConfigOptionStrings * opt = this->option<ConfigOptionStrings>(key);
+                    if (!opt || opt->values.empty()) continue;
                     std::vector<std::string> new_values;
 
                     new_values.resize(extruder_count * stride);
@@ -9707,6 +9723,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 case coInts:
                 {
                     ConfigOptionInts * opt = this->option<ConfigOptionInts>(key);
+                    if (!opt || opt->values.empty()) continue;
                     std::vector<int> new_values;
 
                     new_values.resize(extruder_count * stride);
@@ -9721,6 +9738,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 case coFloats:
                 {
                     ConfigOptionFloats * opt = this->option<ConfigOptionFloats>(key);
+                    if (!opt || opt->values.empty()) continue;
                     std::vector<double> new_values;
 
                     new_values.resize(extruder_count * stride);
@@ -9735,6 +9753,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 case coPercents:
                 {
                     ConfigOptionPercents * opt = this->option<ConfigOptionPercents>(key);
+                    if (!opt || opt->values.empty()) continue;
                     std::vector<double> new_values;
 
                     new_values.resize(extruder_count * stride);
@@ -9749,6 +9768,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 case coFloatsOrPercents:
                 {
                     ConfigOptionFloatsOrPercents * opt = this->option<ConfigOptionFloatsOrPercents>(key);
+                    if (!opt || opt->values.empty()) continue;
                     std::vector<FloatOrPercent> new_values;
 
                     new_values.resize(extruder_count * stride);
@@ -9763,6 +9783,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 case coBools:
                 {
                     ConfigOptionBools * opt = this->option<ConfigOptionBools>(key);
+                    if (!opt || opt->values.empty()) continue;
                     std::vector<unsigned char> new_values;
 
                     new_values.resize(extruder_count * stride);
@@ -9777,6 +9798,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 case coEnums:
                 {
                     ConfigOptionEnumsGeneric * opt = this->option<ConfigOptionEnumsGeneric>(key);
+                    if (!opt || opt->values.empty()) continue;
                     std::vector<int> new_values;
 
                     new_values.resize(extruder_count * stride);
@@ -9817,6 +9839,10 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
         auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
         if (!opt_extruder_type || !opt_nozzle_volume_type) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
+            return;
+        }
+        if (opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": extruder_type or nozzle_volume_type has no values, skipping filament variant remap";
             return;
         }
         auto opt_ids = id_name.empty()? nullptr: dynamic_cast<const ConfigOptionInts*>(this->option(id_name));

@@ -43,6 +43,11 @@ class OrcaPrinterSettingsCatalogTest {
     }
 
     @Test
+    fun physicalExtruderRoutingIsAvailableAsACommonPrinterProfileOption() {
+        assertTrue(OrcaPrinterSettingsCatalog.fixedKeys().contains("physical_extruder_map"))
+    }
+
+    @Test
     fun accelerationLimitsAreNotMislabelledAsFeedrates() {
         val sections = OrcaPrinterSettingsCatalog.leadingCategories().flatMap { it.sections }
         val accelerationSection = sections.single { it.title == "Acceleration limits" }

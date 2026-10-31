@@ -53,9 +53,11 @@ object ComposeProfileVectorOption {
         onLongClick: Runnable,
         nullable: Boolean = false,
         onEditorStateChanged: (Boolean) -> Unit = {},
+        additionalValidation: ((String) -> Boolean)? = null,
+        validationMessage: String? = null,
     ) = VectorOptionRow(
         title, initialValue, unit, description, minimum, maximum, kind, onChanged, onLongClick, nullable,
-        onEditorStateChanged,
+        onEditorStateChanged, additionalValidation, validationMessage,
     )
 
     @JvmOverloads
@@ -71,8 +73,11 @@ object ComposeProfileVectorOption {
         onChanged: Consumer<String>,
         onLongClick: Runnable,
         nullable: Boolean = false,
+        additionalValidation: ((String) -> Boolean)? = null,
+        validationMessage: String? = null,
     ): ProfileSettingsComposeItem = VectorOptionItem(
         title, valueProvider, unit, description, minimum, maximum, kind, onChanged, onLongClick, nullable,
+        additionalValidation, validationMessage,
     )
 
     private class VectorOptionItem(
@@ -86,11 +91,16 @@ object ComposeProfileVectorOption {
         private val onChanged: Consumer<String>,
         private val onLongClick: Runnable,
         private val nullable: Boolean,
+        private val additionalValidation: ((String) -> Boolean)?,
+        private val validationMessage: String?,
     ) : ProfileSettingsComposeItem {
         @Composable
         override fun Content(rowPosition: Int, onEditorStateChanged: (Boolean) -> Unit) {
             val initialValue = valueProvider.get().orEmpty()
-            ComposeProfileVectorOption.Content(title, initialValue, unit, description, minimum, maximum, kind, onChanged, onLongClick, nullable, onEditorStateChanged)
+            ComposeProfileVectorOption.Content(
+                title, initialValue, unit, description, minimum, maximum, kind, onChanged, onLongClick,
+                nullable, onEditorStateChanged, additionalValidation, validationMessage,
+            )
         }
     }
 
@@ -108,6 +118,8 @@ private fun VectorOptionRow(
     onLongClick: Runnable,
     nullable: Boolean,
     onEditorStateChanged: (Boolean) -> Unit,
+    additionalValidation: ((String) -> Boolean)?,
+    validationMessage: String?,
 ) {
     var currentValue by rememberSaveable(initialValue) { mutableStateOf(initialValue) }
     var dialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -167,6 +179,8 @@ private fun VectorOptionRow(
 
     if (dialogOpen) {
         val editedValidation = ProfileVectorValueValidator.validate(editedValue, minimum, maximum, kind, nullable)
+        val editedValueValid = editedValidation == ProfileVectorValueValidator.Result.VALID &&
+            (additionalValidation?.invoke(editedValue) != false)
         AlertDialog(
             onDismissRequest = { closeDialog() },
             title = { Text(title) },
@@ -195,7 +209,7 @@ private fun VectorOptionRow(
                         label = { Text(stringResource(R.string.ProfileVectorInputLabel)) },
                         minLines = 2,
                         maxLines = 5,
-                        isError = editedValidation != ProfileVectorValueValidator.Result.VALID,
+                        isError = !editedValueValid,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         supportingText = {
                             when (editedValidation) {
@@ -205,7 +219,9 @@ private fun VectorOptionRow(
                                     Text(stringResource(R.string.ProfileNumericInvalidNumber))
                                 ProfileVectorValueValidator.Result.OUT_OF_RANGE ->
                                     Text(stringResource(R.string.ProfileNumericOutOfRange))
-                                ProfileVectorValueValidator.Result.VALID -> Unit
+                                ProfileVectorValueValidator.Result.VALID -> if (!editedValueValid && validationMessage != null) {
+                                    Text(validationMessage)
+                                }
                             }
                         },
                     )
@@ -214,7 +230,7 @@ private fun VectorOptionRow(
             },
             confirmButton = {
                 TextButton(
-                    enabled = editedValidation == ProfileVectorValueValidator.Result.VALID,
+                    enabled = editedValueValid,
                     onClick = {
                         val normalized = ProfileVectorValueValidator.normalizeForStorage(editedValue, kind, nullable)
                         currentValue = normalized

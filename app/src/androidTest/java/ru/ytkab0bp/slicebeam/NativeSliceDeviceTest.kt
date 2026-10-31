@@ -38,6 +38,49 @@ import java.util.zip.ZipFile
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun physicalExtruderMapReachesNativeSliceAndLayerChangeGcode() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val printer = requireNotNull(config.findPrinter("MyToolChanger 0.4 nozzle"))
+        printer.put("physical_extruder_map", "1,0,0,0,0")
+        printer.put("layer_change_gcode", "; PHYSICAL=[most_used_physical_extruder_id]")
+
+        val source = copyCube(context, "physical-extruder-map-source.stl")
+        val output = File(context.cacheDir, "physical-extruder-map.gcode")
+        val model = Model(source)
+        var firstResult: GCodeProcessorResult? = null
+        var secondResult: GCodeProcessorResult? = null
+        try {
+            model.setUniformFilament(0, 1)
+            SliceBeam.genCurrentConfig(model)
+            val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue("the logical-to-physical map must reach the native slice config",
+                nativeConfig.contains("physical_extruder_map = 1,0,0,0,0"))
+
+            firstResult = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val firstGcode = output.readText()
+            assertHasExtrusion(firstGcode)
+            assertTrue("logical T0 must report mapped physical toolhead 1", firstGcode.contains("PHYSICAL=1"))
+            firstResult.release()
+            firstResult = null
+
+            model.setUniformFilament(0, 2)
+            SliceBeam.genCurrentConfig(model)
+            secondResult = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val secondGcode = output.readText()
+            assertHasExtrusion(secondGcode)
+            assertTrue("logical T1 must report mapped physical toolhead 0", secondGcode.contains("PHYSICAL=0"))
+        } finally {
+            firstResult?.release()
+            secondResult?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun tooThinObjectWithRaftReturnsSlicingErrorInsteadOfCrashing() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
@@ -2963,6 +3006,29 @@ class NativeSliceDeviceTest {
                 put("printer", requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle")).title)
                 put("print", requireNotNull(config.findPrint("0.16mm Standard")).title)
                 put("filament", requireNotNull(config.findFilament("Anycubic Generic PLA")).title)
+            }
+            block()
+        } finally {
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    private inline fun withToolChangerProfile(block: () -> Unit) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        try {
+            context.assets.open("orca_profiles/Custom.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val printer = requireNotNull(config.findPrinter("MyToolChanger 0.4 nozzle"))
+            val process = requireNotNull(config.findPrint("0.20mm Standard"))
+            val filament = requireNotNull(config.findFilament("Generic PLA"))
+            config.presets = ConfigObject("presets").apply {
+                put("printer", printer.title)
+                put("print", process.title)
+                put("filament", filament.title)
             }
             block()
         } finally {

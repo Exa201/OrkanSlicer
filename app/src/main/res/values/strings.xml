@@ -6,6 +6,8 @@
     <string name="LargeModelEmbossTitle">Simplify for precise text placement?</string>
     <string name="LargeModelEmbossMessage">This model has %1$d triangles. Precise embossing and surface text placement support up to %2$d. Simplifying changes the model on the build plate and may remove detail; the source file stays unchanged.</string>
     <string name="AppName" translatable="false">OrkanSlicer Nightly 2.5</string>
+    <string name="PhysicalExtruderMapHelp">Map each logical filament slot to a zero-based physical toolhead. Enter exactly one number per logical extruder. Repeated numbers are allowed when multiple MMU/AFC lanes feed the same toolhead.</string>
+    <string name="PhysicalExtruderMapInvalid">Enter exactly one physical toolhead index per logical extruder. Each index must be from 0 to the number of logical extruders minus 1.</string>
     <string name="StepImportTitle">STEP-Datei importieren</string>
     <string name="StepImportDescription">STEP-Geometrie wird vor dem Laden in ein Dreiecksnetz umgewandelt. Kleinere Abweichungswerte erhalten mehr Details, benötigen aber mehr Zeit und Speicher.</string>
     <string name="StepLinearDeflection">Lineare Abweichung (mm)</string>

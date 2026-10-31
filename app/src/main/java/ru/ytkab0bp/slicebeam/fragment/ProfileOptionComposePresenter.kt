@@ -8,6 +8,7 @@ import ru.ytkab0bp.slicebeam.config.ProfilePointValueValidator
 import ru.ytkab0bp.slicebeam.config.ProfileStringVectorCodec
 import ru.ytkab0bp.slicebeam.config.LineWidthConversion
 import ru.ytkab0bp.slicebeam.config.ProfileVectorValueValidator
+import ru.ytkab0bp.slicebeam.config.PhysicalExtruderMapPolicy
 import ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rLocalization
 import ru.ytkab0bp.slicebeam.config.ProfileOpenOptionResolver
@@ -158,10 +159,20 @@ object ProfileOptionComposePresenter {
                         ProfileVectorValueValidator.Kind.FLOATS_OR_PERCENTS
                     else -> ProfileVectorValueValidator.Kind.FLOATS
                 }
+                val logicalCount = physicalExtruderLogicalCount(def)
+                val vectorValue = physicalExtruderDisplayValue(def, initialValue, logicalCount)
                 ComposeProfileVectorOption.Content(
-                    localized(def.getLabel()), initialValue, localized(def.sidetext), localized(def.tooltip),
-                    def.min, def.max, vectorKind, onChanged, onLongClick, def.nullable,
+                    localized(def.getLabel()), vectorValue, localized(def.sidetext),
+                    physicalExtruderDescription(def, localized(def.tooltip)),
+                    if (def.key == "physical_extruder_map") 0f else def.min,
+                    if (def.key == "physical_extruder_map") (logicalCount - 1).coerceAtLeast(0).toFloat() else def.max,
+                    vectorKind, onChanged, onLongClick, def.nullable,
                     onEditorStateChanged,
+                    additionalValidation = if (def.key == "physical_extruder_map") {
+                        { value -> PhysicalExtruderMapPolicy.isValid(value, logicalCount) }
+                    } else null,
+                    validationMessage = if (def.key == "physical_extruder_map")
+                        context.getString(R.string.PhysicalExtruderMapInvalid) else null,
                 )
             }
 
@@ -318,10 +329,21 @@ object ProfileOptionComposePresenter {
             else -> null
         }
         if (vectorKind != null) {
+            val logicalCount = physicalExtruderLogicalCount(def)
+            val provider = if (def.key == "physical_extruder_map") Supplier {
+                physicalExtruderDisplayValue(def, valueProvider.get().orEmpty(), logicalCount)
+            } else normalizedProvider(valueProvider)
             return ComposeProfileVectorOption.create(
-                localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.sidetext),
-                localized(def.tooltip), def.min, def.max,
+                localized(def.getLabel()), provider, localized(def.sidetext),
+                physicalExtruderDescription(def, localized(def.tooltip)),
+                if (def.key == "physical_extruder_map") 0f else def.min,
+                if (def.key == "physical_extruder_map") (logicalCount - 1).coerceAtLeast(0).toFloat() else def.max,
                 vectorKind, onChanged, onLongClick, def.nullable,
+                additionalValidation = if (def.key == "physical_extruder_map") {
+                    { value -> PhysicalExtruderMapPolicy.isValid(value, logicalCount) }
+                } else null,
+                validationMessage = if (def.key == "physical_extruder_map")
+                    context.getString(R.string.PhysicalExtruderMapInvalid) else null,
             )
         }
 
@@ -381,6 +403,24 @@ object ProfileOptionComposePresenter {
 
         return fallback(context, def, valueProvider, onChanged, onLongClick)
     }
+
+    private fun physicalExtruderLogicalCount(def: ConfigOptionDef): Int {
+        if (def.key != "physical_extruder_map") return 1
+        val config = SliceBeam.CONFIG ?: return 1
+        val printer = config.presets?.get("printer")?.let(config::findPrinter)
+        return printer?.extruderCount?.coerceAtLeast(1) ?: 1
+    }
+
+    private fun physicalExtruderDisplayValue(def: ConfigOptionDef, value: String, logicalCount: Int): String {
+        if (def.key != "physical_extruder_map") return value
+        return if (PhysicalExtruderMapPolicy.isValid(value, logicalCount)) value
+        else PhysicalExtruderMapPolicy.identity(logicalCount)
+    }
+
+    private fun physicalExtruderDescription(def: ConfigOptionDef, description: String): String =
+        if (def.key == "physical_extruder_map") {
+            SliceBeam.requireInstance().getString(R.string.PhysicalExtruderMapHelp)
+        } else description
 
     private fun fallback(
         context: Context,
