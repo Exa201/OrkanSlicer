@@ -1972,6 +1972,30 @@ std::vector<int> findAllTouchingPerimeters(const std::vector<PerimeterGeneratorA
     return std::vector<int>(touchingIndices.begin(), touchingIndices.end());
 }
 
+static bool arachne_lines_touch(const Arachne::ExtrusionLine& a, const Arachne::ExtrusionLine& b, double minimum_distance)
+{
+    auto one_way = [minimum_distance](const Arachne::ExtrusionLine& from, const Arachne::ExtrusionLine& to) {
+        for (const Arachne::ExtrusionJunction& junction : from.junctions) {
+            const Vec2d point = junction.p.cast<double>();
+            for (size_t i = 0; i + 1 < to.junctions.size(); ++i) {
+                const Arachne::ExtrusionJunction& start = to.junctions[i];
+                const Arachne::ExtrusionJunction& end = to.junctions[i + 1];
+                const Vec2d start_point = start.p.cast<double>();
+                const Vec2d segment = end.p.cast<double>() - start_point;
+                const double length_squared = segment.squaredNorm();
+                const double t = length_squared > 0.
+                    ? std::clamp((point - start_point).dot(segment) / length_squared, 0., 1.) : 0.;
+                const double width = double(start.w) + t * double(end.w - start.w);
+                const double touch_distance = std::max(minimum_distance, 0.5 * (double(junction.w) + width));
+                if ((start_point + t * segment - point).norm() <= touch_distance)
+                    return true;
+            }
+        }
+        return false;
+    };
+    return one_way(a, b) || one_way(b, a);
+}
+
 /**
  * @brief Reorders perimeters based on proximity to the reference perimeter
  *
@@ -1988,26 +2012,37 @@ std::vector<PerimeterGeneratorArachneExtrusion> reorderPerimetersByProximity(std
     std::vector<PerimeterGeneratorArachneExtrusion> reordered;
     std::unordered_set<int> includedIndices;
 
-    // Function to reorder perimeters starting from a given reference index
     auto reorderFromReference = [&](int referenceIndex) {
-        std::unordered_set<int> firstLevelIndices;
-        firstLevelIndices.insert(referenceIndex);
-
-        // Find first level touching perimeters
-        std::vector<int> firstLevelTouchingIndices = findAllTouchingPerimeters(entities, firstLevelIndices, threshold_external, threshold_internal, 1);
-        // Bring the largest first level perimeter to the front
-        // The longest first neighbour is most likely the dominant proximate perimeter
-        // hence printing it immediately after the external perimeter should speed things up
+        std::vector<int> outerIndices{ referenceIndex };
+        std::vector<int> firstLevelTouchingIndices;
+        for (size_t next = 0; next < outerIndices.size(); ++next) {
+            const std::unordered_set<int> reference{ outerIndices[next] };
+            for (int idx : findAllTouchingPerimeters(entities, reference, threshold_external, threshold_internal, 1)) {
+                if (std::find(firstLevelTouchingIndices.begin(), firstLevelTouchingIndices.end(), idx) != firstLevelTouchingIndices.end())
+                    continue;
+                firstLevelTouchingIndices.push_back(idx);
+                for (size_t i = 0; i < entities.size(); ++i) {
+                    if (entities[i].extrusion->inset_idx != 0 || includedIndices.count(int(i)) != 0 ||
+                        std::find(outerIndices.begin(), outerIndices.end(), int(i)) != outerIndices.end())
+                        continue;
+                    if (arachne_lines_touch(*entities[i].extrusion, *entities[idx].extrusion, double(threshold_external)))
+                        outerIndices.push_back(int(i));
+                }
+            }
+        }
+        std::stable_partition(outerIndices.begin(), outerIndices.end(), [&entities](int idx) {
+            return entities[idx].extrusion->is_closed && !entities[idx].is_contour;
+        });
+        for (int idx : outerIndices) {
+            reordered.push_back(entities[idx]);
+            includedIndices.insert(idx);
+        }
         if (!firstLevelTouchingIndices.empty()) {
-            auto maxIt = std::max_element(firstLevelTouchingIndices.begin(), firstLevelTouchingIndices.end(), [&entities](int a, int b) {
+            auto longest = std::max_element(firstLevelTouchingIndices.begin(), firstLevelTouchingIndices.end(), [&entities](int a, int b) {
                 return entities[a].extrusion->getLength() < entities[b].extrusion->getLength();
             });
-            std::iter_swap(maxIt, firstLevelTouchingIndices.end() - 1);
+            std::iter_swap(longest, firstLevelTouchingIndices.end() - 1);
         }
-        // Insert first level perimeters into reordered list
-        reordered.push_back(entities[referenceIndex]);
-        includedIndices.insert(referenceIndex);
-
         for (int idx : firstLevelTouchingIndices) {
             if (includedIndices.count(idx) == 0) {
                 reordered.push_back(entities[idx]);
@@ -2015,42 +2050,25 @@ std::vector<PerimeterGeneratorArachneExtrusion> reorderPerimetersByProximity(std
             }
         }
 
-        // Loop through all inset indices above 1
         size_t currentInsetIndex = 2;
-        while (true) {
+        while (!firstLevelTouchingIndices.empty()) {
             std::unordered_set<int> currentLevelIndices(firstLevelTouchingIndices.begin(), firstLevelTouchingIndices.end());
-            std::vector<int> currentLevelTouchingIndices = findAllTouchingPerimeters(entities, currentLevelIndices, threshold_external, threshold_internal, currentInsetIndex);
-
-            // Break if no more touching perimeters are found
-            if (currentLevelTouchingIndices.empty()) {
+            std::vector<int> currentLevelTouchingIndices = findAllTouchingPerimeters(
+                entities, currentLevelIndices, threshold_external, threshold_internal, currentInsetIndex);
+            currentLevelTouchingIndices.erase(std::remove_if(currentLevelTouchingIndices.begin(), currentLevelTouchingIndices.end(),
+                [&](int idx) { return includedIndices.count(idx) > 0; }), currentLevelTouchingIndices.end());
+            if (currentLevelTouchingIndices.empty())
                 break;
-            }
-
-            // Exclude any already included indices from the current level touching indices
-            currentLevelTouchingIndices.erase(
-                std::remove_if(currentLevelTouchingIndices.begin(), currentLevelTouchingIndices.end(),
-                    [&](int idx) { return includedIndices.count(idx) > 0; }),
-                currentLevelTouchingIndices.end());
-
-            // Bring the largest current level perimeter to the end
-            if (!currentLevelTouchingIndices.empty()) {
-                auto maxIt = std::max_element(currentLevelTouchingIndices.begin(), currentLevelTouchingIndices.end(), [&entities](int a, int b) {
-                    return entities[a].extrusion->getLength() < entities[b].extrusion->getLength();
-                });
-                std::iter_swap(maxIt, currentLevelTouchingIndices.begin());
-            }
-
-            // Insert current level perimeters into reordered list
+            auto longest = std::max_element(currentLevelTouchingIndices.begin(), currentLevelTouchingIndices.end(), [&entities](int a, int b) {
+                return entities[a].extrusion->getLength() < entities[b].extrusion->getLength();
+            });
+            std::iter_swap(longest, currentLevelTouchingIndices.begin());
             for (int idx : currentLevelTouchingIndices) {
-                if (includedIndices.count(idx) == 0) {
-                    reordered.push_back(entities[idx]);
-                    includedIndices.insert(idx);
-                }
+                reordered.push_back(entities[idx]);
+                includedIndices.insert(idx);
             }
-
-            // Prepare for the next level
-            firstLevelTouchingIndices = currentLevelTouchingIndices;
-            currentInsetIndex++;
+            firstLevelTouchingIndices = std::move(currentLevelTouchingIndices);
+            ++currentInsetIndex;
         }
     };
 
@@ -2086,6 +2104,106 @@ void bringContoursToFront(std::vector<PerimeterGeneratorArachneExtrusion>& order
 }
 // ORCA:
 // Inner Outer Inner wall ordering mode perimeter order optimisation functions ended
+
+// Orca 2.5: inner walls generated beside a top surface can be numbered from both the
+// outer wall and the top-surface boundary. Rebuild their inset depth from actual wall
+// contact so IOI ordering does not put a deep wall between the two outer contours.
+static void renumber_inner_walls_by_depth(const Arachne::VariableWidthLines& outer_walls,
+                                          std::vector<Arachne::VariableWidthLines>& inner_walls,
+                                          coord_t outer_touch, coord_t inner_touch)
+{
+    std::vector<Arachne::ExtrusionLine> lines;
+    for (Arachne::VariableWidthLines& group : inner_walls)
+        for (Arachne::ExtrusionLine& line : group)
+            if (!line.empty())
+                lines.emplace_back(std::move(line));
+    if (lines.empty())
+        return;
+
+    auto grown_bbox = [](const Arachne::ExtrusionLine& line) {
+        BoundingBox bbox;
+        coord_t widest = 0;
+        for (const Arachne::ExtrusionJunction& junction : line.junctions) {
+            bbox.merge(junction.p);
+            widest = std::max(widest, junction.w);
+        }
+        return bbox.inflated(widest);
+    };
+    std::vector<BoundingBox> bboxes;
+    bboxes.reserve(lines.size());
+    for (const Arachne::ExtrusionLine& line : lines)
+        bboxes.emplace_back(grown_bbox(line));
+
+    const double rounding = double(scaled<coord_t>(0.001));
+    const double outer_threshold = double(outer_touch) + rounding;
+    const double inner_threshold = double(inner_touch) + rounding;
+    auto touches = [&lines, &bboxes, inner_threshold](size_t a, size_t b) {
+        if (!bboxes[a].overlap(bboxes[b]))
+            return false;
+        return arachne_lines_touch(lines[a], lines[b], inner_threshold);
+    };
+
+    std::vector<size_t> depth(lines.size(), 0);
+    std::vector<size_t> frontier;
+    for (const Arachne::ExtrusionLine& outer : outer_walls) {
+        if (outer.empty())
+            continue;
+        const BoundingBox outer_bbox = grown_bbox(outer);
+        for (size_t i = 0; i < lines.size(); ++i) {
+            if (depth[i] != 0 || lines[i].inset_idx != 1 || !outer_bbox.overlap(bboxes[i]))
+                continue;
+            if (arachne_lines_touch(outer, lines[i], outer_threshold)) {
+                depth[i] = 1;
+                frontier.push_back(i);
+            }
+        }
+    }
+
+    std::vector<size_t> numbered = frontier;
+    for (size_t level = 1; !frontier.empty(); ++level) {
+        std::vector<size_t> next;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            if (depth[i] != 0 || lines[i].inset_idx != level + 1)
+                continue;
+            for (size_t previous : frontier) {
+                if (touches(previous, i)) {
+                    depth[i] = level + 1;
+                    next.push_back(i);
+                    break;
+                }
+            }
+        }
+        numbered.insert(numbered.end(), next.begin(), next.end());
+        frontier = std::move(next);
+    }
+
+    frontier = std::move(numbered);
+    while (!frontier.empty()) {
+        std::vector<size_t> next;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            if (depth[i] != 0)
+                continue;
+            size_t deepest = 0;
+            for (size_t previous : frontier)
+                if (depth[previous] > deepest && touches(previous, i))
+                    deepest = depth[previous];
+            if (deepest > 0) {
+                depth[i] = deepest + 1;
+                next.push_back(i);
+            }
+        }
+        frontier = std::move(next);
+    }
+
+    inner_walls.clear();
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (depth[i] > 0)
+            lines[i].inset_idx = depth[i];
+        if (inner_walls.size() < lines[i].inset_idx)
+            inner_walls.resize(lines[i].inset_idx);
+        inner_walls[lines[i].inset_idx - 1].emplace_back(std::move(lines[i]));
+    }
+}
 
 
 // Thanks, Cura developers, for implementing an algorithm for generating perimeters with variable width (Arachne) that is based on the paper
@@ -2233,6 +2351,12 @@ void PerimeterGenerator::process_arachne()
                             ++el.inset_idx;
                     }
                 }
+
+                if (perimeters.size() == 1)
+                    renumber_inner_walls_by_depth(perimeters.front(), inner_perimeters,
+                        apply_precise_outer_wall ? ext_perimeter_spacing + perimeter_spacing / 2
+                            : (ext_perimeter_spacing + perimeter_spacing) / 2,
+                        perimeter_spacing);
 
                 perimeters.insert(perimeters.end(), inner_perimeters.begin(), inner_perimeters.end());
                 infill_contour = union_ex(top_expolygons, inner_wall_tool_paths.getInnerContour());

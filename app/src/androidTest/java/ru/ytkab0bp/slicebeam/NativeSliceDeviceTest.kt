@@ -43,6 +43,54 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun arachneSlicesPinchedTubeWithOnlyOneWallOnTop() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("wall_generator", "arachne")
+        process.put("wall_loops", "3")
+        process.put("wall_sequence", "inner-outer-inner wall")
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("only_one_wall_top", "1")
+        process.put("top_shell_layers", "3")
+        process.put("top_surface_density", "100%")
+        process.put("top_surface_expansion", "0")
+        val source = copyAsset(context, "models/orca-arachne-pinched-tube.stl", "arachne-pinched-tube.stl")
+        val output = File(context.cacheDir, "arachne-pinched-tube.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            model = Model(source)
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue(nativeConfig.contains("wall_generator = arachne"))
+            assertTrue(nativeConfig.contains("only_one_wall_top = 1"))
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertTrue("Arachne must produce perimeter paths", gcode.contains("TYPE:Outer wall") && gcode.contains("TYPE:Inner wall"))
+            var layerIndex = -1
+            val pathsByLayer = mutableMapOf<Int, MutableList<String>>()
+            gcode.lineSequence().forEach { line ->
+                if (line.startsWith(";LAYER_CHANGE")) ++layerIndex
+                if (line.startsWith(";TYPE:"))
+                    pathsByLayer.getOrPut(layerIndex) { mutableListOf() } += line.removePrefix(";TYPE:")
+            }
+            assertTrue("The model should contain at least three sliced layers", pathsByLayer.size >= 3)
+            val representativeLayer = pathsByLayer[1].orEmpty()
+            assertTrue("The pinched tube must keep outer walls in the toolpath", representativeLayer.contains("Outer wall"))
+            assertTrue("The pinched tube must keep inner walls in the toolpath", representativeLayer.contains("Inner wall"))
+        } finally {
+            result?.release()
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
