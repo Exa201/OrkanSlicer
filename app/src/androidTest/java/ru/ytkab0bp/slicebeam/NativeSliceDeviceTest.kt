@@ -63,6 +63,17 @@ class NativeSliceDeviceTest {
             }
             val printer = requireNotNull(config.findPrinter("OpenEYE Peacock V2 0.4 nozzle"))
             val process = requireNotNull(config.findPrint("0.16mm Standard"))
+            val openEyeProcesses = config.printConfigs.filter { it.title?.startsWith("0.") == true }
+            assertEquals(13, openEyeProcesses.size)
+            for (openEyeProcess in openEyeProcesses) {
+                assertEquals("none", openEyeProcess["fuzzy_skin"])
+                assertEquals("6000", openEyeProcess["initial_layer_travel_acceleration"])
+                assertEquals("0", openEyeProcess["seam_slope_conditional"])
+                assertEquals("0", openEyeProcess["seam_slope_inner_walls"])
+                assertEquals("10", openEyeProcess["seam_slope_min_length"])
+                assertEquals("10%", openEyeProcess["seam_slope_start_height"])
+                assertEquals("0.15", openEyeProcess["support_ironing_spacing"])
+            }
             val filament = requireNotNull(config.findFilament("Generic PLA"))
             config.presets = ConfigObject("presets").apply {
                 put("printer", printer.title)
@@ -73,6 +84,10 @@ class NativeSliceDeviceTest {
             model = activeModel
             activeModel.ensureOnBed(0)
             SliceBeam.genCurrentConfig(activeModel)
+            val generatedConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue(generatedConfig.contains("initial_layer_travel_acceleration = 6000"))
+            assertTrue(generatedConfig.contains("seam_slope_conditional = 0"))
+            assertTrue(generatedConfig.contains("support_ironing_spacing = 0.15"))
             val sliceResult = activeModel.slice(
                 SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null
             )

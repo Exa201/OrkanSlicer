@@ -234,3 +234,11 @@ Orca änderte den OpenEYE-Peacock-V2-Host von OctoPrint auf Moonraker. Im Androi
 `NativeSliceDeviceTest#orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice` lädt das echte Profilasset, prüft alle vier Host-Zuordnungen gegen die Upload-Policy und slicet mit 0,4-mm-Düse und Generic PLA. Extrusions-G-Code und `START_PRINT` müssen erhalten bleiben. API 35 und API 36 bestanden je 1/1. Ein erster Testentwurf prüfte zusätzlich das hier nicht verwendete `printer_agent`-Metadatum und scheiterte an dieser Testannahme; nach Ausrichtung auf den tatsächlichen App-Datenpfad bestanden beide Geräte.
 
 Der zweite Nightly-Batch steht damit bei **7/10**. Drei weitere unabhängig verifizierte Produktänderungen sind erforderlich, bevor die APK gebaut und als Nightly-Prerelease veröffentlicht wird.
+
+## Orca `efd65b733` — OpenEYE Peacock V2 Prozessprofil-Parität (2026-10-31)
+
+Die bestehenden 13 OpenEYE-Prozessprofile übernehmen nun die Werte aus Orcas aktualisiertem gemeinsamen bzw. OpenEYE-spezifischen Prozessprofil: deaktivierte Fuzzy Skin als expliziter Default, Fuzzy-Abstands-/Dickenwerte, Erstschicht-Reisebeschleunigung 6000, deaktivierte bedingte/Innenwand-Seam-Slope mit 10 mm Mindestlänge und 10% Start-Höhe sowie Support-Ironing-Abstand 0,15 mm. Die Einstellungen sind an allen 13 Profilen vorhanden, statt nur an einem einzelnen Düsentyp.
+
+Der bestehende `orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice`-Ende-zu-Ende-Test prüft diese Werte für alle 13 Prozessprofile, kontrolliert die generierte native Konfiguration und slicet anschließend auf dem 0,4-mm-Profil. Extrusions-G-Code und `START_PRINT` bleiben vorhanden. API 35 und API 36 bestanden je 1/1.
+
+Der zweite Nightly-Batch steht jetzt bei **8/10**. Zwei weitere geprüfte Produktänderungen sind erforderlich, bevor die APK gebaut und als Nightly-Prerelease veröffentlicht wird.

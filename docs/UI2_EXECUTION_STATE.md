@@ -1,6 +1,6 @@
 # Fortsetzung 2026-10-31 — Orca-Vorschau und Upstream-Abgleich
 
-- Nightly-HEAD vor diesem Arbeitspaket: `19eab385fd1beaaf4746f384cce1991b0e8d18fd`; Branch `nightly-2.5`.
+- Nightly-HEAD vor diesem Arbeitspaket: `8c8e2a343088adc1a3ddb901f87a98a4f0c593cf`; Branch `nightly-2.5`.
 - Orca-Upstream frisch bis `4045a87b70fc4745d586bda69d844b2e7b09f74e` aktualisiert. Seit dem bisherigen Pin `5cc5fb7f` kamen Profile/Übersetzungen hinzu, aber keine `src/libslic3r`-Engine-Änderung.
 - Schwache-GPU-Vorschau bereits umgesetzt und geprüft: automatische 70% für Low-RAM, 65% für erkannte alte/Software-Renderer, 100% sonst; manuelle 50/65/80/100%; erkannte Low-GPU erhält kleinere Vorschau-/Mesh-Budgets. Slice-Geometrie bleibt unverändert. JVM-Suiten 704/704; Settings und GL-Touch/Picking bei mehreren Auflösungen auf API 15/16 geprüft. Kein physischer GPU-Leistungsvergleich.
 - Nightly-Identität ist bereits isoliert: App-ID `com.exa201.orkanslicer.nightly25`, Anzeigename `OrkanSlicer Nightly 2.5`; private Einstellungen/Dateien liegen daher in einem separaten Android-App-Datenbereich. Stable-App bleibt unverändert.
@@ -8,8 +8,10 @@
 - Verifikation #6: `:app:testDebugUnitTest --tests ru.ytkab0bp.slicebeam.ui.setup.SetupProfileSelectionPolicyTest` erfolgreich; gezielter `NativeSliceDeviceTest#orca3DFuelMaterialLibraryLoadsIndependentlyAndSlicesRepresentativeFilaments` auf API 15 und API 16 erfolgreich (je 1/1). Kombinierter Gradle-Lauf `BUILD SUCCESSFUL`; `git diff --check` sauber. Commit `19eab385f` ist auf `nightly25/nightly-2.5` gepusht.
 - Änderung #7: Orca-Commit `efd65b733` setzt bei allen vier OpenEYE Peacock V2 Düsenprofilen den Hosttyp auf Moonraker. Der vorher fehlende Android-Wert fiel auf OctoPrint zurück.
 - Verifikation #7: `NativeSliceDeviceTest#orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice` prüfte vier Hosttypen gegen die Android-Upload-Policy und slicete das 0,4-mm-Profil mit Extrusion und `START_PRINT`; API 15 und API 16 je 1/1 bestanden. Ein erster Testentwurf prüfte irrtümlich das nicht von Android ausgewertete Desktop-Feld `printer_agent`; die Testannahme wurde korrigiert, Produktcode war nicht fehlerhaft.
-- Batch 2 steht nun bei **7/10** unabhängig verifizierten Produktänderungen. Kein APK/Release bis 10/10. Upstream-Kandidaten werden nur portiert, wenn Android eine echte aktive Aufrufstrecke hat; keine wirkungslosen Desktop-API-Teilports.
-- Nächster Schritt: Orca-Upstream bei `4045a87b` weiter auf Android-relevante Änderungen prüfen und die letzten drei Batch-Items mit eigenen Regressionstests umsetzen. Nach dem zehnten abgeschlossenen Item isolierte APK bauen und als Nightly-Prerelease publizieren.
+- Änderung #8: Orcas aktualisierte OpenEYE-Prozessprofilwerte auf alle 13 Android-Profile übertragen: fuzzy defaults, Erstschicht-Reisebeschleunigung, Seam-Slope- und Support-Ironing-Werte. Die native Konfiguration muss die Werte erhalten.
+- Verifikation #8: derselbe echte OpenEYE-Profil-/Slice-Test prüfte alle 13 Prozessprofile und die generierte INI; danach API 15 und API 16 je 1/1 native Slices mit Extrusions-G-Code und `START_PRINT` erfolgreich. Letzter Gradle-Lauf `BUILD SUCCESSFUL`; die Änderung ist noch nicht committet.
+- Batch 2 steht nun bei **8/10** unabhängig verifizierten Produktänderungen. Kein APK/Release bis 10/10. Upstream-Kandidaten werden nur portiert, wenn Android eine echte aktive Aufrufstrecke hat; keine wirkungslosen Desktop-API-Teilports.
+- Nächster Schritt: Orca-Upstream bei `4045a87b` weiter auf Android-relevante Änderungen prüfen und die letzten zwei Batch-Items mit eigenen Regressionstests umsetzen. Nach dem zehnten abgeschlossenen Item isolierte APK bauen und als Nightly-Prerelease publizieren.
 
 # Aktueller Fortsetzungsstand — 2026-10-31, Low-GPU-Preview-Erweiterung
 
