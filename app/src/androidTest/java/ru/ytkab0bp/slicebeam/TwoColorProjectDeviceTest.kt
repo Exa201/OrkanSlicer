@@ -166,6 +166,67 @@ class TwoColorProjectDeviceTest {
         }
     }
 
+    @Test fun partFilamentOverrideSurvivesThreeMfRoundTripAndNativeSlice() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        SliceBeam.INSTANCE = context.applicationContext as SliceBeam
+        Prefs.init(context.applicationContext as android.app.Application)
+        val previousConfig = SliceBeam.CONFIG
+        val source = File(context.cacheDir, "two-color-part-override-source.3mf")
+        val exported = File(context.cacheDir, "two-color-part-override-roundtrip.3mf")
+        val gcodeFile = File(context.cacheDir, "two-color-part-override.gcode")
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val previousConfigFile = configFile.takeIf { it.isFile }?.readBytes()
+        var model: Model? = null
+        var restored: Model? = null
+        var sliceResult: GCodeProcessorResult? = null
+        context.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+        SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+            put("printer", "Anycubic Kobra 3 0.4 nozzle")
+            put("print", "0.16mm Standard")
+            put("filament", "Anycubic Generic PLA")
+        }
+        InstrumentationRegistry.getInstrumentation().context.assets.open("models/two-color-project.3mf").use { input ->
+            source.outputStream().use { input.copyTo(it) }
+        }
+        try {
+            model = Model(source, 1)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(2, model.getObjectPartCount(0))
+            assertEquals(1, model.getObjectPartExtruder(0, 0))
+            assertEquals(2, model.getObjectPartExtruder(0, 1))
+
+            // Swap the slots part-by-part: neither the sibling nor the parent is flattened.
+            assertTrue(model.setObjectPartExtruder(0, 0, 2))
+            assertTrue(model.setObjectPartExtruder(0, 1, 1))
+            assertEquals(2, model.getObjectPartExtruder(0, 0))
+            assertEquals(1, model.getObjectPartExtruder(0, 1))
+            assertEquals(1, model.getExtruder(0))
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, exported.absolutePath)
+            restored = Model(exported, 1)
+            assertEquals(1, restored.objectsCount)
+            assertEquals(2, restored.getObjectPartExtruder(0, 0))
+            assertEquals(1, restored.getObjectPartExtruder(0, 1))
+            assertArrayEquals(intArrayOf(1, 2), restored.getUsedFilaments(0))
+
+            SliceBeam.genCurrentConfig(restored)
+            sliceResult = restored.slice(SliceBeam.getCurrentConfigFile().absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertTrue("the reassigned multipart project must produce extrusion", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+            assertTrue("the reassigned multipart project must still slice the second filament", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+        } finally {
+            sliceResult?.release()
+            restored?.release()
+            model?.release()
+            SliceBeam.CONFIG = previousConfig
+            if (previousConfigFile == null) configFile.delete() else configFile.writeBytes(previousConfigFile)
+            source.delete()
+            exported.delete()
+            gcodeFile.delete()
+        }
+    }
+
     @Test fun paintedFilamentAssignmentsSurviveMultipartJoinThreeMfRoundTripAndSlice() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         SliceBeam.INSTANCE = context.applicationContext as SliceBeam

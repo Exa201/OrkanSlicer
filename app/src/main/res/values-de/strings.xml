@@ -193,6 +193,8 @@
     <string name="ModelMenuCombineFailed">Die Objekte konnten nicht verbunden werden. Die Originale sind erhalten geblieben.</string>
     <string name="ModelMenuSplit">Teile trennen</string>
     <string name="ModelObjectPartNumber">Teil %1$d</string>
+    <string name="ModelObjectAssignPartFilament">Filament</string>
+    <string name="ModelObjectPartFilamentApplied">Teil wurde T%1$d zugeordnet.</string>
     <string name="ModelObjectEditPart">Zum Bearbeiten lösen</string>
     <string name="ModelObjectPartSeparated">Teil getrennt; es kann jetzt einzeln verschoben oder skaliert werden</string>
     <string name="ModelObjectMultipartHelp">Modelle stehen als ein Eintrag mit ihren Teilen darunter in der Liste. Transformiere ein Teil innerhalb der Gruppe oder löse es zum Bearbeiten als eigenes Objekt. Platzieren verbindet nicht; nutze dafür „Teile verbinden“.</string>

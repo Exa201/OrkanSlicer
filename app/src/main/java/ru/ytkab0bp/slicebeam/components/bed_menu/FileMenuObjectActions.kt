@@ -117,6 +117,10 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                         dismiss()
                         showObjectFilamentSlotDialog(view, index, snapshot)
                     },
+                    onAssignPart = { index, partIndex ->
+                        dismiss()
+                        showObjectPartFilamentSlotDialog(view, index, partIndex, snapshot)
+                    },
                     onTransformPart = { index, partIndex ->
                         dismiss()
                         showObjectPartTransformDialog(view, index, partIndex, snapshot)
@@ -266,6 +270,57 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                             context.getString(R.string.ModelContextFilamentSlotApplied, which),
                             Toast.LENGTH_SHORT,
                         ).show()
+                    }
+                },
+            )
+        }
+    }
+
+    private fun showObjectPartFilamentSlotDialog(
+        view: View,
+        objectIndex: Int,
+        partIndex: Int,
+        expectedSelection: ModelSelectionSnapshot,
+    ) {
+        val slots = Prefs.getFilamentSlots()
+        if (slots.isEmpty() || objectIndex !in 0 until expectedSelection.objectCount) return
+        val model = expectedSelection.model
+        if (partIndex !in 0 until model.getObjectPartCount(objectIndex)) return
+
+        val context = view.context
+        val currentTool = (model.getObjectPartExtruder(objectIndex, partIndex) - 1).coerceAtLeast(0)
+        val choices = slots.indices.map { tool ->
+            val slot = slots[tool]
+            val label = context.getString(
+                R.string.ModelContextFilamentSlot,
+                tool,
+                slot.type,
+                String.format(Locale.ROOT, "#%06X", slot.color and 0xFFFFFF),
+            )
+            if (tool == currentTool) "✓ $label" else label
+        }
+        fragment.showWorkspaceComposeDialog { dismiss ->
+            ModelChoiceDialog(
+                title = context.getString(R.string.ModelObjectAssignPartFilament),
+                cancelLabel = context.getString(android.R.string.cancel),
+                choices = choices,
+                onDismiss = dismiss,
+                onSelect = { which ->
+                    dismiss()
+                    val viewport = fragment.glView ?: return@ModelChoiceDialog
+                    viewport.setObjectPartFilamentIfCurrent(objectIndex, partIndex, which + 1, expectedSelection) { result ->
+                        when (result) {
+                            MODEL_EDIT_STALE_SELECTION -> reportStaleSelection()
+                            1 -> {
+                                fragment.updateModel()
+                                SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent())
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.ModelObjectPartFilamentApplied, which),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        }
                     }
                 },
             )

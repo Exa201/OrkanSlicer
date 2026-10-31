@@ -203,6 +203,8 @@
     <string name="ModelMenuCombineDone">Objects combined as multipart object</string>
     <string name="ModelMenuSplit">Separate parts</string>
     <string name="ModelObjectPartNumber">Part %1$d</string>
+    <string name="ModelObjectAssignPartFilament">Filament</string>
+    <string name="ModelObjectPartFilamentApplied">Part assigned to T%1$d.</string>
     <string name="ModelObjectEditPart">Separate to edit</string>
     <string name="ModelObjectPartSeparated">Part separated; it can now be moved or scaled independently</string>
     <string name="ModelObjectMultipartHelp">Models appear as one row with parts below. Transform a part inside the group or separate it to edit it as an object. Placing never joins objects; use Combine selected when you choose.</string>

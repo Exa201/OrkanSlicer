@@ -447,6 +447,21 @@ internal fun setObjectUniformFilamentIfCurrent(
         ViewUtils.postOnMainThread { onComplete(result) }
     }
 }
+internal fun setObjectPartFilamentIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    filament: Int,
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.setObjectPartFilamentIfCurrent(
+            objectIndex, partIndex, filament, expectedSelection,
+        )
+        if (result == 1) requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
 internal fun combineSelectedObjectsAsParts(
     expectedSelection: ModelSelectionSnapshot? = null,
     onComplete:(Int)->Unit,

@@ -33,6 +33,9 @@ import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.components.FastenerFormLogic
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelBooleanDialog
 import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectPartTransformDialog
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectsDialog
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectRow
+import ru.ytkab0bp.slicebeam.components.bed_menu.ModelObjectPartRow
 import ru.ytkab0bp.slicebeam.utils.FastenerStlWriter
 import ru.ytkab0bp.slicebeam.utils.FastenerStandards
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -48,6 +51,30 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class ModelEditingNativeDeviceTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun multipartObjectListExposesASeparatePartFilamentAction() {
+        val assigned = AtomicReference<Pair<Int, Int>?>(null)
+        compose.setContent {
+            BeamComposeTheme {
+                ModelObjectsDialog(
+                    title = "Objects", cancelLabel = "Cancel", assignLabel = "Assign",
+                    rows = listOf(ModelObjectRow(
+                        name = "Assembly", tool = 0, material = "PLA", color = 0xFF000000.toInt(),
+                        selected = false, assignEnabled = true,
+                        parts = listOf(
+                            ModelObjectPartRow("Part 1", 0, "PLA", 0xFF000000.toInt()),
+                            ModelObjectPartRow("Part 2", 1, "PETG", 0xFFFFFFFF.toInt()),
+                        ),
+                    )),
+                    onDismiss = {}, onSelect = {}, onAssign = {},
+                    onAssignPart = { objectIndex, partIndex -> assigned.set(objectIndex to partIndex) },
+                    onTransformPart = { _, _ -> }, onEditPart = { _, _ -> }, onApplySelection = {},
+                )
+            }
+        }
+        compose.onNodeWithTag("model-object-assign-part-0-0").assertIsDisplayed().performClick()
+        assertEquals(0 to 0, assigned.get())
+    }
 
     @Test fun groupedPartTransformDialogAppliesMillimeterDeltasAndPercentScale() {
         val applied = AtomicReference<List<Double>?>(null)

@@ -2256,7 +2256,7 @@ invalidateCommittedOverlays(i)
 fun setObjectUniformFilament(i: Int, filament: Int) {
 if (this.model == null) return
 this.model!!.setUniformFilament(i, filament)
-invalidateCommittedOverlays(i)
+invalidateGlModel(i)
 }
 /** Applies a delayed per-object assignment only if its opening model/selection is unchanged. */
 internal fun setObjectUniformFilamentIfCurrent(
@@ -2268,7 +2268,21 @@ internal fun setObjectUniformFilamentIfCurrent(
     val activeModel = model ?: return 0
     if (i !in 0 until activeModel.objectsCount || filament <= 0) return 0
     activeModel.setUniformFilament(i, filament)
-    invalidateCommittedOverlays(i)
+    invalidateGlModel(i)
+    return 1
+}
+/** Applies an explicit tool to one grouped printable volume and rebuilds only its preview mesh. */
+internal fun setObjectPartFilamentIfCurrent(
+    objectIndex: Int,
+    partIndex: Int,
+    filament: Int,
+    expectedSelection: ModelSelectionSnapshot,
+): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return MODEL_EDIT_OPERATION_FAILED
+    if (objectIndex !in 0 until activeModel.objectsCount || filament !in 1..16 ||
+        !activeModel.setObjectPartExtruder(objectIndex, partIndex, filament)) return MODEL_EDIT_OPERATION_FAILED
+    invalidateGlModel(objectIndex)
     return 1
 }
 /** Stage a uniform base filament for live rendering without mutating the model before Done. */

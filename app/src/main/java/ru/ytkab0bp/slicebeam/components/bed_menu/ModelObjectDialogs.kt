@@ -70,6 +70,7 @@ internal fun ModelObjectsDialog(
     onDismiss: () -> Unit,
     onSelect: (Int) -> Unit,
     onAssign: (Int) -> Unit,
+    onAssignPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onTransformPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onEditPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onApplySelection: (IntArray) -> Unit,
@@ -166,6 +167,12 @@ internal fun ModelObjectsDialog(
                                             Text(part.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                             Text("T${part.tool}: ${part.material}", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
+                                        TextButton(
+                                            onClick = { onAssignPart(index, partIndex) },
+                                            enabled = row.assignEnabled,
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                                .testTag("model-object-assign-part-$index-$partIndex"),
+                                        ) { Text(stringResource(R.string.ModelObjectAssignPartFilament)) }
                                     }
                                     Row(
                                         Modifier.fillMaxWidth(),

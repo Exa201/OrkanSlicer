@@ -400,6 +400,15 @@ open class Model private constructor(@JvmField var pointer: Long) {
     open fun getVolumeExtruder(objectIndex: Int, volumeIndex: Int): Int =
         if (pointer == 0L) -1 else Native.model_get_volume_extruder(pointer, objectIndex, volumeIndex)
 
+    /** Assigns one printable part while leaving sibling parts and their paint data untouched. */
+    open fun setObjectPartExtruder(objectIndex: Int, partIndex: Int, extruder: Int): Boolean {
+        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex) || extruder !in 1..16)
+            return false
+        val changed = Native.model_set_object_part_extruder(pointer, objectIndex, partIndex, extruder)
+        if (changed) markStateChanged()
+        return changed
+    }
+
     open fun setExtruder(i: Int, extruder: Int) {
         Native.model_set_extruder(pointer, i, extruder)
         markStateChanged()

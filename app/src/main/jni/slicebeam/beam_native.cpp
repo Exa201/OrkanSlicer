@@ -766,6 +766,28 @@ extern "C" {
         return -1;
     }
 
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1set_1object_1part_1extruder(
+        JNIEnv*, jclass, jlong ptr, jint object_index, jint part_index, jint extruder) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() ||
+            part_index < 0 || extruder < 1 || extruder > 16)
+            return JNI_FALSE;
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr) return JNI_FALSE;
+        jint current_part = 0;
+        for (ModelVolume* volume : object->volumes) {
+            if (volume == nullptr || volume->type() != ModelVolumeType::MODEL_PART || volume->mesh().facets_count() < 3)
+                continue;
+            if (current_part++ != part_index) continue;
+            volume->config.set("extruder", static_cast<int>(extruder));
+            // Explicit part-slot choice replaces imported facet-level material assignments
+            // for this volume only. Other volumes and the parent object are untouched.
+            volume->mmu_segmentation_facets.reset();
+            return JNI_TRUE;
+        }
+        return JNI_FALSE;
+    }
+
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1transform_1object_1part(
         JNIEnv*, jclass, jlong ptr, jint object_index, jint part_index,
         jdouble dx, jdouble dy, jdouble dz, jdouble rotation_x_degrees, jdouble rotation_y_degrees,
