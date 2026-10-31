@@ -226,3 +226,11 @@ Orca hat 13 3D-Fuel-Materialprofile ergänzt. Nightly übernimmt sie als `app/sr
 `SetupProfileSelectionPolicyTest#independentMaterialLibrariesAreShownWithoutSelectingTheirPrinterVendor` prüft beide Auswahlregeln. `NativeSliceDeviceTest#orca3DFuelMaterialLibraryLoadsIndependentlyAndSlicesRepresentativeFilaments` lädt das echte Bibliotheksasset, prüft alle 13 Profile und slicet Standard-PLA, Pro-PETG und PET-CF mit einem isolierten Anycubic-Testprofil. Der G-Code muss Extrusion und die jeweilige Temperatur im ausführbaren `G9111`-Startmakro enthalten. API 35 und API 36 bestanden je 1/1; der gemeinsame Lauf mit dem Policy-Unit-Test endete `BUILD SUCCESSFUL`. Keine physischen 3D-Fuel-Drucke.
 
 Damit beträgt der zweite Nightly-Batch **6/10**. Die nächste APK wird erst nach vier weiteren unabhängigen, fokussiert verifizierten Produktänderungen gebaut. Die Nightly-App-ID `com.exa201.orkanslicer.nightly25` und der Anzeigename `OrkanSlicer Nightly 2.5` sind bereits gegenüber der Stable-App getrennt; ihre privaten App-Daten/Einstellungen werden nicht übernommen.
+
+## Orca `efd65b733` — OpenEYE Peacock V2 Moonraker-Host (2026-10-31)
+
+Orca änderte den OpenEYE-Peacock-V2-Host von OctoPrint auf Moonraker. Im Android-Profil fehlte `host_type` bisher; OrkanSlicer fiel dadurch auf den OctoPrint-Standard zurück, obwohl die Maschine Klipper nutzt. Alle vier Düsenvarianten (0,2/0,4/0,6/0,8 mm) geben nun explizit `host_type = moonraker` vor. Das ist der von Androids Upload-Auswahl verwendete Wert; das desktopbezogene `printer_agent` wird nicht als Android-Verhalten portiert.
+
+`NativeSliceDeviceTest#orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice` lädt das echte Profilasset, prüft alle vier Host-Zuordnungen gegen die Upload-Policy und slicet mit 0,4-mm-Düse und Generic PLA. Extrusions-G-Code und `START_PRINT` müssen erhalten bleiben. API 35 und API 36 bestanden je 1/1. Ein erster Testentwurf prüfte zusätzlich das hier nicht verwendete `printer_agent`-Metadatum und scheiterte an dieser Testannahme; nach Ausrichtung auf den tatsächlichen App-Datenpfad bestanden beide Geräte.
+
+Der zweite Nightly-Batch steht damit bei **7/10**. Drei weitere unabhängig verifizierte Produktänderungen sind erforderlich, bevor die APK gebaut und als Nightly-Prerelease veröffentlicht wird.

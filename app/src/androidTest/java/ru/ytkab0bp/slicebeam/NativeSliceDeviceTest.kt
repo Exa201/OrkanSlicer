@@ -30,6 +30,7 @@ import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
 import ru.ytkab0bp.slicebeam.slic3r.ObjectGroupDistribution
 import ru.ytkab0bp.slicebeam.slic3r.ObjectPlacement
 import ru.ytkab0bp.slicebeam.render.FillBedModelOperation
+import ru.ytkab0bp.slicebeam.components.bed_menu.SlicePreparationTools
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.io.File
 import java.io.FileOutputStream
@@ -41,6 +42,56 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun orcaOpenEyePeacockV2ProfilesUseMoonrakerAndSlice() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        val source = copyCube(context, "openeye-peacock-v2-cube.stl")
+        val output = File(context.cacheDir, "openeye-peacock-v2-cube.gcode")
+        var model: Model? = null
+        try {
+            val config = context.assets.open("orca_profiles/OpenEYE.ini").use { Slic3rConfigWrapper(it) }
+            SliceBeam.CONFIG = config
+            val printers = config.printerConfigs.filter { it.title?.startsWith("OpenEYE Peacock V2") == true }
+            assertEquals(4, printers.size)
+            for (printer in printers) {
+                assertEquals("moonraker", printer["host_type"])
+                assertTrue(SlicePreparationTools.isSendTarget(printer["host_type"], "printer.local"))
+            }
+            val printer = requireNotNull(config.findPrinter("OpenEYE Peacock V2 0.4 nozzle"))
+            val process = requireNotNull(config.findPrint("0.16mm Standard"))
+            val filament = requireNotNull(config.findFilament("Generic PLA"))
+            config.presets = ConfigObject("presets").apply {
+                put("printer", printer.title)
+                put("print", process.title)
+                put("filament", filament.title)
+            }
+            val activeModel = Model(source)
+            model = activeModel
+            activeModel.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(activeModel)
+            val sliceResult = activeModel.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null
+            )
+            try {
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                assertTrue("The OpenEYE profile must retain its configured start macro", gcode.contains("START_PRINT"))
+            } finally {
+                sliceResult.release()
+            }
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
     @Test
     fun orca3DFuelMaterialLibraryLoadsIndependentlyAndSlicesRepresentativeFilaments() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
