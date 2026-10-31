@@ -7,7 +7,8 @@
 - Vollständige Debug-Unit- und Slice-Unit-Suiten sind nach der Implementierung beide mit 705/705 bestanden (0 Fehler, 0 Errors, 0 Skips). Fokussierter Slice-Test API 35/36 je 1/1 bestanden.
 - Debug-APK erstellt: `OrkanSlicerNightly25_669c46d161.apk`, 239,774,624 Bytes, SHA-256 `07713748A33C1A99C49432B5DDF331EBEEE1CAD3543D2D101603DF8F8A1710EB`; Paket/Label/Version und Debug-Signatur geprüft.
 - API-35-Emulatorinstallation und App-Start bestanden; Prozess blieb aktiv, im geprüften Logcat-Fenster keine Crash-/ANR-/OOM-Marker. Debug-/Slice-JVM-Suiten 705/705 jeweils, 0 failures/errors/skips; gezielter nativer Android-Slice-Test API 35/36 je 1/1.
-- Nightly-Prerelease `v0.8.421-nightly.1` ist für Veröffentlichung vorbereitet; nach Veröffentlichung nächste konkrete Arbeit: Orca-Upstream nach dem geprüften `4045a87b7` aktualisieren, Kandidaten für Batch 3 nach Android-Aufrufpfad priorisieren und die nächsten zehn Änderungen mit Regressionen bearbeiten.
+- Nightly-Prerelease `v0.8.421-nightly.1` ist veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.421-nightly.1. GitHub bestätigt APK-Asset 239,774,624 Bytes und SHA-256 `07713748a33c1a99c49432b5ddf331ebeee1cad3543d2d101603df8f8a1710eb` (lokaler Wert identisch); `.sha256`-Nebenasset ebenfalls hochgeladen.
+- Nächste konkrete Arbeit: Orca-Upstream nach dem geprüften `4045a87b7` aktualisieren, Kandidaten für Batch 3 nach Android-Aufrufpfad priorisieren und die nächsten zehn Änderungen mit Regressionen bearbeiten. Vollständiger Desktop-Engine-Austausch bleibt ein separates, noch nicht erreichtes Ziel.
 
 # Fortsetzung 2026-10-31 — Orca-Vorschau und Upstream-Abgleich
 
