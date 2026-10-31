@@ -73,9 +73,18 @@
 - Upstream `304924a69` aus OrcaSlicer beseitigt die automatische Vererbung zwischen Sparse-Infill, Internal-Solid-Infill, Top-Surface und Bottom-Surface in beiden `DynamicPrintConfig`-Normalisierungspfaden. Derselbe Kaskadierungscode war noch im Nightly-Kern vorhanden und konnte gezielte Feature-Zuordnungen überschreiben.
 - Beide Kaskadierungsblöcke wurden portiert entfernt; die separate Kompatibilitätsmigration alter `extruder`-Werte bleibt erhalten.
 - `NativeSliceDeviceTest#oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures` prüft für alle vier Features die erzeugte Native-Konfiguration und den tatsächlich genutzten T-Werkzeugindex in den G-Code-Featureabschnitten.
-- Verifikation: `:app:externalNativeBuildDebug`, `:app:compileSliceTestAndroidTestKotlin` und `git diff --check` bestanden. Der neue Slice-/G-Code-Instrumentierungstest wurde nur kompiliert, noch nicht auf ARM64 ausgeführt.
-- Status: Quellcode-/Build-Nachweis vorhanden, Hardware-/ARM64-Verifikation offen. Nicht als abgeschlossenes Release-Feature gezählt; es gehört als nächster Regressionseintrag in den laufenden 10er-Batch.
-- Nächster Schritt: Regressionstest auf Honor/Xiaomi oder ARM64-Emulator ausführen; danach eine Mehrfarben-3MF-Zuweisung nach 3MF-Rundlauf, Slicing und G-Code-Toolwechsel ergänzend gegen diese Kaskade prüfen.
+- Die ursprüngliche Fixture war ungeeignet: Das Kobra-Profil hatte nur ein logisches Werkzeug. Der Test verwendet jetzt das Custom-Toolchanger-Profil, weist dem Objekt T1 zu und setzt je Durchlauf genau eine Feature-Rolle auf T0.
+- Verifikation: `NativeSliceDeviceTest#oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures` bestand auf `nightly35x64(AVD)` und `solidcraft_android_test_fresh(AVD)`, je 1/1, API 35 x86_64 mit ARM64-Native-Bridge. Für Sparse Infill, Internal Solid Infill, Top Surface und Bottom Surface prüft der Test die tatsächlichen T-Werkzeuge in den G-Code-Featureabschnitten.
+- Status: Die lokale Upstream-Portierung hat nun Laufzeitnachweis auf den verfügbaren ARM64-Brücken-AVDs. Kein neuer Produktcode in diesem Prüfschritt; es wird nicht als zusätzliche Featuregruppe im Zehnerbatch gezählt.
+- Nächster Schritt: eine Mehrfarben-3MF-Zuweisung nach 3MF-Rundlauf, Slicing und G-Code-Toolwechsel ergänzend gegen diese Kaskade prüfen.
+
+## Orca-Upstream-Audit — aktueller main
+
+- `orcaslicer-upstream/main` wurde bis `5cc5fb7f9c40c42ca47fc13969756c4e53119046` aktualisiert.
+- `5cc5fb7f9` betrifft das Zerstören des Bambu-LAN-Desktop-Plugins; dieses Plugin und sein SSDP-Lifecycle existieren im Android-Moonraker-Pfad nicht.
+- `913c62257` betrifft den Desktop-`DeviceManager`/`PresetBundle`. Nightly speichert die aktive Druckerauswahl, MMU-Snapshot, Palette und Gate-Auswahl bereits privat; die Desktop-AMS-Preset-Sichtbarkeit kann daher nicht direkt portiert werden. Eine getrennte Gate-Auswahl pro Drucker ist als möglicher Android-Paritätskandidat offen.
+- `7af399554` ist Arch-Linux-Buildkonfiguration und für Android nicht anwendbar.
+- Keine dieser Änderungen rechtfertigt eine Änderung des gepinnten nativen Orca-Engine-Stands.
 
 ## Orca 2.5 Importabsturz bei fehlenden/leeren Projekteinstellungen — Android-Portbewertung, 2026-10-31
 

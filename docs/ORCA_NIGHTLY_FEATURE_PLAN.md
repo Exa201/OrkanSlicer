@@ -1,7 +1,7 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
 Stand: 2026-10-31. Upstream-Vergleich: OrcaSlicer `main` at
-`27cafaa06c5856c1502025b39acb9d5c9c344250` (2026-10-31). This is a selective Android
+`5cc5fb7f9c40c42ca47fc13969756c4e53119046` (latest fetched 2026-10-31). This is a selective Android
 port plan; the app must not be described as containing the complete upstream engine.
 
 ## Verified preview-performance finding
@@ -149,3 +149,19 @@ regression evidence before it can count toward an APK/release batch.
 After each ten-item group reaches its explicit code and runtime gates, build and inspect the isolated
 Nightly APK and publish the corresponding Nightly GitHub prerelease. Items 1–10 now meet their
 defined test gates; hardware follow-ups are not represented as tested.
+
+## Latest upstream delta reviewed — 2026-10-31
+
+`orcaslicer-upstream/main` now points to `5cc5fb7f9c40c42ca47fc13969756c4e53119046`. Its three
+new commits were checked individually:
+
+- `5cc5fb7f9` stops Bambu LAN SSDP discovery before destroying the desktop network agent. Nightly has
+  no Bambu desktop plugin or equivalent agent lifecycle; its Moonraker path has no matching API.
+- `913c62257` remembers printers per desktop printer-agent and keeps AMS system filaments visible.
+  Nightly already persists its active printer profile, MMU snapshot, palette, and selected gate in
+  app-private preferences, but the desktop `DeviceManager`/`PresetBundle` path is absent. No direct
+  port is warranted. Per-printer gate-choice persistence remains a separate possible Android gap.
+- `7af399554` links libjpeg for the Linux Arch build and does not apply to Android.
+
+The upstream reference was refreshed; the native engine lock was not advanced. Each Android port
+still needs an app route and its own runtime evidence.

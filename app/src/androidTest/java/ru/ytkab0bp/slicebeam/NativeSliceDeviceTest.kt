@@ -1152,10 +1152,10 @@ class NativeSliceDeviceTest {
     }
 
     @Test
-    fun oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures() = withKobraProfile {
+    fun oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures() = withToolChangerProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
-        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val process = requireNotNull(config.findPrint("0.20mm Standard"))
         val modelFile = copyCube(context, "independent-feature-filament-slice.stl")
         val model = Model(modelFile)
         val featureSettings = listOf(
@@ -1165,19 +1165,21 @@ class NativeSliceDeviceTest {
             "bottom_surface_filament_id" to "Bottom surface",
         )
         try {
-            model.setUniformFilament(0, 1)
+            // A second object filament makes both tools genuinely active in the generated config.
+            // Feature overrides then move only the selected role back to T0.
+            model.setUniformFilament(0, 2)
             process.put("sparse_infill_density", "20")
             process.put("wall_loops", "2")
             process.put("top_shell_layers", "3")
             process.put("bottom_shell_layers", "3")
 
             for ((selectedKey, selectedFeature) in featureSettings) {
-                featureSettings.forEach { (key, _) -> process.put(key, if (key == selectedKey) "2" else "0") }
+                featureSettings.forEach { (key, _) -> process.put(key, if (key == selectedKey) "1" else "0") }
                 SliceBeam.genCurrentConfig(model)
                 val generatedConfig = SliceBeam.getCurrentConfigFile()
                 val configText = generatedConfig.readText()
                 featureSettings.forEach { (key, _) ->
-                    val expectedValue = if (key == selectedKey) 2 else 0
+                    val expectedValue = if (key == selectedKey) 1 else 0
                     assertTrue(
                         "$selectedKey must not rewrite $key during native config normalization",
                         Regex("(?m)^${Regex.escape(key)}\\s*=\\s*$expectedValue\\s*$").containsMatchIn(configText),
@@ -1191,9 +1193,9 @@ class NativeSliceDeviceTest {
                     val gcode = gcodeFile.readText()
                     assertHasExtrusion(gcode)
                     featureSettings.forEach { (key, feature) ->
-                        val expectedTool = if (key == selectedKey) 1 else 0
+                        val expectedTool = if (key == selectedKey) 0 else 1
                         assertEquals(
-                            "$selectedKey must affect only $selectedFeature; $feature must use its own Default/object tool",
+                            "$selectedKey must affect only $selectedFeature; $feature must keep the object's T1 tool",
                             setOf(expectedTool),
                             toolsForFeature(gcode, feature),
                         )
