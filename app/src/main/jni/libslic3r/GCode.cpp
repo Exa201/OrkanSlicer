@@ -2871,6 +2871,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("first_filaments", new ConfigOptionInts(first_filaments));
     this->placeholder_parser().set("initial_tool", initial_extruder_id);
     this->placeholder_parser().set("initial_extruder", initial_extruder_id);
+    // Orca: list the distinct filament types used on this plate in the recommended filename.
+    // Keep first-use order (the writer's extruder order) and avoid duplicate material names.
+    std::vector<std::string> printing_filament_types;
+    for (const Extruder &extruder : m_writer.extruders()) {
+        const std::string &type = m_config.filament_type.get_at(extruder.id());
+        if (std::find(printing_filament_types.begin(), printing_filament_types.end(), type) == printing_filament_types.end())
+            printing_filament_types.emplace_back(type);
+    }
+    std::string printing_filament_types_joined;
+    for (const std::string &type : printing_filament_types) {
+        if (!printing_filament_types_joined.empty())
+            printing_filament_types_joined += "_";
+        printing_filament_types_joined += type;
+    }
+    this->placeholder_parser().set("printing_filament_types", new ConfigOptionString(printing_filament_types_joined));
     //BBS
     match_physical_extruder_for_each_filament(first_non_support_filaments, m_config);
 
@@ -3552,6 +3567,18 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Const input (tool-change fallback for non-wipe-tower prints)
         print.tool_ordering()));
     print.m_print_statistics.initial_tool = initial_extruder_id;
+    std::vector<std::string> exported_filament_types;
+    for (const Extruder &extruder : m_writer.extruders()) {
+        const std::string &type = m_config.filament_type.get_at(extruder.id());
+        if (std::find(exported_filament_types.begin(), exported_filament_types.end(), type) == exported_filament_types.end())
+            exported_filament_types.emplace_back(type);
+    }
+    print.m_print_statistics.printing_filament_types.clear();
+    for (const std::string &type : exported_filament_types) {
+        if (!print.m_print_statistics.printing_filament_types.empty())
+            print.m_print_statistics.printing_filament_types += "_";
+        print.m_print_statistics.printing_filament_types += type;
+    }
     if (!is_bbl_printers) {
         file.write_format("; total filament used [g] = %.2lf\n",
             print.m_print_statistics.total_weight);

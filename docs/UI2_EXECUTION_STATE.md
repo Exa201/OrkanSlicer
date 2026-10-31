@@ -1,3 +1,13 @@
+# Fortsetzung 2026-10-31 — Nightly-Batch 2 / APK-Gate
+
+- Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert.
+- Letzter Code-/Test-Commit: aktuell in Arbeit; vorheriger Remote-Stand `9e35fde97` (OpenEYE Dateinamentemplate).
+- Batch 2: **10/10 fokussiert verifizierte Änderungen**. Änderung #10 portiert Orca `f273fe8ac` `{printing_filament_types}` in native G-Code-/Dateinamen-Platzhalter und Print-Statistiken. Alle 13 OpenEYE-Prozessprofile nutzen die Liste tatsächlicher Materialtypen statt nur das erste Werkzeug.
+- Regression: `recommendedFilenameListsDistinctFilamentTypesActuallyUsedByThePlate` bestand auf API 35 und API 36 (je 1/1): echter zweifarbiger nativer Slice mit `PLA_PETG`, plus Deduplizierung auf `PLA` bei gleichem Typ. ARM64 `externalNativeBuildDebug`, `compileSliceTestAndroidTestKotlin` und `git diff --check` bestanden. Ein erster Fixtureversuch war nur einfarbig und scheiterte an der Testannahme; wurde durch zwei explizit zugeordnete, zusammengesetzte Modellteile ersetzt.
+- Vollständige Debug-Unit- und Slice-Unit-Suiten sind nach der Implementierung beide mit 705/705 bestanden (0 Fehler, 0 Errors, 0 Skips). Fokussierter Slice-Test API 35/36 je 1/1 bestanden.
+- App-Version ist für den Batch-Build auf 0.8.421 / Code 456 gesetzt. Noch offen: Änderungen committen/pushen, Nightly-Debug-APK bauen, Package-ID/App-Label/Signatur/Größe/SHA-256 prüfen, auf verfügbarem Emulator installieren/starten und GitHub-Nightly-Prerelease veröffentlichen.
+- Nächster konkreter Schritt: Implementierung und Tests committen/pushen, dann `assembleDebug` und Release-Gate ausführen.
+
 # Fortsetzung 2026-10-31 — Orca-Vorschau und Upstream-Abgleich
 
 - Nightly-HEAD vor diesem Arbeitspaket: `8c8e2a343088adc1a3ddb901f87a98a4f0c593cf`; Branch `nightly-2.5`.

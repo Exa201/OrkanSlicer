@@ -1,5 +1,12 @@
 # OrcaSlicer 2.5 Android-core integration
 
+## Nightly app validation — 2026-10-31 — 0.8.421
+
+- Batch 2 completed 10/10 focused Android adaptations. Orca `efd65b733` filename-template parity is extended by `f273fe8ac`'s `{printing_filament_types}` placeholder, which lists distinct materials used by a plate in tool order. OpenEYE's 13 process profiles use the multi-material placeholder.
+- Native ARM64 build and instrumentation compilation succeeded. The real two-material slice/name regression passed 1/1 on API 35 and API 36; identical material types are deduplicated. Debug and Slice JVM suites passed 705/705 each, with 0 failures, 0 errors, and 0 skips.
+- App version 0.8.421 / code 456; package `com.exa201.orkanslicer.nightly25`. APK build, size, SHA-256, installation/start, and prerelease publication are pending final packaging.
+- Selective 2.5 backports only. No physical printer behavior or physical GPU benchmark is claimed; the complete Orca desktop engine baseline is not advanced.
+
 The Android app uses the SliceBeam UI and a platform-adapted OrcaSlicer engine in
 `app/src/main/jni`. The Android port is not a desktop source drop-in. The official
 upstream is configured as `orcaslicer-upstream`; reviewed revisions are recorded in

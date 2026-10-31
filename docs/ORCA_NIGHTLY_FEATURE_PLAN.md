@@ -250,3 +250,11 @@ Alle 13 OpenEYE-Prozessprofile verwenden jetzt Orcas Dateinamentemplate mit Mode
 Der instrumentierte OpenEYE-Slice prüft den tatsächlichen empfohlenen Namen: Modellbasis vorhanden, Material `PLA`, nichtleerer Druckzeitanteil, `.gcode`-Endung und keine ungelösten Platzhalter. Zusätzlich müssen Extrusionswege und `START_PRINT` bestehen bleiben. API 35 und API 36 bestanden je 1/1.
 
 Der zweite Nightly-Batch steht damit bei **9/10**. Eine weitere abgeschlossene Änderung vor dem nächsten APK-/Nightly-Prerelease-Build.
+
+## Orca `f273fe8ac` — tatsächlich verwendete Materialtypen im Dateinamen (2026-10-31)
+
+Der Orca-Platzhalter `{printing_filament_types}` wird jetzt im nativen Slice-Export befüllt: verwendete Werkzeug-/Filamenttypen werden in Tool-Reihenfolge gesammelt, doppelte Typen entfernt und mit Unterstrichen verbunden. Er steht sowohl im Placeholder-Kontext für G-Code-Templates als auch in den fertigen Print-Statistiken bereit. Alle 13 OpenEYE-Prozessprofile verwenden ihn nun statt nur den Typ des Startwerkzeugs; Mehrfarben-Dateinamen können dadurch beispielsweise `PLA_PETG` enthalten.
+
+`NativeSliceDeviceTest#recommendedFilenameListsDistinctFilamentTypesActuallyUsedByThePlate` baut ein zusammengesetztes Zweifilamentmodell, setzt für den Slice kontrolliert `PLA` und `PETG`, prüft echte Extrusion und den nativen empfohlenen Dateinamen und wiederholt den Slice mit zweimal `PLA`, um die Deduplizierung nachzuweisen. API 35 und API 36 bestanden je 1/1. ARM64-Native-Build und Instrumentierungs-Kotlin-Kompilierung bestanden ebenfalls.
+
+Damit ist Batch 2 bei **10/10 fokussiert verifizierten Änderungen**. Vor APK und Nightly-Prerelease laufen jetzt noch die gebündelten Debug-/Slice-JVM-Regressionen; danach folgen APK-Identitäts-/Hashprüfung, Installation und Start auf dem verfügbaren Testemulator sowie Veröffentlichung.

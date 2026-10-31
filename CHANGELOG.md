@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.421 — Nightly 2.5 experimental — 2026-10-31
+
+- Orca filename templates now list all distinct filament types used by the sliced plate, in tool order. OpenEYE Peacock V2 profiles include the model, optional plate name, used materials, and estimated print time in the recommended G-code filename.
+- Added native and Android instrumentation coverage for a two-material multipart slice (`PLA_PETG`) and deduplication when both tools use the same material.
+- Batch 2 reached 10/10 scoped, focused changes. Full Debug/Slice JVM suites passed 705/705 each; the new native ARM64 slice test passed on API 35 and API 36 emulators. No physical printer/GPU behavior is claimed.
+- Selective OrcaSlicer 2.5 Android backports only; this does not replace or advance the complete desktop engine baseline.
+- APK artifact details and SHA-256 will be recorded after the final signed debug APK is built.
+
 ## 0.8.418 — Nightly 2.5 experimental — 2026-10-30
 
 - Reduce Qidi Q2 send preparation by removing a redundant full decompression/hash pass over the newly generated G-code 3MF. The package writer's streaming MD5 is still checked against the stored MD5; required package entries and every PNG preview are validated. The public deep verifier continues to hash the complete G-code.

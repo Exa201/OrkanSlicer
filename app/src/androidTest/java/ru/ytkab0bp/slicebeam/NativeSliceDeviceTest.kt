@@ -73,7 +73,7 @@ class NativeSliceDeviceTest {
                 assertEquals("10", openEyeProcess["seam_slope_min_length"])
                 assertEquals("10%", openEyeProcess["seam_slope_start_height"])
                 assertEquals("0.15", openEyeProcess["support_ironing_spacing"])
-                assertTrue(requireNotNull(openEyeProcess["filename_format"]).contains("{filament_type[initial_tool]}"))
+                assertTrue(requireNotNull(openEyeProcess["filename_format"]).contains("{printing_filament_types}"))
             }
             val filament = requireNotNull(config.findFilament("Generic PLA"))
             config.presets = ConfigObject("presets").apply {
@@ -1650,6 +1650,64 @@ class NativeSliceDeviceTest {
             model.release()
             modelFile.delete()
             roundTripFile.delete()
+        }
+    }
+
+    @Test
+    fun recommendedFilenameListsDistinctFilamentTypesActuallyUsedByThePlate() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "filename-filament-types.stl")
+        val output = File(context.cacheDir, "filename-filament-types.gcode")
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("filename_format", "{input_filename_base}_{printing_filament_types}_{print_time}.gcode")
+        val model = Model(modelFile, 1)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.addObject(model, 0)
+            model.translate(1, 35.0, 0.0, 0.0)
+            model.setUniformFilament(0, 1)
+            model.setUniformFilament(1, 2)
+            assertEquals("two explicit source assignments must be preserved by grouping", 0,
+                model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals("fixture contains both assigned source materials", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = SliceBeam.getCurrentConfigFile()
+            val configText = generatedConfig.readText()
+            val filamentTypeLine = Regex("(?m)^filament_type\\s*=.*$")
+            assertTrue("the generated native config must serialize the active filament vector",
+                filamentTypeLine.containsMatchIn(configText))
+            generatedConfig.writeText(filamentTypeLine.replace(configText, "filament_type = PLA; PETG"))
+
+            result = model.slice(generatedConfig.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("both source tools must be present in the emitted multicolor G-code",
+                Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            val recommendedName = requireNotNull(result).getRecommendedName()
+            assertTrue("filename must list both distinct used materials in tool order: $recommendedName",
+                recommendedName.contains("_PLA_PETG_"))
+            assertFalse("filename must not leave its native placeholder unresolved: $recommendedName",
+                recommendedName.contains("{"))
+
+            result?.release()
+            result = null
+            output.delete()
+            SliceBeam.genCurrentConfig(model)
+            val duplicateConfig = SliceBeam.getCurrentConfigFile()
+            val duplicateText = duplicateConfig.readText()
+            duplicateConfig.writeText(filamentTypeLine.replace(duplicateText, "filament_type = PLA; PLA"))
+            result = model.slice(duplicateConfig.absolutePath, output.absolutePath, null)
+            val deduplicatedName = requireNotNull(result).getRecommendedName()
+            assertTrue("identical material types must appear only once: $deduplicatedName",
+                deduplicatedName.contains("_PLA_") && !deduplicatedName.contains("_PLA_PLA_"))
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
         }
     }
 
