@@ -213,4 +213,8 @@ Der zweite Nightly-Batch steht nach dem BenFab-Port bei **4/10** eigenständigen
 3. `8e5c25773` — Low-GPU-/Low-RAM-Vorschau anpassen, ohne Modell oder Slice zu verändern.
 4. `6899a7fed` — BenFab-450-Profile einschließlich vier echter Slice-Varianten ergänzen.
 
-Die übrigen sechs Änderungen werden erst nach Code- und passender Laufzeitverifikation gezählt. Für diesen Batch wurde noch keine APK gebaut oder veröffentlicht; die Build-/Release-Schwelle bleibt bei 10/10.
+## Orca `eac3ba441` — BLOCKS RF50 0,6-mm-Start-G-Code (2026-10-31)
+
+Der in Orca reparierte Profilfehler war auch in `orca_profiles/Blocks.ini` vorhanden: `SET_PRESSURE_ADVANCE` stand hinter einem Semikolon in der `PRINT_START`-Zeile und war damit ein G-Code-Kommentar. Die Android-Profilzeile trennt die Befehle jetzt durch einen Zeilenumbruch. `NativeSliceDeviceTest#orcaBlocksRf50SixTenthNozzleKeepsPressureAdvanceAsExecutableGcode` lädt das echte RF50-0,6-mm-Profil, slice't einen Testwürfel und prüft, dass `SET_PRESSURE_ADVANCE ADVANCE=0.046` als eigene ausführbare G-Code-Zeile und nicht innerhalb des Kommentars erzeugt wird. API 35 und API 36: je 1/1 bestanden. Kein physischer RF50-Drucker wurde getestet.
+
+Der Batchstand nach diesem Fix beträgt **5/10**. Änderung 5: `6dacbf757` macht den Pressure-Advance-Befehl im RF50-0,6-mm-G-Code ausführbar. Noch fünf unabhängig verifizierte Änderungen bis zur APK-/Release-Schwelle. Es wurde keine APK aus dem Teilbatch gebaut oder veröffentlicht.
