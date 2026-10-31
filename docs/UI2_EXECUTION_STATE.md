@@ -7,9 +7,9 @@
 - Dabei korrigierte Testfehler: SVG-/3MF-Fixtures lagen in `androidTest/assets`, wurden aber aus dem App-Assetkontext gelesen; der Qidi-Test setzte die Bett-Temperatur im Prozessprofil statt im Filamentprofil und wertete außerdem kommentierte Maschinen-G-Code-Metadaten als ausführbare Befehle.
 - `:app:assembleSliceTest` und `:app:assembleSliceTestAndroidTest` erfolgreich; fokussierte vier native Tests bestanden. Der app-bezogene Versionsstand wird für den Zehner-Build auf 0.8.420 / Code 455 gesetzt.
 - Vollständige Debug-JVM-Suite 704/704 und Slice-JVM-Suite 704/704 bestanden (je 0 Fehler, 0 Errors, 0 Skips); `git diff --check` sauber.
-- Release-Gates: Nightly-APK noch zu bauen, Paket-ID/Signatur/APK-Hash zu prüfen und als Nightly-Prerelease auf `Exa201/OrkanSlicer-Nightly-2.5` hochzuladen. Das ist kein Stable-Release.
+- Release abgeschlossen: Nightly-Prerelease [v0.8.420-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.420-nightly.1), Code-Commit `0db4f11d30dac401b8997e9b569b8d07dd8dc946`. APK `OrkanSlicerNightly25_0db4f11d30.apk`, 229,478,019 Bytes, SHA-256 `b568052e7f9a4c77f70fd7438ba4ad61d9a57656d71f11138c57be45ad46e2fe`; GitHub-Assetdigest stimmt. Signaturzertifikat entspricht der vorigen Nightly. Paket `com.exa201.orkanslicer.nightly25`, Version 0.8.420 / Code 455 / ARM64. Im API-35-Emulator installiert/gestartet; `libslic3r.so` geladen, kein Crashmarker.
 - Verbleibende Einschränkungen: keine physische GPU-Leistungsmessung und kein Qidi-Drucker/Moonraker-Endpunkt für Live-Übertragung. Beim SVG bleibt eine interaktive Live-Platzierungsvorschau mit Abbruch vor dem Commit ausstehend; die bestehende Commit-on-Tap-Aktion ist undo-bar.
-- Nächster konkreter Schritt: Debug- und Slice-Unit-Suiten gebündelt ausführen, Release-APK erzeugen und Metadaten/Hash prüfen, committen/pushen, Nightly-Prerelease veröffentlichen; anschließend den Orca-2.5-Audit mit dem nächsten umsetzbaren Kandidaten fortsetzen.
+- Nächster konkreter Schritt: Orca 2.5 Kandidat #22 erneut gegen die aktuelle `MachineFilamentInfo`-/Tray-Datenstrecke prüfen; nur portieren, falls eine reale Android-Preset-ID-Quelle den Kern erreicht. Danach Kandidat #23–#24 und die nativen Runtime-Gaps #11–#20 der Reihe nach priorisieren. Nächste APK nach dem nächsten vollständig verifizierten Zehner-Batch.
 
 # Fortsetzung 2026-10-31 — Orca-Nightly 2.5
 
