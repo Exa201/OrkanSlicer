@@ -13,7 +13,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.math.roundToInt
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
@@ -231,38 +230,63 @@ class NativeSliceDeviceTest {
     }
 
     @Test
-    fun treeSupportClearanceIncreasesMeasuredGapToNearbyOuterWallPaths() = withKobraProfile {
+    fun treeSupportClearanceIncreasesMinimumGapToSteppedModelCrossSection() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
         val process = requireNotNull(config.findPrint("0.16mm Standard"))
         process.put("enable_support", "1")
         process.put("support_type", "tree(auto)")
         process.put("support_on_build_plate_only", "1")
-        val modelFile = copyAsset(context, "models/bunny.stl", "orca25-tree-gap-bunny.stl")
-        val output = File(context.cacheDir, "orca25-tree-gap-bunny.gcode")
+        val modelFile = createSteppedOverhangFixture("orca25-tree-gap-stepped-model.stl")
+        val output = File(context.cacheDir, "orca25-tree-gap-stepped-model.gcode")
         val model = Model(modelFile)
         var result: GCodeProcessorResult? = null
         try {
             model.ensureOnBed(0)
-            val mediansByClearance = mutableMapOf<String, Double>()
+            val minGapsByClearance = mutableMapOf<String, Double>()
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            assertTrue("the synthetic stepped model must be 20 mm wide", max.x - min.x in 19.9..20.1)
+            assertTrue("the synthetic stepped model must be 20 mm deep", max.y - min.y in 19.9..20.1)
+            assertTrue("the synthetic stepped model must be 20 mm tall", max.z - min.z in 19.9..20.1)
+            val centerX = (min.x + max.x) / 2.0
+            val centerY = (min.y + max.y) / 2.0
+            val baseZ = min.z
+            val halfStem = 5.0
+            val stemCorners = listOf(
+                centerX - halfStem to centerY - halfStem,
+                centerX + halfStem to centerY - halfStem,
+                centerX + halfStem to centerY + halfStem,
+                centerX - halfStem to centerY + halfStem,
+            )
+            val stemEdges = stemCorners.indices.map { index ->
+                val start = stemCorners[index]
+                val end = stemCorners[(index + 1) % stemCorners.size]
+                GCodePathSegment(start.first, start.second, end.first, end.second, baseZ + 5.0)
+            }
             for (clearance in listOf("0.2", "0.8")) {
                 process.put("support_object_xy_distance", clearance)
                 SliceBeam.genCurrentConfig(model)
                 result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
                 val gcode = output.readText()
                 assertHasExtrusion(gcode)
-                val distances = measuredSupportToOuterWallDistances(gcode)
-                assertTrue("support and outer-wall extrusion paths must be comparable at $clearance mm; got ${distances.size}",
-                    distances.size >= 10)
-                mediansByClearance[clearance] = distances.sorted()[distances.size / 2]
-                Log.i("NativeSliceDeviceTest", "tree clearance=$clearance mm support/wall median XY gap=${mediansByClearance.getValue(clearance)} mm samples=${distances.size}")
+                assertTrue("the stepped cap must generate tree-support paths", Regex("(?im)^;TYPE:.*support").containsMatchIn(gcode))
+                val supportSegments = supportExtrusionSegments(gcode).filter {
+                    it.z > baseZ + 0.5 && it.z < baseZ + 9.5
+                }
+                assertTrue("support paths must exist alongside the stem cross-section", supportSegments.isNotEmpty())
+                val minGap = supportSegments.minOf { support -> stemEdges.minOf { pathSegmentDistance(support, it) } }
+                minGapsByClearance[clearance] = minGap
+                Log.i("NativeSliceDeviceTest", "tree clearance=$clearance mm minimum support-to-stem cross-section gap=$minGap mm " +
+                    "segments=${supportSegments.size}")
                 result.release()
                 result = null
                 output.delete()
                 SliceBeam.getCurrentConfigFile().delete()
             }
-            assertTrue("raising configured tree-support XY clearance must increase the measured nearby support-to-wall gap: $mediansByClearance",
-                mediansByClearance.getValue("0.8") > mediansByClearance.getValue("0.2") + 0.05)
+            assertTrue("increasing XY clearance must increase the minimum measured support-to-stem gap: $minGapsByClearance",
+                minGapsByClearance.getValue("0.8") > minGapsByClearance.getValue("0.2") + 0.1)
         } finally {
             result?.release()
             model.release()
@@ -3677,44 +3701,52 @@ class NativeSliceDeviceTest {
 
     private data class GCodePathSegment(val x0: Double, val y0: Double, val x1: Double, val y1: Double, val z: Double)
 
-    private fun measuredSupportToOuterWallDistances(gcode: String): List<Double> {
+    private fun supportExtrusionSegments(gcode: String): List<GCodePathSegment> {
         val axisRegex = Regex("(?:^|\\s)([XYZE])(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(?=\\s|$)")
+        val toolRegex = Regex("^T(\\d+)(?:\\s|$)")
         var type = ""
         var x: Double? = null
         var y: Double? = null
         var z = 0.0
+        var relativeExtrusion = false
+        var activeTool = 0
+        val extrusionByTool = HashMap<Int, Double>()
         val supports = mutableListOf<GCodePathSegment>()
-        val walls = mutableListOf<GCodePathSegment>()
         for (line in gcode.lineSequence()) {
+            when (line.trim().uppercase()) {
+                "M82" -> relativeExtrusion = false
+                "M83" -> relativeExtrusion = true
+            }
+            toolRegex.find(line.trim())?.let { activeTool = it.groupValues[1].toInt() }
             if (line.startsWith(";TYPE:", ignoreCase = true)) {
                 type = line.substringAfter(':').trim().lowercase()
                 continue
             }
-            if (!line.startsWith("G0 ") && !line.startsWith("G1 ")) continue
+            if (!line.startsWith("G0 ") && !line.startsWith("G1 ") && !line.startsWith("G92 ")) continue
             val axes = axisRegex.findAll(line.substringBefore(';')).associate { match ->
                 match.groupValues[1] to match.groupValues[2].toDouble()
+            }
+            if (line.startsWith("G92 ")) {
+                axes["E"]?.let { extrusionByTool[activeTool] = it }
+                continue
             }
             axes["Z"]?.let { z = it }
             val nextX = axes["X"] ?: x
             val nextY = axes["Y"] ?: y
-            if (axes["E"]?.let { it > 0.0 } == true && x != null && y != null && nextX != null && nextY != null) {
+            val extrusion = axes["E"]
+            val depositing = extrusion?.let { value ->
+                val previous = extrusionByTool[activeTool] ?: 0.0
+                extrusionByTool[activeTool] = if (relativeExtrusion) previous + value else value
+                if (relativeExtrusion) value > 0.0 else value > previous
+            } == true
+            if (depositing && x != null && y != null && nextX != null && nextY != null) {
                 val segment = GCodePathSegment(x!!, y!!, nextX, nextY, z)
                 if (type.contains("support")) supports += segment
-                if (type.contains("perimeter") || type.contains("outer wall")) walls += segment
             }
             x = nextX
             y = nextY
         }
-        val wallsByHeight = walls.groupBy { (it.z * 100.0).roundToInt() }
-        // Sample evenly across the full support toolpath. Height bucketing avoids comparing
-        // each support move to wall paths from every unrelated layer.
-        return supports.filterIndexed { index, _ -> index % 16 == 0 }.mapNotNull { support ->
-            val layerKey = (support.z * 100.0).roundToInt()
-            val nearbyWalls = (-50..50).asSequence().flatMap { offset ->
-                wallsByHeight[layerKey + offset].orEmpty().asSequence()
-            }
-            nearbyWalls.minOfOrNull { pathSegmentDistance(support, it) }
-        }
+        return supports
     }
 
     private fun pathSegmentDistance(a: GCodePathSegment, b: GCodePathSegment): Double {

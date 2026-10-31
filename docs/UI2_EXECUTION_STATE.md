@@ -3388,3 +3388,10 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - API-35 `nightly35x64` und `solidcraft_android_test_fresh`: beide 1/1 bestanden. Der Test belegt die Problemgeometrie über einen echten nativen Slice; er liest die interne Zellkoordinate nicht direkt aus. Dieses direkte Sample-Diagnostic bleibt offen.
 - Kotlin-Testquellen kompiliert; der fokussierte ARM64-Bridge-Instrumentierungslauf war erfolgreich. Code-HEAD ist weiterhin `a8dd87ba4`; Test- und Dokumentationsänderungen sind noch uncommitted. Nächster Schritt: `git diff --check`, Änderung committen/pushen, dann den Backlogpunkt #14 mit genauerem Clearance-Nachweis fortsetzen. Kein APK/Release vor Abschluss eines verifizierten Zehnerpakets.
 
+
+# Nightly Orca #14 — engere Clearance-Messung, 2026-10-31
+
+- API-35 `emulator-5554`: `NativeSliceDeviceTest#treeSupportClearanceIncreasesMinimumGapToSteppedModelCrossSection` 1/1 bestanden. Clearance 0.2→0.8 mm erhöhte den gemessenen kleinsten G-Code-Supportpfad-Mittellinienabstand zur analytischen Schaftkontur von 0.4845 auf 0.6280 mm (+0.1435 mm).
+- Ein parallel angeschlossener Emulator verursachte im Gradle-Testoutput-Plugin einen Connection-timeout; der Gesamt-Gradle-Aufruf endete fehlgeschlagen. Die erfolgreiche Geräte-Testdatei weist den Einzellauf auf emulator-5554 separat als PASSED aus; der zweite Emulator wird nicht als getestet gezählt.
+- Änderungen an Test und Dokumentation sind noch uncommitted; `git diff --check` erfolgreich.
+- Nächster konkreter Schritt: #11 Sample außerhalb der Infill-Grenze direkt instrumentieren oder einen ungeeigneten Backlog-Kandidaten durch einen verifizierbaren Android-Funktionsport ersetzen.
