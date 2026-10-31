@@ -42,6 +42,88 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun orca25BenFab450NozzleProfilesLoadAndSliceOnTheirConfiguredBed() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = context.applicationContext as Application
+        SliceBeam.INSTANCE = application as SliceBeam
+        Prefs.init(application)
+        val previousConfig = SliceBeam.CONFIG
+        val source = copyCube(context, "benfab450-profile-cube.stl")
+        val output = File(context.cacheDir, "benfab450-profile-cube.gcode")
+        var model: Model? = null
+        try {
+            context.assets.open("orca_profiles/BenFab.ini").use {
+                SliceBeam.CONFIG = Slic3rConfigWrapper(it)
+            }
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val modelProfile = config.printerModels.single { it.title == "BenFab 450" }
+            assertEquals("0.4;0.6;0.8;1.0", modelProfile["nozzle_diameter"])
+            assertTrue(modelProfile["default_materials"].orEmpty().contains("Generic PLA @System"))
+
+            val expectedNozzles = mapOf("0.4" to "0.20mm Standard", "0.6" to "0.30mm Standard",
+                "0.8" to "0.40mm Standard", "1.0" to "0.50mm Standard")
+            for ((nozzle, processName) in expectedNozzles) {
+                val printer = requireNotNull(config.findPrinterVariant("BenFab 450", nozzle))
+                assertEquals("480", printer["printable_height"])
+                assertTrue("$nozzle nozzle must retain the Orca bed polygon",
+                    printer["printable_area"].orEmpty().contains("426x426"))
+                assertEquals("$processName @BenFab 450 $nozzle nozzle", printer["default_print_profile"])
+                assertTrue("The default process for $nozzle must be available",
+                    config.findPrint(printer["default_print_profile"]) != null)
+            }
+
+            // System materials are bundled under BBL and shared by vendor profiles in Orca.
+            context.assets.open("orca_profiles/BBL.ini").use { bbl ->
+                val materials = Slic3rConfigWrapper(bbl)
+                config.filamentConfigs.addAll(materials.filamentConfigs.filter {
+                    it.title == "Generic PLA"
+                })
+            }
+            val filament = requireNotNull(config.findFilament("Generic PLA"))
+            val activeModel = Model(source)
+            model = activeModel
+            activeModel.ensureOnBed(0)
+            for ((nozzle, _) in expectedNozzles) {
+                val printer = requireNotNull(config.findPrinter("BenFab 450 $nozzle nozzle"))
+                val process = requireNotNull(config.findPrint(printer["default_print_profile"]))
+                assertTrue("$nozzle nozzle must inherit the Orca Klipper start sequence",
+                    printer["machine_start_gcode"].orEmpty().contains("G28 ;home"))
+                config.presets = ConfigObject("presets").apply {
+                    put("printer", printer.title)
+                    put("print", process.title)
+                    put("filament", filament.title)
+                }
+
+                val expectedStartCode = requireNotNull(
+                    SliceBeam.buildCurrentConfigObject(activeModel.requiredFilamentCount)["machine_start_gcode"]
+                )
+                assertTrue("The active $nozzle mm slice config must use BenFab start code",
+                    expectedStartCode.contains("G28 ;home"))
+                SliceBeam.genCurrentConfig(activeModel)
+                output.delete()
+                val sliceResult = activeModel.slice(
+                    SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null
+                )
+                try {
+                    val gcode = output.readText()
+                    assertHasExtrusion(gcode)
+                    assertTrue("The $nozzle mm G-code must contain the selected BenFab start sequence",
+                        gcode.contains("G28 ;home"))
+                } finally {
+                    sliceResult.release()
+                }
+                Log.i("NativeSliceDeviceTest", "PASS Orca 2.5 BenFab 450 $nozzle mm slice bytes=${output.length()}")
+            }
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+            SliceBeam.CONFIG = previousConfig
+        }
+    }
+
+    @Test
     fun enumListDefaultsRetainNamedValuesInTheNativeOptionCatalog() = withKobraProfile {
         val enumListOptions = PrintConfigDef.getInstance().options.values.filter {
             it.type == ru.ytkab0bp.slicebeam.slic3r.ConfigOptionDef.ConfigOptionType.ENUMS
