@@ -199,3 +199,18 @@ still needs an app route and its own runtime evidence.
 ## Orca `304924a69` — Default-Zuweisung für Feature-Filamente (2026-10-31)
 
 Der upstream-Fix entfernt die automatische Kaskade, durch die das Auswählen eines Infill-/Oberflächen-Filaments auch andere Features vom Default-Objektfilament wegzog. Der Nightly-Kern enthält die entsprechende Korrektur bereits in `6d8f78d9d`, und dieser Commit liegt vor dem Release-Commit `0db4f11d3` für `v0.8.420-nightly.1`; sie ist daher keine neue Implementierung für den folgenden Zehner-Batch. Der vorhandene Android-Regressionstest `oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures` wurde am 2026-10-31 erneut auf Android 16 ausgeführt: 1/1 bestanden, einschließlich nativer Slice-Ausgabe und Prüfung der vier Feature-T-Werkzeuge. Diese Prüfung bestätigt die G-Code-Zuweisung für die getesteten Standard-/Feature-Fälle; sie ersetzt keine Prüfung einer beliebigen privaten farbigen 3MF-Datei oder physischer MMU-Slotzuordnung.
+
+## Orca `ffdb5da10` — BenFab 450 Druckerprofile (2026-10-31)
+
+Übernommen wurden Orcas BenFab-450-Maschinenfamilie mit 426×426×480-mm-Druckbereich, Klipper-Start-/End-G-Code, vier Düsenvarianten (0,4/0,6/0,8/1,0 mm) und 18 dazugehörigen Prozessprofilen. Die Profile werden wie die anderen Vendor-INIs vom Setup-Assistenten automatisch eingelesen. Der Instrumentierungstest prüft alle vier Varianten und führt für jede einen nativen Slice aus; der erzeugte G-Code muss Extrusion und die konfigurierte `G28 ;home`-Startsequenz enthalten. Der gezielte Lauf bestand auf API 35 und API 36 (je 1/1 Test; vier Varianten pro Testlauf). Das ist Profil-/Slice-Parität, kein Test mit einem physischen BenFab-Drucker. Orcas zugehöriges Bed-Mesh/Cover ist derzeit nicht Teil der App-Assets; die Android-Workspace-Druckplatte nutzt die native `printable_area`-Geometrie.
+
+## Nächster APK-Batch nach `v0.8.420-nightly.1`
+
+Der zweite Nightly-Batch steht nach dem BenFab-Port bei **4/10** eigenständigen Produktänderungen:
+
+1. `24ee77b1f` — Orca-Enumlisten-Defaults in den Android-Profilkatalog übernehmen.
+2. `a8dd87ba4` — MMU-/Druckersynchronisierungszustand je Druckerprofil isolieren.
+3. `8e5c25773` — Low-GPU-/Low-RAM-Vorschau anpassen, ohne Modell oder Slice zu verändern.
+4. `6899a7fed` — BenFab-450-Profile einschließlich vier echter Slice-Varianten ergänzen.
+
+Die übrigen sechs Änderungen werden erst nach Code- und passender Laufzeitverifikation gezählt. Für diesen Batch wurde noch keine APK gebaut oder veröffentlicht; die Build-/Release-Schwelle bleibt bei 10/10.
