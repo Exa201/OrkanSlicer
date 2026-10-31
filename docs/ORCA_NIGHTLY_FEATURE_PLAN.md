@@ -110,3 +110,26 @@ for prioritization after those items and is not itself counted as a shipped feat
   current source proves the implementation exists.
 - `docs/ORCASLICER_2_5_DELTA_AUDIT.md` — pinned upstream fixes and Android-port constraints.
 - `ORCA_NIGHTLY_LOCK.md` — do not advance until engine identity and native test evidence justify it.
+
+## Next Orca 2.5 parity batch (items 11–20)
+
+Candidate selection is based on upstream commits present in `orcaslicer-upstream/main` as of
+2026-10-31. These are scoped targets, not completion claims. Each requires Android-specific
+regression evidence before it can count toward an APK/release batch.
+
+| # | Upstream change | Android adaptation / acceptance evidence | State |
+|---|---|---|---|
+| 11 | `7ac46c9a6` Lightning overhang samples outside the infill bounds can make tree generation loop indefinitely. | Ported in `Fill/Lightning/DistanceField`: expand the searchable box to all unsupported sample points. ARM64 native build and Lightning slice-test compilation pass; runtime and exact overhang regression remain open. | Implemented, unverified on device |
+| 12 | `9b4f84a92` Preserve every extruder's values when a custom printer has more nozzles than its parent. | Audit all Android preset inheritance paths; preserve extra nozzle vectors for local, project-embedded, and cloud presets. Add a parent-with-2 / child-with-4 regression and verify all four values survive load/save. | To audit |
+| 13 | `fcd96ad91` Apply each object's own extruder layer-height limits and compare actual layer heights for prime-tower compatibility. | Verify `Slicing.cpp` against the local per-object extruder assignment model; test two objects assigned to nozzles with different min/max layer heights and tower generation. | To audit |
+| 14 | `a4a510087` Keep build-plate-only tree supports inside XY clearance. | Port only if local support generation lacks the geometry constraint; test a model close to an XY-clearance boundary and assert support geometry stays inside the allowed region. | To audit |
+| 15 | `98b539c3e` Use the printing filament's retraction-lift settings. | Check tool-change and per-filament config resolution in G-code generation; assert lift distance/speed come from the active tool after a tool change. | To audit |
+| 16 | `b7ecf1b29` Avoid false out-of-printable-range warnings for an extruder area inset on multiple sides. | Compare the local printable-area containment predicate and test asymmetric per-extruder inset bounds with a valid path near the bed edge. | To audit |
+| 17 | `29e189957` Ensure sparse layers exist during a tool change. | Compare object/layer tool ordering and slice a multi-tool model whose requested switch coincides with sparse-layer planning; assert the required layer/tool change is emitted. | To audit |
+| 18 | `4c7928d8a` Decide prime-tower need from the current model's filament set rather than the preceding model. | Test two consecutive model/config preparations with opposite tower requirements; ensure no cached prior-model filament state leaks into the next slice. | To audit |
+| 19 | `59f0cc380` Validate mixed filaments against their component extruders. | Adapt to Nightly's logical-to-physical extruder map and repeated-slot support; reject only genuinely incompatible combinations, with profile and slice tests. | To audit |
+| 20 | `d28c71c48` Preserve enum-list config keys in default maps. | Check local enum defaults/import/export paths for key/value mismatch; add a profile round-trip test for list-valued enums before porting. | To audit |
+
+After each ten-item group reaches its explicit code and runtime gates, build and inspect the isolated
+Nightly APK and publish the corresponding Nightly GitHub release. The current first group still has
+items 7–9 awaiting ARM64 runtime execution; later-batch work does not close that gate.

@@ -31,6 +31,15 @@
 - Verbleibende Abdeckung: die Regression prüft den Android-Settingsreader, nicht den vollständigen nativen 3MF-Geometrieimport/-Render auf ARM64. Dafür ist ein passendes Gerät erforderlich.
 - Orca-2.5-Fähigkeitsprüfung fortsetzen: einzelne Native-/GUI-Upstreamänderungen nur nach Android-Äquivalenzprüfung übernehmen; die Desktop-Plater-Fixfamilie ist für diesen Android-Einstieg nicht direkt portierbar.
 
+## Orca 2.5 Lightning-Infill-Schleife — Port, 2026-10-31
+
+- Upstream `7ac46c9a6` betrifft eine echte native Slice-Gefahr: geöffnete Überhang-Samples können außerhalb der bisherigen Infill-Bounds liegen; `DistanceField::update()` besucht nur Punkte im gespeicherten Bounds-Rechteck und kann die übrigen Samples nie löschen. Tree-Generierung kann dadurch endlos laufen und RAM verbrauchen.
+- Port in `Fill/Lightning/DistanceField`: Bounding Box ist nicht mehr const und wird nach dem Sampling um jede unsupported cell erweitert; die bisherige fehlerhafte In-Bounds-Assertion ist entfernt.
+- Android-Instrumentierung `NativeSliceDeviceTest#lightningInfillSlicesAndProducesExtrusion` prüft einen Lightning-Slice-Smoke-Test und G-Code-Extrusion. Die exakte synthetische Overhang-Sliver-Regression aus Orca Catch2 wurde nicht in Android eingebunden.
+- ARM64 `:app:externalNativeBuildDebug`, `:app:compileSliceTestAndroidTestKotlin` und `git diff --check` erfolgreich; kein ARM64-Laufzeitgerät. Smoke-Test nur kompiliert, nicht ausgeführt.
+- Plan: Feature ist umgesetzt, zählt noch nicht als runtime-verifiziert. Nächster Test auf ARM64, danach gezielt einen Überhang-Sliver-Test ergänzen, der die Outside-Bounds-Schleife selbst auslöst.
+- Aktueller Branch-Stand nach Arbeitsfortschritt: `nightly-2.5`; Lightning-Änderungen noch nicht committet.
+
 
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 

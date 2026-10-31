@@ -41,6 +41,32 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun lightningInfillSlicesAndProducesExtrusion() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val source = copyCube(context, "lightning-infill-source.stl")
+        val output = File(context.cacheDir, "lightning-infill.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            process.put("sparse_infill_pattern", "lightning")
+            process.put("sparse_infill_density", "20")
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("Lightning must emit sparse-infill moves", gcode.contains(";TYPE:Internal infill"))
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun modifierVolumesSurviveThreeMfAndChangeNativeSliceOutput() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val source = copyCube(context, "modifier-slice-source.stl")
