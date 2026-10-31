@@ -1,11 +1,12 @@
-# Aktueller Fortsetzungsstand — 2026-10-31, Nightly-Batch 3 (2/10)
+# Aktueller Fortsetzungsstand — 2026-10-31, Nightly-Batch 3 (3/10)
 
-- Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert. Letzter gepushter HEAD `010259b81cca01d9c5b2b6aa5c97a6cb6bd69f2d`; aktuelle Arbeit ist lokal und noch nicht committet.
-- Batch 3, Änderung 1/10: unbekannte, aber farblich bekannte Moonraker-MMU-Fächer bleiben indexstabil auswählbar; `MmuFilamentSyncDeviceTest` 18/18 auf API 35 und 36.
-- Batch 3, Änderung 2/10: Orca `041df4031` By-Object-Anordnung übernimmt jetzt die aktive Druckkonfiguration und beachtet reale Instanzhöhen, Gantry-Clearance, Bettform und Skirt-Abstand. Ursache für zuvor wirkungslose Clearance war, dass der Android-UI-Arrange-Helfer Instanzhöhen nicht befüllte.
-- Verifikation Änderung 2: `byObjectArrangeUsesActiveClearanceAndKeepsObjectsApart` und der bestehende `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` bestanden jeweils auf API 35 und 36 (je Test 1/1 pro Emulator). Debug-Unit und Slice-Unit jeweils 705/705, 0 failures/errors/skips; ARM64-native Build und `git diff --check` bestanden.
-- Noch kein APK/Release für Batch 3. Nächster konkreter Schritt: weitere Orca-Upstream-Kandidaten mit aktivem Android-Aufrufpfad auswählen und Änderung 3 samt fokussierter Regression umsetzen. Batch-APK/Prerelease erst nach 10/10.
-
+- Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert. Der By-Object-Fix ist bereits auf GitHub; der aktuelle Änderungssatz wird als Nächstes committet und gepusht.
+- Änderung 1/10: unbekannte, farblich bekannte Moonraker-MMU-Fächer bleiben indexstabil auswählbar; `MmuFilamentSyncDeviceTest` 18/18 auf API 35 und 36.
+- Änderung 2/10: Orca `041df4031` By-Object-Anordnung übernimmt die aktive Druckkonfiguration und beachtet reale Instanzhöhen, Gantry-Clearance, Bettform und Skirt-Abstand. Gezielte native Arrange-Tests auf API 35/36 sowie Debug-/Slice-Unit-Suiten 705/705 bestanden.
+- Änderung 3/10: Orca `43c76f1f5` Layer-Pausen-Vorschau korrigiert. Zeitberechnung kann vor einer gespeicherten Pause zusätzliche Actual-Speed-Moves einfügen; der Pause-Move-Index wird jetzt nachgeführt. Beim Verschieben des Markers werden nachfolgende Zeitblöcke um den gelöschten Move korrigiert.
+- Verifikation Änderung 3: nativer ARM64-Debug-Build erfolgreich. `GCodePauseLayerPreviewDeviceTest#pauseAfterTimeFlushRemainsOnItsOwnLayerAndPreviewLayersStayOrdered` lief auf den verfügbaren API-35- und API-36-Emulatoren erfolgreich (je 1/1). Der erste Testentwurf lud den Viewer vor GLES-Initialisierung und meldete folgerichtig 0 Layer; nach GLES3-Pbuffer-Initialisierung lief der Regressionstest korrekt. `git diff --check` wird vor Commit erneut ausgeführt.
+- Debug-APK aus diesem Zwischenbuild: `OrkanSlicerNightly25_4903900e59.apk`, 239,780,778 Bytes. Kein Batch-APK/Release: erst nach Änderung 10/10.
+- Noch kein physischer Xiaomi-/Honor-Test in diesem Durchgang. Nächster konkreter Schritt: Orca-Upstream nach `1093ff071` auf aktive Android-Aufrufpfade prüfen und Änderung 4 samt fokussierter Regression umsetzen.
 # Historie: Fortsetzung 2026-10-31 — Nightly-Batch 2 / APK-Gate
 
 - Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert.

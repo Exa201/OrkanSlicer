@@ -280,3 +280,11 @@ Die Android-Anordnung übergibt jetzt die aktuelle Druckkonfiguration über `Bed
 `byObjectArrangeUsesActiveClearanceAndKeepsObjectsApart` setzt ein isoliertes 20-mm-Testmodell, By-Object, 0,1-mm-Düsenhöhe und 30-mm-Clearance und prüft, dass die zwei Modelle nach echter nativer Anordnung mindestens 29,5 mm Abstand haben. Der bestehende `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` deckt den By-Layer-Weg einschließlich Undo/Redo und Workspace-Wiederherstellung ab. Beide Tests bestanden auf Android API 35 und API 36 (je 1/1). Debug- und Slice-Unit-Suiten jeweils 705/705 ohne Fehler oder Skips; ARM64-Native-Build und `git diff --check` bestanden.
 
 Batch 3 steht jetzt bei **2/10**. Die Änderung ist noch lokal, nicht committet oder gepusht. APK/Prerelease wird erst nach zehn fokussiert verifizierten Änderungen erstellt.
+
+## Orca `43c76f1f5` — Layer-Pausen bleiben in der korrekten Vorschau-Schicht (2026-10-31)
+
+Beim Verarbeiten einer Pause flusht der G-Code-Prozessor den Zeitplan und fügt gegebenenfalls Actual-Speed-Moves in die Move-Liste ein. Dadurch konnte der gespeicherte Index des Pause-/Farbmarkers veralten; die Vorschau ordnete danach Moves der falschen Layer-ID zu und konnte die Layerreihenfolge verletzen. Androids native `GCodeProcessor`-Port führt den Markerindex nun nach Move-Einfügungen nach. Beim Entfernen des Markers werden noch wartende Zeitblöcke ebenfalls angepasst. Der erzeugte G-Code und die Druckparameter werden nicht verändert.
+
+`GCodePauseLayerPreviewDeviceTest#pauseAfterTimeFlushRemainsOnItsOwnLayerAndPreviewLayersStayOrdered` verarbeitet einen dreischichtigen G-Code mit Rückzug, Pause und Extrusion auf der Folgeschicht, lädt die Moves in libvgcode unter einem GLES3-Kontext und prüft, dass die Vorschau bei drei fortlaufenden Schichten bleibt. API-35- und API-36-Emulatoren bestanden je 1/1; ARM64-Debug-Build erfolgreich. Die vollständigen JVM-Suiten werden am Batch-Gate erneut ausgeführt.
+
+Nightly-Batch 3: **3/10**. Kein APK/Release vor 10/10 fokussiert verifizierten Änderungen.

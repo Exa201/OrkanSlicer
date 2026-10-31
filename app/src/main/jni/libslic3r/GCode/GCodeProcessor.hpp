@@ -8,7 +8,9 @@
 #include "libslic3r/CustomGCode.hpp"
 
 #include <cstdint>
+#include <algorithm>
 #include <array>
+#include <map>
 #include <vector>
 #include <mutex>
 #include <string>
@@ -676,18 +678,34 @@ class Print;
                 m_custom_gcode_per_print_z_id = m_result.custom_gcode_per_print_z.size() - 1;
             }
 
-            void update(float height) {
-                if (!m_move_id.has_value() || !m_custom_gcode_per_print_z_id.has_value())
+            // Time processing may insert actual-speed moves before the marker.
+            // Keep its index aligned with the updated move list.
+            void on_moves_inserted(const std::map<unsigned int, unsigned int>& id_map) {
+                if (!m_move_id.has_value())
                     return;
 
-                const Vec3f position = m_result.moves.back().position;
+                auto it = id_map.lower_bound(static_cast<unsigned int>(*m_move_id));
+                if (it != id_map.begin()) {
+                    --it;
+                    *m_move_id += it->second - it->first;
+                }
+            }
 
-                GCodeProcessorResult::MoveVertex& move = m_result.moves.emplace_back(m_result.moves[*m_move_id]);
+            // Returns the erased move index so queued time blocks can follow the erase.
+            std::optional<size_t> update(float height) {
+                if (!m_move_id.has_value() || !m_custom_gcode_per_print_z_id.has_value())
+                    return std::nullopt;
+
+                const Vec3f position = m_result.moves.back().position;
+                const size_t erased = *m_move_id;
+
+                GCodeProcessorResult::MoveVertex& move = m_result.moves.emplace_back(m_result.moves[erased]);
                 move.position = position;
                 move.height = height;
-                m_result.moves.erase(m_result.moves.begin() + *m_move_id);
+                m_result.moves.erase(m_result.moves.begin() + erased);
                 m_result.custom_gcode_per_print_z[*m_custom_gcode_per_print_z_id].print_z = position.z();
                 reset();
+                return erased;
             }
 
             void reset() {
