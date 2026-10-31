@@ -158,10 +158,15 @@ new commits were checked individually:
 - `5cc5fb7f9` stops Bambu LAN SSDP discovery before destroying the desktop network agent. Nightly has
   no Bambu desktop plugin or equivalent agent lifecycle; its Moonraker path has no matching API.
 - `913c62257` remembers printers per desktop printer-agent and keeps AMS system filaments visible.
-  Nightly already persists its active printer profile, MMU snapshot, palette, and selected gate in
-  app-private preferences, but the desktop `DeviceManager`/`PresetBundle` path is absent. No direct
-  port is warranted. Per-printer gate-choice persistence remains a separate possible Android gap.
+  The desktop `DeviceManager`/`PresetBundle` path is absent on Android, so no direct port is warranted.
+  The related Android MMU state-isolation gap is handled by the adaptation below.
 - `7af399554` links libjpeg for the Linux Arch build and does not apply to Android.
 
 The upstream reference was refreshed; the native engine lock was not advanced. Each Android port
 still needs an app route and its own runtime evidence.
+
+## Android adaptation — per-printer MMU synchronization state (2026-10-31)
+
+| # | Upstream basis | Android change and evidence | State |
+|---|---|---|---|
+| 25 | `913c62257` printer-specific persistence concept | MMU synced markers, selected tool-to-gate choices, palette-to-gate order, and Moonraker snapshots are stored under SHA-256 preference keys derived from the printer profile title. Existing single-printer keys remain as migration fallbacks and are copied to scoped keys on read. The global filament palette remains the user's active palette; only printer-specific MMU metadata is scoped. `MmuFilamentSyncDeviceTest` passed 16/16 on each of two API-35 emulators, including A→B→A switching with distinct gate choices and snapshots. `FilamentPaletteSyncPolicyTest` passed 10/10; Android test Kotlin compilation and `git diff --check` passed. | Implemented and emulator-verified; physical-printer validation remains open |

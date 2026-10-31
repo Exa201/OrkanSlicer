@@ -3374,3 +3374,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Zähler: 6/10 priorisierte Featuregruppen abgeschlossen. Noch keine APK/Release erstellt; Cadence bleibt eine APK nach zehn abgeschlossenen Änderungen.
 - Nächster Featurepunkt: SVG auf Modelloberflächen führen, Tiefe/Vorschau, commit/cancel, Undo/Redo und 3MF-/Slice-Nachweis.
 
+# Nightly 2.5 — MMU-Synchronisierungszustand pro Druckerprofil (2026-10-31)
+
+- Die an Orca `913c62257` angelehnte Android-Anpassung speichert MMU-Sync-Marker, ausgewählte Tool→Gate-Zuordnungen, Palette→Gate-Reihenfolge und Moonraker-Snapshots je Druckerprofiltitel in SHA-256-namespaced Preferences. Bestehende globale Einzelprinter-Keys bleiben Upgrade-Fallbacks und werden bei Zugriff in den Scoped-Key übernommen.
+- Die Filamentpalette bleibt bewusst die aktive globale Nutzerpalette; separatisiert werden MMU-Metadaten, nicht unabhängige Filamentprofile oder Projektzustände.
+- Verifikation: `MmuFilamentSyncDeviceTest` 16/16 auf `nightly35x64` (API 35) und `solidcraft_android_test_fresh` (API 35); neuer A→B→A-Test prüft getrennte Gate-Auswahlen und Snapshots. `FilamentPaletteSyncPolicyTest` 10/10. Testquellenkompilierung und `git diff --check` bestanden.
+- Ein erster Fixturelauf wurde abgewiesen, weil Drucker B absichtlich ein ungültiges, vertauschtes Moonraker `ttg_map` enthielt; die bestehende Regel weist nicht-identische Tool-/Gate-Zuordnungen sicher zurück. Die Testfixture wurde auf gültige identische Printer-Toolmaps mit unterschiedlichen gespeicherten Benutzerzuordnungen/Snapshots korrigiert; der Lauf danach bestand.
+- Aktueller Code-HEAD bleibt `cca320149`; Änderung uncommitted und noch nicht veröffentlicht. Nächster Schritt: Prüfung/Commit/Push dieser Anpassung, dann Orca-Backlogpunkte und deren Verifikation fortsetzen. Kein APK-Release, da kein verifiziertes Zehnerpaket seit dem zuletzt veröffentlichten Baseline-Release abgeschlossen wurde.
+

@@ -103,6 +103,7 @@ class MmuFilamentSync private constructor() {
                             if (replacePalette || !TemporaryProjectSettings.active) Prefs.setFilamentSlots(updatedSlots)
                             Prefs.setMmuSyncedPrinter(printer.title)
                             prefs.edit()
+                                .putString(MmuPrinterPreferenceKeys.forPrinter("snapshot", printer.title.orEmpty()), responseText)
                                 .putString(SNAPSHOT_PRINTER, printer.title)
                                 .putString(SNAPSHOT, responseText)
                                 .apply()
@@ -135,9 +136,16 @@ class MmuFilamentSync private constructor() {
         @JvmStatic
         fun getSnapshot(printerTitle: String): JSONObject? {
             val prefs = Prefs.getPrefs()
-            if (prefs == null || printerTitle != prefs.getString(SNAPSHOT_PRINTER, null)) return null
+            if (prefs == null) return null
+            val scoped = prefs.getString(MmuPrinterPreferenceKeys.forPrinter("snapshot", printerTitle), null)
+            val legacy = if (printerTitle == prefs.getString(SNAPSHOT_PRINTER, null))
+                prefs.getString(SNAPSHOT, null) else null
+            val raw = scoped ?: legacy ?: return null
+            if (scoped == null && legacy != null) {
+                prefs.edit().putString(MmuPrinterPreferenceKeys.forPrinter("snapshot", printerTitle), legacy).apply()
+            }
             return try {
-                JSONObject(prefs.getString(SNAPSHOT, "") ?: "")
+                JSONObject(raw)
                     .getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
             } catch (_: Exception) {
                 null
@@ -148,9 +156,13 @@ class MmuFilamentSync private constructor() {
         fun getSelectedGates(printerTitle: String, toolCount: Int): IntArray? {
             if (TemporaryProjectSettings.active) return TemporaryProjectSettings.selectedGates(printerTitle, toolCount)
             val prefs = Prefs.getPrefs() ?: return null
-            val storedPrinter = prefs.getString(CHOICE_PRINTER, null)
-            val raw = prefs.getString(CHOICE_GATES, null)
-            if (printerTitle != storedPrinter || TextUtils.isEmpty(raw)) return null
+            val scopedKey = MmuPrinterPreferenceKeys.forPrinter("choice_gates", printerTitle)
+            val scoped = prefs.getString(scopedKey, null)
+            val legacy = if (printerTitle == prefs.getString(CHOICE_PRINTER, null))
+                prefs.getString(CHOICE_GATES, null) else null
+            val raw = scoped ?: legacy
+            if (TextUtils.isEmpty(raw)) return null
+            if (scoped == null && legacy != null) prefs.edit().putString(scopedKey, legacy).apply()
             val gateText = raw ?: return null
             val parts = gateText.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
             // A one-color model only needs the first choice of a larger synced palette.
@@ -170,14 +182,16 @@ class MmuFilamentSync private constructor() {
             }
             val value = gates.joinToString(",")
             Prefs.getPrefs()?.edit()
+                ?.putString(MmuPrinterPreferenceKeys.forPrinter("choice_gates", printerTitle), value)
                 ?.putString(CHOICE_PRINTER, printerTitle)
                 ?.putString(CHOICE_GATES, value)
                 ?.apply()
         }
 
         /** Physical order of the saved compact palette; later tool choices may differ. */
-        private fun setPaletteGates(printerTitle: String, gates: IntArray) {
+        internal fun setPaletteGates(printerTitle: String, gates: IntArray) {
             Prefs.getPrefs()?.edit()
+                ?.putString(MmuPrinterPreferenceKeys.forPrinter("palette_gates", printerTitle), gates.joinToString(","))
                 ?.putString(PALETTE_PRINTER, printerTitle)
                 ?.putString(PALETTE_GATES, gates.joinToString(","))
                 ?.apply()
@@ -186,8 +200,12 @@ class MmuFilamentSync private constructor() {
         fun paletteGates(printerTitle: String, slotCount: Int): IntArray? {
             if (slotCount <= 0) return null
             val prefs = Prefs.getPrefs() ?: return null
-            val saved = if (prefs.getString(PALETTE_PRINTER, null) == printerTitle)
+            val scopedKey = MmuPrinterPreferenceKeys.forPrinter("palette_gates", printerTitle)
+            val scoped = prefs.getString(scopedKey, null)
+            val legacy = if (prefs.getString(PALETTE_PRINTER, null) == printerTitle)
                 prefs.getString(PALETTE_GATES, null) else null
+            val saved = scoped ?: legacy
+            if (scoped == null && legacy != null) prefs.edit().putString(scopedKey, legacy).apply()
             val raw = saved ?: getSelectedGates(printerTitle, slotCount)?.sorted()?.joinToString(",")
             val values = raw?.split(',')?.map { it.toIntOrNull() ?: return null } ?: return null
             return values.takeIf { it.size == slotCount && it.distinct().size == slotCount && it.all { gate -> gate >= 0 } }

@@ -28,7 +28,9 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class MmuFilamentSyncDeviceTest {
     private val saved = LinkedHashMap<String, String?>()
+    private val savedPrinterScoped = LinkedHashMap<String, Any>()
     private val keys = listOf("filament_palette", "mmu_synced_printer", "mmu_snapshot_printer", "mmu_snapshot", "mmu_choice_printer", "mmu_choice_gates", "mmu_palette_printer", "mmu_palette_gates")
+    private val printerScopedPrefix = "${MmuPrinterPreferenceKeys.PREFIX}"
     private val title = "MMU sync test fixture"
 
     @Before fun savePreferences() {
@@ -37,13 +39,63 @@ class MmuFilamentSyncDeviceTest {
         Prefs.init(application)
         val prefs = requireNotNull(Prefs.getPrefs())
         keys.forEach { saved[it] = prefs.getString(it, null) }
+        savedPrinterScoped.clear()
+        prefs.all.filterKeys { it.startsWith(printerScopedPrefix) }.forEach { (key, value) ->
+            value?.let { savedPrinterScoped[key] = it }
+        }
     }
 
     @After fun restorePreferences() {
         TemporaryProjectSettings.clear()
-        val editor = requireNotNull(Prefs.getPrefs()).edit()
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val editor = prefs.edit()
+        prefs.all.keys.filter { it.startsWith(printerScopedPrefix) }.forEach { editor.remove(it) }
+        savedPrinterScoped.forEach { (key, value) ->
+            when (value) {
+                is String -> editor.putString(key, value)
+                is Boolean -> editor.putBoolean(key, value)
+                is Int -> editor.putInt(key, value)
+                is Long -> editor.putLong(key, value)
+                is Float -> editor.putFloat(key, value)
+                else -> error("Unsupported saved MMU preference type for $key: ${value::class.java}")
+            }
+        }
         saved.forEach { (key, value) -> if (value == null) editor.remove(key) else editor.putString(key, value) }
         editor.commit()
+    }
+
+    @Test fun mmuSnapshotsAndGateAssignmentsRemainScopedToEachPrinterProfile() {
+        val printerA = "$title A"
+        val printerB = "$title B"
+        val mappingA = intArrayOf(0, 1, 2, 3)
+        val mappingB = intArrayOf(1, 0, 3, 2)
+
+        val responseA = response(mappingA, IntArray(4) { 1 })
+        val responseB = response(mappingA, IntArray(4) { 1 }).apply {
+            getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
+                .put("gate_color", JSONArray(listOf("#000000", "#FFFFFF", "#0000FF", "#00FF00")))
+        }
+        assertEquals(4 to null, sync(responseA, printerTitle = printerA))
+        MmuFilamentSync.setSelectedGates(printerA, intArrayOf(3, 1))
+        MmuFilamentSync.setPaletteGates(printerA, mappingA)
+        assertEquals(4 to null, sync(responseB, printerTitle = printerB))
+        MmuFilamentSync.setSelectedGates(printerB, intArrayOf(2, 0))
+        MmuFilamentSync.setPaletteGates(printerB, mappingB)
+
+        assertArrayEquals(intArrayOf(3, 1), MmuFilamentSync.getSelectedGates(printerA, 2))
+        assertArrayEquals(intArrayOf(2, 0), MmuFilamentSync.getSelectedGates(printerB, 2))
+        assertArrayEquals(mappingA, MmuFilamentSync.paletteGates(printerA, 4))
+        assertArrayEquals(mappingB, MmuFilamentSync.paletteGates(printerB, 4))
+        assertArrayEquals(mappingA, MmuFilamentSync.getSnapshot(printerA)?.getJSONArray("ttg_map")?.let { values ->
+            IntArray(values.length()) { values.getInt(it) }
+        })
+        assertArrayEquals(mappingA, MmuFilamentSync.getSnapshot(printerB)?.getJSONArray("ttg_map")?.let { values ->
+            IntArray(values.length()) { values.getInt(it) }
+        })
+        assertEquals("#112233", MmuFilamentSync.getSnapshot(printerA)?.getJSONArray("gate_color")?.getString(0))
+        assertEquals("#000000", MmuFilamentSync.getSnapshot(printerB)?.getJSONArray("gate_color")?.getString(0))
+        assertTrue(Prefs.isMmuSyncedPrinter(printerA))
+        assertTrue(Prefs.isMmuSyncedPrinter(printerB))
     }
 
     @Test fun parserAcceptsOneTwoAndEightTools() {
@@ -249,7 +301,7 @@ class MmuFilamentSyncDeviceTest {
         return JSONObject().put("result", JSONObject().put("status", JSONObject().put("mmu", mmu)))
     }
 
-    private fun sync(response: JSONObject, full: Boolean = true): Pair<Int, String?> {
+    private fun sync(response: JSONObject, full: Boolean = true, printerTitle: String = title): Pair<Int, String?> {
         val body = response.toString().toByteArray(Charsets.UTF_8)
         val failure = AtomicReference<Throwable?>()
         ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { server ->
@@ -271,7 +323,7 @@ class MmuFilamentSyncDeviceTest {
             }.apply { start() }
             val completed = CountDownLatch(1)
             val result = AtomicReference<Pair<Int, String?>>()
-            val printer = ConfigObject(title).apply { put("print_host", "http://127.0.0.1:${server.localPort}") }
+            val printer = ConfigObject(printerTitle).apply { put("print_host", "http://127.0.0.1:${server.localPort}") }
             InstrumentationRegistry.getInstrumentation().runOnMainSync {
                 val callback = MmuFilamentSync.Callback { updated, error ->
                     result.set(updated to error)

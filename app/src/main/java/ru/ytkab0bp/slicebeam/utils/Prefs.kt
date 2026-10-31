@@ -105,13 +105,31 @@ open class Prefs {
                 TemporaryProjectSettings.setSyncedPrinter(printerTitle)
                 return
             }
-            requirePrefs().edit().putString("mmu_synced_printer", printerTitle).apply()
+            val prefs = requirePrefs()
+            val edit = prefs.edit().putString("mmu_synced_printer", printerTitle)
+            if (printerTitle == null) {
+                prefs.all.keys.filter { it.startsWith("${MmuPrinterPreferenceKeys.PREFIX}synced_") }
+                    .forEach { edit.remove(it) }
+            } else {
+                edit.putBoolean(MmuPrinterPreferenceKeys.forPrinter("synced", printerTitle), true)
+            }
+            edit.apply()
         }
 
         @JvmStatic
         fun isMmuSyncedPrinter(printerTitle: String?): Boolean =
-            printerTitle != null && printerTitle == (if (TemporaryProjectSettings.active)
-                TemporaryProjectSettings.syncedPrinter else requirePrefs().getString("mmu_synced_printer", null))
+            printerTitle != null && if (TemporaryProjectSettings.active) {
+                printerTitle == TemporaryProjectSettings.syncedPrinter
+            } else {
+                val prefs = requirePrefs()
+                val key = MmuPrinterPreferenceKeys.forPrinter("synced", printerTitle)
+                if (prefs.getBoolean(key, false)) true
+                else if (printerTitle == prefs.getString("mmu_synced_printer", null)) {
+                    // Preserve the previous single-printer setting when upgrading Nightly.
+                    prefs.edit().putBoolean(key, true).apply()
+                    true
+                } else false
+            }
 
         /** Colors derived from filament slots, for rendering and paint overlays. */
         @JvmStatic
