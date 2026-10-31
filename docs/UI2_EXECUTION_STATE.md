@@ -1,10 +1,12 @@
 # Fortsetzung 2026-10-31 — Orca-Nightly 2.5
 
-- Aktiver Branch `nightly-2.5`; zuletzt bestätigter Remote-HEAD vor diesem Prüfschritt `7df9f351a`, sauber und mit `nightly25` synchron. Upstream wurde auf `27cafaa06` aktualisiert.
+- Aktiver Branch `nightly-2.5`; Remote-HEAD `ea8c7e23e`, sauber und mit `nightly25` synchron. Orca-Upstream wurde auf `27cafaa06` aktualisiert.
 - Kandidat #21 `27cafaa06` geprüft: lokale Android-App besitzt die desktopbezogenen Geräte-/Nozzle-UI-Pfade nicht. Der gemeinsame Bambu-3MF-Importer hat bereits einen `CNumericLocalesSetter`; zusätzlich liest die Filament-Metadatenroute den Düsendurchmesser jetzt explizit mit `string_to_double_decimal_point`.
 - Verifikation dieser Quelländerung: `:app:externalNativeBuildDebug` erfolgreich (ARM64); `git diff --check` erfolgreich. Kein dedizierter Bambu-Metadaten-Rundlauftest; daher als defensive Parität, nicht als abgeschlossene Featuregruppe bewertet.
-- APK/Release nicht erstellt: keine zehn neuen, vollständig abgenommenen Featuregruppen; offene native Gerätetests bleiben bestehen. `adb` ist in dieser Shell derzeit nicht im PATH, ARM64-Gerätezugriff wurde in diesem Turn nicht bestätigt.
-- Nächster konkreter Schritt: Kandidaten #22 und danach folgende Orca-2.5-Upstream-Fixes nach Android-Relevanz prüfen. Für Filamentgruppen-/Düsen-Zuordnungsänderungen erst den Android-Profil-/Laufzeitpfad und einen reproduzierbaren Regressionstest identifizieren, bevor Algorithmusänderungen übernommen werden.
+- Kandidat #22 `7b6c12cf7` auditiert: `MachineFilamentInfo` übernimmt aktuell keine `filament_id`, und `Print::set_extruder_filament_info` hat keinen Android-Aufruf. Eine Matching-Änderung allein hätte daher keine Wirkung; kein Teilport.
+- Der Android-CLI findet `emulator-5554` (API 36, x86_64); verfügbar ist kein ARM64-Emulator-Systemimage. Die Slice-/OpenCascade-Native-Abhängigkeiten sind ARM64-only, daher sind die offenen nativen Gerätetests weiterhin nicht ausführbar.
+- APK/Release nicht erstellt: keine zehn neuen, vollständig abgenommenen Featuregruppen. `:app:externalNativeBuildDebug` für Kandidat #21 ist erfolgreich; der direkte Import-Rundlauftest fehlt.
+- Nächster konkreter Schritt: Android-Drucker-/Trayzustand bis `Print::set_extruder_filament_info` nachverfolgen und den kleinsten kontrollierten Testpfad für geladene Filament-IDs ermitteln; bis dahin bleibt Orca #22 auditiert, aber nicht portiert. Parallel die offenen ARM64-Slice-Regressionen auf einem passenden Gerät abnehmen.
 
 # Fortsetzung 2026-10-31 — aktueller Prüflauf
 
