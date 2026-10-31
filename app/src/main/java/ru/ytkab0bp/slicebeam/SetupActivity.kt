@@ -1225,7 +1225,9 @@ it.vendor?.values?.get("name").orEmpty().lowercase(Locale.ROOT)
 val grouped = LinkedHashMap<String, MutableList<Pair<String, ConfigObject>>>()
 if (profilesItem?.useCustomProfile != true) {
 for (wrapper in vendors) {
-if (wrapper.printerModels.none { enabledPrinters.contains(it) }) continue
+val hasSelectedPrinter = wrapper.printerModels.any { enabledPrinters.contains(it) }
+val independentLibrary = wrapper.vendor?.get("filament_library") == "1"
+if (!SetupProfileSelectionPolicy.shouldShowFilamentVendor(hasSelectedPrinter, independentLibrary)) continue
 val vendorName = wrapper.vendor?.values?.get("name").orEmpty().ifBlank { getString(R.string.IntroCustomProfileHeader) }
 val options = grouped.getOrPut(vendorName) { ArrayList() }
 for (filament in wrapper.filamentConfigs) {

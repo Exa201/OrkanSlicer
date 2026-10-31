@@ -42,6 +42,71 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun orca3DFuelMaterialLibraryLoadsIndependentlyAndSlicesRepresentativeFilaments() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val library = context.assets.open("orca_profiles/3D-Fuel.ini").use { Slic3rConfigWrapper(it) }
+        assertEquals("3D-Fuel", library.vendor?.get("name"))
+        assertEquals("1", library.vendor?.get("filament_library"))
+        assertTrue("The library must not add a pretend printer", library.printerModels.isEmpty())
+        assertEquals(13, library.filamentConfigs.size)
+        assertTrue("3D-Fuel profiles should not contain unknown-option warnings", library.loadWarnings.isEmpty())
+        config.filamentConfigs.addAll(library.filamentConfigs)
+
+        val source = copyCube(context, "3d-fuel-profile-cube.stl")
+        val output = File(context.cacheDir, "3d-fuel-profile-cube.gcode")
+        var model: Model? = null
+        try {
+            val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+            val process = requireNotNull(config.findPrint("0.16mm Standard"))
+            val activeModel = Model(source)
+            model = activeModel
+            activeModel.ensureOnBed(0)
+            val representatives = listOf(
+                "3D-Fuel Standard PLA" to "230",
+                "3D-Fuel Pro PETG" to "255",
+                "3D-Fuel PET CF" to "255",
+            )
+            for ((profileName, expectedTemperature) in representatives) {
+                val filament = requireNotNull(config.findFilament(profileName))
+                assertEquals("3D-Fuel", filament["filament_vendor"])
+                assertEquals(expectedTemperature, filament["first_layer_temperature"])
+                config.presets = ConfigObject("presets").apply {
+                    put("printer", printer.title)
+                    put("print", process.title)
+                    put("filament", filament.title)
+                }
+                SliceBeam.genCurrentConfig(activeModel)
+                output.delete()
+                val sliceResult = activeModel.slice(
+                    SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null
+                )
+                try {
+                    val gcode = output.readText()
+                    assertHasExtrusion(gcode)
+                    val expectedHeatCommand = Regex(
+                        "G9111 .*extruderTemp=$expectedTemperature(?:\\.0+)?(?:\\s|$)"
+                    )
+                    val heatLines = gcode.lineSequence().filter {
+                        it.contains("G9111") || it.startsWith("M104") || it.startsWith("M109")
+                    }.toList()
+                    assertTrue(
+                        "$profileName temperature must reach the printer's actual G9111 start macro; heat lines=$heatLines",
+                        gcode.lineSequence().any(expectedHeatCommand::containsMatchIn),
+                    )
+                } finally {
+                    sliceResult.release()
+                }
+            }
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun orcaBlocksRf50SixTenthNozzleKeepsPressureAdvanceAsExecutableGcode() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application

@@ -7,6 +7,22 @@ import org.junit.Test
 
 class SetupProfileSelectionPolicyTest {
     @Test
+    fun independentMaterialLibrariesAreShownWithoutSelectingTheirPrinterVendor() {
+        assertFalse(SetupProfileSelectionPolicy.shouldShowFilamentVendor(
+            hasSelectedPrinter = false,
+            independentLibrary = false,
+        ))
+        assertTrue(SetupProfileSelectionPolicy.shouldShowFilamentVendor(
+            hasSelectedPrinter = true,
+            independentLibrary = false,
+        ))
+        assertTrue(SetupProfileSelectionPolicy.shouldShowFilamentVendor(
+            hasSelectedPrinter = false,
+            independentLibrary = true,
+        ))
+    }
+
+    @Test
     fun togglingChangesOnlyTheRequestedProfile() {
         val selected = SetupProfileSelectionPolicy.toggle(setOf("printer-a", "printer-b"), "printer-a", false)
         assertEquals(setOf("printer-b"), selected)

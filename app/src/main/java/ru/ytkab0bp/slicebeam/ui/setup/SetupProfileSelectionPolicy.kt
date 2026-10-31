@@ -15,6 +15,9 @@ internal data class SetupProfileSection(
 
 /** Small, UI-independent selection rules shared by the setup screens. */
 internal object SetupProfileSelectionPolicy {
+    fun shouldShowFilamentVendor(hasSelectedPrinter: Boolean, independentLibrary: Boolean): Boolean =
+        hasSelectedPrinter || independentLibrary
+
     fun toggle(selectedKeys: Set<String>, key: String, selected: Boolean): Set<String> =
         LinkedHashSet(selectedKeys).apply {
             if (selected) add(key) else remove(key)
