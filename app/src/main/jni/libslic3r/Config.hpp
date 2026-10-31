@@ -2129,7 +2129,12 @@ public:
         if (rhs->type() != this->type())
             throw ConfigurationError("ConfigOptionEnumGeneric: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumsGeneric
-        this->values = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs)->values;
+        auto rhs_enums = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs);
+        this->values = rhs_enums->values;
+        // Options embedded in a StaticPrintConfig are constructed without a keys_map;
+        // adopt the source map so serialize() emits enum names instead of empty tokens.
+        if (this->keys_map == nullptr)
+            this->keys_map = rhs_enums->keys_map;
     }
 
     std::string serialize() const override

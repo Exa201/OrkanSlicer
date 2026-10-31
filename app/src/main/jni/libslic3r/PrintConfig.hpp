@@ -27,6 +27,7 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
+#include <memory>
 
 namespace Slic3r {
 
@@ -771,8 +772,16 @@ protected:
                 m_keys.emplace_back(kvp.first);
                 const ConfigOptionDef *def = defs->get(kvp.first);
                 assert(def != nullptr);
-                if (def->default_value)
-                    opt->set(def->default_value.get());
+                if (def->default_value) {
+                    if (def->default_value->type() == coEnums) {
+                        // Enum-list defaults may not carry their keys map. Build the default
+                        // through the option definition so the static option adopts it.
+                        std::unique_ptr<ConfigOption> default_option(def->create_default_option());
+                        opt->set(default_option.get());
+                    } else {
+                        opt->set(def->default_value.get());
+                    }
+                }
             }
         }
 

@@ -1,3 +1,17 @@
+# Fortsetzung 2026-10-31 — aktueller Prüflauf
+
+- Aktiver Branch: `nightly-2.5`; Ausgangs-HEAD `8d5e4dca0`. Änderungen an Orca-Kandidaten #18 und #20 sowie Statusdokumentation sind noch nicht committet/pusht.
+- Port #18 in `Print::apply`: ursprüngliche, nicht normalisierte Druckkonfiguration behalten; Prime-Tower-/Support-Layer-Normalisierung erst nach dem Neuaufbau der aktuellen Regionen/Filamente erneut bestimmen. Dadurch kann `enable_prime_tower` nach einer Änderung des verwendeten Filamentsets wieder aktiviert werden.
+- Port #20: statische `coEnums`-Defaults werden via `ConfigOptionDef::create_default_option()` mit Enum-Schlüsselabbildung gesetzt; `ConfigOptionEnumsGenericTempl::set` übernimmt eine fehlende Schlüsselabbildung von der Quelle.
+- Port #15 wurde auditiert: aktive logische Filament-IDs werden im Android-Pfad bereits für Lift-Grenzen, Z-Hop und filamentbezogene Retract-Policy verwendet. Orcas `config_index()`-Variantenindex ist in dieser Fork nicht vorhanden; keine mechanische API-Portierung vorgenommen.
+- Kandidaten #14 und #16 sind im Android-Kern bereits funktional äquivalent vorhanden; #17 ist in beiden Tower-Generatoren portiert und durch einen kompilierten G-Code-Regressionsfall abgedeckt. Die ARM64-Laufzeit dieser Gerätefälle bleibt offen.
+- Gruppierte Verifikation nach #18/#20: ARM64 `:app:externalNativeBuildDebug`, `:app:compileSliceTestAndroidTestKotlin`, Debug-Unit 704/704, Slice-Unit 704/704 erfolgreich; null Fehler/Skips. Native Instrumentierung wurde nur kompiliert.
+- Geräte: ADB listet nur `sdk_gphone64_x86_64`; die App-Slice/OpenCascade-Abhängigkeiten benötigen `arm64-v8a`. Native Geräteslicing bleibt daher unbestätigt.
+- Orca-Kandidaten 14 und 16 sind nach Quellvergleich im Android-Kern bereits äquivalent umgesetzt; 17 ist in beiden Wipe-Tower-Generatoren umgesetzt und hat einen kompilierten G-Code-Regressionstest; 18 ist soeben portiert, aber die wiederverwendete-Print-Laufzeitregression fehlt. #15, #19 und #20 sind noch zu auditieren.
+- Low-GPU-Vorschauqualität ist bereits adaptiv implementiert: Low-RAM-/Renderer-Heuristik, manuelle Qualitätsstufen, reduzierte GL-Surface-Auflösung und begrenztes Preview-Mesh; Slicing bleibt geometrisch unverändert. GPU-Messung auf physischer Hardware offen.
+- APK/Release: keines aus diesem Prüflauf. Der erste 10er-Release-Batch bleibt unter der Abnahmeschwelle, da die ARM64-Laufzeittests für die SVG-/3MF-/Qidi-Fälle fehlen. Nicht als releasefertig ausgeben.
+- Nächster konkreter Schritt: Kandidat #19 (gemischte Filamente und physische Düsenzuordnung) gegen die Nightly-Mappinglogik prüfen; fokussierte Regressionen für #18/#20 ergänzen und auf ARM64 ausführen, sobald ein Gerät verfügbar ist.
+
 # OrkanSlicer Nightly 2.5 — aktueller Fortsetzungsstand, 2026-10-31
 
 - SVG-Nachbesserung: SVG-Prägen/Gravieren akzeptiert jetzt ein leeres, nicht verwendetes Textfeld und validiert Breite/Tiefe deckungsgleich mit den Native-Grenzen (0,5–500 mm / 0,1–100 mm). Der JNI-Pfad wirft bei ungültigem Ziel statt still zurückzukehren; die Oberfläche meldet deshalb keinen falschen Erfolg und zeigt SVG-spezifische Fehler. ARM64-Native-Build, Debug-/Slice-Kotlin-Build und Instrumentierungskompilierung bestanden; fokussierter Satz nach der Änderung 27/27 (SVG-Validator, SVG-Sicherheitswächter, Qidi-Profil/Packager/Box und Profil-Key).
