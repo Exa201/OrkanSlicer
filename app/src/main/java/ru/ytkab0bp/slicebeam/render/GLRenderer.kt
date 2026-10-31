@@ -2285,22 +2285,34 @@ notifyPaintHistoryChanged()
 }
 fun paintAt(x:Float, y:Float, rebuildPreview: Boolean = true) {
 if (paintSession == null || paintObject < 0 || paintObject >= glModels.size) return
-val gl = glModels.get(paintObject)
-gl.raycaster.raycast(this, raycastHits, x, y)
-val hit = preciseSurfaceHit()?.position ?: return
-val h = doubleArrayOf(hit.x, hit.y, hit.z)
+if (viewportWidth <= 0 || viewportHeight <= 0) return
+// Ray-cast against each source volume so a tap on any constituent 3MF part carries its own
+// volume/facet identity through paint, preview, undo and commit. The merged GL mesh loses that map.
+val rayPoint = Slic3rUtils.unproject(camera.getViewModelMatrix(), projectionMatrix,
+    viewportWidth, viewportHeight, x.toDouble(), y.toDouble())
+val origin: Vec3d
+val direction: Vec3d
+if (Prefs.isOrthoProjectionEnabled()) {
+    origin = rayPoint
+    direction = camera.getDirForward().clone()
+} else {
+    origin = camera.position.clone()
+    direction = rayPoint.clone().add(camera.position.clone().negate()).normalize()
+}
+val hit = paintSession!!.raycast(origin.asDoubleArray(), direction.asDoubleArray()) ?: return
+if (hit.size < 5) return
 if (paintTool == PAINT_TOOL_BUCKET)
 {
-paintSession!!.bucket(h, -1, paintFilament, true, bucketAngleThreshold)
+paintSession!!.bucket(hit, -1, paintFilament, true, bucketAngleThreshold)
 }
 else if (paintTool == PAINT_TOOL_HEIGHT)
 {
 val halfW = heightBandWidth / 2.0
-paintSession!!.height(hit.z - halfW, hit.z + halfW, paintFilament)
+paintSession!!.height(hit[4] - halfW, hit[4] + halfW, paintFilament)
 }
 else
 {
-paintSession!!.brush(h, -1, paintBrushRadius, paintFilament, camera.position.asDoubleArray(), isBrushSphere)
+paintSession!!.brush(hit, -1, paintBrushRadius, paintFilament, camera.position.asDoubleArray(), isBrushSphere)
 }
 // Keep the native draft live while avoiding a full palette rebuild for every interpolated
 // point of a coalesced touch segment. Stroke completion always forces one final refresh.

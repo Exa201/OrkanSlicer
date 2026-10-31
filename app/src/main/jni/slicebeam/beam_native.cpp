@@ -78,21 +78,24 @@ struct GLModelRef {
     std::mutex picking_mutex;
 
 };
-// Multi-color painting session, bound to one ModelObject's first volume. Holds a TriangleSelector
-// over the volume mesh plus an AABBMesh for ray-casting touch points to a facet.
+// A paint draft owns one selector and ray tree per model-part volume. A 3MF assembly is a single
+// ModelObject, but every constituent part stores independent facet annotations.
+struct PaintVolumeRef {
+    int volume_idx = -1;
+    TriangleMesh mesh;
+    Slic3r::Transform3d mesh_to_world = Slic3r::Transform3d::Identity();
+    std::unique_ptr<AABBMesh> emesh;
+    std::unique_ptr<Slic3r::TriangleSelector> selector;
+};
 struct PaintSessionRef {
     ModelRef* model = nullptr;
     int objIdx = -1;
-    // 0 = color (mmu segmentation), 1 = support, 2 = seam, 3 = fuzzy skin.
+    // 0 = color (MMU segmentation), 1 = support, 2 = seam, 3 = fuzzy skin.
     int mode = 0;
-    TriangleMesh mesh;
-    // GL hit points are in the transformed object mesh; the selector owns the raw first-volume mesh.
-    Slic3r::Transform3d mesh_to_world = Slic3r::Transform3d::Identity();
-    AABBMesh* emesh = nullptr;
-    std::unique_ptr<Slic3r::TriangleSelector> selector;
-    std::vector<Slic3r::TriangleSelector::TriangleSplittingData> undo_strokes;
-    std::vector<Slic3r::TriangleSelector::TriangleSplittingData> redo_strokes;
-    std::optional<Slic3r::TriangleSelector::TriangleSplittingData> stroke_before;
+    std::vector<std::unique_ptr<PaintVolumeRef>> volumes;
+    using Snapshot = std::vector<Slic3r::TriangleSelector::TriangleSplittingData>;
+    std::vector<Snapshot> undo_strokes, redo_strokes;
+    std::optional<Snapshot> stroke_before;
 };
 struct ShaderRef {
     GLShaderProgram program;
@@ -3531,96 +3534,88 @@ extern "C" {
         }
     }
 
-    using PaintSnapshot = Slic3r::TriangleSelector::TriangleSplittingData;
+    using PaintSnapshot = PaintSessionRef::Snapshot;
     static constexpr size_t PAINT_HISTORY_MAX_BYTES = 8 * 1024 * 1024;
     static constexpr size_t PAINT_HISTORY_MAX_STROKES = 16;
 
     static size_t paint_snapshot_bytes(const PaintSnapshot& snapshot) {
-        return snapshot.triangles_to_split.size() * sizeof(Slic3r::TriangleSelector::TriangleBitStreamMapping)
-            + (snapshot.bitstream.size() + 7) / 8
-            + (snapshot.used_states.size() + 7) / 8;
+        size_t bytes = 0;
+        for (const auto& volume : snapshot)
+            bytes += volume.triangles_to_split.size() * sizeof(Slic3r::TriangleSelector::TriangleBitStreamMapping)
+                + (volume.bitstream.size() + 7) / 8 + (volume.used_states.size() + 7) / 8;
+        return bytes;
     }
-
     static bool paint_snapshot_fits(const PaintSnapshot& snapshot) {
         return paint_snapshot_bytes(snapshot) <= PAINT_HISTORY_MAX_BYTES;
     }
-
     static void push_paint_snapshot(std::vector<PaintSnapshot>& history, PaintSnapshot snapshot) {
         const size_t bytes = paint_snapshot_bytes(snapshot);
-        if (bytes > PAINT_HISTORY_MAX_BYTES) {
-            history.clear();
-            return;
-        }
+        if (bytes > PAINT_HISTORY_MAX_BYTES) { history.clear(); return; }
         size_t total = bytes;
         for (const auto& entry : history) total += paint_snapshot_bytes(entry);
-        while (!history.empty() && (history.size() >= PAINT_HISTORY_MAX_STROKES ||
-                                    total > PAINT_HISTORY_MAX_BYTES)) {
+        while (!history.empty() && (history.size() >= PAINT_HISTORY_MAX_STROKES || total > PAINT_HISTORY_MAX_BYTES)) {
             total -= paint_snapshot_bytes(history.front());
             history.erase(history.begin());
         }
         history.push_back(std::move(snapshot));
     }
+    static PaintVolumeRef* paint_volume(PaintSessionRef* session, int volume_idx) {
+        if (session == nullptr) return nullptr;
+        for (const auto& volume : session->volumes)
+            if (volume && volume->volume_idx == volume_idx) return volume.get();
+        return nullptr;
+    }
+    static PaintSnapshot capture_paint_snapshot(PaintSessionRef* session) {
+        PaintSnapshot snapshot;
+        snapshot.reserve(session->volumes.size());
+        for (const auto& volume : session->volumes) snapshot.emplace_back(volume->selector->serialize());
+        return snapshot;
+    }
+    static bool restore_paint_snapshot(PaintSessionRef* session, const PaintSnapshot& snapshot) {
+        if (session == nullptr || snapshot.size() != session->volumes.size()) return false;
+        for (size_t i = 0; i < snapshot.size(); ++i) session->volumes[i]->selector->deserialize(snapshot[i], true);
+        return true;
+    }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1begin_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        if (!s || !s->selector || s->stroke_before.has_value()) return;
-        PaintSnapshot before = s->selector->serialize();
-        if (paint_snapshot_fits(before)) {
-            s->stroke_before = std::move(before);
-        } else {
-            // Do not keep an unbounded copy of a dense mesh's selector. If a single state is
-            // already too large, discard older undo entries rather than presenting stale undo.
-            s->undo_strokes.clear();
-            s->redo_strokes.clear();
-        }
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || s->volumes.empty() || s->stroke_before.has_value()) return;
+        PaintSnapshot before = capture_paint_snapshot(s);
+        if (paint_snapshot_fits(before)) s->stroke_before = std::move(before);
+        else { s->undo_strokes.clear(); s->redo_strokes.clear(); }
     }
-
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1end_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        if (!s || !s->selector || !s->stroke_before.has_value()) return;
-        PaintSnapshot before = std::move(*s->stroke_before);
-        s->stroke_before.reset();
-        PaintSnapshot after = s->selector->serialize();
-        if (before != after) {
-            push_paint_snapshot(s->undo_strokes, std::move(before));
-            s->redo_strokes.clear();
-        }
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || s->volumes.empty() || !s->stroke_before.has_value()) return;
+        PaintSnapshot before = std::move(*s->stroke_before); s->stroke_before.reset();
+        if (before != capture_paint_snapshot(s)) { push_paint_snapshot(s->undo_strokes, std::move(before)); s->redo_strokes.clear(); }
     }
-
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1can_1undo(JNIEnv*, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
         return s && !s->stroke_before.has_value() && !s->undo_strokes.empty();
     }
-
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1can_1redo(JNIEnv*, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
         return s && !s->stroke_before.has_value() && !s->redo_strokes.empty();
     }
-
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1undo_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        if (!s || !s->selector || s->stroke_before.has_value() || s->undo_strokes.empty()) return false;
-        PaintSnapshot current = s->selector->serialize();
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || s->volumes.empty() || s->stroke_before.has_value() || s->undo_strokes.empty()) return false;
+        PaintSnapshot current = capture_paint_snapshot(s);
         if (!paint_snapshot_fits(current)) return false;
         push_paint_snapshot(s->redo_strokes, std::move(current));
-        PaintSnapshot previous = std::move(s->undo_strokes.back());
-        s->undo_strokes.pop_back();
-        s->selector->deserialize(previous, true);
-        return true;
+        PaintSnapshot previous = std::move(s->undo_strokes.back()); s->undo_strokes.pop_back();
+        return restore_paint_snapshot(s, previous);
     }
-
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1redo_1stroke(JNIEnv*, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        if (!s || !s->selector || s->stroke_before.has_value() || s->redo_strokes.empty()) return false;
-        PaintSnapshot current = s->selector->serialize();
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || s->volumes.empty() || s->stroke_before.has_value() || s->redo_strokes.empty()) return false;
+        PaintSnapshot current = capture_paint_snapshot(s);
         if (!paint_snapshot_fits(current)) return false;
         push_paint_snapshot(s->undo_strokes, std::move(current));
-        PaintSnapshot next = std::move(s->redo_strokes.back());
-        s->redo_strokes.pop_back();
-        s->selector->deserialize(next, true);
-        return true;
+        PaintSnapshot next = std::move(s->redo_strokes.back()); s->redo_strokes.pop_back();
+        return restore_paint_snapshot(s, next);
     }
-
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1reset_1history(JNIEnv*, jclass, jlong sessionPtr) {
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
         if (!s) return;
@@ -3629,32 +3624,36 @@ extern "C" {
         s->stroke_before.reset();
     }
 
-    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1begin(JNIEnv* env, jclass, jlong modelPtr, jint objIdx, jint mode) {
-        ModelRef* mRef = (ModelRef*) (intptr_t) modelPtr;
-        if (mRef == nullptr || objIdx < 0 || objIdx >= (int) mRef->model.objects.size()) return 0;
+    JNIEXPORT jlong JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1begin(JNIEnv*, jclass, jlong modelPtr, jint objIdx, jint mode) {
+        ModelRef* mRef = (ModelRef*)(intptr_t)modelPtr;
+        if (!mRef || objIdx < 0 || objIdx >= (int)mRef->model.objects.size()) return 0;
         ModelObject* obj = mRef->model.objects[objIdx];
-        if (obj == nullptr || obj->volumes.empty() || obj->volumes[0] == nullptr) return 0;
-        // Topology construction for a dense imported mesh can allocate substantially more memory
-        // than its source STL/3MF. Do not let a recoverable native allocation/geometry exception
-        // escape across JNI and terminate the app; leave the original model untouched instead.
+        if (!obj || obj->volumes.empty()) return 0;
+        // Selector topology and per-volume ray trees allocate substantially more memory than the
+        // imported mesh; keep native initialization guarded and leave the model untouched on error.
         try {
-            auto s = std::make_unique<PaintSessionRef>();
-            s->model = mRef;
-            s->objIdx = objIdx;
-            s->mode = mode;
-            // Keep selector triangle indices aligned with the annotation on volume[0].
-            // obj->mesh() merges all model-part volumes, but commit stores the selector into only
-            // volume[0]; for multi-volume assemblies the later volume indices then cannot round-trip.
-            s->mesh = obj->volumes[0]->mesh();
-            s->mesh_to_world = obj->volumes[0]->get_matrix();
-            if (!obj->instances.empty() && obj->instances.front() != nullptr)
-                s->mesh_to_world = obj->instances.front()->get_matrix() * s->mesh_to_world;
-            s->selector = std::make_unique<Slic3r::TriangleSelector>(s->mesh);
-            const auto& data = facets_for_mode(obj->volumes[0], mode).get_data();
-            if (!data.triangles_to_split.empty())
-                s->selector->deserialize(data, true);
-            s->emesh = new AABBMesh(s->mesh, true);
-            return (jlong) (intptr_t) s.release();
+            auto session = std::make_unique<PaintSessionRef>();
+            session->model = mRef; session->objIdx = objIdx; session->mode = mode;
+            const Transform3d instance = !obj->instances.empty() && obj->instances.front()
+                ? obj->instances.front()->get_matrix() : Transform3d::Identity();
+            for (size_t i = 0; i < obj->volumes.size(); ++i) {
+                ModelVolume* source = obj->volumes[i];
+                if (!source || !source->is_model_part()) continue;
+                // AABBMesh and TriangleSelector retain references into the mesh. Keep the
+                // owning PaintVolume at a stable heap address; vector growth must not move it.
+                auto volume = std::make_unique<PaintVolumeRef>();
+                volume->volume_idx = (int)i;
+                volume->mesh = source->mesh();
+                if (volume->mesh.its.indices.empty()) continue;
+                volume->mesh_to_world = instance * source->get_matrix();
+                volume->selector = std::make_unique<TriangleSelector>(volume->mesh);
+                const auto& annotations = facets_for_mode(source, mode).get_data();
+                if (!annotations.triangles_to_split.empty()) volume->selector->deserialize(annotations, true);
+                volume->emesh = std::make_unique<AABBMesh>(volume->mesh, true);
+                session->volumes.emplace_back(std::move(volume));
+            }
+            if (session->volumes.empty()) return 0;
+            return (jlong)(intptr_t)session.release();
         } catch (const std::exception& e) {
             __android_log_print(ANDROID_LOG_ERROR, TAG, "Paint session initialization failed: %s", e.what());
             return 0;
@@ -3664,164 +3663,166 @@ extern "C" {
         }
     }
 
+    // Input is a world-space camera ray. Output is {ModelObject volume index, face index, world x,y,z}.
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1raycast(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray originArr, jdoubleArray dirArr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || s->volumes.empty() || !originArr || !dirArr || env->GetArrayLength(originArr) < 3 || env->GetArrayLength(dirArr) < 3)
+            return env->NewDoubleArray(0);
         jdouble* o = env->GetDoubleArrayElements(originArr, JNI_FALSE);
         jdouble* d = env->GetDoubleArrayElements(dirArr, JNI_FALSE);
-        Vec3d origin(o[0], o[1], o[2]);
-        Vec3d dir(d[0], d[1], d[2]);
+        Vec3d origin(o[0], o[1], o[2]), direction(d[0], d[1], d[2]);
         env->ReleaseDoubleArrayElements(originArr, o, JNI_ABORT);
         env->ReleaseDoubleArrayElements(dirArr, d, JNI_ABORT);
-        std::vector<AABBMesh::hit_result> hits = s->emesh->query_ray_hits(origin, dir);
-        if (hits.empty()) return env->NewDoubleArray(0);
-        const AABBMesh::hit_result& hit = hits.front();
-        jdoubleArray arr = env->NewDoubleArray(4);
-        Vec3d pos = hit.position();
-        double out[4] = { (double) hit.face(), pos.x(), pos.y(), pos.z() };
-        env->SetDoubleArrayRegion(arr, 0, 4, out);
-        return arr;
+        if (direction.squaredNorm() < 1e-16) return env->NewDoubleArray(0);
+        direction.normalize();
+        double nearest = std::numeric_limits<double>::max();
+        int volume_index = -1, face_index = -1;
+        Vec3d world_hit = Vec3d::Zero();
+        for (const auto& volume_ref : s->volumes) {
+            PaintVolumeRef& volume = *volume_ref;
+            const Transform3d inverse = volume.mesh_to_world.inverse();
+            const Vec3d local_origin = inverse * origin;
+            Vec3d local_direction = inverse.linear() * direction;
+            if (local_direction.squaredNorm() < 1e-16) continue;
+            local_direction.normalize();
+            const auto hits = volume.emesh->query_ray_hits(local_origin, local_direction);
+            for (const auto& hit : hits) {
+                const Vec3d candidate = volume.mesh_to_world * hit.position();
+                const double distance = (candidate - origin).dot(direction);
+                if (distance >= 0. && distance < nearest) {
+                    nearest = distance; volume_index = volume.volume_idx;
+                    face_index = (int)hit.face(); world_hit = candidate;
+                }
+            }
+        }
+        if (volume_index < 0) return env->NewDoubleArray(0);
+        jdoubleArray result = env->NewDoubleArray(5);
+        const jdouble values[5] = {(double)volume_index, (double)face_index,
+                                   world_hit.x(), world_hit.y(), world_hit.z()};
+        env->SetDoubleArrayRegion(result, 0, 5, values);
+        return result;
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1brush(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jdouble radius, jint filamentIdx, jdoubleArray cameraArr, jboolean sphere) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || !hitArr || env->GetArrayLength(hitArr) < 5 || !cameraArr || env->GetArrayLength(cameraArr) < 3) return;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
-        Vec3d hit_world((double) h[0], (double) h[1], (double) h[2]);
+        const int volume_index = (int)h[0];
+        if (facetStart < 0) facetStart = (int)h[1];
+        const Vec3d world_hit(h[2], h[3], h[4]);
         env->ReleaseDoubleArrayElements(hitArr, h, JNI_ABORT);
-
+        PaintVolumeRef* volume = paint_volume(s, volume_index);
+        if (!volume || !volume->selector) return;
         jdouble* cam = env->GetDoubleArrayElements(cameraArr, JNI_FALSE);
-        Vec3d camera_pos_world((double) cam[0], (double) cam[1], (double) cam[2]);
+        const Vec3d camera_world(cam[0], cam[1], cam[2]);
         env->ReleaseDoubleArrayElements(cameraArr, cam, JNI_ABORT);
-
-        const Transform3d& mesh_to_world = s->mesh_to_world;
-        const Transform3d world_to_mesh = mesh_to_world.inverse();
-        const Vec3f hit = (world_to_mesh * hit_world).cast<float>();
-        // Convert camera position to the selector's raw-volume coordinate system.
-        Vec3d camera_pos_local = world_to_mesh * camera_pos_world;
-
-        Transform3d trafo_no_translate = mesh_to_world;
-        trafo_no_translate.translation() = Vec3d::Zero();
-
-        Slic3r::EnforcerBlockerType state = paint_state(filamentIdx);
-
-        if (facetStart < 0) {
-            const auto& its = s->mesh.its;
-            float best = FLT_MAX; int bi = 0;
-            for (int i = 0; i < (int) its.indices.size(); ++i) {
-                const Vec3i32& t = its.indices[i];
-                Vec3f c = (its.vertices[t[0]] + its.vertices[t[1]] + its.vertices[t[2]]) / 3.f;
-                float d = (c - hit).squaredNorm();
-                if (d < best) { best = d; bi = i; }
+        const Transform3d& mesh_to_world = volume->mesh_to_world;
+        const Transform3d inverse = mesh_to_world.inverse();
+        const Vec3f hit = (inverse * world_hit).cast<float>();
+        const Vec3d camera_local = inverse * camera_world;
+        Transform3d no_translation = mesh_to_world;
+        no_translation.translation() = Vec3d::Zero();
+        if (facetStart < 0 || facetStart >= (int)volume->mesh.its.indices.size()) {
+            const auto& its = volume->mesh.its;
+            float best = FLT_MAX; int best_index = -1;
+            for (int i = 0; i < (int)its.indices.size(); ++i) {
+                const Vec3i32& tri = its.indices[i];
+                const Vec3f center = (its.vertices[tri[0]] + its.vertices[tri[1]] + its.vertices[tri[2]]) / 3.f;
+                const float distance = (center - hit).squaredNorm();
+                if (distance < best) { best = distance; best_index = i; }
             }
-            facetStart = bi;
+            facetStart = best_index;
         }
-
+        if (facetStart < 0) return;
         auto cursor = TriangleSelector::SinglePointCursor::cursor_factory(
-            hit, camera_pos_local.cast<float>(), (float)radius,
+            hit, camera_local.cast<float>(), (float)radius,
             sphere ? TriangleSelector::CursorType::SPHERE : TriangleSelector::CursorType::CIRCLE,
             mesh_to_world, TriangleSelector::ClippingPlane());
-
-        s->selector->select_patch(facetStart, std::move(cursor), state, trafo_no_translate, true);
+        volume->selector->select_patch(facetStart, std::move(cursor), paint_state(filamentIdx), no_translation, true);
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1bucket(JNIEnv* env, jclass, jlong sessionPtr, jdoubleArray hitArr, jint facetStart, jint filamentIdx, jboolean propagate, jdouble angle) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || !hitArr || env->GetArrayLength(hitArr) < 5) return;
         jdouble* h = env->GetDoubleArrayElements(hitArr, JNI_FALSE);
-        Vec3d hit_world((double) h[0], (double) h[1], (double) h[2]);
+        const int volume_index = (int)h[0];
+        if (facetStart < 0) facetStart = (int)h[1];
+        const Vec3d world_hit(h[2], h[3], h[4]);
         env->ReleaseDoubleArrayElements(hitArr, h, JNI_ABORT);
-        const Vec3f hit = (s->mesh_to_world.inverse() * hit_world).cast<float>();
-        // Bucket fill needs a valid starting facet; the Java raycaster only gives the hit point,
-        // so find the nearest original facet to it.
-        if (facetStart < 0) {
-            const auto& its = s->mesh.its;
-            float best = FLT_MAX; int bi = 0;
-            for (int i = 0; i < (int) its.indices.size(); ++i) {
-                const Vec3i32& t = its.indices[i];
-                Vec3f c = (its.vertices[t[0]] + its.vertices[t[1]] + its.vertices[t[2]]) / 3.f;
-                float d = (c - hit).squaredNorm();
-                if (d < best) { best = d; bi = i; }
-            }
-            facetStart = bi;
-        }
-        Slic3r::TriangleSelector::ClippingPlane clp;
-        s->selector->bucket_fill_select_triangles(hit, facetStart, clp, (float) angle, propagate, true);
-        s->selector->seed_fill_apply_on_triangles(paint_state(filamentIdx));
+        PaintVolumeRef* volume = paint_volume(s, volume_index);
+        if (!volume || !volume->selector) return;
+        const Vec3f hit = (volume->mesh_to_world.inverse() * world_hit).cast<float>();
+        if (facetStart < 0 || facetStart >= (int)volume->mesh.its.indices.size()) return;
+        TriangleSelector::ClippingPlane clipping;
+        volume->selector->bucket_fill_select_triangles(hit, facetStart, clipping, (float)angle, propagate, true);
+        volume->selector->seed_fill_apply_on_triangles(paint_state(filamentIdx));
     }
 
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1height(JNIEnv* env, jclass, jlong sessionPtr, jdouble zMin, jdouble zMax, jint filamentIdx) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        Slic3r::EnforcerBlockerType state = paint_state(filamentIdx);
-        const auto& its = s->mesh.its;
-        for (int i = 0; i < (int) its.indices.size(); ++i) {
-            const Vec3i32& tri = its.indices[i];
-            const Vec3f& a = its.vertices[tri[0]];
-            const Vec3f& b = its.vertices[tri[1]];
-            const Vec3f& c = its.vertices[tri[2]];
-            float cz = (a.z() + b.z() + c.z()) / 3.f;
-            // Paint if centroid OR any vertex is within range. This is critical for large
-            // hull triangles that cross range boundaries.
-            if ((cz >= zMin && cz <= zMax) ||
-                (a.z() >= zMin && a.z() <= zMax) ||
-                (b.z() >= zMin && b.z() <= zMax) ||
-                (c.z() >= zMin && c.z() <= zMax)) {
-                s->selector->set_facet(i, state);
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1height(JNIEnv*, jclass, jlong sessionPtr, jdouble zMin, jdouble zMax, jint filamentIdx) {
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s) return;
+        const auto state = paint_state(filamentIdx);
+        for (const auto& volume_ref : s->volumes) {
+            PaintVolumeRef& volume = *volume_ref;
+            const auto& its = volume.mesh.its;
+            for (int i = 0; i < (int)its.indices.size(); ++i) {
+                const Vec3i32& tri = its.indices[i];
+                const Vec3d a = volume.mesh_to_world * its.vertices[tri[0]].cast<double>();
+                const Vec3d b = volume.mesh_to_world * its.vertices[tri[1]].cast<double>();
+                const Vec3d c = volume.mesh_to_world * its.vertices[tri[2]].cast<double>();
+                const double center_z = (a.z() + b.z() + c.z()) / 3.;
+                if ((center_z >= zMin && center_z <= zMax) ||
+                    (a.z() >= zMin && a.z() <= zMax) || (b.z() >= zMin && b.z() <= zMax) ||
+                    (c.z() >= zMin && c.z() <= zMax)) volume.selector->set_facet(i, state);
             }
         }
     }
-
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1clear(JNIEnv* env, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        s->selector->reset();
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1clear(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (s) for (const auto& volume : s->volumes) volume->selector->reset();
     }
-
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1commit(JNIEnv* env, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1commit(JNIEnv*, jclass, jlong sessionPtr) {
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        if (!s || !s->model || s->objIdx < 0 || s->objIdx >= (int)s->model->model.objects.size()) return;
         ModelObject* obj = s->model->model.objects[s->objIdx];
-
-        // The session selector is built from volumes[0], so its triangle indices map directly
-        // to the annotation we commit here.
-        for (auto* v : obj->volumes) {
-            if (v == obj->volumes[0]) {
-                facets_for_mode(v, s->mode).set(*s->selector);
-            }
-            // Color painting needs the volume's extruder set to Auto so per-facet filaments apply.
-            if (s->mode == 0 && !v->mmu_segmentation_facets.get_data().triangles_to_split.empty()) {
-                v->config.set("extruder", 0);
-            }
+        for (const auto& state_ref : s->volumes) {
+            PaintVolumeRef& state = *state_ref;
+            if (state.volume_idx < 0 || state.volume_idx >= (int)obj->volumes.size()) continue;
+            ModelVolume* volume = obj->volumes[state.volume_idx];
+            if (!volume) continue;
+            facets_for_mode(volume, s->mode).set(*state.selector);
+            if (s->mode == 0 && !volume->mmu_segmentation_facets.get_data().triangles_to_split.empty())
+                volume->config.set("extruder", 0);
         }
     }
-
-    // Returns flattened triangle vertices (9 floats per triangle) for the facets painted with the
-    // given filament, for rendering a colored overlay.
     JNIEXPORT jfloatArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1get_1mesh(JNIEnv* env, jclass, jlong sessionPtr, jint filamentIdx) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        indexed_triangle_set its = s->selector->get_facets(paint_state(filamentIdx));
-        std::vector<float> buf;
-        buf.reserve(its.indices.size() * 9);
-        for (const Vec3i32& tri : its.indices) {
-            for (int k = 0; k < 3; ++k) {
-                const Vec3f& v = its.vertices[tri[k]];
-                buf.push_back(v.x()); buf.push_back(v.y()); buf.push_back(v.z());
+        PaintSessionRef* s = (PaintSessionRef*)(intptr_t)sessionPtr;
+        std::vector<float> buffer;
+        if (s && s->model && s->objIdx >= 0 && s->objIdx < (int)s->model->model.objects.size()) {
+            ModelObject* obj = s->model->model.objects[s->objIdx];
+            const int instances = std::max(1, (int)obj->instances.size());
+            for (const auto& volume_ref : s->volumes) {
+                const PaintVolumeRef& volume = *volume_ref;
+                const indexed_triangle_set part = volume.selector->get_facets(paint_state(filamentIdx));
+                for (int instance = 0; instance < instances; ++instance) {
+                    const Transform3d inst = obj->instances.empty() || !obj->instances[instance]
+                        ? Transform3d::Identity() : obj->instances[instance]->get_matrix();
+                    const Transform3d transform = inst * obj->volumes[volume.volume_idx]->get_matrix();
+                    for (const Vec3i32& tri : part.indices) for (int k = 0; k < 3; ++k) {
+                        const Vec3f vertex = (transform * part.vertices[tri[k]].cast<double>()).cast<float>();
+                        buffer.push_back(vertex.x()); buffer.push_back(vertex.y()); buffer.push_back(vertex.z());
+                    }
+                }
             }
         }
-        jfloatArray arr = env->NewFloatArray((jsize) buf.size());
-        if (!buf.empty()) env->SetFloatArrayRegion(arr, 0, (jsize) buf.size(), buf.data());
-        return arr;
+        jfloatArray result = env->NewFloatArray((jsize)buffer.size());
+        if (!buffer.empty()) env->SetFloatArrayRegion(result, 0, (jsize)buffer.size(), buffer.data());
+        return result;
+    }
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1end(JNIEnv*, jclass, jlong sessionPtr) {
+        delete (PaintSessionRef*)(intptr_t)sessionPtr;
     }
 
-    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_paint_1end(JNIEnv* env, jclass, jlong sessionPtr) {
-        PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        delete s->emesh;
-        delete s;
-    }
-
-    // Build a GLModel from the committed mmu painting on an object's volume[0] (no active session),
-    // so painted colors persist on the model after exiting paint mode. Returns the triangle count.
-    // Accumulate, in the object's merged-mesh coordinate space, the facets painted with the given
-    // filament state across ALL model-part volumes. A Bambu/Orca "assembly" loads as one
-    // ModelObject with several volumes (figure + accessories), each carrying its own paint data;
-    // the rendered GLModel is obj->mesh() (all model-part volumes merged, each transformed by its
-    // volume matrix then the instance matrix). The overlay must merge the same volumes with the
-    // same transforms, or only the first volume's paint shows (and misaligned against the merge).
     static indexed_triangle_set accumulate_paint_facets(Slic3r::ModelObject* obj, Slic3r::EnforcerBlockerType state) {
         indexed_triangle_set out;
         for (const Slic3r::ModelInstance* inst : obj->instances) {
@@ -3888,18 +3889,16 @@ extern "C" {
             for (ModelVolume* volume : obj->volumes) {
                 if (volume == nullptr || !volume->is_model_part()) continue;
                 const Transform3d transform = instance_matrix * volume->get_matrix();
-                const int base_filament = volume == obj->volumes[0] && base_filament_preview > 0
-                    ? base_filament_preview
-                    : std::max(1, volume->extruder_id());
+                const int volume_idx = (int)std::distance(obj->volumes.begin(), std::find(obj->volumes.begin(), obj->volumes.end(), volume));
+                PaintVolumeRef* editable = paint_volume(session, volume_idx);
+                const bool base_volume = volume_idx == 0;
+                const int base_filament = base_volume && base_filament_preview > 0
+                    ? base_filament_preview : std::max(1, volume->extruder_id());
                 const bool base_matches = base_filament == (int)state;
-                if (volume == obj->volumes[0] && session->mode == 0) {
-                    append_transformed(session->selector->get_facets(state), transform);
-                    if (base_matches)
-                        append_transformed(session->selector->get_facets(Slic3r::EnforcerBlockerType::NONE), transform);
-                    continue;
-                }
-                if (volume == obj->volumes[0]) {
-                    append_transformed(session->selector->get_facets(state), transform);
+                if (editable != nullptr) {
+                    append_transformed(editable->selector->get_facets(state), transform);
+                    if (session->mode == 0 && base_matches)
+                        append_transformed(editable->selector->get_facets(Slic3r::EnforcerBlockerType::NONE), transform);
                     continue;
                 }
 
@@ -3973,35 +3972,7 @@ extern "C" {
         JNIEnv* env, jclass, jlong glPtr, jlong sessionPtr, jint filamentIdx, jint baseFilamentPreview) {
         GLModelRef* g = (GLModelRef*) (intptr_t) glPtr;
         PaintSessionRef* s = (PaintSessionRef*) (intptr_t) sessionPtr;
-        const indexed_triangle_set its = s->mode == 0
-            ? accumulate_live_paint_facets(s, paint_state(filamentIdx), baseFilamentPreview)
-            : [&]() {
-                indexed_triangle_set local = s->selector->get_facets(paint_state(filamentIdx));
-                indexed_triangle_set transformed;
-                if (local.indices.empty() || s->model == nullptr ||
-                    s->objIdx < 0 || s->objIdx >= (int)s->model->model.objects.size()) return transformed;
-                ModelObject* obj = s->model->model.objects[s->objIdx];
-                ModelVolume* volume = obj->volumes.empty() ? nullptr : obj->volumes.front();
-                if (volume == nullptr) return transformed;
-                auto append_instance = [&](const Transform3d& transform) {
-                    const int base = (int)transformed.vertices.size();
-                    transformed.vertices.reserve(transformed.vertices.size() + local.vertices.size());
-                    for (const stl_vertex& vertex : local.vertices)
-                        transformed.vertices.emplace_back((transform * vertex.cast<double>()).cast<float>());
-                    transformed.indices.reserve(transformed.indices.size() + local.indices.size());
-                    for (const stl_triangle_vertex_indices& triangle : local.indices)
-                        transformed.indices.emplace_back(triangle + stl_triangle_vertex_indices(base, base, base));
-                };
-                if (obj->instances.empty()) {
-                    append_instance(volume->get_matrix());
-                } else {
-                    for (const ModelInstance* instance : obj->instances) {
-                        if (instance != nullptr)
-                            append_instance(instance->get_matrix() * volume->get_matrix());
-                    }
-                }
-                return transformed;
-            }();
+        const indexed_triangle_set its = accumulate_live_paint_facets(s, paint_state(filamentIdx), baseFilamentPreview);
         g->model.reset();
         if (!its.indices.empty())
             g->model.init_from(its);
@@ -4050,17 +4021,19 @@ extern "C" {
             for (ModelVolume* volume : obj->volumes) {
                 if (volume == nullptr || !volume->is_model_part()) continue;
                 const Transform3d transform = instance_matrix * volume->get_matrix();
-                const bool editable_volume = volume == obj->volumes[0];
-                const int base_filament = editable_volume && base_filament_preview > 0
+                const int volume_idx = (int)std::distance(obj->volumes.begin(), std::find(obj->volumes.begin(), obj->volumes.end(), volume));
+                PaintVolumeRef* editable = paint_volume(session, volume_idx);
+                const bool base_volume = volume_idx == 0;
+                const int base_filament = base_volume && base_filament_preview > 0
                     ? base_filament_preview : std::max(1, volume->extruder_id());
                 const bool show_base = session->mode == 0;
 
-                if (editable_volume) {
+                if (editable != nullptr) {
                     for (int filament = 1; filament <= filament_count; ++filament) {
                         GLModel::Geometry& geometry = geometries[filament - 1];
-                        append_transformed(session->selector->get_facets(paint_state(filament)), transform, geometry);
+                        append_transformed(editable->selector->get_facets(paint_state(filament)), transform, geometry);
                         if (show_base && base_filament == filament)
-                            append_transformed(session->selector->get_facets(Slic3r::EnforcerBlockerType::NONE), transform, geometry);
+                            append_transformed(editable->selector->get_facets(Slic3r::EnforcerBlockerType::NONE), transform, geometry);
                     }
                     continue;
                 }

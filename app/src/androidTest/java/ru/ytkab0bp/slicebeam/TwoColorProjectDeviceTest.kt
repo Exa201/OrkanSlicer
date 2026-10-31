@@ -80,6 +80,67 @@ class TwoColorProjectDeviceTest {
         }
     }
 
+    @Test fun paintSessionEditsAndUndoesEachCombinedThreeMfVolumeIndependently() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = File(context.cacheDir, "two-color-independent-paint.3mf")
+        InstrumentationRegistry.getInstrumentation().context.assets.open("models/two-color-project.3mf").use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        var model: Model? = null
+        val firstSlot = GLModel()
+        val secondSlot = GLModel()
+        val overlays = arrayOf(GLModel(), firstSlot, secondSlot, GLModel())
+        try {
+            model = Model(file, 1)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(1, model.objectsCount)
+            val session = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+            try {
+                assertTrue("multipart assembly should open a paint session", session.isValid())
+                // The fixture places its two 6 mm cubes at X=40 and X=55. Rays are in
+                // model/world space; they must return distinct source-volume and face IDs.
+                val firstHit = session.raycast(doubleArrayOf(43.0, 43.0, 20.0), doubleArrayOf(0.0, 0.0, -1.0))
+                    ?: error("first 3MF part should be ray-pickable")
+                val secondHit = session.raycast(doubleArrayOf(58.0, 43.0, 20.0), doubleArrayOf(0.0, 0.0, -1.0))
+                    ?: error("second 3MF part should be ray-pickable")
+                assertEquals("ray hits must retain their volume index", 5, firstHit.size)
+                assertEquals(5, secondHit.size)
+                assertTrue("two model parts must map to distinct volume slots", firstHit[0] != secondHit[0])
+
+                session.beginStroke()
+                session.bucket(firstHit, -1, 3, true, 180.0)
+                session.endStroke()
+                assertTrue("first part stroke should be undoable", session.canUndoStroke())
+                val firstPreview = session.buildOverlays(overlays)
+                assertTrue("slot 3 preview should show the first painted part", firstPreview[2] > 0)
+                assertEquals("slot 4 should not contain the first part", 0, firstPreview[3])
+                assertTrue(session.undoStroke())
+                assertFalse("undo should remove the first part's staged color", session.buildOverlays(overlays)[2] > 0)
+                assertTrue(session.redoStroke())
+
+                session.beginStroke()
+                session.bucket(secondHit, -1, 4, true, 180.0)
+                session.endStroke()
+                val bothPreview = session.buildOverlays(overlays)
+                assertTrue("slot 3 should retain the first part color", bothPreview[2] > 0)
+                assertTrue("slot 4 should independently show the second part", bothPreview[3] > 0)
+                session.commit()
+            } finally {
+                session.end()
+            }
+            val used = model.getUsedFilaments(0)
+            assertTrue("first painted material should be committed", used.contains(3))
+            assertTrue("second painted material should be committed", used.contains(4))
+        } finally {
+            overlays[0].release()
+            firstSlot.release()
+            secondSlot.release()
+            overlays[3].release()
+            model?.release()
+            file.delete()
+        }
+    }
+
     @Test fun explicitUniformObjectFilamentChoiceReplacesThreeMfPartAssignment() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "two-color-assignment.3mf")

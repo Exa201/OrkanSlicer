@@ -1,15 +1,15 @@
 package ru.ytkab0bp.slicebeam.slic3r
 
 /**
- * A multi-color painting session bound to one object's first volume. All calls must happen on the
- * GL thread (they touch the native model/selector). See Native.paint_* for the engine bridge.
+ * A multi-color painting session bound to each model-part volume of one object. Calls must happen
+ * on the GL thread. Raycast results are {volumeIndex, facetIndex, worldX, worldY, worldZ}.
  */
 open class PaintSession(model: Model, objIdx: Int, mode: Int) {
     private var ptr: Long = Native.paint_begin(model.pointer, objIdx, mode)
 
     open fun isValid(): Boolean = ptr != 0L
 
-    /** Ray-cast a camera ray (mesh-local coords) -> {facetIdx, x, y, z} or empty if no hit. */
+    /** Ray-cast a world-space camera ray -> {volumeIndex, facetIndex, worldX, worldY, worldZ}. */
     open fun raycast(origin: DoubleArray?, dir: DoubleArray?): DoubleArray? {
         if (origin == null || dir == null) return null
         return Native.paint_raycast(ptr, origin, dir)

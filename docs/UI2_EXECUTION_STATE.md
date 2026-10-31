@@ -1,3 +1,15 @@
+# Nightly 2.5 execution update — 2026-10-31 (active worktree `OrkanSlicer-Nightly-2.5`)
+
+- Branch/worktree: `nightly-2.5`, starting HEAD `70231754d`; no commit created for this work yet.
+- Current objective: progress the pinned OrcaSlicer 2.5 parity backlog in `docs/ORCA_NIGHTLY_FEATURE_PLAN.md`; batch is 1/10 implementation-and-emulator-test-complete.
+- Completed in this working group: compound multi-volume 3MF paint is independently ray-pickable, editable, undoable/redone, visible in live overlays, and committed per volume. Fixed a native crash by keeping mesh owners at stable heap addresses because `AABBMesh`/`TriangleSelector` retain mesh references.
+- Verification: ARM64 native Release library + Kotlin debug source compiled. Emulator Android 16 targeted crash reproducer passed 1/1. Full `TwoColorProjectDeviceTest` passed 5/5 (no failures/skips), including per-volume painting, 3MF round-trip, and generated G-code containing the painted material tool change. `git diff --check` passed. Emulator test is not a physical Honor/Xiaomi test.
+- Modified files: `beam_native.cpp`, `GLRenderer.kt`, `PaintSession.kt`, `TwoColorProjectDeviceTest.kt`; feature plan updated.
+- Still open: #1 low-GPU live viewport setting needs real-device interaction/picking alignment check; physical-device validation for #2; backlog #3–#10. No APK, commit, push, or release has been created in this group.
+- Next concrete task: inspect Orca 2.5 Qidi Box/filament mapping semantics and the app's Qidi send/profile flow, define persistent per-material slot state without changing printer capabilities, then add a fixture-backed mapping regression test before implementation.
+
+---
+
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
 ## Erneute Modellierungs- und STEP/STP-Abnahme — 2026-10-24, HEAD `940d4788`
