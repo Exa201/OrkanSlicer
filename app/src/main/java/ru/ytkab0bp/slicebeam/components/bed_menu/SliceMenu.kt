@@ -158,7 +158,7 @@ class SliceMenu : ListBedMenu() {
                                 print,
                             )
                         },
-                    ) { sendType, sendHost, sendApiKey, targetPrinter, shouldPrint ->
+                    ) { sendType, sendHost, sendApiKey, targetPrinter, shouldPrint, qidiBoxSlots ->
                         SliceUploadController.upload(
                             bed,
                             sendType,
@@ -168,6 +168,7 @@ class SliceMenu : ListBedMenu() {
                             targetPrinter,
                             activeTools,
                             preflightAnycubicScan,
+                            qidiBoxSlots,
                         )
                     }
                 } else {

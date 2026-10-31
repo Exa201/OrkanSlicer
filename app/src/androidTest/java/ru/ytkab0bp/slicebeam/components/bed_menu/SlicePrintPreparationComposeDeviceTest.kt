@@ -31,6 +31,8 @@ import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.QidiBoxToolMappingPolicy
+import ru.ytkab0bp.slicebeam.utils.QidiBoxToolMappingStore
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.CountDownLatch
@@ -129,7 +131,7 @@ class SlicePrintPreparationComposeDeviceTest {
                 pressureAdvance = SlicePreparationTools.PressureAdvanceCommands(emptyList(), emptyList()),
                 activateProfile = SlicePrintPreparationDialog.PrinterProfileAction { true },
                 reopenAfterReslice = {},
-                sendAction = SliceMenuItems.SendAction { _, host, _, _, shouldPrint ->
+                sendAction = SlicePrintPreparationDialog.PrinterSendAction { _, host, _, _, shouldPrint, _ ->
                     sends.incrementAndGet()
                     sentHost.set(host)
                     printFlags.set(shouldPrint)
@@ -152,6 +154,99 @@ class SlicePrintPreparationComposeDeviceTest {
         assertEquals("http://printer.invalid", sentHost.get())
         assertEquals("The upload-only choice must never request a print start", false, printFlags.get())
         assertFalse(activity.isFinishing)
+    }
+
+    @Test
+    fun qidiBoxMappingIsSelectableAndPersistedPerPrinterBeforePrintDispatch() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val qidiConfig = activity.assets.open("orca_profiles/Qidi.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(qidiConfig.findPrinter("Qidi Q2 0.4 nozzle"))
+        printer.put("printer_model", "Q2")
+        printer.put("host_type", "moonraker")
+        printer.put("print_host", "http://qidi-box-mapping-test.local")
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val key = QidiBoxToolMappingPolicy.preferenceKey(printer.title.orEmpty(), printer.get("print_host").orEmpty())
+        val oldValue = prefs.getString(key, null)
+        val sentMapping = AtomicReference<IntArray?>()
+        try {
+            prefs.edit().remove(key).commit()
+            SlicePrintPreparationDialog.show(
+                    fragment = bed,
+                    printer = printer,
+                    print = true,
+                    gcodeToolCount = 3,
+                    activeTools = intArrayOf(0, 1, 2),
+                    firstToolUse = intArrayOf(0, 1, 2),
+                    sourceFilamentTypes = listOf("PLA", "PETG", "PLA"),
+                    pressureAdvance = SlicePreparationTools.PressureAdvanceCommands(emptyList(), emptyList()),
+                    activateProfile = SlicePrintPreparationDialog.PrinterProfileAction { true },
+                    reopenAfterReslice = {},
+                    sendAction = SlicePrintPreparationDialog.PrinterSendAction { _, _, _, _, shouldPrint, slots ->
+                        assertTrue("Qidi mapping should only accompany an explicit print action", shouldPrint)
+                        sentMapping.set(slots)
+                    },
+                )
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithTag("qidi-box-mapping-tool-0").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("qidi-box-mapping-slot-0-4").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("qidi-box-mapping-tool-1").performClick()
+            compose.onNodeWithTag("qidi-box-mapping-slot-1-2").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("qidi-box-mapping-tool-2").performClick()
+            compose.onNodeWithTag("qidi-box-mapping-slot-2-4").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("slice-preparation-confirm").performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertArrayEquals("Two G-code tools may intentionally use the same physical Box slot",
+                intArrayOf(3, 1, 3), sentMapping.get())
+            assertArrayEquals("The confirmed mapping should persist for this printer only",
+                intArrayOf(3, 1, 3), QidiBoxToolMappingStore.load(printer, 3))
+        } finally {
+            if (oldValue == null) prefs.edit().remove(key).commit()
+            else prefs.edit().putString(key, oldValue).commit()
+        }
+    }
+
+    @Test
+    fun cancellingQidiBoxMappingDoesNotPersistOrDispatch() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val qidiConfig = activity.assets.open("orca_profiles/Qidi.ini").use { Slic3rConfigWrapper(it) }
+        val printer = requireNotNull(qidiConfig.findPrinter("Qidi Q2 0.4 nozzle"))
+        printer.put("printer_model", "Q2")
+        printer.put("host_type", "moonraker")
+        printer.put("print_host", "http://qidi-box-cancel-test.local")
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val key = QidiBoxToolMappingPolicy.preferenceKey(printer.title.orEmpty(), printer.get("print_host").orEmpty())
+        val oldValue = prefs.getString(key, null)
+        var dispatched = false
+        try {
+            prefs.edit().remove(key).commit()
+            activity.runOnUiThread {
+                SlicePrintPreparationDialog.show(
+                    fragment = bed,
+                    printer = printer,
+                    print = true,
+                    gcodeToolCount = 1,
+                    activeTools = intArrayOf(0),
+                    firstToolUse = intArrayOf(0),
+                    sourceFilamentTypes = listOf("PLA"),
+                    pressureAdvance = SlicePreparationTools.PressureAdvanceCommands(emptyList(), emptyList()),
+                    activateProfile = SlicePrintPreparationDialog.PrinterProfileAction { true },
+                    reopenAfterReslice = {},
+                    sendAction = SlicePrintPreparationDialog.PrinterSendAction { _, _, _, _, _, _ -> dispatched = true },
+                )
+            }
+            compose.waitUntil(timeoutMillis = 5_000) { bed.isWorkspaceMessageDialogAttached() }
+            compose.onNodeWithTag("qidi-box-mapping-tool-0").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("qidi-box-mapping-slot-0-4").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("slice-preparation-cancel").performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !bed.isWorkspaceMessageDialogAttached() }
+            assertFalse("Cancel must not dispatch an upload or print", dispatched)
+            assertNull("Unconfirmed Box selections must not be persisted", prefs.getString(key, null))
+        } finally {
+            if (oldValue == null) prefs.edit().remove(key).commit()
+            else prefs.edit().putString(key, oldValue).commit()
+        }
     }
 
     @Test

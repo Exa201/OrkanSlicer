@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog as ComposeAlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +43,9 @@ import ru.ytkab0bp.slicebeam.components.AcePhysicalSlotsBar
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.MmuFilamentSync
+import ru.ytkab0bp.slicebeam.utils.QidiBoxToolMappingPolicy
+import ru.ytkab0bp.slicebeam.utils.QidiBoxToolMappingStore
+import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
 import ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy
 
 internal sealed interface PrintPreparationWarning {
@@ -50,6 +57,10 @@ internal sealed interface PrintPreparationWarning {
 
 /** Shows printer, auto-leveling and ACE slot checks before sending a sliced job. */
 object SlicePrintPreparationDialog {
+    fun interface PrinterSendAction {
+        fun send(type: String, host: String, apiKey: String?, printer: ConfigObject, print: Boolean, qidiBoxSlots: IntArray?)
+    }
+
     fun interface PrinterProfileAction {
         fun activate(printer: ConfigObject): Boolean
     }
@@ -70,7 +81,7 @@ object SlicePrintPreparationDialog {
         pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
         activateProfile: PrinterProfileAction,
         reopenAfterReslice: (ConfigObject) -> Unit,
-        sendAction: SliceMenuItems.SendAction,
+        sendAction: PrinterSendAction,
     ) {
         val context = fragment.getContext() ?: return
         val jobName = fragment.glView?.renderer?.gcodeResult?.getRecommendedName().orEmpty()
@@ -128,11 +139,15 @@ object SlicePrintPreparationDialog {
             return null
         }
 
-        fun send(targetPrinter: ConfigObject, shouldPrint: Boolean) {
+        fun send(targetPrinter: ConfigObject, shouldPrint: Boolean, qidiBoxSlots: IntArray? = null) {
             val targetType = targetPrinter.get("host_type") ?: "octoprint"
             val targetHost = targetPrinter.get("print_host") ?: return
             val targetApiKey = targetPrinter.get("printhost_apikey")
-            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, shouldPrint)
+            val explicitQidiMapping = qidiBoxSlots?.takeIf {
+                shouldPrint && QidiGCode3mfPackager.isQidiQ2(targetPrinter)
+            }
+            if (explicitQidiMapping != null) QidiBoxToolMappingStore.save(targetPrinter, explicitQidiMapping)
+            sendAction.send(targetType, targetHost, targetApiKey, targetPrinter, shouldPrint, explicitQidiMapping)
         }
 
         fragment.showWorkspaceComposeDialog { dismiss ->
@@ -147,7 +162,7 @@ object SlicePrintPreparationDialog {
                 sourceFilamentTypes = sourceFilamentTypes,
                 pressureAdvance = pressureAdvance,
                 onDismiss = dismiss,
-                onSubmit = { targetPrinter, printerChanged, showWarning ->
+                onSubmit = { targetPrinter, printerChanged, qidiBoxSlots, showWarning ->
                     val targetHost = targetPrinter.get("print_host") ?: return@PrintPreparationDialog
                     if (printerChanged) {
                         when (SlicePreparationTools.activateChangedPrinter(printer.title, targetPrinter.title) {
@@ -167,16 +182,16 @@ object SlicePrintPreparationDialog {
                     if (warning != null) showWarning(warning)
                     else {
                         dismiss()
-                        send(targetPrinter, print)
+                        send(targetPrinter, print, qidiBoxSlots)
                     }
                 },
                 onWarningUploadOnly = { targetPrinter ->
                     dismiss()
                     send(targetPrinter, shouldPrint = false)
                 },
-                onWarningFirmwareChecked = { targetPrinter ->
+                onWarningFirmwareChecked = { targetPrinter, qidiBoxSlots ->
                     dismiss()
-                    send(targetPrinter, shouldPrint = true)
+                    send(targetPrinter, shouldPrint = true, qidiBoxSlots = qidiBoxSlots)
                 },
             )
         }
@@ -224,14 +239,17 @@ private fun PrintPreparationDialog(
     sourceFilamentTypes: List<String>,
     pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
     onDismiss: () -> Unit,
-    onSubmit: (ConfigObject, Boolean, (PrintPreparationWarning) -> Unit) -> Unit,
+    onSubmit: (ConfigObject, Boolean, IntArray?, (PrintPreparationWarning) -> Unit) -> Unit,
     onWarningUploadOnly: (ConfigObject) -> Unit,
-    onWarningFirmwareChecked: (ConfigObject) -> Unit,
+    onWarningFirmwareChecked: (ConfigObject, IntArray?) -> Unit,
 ) {
     var printer by remember(initialPrinter) { mutableStateOf(initialPrinter) }
     var resliceRequired by remember(initialPrinter.title) { mutableStateOf(false) }
     var warning by remember { mutableStateOf<PrintPreparationWarning?>(null) }
     val context = LocalContext.current
+    var qidiBoxSlots by remember(printer.title, printer.get("print_host"), gcodeToolCount) {
+        mutableStateOf(QidiBoxToolMappingStore.load(printer, gcodeToolCount))
+    }
     val selectedGates = MmuFilamentSync.getSelectedGates(printer.title.orEmpty(), gcodeToolCount)
         ?: IntArray(gcodeToolCount) { tool -> MmuFilamentSync.defaultGateForTool(printer.title.orEmpty(), tool) }
     val mappingSummary = SlicePrintPreparationDialog.formatToolMapping(
@@ -260,6 +278,13 @@ private fun PrintPreparationDialog(
                     !resliceRequired && SlicePrintPreparationDialog.isAnycubicKobra(printer) && it.isNotEmpty()
                 },
                 pressureAdvance = pressureAdvance,
+                qidiBoxSlots = qidiBoxSlots.takeIf {
+                    print && !resliceRequired && QidiGCode3mfPackager.isQidiQ2(printer)
+                },
+                qidiActiveTools = activeTools,
+                onSelectQidiBoxSlot = { tool, slot ->
+                    if (tool in qidiBoxSlots.indices) qidiBoxSlots = qidiBoxSlots.copyOf().also { it[tool] = slot }
+                },
                 onSelectPrinter = { chosen ->
                     printer = chosen
                     resliceRequired = SlicePreparationTools.didPrinterChange(
@@ -276,7 +301,15 @@ private fun PrintPreparationDialog(
                 else -> R.string.MenuSliceSendToPrinter
             }
             TextButton(
-                onClick = { onSubmit(printer, resliceRequired) { warning = it } },
+                onClick = {
+                    onSubmit(
+                        printer,
+                        resliceRequired,
+                        qidiBoxSlots.takeIf {
+                            print && !resliceRequired && QidiGCode3mfPackager.isQidiQ2(printer)
+                        },
+                    ) { warning = it }
+                },
                 modifier = Modifier.heightIn(min = 48.dp).testTag("slice-preparation-confirm"),
             ) { Text(stringResource(label)) }
         },
@@ -297,9 +330,60 @@ private fun PrintPreparationDialog(
             },
             onFirmwareChecked = {
                 warning = null
-                onWarningFirmwareChecked(printer)
+                onWarningFirmwareChecked(printer, qidiBoxSlots.takeIf {
+                    QidiGCode3mfPackager.isQidiQ2(printer)
+                })
             },
         )
+    }
+}
+
+@Composable
+private fun QidiActiveToolsMapping(
+    activeTools: IntArray,
+    mapping: IntArray,
+    onSelectSlot: (Int, Int) -> Unit,
+) {
+    var expandedTool by remember { mutableStateOf<Int?>(null) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        activeTools.distinct().sorted().forEach { tool ->
+            val selected = mapping.getOrElse(tool) { -1 }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("T$tool", color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                Box {
+                    OutlinedButton(
+                        onClick = { expandedTool = tool },
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("qidi-box-mapping-tool-$tool"),
+                    ) {
+                        Text(
+                            if (selected in 0 until QidiBoxToolMappingPolicy.SLOT_COUNT)
+                                stringResource(R.string.QidiBoxMappingSlot, selected + 1)
+                            else stringResource(R.string.QidiBoxMappingKeep),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    DropdownMenu(expanded = expandedTool == tool, onDismissRequest = { expandedTool = null }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.QidiBoxMappingKeep)) },
+                            onClick = { onSelectSlot(tool, -1); expandedTool = null },
+                            modifier = Modifier.testTag("qidi-box-mapping-slot-$tool-keep"),
+                        )
+                        repeat(QidiBoxToolMappingPolicy.SLOT_COUNT) { slot ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.QidiBoxMappingSlot, slot + 1)) },
+                                onClick = { onSelectSlot(tool, slot); expandedTool = null },
+                                modifier = Modifier.testTag("qidi-box-mapping-slot-$tool-${slot + 1}"),
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -388,6 +472,9 @@ private fun PrintPreparationContent(
     mappingSummary: String?,
     emptyAceSlots: IntArray?,
     pressureAdvance: SlicePreparationTools.PressureAdvanceCommands,
+    qidiBoxSlots: IntArray?,
+    qidiActiveTools: IntArray,
+    onSelectQidiBoxSlot: (Int, Int) -> Unit,
     onSelectPrinter: (ConfigObject) -> Unit,
 ) {
     var showPrinterPicker by remember { mutableStateOf(false) }
@@ -447,6 +534,15 @@ private fun PrintPreparationContent(
         }
         if (!resliceRequired && SlicePrintPreparationDialog.isAnycubicKobra(printer)) {
             AcePhysicalSlotsBar(MmuFilamentSync.physicalGates(printer.title.orEmpty()))
+        }
+        if (!resliceRequired && qidiBoxSlots != null && qidiActiveTools.isNotEmpty()) {
+            Text(stringResource(R.string.QidiBoxMappingTitle), color = primary, style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.QidiBoxMappingHint), color = secondary, fontSize = 13.sp, lineHeight = 18.sp)
+            QidiActiveToolsMapping(
+                activeTools = qidiActiveTools,
+                mapping = qidiBoxSlots,
+                onSelectSlot = onSelectQidiBoxSlot,
+            )
         }
         Text(
             stringResource(

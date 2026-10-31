@@ -19,6 +19,7 @@ import com.loopj.android.http.AsyncHttpResponseHandler
 import com.loopj.android.http.RequestParams
 import cz.msebera.android.httpclient.Header
 import cz.msebera.android.httpclient.entity.ContentType
+import cz.msebera.android.httpclient.entity.StringEntity
 import cz.msebera.android.httpclient.message.BasicHeader
 import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.BuildConfig
@@ -41,6 +42,7 @@ import ru.ytkab0bp.slicebeam.utils.PrinterResponseInspector
 import ru.ytkab0bp.slicebeam.utils.PrinterUploadReservation
 import ru.ytkab0bp.slicebeam.utils.PrinterUploadUrl
 import ru.ytkab0bp.slicebeam.utils.QidiGCode3mfPackager
+import ru.ytkab0bp.slicebeam.utils.QidiBoxToolMappingPolicy
 import ru.ytkab0bp.slicebeam.utils.UploadFileValidator
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
@@ -81,6 +83,7 @@ object SliceUploadController {
         printer: ConfigObject,
         activeTools: IntArray,
         precomputedAnycubicScan: AnycubicGCodeProcessor.ScanResult? = null,
+        qidiBoxSlots: IntArray? = null,
     ) {
         val context = fragment.getContext() ?: return
         val slicedResult = fragment.glView?.renderer?.gcodeResult
@@ -172,7 +175,7 @@ object SliceUploadController {
                     showPreparationFailure(fragment, failure.message)
                 } else if (preparedFile != null) {
                     progress.setProgress(0, fragment.getContext()!!.getString(R.string.UploadProgressPercent, 0))
-                    uploadPrepared(fragment, type, host, apiKey, uploadName, print, preparedFile, progress, qidiQ2)
+                    uploadPrepared(fragment, type, host, apiKey, uploadName, print, preparedFile, progress, qidiQ2, qidiBoxSlots, activeTools)
                 } else {
                     dismissSendProgress(fragment, progress)
                 }
@@ -226,6 +229,8 @@ object SliceUploadController {
         uploadFile: File,
         progress: PrinterUploadProgressDialog,
         qidiQ2: Boolean,
+        qidiBoxSlots: IntArray?,
+        activeTools: IntArray,
     ) {
         if (!UploadFileValidator.isReadyForUpload(uploadFile)) {
             dismissSendProgress(fragment, progress)
@@ -233,7 +238,7 @@ object SliceUploadController {
             return
         }
         if (type == "moonraker" || type == "klipper") {
-            uploadMoonraker(fragment, host, apiKey, name, print, uploadFile, progress, qidiQ2)
+            uploadMoonraker(fragment, host, apiKey, name, print, uploadFile, progress, qidiQ2, qidiBoxSlots, activeTools)
             return
         }
 
@@ -316,6 +321,60 @@ object SliceUploadController {
         }
     }
 
+    private fun applyQidiBoxMapping(
+        fragment: BedFragment,
+        host: String,
+        headers: Array<Header>,
+        script: String,
+        progress: PrinterUploadProgressDialog,
+        onApplied: () -> Unit,
+    ) {
+        val url = PrinterUploadUrl.endpoint(host, "/printer/gcode/script")
+        if (url == null) {
+            dismissSendProgress(fragment, progress)
+            showPreparationFailure(fragment, SliceBeam.requireInstance().getString(R.string.QidiBoxMappingApplyFailed))
+            return
+        }
+        val body = JSONObject().put("script", script).toString()
+        val entity = StringEntity(body, ContentType.APPLICATION_JSON)
+        try {
+            printStartClient.post(
+                SliceBeam.requireInstance(), url, headers, entity, ContentType.APPLICATION_JSON.mimeType,
+                object : AsyncHttpResponseHandler() {
+                    override fun onSuccess(statusCode: Int, responseHeaders: Array<Header>, responseBody: ByteArray) {
+                        val detail = PrinterResponseInspector.embeddedError(responseBody)
+                        if (statusCode !in 200..299 || detail != null) {
+                            dismissSendProgress(fragment, progress)
+                            showPreparationFailure(
+                                fragment,
+                                SliceBeam.requireInstance().getString(R.string.QidiBoxMappingApplyFailed) +
+                                    (detail?.let { "\n$it" } ?: ""),
+                            )
+                            return
+                        }
+                        onApplied()
+                    }
+
+                    override fun onFailure(statusCode: Int, responseHeaders: Array<Header>?, responseBody: ByteArray?, error: Throwable?) {
+                        dismissSendProgress(fragment, progress)
+                        showPreparationFailure(
+                            fragment,
+                            SliceBeam.requireInstance().getString(R.string.QidiBoxMappingApplyFailed) +
+                                (error?.localizedMessage?.let { "\n$it" } ?: ""),
+                        )
+                    }
+                },
+            )
+        } catch (error: RuntimeException) {
+            dismissSendProgress(fragment, progress)
+            showPreparationFailure(
+                fragment,
+                SliceBeam.requireInstance().getString(R.string.QidiBoxMappingApplyFailed) +
+                    (error.localizedMessage?.let { "\n$it" } ?: ""),
+            )
+        }
+    }
+
     private fun uploadMoonraker(
         fragment: BedFragment,
         host: String,
@@ -325,6 +384,8 @@ object SliceUploadController {
         uploadFile: File,
         progress: PrinterUploadProgressDialog,
         qidiQ2: Boolean,
+        qidiBoxSlots: IntArray?,
+        activeTools: IntArray,
     ) {
         val uploadUrl = PrinterUploadUrl.endpoint(host, "/server/files/upload")
         val startUrl = PrinterUploadUrl.endpoint(host, "/printer/print/start")
@@ -386,59 +447,63 @@ object SliceUploadController {
                         )
                         return
                     }
-                    ViewUtils.postOnMainThread {
-                        progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadPrinterProcessing))
-                    }
-                    val startParams = RequestParams().apply {
-                        put("filename", acknowledgement.path)
-                        if (qidiQ2) put("plateindex", "1")
-                    }
-                    try {
-                    printStartClient.post(
-                        SliceBeam.requireInstance(),
-                        startUrl,
-                        headers,
-                        startParams,
-                        null,
-                        object : AsyncHttpResponseHandler() {
-                            override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
-                                PrinterResponseInspector.embeddedError(body)?.let { detail ->
-                                    showUploadFailure(fragment, 0, body, IOException(detail), progress, printStartAttempt = true)
-                                    return
-                                }
-                                if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
-                                    checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
-                                        "Der Drucker hat den Druckstart nicht eindeutig bestätigt.")
-                                    return
-                                }
-                                dismissSendProgress(fragment, progress)
-                                SliceBeam.EVENT_BUS.fireEvent(
-                                    NeedSnackbarEvent(
-                                        SnackbarsLayout.Type.INFO,
-                                        R.string.MenuSliceSendToPrinterPrintStarted,
-                                    ),
-                                )
-                            }
-
-                            override fun onFailure(
-                                code: Int,
-                                responseHeaders: Array<Header>?,
-                                body: ByteArray?,
-                                error: Throwable?,
-                            ) {
-                                checkUncertainPrintStart(fragment, host, responseHeaders ?: headers, acknowledgement.path, progress,
-                                    "Die Antwort auf den Druckstart war unklar${if (code > 0) " (HTTP $code)" else ""}: " +
-                                        PrinterResponseInspector.printStartFailureDetail(
-                                            body,
-                                            error?.localizedMessage ?: error?.toString(),
+                    fun startUploadedPrint() {
+                        ViewUtils.postOnMainThread {
+                            progress.setMessage(SliceBeam.requireInstance().getString(R.string.UploadPrinterProcessing))
+                        }
+                        val startParams = RequestParams().apply {
+                            put("filename", acknowledgement.path)
+                            if (qidiQ2) put("plateindex", "1")
+                        }
+                        try {
+                            printStartClient.post(
+                                SliceBeam.requireInstance(), startUrl, headers, startParams, null,
+                                object : AsyncHttpResponseHandler() {
+                                    override fun onSuccess(code: Int, responseHeaders: Array<Header>, body: ByteArray) {
+                                        PrinterResponseInspector.embeddedError(body)?.let { detail ->
+                                            showUploadFailure(fragment, 0, body, IOException(detail), progress, printStartAttempt = true)
+                                            return
+                                        }
+                                        if (!MoonrakerResponseInspector.printStartConfirmed(body)) {
+                                            checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                                "Der Drucker hat den Druckstart nicht eindeutig bestätigt.")
+                                            return
+                                        }
+                                        dismissSendProgress(fragment, progress)
+                                        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                                            SnackbarsLayout.Type.INFO, R.string.MenuSliceSendToPrinterPrintStarted,
                                         ))
-                            }
-                        },
-                    )
-                    } catch (error: RuntimeException) {
-                        checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
-                            "Die Startanfrage konnte nicht eindeutig abgeschlossen werden: ${error.localizedMessage ?: error}.")
+                                    }
+
+                                    override fun onFailure(code: Int, responseHeaders: Array<Header>?, body: ByteArray?, error: Throwable?) {
+                                        checkUncertainPrintStart(fragment, host, responseHeaders ?: headers, acknowledgement.path, progress,
+                                            "Die Antwort auf den Druckstart war unklar${if (code > 0) " (HTTP $code)" else ""}: " +
+                                                PrinterResponseInspector.printStartFailureDetail(body, error?.localizedMessage ?: error?.toString()))
+                                    }
+                                },
+                            )
+                        } catch (error: RuntimeException) {
+                            checkUncertainPrintStart(fragment, host, headers, acknowledgement.path, progress,
+                                "Die Startanfrage konnte nicht eindeutig abgeschlossen werden: ${error.localizedMessage ?: error}.")
+                        }
                     }
+
+                    val qidiMappingScript = try {
+                        if (qidiQ2 && qidiBoxSlots != null)
+                            QidiBoxToolMappingPolicy.buildSaveVariablesScript(qidiBoxSlots, activeTools)
+                        else ""
+                    } catch (error: IllegalArgumentException) {
+                        dismissSendProgress(fragment, progress)
+                        showPreparationFailure(
+                            fragment,
+                            SliceBeam.requireInstance().getString(R.string.QidiBoxMappingApplyFailed) +
+                                "\n${error.localizedMessage ?: error}",
+                        )
+                        return
+                    }
+                    if (qidiMappingScript.isNotBlank()) {
+                        applyQidiBoxMapping(fragment, host, headers, qidiMappingScript, progress, ::startUploadedPrint)
+                    } else startUploadedPrint()
                 }
 
                 override fun onProgress(bytesWritten: Long, totalSize: Long) {

@@ -720,6 +720,11 @@
     <string name="PrintPrepareResliceButton">Neu slicen und prüfen</string>
     <string name="PrintPrepareResliceHint">Drucker gewechselt. Die angezeigten Filament- und G-Code-Werte gehören noch zum vorherigen Slice. Slice mit dem neuen Drucker erneut und prüfe danach die aktualisierten Werte, bevor du sendest.</string>
     <string name="PrintPrepareToolOrder">Farben im G-Code (erste Verwendung): %1$s</string>
+    <string name="QidiBoxMappingTitle">Qidi-Box-Zuordnung</string>
+    <string name="QidiBoxMappingHint">Ordne jedem G-Code-Werkzeug einen physischen Box-Slot zu. Nicht zugeordnete Werkzeuge behalten die aktuelle Druckereinstellung.</string>
+    <string name="QidiBoxMappingKeep">Druckereinstellung beibehalten</string>
+    <string name="QidiBoxMappingSlot">Box-Slot %1$d</string>
+    <string name="QidiBoxMappingApplyFailed">Der Qidi-Drucker hat die Box-Zuordnung nicht bestätigt. Der Druck wurde nicht gestartet.</string>
     <string name="PrintPrepareAceGapTitle">ACE-Slot-Lücke prüfen</string>
     <string name="PrintPrepareAceGapHint">Vor einer verwendeten Farbe ist ACE-Slot %1$s leer. Ältere Rinkhals-Versionen können dadurch den falschen Slot laden.</string>
     <string name="PrintPrepareAceGapWarning">ACE-Slot %1$s ist vor einer verwendeten Farbe leer. Ältere Rinkhals-Versionen können dadurch eine falsche Farbe laden. Belege die Slots lückenlos und slice erneut oder aktualisiere Rinkhals auf Version 20260716_02 oder neuer. Du kannst die Datei nur hochladen. Starte den Druck hier erst, wenn du die Firmware geprüft hast.</string>
