@@ -53,9 +53,12 @@ class SettingsMenuActionDeviceTest {
     val compose = createInitializedActivityRule()
 
     @Test
-    fun renderResolutionUsesDevicePolicyAndHasNoManualPicker() {
+    fun viewportQualityCanBeChangedAndAutomaticModeUsesDevicePolicy() {
         val activity = compose.activity
         val prefs = requireNotNull(Prefs.getPrefs())
+        val originalOverride = Prefs.getRenderScaleOverridePercent()
+        assertEquals("Nightly has a distinct app identity from stable OrkanSlicer",
+            "com.exa201.orkanslicer.nightly25", activity.packageName)
         try {
             prefs.edit().putFloat("render_scale", 0.5f).commit()
             Prefs.init(activity.application as Application)
@@ -63,19 +66,27 @@ class SettingsMenuActionDeviceTest {
 
             compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
                 .performScrollTo().assertIsDisplayed().performClick()
-            assertTrue("Manual render-resolution row was removed from the App menu",
-                compose.onAllNodesWithText(activity.getString(R.string.SettingsInterfaceResolutionScale))
-                    .fetchSemanticsNodes().isEmpty())
+            compose.onNodeWithText(activity.getString(R.string.SettingsRenderQuality))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText("50%").assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getRenderScaleOverridePercent() == 50 }
+            assertEquals(0.5f, Prefs.getRenderScale(), 0f)
             assertEquals("The legacy override is cleared at preference initialization", false,
                 prefs.contains("render_scale"))
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsRenderQuality))
+                .assertIsDisplayed().performClick()
+            val automaticPercent = (DevicePerformancePolicy.defaultRenderScale(Prefs.isLowRamDevice()) * 100).toInt()
+            compose.onNodeWithText(activity.getString(R.string.SettingsRenderQualityAutomatic, automaticPercent))
+                .assertIsDisplayed().performClick()
             assertEquals(
-                "Render scale is calculated by the current device performance policy",
+                "Automatic mode follows the current device performance policy",
                 DevicePerformancePolicy.defaultRenderScale(Prefs.isLowRamDevice()),
                 Prefs.getRenderScale(),
                 0f,
             )
         } finally {
-            prefs.edit().remove("render_scale").commit()
+            prefs.edit().remove("render_scale").putInt("viewport_render_scale_percent", originalOverride).commit()
             Prefs.init(activity.application as Application)
         }
     }

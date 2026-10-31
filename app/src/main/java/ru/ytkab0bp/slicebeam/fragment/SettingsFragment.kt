@@ -66,6 +66,7 @@ import ru.ytkab0bp.slicebeam.components.ColorChooserDialog
 import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
+import ru.ytkab0bp.slicebeam.events.ViewportRenderScaleChangedEvent
 import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.navigation.Fragment
@@ -121,6 +122,9 @@ class SettingsFragment : Fragment() {
                             themeName = ctx.getString(Prefs.getThemeMode().title),
                             accentColor = "#%08X".format(Prefs.getAccentColor()),
                             uiTextScale = "${(Prefs.getUiTextScale() * 100).toInt()}%",
+                            renderScale = if (Prefs.getRenderScaleOverridePercent() == 0) {
+                                ctx.getString(R.string.SettingsRenderQualityAutomatic, (Prefs.getRenderScale() * 100).toInt())
+                            } else "${Prefs.getRenderScaleOverridePercent()}%",
                             converterRoot = ConverterStorage.getRootDisplayName(ctx),
                             cameraProjection = ctx.getString(if (Prefs.isOrthoProjectionEnabled()) R.string.SettingsCameraOrthographic else R.string.SettingsCameraPerspective),
                             cameraControlMode = cameraControlModeLabel(ctx, Prefs.getCameraControlMode()),
@@ -129,6 +133,7 @@ class SettingsFragment : Fragment() {
                             onTheme = ::showThemePicker,
                             onAccent = ::showAccentPicker,
                             onUiTextScale = ::showUiTextScalePicker,
+                            onRenderScale = ::showRenderQualityPicker,
                             onConverterFolder = ::chooseConverterFolder,
                             onCameraProjection = ::toggleCameraProjection,
                             onCameraControlMode = ::showCameraControlPicker,
@@ -245,6 +250,26 @@ class SettingsFragment : Fragment() {
 
     private fun showUiTextScalePicker() {
         showUiTextScaleDialog = true
+    }
+
+    private fun showRenderQualityPicker() {
+        val context = getContext() ?: return
+        val percentages = listOf(0, 50, 65, 80, 100)
+        val labels = percentages.map { percent ->
+            if (percent == 0) context.getString(
+                R.string.SettingsRenderQualityAutomatic,
+                (Prefs.getRenderScale() * 100).toInt(),
+            ) else "$percent%"
+        }
+        showChoiceDialog(
+            R.string.SettingsRenderQuality,
+            labels,
+            percentages.indexOf(Prefs.getRenderScaleOverridePercent()).coerceAtLeast(0),
+        ) { index ->
+            Prefs.setRenderScaleOverridePercent(percentages[index])
+            SliceBeam.EVENT_BUS.fireEvent(ViewportRenderScaleChangedEvent())
+            themeRevision++
+        }
     }
 
     private fun toggleCameraProjection() {
@@ -471,6 +496,8 @@ internal fun SettingsContent(
     onAbout: () -> Unit,
     onBoosty: () -> Unit,
     onReset: () -> Unit,
+    renderScale: String = "",
+    onRenderScale: () -> Unit = {},
 ) {
     val configuration = LocalConfiguration.current
     val compactLayout = SettingsMenuLayoutPolicy.usesCompactLayout(
@@ -575,6 +602,13 @@ internal fun SettingsContent(
                         description = stringResource(R.string.SettingsInterfaceTextSizeDescription),
                         value = uiTextScale,
                         onClick = onUiTextScale,
+                        compactLayout = compactLayout,
+                    )
+                    SettingsRow(
+                        R.string.SettingsRenderQuality,
+                        description = stringResource(R.string.SettingsRenderQualityDescription),
+                        value = renderScale,
+                        onClick = onRenderScale,
                         compactLayout = compactLayout,
                     )
                 }

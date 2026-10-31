@@ -64,7 +64,7 @@ class WorkspaceSnackbarDeviceTest {
         compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
         compose.runOnIdle {
             assertNotNull(clickedView)
-            assertEquals("com.codemastercody3d.orcaslicermobile.slicetest", clickedView!!.context.packageName)
+            assertEquals("com.exa201.orkanslicer.nightly25.slicetest", clickedView!!.context.packageName)
             controller.show(SnackbarsLayout.Snackbar(SnackbarsLayout.Type.LOADING, "Cancelling").tag("load"))
         }
         compose.onNodeWithText("Cancelling").assertIsDisplayed()

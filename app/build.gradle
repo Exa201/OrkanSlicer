@@ -18,11 +18,11 @@ android {
     testBuildType "sliceTest"
 
     defaultConfig {
-        applicationId "com.codemastercody3d.orcaslicermobile"
+        applicationId "com.exa201.orkanslicer.nightly25"
         minSdk 23
         targetSdk 36
-        versionCode 453
-        versionName "0.8.418"
+        versionCode 454
+        versionName "0.8.419"
         buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -72,7 +72,7 @@ android {
         }
         sliceTest {
             initWith debug
-            resValue "string", "AppName", "OrkanSlicer Tests"
+            resValue "string", "AppName", "OrkanSlicer Nightly 2.5 Tests"
             applicationIdSuffix ".slicetest"
             manifestPlaceholders = [fileProviderAuthority: "${defaultConfig.applicationId}.slicetest.slicermore.files"]
             matchingFallbacks = ['debug']
@@ -107,7 +107,7 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = "OrkanSlicer_" + commit + ".apk"
+            outputFileName = "OrkanSlicerNightly25_" + commit + ".apk"
         }
     }
 }

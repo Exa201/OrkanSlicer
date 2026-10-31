@@ -1037,6 +1037,9 @@
     <string name="SettingsTextSizeExtraLarge">Sehr groß</string>
     <string name="SettingsInterfaceResolutionScale">3D-Auflösungsskala</string>
     <string name="SettingsInterfaceResolutionScaleDescription">Kann die Leistung verbessern, indem die Auflösung gesenkt wird</string>
+    <string name="SettingsRenderQuality">3D-Vorschauqualität</string>
+    <string name="SettingsRenderQualityDescription">Eine niedrigere Auflösung kann Kamera und Vorschau beschleunigen. Slicing und Modellgeometrie bleiben unverändert.</string>
+    <string name="SettingsRenderQualityAutomatic">Automatisch (%1$d%%)</string>
     <string name="SettingsAbout">Über die App</string>
     <string name="SettingsAddPrinter">Drucker aus Presets hinzufügen</string>
     <string name="SettingsAboutVersion">OrkanSlicer für Android · Version %s\n\nApp und Weiterentwicklung: CodeMasterCody3D\nAndroid-Grundlage: SliceBeam von utkabobr (YTKAB0BP)\nSlicing-Kern: OrcaSlicer von SoftFever und Mitwirkenden\nTechnische Grundlagen: Bambu Studio, PrusaSlicer und Slic3r\nFarbmodell-Werkzeug: Kromacut von vycdev\n\nDank an alle Open-Source-Mitwirkenden. Lizenzen und Quellverweise stehen im Projekt.</string>

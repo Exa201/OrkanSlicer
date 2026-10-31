@@ -1,0 +1,83 @@
+# OrkanSlicer Nightly 2.5 — Portierungsplan
+
+Stand: 2026-10-31. Upstream-Vergleich: OrcaSlicer `main` at
+`7ac46c9a6186458633a8c52203179c684c23fadc` (2026-10-30). This is a selective Android
+port plan; the app must not be described as containing the complete upstream engine.
+
+## Verified preview-performance finding
+
+Desktop Orca exposes OpenGL MSAA sample counts (off/2/4/8/16), optional FXAA, and an FPS
+cap. The Android workspace instead uses a GLES3 `GLSurfaceView` whose EGL config and
+renderer lifetime are established by the existing host. Directly changing the desktop MSAA
+setting is not compatible without redesigning that surface setup. OrkanSlicer already scales
+the GL surface and maps touch coordinates to it, so the safe Android equivalent is a user
+selectable viewport render scale. It changes only display pixels: native model data, slicing,
+G-code, and export are untouched. Automatic mode retains the low-RAM device policy.
+
+## Product identity / data isolation
+
+Nightly uses Android application ID `com.exa201.orkanslicer.nightly25` and display name
+`OrkanSlicer Nightly 2.5`. Android scopes private preferences, files, cache, and app-specific
+external storage to the application ID; therefore Nightly installs beside the stable app with
+separate data. The Kotlin namespace remains `ru.ytkab0bp.slicebeam` to avoid a needless source
+and JNI package migration. SAF files explicitly selected by the user remain shared documents.
+The Nightly updater queries the Nightly repository and selects published prereleases rather
+than the stable app's `/releases/latest` endpoint.
+
+## Existing Android parity verified from source
+
+Already present: Move, Rotate, Scale, Mirror, auto-orient, flatten/lay-on-face, arrange,
+duplicate/fill/center/delete/select, plane cut and connectors, color/support/seam/fuzzy paint,
+text emboss/engrave, measure, variable layer-height profile, split to objects/parts, mesh
+simplification, and Boolean union/difference/intersection. Do not reimplement these as new
+features; extend them only where a demonstrated parity gap remains. The older
+`ORCA_FEATURE_AUDIT.md` Boolean row is stale relative to `ModelBooleanDialog`,
+`GLRenderer`, and the current Boolean workspace path.
+
+Profile parity is substantial: the current audit records 887 parsed native options and 490
+visible routed profile rows (319 process, 100 filament, 71 printer). Those figures measure
+source routing, not desktop completeness or runtime verification.
+
+## Prioritized feature backlog
+
+| # | Candidate | Current evidence / gap | Acceptance evidence |
+|---:|---|---|---|
+| 1 | Low-GPU preview quality control | Implemented: automatic/50/65/80/100% viewport choices; package identity and Nightly updater are separated. Policy/updater tests pass 10/10 and instrumentation source compiles; live-device check pending. | Setting persists, changes live GL surface, touch picking remains aligned, no effect on sliced geometry. |
+| 2 | Compound 3MF paint ownership | Investigation confirmed native `PaintSessionRef` owns one selector created from `volumes[0]`; commit writes that selector only to the first volume. Existing live overlays display untouched volumes but do not make them editable. | Paint/select each constituent volume, preserve colors through 3MF reload and sliced tool assignments. Requires a per-volume selector/raycast and bounded memory tests. |
+| 3 | Qidi Box slot mapping | Q2 upload package path exists; persistent Box-slot selection/agent mapping is absent. | Map each material to a physical Box slot, survive profile/project reopen, validate Qidi package and G-code tools. |
+| 4 | AMS/ACE physical extruder mapping | Sync UI exists; Orca multi-extruder/physical mapping has no complete profile edit + validation path. | Add/edit/remove mapping, prevent duplicates, sync safely, and preserve per-object material choice through slice. |
+| 5 | Per-object and per-part overrides | Native object/volume config exists, but no complete mobile edit/apply workflow is established by the audit. | Edit one selected object/part, persist 3MF, slice and compare only the selected object's effective settings. |
+| 6 | General modifier volumes | Cut connectors/negative text volumes exist; no general add/place/edit UI. | Add modifier/blocker/negative volume, transform independently, undo/redo and 3MF round-trip. |
+| 7 | SVG surface emboss/engrave | SVG-to-mesh conversion exists; surface-following SVG placement/depth flow is missing. | Import SVG, preview placement/depth, commit/cancel, preserve printable mesh and undo/redo. |
+| 8 | 3MF variant round-trip | Upstream 2.5 contains variant fixes; Android serializer requires field-by-field verification. | Fixtures preserve object/volume/material/config/transform metadata across load-save-load and slice. |
+| 9 | Qidi profile parity | Initial-tool filename fix is ported; broader Q2/Q2C profile changes need a field-by-field diff. | Reviewed upstream profile diff and representative G-code/package acceptance for Q2/Q2C. |
+| 10 | Orca profile-option gap refresh | Existing audited catalog covers 490 rows; avoid exposing internal, experimental, or unsafe options. | Generate a current missing-key list and port only options with correct model, persistence, and visible controls. |
+
+### Later candidates
+
+- Review upstream 2.5 fixes in bounded, pinned groups, each with a concrete regression and native
+  or device evidence; do not bulk-copy commits or advance the engine lock prematurely.
+- Validate frame pacing/FPS cap against Android battery/latency behavior after render-scale
+  control is measured. Desktop preference semantics are not presumed to transfer to Android.
+- Reassess other Orca desktop functions only after inspecting their native dependencies, Android
+  UI feasibility, mobile memory cost, and license/build requirements.
+
+## Delivery cadence and gates
+
+1. Keep a numbered implementation log for the ten backlog items above.
+2. For each item, inspect pinned upstream source and Android dependencies, implement only a safe
+   adaptation, and add focused regression tests.
+3. After each group of ten completed feature items, run grouped JVM/native/device verification,
+   create a Nightly APK, inspect package identity and APK metadata/hash, then publish a Nightly
+   GitHub release and update the changelog. Do not claim unsupported device tests passed.
+4. Task #1 has code and focused compile/unit evidence but is not acceptance-complete without an
+   on-device interaction; batch counter remains 0/10. Task #2 has a concrete native limitation
+   identified; no code change started. Items #3–#10 are not started. No release is created from
+   an unverified partial batch.
+
+## Source audit documents
+
+- `docs/ORCA_FEATURE_AUDIT.md` — profile and model-tool inventory; update stale rows when the
+  current source proves the implementation exists.
+- `docs/ORCASLICER_2_5_DELTA_AUDIT.md` — pinned upstream fixes and Android-port constraints.
+- `ORCA_NIGHTLY_LOCK.md` — do not advance until engine identity and native test evidence justify it.

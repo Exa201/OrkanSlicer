@@ -20,6 +20,17 @@ class DevicePerformancePolicyTest {
         assertEquals(50, DevicePerformancePolicy.initialLayerBlockSize(false))
     }
 
+    @Test fun viewportQualityOverrideIsClampedToSupportedChoicesAndAutomaticFollowsDevice() {
+        assertEquals(0.7f, DevicePerformancePolicy.renderScale(true, 0))
+        assertEquals(1f, DevicePerformancePolicy.renderScale(false, 0))
+        assertEquals(0.5f, DevicePerformancePolicy.renderScale(false, 50))
+        assertEquals(0.65f, DevicePerformancePolicy.renderScale(true, 65))
+        assertEquals(0.8f, DevicePerformancePolicy.renderScale(false, 80))
+        assertEquals(1f, DevicePerformancePolicy.renderScale(true, 100))
+        assertEquals(0.7f, DevicePerformancePolicy.renderScale(true, 55))
+        assertEquals(1f, DevicePerformancePolicy.renderScale(false, 55))
+    }
+
     @Test fun inactivePlatesCanUseCheapPreviewWithoutChangingTheActiveModel() {
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(true, false))
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(false, true))

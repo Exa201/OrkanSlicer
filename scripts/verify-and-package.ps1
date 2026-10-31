@@ -31,8 +31,8 @@ try {
         & $pythonCommand 'scripts/sync_native_cache.py' 'check'
         if ($LASTEXITCODE -ne 0) { throw 'The fast build was refused because its ARM64 native cache is stale or incomplete.' }
     }
-    $packageName = 'com.codemastercody3d.orcaslicermobile'
-    $outputDirectory = Join-Path $projectRoot "outputs/OrkanSlicer_$versionName"
+    $packageName = 'com.exa201.orkanslicer.nightly25'
+    $outputDirectory = Join-Path $projectRoot "outputs/OrkanSlicerNightly25_$versionName"
     New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
     $transcriptPath = Join-Path $outputDirectory 'verification-transcript.txt'
     Start-Transcript -LiteralPath $transcriptPath -Force | Out-Null
@@ -152,8 +152,8 @@ try {
         throw "Expected one Debug and one Release APK; found Debug=$($debugCandidates.Count), Release=$($releaseCandidates.Count)."
     }
 
-    $debugApk = Join-Path $projectRoot "outputs/OrkanSlicer_${versionName}_debug.apk"
-    $releaseApk = Join-Path $projectRoot "outputs/OrkanSlicer_${versionName}_release_unsigned.apk"
+    $debugApk = Join-Path $projectRoot "outputs/OrkanSlicerNightly25_${versionName}_debug.apk"
+    $releaseApk = Join-Path $projectRoot "outputs/OrkanSlicerNightly25_${versionName}_release_unsigned.apk"
     Copy-Item -LiteralPath $debugCandidates[0].FullName -Destination $debugApk -Force
     Copy-Item -LiteralPath $releaseCandidates[0].FullName -Destination $releaseApk -Force
     Copy-Item -LiteralPath 'app/build/reports/lint-results-release.txt' -Destination (Join-Path $outputDirectory 'lint-results-release.txt') -Force
@@ -277,13 +277,13 @@ try {
 - Gerätetest: $installResult
 - Release-Lint: $lintTail
 - Kotlin-Migration: die App-Hauptquellcodedateien verwenden Kotlin; die zwölf EventBus-/Demo-/ARM64-Dateien wurden bereits mit Build 0.8.67 migriert. Beide Demo-APK-Module wurden in diesem Sammellauf gebaut.
-- Debug-APK: ``OrkanSlicer_${versionName}_debug.apk`` ($debugSize Byte), SHA-256 ``$debugHash``.
-- Release-APK: ``OrkanSlicer_${versionName}_release_unsigned.apk`` ($releaseSize Byte), SHA-256 ``$releaseHash``. Ohne Release-Keystore ist sie unsigniert.
-- Vollständiges Konsolenprotokoll: ``outputs/OrkanSlicer_${versionName}/verification-transcript.txt``.
+- Debug-APK: ``OrkanSlicerNightly25_${versionName}_debug.apk`` ($debugSize Byte), SHA-256 ``$debugHash``.
+- Release-APK: ``OrkanSlicerNightly25_${versionName}_release_unsigned.apk`` ($releaseSize Byte), SHA-256 ``$releaseHash``. Ohne Release-Keystore ist sie unsigniert.
+- Vollständiges Konsolenprotokoll: ``outputs/OrkanSlicerNightly25_${versionName}/verification-transcript.txt``.
 
 Der Sammellauf führt Haupt-App, beide Demo-Module, Android-Unit-Tests, Release-Lint und Classpath-Ermittlung in einem Gradle-Aufruf aus. Die Java-basierten Regressionstests erhalten sowohl Java- als auch Kotlin-Ausgabeklassen. Die Upload-Untertests verwenden denselben ermittelten Classpath und starten kein weiteres Gradle.
 "@
-    Set-Content -LiteralPath (Join-Path $projectRoot "outputs/OrkanSlicer_${versionName}_Buildbericht.md") -Value $report -Encoding utf8
+    Set-Content -LiteralPath (Join-Path $projectRoot "outputs/OrkanSlicerNightly25_${versionName}_Buildbericht.md") -Value $report -Encoding utf8
     Write-Host "All grouped checks passed. APKs and report are in outputs/ for version $versionName."
 } catch {
     Write-Host "Grouped verification failed: $($_.Exception.Message)" -ForegroundColor Red

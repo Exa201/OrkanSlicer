@@ -60,6 +60,7 @@ import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
+import ru.ytkab0bp.slicebeam.events.ViewportRenderScaleChangedEvent
 import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
 import ru.ytkab0bp.slicebeam.events.ObjectSurfacePlacementTapEvent
 import ru.ytkab0bp.slicebeam.events.ModelGeometryChangedEvent
@@ -753,6 +754,10 @@ fun onCameraProjectionChanged(event: CameraProjectionChangedEvent) {
         view.renderer.updateProjection()
         view.requestRender()
     }
+}
+@EventHandler(runOnMainThread = true)
+fun onViewportRenderScaleChanged(event: ViewportRenderScaleChangedEvent) {
+    glView?.applyRenderScale()
 }
 @EventHandler(runOnMainThread = true)
 fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {

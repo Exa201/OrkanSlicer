@@ -4,6 +4,12 @@ package ru.ytkab0bp.slicebeam.render
 object DevicePerformancePolicy {
     fun defaultRenderScale(lowRamDevice: Boolean): Float = if (lowRamDevice) 0.7f else 1f
 
+    /** A zero preference follows the device policy; explicit values are viewport-only. */
+    fun renderScale(lowRamDevice: Boolean, overridePercent: Int): Float = when (overridePercent) {
+        50, 65, 80, 100 -> overridePercent / 100f
+        else -> defaultRenderScale(lowRamDevice)
+    }
+
     /** Convert View pixels to the actual GL surface coordinate space. */
     fun mapTouchCoordinate(inputPx: Float, viewSizePx: Int, surfaceSizePx: Int): Float =
         if (viewSizePx > 0 && surfaceSizePx > 0) inputPx * surfaceSizePx / viewSizePx else inputPx

@@ -5,7 +5,7 @@
     <string name="LargeModelSurfaceStillDense">The model is still too detailed for precise surface tools. Try a stronger simplification.</string>
     <string name="LargeModelEmbossTitle">Simplify for precise text placement?</string>
     <string name="LargeModelEmbossMessage">This model has %1$d triangles. Precise embossing and surface text placement support up to %2$d. Simplifying changes the model on the build plate and may remove detail; the source file stays unchanged.</string>
-    <string name="AppName" translatable="false">OrkanSlicer</string>
+    <string name="AppName" translatable="false">OrkanSlicer Nightly 2.5</string>
     <string name="StepImportTitle">STEP-Datei importieren</string>
     <string name="StepImportDescription">STEP-Geometrie wird vor dem Laden in ein Dreiecksnetz umgewandelt. Kleinere Abweichungswerte erhalten mehr Details, benötigen aber mehr Zeit und Speicher.</string>
     <string name="StepLinearDeflection">Lineare Abweichung (mm)</string>
@@ -1048,6 +1048,9 @@
     <string name="SettingsTextSizeExtraLarge">Extra large</string>
     <string name="SettingsInterfaceResolutionScale">3D Resolution scale</string>
     <string name="SettingsInterfaceResolutionScaleDescription">May improve performance by lowering resolution</string>
+    <string name="SettingsRenderQuality">3D viewport quality</string>
+    <string name="SettingsRenderQualityDescription">Lower resolution can improve camera and preview performance. Slicing quality and model geometry are unchanged.</string>
+    <string name="SettingsRenderQualityAutomatic">Automatic (%1$d%%)</string>
     <string name="SettingsAbout">About app</string>
     <string name="SettingsAddPrinter">Add printer from presets</string>
     <string name="SettingsAboutVersion">OrkanSlicer for Android · Version %s\n\nApp and ongoing development: CodeMasterCody3D\nAndroid foundation: SliceBeam by utkabobr (YTKAB0BP)\nSlicing engine: OrcaSlicer by SoftFever and contributors\nTechnical foundations: Bambu Studio, PrusaSlicer and Slic3r\nColor-model tool: Kromacut by vycdev\n\nThanks to all open-source contributors. Licenses and source references are in the project.</string>

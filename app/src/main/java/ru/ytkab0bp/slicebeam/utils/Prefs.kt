@@ -29,14 +29,19 @@ open class Prefs {
         private var mPrefs: SharedPreferences? = null
         private var lowRamDevice = false
 
+        private fun isSupportedRenderScaleOverride(percent: Int): Boolean = when (percent) {
+            0, 50, 65, 80, 100 -> true
+            else -> false
+        }
+
         private fun requirePrefs(): SharedPreferences = mPrefs!!
 
         @JvmStatic
         fun init(ctx: Application) {
             mPrefs = PreferenceManager.getDefaultSharedPreferences(ctx)
             lowRamDevice = (ctx.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true
-            // Older versions exposed a manual 3D surface scale. Rendering now uses the
-            // device performance policy, so discard that obsolete per-device override.
+            // Migrate the former experimental setting. The new namespaced override is
+            // intentionally separate so older versions cannot silently force a value.
             mPrefs?.edit()?.remove("render_scale")?.apply()
         }
 
@@ -182,7 +187,22 @@ open class Prefs {
         fun isVibrationEnabled(): Boolean = requirePrefs().getBoolean("vibration", true)
 
         @JvmStatic
-        fun getRenderScale(): Float = DevicePerformancePolicy.defaultRenderScale(lowRamDevice)
+        fun getRenderScale(): Float = DevicePerformancePolicy.renderScale(
+            lowRamDevice,
+            requirePrefs().getInt("viewport_render_scale_percent", 0),
+        )
+
+        /** 0 = automatic device policy, otherwise one of 50/65/80/100 percent. */
+        @JvmStatic
+        fun getRenderScaleOverridePercent(): Int = requirePrefs()
+            .getInt("viewport_render_scale_percent", 0)
+            .takeIf(::isSupportedRenderScaleOverride) ?: 0
+
+        @JvmStatic
+        fun setRenderScaleOverridePercent(percent: Int) {
+            require(isSupportedRenderScaleOverride(percent))
+            requirePrefs().edit().putInt("viewport_render_scale_percent", percent).apply()
+        }
 
         /** App-specific text zoom, multiplied on top of the Android accessibility font scale. */
         @JvmStatic

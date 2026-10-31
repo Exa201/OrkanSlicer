@@ -25,4 +25,17 @@ class GitHubUpdaterTest {
     fun invalidVersionDoesNotCompareAsANewerRelease() {
         assertEquals(-1, GitHubUpdater.compareVersions("not-a-version", "0.8.404"))
     }
+
+    @Test
+    fun nightlySelectionIgnoresStableDraftAndInstalledReleases() {
+        val releases = listOf(
+            NightlyReleaseCandidate("v0.8.99", prerelease = false, draft = false),
+            NightlyReleaseCandidate("v0.8.421", prerelease = true, draft = true),
+            NightlyReleaseCandidate("v0.8.418", prerelease = true, draft = false),
+            NightlyReleaseCandidate("v0.8.420", prerelease = true, draft = false),
+        )
+
+        assertEquals("v0.8.420", GitHubUpdater.selectNightlyRelease(releases, "0.8.419")?.tagName)
+        assertEquals(null, GitHubUpdater.selectNightlyRelease(releases, "0.8.420"))
+    }
 }

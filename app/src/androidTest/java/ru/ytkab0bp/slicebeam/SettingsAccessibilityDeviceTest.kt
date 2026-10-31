@@ -98,6 +98,9 @@ class SettingsAccessibilityDeviceTest {
             .assertHeightIsAtLeast(48.dp)
             .performClick()
         compose.runOnIdle { assertEquals(1, themeActionCount) }
+        compose.onNodeWithText(context.getString(R.string.SettingsRenderQuality))
+            .assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp)
 
         compose.onNodeWithText(sectionTitle).performClick()
         compose.runOnIdle { assertEquals(emptySet<Int>(), expanded.value) }

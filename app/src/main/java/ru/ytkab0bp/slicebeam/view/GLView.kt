@@ -1129,25 +1129,27 @@ lastY = e.getY()
 }
 return true
 }
-private fun applyScale() {
+fun applyRenderScale() {
 val w = getWidth()
 val h = getHeight()
+if (w <= 0 || h <= 0) return
 lastScale = Prefs.getRenderScale()
 val realScale = Math.round(w * lastScale) / w.toFloat()
 getHolder().setFixedSize((w * realScale).toInt(), (h * realScale).toInt())
+requestRender()
 }
 protected override fun onSizeChanged(w:Int, h:Int, oldw:Int, oldh:Int) {
 super.onSizeChanged(w, h, oldw, oldh)
 if (w != 0 && h != 0)
 {
-applyScale()
+applyRenderScale()
 }
 }
 protected override fun onAttachedToWindow() {
 super.onAttachedToWindow()
 if (getWidth() > 0 && getHeight() > 0 && lastScale != Prefs.getRenderScale())
 {
-applyScale()
+applyRenderScale()
 }
 }
 override fun surfaceCreated(holder:SurfaceHolder) {

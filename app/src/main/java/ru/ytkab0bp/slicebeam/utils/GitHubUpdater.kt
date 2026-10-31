@@ -7,16 +7,24 @@ import android.net.Uri
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import org.json.JSONArray
 import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.BuildConfig
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
 
+internal data class NightlyReleaseCandidate(
+    val tagName: String,
+    val prerelease: Boolean,
+    val draft: Boolean,
+    val assets: JSONArray? = null,
+)
+
 /** Checks the official GitHub release and delegates APK transfers to Android's download service. */
 object GitHubUpdater {
-    private const val LATEST_RELEASE = "https://api.github.com/repos/Exa201/OrkanSlicer/releases/latest"
-    private const val RELEASE_ASSET_PREFIX = "https://github.com/Exa201/OrkanSlicer/releases/download/"
+    private const val RELEASES = "https://api.github.com/repos/Exa201/OrkanSlicer-Nightly-2.5/releases?per_page=30"
+    private const val RELEASE_ASSET_PREFIX = "https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/download/"
     private const val MAX_APK_BYTES = 300L * 1024 * 1024
     private const val PREFS = "github_updater"
     private const val KEY_LAST_CHECKED = "last_checked_at"
@@ -63,21 +71,28 @@ object GitHubUpdater {
                     return@Thread
                 }
 
-                val connection = open(LATEST_RELEASE)
-                val release = connection.inputStream.bufferedReader().use { JSONObject(it.readText()) }
+                val connection = open(RELEASES)
+                val releases = connection.inputStream.bufferedReader().use { JSONArray(it.readText()) }
                 connection.disconnect()
                 context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                     .edit().putLong(KEY_LAST_CHECKED, System.currentTimeMillis()).apply()
 
-                val version = release.optString("tag_name").removePrefix("v")
-                if (release.optBoolean("draft") || release.optBoolean("prerelease") ||
-                    version.isBlank() || compareVersions(version, BuildConfig.VERSION_NAME) <= 0
-                ) {
+                val release = selectNightlyRelease((0 until releases.length()).mapNotNull { index ->
+                    val json = releases.optJSONObject(index) ?: return@mapNotNull null
+                    NightlyReleaseCandidate(
+                        json.optString("tag_name"),
+                        json.optBoolean("prerelease"),
+                        json.optBoolean("draft"),
+                        json.optJSONArray("assets"),
+                    )
+                }, BuildConfig.VERSION_NAME)
+                if (release == null) {
                     post(status, "Du verwendest die aktuellste veröffentlichte Version.")
                     return@Thread
                 }
+                val version = release.tagName.removePrefix("v")
 
-                val assets = release.optJSONArray("assets")
+                val assets = release.assets
                 var apkUrl: String? = null
                 var apkSize = 0L
                 if (assets != null) {
@@ -102,7 +117,7 @@ object GitHubUpdater {
                 }
 
                 val request = DownloadManager.Request(Uri.parse(downloadUrl))
-                    .setTitle("OrkanSlicer $version")
+                    .setTitle("OrkanSlicer Nightly 2.5 $version")
                     .setDescription("Update wird im Hintergrund geladen (${formatMegabytes(apkSize)} MB).")
                     .setMimeType("application/vnd.android.package-archive")
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
@@ -110,7 +125,7 @@ object GitHubUpdater {
                     .setDestinationInExternalFilesDir(
                         context,
                         Environment.DIRECTORY_DOWNLOADS,
-                        "OrkanSlicer-$version.apk",
+                        "OrkanSlicerNightly25-$version.apk",
                     )
                 val id = manager.enqueue(request)
                 context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -174,6 +189,24 @@ object GitHubUpdater {
             if (diff != 0) return diff
         }
         return 0
+    }
+
+    internal fun selectNightlyRelease(
+        releases: List<NightlyReleaseCandidate>,
+        installedVersion: String,
+    ): NightlyReleaseCandidate? {
+        var selected: NightlyReleaseCandidate? = null
+        var selectedVersion: String? = null
+        for (candidate in releases) {
+            if (candidate.draft || !candidate.prerelease) continue
+            val version = candidate.tagName.removePrefix("v")
+            if (version.isBlank() || compareVersions(version, installedVersion) <= 0) continue
+            if (selectedVersion == null || compareVersions(version, selectedVersion) > 0) {
+                selected = candidate
+                selectedVersion = version
+            }
+        }
+        return selected
     }
 
     private fun parseVersion(value: String): List<Int>? {

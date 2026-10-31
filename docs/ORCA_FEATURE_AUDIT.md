@@ -121,7 +121,7 @@ Missing vs OrcaSlicer desktop:
 | **Variable / adaptive layer height** | ✅ | Model menu opens the layer-height profile editor and writes the native object layer-height profile; this does not use the commented-out `adaptive_layer_height` preset key |
 | **Split to objects / parts** | ✅ | `splitSelectedObject()` invokes native `Model.split` |
 | **Simplify mesh** | ✅ | Selected-object simplification with ratio/target controls and large-model safeguards |
-| **Mesh boolean operations** | ❌ | MCUT is present in native dependencies, but no user-facing boolean tool is routed |
+| **Mesh boolean operations** | ✅ | The current app routes union, difference, and intersection through `ModelBooleanDialog` and the GL workspace surface-placement flow; stale older audit versions may still say this is missing. |
 
 ---
 
