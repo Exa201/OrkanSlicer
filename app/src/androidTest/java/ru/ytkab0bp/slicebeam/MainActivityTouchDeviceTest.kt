@@ -51,6 +51,7 @@ class MainActivityTouchDeviceTest {
         val application = context.applicationContext as SliceBeam
         SliceBeam.INSTANCE = application
         Prefs.init(application)
+        val originalRenderScale = Prefs.getRenderScaleOverridePercent()
         Prefs.getPrefs()?.edit()
             ?.remove("crash")
             ?.putBoolean("converter_storage_first_prompt", true)
@@ -105,54 +106,78 @@ class MainActivityTouchDeviceTest {
             assertTrue("Generated M12 should load", loaded.await(60, TimeUnit.SECONDS))
             loadFailure.get()?.let { throw AssertionError("Generated M12 could not load", it) }
 
-            var hit: Pair<Float, Float>? = null
-            val hitDeadline = SystemClock.uptimeMillis() + 15_000L
-            while (hit == null && SystemClock.uptimeMillis() < hitDeadline) {
-                glView.requestRender()
-                val scanFinished = CountDownLatch(1)
-                val candidate = AtomicReference<Pair<Float, Float>?>()
-                glView.queueEvent {
-                    val renderScale = Prefs.getRenderScale()
-                    if (glView.width > 0 && glView.height > 0 &&
-                        glView.renderer.viewportWidth > 0 && glView.renderer.viewportHeight > 0
-                    ) {
-                        for (row in 1..63 step 2) {
-                            for (column in 1..63 step 2) {
-                                val x = glView.width * column / 64f
-                                val y = glView.height * row / 64f
-                                if (glView.renderer.raycastObjectIndex(x * renderScale, y * renderScale) == 0) {
-                                    candidate.set(x to y)
-                                    break
-                                }
-                            }
-                            if (candidate.get() != null) break
-                        }
+            for (qualityPercent in listOf(50, 100)) {
+                if (qualityPercent != Prefs.getRenderScaleOverridePercent()) {
+                    scenario.onActivity {
+                        Prefs.setRenderScaleOverridePercent(qualityPercent)
+                        SliceBeam.EVENT_BUS.fireEvent(ru.ytkab0bp.slicebeam.events.ViewportRenderScaleChangedEvent())
                     }
-                    scanFinished.countDown()
                 }
-                assertTrue("GL raycast scan should finish", scanFinished.await(10, TimeUnit.SECONDS))
-                hit = candidate.get()
-                if (hit == null) SystemClock.sleep(100L)
-            }
-            val tapPoint = hit ?: throw AssertionError("Could not raycast the generated M12 on the GL thread")
+                val expectedScale = qualityPercent / 100f
+                val surfaceDeadline = SystemClock.uptimeMillis() + 10_000L
+                while (SystemClock.uptimeMillis() < surfaceDeadline &&
+                    glView.renderer.viewportWidth != (glView.width * expectedScale).toInt()
+                ) {
+                    glView.requestRender()
+                    SystemClock.sleep(50L)
+                }
+                val expectedWidth = (glView.width * expectedScale).toInt()
+                assertTrue(
+                    "The live GL surface should use the selected ${qualityPercent}% preview resolution " +
+                        "(view=${glView.width}, surface=${glView.renderer.viewportWidth})",
+                    kotlin.math.abs(glView.renderer.viewportWidth - expectedWidth) <= 2,
+                )
 
-            scenario.onActivity {
-                tap(glView, tapPoint.first, tapPoint.second)
+                var hit: Pair<Float, Float>? = null
+                val hitDeadline = SystemClock.uptimeMillis() + 15_000L
+                while (hit == null && SystemClock.uptimeMillis() < hitDeadline) {
+                    glView.requestRender()
+                    val scanFinished = CountDownLatch(1)
+                    val candidate = AtomicReference<Pair<Float, Float>?>()
+                    glView.queueEvent {
+                        val renderScale = Prefs.getRenderScale()
+                        if (glView.width > 0 && glView.height > 0 &&
+                            glView.renderer.viewportWidth > 0 && glView.renderer.viewportHeight > 0
+                        ) {
+                            for (row in 1..63 step 2) {
+                                for (column in 1..63 step 2) {
+                                    val x = glView.width * column / 64f
+                                    val y = glView.height * row / 64f
+                                    if (glView.renderer.raycastObjectIndex(x * renderScale, y * renderScale) == 0) {
+                                        candidate.set(x to y)
+                                        break
+                                    }
+                                }
+                                if (candidate.get() != null) break
+                            }
+                        }
+                        scanFinished.countDown()
+                    }
+                    assertTrue("GL raycast scan should finish", scanFinished.await(10, TimeUnit.SECONDS))
+                    hit = candidate.get()
+                    if (hit == null) SystemClock.sleep(100L)
+                }
+                val tapPoint = hit ?: throw AssertionError(
+                    "Could not raycast the generated M12 at ${qualityPercent}% preview resolution",
+                )
+
+                scenario.onActivity { tap(glView, tapPoint.first, tapPoint.second) }
+                awaitRendererQueue(glView)
+                val selectionRead = CountDownLatch(1)
+                val selected = AtomicInteger(Int.MIN_VALUE)
+                glView.queueEvent {
+                    selected.set(glView.renderer.selectedObject)
+                    selectionRead.countDown()
+                }
+                assertTrue("GL selection should settle after the real touch", selectionRead.await(10, TimeUnit.SECONDS))
+                assertEquals("A tap should select the model at ${qualityPercent}% resolution", 0, selected.get())
             }
-            awaitRendererQueue(glView)
-            val selectionRead = CountDownLatch(1)
-            val selected = AtomicInteger(Int.MIN_VALUE)
-            glView.queueEvent {
-                selected.set(glView.renderer.selectedObject)
-                selectionRead.countDown()
-            }
-            assertTrue("GL selection should settle after the real touch", selectionRead.await(10, TimeUnit.SECONDS))
-            assertEquals("A tap on the generated M12 should select the model", 0, selected.get())
             assertFalse("Selecting the M12 must not open a modal", bed.isModelContextMenuAttached())
             assertFalse("Selecting the M12 must not open a workspace dialog", bed.isWorkspaceMessageDialogAttached())
         } finally {
             scenario.close()
             modelFile.delete()
+            Prefs.setRenderScaleOverridePercent(originalRenderScale)
         }
     }
 
