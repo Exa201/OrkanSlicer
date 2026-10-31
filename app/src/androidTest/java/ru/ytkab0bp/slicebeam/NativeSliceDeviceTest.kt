@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.roundToInt
 import ru.ytkab0bp.slicebeam.config.ConfigObject
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
@@ -187,6 +188,48 @@ class NativeSliceDeviceTest {
                 supportMovesByClearance.getValue("0.2") == supportMovesByClearance.getValue("0.8"),
             )
             Log.i("NativeSliceDeviceTest", "PASS tree-support clearance changes generated paths at 0.2 and 0.8 mm")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun treeSupportClearanceIncreasesMeasuredGapToNearbyOuterWallPaths() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("enable_support", "1")
+        process.put("support_type", "tree(auto)")
+        process.put("support_on_build_plate_only", "1")
+        val modelFile = copyAsset(context, "models/bunny.stl", "orca25-tree-gap-bunny.stl")
+        val output = File(context.cacheDir, "orca25-tree-gap-bunny.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            val mediansByClearance = mutableMapOf<String, Double>()
+            for (clearance in listOf("0.2", "0.8")) {
+                process.put("support_object_xy_distance", clearance)
+                SliceBeam.genCurrentConfig(model)
+                result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                val distances = measuredSupportToOuterWallDistances(gcode)
+                assertTrue("support and outer-wall extrusion paths must be comparable at $clearance mm; got ${distances.size}",
+                    distances.size >= 10)
+                mediansByClearance[clearance] = distances.sorted()[distances.size / 2]
+                Log.i("NativeSliceDeviceTest", "tree clearance=$clearance mm support/wall median XY gap=${mediansByClearance.getValue(clearance)} mm samples=${distances.size}")
+                result.release()
+                result = null
+                output.delete()
+                SliceBeam.getCurrentConfigFile().delete()
+            }
+            assertTrue("raising configured tree-support XY clearance must increase the measured nearby support-to-wall gap: $mediansByClearance",
+                mediansByClearance.getValue("0.8") > mediansByClearance.getValue("0.2") + 0.05)
         } finally {
             result?.release()
             model.release()
@@ -3595,6 +3638,74 @@ class NativeSliceDeviceTest {
             SliceBeam.getCurrentConfigFile().delete()
             gcodeFile.delete()
         }
+    }
+
+    private data class GCodePathSegment(val x0: Double, val y0: Double, val x1: Double, val y1: Double, val z: Double)
+
+    private fun measuredSupportToOuterWallDistances(gcode: String): List<Double> {
+        val axisRegex = Regex("(?:^|\\s)([XYZE])(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(?=\\s|$)")
+        var type = ""
+        var x: Double? = null
+        var y: Double? = null
+        var z = 0.0
+        val supports = mutableListOf<GCodePathSegment>()
+        val walls = mutableListOf<GCodePathSegment>()
+        for (line in gcode.lineSequence()) {
+            if (line.startsWith(";TYPE:", ignoreCase = true)) {
+                type = line.substringAfter(':').trim().lowercase()
+                continue
+            }
+            if (!line.startsWith("G0 ") && !line.startsWith("G1 ")) continue
+            val axes = axisRegex.findAll(line.substringBefore(';')).associate { match ->
+                match.groupValues[1] to match.groupValues[2].toDouble()
+            }
+            axes["Z"]?.let { z = it }
+            val nextX = axes["X"] ?: x
+            val nextY = axes["Y"] ?: y
+            if (axes["E"]?.let { it > 0.0 } == true && x != null && y != null && nextX != null && nextY != null) {
+                val segment = GCodePathSegment(x!!, y!!, nextX, nextY, z)
+                if (type.contains("support")) supports += segment
+                if (type.contains("perimeter") || type.contains("outer wall")) walls += segment
+            }
+            x = nextX
+            y = nextY
+        }
+        val wallsByHeight = walls.groupBy { (it.z * 100.0).roundToInt() }
+        // Sample evenly across the full support toolpath. Height bucketing avoids comparing
+        // each support move to wall paths from every unrelated layer.
+        return supports.filterIndexed { index, _ -> index % 16 == 0 }.mapNotNull { support ->
+            val layerKey = (support.z * 100.0).roundToInt()
+            val nearbyWalls = (-50..50).asSequence().flatMap { offset ->
+                wallsByHeight[layerKey + offset].orEmpty().asSequence()
+            }
+            nearbyWalls.minOfOrNull { pathSegmentDistance(support, it) }
+        }
+    }
+
+    private fun pathSegmentDistance(a: GCodePathSegment, b: GCodePathSegment): Double {
+        fun cross(ax: Double, ay: Double, bx: Double, by: Double) = ax * by - ay * bx
+        fun pointDistance(px: Double, py: Double, segment: GCodePathSegment): Double {
+            val dx = segment.x1 - segment.x0
+            val dy = segment.y1 - segment.y0
+            val lengthSquared = dx * dx + dy * dy
+            if (lengthSquared <= 1e-12) return kotlin.math.hypot(px - segment.x0, py - segment.y0)
+            val t = (((px - segment.x0) * dx + (py - segment.y0) * dy) / lengthSquared).coerceIn(0.0, 1.0)
+            return kotlin.math.hypot(px - (segment.x0 + t * dx), py - (segment.y0 + t * dy))
+        }
+        val abx = a.x1 - a.x0
+        val aby = a.y1 - a.y0
+        val cdx = b.x1 - b.x0
+        val cdy = b.y1 - b.y0
+        val denominator = cross(abx, aby, cdx, cdy)
+        if (kotlin.math.abs(denominator) > 1e-12) {
+            val t = cross(b.x0 - a.x0, b.y0 - a.y0, cdx, cdy) / denominator
+            val u = cross(b.x0 - a.x0, b.y0 - a.y0, abx, aby) / denominator
+            if (t in 0.0..1.0 && u in 0.0..1.0) return 0.0
+        }
+        return minOf(
+            pointDistance(a.x0, a.y0, b), pointDistance(a.x1, a.y1, b),
+            pointDistance(b.x0, b.y0, a), pointDistance(b.x1, b.y1, a),
+        )
     }
 
     private inline fun withKobraProfile(block: () -> Unit) {
