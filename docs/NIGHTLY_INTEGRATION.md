@@ -4,7 +4,10 @@
 
 - Batch 2 completed 10/10 focused Android adaptations. Orca `efd65b733` filename-template parity is extended by `f273fe8ac`'s `{printing_filament_types}` placeholder, which lists distinct materials used by a plate in tool order. OpenEYE's 13 process profiles use the multi-material placeholder.
 - Native ARM64 build and instrumentation compilation succeeded. The real two-material slice/name regression passed 1/1 on API 35 and API 36; identical material types are deduplicated. Debug and Slice JVM suites passed 705/705 each, with 0 failures, 0 errors, and 0 skips.
-- App version 0.8.421 / code 456; package `com.exa201.orkanslicer.nightly25`. APK build, size, SHA-256, installation/start, and prerelease publication are pending final packaging.
+- Code commit `669c46d161575cac5b59735ea1b5f9f376a3b4bb`; app 0.8.421 / code 456; package `com.exa201.orkanslicer.nightly25`; label `OrkanSlicer Nightly 2.5`.
+- Debug APK `OrkanSlicerNightly25_669c46d161.apk`, 239,774,624 bytes, SHA-256 `07713748A33C1A99C49432B5DDF331EBEEE1CAD3543D2D101603DF8F8A1710EB`. APK signature is the Nightly debug signing key (certificate SHA-256 `6254b703f8440e375448b8ec213ef2dc63ebd6c4094ae83eb25f39c2cf426d12`).
+- Installed and launched on the API 35 x86_64 emulator with ARM64 native translation; process remained alive and the inspected logcat window had no fatal exception, ANR or OOM markers. This is emulator startup verification, not physical-device or printer acceptance.
+- [Nightly prerelease v0.8.421-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.421-nightly.1).
 - Selective 2.5 backports only. No physical printer behavior or physical GPU benchmark is claimed; the complete Orca desktop engine baseline is not advanced.
 
 The Android app uses the SliceBeam UI and a platform-adapted OrcaSlicer engine in

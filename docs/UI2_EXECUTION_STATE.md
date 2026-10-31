@@ -1,12 +1,13 @@
 # Fortsetzung 2026-10-31 — Nightly-Batch 2 / APK-Gate
 
 - Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert.
-- Letzter Code-/Test-Commit: aktuell in Arbeit; vorheriger Remote-Stand `9e35fde97` (OpenEYE Dateinamentemplate).
+- Code-/APK-Commit: `669c46d161575cac5b59735ea1b5f9f376a3b4bb`; Nightly-Branch gepusht.
 - Batch 2: **10/10 fokussiert verifizierte Änderungen**. Änderung #10 portiert Orca `f273fe8ac` `{printing_filament_types}` in native G-Code-/Dateinamen-Platzhalter und Print-Statistiken. Alle 13 OpenEYE-Prozessprofile nutzen die Liste tatsächlicher Materialtypen statt nur das erste Werkzeug.
 - Regression: `recommendedFilenameListsDistinctFilamentTypesActuallyUsedByThePlate` bestand auf API 35 und API 36 (je 1/1): echter zweifarbiger nativer Slice mit `PLA_PETG`, plus Deduplizierung auf `PLA` bei gleichem Typ. ARM64 `externalNativeBuildDebug`, `compileSliceTestAndroidTestKotlin` und `git diff --check` bestanden. Ein erster Fixtureversuch war nur einfarbig und scheiterte an der Testannahme; wurde durch zwei explizit zugeordnete, zusammengesetzte Modellteile ersetzt.
 - Vollständige Debug-Unit- und Slice-Unit-Suiten sind nach der Implementierung beide mit 705/705 bestanden (0 Fehler, 0 Errors, 0 Skips). Fokussierter Slice-Test API 35/36 je 1/1 bestanden.
-- App-Version ist für den Batch-Build auf 0.8.421 / Code 456 gesetzt. Noch offen: Änderungen committen/pushen, Nightly-Debug-APK bauen, Package-ID/App-Label/Signatur/Größe/SHA-256 prüfen, auf verfügbarem Emulator installieren/starten und GitHub-Nightly-Prerelease veröffentlichen.
-- Nächster konkreter Schritt: Implementierung und Tests committen/pushen, dann `assembleDebug` und Release-Gate ausführen.
+- Debug-APK erstellt: `OrkanSlicerNightly25_669c46d161.apk`, 239,774,624 Bytes, SHA-256 `07713748A33C1A99C49432B5DDF331EBEEE1CAD3543D2D101603DF8F8A1710EB`; Paket/Label/Version und Debug-Signatur geprüft.
+- API-35-Emulatorinstallation und App-Start bestanden; Prozess blieb aktiv, im geprüften Logcat-Fenster keine Crash-/ANR-/OOM-Marker. Debug-/Slice-JVM-Suiten 705/705 jeweils, 0 failures/errors/skips; gezielter nativer Android-Slice-Test API 35/36 je 1/1.
+- Nightly-Prerelease `v0.8.421-nightly.1` ist für Veröffentlichung vorbereitet; nach Veröffentlichung nächste konkrete Arbeit: Orca-Upstream nach dem geprüften `4045a87b7` aktualisieren, Kandidaten für Batch 3 nach Android-Aufrufpfad priorisieren und die nächsten zehn Änderungen mit Regressionen bearbeiten.
 
 # Fortsetzung 2026-10-31 — Orca-Vorschau und Upstream-Abgleich
 

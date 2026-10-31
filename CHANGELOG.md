@@ -6,7 +6,8 @@
 - Added native and Android instrumentation coverage for a two-material multipart slice (`PLA_PETG`) and deduplication when both tools use the same material.
 - Batch 2 reached 10/10 scoped, focused changes. Full Debug/Slice JVM suites passed 705/705 each; the new native ARM64 slice test passed on API 35 and API 36 emulators. No physical printer/GPU behavior is claimed.
 - Selective OrcaSlicer 2.5 Android backports only; this does not replace or advance the complete desktop engine baseline.
-- APK artifact details and SHA-256 will be recorded after the final signed debug APK is built.
+- Debug APK `OrkanSlicerNightly25_669c46d161.apk`, 239,774,624 bytes, SHA-256 `07713748A33C1A99C49432B5DDF331EBEEE1CAD3543D2D101603DF8F8A1710EB`; Nightly package identity/version verified and app installed/launched on API 35. The artifact is debug-signed and ARM64-only.
+- [Nightly 2.5 prerelease v0.8.421](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.421-nightly.1).
 
 ## 0.8.418 — Nightly 2.5 experimental — 2026-10-30
 
