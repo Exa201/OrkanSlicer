@@ -842,6 +842,65 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val modelFile = copyCube(context, "independent-feature-filament-slice.stl")
+        val model = Model(modelFile)
+        val featureSettings = listOf(
+            "sparse_infill_filament_id" to "Sparse infill",
+            "internal_solid_filament_id" to "Internal solid infill",
+            "top_surface_filament_id" to "Top surface",
+            "bottom_surface_filament_id" to "Bottom surface",
+        )
+        try {
+            model.setUniformFilament(0, 1)
+            process.put("sparse_infill_density", "20")
+            process.put("wall_loops", "2")
+            process.put("top_shell_layers", "3")
+            process.put("bottom_shell_layers", "3")
+
+            for ((selectedKey, selectedFeature) in featureSettings) {
+                featureSettings.forEach { (key, _) -> process.put(key, if (key == selectedKey) "2" else "0") }
+                SliceBeam.genCurrentConfig(model)
+                val generatedConfig = SliceBeam.getCurrentConfigFile()
+                val configText = generatedConfig.readText()
+                featureSettings.forEach { (key, _) ->
+                    val expectedValue = if (key == selectedKey) 2 else 0
+                    assertTrue(
+                        "$selectedKey must not rewrite $key during native config normalization",
+                        Regex("(?m)^${Regex.escape(key)}\\s*=\\s*$expectedValue\\s*$").containsMatchIn(configText),
+                    )
+                }
+
+                val gcodeFile = File(context.cacheDir, "independent-feature-${selectedKey}.gcode")
+                var result: GCodeProcessorResult? = null
+                try {
+                    result = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+                    val gcode = gcodeFile.readText()
+                    assertHasExtrusion(gcode)
+                    featureSettings.forEach { (key, feature) ->
+                        val expectedTool = if (key == selectedKey) 1 else 0
+                        assertEquals(
+                            "$selectedKey must affect only $selectedFeature; $feature must use its own Default/object tool",
+                            setOf(expectedTool),
+                            toolsForFeature(gcode, feature),
+                        )
+                    }
+                } finally {
+                    result?.release()
+                    generatedConfig.delete()
+                    gcodeFile.delete()
+                }
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun fillBedCopiesPreserveMaterialThroughThreeMfReloadAndSlice() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "fill-bed-slice-cube.stl")
@@ -3454,5 +3513,21 @@ class NativeSliceDeviceTest {
     private fun assertHasExtrusion(gcode: String) {
         assertTrue("Slicing should produce non-empty G-code", gcode.isNotBlank())
         assertTrue("Slicing should produce deposited moves", Regex("(?m)^G1 .*\\bE[0-9.-]+").containsMatchIn(gcode))
+    }
+
+    private fun toolsForFeature(gcode: String, feature: String): Set<Int> {
+        var activeTool = 0
+        var activeFeature = ""
+        val tools = mutableSetOf<Int>()
+        val toolChange = Regex("^T(\\d+)(?:\\s|$)")
+        val extrusion = Regex("\\bE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)")
+        for (line in gcode.lineSequence()) {
+            toolChange.find(line)?.let { activeTool = it.groupValues[1].toInt() }
+            if (line.startsWith(";TYPE:")) activeFeature = line.substringAfter(";TYPE:").trim()
+            if (activeFeature == feature && line.startsWith("G1 ") && extrusion.containsMatchIn(line)) {
+                tools += activeTool
+            }
+        }
+        return tools
     }
 }

@@ -14,6 +14,15 @@
 - Blocker: `adb devices` zeigt nur x86_64-Emulator; App und vorgebaute oneTBB-Abhängigkeiten sind ARM64-only, daher keine nativen Instrumentierungsläufe auf diesem Emulator.
 - Nächster konkreter Schritt: Auf einem ARM64-Gerät `NativeSliceDeviceTest#suppliedSvgCanBeRaisedOrEngravedOnASurfaceAndStillSlicesAfterThreeMfReload`, `#mirroredThreeMfBuildTransformsSurviveOrcaAndPrusaImporterRoundTrips`, `#oversizedZip64ThreeMfXmlIsRejectedWithoutAllocatingItsDeclaredSize` und `#qidiQ2SliceResolvesSelectedBedTemperatureAndInitialToolInGeneratedGcode` ausführen. Bis dahin #7–#9 nicht als abgeschlossen zählen.
 
+## Orca-Upstream-Fix zur unabhängigen Feature-Filamentzuordnung — 2026-10-31
+
+- Upstream `304924a69` aus OrcaSlicer beseitigt die automatische Vererbung zwischen Sparse-Infill, Internal-Solid-Infill, Top-Surface und Bottom-Surface in beiden `DynamicPrintConfig`-Normalisierungspfaden. Derselbe Kaskadierungscode war noch im Nightly-Kern vorhanden und konnte gezielte Feature-Zuordnungen überschreiben.
+- Beide Kaskadierungsblöcke wurden portiert entfernt; die separate Kompatibilitätsmigration alter `extruder`-Werte bleibt erhalten.
+- `NativeSliceDeviceTest#oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures` prüft für alle vier Features die erzeugte Native-Konfiguration und den tatsächlich genutzten T-Werkzeugindex in den G-Code-Featureabschnitten.
+- Verifikation: `:app:externalNativeBuildDebug`, `:app:compileSliceTestAndroidTestKotlin` und `git diff --check` bestanden. Der neue Slice-/G-Code-Instrumentierungstest wurde nur kompiliert, noch nicht auf ARM64 ausgeführt.
+- Status: Quellcode-/Build-Nachweis vorhanden, Hardware-/ARM64-Verifikation offen. Nicht als abgeschlossenes Release-Feature gezählt; es gehört als nächster Regressionseintrag in den laufenden 10er-Batch.
+- Nächster Schritt: Regressionstest auf Honor/Xiaomi oder ARM64-Emulator ausführen; danach eine Mehrfarben-3MF-Zuweisung nach 3MF-Rundlauf, Slicing und G-Code-Toolwechsel ergänzend gegen diese Kaskade prüfen.
+
 
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
