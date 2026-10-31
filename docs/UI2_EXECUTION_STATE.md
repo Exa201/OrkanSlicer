@@ -1,3 +1,13 @@
+# Fortsetzung 2026-10-31 — Orca-Vorschau und Upstream-Abgleich
+
+- Nightly-HEAD bei Start: `04a921939da2fdbca0daf5e7697bbf144d2ee8ae`; Branch `nightly-2.5`.
+- Orca-Upstream frisch bis `4045a87b70fc4745d586bda69d844b2e7b09f74e` aktualisiert. Seit dem bisherigen Pin `5cc5fb7f` kamen Profile/Übersetzungen hinzu, aber keine `src/libslic3r`-Engine-Änderung.
+- Schwache-GPU-Vorschau ist bereits implementiert: automatische 70% für Low-RAM, 80% für erkannte alte/Software-Renderer, 100% sonst; manuelle 50/65/80/100%; Vorschau-Mesh- und Layerbegrenzungen im Leistungsmodus. `DevicePerformancePolicyTest` 6/6 bestanden. `viewportQualityCanBeChangedAndAutomaticModeUsesDevicePolicy` bestand auf API 35 und API 36. Kein physischer GPU-Leistungsvergleich.
+- Nightly-Identität bleibt isoliert: `com.exa201.orkanslicer.nightly25`, sichtbarer Name `OrkanSlicer Nightly 2.5`; getrennte App-ID bedeutet getrennte private Daten. Stable-App bleibt unberührt.
+- Batch 2: 2/10 neue Produktcodeänderungen seit `v0.8.420-nightly.1`; dieser Prüfdurchgang fügte keine Produktänderung hinzu. Kein APK/Release.
+- Plan aktualisiert auf Orca-Upstream `4045a87b`; neue Kandidaten priorisiert: erst offene native G-Code-Regressionsnachweise, danach begrenzter Texture-Displacement-Prototyp. Parametric Design, Python-Plugins, Color Mixing und IDEX bleiben wegen fehlender Subsysteme/Sicherheits- oder Hardwareverträge zurückgestellt.
+- Nächste konkrete Implementierung: den offenen Lightning-Out-of-bounds-Grenzfall (#11) mit exakter synthetischer Unsupported-Sample-Grenze absichern; danach die verbleibenden Batch-2-Nachweise einzeln fortsetzen. Erst bei 10 echten, fokussiert geprüften Produktänderungen APK und Nightly-Prerelease erstellen.
+
 # Aktueller Fortsetzungsstand — 2026-10-31, Batch 2 Laufzeitnachweise
 
 - Neuester Prüflauf, HEAD vor Abschluss der Änderungen `d983e8f18`: Kandidat #16 mit echter nativer Slice-Ergebnisprüfung ergänzt. API-35-x86_64-AVD mit ARM64-Bridge: asymmetrisch/inset gedruckte Extruderfläche akzeptiert Pfade innerhalb ihrer echten Fläche; verschobene Fläche dient als positiver Fehlerkontrollfall. Der gezielte Gerätetest bestand 1/1. Vollständige JVM-Suiten danach: Debug 704/704 und Slice 704/704, je 0 Fehler/Errors/Skips; `:app:externalNativeBuildDebug` und `git diff --check` bestanden. Die erste Testfassung fand getrennt den normalen Bettbereichsfehler des unzentrierten Fixtures; das Fixture wurde auf das 350-mm-Bett verschoben. Der erste Einzeltestlauf erkannte außerdem, dass T0 in diesem Profil nicht als ausführbare Tool-Zeile erscheint; die finale Fassung verifiziert die tatsächliche physische Düse über einen eingebetteten Profilmarker. Kein APK/Release: Batch 2 enthält weiterhin keine zehn geeigneten, vollständig abgenommenen neuen Features.

@@ -1,8 +1,12 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
 Stand: 2026-10-31. Upstream-Vergleich: OrcaSlicer `main` at
-`5cc5fb7f9c40c42ca47fc13969756c4e53119046` (latest fetched 2026-10-31). This is a selective Android
-port plan; the app must not be described as containing the complete upstream engine.
+`4045a87b70fc4745d586bda69d844b2e7b09f74e` (latest fetched 2026-10-31 Europe/Berlin; upstream
+commit timestamp 2026-11-01 01:01 +08:00). Since the earlier `5cc5fb7f` comparison, the fetched
+source adds BenFab 450 printer profiles, 3D-Fuel filament profiles, OpenEYE/Blocks profile edits,
+Sovol process-profile cleanup, an RF50 start-G-code update and localization changes. No
+`src/libslic3r` commits or native engine changes were present in that interval. This is a selective
+Android port plan; the app must not be described as containing the complete upstream engine.
 
 ## Verified preview-performance finding
 
@@ -13,6 +17,14 @@ setting is not compatible without redesigning that surface setup. OrkanSlicer al
 the GL surface and maps touch coordinates to it, so the safe Android equivalent is a user
 selectable viewport render scale. It changes only display pixels: native model data, slicing,
 G-code, and export are untouched. Automatic mode retains the low-RAM device policy.
+
+The current Nightly build already implements this Android adaptation: automatic render scale is 70%
+for Android low-RAM devices, 80% for recognized software/legacy low-end GL renderers, and 100% for
+unknown/current renderers. Users can override it at 50/65/80/100%; active preview meshes and G-code
+layer ranges also have bounded performance modes. The policy unit test passed 6/6, and the settings
+interaction test `viewportQualityCanBeChangedAndAutomaticModeUsesDevicePolicy` passed on both
+connected API 35 and API 36 emulators in this review. Physical Xiaomi/Honor frame-time and memory
+measurements remain open; the renderer-name classifier is a conservative heuristic, not a benchmark.
 
 ## Product identity / data isolation
 
@@ -61,6 +73,25 @@ source routing, not desktop completeness or runtime verification.
   control is measured. Desktop preference semantics are not presumed to transfer to Android.
 - Reassess other Orca desktop functions only after inspecting their native dependencies, Android
   UI feasibility, mobile memory cost, and license/build requirements.
+
+### Latest-upstream feature triage (2026-10-31)
+
+The Orca 2.5.0 Beta notes emphasize toolhead collision volumes, shorter travel moves, rounded
+infill corners, translucent-filament preview and slicing performance on detailed/multipart models.
+The alpha feature set additionally includes Texture Displacement, experimental parametric Design,
+Python plugins, color mixing and IDEX/IQEX parallel printing. These are not all suitable Android
+ports: collision geometry needs machine-profile/runtime validation; translucency is a render-only
+candidate; rounded infill and travel optimization need native G-code comparisons; Texture
+Displacement requires mesh/3MF ownership and memory/cancellation work; the Design tab, arbitrary
+Python execution, color mixing and IDEX require substantial independent subsystems or hardware
+contracts and stay deferred until those prerequisites exist.
+
+The fetched `main` delta after `5cc5fb7f` is profile/localization work rather than new engine code.
+New vendor profiles are useful only if the Android setup wizard can consume their profile index and
+inheritance chain; do not count copied JSON assets as a working printer feature without testing
+selection and slicing. Keep the current implementation order: complete the open native regression
+gaps in batch 2, then prototype a bounded, cancelable Texture Displacement path; investigate
+translucent preview and collision-volume support as separately testable follow-up candidates.
 
 ### OrcaSlicer 2.5 Alpha capability review (2026-10-31)
 
