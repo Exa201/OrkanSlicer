@@ -224,6 +224,20 @@ static const std::unordered_map<std::string, std::string> pre_family_model_map {
     { "SL1",        "SL1" },
 }};
 
+// A child user printer can add nozzle slots beyond its system parent. Grow the inherited
+// vectors before applying the child's diff, otherwise values in the new slots are discarded.
+static void extend_parent_extruders_to_child(DynamicPrintConfig &parent_config,
+                                             const DynamicPrintConfig &child_config,
+                                             Preset::Type type)
+{
+    if (type != Preset::TYPE_PRINTER)
+        return;
+    const auto *child_nozzles  = child_config.option<ConfigOptionFloats>("nozzle_diameter");
+    const auto *parent_nozzles = parent_config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (child_nozzles && parent_nozzles && child_nozzles->size() > parent_nozzles->size())
+        parent_config.set_num_extruders((unsigned int)child_nozzles->size());
+}
+
 
 // 中间版本兼容性处理，如果是nil值，先改成default值，再进行扩展
 void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil_to_default, const DynamicPrintConfig& defaults)
@@ -1644,6 +1658,7 @@ void PresetCollection::load_presets(
                     if (inherit_preset) {
                         preset.config = inherit_preset->config;
                         preset.filament_id = inherit_preset->filament_id;
+                        extend_parent_extruders_to_child(preset.config, config, m_type);
                         extend_default_config_length(config, false, {});
                         preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
                     }
@@ -1894,6 +1909,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
             if (inherit_preset) {
                 preset->config = inherit_preset->config;
                 preset->filament_id = inherit_preset->filament_id;
+                extend_parent_extruders_to_child(preset->config, config, m_type);
             }
             else {
                 // Find a default preset for the config. The PrintPresetCollection provides different default preset based on the "printer_technology" field.
@@ -2248,6 +2264,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         extend_default_config_length(cloud_config, false, {});
 
         if (inherit_preset) {
+            extend_parent_extruders_to_child(new_config, cloud_config, m_type);
             std::string extruder_id_name, extruder_variant_name;
             std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
             Preset::get_extruder_names_and_keysets(m_type, extruder_id_name, extruder_variant_name, &key_set1, &key_set2);

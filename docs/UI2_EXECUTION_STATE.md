@@ -40,6 +40,13 @@
 - Plan: Feature ist umgesetzt, zählt noch nicht als runtime-verifiziert. Nächster Test auf ARM64, danach gezielt einen Überhang-Sliver-Test ergänzen, der die Outside-Bounds-Schleife selbst auslöst.
 - Aktueller Branch-Stand nach Arbeitsfortschritt: `nightly-2.5`; Lightning-Änderungen noch nicht committet.
 
+## Benutzerdefinierte Drucker mit zusätzlichen Düsenwerten — Port, 2026-10-31
+
+- Orca-Upstream `9b4f84a92` dokumentiert verlorene Werte, wenn ein User-Drucker mehr Düsen als sein geerbtes Systemprofil hat. Nightly hatte dieselbe Lücke: `update_diff_values_to_child_config` lief vor dem Erweitern der Elternvektoren.
+- `extend_parent_extruders_to_child` wurde portiert und vor dem Diff-Merge in allen drei aktiven Preset-Inheritance-Pfaden aufgerufen: lokale User-Presets, projekt-eingebettete Presets und Cloud-Preset-Updates. Nicht-Drucker-Presettypen und gleiche/kleinere Düsenanzahl bleiben unverändert.
+- ARM64 `:app:externalNativeBuildDebug` bestanden; kein Laufzeittest für 2-auf-4-Düsen-Roundtrip vorhanden, daher noch nicht als verifiziert gezählt.
+- Nächster Schritt: echten 2-Düsen-Eltern-/4-Düsen-Kinder-Presetfall über den importierten Profile-/Presetpfad erzeugen und alle erweiterten Vektoren nach Laden/Speichern prüfen.
+
 
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
