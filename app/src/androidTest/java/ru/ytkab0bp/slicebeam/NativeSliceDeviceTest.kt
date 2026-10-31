@@ -148,19 +148,45 @@ class NativeSliceDeviceTest {
         val model = Model(modelFile)
         var result: GCodeProcessorResult? = null
         try {
-            SliceBeam.genCurrentConfig(model)
-            val generatedConfig = SliceBeam.getCurrentConfigFile().readText()
-            assertTrue("tree auto support must reach the native slice config", generatedConfig.contains("support_type = tree(auto)"))
-            assertTrue("build-plate-only support must reach the native slice config", generatedConfig.contains("support_on_build_plate_only = 1"))
-            assertTrue("the requested object clearance must reach the native slice config", generatedConfig.contains("support_object_xy_distance = 0.8"))
-            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
-            val gcode = output.readText()
-            assertHasExtrusion(gcode)
-            assertTrue(
-                "the overhang fixture must produce support paths with build-plate-only tree support enabled",
-                Regex("(?im)^;TYPE:.*support").containsMatchIn(gcode),
+            val supportMovesByClearance = mutableMapOf<String, List<String>>()
+            for (clearance in listOf("0.2", "0.8")) {
+                process.put("support_object_xy_distance", clearance)
+                SliceBeam.genCurrentConfig(model)
+                val configFile = SliceBeam.getCurrentConfigFile()
+                val generatedConfig = configFile.readText()
+                assertTrue("tree auto support must reach the native slice config", generatedConfig.contains("support_type = tree(auto)"))
+                assertTrue("build-plate-only support must reach the native slice config", generatedConfig.contains("support_on_build_plate_only = 1"))
+                assertTrue(
+                    "the requested object clearance must reach the native slice config",
+                    generatedConfig.contains("support_object_xy_distance = $clearance"),
+                )
+                result = model.slice(configFile.absolutePath, output.absolutePath, null)
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                assertTrue(
+                    "the overhang fixture must produce support paths with build-plate-only tree support enabled",
+                    Regex("(?im)^;TYPE:.*support").containsMatchIn(gcode),
+                )
+                var readingSupport = false
+                supportMovesByClearance[clearance] = gcode.lineSequence().mapNotNull { line ->
+                    if (line.startsWith(";TYPE:", ignoreCase = true)) {
+                        readingSupport = line.contains("support", ignoreCase = true)
+                        null
+                    } else if (readingSupport && line.startsWith("G1 ") && line.contains(" E") &&
+                        (line.contains(" X") || line.contains(" Y"))
+                    ) line.substringBefore(';').trim() else null
+                }.toList()
+                assertTrue("tree-support extrusion moves must be present at clearance $clearance", supportMovesByClearance.getValue(clearance).isNotEmpty())
+                result?.release()
+                result = null
+                output.delete()
+                configFile.delete()
+            }
+            assertFalse(
+                "changing the tree-support object clearance must change generated support paths",
+                supportMovesByClearance.getValue("0.2") == supportMovesByClearance.getValue("0.8"),
             )
-            Log.i("NativeSliceDeviceTest", "PASS build-plate-only tree-support clearance G-code bytes=${output.length()}")
+            Log.i("NativeSliceDeviceTest", "PASS tree-support clearance changes generated paths at 0.2 and 0.8 mm")
         } finally {
             result?.release()
             model.release()
