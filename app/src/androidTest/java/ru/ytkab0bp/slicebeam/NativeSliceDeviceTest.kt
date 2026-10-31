@@ -2393,7 +2393,11 @@ class NativeSliceDeviceTest {
     @Test
     fun suppliedSvgCanBeRaisedOrEngravedOnASurfaceAndStillSlicesAfterThreeMfReload() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val svgFile = copyAsset(context, "models/Beste_Oma_Kind_Herz_3D_Druck.svg", "surface-emboss-oma.svg")
+        val svgFile = File(context.cacheDir, "surface-emboss-oma.svg")
+        InstrumentationRegistry.getInstrumentation().context.assets
+            .open("models/Beste_Oma_Kind_Herz_3D_Druck.svg").use { input ->
+                svgFile.outputStream().use(input::copyTo)
+            }
         val cubeFile = copyCube(context, "surface-emboss-target.stl")
         val projectFile = File(context.cacheDir, "surface-emboss-roundtrip.3mf")
         val baselineFile = File(context.cacheDir, "surface-emboss-baseline.gcode")
@@ -2481,7 +2485,11 @@ class NativeSliceDeviceTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val cube = copyCube(context, "mirrored-3mf-source.stl")
         val prusaBase = File(context.cacheDir, "mirrored-prusa-base.3mf")
-        val bbsBase = copyAsset(context, "models/two-color-project.3mf", "mirrored-bbs-base.3mf")
+        val bbsBase = File(context.cacheDir, "mirrored-bbs-base.3mf")
+        InstrumentationRegistry.getInstrumentation().context.assets
+            .open("models/two-color-project.3mf").use { input ->
+                bbsBase.outputStream().use(input::copyTo)
+            }
         val prusaInput = File(context.cacheDir, "mirrored-prusa-input.3mf")
         val bbsInput = File(context.cacheDir, "mirrored-bbs-input.3mf")
         val roundTrip = File(context.cacheDir, "mirrored-roundtrip.3mf")
@@ -2569,10 +2577,10 @@ class NativeSliceDeviceTest {
         try {
             model.ensureOnBed(0)
             val config = requireNotNull(SliceBeam.CONFIG)
-            val process = requireNotNull(config.presets?.get("print")?.let(config::findPrint))
-            process.put("bed_temperature_initial_layer_single", "67")
+            val filament = requireNotNull(config.presets?.get("filament")?.let(config::findFilament))
+            filament.put("first_layer_bed_temperature", "67")
             val gcode = sliceToGcode(context, model, "qidi-q2-start-gcode.gcode")
-            assertTrue("Qidi start sequence should pass the selected bed temperature to PRINT_START",
+            assertTrue("Qidi start sequence should pass the selected filament bed temperature to PRINT_START",
                 gcode.contains("PRINT_START BED=67"))
             assertTrue("Qidi start sequence should heat the selected bed temperature",
                 Regex("(?m)^M140 S67(?:\\s|$)").containsMatchIn(gcode))
@@ -2580,8 +2588,9 @@ class NativeSliceDeviceTest {
                 Regex("(?m)^T\\d+(?:\\s|$)").containsMatchIn(gcode))
             assertFalse("Qidi start G-code must not retain an unresolved bed-temperature placeholder",
                 gcode.contains("M140 S[bed_temperature_initial_layer_single]"))
-            assertFalse("Qidi start G-code must not retain an unresolved initial-tool placeholder",
-                gcode.contains("T[initial_tool]"))
+            assertFalse("Executable Qidi start G-code must not retain an unresolved initial-tool placeholder",
+                gcode.lineSequence().filterNot { it.trimStart().startsWith(";") }
+                    .any { it.contains("T[initial_tool]") })
         } finally {
             model.release()
             source.delete()
@@ -3377,7 +3386,10 @@ class NativeSliceDeviceTest {
             context.assets.open("orca_profiles/Qidi.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
             val config = requireNotNull(SliceBeam.CONFIG)
             val printer = requireNotNull(config.findPrinter("Qidi Q2 0.4 nozzle"))
-            val process = requireNotNull(config.findPrint(printer.get("default_print_profile")))
+            val process = requireNotNull(
+                config.findPrint(printer.get("default_print_profile"))
+                    ?: config.findPrint("0.20mm Standard"),
+            )
             val filament = requireNotNull(config.findFilament(printer.get("default_filament_profile")))
             config.presets = ConfigObject("presets").apply {
                 put("printer", printer.title)

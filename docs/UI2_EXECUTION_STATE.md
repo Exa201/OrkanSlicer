@@ -1,3 +1,16 @@
+# Aktueller Fortsetzungsstand — 2026-10-31, Nightly-Batch 1 abgeschlossen (10/10)
+
+- Ziel bleibt aktiv: selektive OrcaSlicer-2.5-Portierung und OrkanSlicer UI 2.0 Nightly. Stable-App und Stable-Repository bleiben getrennt.
+- Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Ausgangs-HEAD `082a938fb951e92f7e17a0dfa540ae7e45cfaf50`. Orca-Upstream geprüft bis `27cafaa06c5856c1502025b39acb9d5c9c344250`.
+- Batch 1, Kandidaten #1–#10: alle zehn implementiert beziehungsweise als bestehende Android-Äquivalenz geprüft und mit ihren definierten fokussierten Gates verifiziert. #1–#6 und #10 besitzen frühere JVM-/Android-16-ARM64-Nachweise; #7–#9 wurden jetzt zusätzlich auf API-35-x86_64 mit `libndk_translation.so` und geladenen ARM64-Slicer-/OpenCascade-Bibliotheken getestet.
+- Neue ARM64-Native-Instrumentierung: SVG erhaben/eingraviert mit 3MF-Rundlauf und veränderten G-Code-Extrusionswegen 1/1; gespiegelte Prusa/BBS-3MF-Rundläufe 1/1; ZIP64-XML-Übergrößenablehnung 1/1; Qidi-Q2-Slice mit 67 °C in `PRINT_START`/`M140` und aufgelöstem ausführbarem Starttool 1/1. Kein echter Druck gestartet.
+- Dabei korrigierte Testfehler: SVG-/3MF-Fixtures lagen in `androidTest/assets`, wurden aber aus dem App-Assetkontext gelesen; der Qidi-Test setzte die Bett-Temperatur im Prozessprofil statt im Filamentprofil und wertete außerdem kommentierte Maschinen-G-Code-Metadaten als ausführbare Befehle.
+- `:app:assembleSliceTest` und `:app:assembleSliceTestAndroidTest` erfolgreich; fokussierte vier native Tests bestanden. Der app-bezogene Versionsstand wird für den Zehner-Build auf 0.8.420 / Code 455 gesetzt.
+- Vollständige Debug-JVM-Suite 704/704 und Slice-JVM-Suite 704/704 bestanden (je 0 Fehler, 0 Errors, 0 Skips); `git diff --check` sauber.
+- Release-Gates: Nightly-APK noch zu bauen, Paket-ID/Signatur/APK-Hash zu prüfen und als Nightly-Prerelease auf `Exa201/OrkanSlicer-Nightly-2.5` hochzuladen. Das ist kein Stable-Release.
+- Verbleibende Einschränkungen: keine physische GPU-Leistungsmessung und kein Qidi-Drucker/Moonraker-Endpunkt für Live-Übertragung. Beim SVG bleibt eine interaktive Live-Platzierungsvorschau mit Abbruch vor dem Commit ausstehend; die bestehende Commit-on-Tap-Aktion ist undo-bar.
+- Nächster konkreter Schritt: Debug- und Slice-Unit-Suiten gebündelt ausführen, Release-APK erzeugen und Metadaten/Hash prüfen, committen/pushen, Nightly-Prerelease veröffentlichen; anschließend den Orca-2.5-Audit mit dem nächsten umsetzbaren Kandidaten fortsetzen.
+
 # Fortsetzung 2026-10-31 — Orca-Nightly 2.5
 
 - Aktiver Branch `nightly-2.5`; Statuskorrektur `8c9f6186d70bfc18020f2371f098bcc95d6f6f60` ist gepusht; der laufende Datenfluss-Audit ist noch lokal. Letzter Code-Commit `ea8c7e23e`; aktuelle Codebasis unverändert. Orca-Upstream wurde bis `27cafaa06c5856c1502025b39acb9d5c9c344250` geprüft.

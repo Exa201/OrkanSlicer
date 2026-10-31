@@ -1,5 +1,5 @@
 {
-  "de": "OrkanSlicer 0.8.396\n\n• Malstriche werden bereits während des Ziehens in der Vorschau aktualisiert, auch wenn du kurz pausierst.\n• Im Farbmodus bleibt nur eine Filamentleiste sichtbar.\n• Die Druckplatte bleibt während des Farbmodus sichtbar.",
-  "en": "OrkanSlicer 0.8.396\n\n• Brush strokes refresh in the preview while dragging, including when you pause briefly.\n• Color mode shows only one filament palette.\n• The build plate remains visible while painting.",
-  "ru": "OrkanSlicer 0.8.396\n\n• Штрихи кисти обновляются в предпросмотре во время рисования, в том числе при короткой паузе.\n• В режиме раскрашивания отображается только одна палитра филаментов.\n• Платформа остаётся видимой во время окрашивания."
+  "de": "OrkanSlicer Nightly 2.5 · 0.8.420\n\n• Die Vorschauqualität lässt sich für schwächere Geräte automatisch oder manuell reduzieren.\n• SVG-Prägen und Gravieren sowie Mehrfarben-3MF-Rundläufe wurden mit echtem Slicing geprüft.\n• Qidi-Q2-Start-G-Code und Werkzeugwahl sind getestet; der Profil- und Importabgleich wurde erweitert.",
+  "en": "OrkanSlicer Nightly 2.5 · 0.8.420\n\n• Preview quality can be reduced automatically or manually for weaker devices.\n• SVG embossing/engraving and multicolor 3MF round trips were verified with native slicing.\n• Qidi Q2 start G-code and tool selection were tested; profile and import parity were extended.",
+  "ru": "OrkanSlicer Nightly 2.5 · 0.8.420\n\n• Качество предпросмотра можно автоматически или вручную снизить для слабых устройств.\n• Тиснение и гравировка SVG, а также цикл многоцветного 3MF проверены реальной нарезкой.\n• Проверены стартовый G-code и выбор инструмента Qidi Q2; расширено соответствие профилей и импорта."
 }
