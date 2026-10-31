@@ -1,3 +1,11 @@
+# Fortsetzung 2026-10-31 — Orca-Nightly 2.5
+
+- Aktiver Branch `nightly-2.5`; zuletzt bestätigter Remote-HEAD vor diesem Prüfschritt `7df9f351a`, sauber und mit `nightly25` synchron. Upstream wurde auf `27cafaa06` aktualisiert.
+- Kandidat #21 `27cafaa06` geprüft: lokale Android-App besitzt die desktopbezogenen Geräte-/Nozzle-UI-Pfade nicht. Der gemeinsame Bambu-3MF-Importer hat bereits einen `CNumericLocalesSetter`; zusätzlich liest die Filament-Metadatenroute den Düsendurchmesser jetzt explizit mit `string_to_double_decimal_point`.
+- Verifikation dieser Quelländerung: `:app:externalNativeBuildDebug` erfolgreich (ARM64); `git diff --check` erfolgreich. Kein dedizierter Bambu-Metadaten-Rundlauftest; daher als defensive Parität, nicht als abgeschlossene Featuregruppe bewertet.
+- APK/Release nicht erstellt: keine zehn neuen, vollständig abgenommenen Featuregruppen; offene native Gerätetests bleiben bestehen. `adb` ist in dieser Shell derzeit nicht im PATH, ARM64-Gerätezugriff wurde in diesem Turn nicht bestätigt.
+- Nächster konkreter Schritt: Kandidaten #22 und danach folgende Orca-2.5-Upstream-Fixes nach Android-Relevanz prüfen. Für Filamentgruppen-/Düsen-Zuordnungsänderungen erst den Android-Profil-/Laufzeitpfad und einen reproduzierbaren Regressionstest identifizieren, bevor Algorithmusänderungen übernommen werden.
+
 # Fortsetzung 2026-10-31 — aktueller Prüflauf
 
 - Aktiver Branch: `nightly-2.5`; Ausgangs-HEAD `8d5e4dca0`. Änderungen an Orca-Kandidaten #18 und #20 sowie Statusdokumentation sind noch nicht committet/pusht.
