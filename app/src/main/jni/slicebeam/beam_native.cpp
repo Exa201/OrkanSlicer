@@ -2889,6 +2889,11 @@ extern "C" {
         return env->NewStringUTF(ref->name.c_str());
     }
 
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_gcoderesult_1get_1gcode_1check_1error_1code(JNIEnv*, jclass, jlong ptr) {
+        GCodeResultRef* ref = (GCodeResultRef*) (intptr_t) ptr;
+        return static_cast<jint>(ref->result.gcode_check_result.error_code);
+    }
+
     // Maps a Java-side role index (matching libvgcode::EGCodeExtrusionRole ordering) to the
     // engine's Slic3r::ExtrusionRole, which is the key type of used_filaments_per_role.
     ExtrusionRole mapGCodeRole(int index) {

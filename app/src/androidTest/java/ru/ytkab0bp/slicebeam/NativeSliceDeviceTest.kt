@@ -197,6 +197,76 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun insetMultiSideExtruderAreaDoesNotRejectPathInsideItsPrintablePolygon() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val printer = requireNotNull(SliceBeam.CONFIG?.findPrinter("MyToolChanger 0.4 nozzle"))
+        printer.put("physical_extruder_map", "1,0,0,0,0")
+        printer.put("layer_change_gcode", "; VALIDATION_PHYSICAL=[most_used_physical_extruder_id]")
+        val source = copyCube(context, "orca25-inset-extruder-area.stl")
+        val output = File(context.cacheDir, "orca25-inset-extruder-area.gcode")
+        val model = Model(source)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            // STL fixtures are centered around the origin; this test printer uses a 0..350 mm bed.
+            model.translate(175.0, 175.0, 0.0)
+            model.setUniformFilament(0, 1)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val pad = 4.0
+            val x0 = (min.x - pad).coerceAtLeast(0.0)
+            val y0 = (min.y - pad).coerceAtLeast(0.0)
+            val x1 = (max.x + pad).coerceAtMost(350.0)
+            val y1 = (max.y + pad).coerceAtMost(350.0)
+            assertTrue("the test printable polygon must have positive width", x1 > x0)
+            assertTrue("the test printable polygon must have positive height", y1 > y0)
+
+            SliceBeam.genCurrentConfig(model)
+            val configFile = SliceBeam.getCurrentConfigFile()
+            val fullBed = "0x0,350x0,350x350,0x350"
+            val insetArea = "$x0 x $y0,$x1 x $y0,$x1 x $y1,$x0 x $y1".replace(" ", "")
+            val groupedAreas = (listOf(insetArea) + List(4) { fullBed }).joinToString("#")
+            val generated = configFile.readText()
+            val configured = if (Regex("(?m)^extruder_printable_area\\s*=").containsMatchIn(generated)) {
+                generated.replace(Regex("(?m)^extruder_printable_area\\s*=.*$"), "extruder_printable_area = $groupedAreas")
+            } else {
+                "$generated\nextruder_printable_area = $groupedAreas\n"
+            }
+            configFile.writeText(configured)
+            assertTrue("the inset, multi-side toolhead area must reach native slicing",
+                configFile.readText().contains("extruder_printable_area = $groupedAreas"))
+
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the test model must exercise the first physical toolhead",
+                gcode.contains("VALIDATION_PHYSICAL=1"))
+            val errorCode = result.getGCodeCheckErrorCode()
+            assertEquals("paths fully inside the toolhead's inset printable area must not be rejected by its surrounding polygon bounds",
+                0, errorCode and 1)
+            assertEquals("the fixture remains below the toolhead height limit", 0, errorCode and (1 shl 1))
+            Log.i("NativeSliceDeviceTest", "PASS inset multi-side extruder area errorCode=$errorCode bounds=$insetArea")
+
+            result.release()
+            result = null
+            val excludedArea = "300x300,340x300,340x340,300x340"
+            val excludedGroups = (listOf(excludedArea) + List(4) { fullBed }).joinToString("#")
+            configFile.writeText(configured.replace(groupedAreas, excludedGroups))
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val excludedErrorCode = result.getGCodeCheckErrorCode()
+            assertTrue("the same physical toolhead must be rejected when its actual printable polygon excludes the model",
+                excludedErrorCode and 1 != 0)
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun modifierVolumesSurviveThreeMfAndChangeNativeSliceOutput() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val source = copyCube(context, "modifier-slice-source.stl")

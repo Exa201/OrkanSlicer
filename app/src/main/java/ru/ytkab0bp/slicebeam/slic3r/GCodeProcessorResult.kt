@@ -30,6 +30,9 @@ open class GCodeProcessorResult {
 
     open fun getRecommendedName(): String = Native.gcoderesult_get_recommended_name(pointer)
 
+    /** Bitmask of native printable-area and print-height validation findings for this slice. */
+    open fun getGCodeCheckErrorCode(): Int = Native.gcoderesult_get_gcode_check_error_code(pointer)
+
     open fun release() {
         if (pointer != 0L) {
             Native.gcoderesult_release(pointer)

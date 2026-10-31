@@ -297,6 +297,8 @@ class Native {
     @JvmStatic
     external fun gcoderesult_get_recommended_name(ptr: Long): String
     @JvmStatic
+    external fun gcoderesult_get_gcode_check_error_code(ptr: Long): Int
+    @JvmStatic
     external fun gcoderesult_get_used_filament_mm(ptr: Long, role: Int): Double
     @JvmStatic
     external fun gcoderesult_get_used_filament_g(ptr: Long, role: Int): Double
