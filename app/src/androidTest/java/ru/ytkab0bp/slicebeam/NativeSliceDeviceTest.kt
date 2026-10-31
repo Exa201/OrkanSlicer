@@ -102,6 +102,75 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun lightningInfillCompletesOnOverhangRichBunnyFixture() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("sparse_infill_pattern", "lightning")
+        process.put("sparse_infill_density", "15")
+        process.put("top_shell_layers", "3")
+        val modelFile = copyAsset(context, "models/bunny.stl", "orca25-lightning-overhang-bunny.stl")
+        val output = File(context.cacheDir, "orca25-lightning-overhang-bunny.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue(
+                "the overhang-rich Lightning fixture must emit sparse infill",
+                gcode.contains(";TYPE:Sparse infill", ignoreCase = true) ||
+                    gcode.contains(";TYPE:Internal infill", ignoreCase = true),
+            )
+            Log.i("NativeSliceDeviceTest", "PASS Lightning overhang stress G-code bytes=${output.length()}")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("enable_support", "1")
+        process.put("support_type", "tree(auto)")
+        process.put("support_on_build_plate_only", "1")
+        process.put("support_object_xy_distance", "0.8")
+        val modelFile = copyAsset(context, "models/bunny.stl", "orca25-tree-clearance-bunny.stl")
+        val output = File(context.cacheDir, "orca25-tree-clearance-bunny.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue("tree auto support must reach the native slice config", generatedConfig.contains("support_type = tree(auto)"))
+            assertTrue("build-plate-only support must reach the native slice config", generatedConfig.contains("support_on_build_plate_only = 1"))
+            assertTrue("the requested object clearance must reach the native slice config", generatedConfig.contains("support_object_xy_distance = 0.8"))
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue(
+                "the overhang fixture must produce support paths with build-plate-only tree support enabled",
+                Regex("(?im)^;TYPE:.*support").containsMatchIn(gcode),
+            )
+            Log.i("NativeSliceDeviceTest", "PASS build-plate-only tree-support clearance G-code bytes=${output.length()}")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun modifierVolumesSurviveThreeMfAndChangeNativeSliceOutput() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val source = copyCube(context, "modifier-slice-source.stl")
