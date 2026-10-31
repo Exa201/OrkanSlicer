@@ -3380,5 +3380,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Die Filamentpalette bleibt bewusst die aktive globale Nutzerpalette; separatisiert werden MMU-Metadaten, nicht unabhängige Filamentprofile oder Projektzustände.
 - Verifikation: `MmuFilamentSyncDeviceTest` 16/16 auf `nightly35x64` (API 35) und `solidcraft_android_test_fresh` (API 35); neuer A→B→A-Test prüft getrennte Gate-Auswahlen und Snapshots. `FilamentPaletteSyncPolicyTest` 10/10. Testquellenkompilierung und `git diff --check` bestanden.
 - Ein erster Fixturelauf wurde abgewiesen, weil Drucker B absichtlich ein ungültiges, vertauschtes Moonraker `ttg_map` enthielt; die bestehende Regel weist nicht-identische Tool-/Gate-Zuordnungen sicher zurück. Die Testfixture wurde auf gültige identische Printer-Toolmaps mit unterschiedlichen gespeicherten Benutzerzuordnungen/Snapshots korrigiert; der Lauf danach bestand.
-- Aktueller Code-HEAD bleibt `cca320149`; Änderung uncommitted und noch nicht veröffentlicht. Nächster Schritt: Prüfung/Commit/Push dieser Anpassung, dann Orca-Backlogpunkte und deren Verifikation fortsetzen. Kein APK-Release, da kein verifiziertes Zehnerpaket seit dem zuletzt veröffentlichten Baseline-Release abgeschlossen wurde.
+- Code-Commit `a8dd87ba4` enthält die MMU-Zustandsisolation und ist auf `nightly-2.5` gepusht. Für diese Anpassung wurde kein APK-Release erzeugt, da seit dem letzten Release noch kein vollständiges Zehnerpaket abgeschlossen ist.
+
+# Orca #11 — Lightning-Stressgeometrie (2026-10-31)
+
+- Instrumentierungstest `lightningInfillCompletesWhenOpenedOverhangExtendsPastInfillBounds` ergänzt: ein 10-mm-Schaft mit 20-mm-Deckkörper erzeugt einen klar über die Schaft-Infillgrenze hinausstehenden Überhang. Der Lightning-Slice muss innerhalb des 90-s-Testlimits enden und G-Code mit Extrusion und Lightning-Infill erzeugen.
+- API-35 `nightly35x64` und `solidcraft_android_test_fresh`: beide 1/1 bestanden. Der Test belegt die Problemgeometrie über einen echten nativen Slice; er liest die interne Zellkoordinate nicht direkt aus. Dieses direkte Sample-Diagnostic bleibt offen.
+- Kotlin-Testquellen kompiliert; der fokussierte ARM64-Bridge-Instrumentierungslauf war erfolgreich. Code-HEAD ist weiterhin `a8dd87ba4`; Test- und Dokumentationsänderungen sind noch uncommitted. Nächster Schritt: `git diff --check`, Änderung committen/pushen, dann den Backlogpunkt #14 mit genauerem Clearance-Nachweis fortsetzen. Kein APK/Release vor Abschluss eines verifizierten Zehnerpakets.
 

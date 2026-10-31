@@ -135,6 +135,39 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 90_000)
+    fun lightningInfillCompletesWhenOpenedOverhangExtendsPastInfillBounds() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("sparse_infill_pattern", "lightning")
+        process.put("sparse_infill_density", "15")
+        process.put("top_shell_layers", "2")
+        val modelFile = createSteppedOverhangFixture("orca25-lightning-outside-infill-bounds.stl")
+        val output = File(context.cacheDir, "orca25-lightning-outside-infill-bounds.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue(
+                "the stepped overhang must generate Lightning infill",
+                gcode.contains(";TYPE:Sparse infill", ignoreCase = true) ||
+                    gcode.contains(";TYPE:Internal infill", ignoreCase = true),
+            )
+            Log.i("NativeSliceDeviceTest", "PASS Lightning stepped overhang beyond infill bounds bytes=${output.length()}")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -3882,6 +3915,44 @@ class NativeSliceDeviceTest {
             }
         }
         stl.append("endsolid curved_text_cylinder\n")
+        target.writeText(stl.toString())
+        return target
+    }
+
+    /** A 10 mm square stem supports a 20 mm square cap, creating a clear unsupported ledge. */
+    private fun createSteppedOverhangFixture(name: String): File {
+        val target = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        data class P(val x: Double, val y: Double, val z: Double)
+        val stl = StringBuilder("solid stepped_lightning_overhang\n")
+        fun triangle(a: P, b: P, c: P) {
+            stl.append("facet normal 0 0 0\nouter loop\n")
+            listOf(a, b, c).forEach { stl.append("vertex ${it.x} ${it.y} ${it.z}\n") }
+            stl.append("endloop\nendfacet\n")
+        }
+        fun quad(a: P, b: P, c: P, d: P) {
+            triangle(a, b, c)
+            triangle(a, c, d)
+        }
+        fun square(half: Double, z: Double) = listOf(
+            P(-half, -half, z), P(half, -half, z), P(half, half, z), P(-half, half, z),
+        )
+        val bottom = square(5.0, 0.0)
+        val stemTop = square(5.0, 10.0)
+        val capBottom = square(10.0, 10.0)
+        val capTop = square(10.0, 20.0)
+        for (side in 0..3) {
+            val next = (side + 1) % 4
+            quad(bottom[side], bottom[next], stemTop[next], stemTop[side])
+            quad(capBottom[side], capBottom[next], capTop[next], capTop[side])
+            val stemA = stemTop[side]
+            val stemB = stemTop[next]
+            val capA = capBottom[side]
+            val capB = capBottom[next]
+            quad(stemA, stemB, capB, capA)
+        }
+        quad(bottom[0], bottom[3], bottom[2], bottom[1])
+        quad(capTop[0], capTop[1], capTop[2], capTop[3])
+        stl.append("endsolid stepped_lightning_overhang\n")
         target.writeText(stl.toString())
         return target
     }
