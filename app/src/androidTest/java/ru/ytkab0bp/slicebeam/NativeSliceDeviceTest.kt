@@ -2793,6 +2793,101 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun paintedTopAndBottomColorPenetrationChangesTheActualSlicedToolpathDepth() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard"))
+        val modelFile = copyCube(context, "paint-penetration-cube.stl")
+        try {
+            fun slicePaintedFace(top: Boolean, penetration: Int): Set<Int> {
+                val model = Model(modelFile)
+                val paintOverlay = GLModel()
+                var generatedConfig: File? = null
+                try {
+                    model.setUniformFilament(0, 1)
+                    model.ensureOnBed(0)
+                    val min = Vec3d()
+                    val max = Vec3d()
+                    model.getBoundingBoxExact(0, min, max)
+                    val paint = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+                    try {
+                        assertTrue("Surface fixture must create a paint session", paint.isValid())
+                        // The bucket paints only the coplanar top/bottom facets. Height paint also
+                        // touches adjacent side facets and cannot isolate penetration depth.
+                        val originZ = if (top) max.z + 10.0 else min.z - 10.0
+                        val rayZ = if (top) -1.0 else 1.0
+                        val hit = requireNotNull(
+                            paint.raycast(
+                                doubleArrayOf((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, originZ),
+                                doubleArrayOf(0.0, 0.0, rayZ),
+                            ),
+                        ) { "The test ray must hit the ${if (top) "top" else "bottom"} face" }
+                        paint.bucket(hit, hit[1].toInt(), 2, true, 1.0)
+                        paint.commit()
+                    } finally {
+                        paint.end()
+                    }
+                    assertTrue("Surface paint must be present", model.hasPaint(0))
+                    assertTrue("Surface paint must assign the second tool", model.getUsedFilaments(0).contains(2))
+                    assertTrue("Surface paint must be renderable", model.buildPaintOverlay(0, paintOverlay, 2) > 0)
+
+                    process.put("layer_height", "0.20")
+                    process.put("initial_layer_print_height", "0.20")
+                    process.put("top_shell_layers", "3")
+                    process.put("bottom_shell_layers", "3")
+                    process.put("top_color_penetration_layers", if (top) penetration.toString() else "2")
+                    process.put("bottom_color_penetration_layers", if (top) "2" else penetration.toString())
+                    SliceBeam.genCurrentConfig(model)
+                    generatedConfig = SliceBeam.getCurrentConfigFile()
+                    val configText = generatedConfig!!.readText()
+                    val option = if (top) "top_color_penetration_layers" else "bottom_color_penetration_layers"
+                    assertTrue(
+                        "Generated config must preserve $option=$penetration",
+                        Regex("(?m)^${Regex.escape(option)}\\s*=\\s*$penetration\\s*$").containsMatchIn(configText),
+                    )
+                    val output = File(context.cacheDir, "paint-penetration-${if (top) "top" else "bottom"}-$penetration.gcode")
+                    var result: GCodeProcessorResult? = null
+                    try {
+                        result = model.slice(generatedConfig!!.absolutePath, output.absolutePath, null)
+                        val gcode = output.readText()
+                        assertHasExtrusion(gcode)
+                        var activeTool = 0
+                        var layer = -1
+                        val paintedToolLayers = mutableSetOf<Int>()
+                        gcode.lineSequence().forEach { line ->
+                            if (line.startsWith(";LAYER_CHANGE")) ++layer
+                            Regex("^T(\\d+)(?:\\s|$)").find(line)?.let { activeTool = it.groupValues[1].toInt() }
+                            if (activeTool == 1 && line.startsWith("G1 ") && Regex("\\bE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(line)) {
+                                if (layer >= 0) paintedToolLayers += layer
+                            }
+                        }
+                        assertTrue("Painted tool must appear in the sliced layers", paintedToolLayers.isNotEmpty())
+                        return paintedToolLayers
+                    } finally {
+                        result?.release()
+                        generatedConfig?.delete()
+                        generatedConfig = null
+                        output.delete()
+                    }
+                } finally {
+                    generatedConfig?.delete()
+                    model.release()
+                    paintOverlay.release()
+                }
+            }
+
+            val topLayers = listOf(2, 8).map { slicePaintedFace(top = true, penetration = it) }
+            assertTrue("More top paint layers should color deeper below the surface: ${topLayers.map { it.sorted() }}", topLayers[1].min() < topLayers[0].min())
+            assertTrue("Extended top penetration must add toolpath layers", topLayers[1].size > topLayers[0].size)
+
+            val bottomLayers = listOf(2, 8).map { slicePaintedFace(top = false, penetration = it) }
+            assertTrue("More bottom paint layers should color farther above the surface: ${bottomLayers.map { it.sorted() }}", bottomLayers[1].max() > bottomLayers[0].max())
+            assertTrue("Extended bottom penetration must add toolpath layers", bottomLayers[1].size > bottomLayers[0].size)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun booleanUnionPreservesExistingEngravedNegativeVolumeThroughReloadAndSlice() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val cubeFile = copyCube(context, "boolean-negative-volume-cube.stl")

@@ -1157,6 +1157,15 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionInt(3));
 
+    def = this->add("bottom_color_penetration_layers", coInt);
+    def->label = L("Bottom paint penetration layers");
+    def->category = L("Strength");
+    def->sidetext = L("layers");
+    def->tooltip = L("Layers, including the bottom surface, that use color painted on a bottom surface. Set to 0 to use bottom shell layers.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("bottom_shell_thickness", coFloat);
     def->label = L("Bottom shell thickness");
     def->category = L("Strength");
@@ -6716,6 +6725,15 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Top solid layers");
     def->min = 0;
     def->set_default_value(new ConfigOptionInt(4));
+
+    def = this->add("top_color_penetration_layers", coInt);
+    def->label = L("Top paint penetration layers");
+    def->category = L("Strength");
+    def->sidetext = L("layers");
+    def->tooltip = L("Layers, including the top surface, that use color painted on a top surface. Set to 0 to use top shell layers.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("top_shell_thickness", coFloat);
     def->label = L("Top shell thickness");

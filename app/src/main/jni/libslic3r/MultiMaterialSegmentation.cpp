@@ -1182,6 +1182,13 @@ static bool is_volume_sinking(const indexed_triangle_set &its, const Transform3d
 
 //#define MMU_SEGMENTATION_DEBUG_TOP_BOTTOM
 
+// A zero override follows the corresponding shell thickness, preserving the
+// historical paint-to-shell behavior for existing profiles.
+static int paint_penetration_layers(const ConfigOptionInt &override_layers, const ConfigOptionInt &shell_layers)
+{
+    return override_layers.value > 0 ? override_layers.value : shell_layers.value;
+}
+
 // Returns segmentation of top and bottom layers based on painting in segmentation gizmos.
 static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_layers(const PrintObject                                               &print_object,
                                                                                       const std::vector<ExPolygons>                                   &input_expolygons,
@@ -1199,9 +1206,11 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     int granularity = 1;
     for (size_t i = 0; i < print_object.num_printing_regions(); ++ i) {
         const PrintRegionConfig &config = print_object.printing_region(i).config();
-        max_top_layers    = std::max(max_top_layers, config.top_shell_layers.value);
-        max_bottom_layers = std::max(max_bottom_layers, config.bottom_shell_layers.value);
-        granularity       = std::max(granularity, std::max(config.top_shell_layers.value, config.bottom_shell_layers.value) - 1);
+        const int top_layers = paint_penetration_layers(config.top_color_penetration_layers, config.top_shell_layers);
+        const int bottom_layers = paint_penetration_layers(config.bottom_color_penetration_layers, config.bottom_shell_layers);
+        max_top_layers    = std::max(max_top_layers, top_layers);
+        max_bottom_layers = std::max(max_bottom_layers, bottom_layers);
+        granularity       = std::max(granularity, std::max(top_layers, bottom_layers) - 1);
     }
 
     // Project upwards pointing painted triangles over top surfaces,
@@ -1237,8 +1246,10 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                             slicing_params.trafo = volume_trafo;
                             Polygons bottom_slice = slice_mesh(painted, zs[0], slicing_params);
 
-                            top.erase(top.begin());
-                            bottom.erase(bottom.begin());
+                            if (!top.empty())
+                                top.erase(top.begin());
+                            if (!bottom.empty())
+                                bottom.erase(bottom.begin());
 
                             bottom[0] = union_(bottom[0], bottom_slice);
                         } else
@@ -1337,9 +1348,9 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
         // Minimum radius of a region to be printable. Used to filter regions by morphological opening.
         float   small_region_threshold  { 0.f };
         // Maximum number of top layers for a queried color.
-        int     top_shell_layers        { 0 };
+        int     top_paint_layers        { 0 };
         // Maximum number of bottom layers for a queried color.
-        int     bottom_shell_layers     { 0 };
+        int     bottom_paint_layers     { 0 };
         //BBS: spacing according to width and layer height
         float   extrusion_spacing{ 0.f };
     };
@@ -1355,8 +1366,8 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                 const double nozzle_diameter = print_object.print()->config().nozzle_diameter.get_at(0);
                 double outer_wall_line_width = config.get_abs_value("outer_wall_line_width", nozzle_diameter);
                 out.extrusion_width     = std::max<float>(out.extrusion_width, outer_wall_line_width);
-                out.top_shell_layers    = std::max<int>(out.top_shell_layers, config.top_shell_layers);
-                out.bottom_shell_layers = std::max<int>(out.bottom_shell_layers, config.bottom_shell_layers);
+                out.top_paint_layers    = std::max(out.top_paint_layers, paint_penetration_layers(config.top_color_penetration_layers, config.top_shell_layers));
+                out.bottom_paint_layers = std::max(out.bottom_paint_layers, paint_penetration_layers(config.bottom_color_penetration_layers, config.bottom_shell_layers));
                 out.small_region_threshold = config.gap_infill_speed.value > 0 ?
                                              // Gap fill enabled. Enable a single line of 1/2 extrusion width.
                                              0.5f * outer_wall_line_width :
@@ -1389,7 +1400,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                             append(triangles_by_color_top[color_idx][layer_idx + layer_idx_offset], top_ex);
                             float offset = 0.f;
                             ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
-                            for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_shell_layers), int(0)); --last_idx) {
+                            for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_paint_layers), int(0)); --last_idx) {
                                 //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
                                 //offset -= stat.extrusion_width ;
                                 offset -= (stat.extrusion_spacing + stat.extrusion_width);
@@ -1409,7 +1420,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                             append(triangles_by_color_bottom[color_idx][layer_idx + layer_idx_offset], bottom_ex);
                             float offset = 0.f;
                             ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
-                            for (size_t last_idx = layer_idx + 1; last_idx < std::min(layer_idx + stat.bottom_shell_layers, num_layers); ++last_idx) {
+                            for (size_t last_idx = layer_idx + 1; last_idx < std::min(layer_idx + stat.bottom_paint_layers, num_layers); ++last_idx) {
                                 //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
                                 //offset -= stat.extrusion_width;
                                 offset -= (stat.extrusion_spacing + stat.extrusion_width);

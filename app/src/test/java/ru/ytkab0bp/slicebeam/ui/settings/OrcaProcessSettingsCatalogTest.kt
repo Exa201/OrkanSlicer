@@ -162,4 +162,17 @@ class OrcaProcessSettingsCatalogTest {
         assertTrue("Infill locking remains in the Orca infill settings", "infill_lock_depth" in infill.keys)
         assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
     }
+
+    @Test
+    fun paintPenetrationControlsAreExposedWithTopAndBottomShellSettings() {
+        val section = OrcaProcessSettingsCatalog.categories()
+            .single { it.title == "Top/bottom layers" }
+            .sections.single { it.title == "Top/bottom layers" }
+
+        assertTrue(section.keys.containsAll(listOf(
+            "top_color_penetration_layers",
+            "bottom_color_penetration_layers",
+        )))
+        assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
+    }
 }

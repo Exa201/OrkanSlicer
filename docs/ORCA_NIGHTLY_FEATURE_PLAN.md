@@ -259,11 +259,17 @@ Der Orca-Platzhalter `{printing_filament_types}` wird jetzt im nativen Slice-Exp
 
 Damit ist Batch 2 bei **10/10 fokussiert verifizierten Änderungen**. Vor APK und Nightly-Prerelease laufen jetzt noch die gebündelten Debug-/Slice-JVM-Regressionen; danach folgen APK-Identitäts-/Hashprüfung, Installation und Start auf dem verfügbaren Testemulator sowie Veröffentlichung.
 
-## Nightly Batch 4 — 1/10 (2026-11-01)
+## Nightly Batch 4 — 2/10 (2026-11-01)
 
 1. Orca `2e64ab3db5` — Beschleunigung der Brim-Gruppierung für zusammengesetzte Objekte mit vielen Volumenteilen. Die Android-Portierung erstellt nach dem Offset pro Layer Begrenzungsboxen und führt Polygonüberschneidungen nur bei überlappenden Boxen aus. Die redundante TBB-Parallelisierung für jedes einzelne Volumenpaar entfällt; der serielle Paar-Scan beendet sich beim ersten Treffer. Das 12-Teile-Instrumentierungsfixture slice't auf API 35 erfolgreich und erhält beide Materialzuweisungen sowie Schicht-G-Code (1/1). Der bestehende Zwei-Teil-3MF-Roundtrip-/Slice-Test und der auf den Slot-Konfigurationsparser verstärkte Auto-for-Match-Test bestanden ebenfalls (je 1/1). ARM64-Native-Build, Android-Instrumentierungs-Kompilierung und `git diff --check` bestanden. Der Android-Lauf ist eine Funktions-/Regressionsprüfung, kein kontrollierter Vorher-Nachher-Leistungstest; ein absoluter Speedup wird nicht behauptet. APK/Release erst nach 10/10.
 
 Der strengere Auto-for-Match-Test baut jetzt synthetische Drucker-Slot-`DynamicPrintConfig`s und ruft `build_machine_filaments()` auf, statt `MachineFilamentInfo` direkt auszufüllen. Das prüft den realen nativen Slot-Parser für `filament_colour`, `filament_type`, `tray_name` und `filament_id`. Es ist Testverstärkung, keine neue Produktfunktion. Der Android-App-Pfad übergibt weiterhin keine geladenen Maschinenfilamente an das native `Print`; deshalb gilt die Orca-Dual-Nozzle-Ladezuordnung nicht als appweit integriert. Orcas Kandidaten 22–24 bleiben bis zu einer passenden, tatsächlich genutzten Druckerroute zurückgestellt.
+
+2. Orca `b1846e3408` — einstellbare obere und untere Farbdurchdringung für gemalte Modellflächen. Die neuen Prozessprofiloptionen `top_color_penetration_layers` und `bottom_color_penetration_layers` reichen bis in die native `PrintRegionConfig` und Mehrmaterial-Segmentierung. Der Standardwert `0` erhält bisheriges Verhalten und folgt der jeweiligen Schalenstärke. Änderungen invalidieren den Slice; beide Optionen sind im vorhandenen Abschnitt „Obere / untere Schichten“ editierbar.
+
+`OrcaProcessSettingsCatalogTest#paintPenetrationControlsAreExposedWithTopAndBottomShellSettings` bestand zusammen mit dem Katalog 10/10. `NativeSliceDeviceTest#paintedTopAndBottomColorPenetrationChangesTheActualSlicedToolpathDepth` bemalt gezielt nur obere bzw. untere Flächen und vergleicht echte G-Code-Werkzeuglayer bei 2 gegen 8 Penetrationslagen; API 35 bestand 1/1. Initial zeigte ein ungenauer Höhenmal-Fixture auch angrenzende Seitenfacetten an; der Test wurde auf Raycast plus coplanaren Flächen-Bucket umgestellt und besteht nun für Ober- und Unterseite. Kein Druckstart.
+
+Damit steht Batch 4 bei **2/10**. Native ARM64- und Instrumentierungs-Builds sowie `git diff --check` erfolgreich. Noch keine APK oder Veröffentlichung für diesen Teilbatch.
 
 ## Orca-Upstream-Funktionsprüfung nach `v0.8.421-nightly.1` — 2026-10-31
 

@@ -31,7 +31,7 @@ object OrcaProcessSettingsCatalog {
         ),
         OrcaSettingsCategory(
             "Top/bottom layers", R.drawable.print_layers_28, listOf(
-                section("Top/bottom layers", "top_shell_layers", "top_shell_thickness", "bottom_shell_layers", "bottom_shell_thickness", "top_surface_pattern", "bottom_surface_pattern", "internal_solid_infill_pattern", "top_surface_density", "bottom_surface_density", "min_width_top_surface"),
+                section("Top/bottom layers", "top_shell_layers", "top_shell_thickness", "top_color_penetration_layers", "bottom_shell_layers", "bottom_shell_thickness", "bottom_color_penetration_layers", "top_surface_pattern", "bottom_surface_pattern", "internal_solid_infill_pattern", "top_surface_density", "bottom_surface_density", "min_width_top_surface"),
             ),
         ),
         OrcaSettingsCategory(
