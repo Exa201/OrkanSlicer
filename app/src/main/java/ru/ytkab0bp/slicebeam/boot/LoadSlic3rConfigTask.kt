@@ -8,7 +8,6 @@ import ru.ytkab0bp.slicebeam.config.Kobra3V2ProfileMigration
 import ru.ytkab0bp.slicebeam.config.ProfileConfigSchemaMigrator
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.IOUtils
-import ru.ytkab0bp.slicebeam.utils.Prefs
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -48,31 +47,29 @@ open class LoadSlic3rConfigTask : BootTask(Runnable {
 
     private companion object {
         private const val KOBRA_3_V2_TITLE = "Anycubic Kobra 3 v2 0.4 nozzle - Stock"
-        // v2 must run even for installations that already recorded the earlier cleanup. The old
-        // K0.051 command could remain in a stored printer profile and override the filament PA.
-        private const val KOBRA_3_V2_PA_MIGRATION = "kobra3v2_start_pa_migration_v2"
 
         private fun ensureKobra3V2Available() {
             val config = SliceBeam.CONFIG ?: return
-            val prefs = Prefs.getPrefs()
             val existing = config.findPrinter(KOBRA_3_V2_TITLE)
-            if (existing != null) {
-                if (prefs?.getBoolean(KOBRA_3_V2_PA_MIGRATION, false) != true) {
-                    val oldStartGcode = existing.get("machine_start_gcode").orEmpty()
-                    val migratedStartGcode = Kobra3V2ProfileMigration.removeLegacyPressureAdvance(oldStartGcode)
-                    if (migratedStartGcode != oldStartGcode) {
-                        existing.put("machine_start_gcode", migratedStartGcode)
-                        if (!SliceBeam.saveConfig()) {
-                            existing.put("machine_start_gcode", oldStartGcode)
-                            Log.w("LoadSlic3rConfigTask", "Could not save the Kobra 3 V2 Pressure Advance profile migration")
-                            return
-                        }
-                        Log.i("LoadSlic3rConfigTask", "Removed the fixed M900 K0.051 override from the stored Kobra 3 V2 stock profile")
-                    }
-                    prefs?.edit()?.putBoolean(KOBRA_3_V2_PA_MIGRATION, true)?.apply()
+            var changed = false
+            val previousStartCodes = mutableListOf<Pair<ConfigObject, String>>()
+            config.printerConfigs.forEach { printer ->
+                if (!Kobra3V2ProfileMigration.isKobra3V2Profile(printer.title, printer.get("printer_model"))) return@forEach
+                val oldStartGcode = printer.get("machine_start_gcode").orEmpty()
+                val migratedStartGcode = Kobra3V2ProfileMigration.removeLegacyPressureAdvance(oldStartGcode)
+                if (migratedStartGcode != oldStartGcode) {
+                    previousStartCodes += printer to oldStartGcode
+                    printer.put("machine_start_gcode", migratedStartGcode)
+                    changed = true
                 }
+            }
+            if (changed && !SliceBeam.saveConfig()) {
+                previousStartCodes.forEach { (printer, startGcode) -> printer.put("machine_start_gcode", startGcode) }
+                Log.w("LoadSlic3rConfigTask", "Could not save the Kobra 3 V2 Pressure Advance profile migration")
                 return
             }
+            if (changed) Log.i("LoadSlic3rConfigTask", "Removed fixed M900 K0.051 overrides from stored Kobra 3 V2 printer profiles")
+            if (existing != null) return
             try {
                 val profile = SliceBeam.requireInstance().getAssets()
                 profile.open("orca_profiles/Anycubic.ini").use { anycubicIni ->
@@ -97,8 +94,6 @@ open class LoadSlic3rConfigTask : BootTask(Runnable {
                             if (!SliceBeam.saveConfig()) {
                                 config.printerConfigs.remove(v2)
                                 Log.w("LoadSlic3rConfigTask", "Bundled Kobra 3 V2 profile was not saved; removed the in-memory copy")
-                            } else {
-                                prefs?.edit()?.putBoolean(KOBRA_3_V2_PA_MIGRATION, true)?.apply()
                             }
                         }
                 }
