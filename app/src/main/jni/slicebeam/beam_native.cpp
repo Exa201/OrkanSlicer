@@ -4290,20 +4290,21 @@ extern "C" {
             context.group_info.ignore_ext_filament = false;
             context.machine_info.master_extruder_id = 0;
             context.machine_info.max_group_size = {1, 1};
-            context.machine_info.machine_filament_info.resize(2);
             const std::array<std::pair<std::string, std::string>, 2> slots{{
                 {slot0_color, slot0_id}, {slot1_color, slot1_id}
             }};
+            std::vector<std::vector<DynamicPrintConfig>> machine_configs(2);
+            std::vector<std::map<int, int>> ams_counts(2);
             for (int extruder = 0; extruder < 2; ++extruder) {
-                MachineFilamentInfo slot;
-                slot.color = Color(slots[extruder].first);
-                slot.type = "PLA";
-                slot.is_support = false;
-                slot.extruder_id = extruder;
-                slot.is_extended = false;
-                slot.filament_id = slots[extruder].second;
-                context.machine_info.machine_filament_info[extruder].push_back(std::move(slot));
+                DynamicPrintConfig slot_config;
+                slot_config.set_key_value("filament_colour", new ConfigOptionStrings({slots[extruder].first}));
+                slot_config.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+                slot_config.set_key_value("tray_name", new ConfigOptionStrings({"T0"}));
+                slot_config.set_key_value("filament_id", new ConfigOptionStrings({slots[extruder].second}));
+                machine_configs[extruder].push_back(std::move(slot_config));
+                ams_counts[extruder][1] = 1;
             }
+            context.machine_info.machine_filament_info = build_machine_filaments(machine_configs, ams_counts, true);
             FilamentGroup group(context);
             const std::vector<int> mapping = group.calc_filament_group_for_match();
             return mapping.empty() ? -1 : mapping[0];

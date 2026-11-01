@@ -2041,6 +2041,46 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun manyPartMultipartObjectSlicesWithBrimGroupingAndKeepsMaterials() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "many-part-brim-source.stl")
+        val output = File(context.cacheDir, "many-part-brim.gcode")
+        val model = Model(modelFile, 1)
+        try {
+            val partCount = 12
+            for (part in 1 until partCount) {
+                model.addObject(model, 0)
+                val column = part % 3
+                val row = part / 3
+                model.translate(part, column * 25.0, row * 25.0, 0.0)
+            }
+            model.ensureOnBed(0)
+            for (part in 0 until partCount) model.setUniformFilament(part, if (part % 2 == 0) 1 else 2)
+            assertEquals("all synthetic source objects should combine into one multipart model", 0,
+                model.combineObjectsAsParts(IntArray(partCount) { it }))
+            assertEquals("the fixture must exercise twelve distinct printable volume parts", partCount,
+                model.getObjectPartCount(0))
+            assertEquals("both synthetic materials must remain assigned to distinct parts", listOf(1, 2),
+                model.getUsedFilaments(0).toList())
+            SliceBeam.genCurrentConfig(model)
+            val result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                assertTrue("the twelve-part slice must retain the second filament tool", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+                assertTrue("the synthetic multipart G-code must contain layer output", gcode.contains(";LAYER_CHANGE"))
+            } finally {
+                result.release()
+            }
+        } finally {
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun recommendedFilenameListsDistinctFilamentTypesActuallyUsedByThePlate() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "filename-filament-types.stl")

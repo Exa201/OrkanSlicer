@@ -481,36 +481,28 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
 }
 
 //BBS: justify whether a volume is connected to another one
-bool doesVolumeIntersect(VolumeSlices& vs1, VolumeSlices& vs2)
+static bool doesVolumeIntersect(const VolumeSlices& vs1, const std::vector<BoundingBox>& bboxes1,
+                                const VolumeSlices& vs2, const std::vector<BoundingBox>& bboxes2)
 {
     if (vs1.volume_id == vs2.volume_id) return true;
     // two volumes in the same object should have same number of layers, otherwise the slicing is incorrect.
     if (vs1.slices.size() != vs2.slices.size()) return false;
 
-    auto& vs1s = vs1.slices;
-    auto& vs2s = vs2.slices;
-    bool is_intersect = false;
+    const auto& vs1s = vs1.slices;
+    const auto& vs2s = vs2.slices;
+    auto layers_overlap = [&](size_t i, size_t j) {
+        return bboxes1[i].defined && bboxes2[j].defined && bboxes1[i].overlap(bboxes2[j]) && overlaps(vs1s[i], vs2s[j]);
+    };
 
-    tbb::parallel_for(tbb::blocked_range<int>(0, vs1s.size()),
-        [&vs1s, &vs2s, &is_intersect](const tbb::blocked_range<int>& range) {
-            for (auto i = range.begin(); i != range.end(); ++i) {
-                if (vs1s[i].empty()) continue;
-
-                if (overlaps(vs1s[i], vs2s[i])) {
-                    is_intersect = true;
-                    break;
-                }
-                if (i + 1 != vs2s.size() && overlaps(vs1s[i], vs2s[i + 1])) {
-                    is_intersect = true;
-                    break;
-                }
-                if (i - 1 >= 0 && overlaps(vs1s[i], vs2s[i - 1])) {
-                    is_intersect = true;
-                    break;
-                }
-            }
-        });
-    return is_intersect;
+    // This is called for every volume pair; a parallel_for per pair costs more than the serial
+    // scan. Bounding boxes skip expensive polygon overlap tests for distant multipart regions.
+    for (size_t i = 0; i < vs1s.size(); ++i) {
+        if (layers_overlap(i, i) ||
+            (i + 1 < vs2s.size() && layers_overlap(i, i + 1)) ||
+            (i > 0 && layers_overlap(i, i - 1)))
+            return true;
+    }
+    return false;
 }
 
 //BBS: grouping the volumes of an object according to their connection relationship
@@ -534,10 +526,17 @@ bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<gro
             }
         });
 
+    std::vector<std::vector<BoundingBox>> bboxes(objSliceByVolume.size());
+    for (size_t i = 0; i < objSliceByVolume.size(); ++i)
+        bboxes[i].resize(objSliceByVolume[i].slices.size());
+
     tbb::parallel_for(tbb::blocked_range<int>(0, osvIndex.size()),
-        [&osvIndex, &objSliceByVolume,&offsetValue, &resolution](const tbb::blocked_range<int>& range) {
+        [&osvIndex, &objSliceByVolume, &offsetValue, &resolution, &bboxes](const tbb::blocked_range<int>& range) {
             for (auto k = range.begin(); k != range.end(); ++k) {
-                objSliceByVolume[osvIndex[k][0]].slices[osvIndex[k][1]] = offset_ex(objSliceByVolume[osvIndex[k][0]].slices[osvIndex[k][1]], offsetValue);
+                const size_t volume = static_cast<size_t>(osvIndex[k][0]);
+                const size_t layer = static_cast<size_t>(osvIndex[k][1]);
+                objSliceByVolume[volume].slices[layer] = offset_ex(objSliceByVolume[volume].slices[layer], offsetValue);
+                bboxes[volume][layer] = get_extents(objSliceByVolume[volume].slices[layer]);
             }
         });
 
@@ -546,7 +545,7 @@ bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<gro
             groupIndex[i] = i;
         }
         for (int j = i + 1; j != objSliceByVolume.size(); ++j) {
-            if (doesVolumeIntersect(objSliceByVolume[i], objSliceByVolume[j])) {
+            if (doesVolumeIntersect(objSliceByVolume[i], bboxes[i], objSliceByVolume[j], bboxes[j])) {
                 if (groupIndex[j] < 0) groupIndex[j] = groupIndex[i];
                 if (groupIndex[j] != groupIndex[i]) {
                     int retain = std::min(groupIndex[i], groupIndex[j]);
