@@ -38,6 +38,9 @@ class Native {
     /** Exercises exact default object-tour ordering against a six-object fixture. */
     @JvmStatic
     external fun shortest_path_exact_object_tour_regression(): IntArray
+    /** Verifies that opened Lightning overhang samples are included in the update-grid bounds. */
+    @JvmStatic
+    external fun lightning_distance_field_bounds_probe(): IntArray
     @JvmStatic
     external fun set_svg_path_prefix(prefix: String): Unit
     @JvmStatic

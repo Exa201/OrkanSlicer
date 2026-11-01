@@ -24,6 +24,7 @@
 #include "libslic3r/FilamentGroup.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/MeshBoolean.hpp"
+#include "libslic3r/Fill/Lightning/DistanceField.hpp"
 #include "libslic3r/CSGMesh/ModelToCSGMesh.hpp"
 #include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
 #include <libslic3r/SVG.hpp>
@@ -136,6 +137,25 @@ jmethodID shadersManagerGetCurrent = nullptr;
 static JavaVM* staticVM;
 
 namespace {
+
+class LightningDistanceFieldBoundsProbe final : public Slic3r::FillLightning::DistanceField {
+public:
+    using Slic3r::FillLightning::DistanceField::DistanceField;
+
+    std::array<jint, 3> inspect(const Slic3r::BoundingBox &original_bounds) const
+    {
+        const jint sample_count = static_cast<jint>(m_unsupported_points.size());
+        const jint outside_original = static_cast<jint>(std::count_if(
+            m_unsupported_points.begin(), m_unsupported_points.end(), [&original_bounds](const UnsupportedCell &cell) {
+                return !original_bounds.contains(cell.loc);
+            }));
+        const jint outside_expanded = static_cast<jint>(std::count_if(
+            m_unsupported_points.begin(), m_unsupported_points.end(), [this](const UnsupportedCell &cell) {
+                return !m_unsupported_points_bbox.contains(cell.loc);
+            }));
+        return { sample_count, outside_original, outside_expanded };
+    }
+};
 
 void subdivide_text_mesh_for_surface(indexed_triangle_set &mesh)
 {
@@ -340,6 +360,27 @@ extern "C" {
         const char* chars = env->GetStringUTFChars(path, JNI_FALSE);
         Slic3r::svg_path_prefix = std::string(chars);
         env->ReleaseStringUTFChars(path, chars);
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_lightning_1distance_1field_1bounds_1probe(
+            JNIEnv *env, jclass) {
+        using namespace Slic3r;
+        Polygon current_outline({
+            Point::new_scale(-5.0, -5.0), Point::new_scale(5.0, -5.0),
+            Point::new_scale(5.0, 5.0), Point::new_scale(-5.0, 5.0),
+        });
+        Polygon opened_overhang({
+            Point::new_scale(-10.0, -10.0), Point::new_scale(10.0, -10.0),
+            Point::new_scale(10.0, 10.0), Point::new_scale(-10.0, 10.0),
+        });
+        const BoundingBox original_bounds(current_outline.points);
+        const LightningDistanceFieldBoundsProbe field(
+            scaled(1.2), Polygons{ current_outline }, original_bounds, Polygons{ opened_overhang });
+        const std::array<jint, 3> values = field.inspect(original_bounds);
+        jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+        return result;
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_get_1print_1config_1def(JNIEnv *env, jclass, jobject def) {

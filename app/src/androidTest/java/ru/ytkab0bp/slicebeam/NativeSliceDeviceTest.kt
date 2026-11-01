@@ -43,6 +43,15 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun lightningDistanceFieldExpandsBoundsToContainOpenedOverhangSamples() = withKobraProfile {
+        val probe = Native.lightning_distance_field_bounds_probe()
+        assertEquals("probe returns sample count and old/new bounds violations", 3, probe.size)
+        assertTrue("the opened-overhang fixture must produce unsupported samples", probe[0] > 0)
+        assertTrue("the fixture must reproduce samples beyond the original infill bounds", probe[1] > 0)
+        assertEquals("the expanded Lightning bounds must contain every sample", 0, probe[2])
+    }
+
     @Test(timeout = 120_000)
     fun hilbertSparseInfillSmoothFactorChangesOnlySparseInfillToolpaths() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
