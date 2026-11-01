@@ -1,5 +1,13 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Fortsetzung nach Batch 5 — Stand 2026-11-01
+
+- Der Stable- und Nightly-Fix für das Kobra-3-V2-Pressure-Advance-Problem ist verifiziert: die erneuerte v2-Migration entfernt gespeichertes `M900 K0.051`, erhält den Filamentwert und wurde durch einen echten API-36-Slice für PA `0.075` sowie deaktiviertes PA geprüft.
+- Die vom Benutzer gewünschte Ausrichtung entlang der gedrehten Achsen des Hauptobjekts wurde als Nightly-Ergänzung umgesetzt (`75c87032fa`); UI-Auswahlgruppe, JNI-Projektion, Undo/Redo, 3MF-Rundlauf und Slice sind getestet. Diese zusätzliche Workspace-Funktion zählt nicht als Orca-Upstream-Port und nicht als Batch-6-Item.
+- Upstream-Referenz aktualisiert auf `b5517b693e898261a6e28f940b110cd62683fede` (2026-11-01). Die relevanten neueren `libslic3r`-Fixes wurden gegengeprüft: Lightning-Grenzfall `7ac46c9a6` ist bereits in `DistanceField.cpp`; Extruderindex-/Layervergleich aus `fcd96ad91c` ist bereits portiert; Subtypkosten aus `8e37d7d4b` sind im Android-Matcher vorhanden, während geladene Drucker-Tray-Daten weiterhin den vollständigen App-Pfad blockieren. Desktop-Agent-/PresetBundle-Änderung `913c622574` hat auf Android keinen passenden Hostpfad; per-Drucker-MMU-Zustand ist separat bereits implementiert.
+- Der Xiaomi-ADB-Installationsversuch der Stable-APK wurde mit `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user` beendet; nicht umgangen. Der Nightly-Objektachsen-Gerätetest bestand 1/1 auf API 36 und `PrimaryObjectAxesTest` bestand.
+- Nächster konkreter Nightly-Schritt: die offenen präzisen Runtime-Nachweise für Orca #11 (Probe außerhalb der Infill-Bounds) und #14 (minimale Mesh-Clearance der Supportpfade) weiterentwickeln; keine Batch-6-APK oder Release, bevor zehn neue, tatsächlich Android-relevante Upstream-Punkte jeweils umgesetzt und verifiziert sind.
+
 ## Nightly Batch 5 — abgeschlossen: 10/10 Änderungen (2026-11-01)
 
 ### Änderung 10/10: Hilbert-Curve-Sparse-Infill glätten
