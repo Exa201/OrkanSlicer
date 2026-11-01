@@ -1,14 +1,11 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
 Stand: 2026-11-01. Upstream-Vergleich: OrcaSlicer `main` at
-`3aedd50bcb94221db79ccbf8d6a7985e795fe25d` (latest fetched 2026-11-01 Europe/Berlin). Batch 4 is
-at 5/10: multipart brim grouping, configurable painted-surface penetration, the dense-layer
-internal-bridge detection fast path, lower-layer rotation alignment for Hilbert/Octagram internal
-bridges, and Orca's miter joins for multiline infill. The fifth change was verified by slicing a
-Grid-infill fixture on API 16; it produces 7,461 sparse-infill extrusion moves with the miter
-join (the round-join control produced 11,427). The current batch has not yet been published as an
-APK. This remains a selective Android port; the app must not be described as containing the
-complete upstream engine.
+`3aedd50bcb94221db79ccbf8d6a7985e795fe25d`; the official OrcaSlicer 2.5.0 Beta notes were also
+reviewed. Nightly Batch 4 is at **8/10**: five native slicer ports, Qidi selected-bed start
+temperatures, safe By-Object ordering for tall objects, and Orca's sparse-infill-only arc fitting.
+Changes 1–7 are on `nightly-2.5`; change 8 is verified locally and is being secured next. The next
+APK gate remains 10/10. This is a selective Android port, not the complete upstream engine.
 
 ## Verified preview-performance finding
 
@@ -20,7 +17,9 @@ the GL surface and maps touch coordinates to it, so the safe Android equivalent 
 selectable viewport render scale. It changes only display pixels: native model data, slicing,
 G-code, and export are untouched. Automatic mode retains the low-RAM device policy.
 
-The Android adaptation now uses 70% for low-RAM devices and 65% for recognized legacy/software GL renderers, with 100% for unknown/current renderers. Users can override it at 50/65/80/100%. Recognized low-performance devices also use a 35-layer initial G-code preview block, simplified inactive plate previews, and a 180,000-triangle active-preview cap; low-RAM keeps stricter caps. These limits affect display previews only, never model geometry or slicing. The policy tests and settings interaction test passed on API 35 and API 36 emulators; a GL surface/picking test passed at 50%, 65%, and 100%. Physical Xiaomi/Honor frame-time and memory measurements remain open; the renderer-name classifier is a conservative heuristic, not a benchmark.
+The Android adaptation now uses 70% for low-RAM devices and 65% for recognized legacy/software GL renderers, with 100% for unknown/current renderers. Users can override it at 50/65/80/100%. Recognized low-performance devices also use a 35-layer initial G-code preview block, simplified inactive plate previews, and a 180,000-triangle active-preview cap; low-RAM keeps stricter caps. These limits affect display previews only, never model geometry or slicing. Policy tests passed; GL surface/picking passed at 50/65/100% on API 15/16 emulators. In this turn the focused policy JVM test and 1/1 GL/touch test passed again on an API-36 emulator. Xiaomi 2211133G rejected instrumentation installation (`INSTALL_FAILED_USER_RESTRICTED`), so physical-device verification remains open. The renderer-name classifier is a conservative heuristic, not a benchmark.
+
+The official Orca 2.5.0 Beta notes do not describe a dedicated weak-GPU preview-quality switch; they highlight slicing, travel, infill, toolhead-clearance, and translucent-preview changes. This Android render-scale/preview-budget policy is the compatible adaptation, not a direct port of a desktop graphics preference.
 
 ## Product identity / data isolation
 
@@ -261,7 +260,7 @@ Der Orca-Platzhalter `{printing_filament_types}` wird jetzt im nativen Slice-Exp
 
 Damit ist Batch 2 bei **10/10 fokussiert verifizierten Änderungen**. Vor APK und Nightly-Prerelease laufen jetzt noch die gebündelten Debug-/Slice-JVM-Regressionen; danach folgen APK-Identitäts-/Hashprüfung, Installation und Start auf dem verfügbaren Testemulator sowie Veröffentlichung.
 
-## Nightly Batch 4 — 7/10 (2026-11-01)
+## Nightly Batch 4 — 8/10 (2026-11-01)
 
 1. Orca `2e64ab3db5` — Beschleunigung der Brim-Gruppierung für zusammengesetzte Objekte mit vielen Volumenteilen. Die Android-Portierung erstellt nach dem Offset pro Layer Begrenzungsboxen und führt Polygonüberschneidungen nur bei überlappenden Boxen aus. Die redundante TBB-Parallelisierung für jedes einzelne Volumenpaar entfällt; der serielle Paar-Scan beendet sich beim ersten Treffer. Das 12-Teile-Instrumentierungsfixture slice't auf API 35 erfolgreich und erhält beide Materialzuweisungen sowie Schicht-G-Code (1/1). Der bestehende Zwei-Teil-3MF-Roundtrip-/Slice-Test und der auf den Slot-Konfigurationsparser verstärkte Auto-for-Match-Test bestanden ebenfalls (je 1/1). ARM64-Native-Build, Android-Instrumentierungs-Kompilierung und `git diff --check` bestanden. Der Android-Lauf ist eine Funktions-/Regressionsprüfung, kein kontrollierter Vorher-Nachher-Leistungstest; ein absoluter Speedup wird nicht behauptet. APK/Release erst nach 10/10.
 
@@ -281,7 +280,31 @@ Der strengere Auto-for-Match-Test baut jetzt synthetische Drucker-Slot-`DynamicP
 
 7. Orca `a30ca5e54a` — By-Object-Druck ordnet hohe Modelle anhand tatsächlicher Y-Überlappung und Querträger-/Deckelhöhenbedingungen um. Sichere ursprüngliche Reihenfolgen bleiben erhalten; für notwendige Änderungen wird eine Warnung erzeugt, bei unlösbaren Bedingungen bleibt die bestehende Kollisionsvalidierung maßgeblich. Der native G-Code-Test mit absichtlich zuerst gelistetem hohen Modell prüft, dass ein kurzes überlappendes Modell zuerst und das hohe Modell danach ausgegeben wird. API 36 Emulator 1/1 bestanden. Xiaomi 2211133G: Testinstallation durch Android blockiert (`INSTALL_FAILED_USER_RESTRICTED`).
 
-Damit steht Batch 4 bei **7/10**. Änderungen 1–6 sind mit `6d3111057f` gepusht; Änderung 7 wartet auf Commit/Push. Die vollständigen Debug-/Slice-JVM-Suiten bleiben für den Batchabschluss offen. Keine APK oder Veröffentlichung vor 10/10.
+8. Orca `373ffaa13f` — Arc-Fitting-Modus erweitert: aus, überall oder nur Sparse-Infill. Alte boolesche Profilwerte werden vor dem Android-Enum-Fallback migriert, damit vorhandene Profile ihre bisherige Ein/Aus-Wirkung behalten.
+
+Verifikation Änderung 8: ARM64-Native-Build erfolgreich; `NativeSliceDeviceTest#sparseInfillArcFittingDoesNotFitWallsAndLegacyBooleanProfilesRemainCompatible` auf API 36 bestanden (1/1), `NativeEnumValueSanitizerTest` 5/5. Der Test liest den echten G-Code und bestätigt, dass im Sparse-only-Modus ausschließlich `Sparse infill` G2/G3-Bögen ausgibt; alte Werte 1/0 erhalten die vormalige volle Ein/Aus-Wirkung. Der erste Testdurchlauf fand einen Android-Sanitizer-Compatibilitätsfehler, der vor dem erfolgreichen Lauf behoben wurde. Xiaomi-Installation bleibt wegen `INSTALL_FAILED_USER_RESTRICTED` ungeprüft.
+
+Damit steht Batch 4 bei **8/10**. Die vollständigen Debug-/Slice-JVM-Suiten bleiben für den Batchabschluss offen. Keine APK oder Veröffentlichung vor 10/10.
+
+## OrcaSlicer 2.5.0 Beta — Portierungsprioritäten
+
+Die offizielle Beta nennt Werkzeugkopf-Kollisionsvolumen, kürzere Travel-Wege, abgerundetes
+Sparse-Infill, Sparse-only Arc-Fitting, hochpräzisen G-Code, transparente Filamentvorschau und
+schnelleres Slicing. Die Alpha ergänzt Texture Displacement, parametrisches Design, Python-Plugins,
+Farbmischung, Belt- und IDEX/IQEX-Druck.
+
+| Priorität | Kandidat | Android-Bewertung | Nächster Nachweis |
+|---|---|---|---|
+| P1 | Kürzere Travel-Wege | Native Android-Slice-Strecke vorhanden; G-Code ändert sich bewusst und braucht Bewegungs-/Kollisionsregressionen. | Portumfang aus Beta-Commits abgrenzen, dann Vorher-/Nachher-G-Code auf repräsentativen Ein- und Mehrmodellplatten vergleichen. |
+| P1 | Werkzeugkopf-Kollisionsvolumen | Hoher Nutzen, benötigt Profildefinition, 3D-Vorschau, Arrange-, Support- und Travel-Integration; nur als vollständige Funktion portieren. | Native Android-Aufrufkette und Datenmodell erfassen; keine Teilportierung nur in Arrange zählen. |
+| P2 | Abgerundete Sparse-Infill-Ecken / Sparse-only Arc-Fitting | Native Slice-Funktionen sind portierbar, falls nicht bereits enthalten; beide brauchen G-Code- und Extrusionstests. | Beta-Diff gegen Android-Quelle prüfen und Gyroid/Hilbert/Octagram instrumentiert vergleichen. |
+| P2 | Hochpräziser G-Code | Benötigt konsistente XYZ/IJ/E-Formatierung, Rundungsfehlerfortschreibung und Ausnahmen für Support/Turm. | Vollständige Writer-Abhängigkeiten und Firmwareverhalten prüfen, dann Standard-/Präzisions-G-Code vergleichen. |
+| P2 | Transparente Filamentvorschau | Android hat einen getrennten GLES/libvgcode-Renderer; möglicher Preview-only-Port. | Blend-/Sortierpfad prototypisch prüfen und Slice/G-Code-Unverändertheit absichern. |
+| Zurückgestellt | Texture Displacement | Mesh-Bake, RAM, Abbruch und 3MF-Rundlauf erfordern einen eigenen begrenzten Arbeitsstrang. | Nach den unmittelbar portierbaren Beta-Funktionen. |
+| Nicht direkt portieren | Python-Plugins, parametrisches Design, Farbmischung, Belt, IDEX/IQEX | Erfordern neue Ausführungs-, CAD- oder Hardwareverträge; Plugins führen ausführbaren Fremdcode ein. | Als eigenständige Produktziele mit Sicherheits-, Hardware- und UX-Konzept neu bewerten. |
+
+Bereits im Android-Fork vorhandene Beta-Parität (u. a. Paint-Penetration, Infill-Verbindungen,
+Qidi-Profile und GL-Preview-Reduktion) wird nicht erneut als neuer Port gezählt.
 
 ## Orca-Upstream-Funktionsprüfung nach `v0.8.421-nightly.1` — 2026-10-31
 

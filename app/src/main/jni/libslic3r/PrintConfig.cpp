@@ -191,6 +191,13 @@ static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
+static t_config_enum_values s_keys_map_ArcFittingMode {
+    { "disabled",      int(ArcFittingMode::Disabled) },
+    { "enabled",       int(ArcFittingMode::Enabled) },
+    { "sparse_infill", int(ArcFittingMode::SparseInfill) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ArcFittingMode)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -3727,16 +3734,17 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(0));
 
     // BBS
-    def = this->add("enable_arc_fitting", coBool);
+    def = this->add("enable_arc_fitting", coEnum);
     def->label = L("Arc fitting");
-    def->tooltip = L("Enable this to get a G-code file which has G2 and G3 moves. "
-                     "The fitting tolerance is same as the resolution.\n\n"
-                     "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from "
-                     "arc commands as these are split again into line segments by the firmware. This results in a reduction "
-                     "in surface quality as line segments are converted to arcs by the slicer and then back to line segments "
-                     "by the firmware.");
+    def->tooltip = L("Fit G2 and G3 arc moves to eligible toolpaths. Sparse infill uses a fixed tolerance.\n"
+                     "Disabled: use straight G1 moves. Enabled: fit arcs to supported toolpaths.\n"
+                     "Sparse infill only: fit arcs to sparse infill while keeping walls and surfaces unchanged.\n\n"
+                     "For Klipper machines, Disabled is recommended because firmware may split arcs back into line segments.");
+    def->enum_keys_map = &ConfigOptionEnum<ArcFittingMode>::get_enum_values();
+    def->enum_values = { "disabled", "enabled", "sparse_infill" };
+    def->enum_labels = { L("Disabled"), L("Enabled"), L("Sparse infill only") };
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(0));
+    def->set_default_value(new ConfigOptionEnum<ArcFittingMode>(ArcFittingMode::Disabled));
     // BBS
     def = this->add("gcode_add_line_number", coBool);
     def->label = L("Add line number");
@@ -8030,6 +8038,12 @@ void PrintConfigDef::init_sla_params()
 void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &value)
 {
     //BBS: handle legacy options
+    if (opt_key == "enable_arc_fitting") {
+        if (value == "1" || boost::iequals(value, "true"))
+            value = "enabled";
+        else if (value == "0" || boost::iequals(value, "false"))
+            value = "disabled";
+    }
     if (opt_key == "bed_shape") {
         // PrusaSlicer/SliceBeam-era bundled printer profiles use bed_shape / max_print_height;
         // OrcaSlicer renamed these to printable_area / printable_height (identical value formats).

@@ -1215,7 +1215,7 @@ void PerimeterGenerator::process_classic()
 
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
-    double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
+    double surface_simplify_resolution = (print_config->enable_arc_fitting.value == ArcFittingMode::Enabled && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
     //BBS: reorder the surface to reduce the travel time
     ExPolygons surface_exp;
     for (const Surface &surface : all_surfaces)
@@ -2242,7 +2242,7 @@ void PerimeterGenerator::process_arachne()
 
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
-    double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
+    double surface_simplify_resolution = (print_config->enable_arc_fitting.value == ArcFittingMode::Enabled && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
     // we need to process each island separately because we might have different
     // extra perimeters for each one
     for (const Surface& surface : all_surfaces) {

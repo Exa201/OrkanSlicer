@@ -563,7 +563,7 @@ open class SliceBeam : Application() {
             for ((key, option) in definition.options) {
                 if (option.type != ConfigOptionDef.ConfigOptionType.ENUM) continue
                 val value = config[key]
-                val normalized = NativeEnumValueSanitizer.normalize(value, option.enumValues, option.defaultValue)
+                val normalized = NativeEnumValueSanitizer.normalize(key, value, option.enumValues, option.defaultValue)
                 if (value != null && value != normalized) {
                     Log.w("SliceBeam", "Ignoring unsupported $key value from stored profile while preparing native config")
                     config.put(key, normalized)

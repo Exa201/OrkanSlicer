@@ -43,6 +43,66 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun sparseInfillArcFittingDoesNotFitWallsAndLegacyBooleanProfilesRemainCompatible() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val source = createCylinderFixture("arc-fitting-sparse-only.stl", 25.0, 10.0, 360)
+        val output = File(context.cacheDir, "arc-fitting-sparse-only.gcode")
+        var model: Model? = null
+        try {
+            val option = requireNotNull(PrintConfigDef.getInstance().options["enable_arc_fitting"])
+            assertArrayEquals(arrayOf("disabled", "enabled", "sparse_infill"), option.enumValues)
+            model = Model(source).also { it.ensureOnBed(0) }
+            SliceBeam.genCurrentConfig(model)
+
+            fun arcsByType(mode: String): Map<String, Int> {
+                process.put("enable_arc_fitting", mode)
+                process.put("sparse_infill_pattern", "concentric")
+                process.put("sparse_infill_density", "20%")
+                process.put("z_hop", "0")
+                SliceBeam.genCurrentConfig(requireNotNull(model))
+                output.delete()
+                val result = requireNotNull(model).slice(
+                    SliceBeam.getCurrentConfigFile().absolutePath,
+                    output.absolutePath,
+                    null,
+                )
+                try {
+                    assertTrue("Slicing $mode must emit extrusion", output.isFile && output.length() > 0L)
+                    val counts = mutableMapOf<String, Int>()
+                    var type = ""
+                    output.forEachLine { line ->
+                        if (line.startsWith(";TYPE:")) type = line.removePrefix(";TYPE:")
+                        else if (line.startsWith("G2 ") || line.startsWith("G3 ")) {
+                            counts[type] = (counts[type] ?: 0) + 1
+                        }
+                    }
+                    return counts
+                } finally {
+                    result.release()
+                }
+            }
+
+            val enabled = arcsByType("enabled")
+            assertTrue("Full arc fitting should fit the circular outer wall: $enabled", (enabled["Outer wall"] ?: 0) > 0)
+            val sparseOnly = arcsByType("sparse_infill")
+            assertTrue("Sparse-only mode should fit concentric sparse infill: $sparseOnly", (sparseOnly["Sparse infill"] ?: 0) > 0)
+            assertTrue("Sparse-only mode must not fit walls or surfaces: $sparseOnly",
+                sparseOnly.keys.all { it == "Sparse infill" })
+            val legacyEnabled = arcsByType("1")
+            assertTrue("Legacy boolean 1 must retain full arc fitting: $legacyEnabled",
+                (legacyEnabled["Outer wall"] ?: 0) > 0)
+            assertTrue("Legacy boolean 0 must disable arc fitting", arcsByType("0").isEmpty())
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun autoForMatchPrefersClosestColorAndSameFilamentSubtype() {
         // Same-colour sub-type preference; then exact colour wins over a sub-type match;
         // finer distance resolves a former whole-unit tie; finally a colour step outweighs id.
