@@ -3,8 +3,9 @@
 ## Workspace-Import-Fortsetzung — 2026-11-01
 
 - Import-Arrange ist jetzt atomar: bei Überlauf bleiben vorhandene Modelle an ihren Positionen. Aktivierte Auto-Ausrichtung wird vor dem Arrange angewendet. Nicht passende importierte Objekte werden auf automatisch erzeugten und ausgewählten Druckplatten platziert; einzeln zu große Objekte werden zentriert und gewarnt.
-- Die neue Import-/Overflow-Regression bestand auf beiden API-36-AVDs; der Atomic-Arrange-Rückfalltest bestand direkt auf API 36. Diese Workspace-Änderung ist kein Orca-Upstream-Port und kein Batch-6-Zähler.
-- Noch zu untersuchen: Die Packgeometrie von `ModelInstance::get_arrange_polygon()` ist eine konservative konvexe Hülle. Mit einem konkaven oder zusammengesetzten Testmodell erst messen, ob sie tatsächlich freie Druckfläche blockiert; danach über sichere, mesh-erhaltende Packkonturen entscheiden.
+- Die Arrange-Parameter erlauben jetzt zusätzlich XY-Rotationen. API-36-Test mit zwei rechtwinkligen Modellen auf dem 255×255-mm-Bett bewies Platzgewinn, gemeinsame Plattenbelegung und überlappungsfreie Bounds. Import-Overflow und atomarer Arrange-Rollback bestanden ebenfalls direkt auf API 36.
+- Mehrmodell-Importe versuchen zuerst ein gemeinsames Arrange; nur bei Platzmangel folgt der atomare pro-Objekt-Overflow-Fallback.
+- Diese Workspace-Änderung ist kein Orca-Upstream-Port und kein Batch-6-Zähler. `ModelInstance::get_arrange_polygon()` nutzt weiterhin eine konservative konvexe Hülle; konkave/mehrteilige Freiflächen müssen mit einem gezielten Testmodell vermessen werden. Die Bounds belegen gedrehte Instanzen; `Model.getRotation()` liest dagegen den ModelObject-Transform, nicht die ModelInstance-Rotation, und ist daher für diesen Test nicht aussagekräftig.
 
 ## Fortsetzung nach Batch 5 — Stand 2026-11-01
 

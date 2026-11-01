@@ -2663,38 +2663,50 @@ private fun loadModelInternal(
             var target = existing ?: Model()
             var targetIsNew = existing == null
             if (existing == null) platesModels.set(currentPlateIndex, target)
-            var finalFirstNew = target.objectsCount
+            val originalTargetObjectCount = target.objectsCount
+            var finalFirstNew = originalTargetObjectCount
             var finalAddedCount = 0
             var finalTarget: Model? = null
             val automaticallyCreated = ArrayList<Model>()
             var objectsTooLargeForBed = 0
 
-            for (sourceIndex in 0 until sourceCount) {
-                target.addObject(imported, sourceIndex)
-                var destinationIndex = target.objectsCount - 1
-                if (!bed.arrange(target)) {
-                    // A failed pack used to apply the subset that fit and leave the remaining
-                    // objects in virtual-bin coordinates. Drop only the newly appended item;
-                    // ModelArrange now commits an arrangement atomically, so the accepted items
-                    // stay exactly where they were.
-                    target.deleteObject(destinationIndex)
-                    val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
-                    if (!bed.arrange(nextPlate)) {
-                        centerObjectOnBed(nextPlate, 0, bed)
-                        objectsTooLargeForBed++
-                    }
-                    automaticallyCreated.add(nextPlate)
-                    target = nextPlate
-                    targetIsNew = true
-                    destinationIndex = 0
-                }
+            // Most imports fit on the current plate. Arrange that common case once instead
+            // of re-running the full packer after every new object (quadratic work on large 3MFs).
+            repeat(sourceCount) { target.addObject(imported, it) }
+            if (bed.arrange(target)) {
+                finalTarget = target
+                finalFirstNew = originalTargetObjectCount
+                finalAddedCount = sourceCount
+            } else {
+                // Arrange is atomic: restore the existing plate before trying a deterministic
+                // per-object overflow fallback. This slower path runs only when the whole import
+                // does not fit on the current plate.
+                while (target.objectsCount > originalTargetObjectCount)
+                    target.deleteObject(target.objectsCount - 1)
 
-                if (finalTarget !== target) {
-                    finalTarget = target
-                    finalFirstNew = destinationIndex
-                    finalAddedCount = 1
-                } else {
-                    finalAddedCount++
+                for (sourceIndex in 0 until sourceCount) {
+                    target.addObject(imported, sourceIndex)
+                    var destinationIndex = target.objectsCount - 1
+                    if (!bed.arrange(target)) {
+                        target.deleteObject(destinationIndex)
+                        val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
+                        if (!bed.arrange(nextPlate)) {
+                            centerObjectOnBed(nextPlate, 0, bed)
+                            objectsTooLargeForBed++
+                        }
+                        automaticallyCreated.add(nextPlate)
+                        target = nextPlate
+                        targetIsNew = true
+                        destinationIndex = 0
+                    }
+
+                    if (finalTarget !== target) {
+                        finalTarget = target
+                        finalFirstNew = destinationIndex
+                        finalAddedCount = 1
+                    } else {
+                        finalAddedCount++
+                    }
                 }
             }
             imported.release()

@@ -3104,6 +3104,84 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun importedObjectsRotateInPlaneToUseAvailableBedSpace() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val firstFile = File(activity.cacheDir, "auto-arrange-140x80.stl")
+        val secondFile = File(activity.cacheDir, "auto-arrange-80x140.stl")
+        try {
+            val activeBed = requireNotNull(glView.renderer.bed)
+            val bedMin = requireNotNull(activeBed.getVolumeMin())
+            val bedMax = requireNotNull(activeBed.getVolumeMax())
+            val longBedSide = maxOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y)
+            val shortBedSide = minOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y)
+            // The perpendicular footprints cannot fit side-by-side or end-to-end without
+            // rotation: their combined long+short side exceeds the actual test bed. After
+            // rotating the second footprint, both fit in one row/column.
+            val longSide = longBedSide * 0.65
+            val shortSide = shortBedSide * 0.40
+            writeScaledBoxStl(activity, firstFile, (longSide / 20.0).toFloat(), (shortSide / 20.0).toFloat(), 1f)
+            writeScaledBoxStl(activity, secondFile, (shortSide / 20.0).toFloat(), (longSide / 20.0).toFloat(), 1f)
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(firstFile)
+            importAndWait(secondFile)
+
+            val plates = readPlateModels(bed)
+            assertEquals("rotated footprints should pack both parts on one plate; " +
+                "bed=${bedMax.x - bedMin.x}x${bedMax.y - bedMin.y}, " +
+                "plateCounts=${plates.map { it.objectsCount }}, " +
+                "activeBounds=${readExactBoundsOnGl(glView, 0).map { it.contentToString() }}", 1, plates.size)
+            assertEquals("both source objects must remain independent", 2, plates.single().objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            bounds.forEachIndexed { index, box ->
+                val footprintWidth = box[3] - box[0]
+                val footprintDepth = box[4] - box[1]
+                assertTrue("arranged object $index should use the compact rotated footprint; " +
+                    "got ${footprintWidth}x${footprintDepth}, expected ${longSide}x${shortSide}",
+                    kotlin.math.abs(footprintWidth - longSide) < 0.2 &&
+                        kotlin.math.abs(footprintDepth - shortSide) < 0.2)
+            }
+            val minX = bedMin.x
+            val minY = bedMin.y
+            val maxX = bedMax.x
+            val maxY = bedMax.y
+            bounds.forEachIndexed { index, box ->
+                assertTrue("object $index must remain within bed X bounds",
+                    box[0] >= minX - 0.1 && box[3] <= maxX + 0.1)
+                assertTrue("object $index must remain within bed Y bounds",
+                    box[1] >= minY - 0.1 && box[4] <= maxY + 0.1)
+            }
+            val overlapX = minOf(bounds[0][3], bounds[1][3]) - maxOf(bounds[0][0], bounds[1][0])
+            val overlapY = minOf(bounds[0][4], bounds[1][4]) - maxOf(bounds[0][1], bounds[1][1])
+            assertTrue("the packed parts must not overlap in the XY plane", overlapX <= 0.1 || overlapY <= 0.1)
+        } finally {
+            firstFile.delete()
+            secondFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         var modelEditStageStartedAt = SystemClock.elapsedRealtime()
         fun logModelEditStage(stage: String, details: String = "") {
@@ -9476,6 +9554,30 @@ class InitialProjectMenuDeviceTest {
                 repeat(3) { axis ->
                     val offset = base + vertex + axis * 4
                     data.putFloat(offset, data.getFloat(offset) * scale)
+                }
+            }
+        }
+        destination.writeBytes(bytes)
+    }
+
+    private fun writeScaledBoxStl(
+        activity: MainActivity,
+        destination: File,
+        scaleX: Float,
+        scaleY: Float,
+        scaleZ: Float,
+    ) {
+        val source = activity.assets.open("models/xyz_cube.stl").use { it.readBytes() }
+        val triangleCount = ByteBuffer.wrap(source, 80, 4).order(ByteOrder.LITTLE_ENDIAN).int
+        val bytes = source.copyOf()
+        val data = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        val scales = floatArrayOf(scaleX, scaleY, scaleZ)
+        repeat(triangleCount) { triangle ->
+            val base = 84 + triangle * 50
+            listOf(12, 24, 36).forEach { vertex ->
+                repeat(3) { axis ->
+                    val offset = base + vertex + axis * 4
+                    data.putFloat(offset, data.getFloat(offset) * scales[axis])
                 }
             }
         }

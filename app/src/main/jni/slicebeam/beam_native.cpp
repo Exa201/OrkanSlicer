@@ -3863,6 +3863,10 @@ extern "C" {
             Points bed = get_bed_shape(ref->config);
             ArrangeParams arrange_cfg;
             arrange_cfg.min_obj_distance = scaled(6.0);
+            // Let the packer rotate footprints in the XY plane. Without this, two
+            // perpendicular long parts can be rejected even when one 90-degree turn
+            // makes the pair fit on the same plate. This does not change their Z pose.
+            arrange_cfg.allow_rotations = true;
 
             // arrange_objects() / arrange() do NOT translate min_obj_distance into the per-item inflation
             // that the packer uses for spacing — _arrange() zeroes min_obj_distance and expects every item
