@@ -59,6 +59,7 @@ open class GCodeViewer {
 
     /** Per-filament colors used by the Tool (filament) view; each int is 0xRRGGBB. */
     fun setToolColors(colors: IntArray) = Native.vgcode_set_tool_colors(pointer, colors)
+    fun setToolColorsWithAlpha(colors: IntArray) = Native.vgcode_set_tool_colors_rgba(pointer, colors)
 
     fun setFastMode(fastMode: Boolean) = Native.vgcode_set_fast_mode(pointer, fastMode)
 

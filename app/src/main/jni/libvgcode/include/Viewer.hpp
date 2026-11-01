@@ -164,6 +164,7 @@ public:
     // the view type is EViewType::Tool with the given one.
     //
     void set_tool_colors(const Palette& colors);
+    void set_tool_colors_with_alpha(const PaletteWithAlpha& colors);
     //
     // Return the count of colors in the palette used to render
     // the toolpaths when the view type is EViewType::ColorPrint.

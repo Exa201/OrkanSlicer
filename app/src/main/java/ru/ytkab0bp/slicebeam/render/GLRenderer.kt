@@ -1008,11 +1008,10 @@ viewer!!.toggleOptionVisibility(GCodeViewer.OPTION_TYPE_SEAMS)
 val sliceToolColors = gcodeResult?.previewToolColors
 if (ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.shouldUseToolPreview(isModelMultiColor, sliceToolColors))
 {
-val rgb = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.previewColors(
-    sliceToolColors,
-    ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette(),
-)
-viewer!!.setToolColors(rgb)
+val rgba = sliceToolColors ?: ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette().map {
+    ((it and 0xFFFFFF) shl 8) or 0xFF
+}.toIntArray()
+viewer!!.setToolColorsWithAlpha(rgba)
 viewer!!.viewType = GCodeViewer.VIEW_TYPE_TOOL
 }
 else

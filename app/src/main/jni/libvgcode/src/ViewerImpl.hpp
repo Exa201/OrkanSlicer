@@ -155,6 +155,8 @@ public:
     size_t get_tool_colors_count() const { return m_tool_colors.size(); }
     const Palette& get_tool_colors() const { return m_tool_colors; }
     void set_tool_colors(const Palette& colors);
+    void set_tool_colors_with_alpha(const PaletteWithAlpha& colors);
+    uint8_t get_vertex_alpha(const PathVertex& vertex) const;
 
     size_t get_color_print_colors_count() const { return m_color_print_colors.size(); }
     const Palette& get_color_print_colors() const { return m_color_print_colors; }
@@ -279,6 +281,7 @@ private:
 
     // Cache for the colors to reduce the need to recalculate colors of all the vertices.
     std::vector<float> m_vertices_colors;
+    std::vector<uint8_t> m_vertices_alphas;
 
     // Bounding box for fixed-point coordinate quantization
     Vec3 m_positions_min;
@@ -304,6 +307,8 @@ private:
         ColorRange(EColorRangeType::Linear), ColorRange(EColorRangeType::Logarithmic)
     };
     Palette m_tool_colors;
+    std::vector<uint8_t> m_tool_alphas;
+    bool m_has_translucent_tool_colors{ false };
     Palette m_color_print_colors;
     //
     // OpenGL shaders ids
@@ -324,6 +329,9 @@ private:
     int m_uni_segments_height_width_angle_tex_id{ -1 };
     int m_uni_segments_colors_tex_id{ -1 };
     int m_uni_segments_segment_index_tex_id{ -1 };
+    int m_uni_segments_alpha_tex_id{ -1 };
+    int m_uni_segments_alpha_enabled_id{ -1 };
+    int m_uni_segments_alpha_pass_id{ -1 };
     //
     // Caches for OpenGL uniforms id for options shader 
     //
@@ -359,6 +367,7 @@ private:
         void set_positions(const std::vector<Vec3>& positions);
         void set_heights_widths_angles(const std::vector<Vec3>& heights_widths_angles);
         void set_colors(const std::vector<float>& colors);
+        void set_alphas(const std::vector<uint8_t>& alphas);
         void set_enabled_segments(const std::vector<uint32_t>& enabled_segments);
         void set_enabled_options(const std::vector<uint32_t>& enabled_options);
         void reset();
@@ -366,6 +375,7 @@ private:
         std::pair<unsigned int, size_t> get_positions_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_heights_widths_angles_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_colors_tex_id(size_t id) const;
+        std::pair<unsigned int, size_t> get_alphas_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_enabled_segments_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_enabled_options_tex_id(size_t id) const;
 
@@ -394,6 +404,7 @@ private:
         size_t m_positions_size{ 0 };
         size_t m_height_width_angle_size{ 0 };
         size_t m_colors_size{ 0 };
+        size_t m_alphas_size{ 0 };
         size_t m_enabled_segments_size{ 0 };
         size_t m_enabled_options_size{ 0 };
 
@@ -411,6 +422,7 @@ private:
             // OpenGL texture to store colors
             //
             std::pair<unsigned int, size_t> colors{ 0, 0 };
+            std::pair<unsigned int, size_t> alphas{ 0, 0 };
             //
             // OpenGL texture to store enabled segments
             //

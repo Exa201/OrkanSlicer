@@ -167,6 +167,11 @@ void Viewer::set_tool_colors(const Palette& colors)
     m_impl->set_tool_colors(colors);
 }
 
+void Viewer::set_tool_colors_with_alpha(const PaletteWithAlpha& colors)
+{
+    m_impl->set_tool_colors_with_alpha(colors);
+}
+
 size_t Viewer::get_color_print_colors_count() const
 {
     return m_impl->get_color_print_colors_count();

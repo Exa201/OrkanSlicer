@@ -503,6 +503,47 @@ void ViewerImpl::TextureData::set_colors(const std::vector<float>& colors)
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
+void ViewerImpl::TextureData::set_alphas(const std::vector<uint8_t>& alphas)
+{
+    if (m_count == 0)
+        return;
+
+    for (TexIds& ids : m_tex_ids) {
+        delete_textures(ids.alphas.first);
+        ids.alphas.second = 0;
+    }
+    m_alphas_size = 0;
+    if (alphas.empty() || std::all_of(alphas.begin(), alphas.end(), [](uint8_t alpha) { return alpha == 255; }))
+        return;
+
+    int curr_bound_texture = 0;
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
+    int curr_unpack_alignment = 0;
+    glsafe(glGetIntegerv(GL_UNPACK_ALIGNMENT, &curr_unpack_alignment));
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+
+    const size_t tex_capacity = max_texture_capacity();
+    size_t remaining = alphas.size();
+    for (size_t i = 0; i < m_count && remaining > 0; ++i) {
+        const size_t count = std::min(remaining, tex_capacity);
+        const auto [w, h] = width_height(count);
+        const size_t offset = i * tex_capacity;
+        glsafe(glGenTextures(1, &m_tex_ids[i].alphas.first));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_tex_ids[i].alphas.first));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+        glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, static_cast<GLsizei>(w), static_cast<GLsizei>(h),
+                            0, GL_RED, GL_UNSIGNED_BYTE, alphas.data() + offset));
+        m_tex_ids[i].alphas.second = count;
+        m_alphas_size += count;
+        remaining -= count;
+    }
+
+    glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture));
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
+}
+
 void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& enabled_segments)
 {
     if (m_count == 0)
@@ -644,6 +685,7 @@ void ViewerImpl::TextureData::reset()
     for (TexIds& ids : m_tex_ids) {
         delete_textures(ids.enabled_options.first);
         delete_textures(ids.enabled_segments.first);
+        delete_textures(ids.alphas.first);
         delete_textures(ids.colors.first);
         delete_textures(ids.heights_widths_angles.first);
         delete_textures(ids.positions.first);
@@ -657,6 +699,7 @@ void ViewerImpl::TextureData::reset()
     m_positions_size = 0;
     m_height_width_angle_size = 0;
     m_colors_size = 0;
+    m_alphas_size = 0;
     m_enabled_segments_size = 0;
     m_enabled_options_size = 0;
 }
@@ -677,6 +720,12 @@ std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_colors_tex_id(size_
 {
     assert(id < m_tex_ids.size());
     return m_tex_ids[id].colors;
+}
+
+std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_alphas_tex_id(size_t id) const
+{
+    assert(id < m_tex_ids.size());
+    return m_tex_ids[id].alphas;
 }
 
 std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_enabled_segments_tex_id(size_t id) const
@@ -715,6 +764,7 @@ size_t ViewerImpl::TextureData::get_used_gpu_memory() const
     ret += m_positions_size;
     ret += m_height_width_angle_size;
     ret += m_colors_size;
+    ret += m_alphas_size;
     ret += m_enabled_segments_size;
     ret += m_enabled_options_size;
     return ret;
@@ -758,6 +808,11 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
     m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
     m_uni_segments_segment_index_tex_id      = glGetUniformLocation(m_segments_shader_id, "segment_index_tex");
+#ifdef ENABLE_OPENGL_ES
+    m_uni_segments_alpha_tex_id              = glGetUniformLocation(m_segments_shader_id, "alpha_tex");
+    m_uni_segments_alpha_enabled_id          = glGetUniformLocation(m_segments_shader_id, "alpha_enabled");
+    m_uni_segments_alpha_pass_id             = glGetUniformLocation(m_segments_shader_id, "alpha_pass");
+#endif // ENABLE_OPENGL_ES
     glcheck();
     assert(m_uni_segments_view_matrix_id != -1 &&
            m_uni_segments_projection_matrix_id != -1 &&
@@ -870,6 +925,7 @@ void ViewerImpl::reset()
     m_travels_time = { 0.0f, 0.0f };
     m_vertices.clear();
     m_vertices_colors.clear();
+    m_vertices_alphas.clear();
     m_valid_lines_bitset.clear();
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_cog_marker.reset();
@@ -972,8 +1028,11 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 
     m_vertices = std::move(gcode_data.vertices);
     m_tool_colors = std::move(gcode_data.tools_colors);
+    m_tool_alphas.assign(m_tool_colors.size(), 255);
+    m_has_translucent_tool_colors = false;
     m_color_print_colors = std::move(gcode_data.color_print_colors);
     m_vertices_colors.resize(m_vertices.size());
+    m_vertices_alphas.resize(m_vertices.size(), 255);
 
     m_settings.spiral_vase_mode = gcode_data.spiral_vase_mode;
 
@@ -1295,6 +1354,7 @@ void ViewerImpl::update_colors()
             for (size_t i = 0; i < max_used_extruder_id - tool_colors_size; ++i) {
                 m_tool_colors.emplace_back(DUMMY_COLOR);
             }
+            m_tool_alphas.resize(m_tool_colors.size(), 255);
         }
     }
 
@@ -1306,6 +1366,13 @@ void ViewerImpl::update_colors()
     // the "normal" color on every slider move.
     for (size_t i = 0; i < m_vertices.size(); ++i)
         m_vertices_colors[i] = encode_color(get_vertex_color(m_vertices[i]));
+
+    for (size_t i = 0; i < m_vertices.size(); ++i)
+        m_vertices_alphas[i] = get_vertex_alpha(m_vertices[i]);
+
+#ifdef ENABLE_OPENGL_ES
+    m_texture_data.set_alphas(m_vertices_alphas);
+#endif // ENABLE_OPENGL_ES
     
     update_colors_texture();
     m_settings.update_colors = false;
@@ -1584,7 +1651,32 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
 void ViewerImpl::set_tool_colors(const Palette& colors)
 {
     m_tool_colors = colors;
+    m_tool_alphas.assign(colors.size(), 255);
+    m_has_translucent_tool_colors = false;
     m_settings.update_colors = true;
+}
+
+void ViewerImpl::set_tool_colors_with_alpha(const PaletteWithAlpha& colors)
+{
+    m_tool_colors.clear();
+    m_tool_alphas.clear();
+    m_tool_colors.reserve(colors.size());
+    m_tool_alphas.reserve(colors.size());
+    m_has_translucent_tool_colors = false;
+    for (const ColorWithAlpha& color : colors) {
+        m_tool_colors.push_back({ color[0], color[1], color[2] });
+        m_tool_alphas.push_back(color[3]);
+        m_has_translucent_tool_colors |= color[3] < 255;
+    }
+    m_settings.update_colors = true;
+}
+
+uint8_t ViewerImpl::get_vertex_alpha(const PathVertex& vertex) const
+{
+    if (m_settings.view_type != EViewType::Tool || !vertex.is_extrusion())
+        return 255;
+    const size_t extruder_id = static_cast<size_t>(vertex.extruder_id);
+    return extruder_id < m_tool_alphas.size() ? m_tool_alphas[extruder_id] : 255;
 }
 
 void ViewerImpl::set_color_print_colors(const Palette& colors)
@@ -1940,22 +2032,54 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glDisable(GL_CULL_FACE));
 
 #ifdef ENABLE_OPENGL_ES
-    int curr_bound_texture = 0;
-    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
+    std::array<int, 5> curr_bound_texture{};
+    for (int i = 0; i < curr_bound_texture.size(); ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + i));
+        glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture[i]));
+    }
+    const bool alpha_enabled = m_has_translucent_tool_colors && m_settings.view_type == EViewType::Tool;
+    glsafe(glUniform1i(m_uni_segments_alpha_tex_id, 4));
+    glsafe(glUniform1i(m_uni_segments_alpha_enabled_id, alpha_enabled ? 1 : 0));
+    const bool curr_blend = glIsEnabled(GL_BLEND);
+    GLboolean curr_depth_mask = GL_TRUE;
+    std::array<int, 4> curr_blend_func{};
+    if (alpha_enabled) {
+        glsafe(glGetBooleanv(GL_DEPTH_WRITEMASK, &curr_depth_mask));
+        glsafe(glGetIntegerv(GL_BLEND_SRC_RGB, &curr_blend_func[0]));
+        glsafe(glGetIntegerv(GL_BLEND_DST_RGB, &curr_blend_func[1]));
+        glsafe(glGetIntegerv(GL_BLEND_SRC_ALPHA, &curr_blend_func[2]));
+        glsafe(glGetIntegerv(GL_BLEND_DST_ALPHA, &curr_blend_func[3]));
+    }
 
-    for (size_t i = 0; i < m_texture_data.get_count(); ++i) {
-        const auto [id, count] = m_texture_data.get_enabled_segments_tex_id(i);
-        if (count == 0)
-            continue;
-        glsafe(glActiveTexture(GL_TEXTURE0));
-        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_positions_tex_id(i).first));
-        glsafe(glActiveTexture(GL_TEXTURE1));
-        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_heights_widths_angles_tex_id(i).first));
-        glsafe(glActiveTexture(GL_TEXTURE2));
-        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
-        glsafe(glActiveTexture(GL_TEXTURE3));
-        glsafe(glBindTexture(GL_TEXTURE_2D, id));
-        m_segment_template.render(count);
+    auto draw_segments = [&](int alpha_pass) {
+        glsafe(glUniform1i(m_uni_segments_alpha_pass_id, alpha_pass));
+        for (size_t i = 0; i < m_texture_data.get_count(); ++i) {
+            const auto [id, count] = m_texture_data.get_enabled_segments_tex_id(i);
+            if (count == 0)
+                continue;
+            glsafe(glActiveTexture(GL_TEXTURE0));
+            glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_positions_tex_id(i).first));
+            glsafe(glActiveTexture(GL_TEXTURE1));
+            glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_heights_widths_angles_tex_id(i).first));
+            glsafe(glActiveTexture(GL_TEXTURE2));
+            glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
+            glsafe(glActiveTexture(GL_TEXTURE3));
+            glsafe(glBindTexture(GL_TEXTURE_2D, id));
+            glsafe(glActiveTexture(GL_TEXTURE4));
+            glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_alphas_tex_id(i).first));
+            m_segment_template.render(count);
+        }
+    };
+    draw_segments(0);
+    if (alpha_enabled) {
+        glsafe(glEnable(GL_BLEND));
+        glsafe(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        glsafe(glDepthMask(GL_FALSE));
+        draw_segments(1);
+        glsafe(glDepthMask(curr_depth_mask));
+        glsafe(glBlendFuncSeparate(curr_blend_func[0], curr_blend_func[1], curr_blend_func[2], curr_blend_func[3]));
+        if (!curr_blend)
+            glsafe(glDisable(GL_BLEND));
     }
 #else
     std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
@@ -1986,7 +2110,10 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
 
     glsafe(glUseProgram(curr_shader));
 #ifdef ENABLE_OPENGL_ES
-    glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture));
+    for (int i = 0; i < curr_bound_texture.size(); ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + i));
+        glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture[i]));
+    }
 #else
     for (int i = 0; i < curr_bound_texture.size(); ++i) {
         glsafe(glActiveTexture(GL_TEXTURE0 + i));

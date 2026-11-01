@@ -637,13 +637,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
         // Declare enough filament slots for object assignments and painted facets so native
         // slicing emits all required multi-material tool changes.
         val numFilaments = requiredFilamentCount
+        val configColors = if (numFilaments > 1) runCatching {
+            File(configPath).useLines { lines ->
+                lines.lastOrNull { it.startsWith("filament_colour = ") }
+                    ?.substringAfter("filament_colour = ")
+            }
+        }.getOrNull() else null
         val colors = if (numFilaments > 1) {
-            val configColors = runCatching {
-                File(configPath).useLines { lines ->
-                    lines.lastOrNull { it.startsWith("filament_colour = ") }
-                        ?.substringAfter("filament_colour = ")
-                }
-            }.getOrNull()
             SliceFilamentColorResolver.resolve(
                 configColors,
                 numFilaments,
@@ -662,7 +662,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return GCodeProcessorResult(resultPointer).also { result ->
             // Keep the effective ACE/profile palette with the result so the tool-color
             // preview shows the same colors that the native slicer actually received.
-            result.previewToolColors = colors?.copyOf()
+            result.previewToolColors = if (numFilaments > 1) {
+                SliceFilamentColorResolver.previewColorsWithAlpha(
+                    configColors,
+                    numFilaments,
+                    Prefs.getFilamentPalette(),
+                )
+            } else null
         }
     }
 

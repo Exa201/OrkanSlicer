@@ -60,6 +60,10 @@ using Color = std::array<uint8_t, 3>;
 //
 using Palette = std::vector<Color>;
 
+// Preview-only RGBA palette. Slicing configuration continues to use RGB values.
+using ColorWithAlpha = std::array<uint8_t, 4>;
+using PaletteWithAlpha = std::vector<ColorWithAlpha>;
+
 //
 // Axis aligned box in 3 dimensions
 // [0] -> { min_x, min_y, min_z }

@@ -50,6 +50,29 @@ class SliceFilamentColorResolverTest {
         )
     }
 
+    @Test fun previewPreservesRgbaAlphaWithoutChangingNativeSliceRgb() {
+        val source = "#11223380;#445566"
+        assertArrayEquals(
+            intArrayOf(0x112233, 0x445566),
+            SliceFilamentColorResolver.resolve(source, 2, intArrayOf()),
+        )
+        assertArrayEquals(
+            intArrayOf(0x11223380, 0x445566FF.toInt()),
+            SliceFilamentColorResolver.previewColorsWithAlpha(source, 2, intArrayOf()),
+        )
+    }
+
+    @Test fun invalidAlphaDoesNotTurnAnInvalidRgbaValueIntoASliceColor() {
+        assertArrayEquals(
+            intArrayOf(0xABCDEF),
+            SliceFilamentColorResolver.resolve("#112233GG", 1, intArrayOf(0xABCDEF)),
+        )
+        assertArrayEquals(
+            intArrayOf(0xABCDEFFF.toInt()),
+            SliceFilamentColorResolver.previewColorsWithAlpha("#112233GG", 1, intArrayOf(0xABCDEF)),
+        )
+    }
+
     @Test fun aMultiToolSliceUsesToolColorPreviewEvenWhenTheEditableModelLooksSingleColor() {
         assertEquals(true, SliceFilamentColorResolver.shouldUseToolPreview(false, intArrayOf(0x112233, 0x445566)))
         assertEquals(true, SliceFilamentColorResolver.shouldUseToolPreview(true, intArrayOf(0x112233)))

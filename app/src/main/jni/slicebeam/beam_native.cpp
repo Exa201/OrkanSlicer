@@ -3841,6 +3841,27 @@ extern "C" {
             ref->viewer.set_tool_colors(palette);
     }
 
+    // Preview-only packed 0xRRGGBBAA colors. The native print config remains untouched.
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_vgcode_1set_1tool_1colors_1rgba(JNIEnv* env, jclass, jlong ptr, jintArray colorsArr) {
+        GCodeViewerRef* ref = (GCodeViewerRef*) (intptr_t) ptr;
+        const jsize n = env->GetArrayLength(colorsArr);
+        jint* c = env->GetIntArrayElements(colorsArr, JNI_FALSE);
+        libvgcode::PaletteWithAlpha palette;
+        palette.reserve(n);
+        for (jsize i = 0; i < n; ++i) {
+            const uint32_t v = static_cast<uint32_t>(c[i]);
+            palette.push_back({
+                static_cast<unsigned char>((v >> 24) & 0xFF),
+                static_cast<unsigned char>((v >> 16) & 0xFF),
+                static_cast<unsigned char>((v >> 8) & 0xFF),
+                static_cast<unsigned char>(v & 0xFF),
+            });
+        }
+        env->ReleaseIntArrayElements(colorsArr, c, JNI_ABORT);
+        if (!palette.empty())
+            ref->viewer.set_tool_colors_with_alpha(palette);
+    }
+
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_vgcode_1is_1option_1visible(JNIEnv* env, jclass, jlong ptr, jint optionType) {
         GCodeViewerRef* ref = (GCodeViewerRef*) (intptr_t) ptr;
         return (jboolean) ref->viewer.is_option_visible(static_cast<libvgcode::EOptionType>(optionType));

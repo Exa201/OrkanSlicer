@@ -345,6 +345,9 @@ class Native {
     external fun vgcode_get_view_type(ptr: Long): Int
     @JvmStatic
     external fun vgcode_set_tool_colors(ptr: Long, colors: IntArray): Unit
+    /** Preview-only packed 0xRRGGBBAA palette. Native slicing still consumes RGB config. */
+    @JvmStatic
+    external fun vgcode_set_tool_colors_rgba(ptr: Long, colors: IntArray): Unit
     @JvmStatic
     external fun vgcode_is_option_visible(ptr: Long, optionType: Int): Boolean
     @JvmStatic
