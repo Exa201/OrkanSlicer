@@ -607,6 +607,45 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test
+    fun multilineGridInfillUsesMiterJoinsAndSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("fill_multiline", "3")
+        process.put("sparse_infill_pattern", "grid")
+        process.put("sparse_infill_density", "35")
+        process.put("top_shell_layers", "1")
+        process.put("bottom_shell_layers", "1")
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        val modelFile = createThinCubeFixture("orca25-multiline-infill-rectangle.stl", 40.0, 30.0, 6.0)
+        val output = File(context.cacheDir, "orca25-multiline-infill-rectangle.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            var sparseInfill = false
+            val moves = mutableListOf<String>()
+            for (line in gcode.lineSequence()) {
+                if (line.startsWith(";TYPE:")) sparseInfill = line.contains("Sparse infill", ignoreCase = true)
+                if (sparseInfill && line.startsWith("G1 ") && line.contains('E') && (line.contains(" X") || line.contains(" Y")))
+                    moves += line
+            }
+            assertEquals("Miter joins should preserve the measured multiline Grid infill geometry", 7461, moves.size)
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test(timeout = 90_000)
     fun lightningInfillCompletesWhenOpenedOverhangExtendsPastInfillBounds() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

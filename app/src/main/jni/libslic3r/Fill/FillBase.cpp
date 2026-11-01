@@ -2743,8 +2743,10 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
             offsets.push_back(start + i * spacing);
     }
 
+    // Match Orca's jtMiter multiline-infill corners; rounded joins create many
+    // short segments on turning infill patterns and inflate the generated toolpath.
     Clipper2Lib::ClipperOffset offsetter(miter_limit);
-    offsetter.AddPaths(subject_paths, Clipper2Lib::JoinType::Round, Clipper2Lib::EndType::Round);
+    offsetter.AddPaths(subject_paths, Clipper2Lib::JoinType::Miter, Clipper2Lib::EndType::Round);
     for (double offset : offsets) {
         if (offset == 0.0) {
             all_polylines.insert(all_polylines.end(), polylines.begin(), polylines.end());

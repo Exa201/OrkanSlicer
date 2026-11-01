@@ -2,12 +2,13 @@
 
 Stand: 2026-11-01. Upstream-Vergleich: OrcaSlicer `main` at
 `3aedd50bcb94221db79ccbf8d6a7985e795fe25d` (latest fetched 2026-11-01 Europe/Berlin). Batch 4 is
-at 4/10: multipart brim grouping, configurable painted-surface penetration, the dense-layer
-internal-bridge detection fast path, and lower-layer rotation alignment for Hilbert/Octagram
-internal bridges. Change 4 builds for Android ARM64 and passes an API-16 instrumented G-code
-direction regression for both patterns. Changes 3 and 4 were locally tested at the time of this
-update; the current batch has not yet been published as an APK. This remains a selective Android
-port; the app must not be described as containing the complete upstream engine.
+at 5/10: multipart brim grouping, configurable painted-surface penetration, the dense-layer
+internal-bridge detection fast path, lower-layer rotation alignment for Hilbert/Octagram internal
+bridges, and Orca's miter joins for multiline infill. The fifth change was verified by slicing a
+Grid-infill fixture on API 16; it produces 7,461 sparse-infill extrusion moves with the miter
+join (the round-join control produced 11,427). The current batch has not yet been published as an
+APK. This remains a selective Android port; the app must not be described as containing the
+complete upstream engine.
 
 ## Verified preview-performance finding
 
