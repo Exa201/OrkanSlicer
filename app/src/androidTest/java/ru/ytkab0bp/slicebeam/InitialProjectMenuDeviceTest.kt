@@ -3086,9 +3086,13 @@ class InitialProjectMenuDeviceTest {
             importAndWait()
             compose.waitUntil(timeoutMillis = 10_000) { readPlateModels(bed).size == 2 }
             assertEquals("the overflow import should select the newly created plate", 1, bed.activePlateIndex)
+            importAndWait()
+            compose.waitUntil(timeoutMillis = 10_000) { readPlateModels(bed).size == 3 }
+            assertEquals("each additional oversized import should advance to a new plate", 2, bed.activePlateIndex)
             val models = readPlateModels(bed)
             assertEquals("the original plate must keep its object", 1, models[0].objectsCount)
-            assertEquals("the incoming object should be placed on the new plate", 1, models[1].objectsCount)
+            assertEquals("the second imported object should remain on plate two", 1, models[1].objectsCount)
+            assertEquals("the third imported object should be placed on plate three", 1, models[2].objectsCount)
             assertArrayEquals("failed first-plate packing must not shift the existing object", initialBounds,
                 readExactBoundsOnGl(glView, models[0], 0), 0.03)
             val placedBounds = readExactBoundsOnGl(glView, 0).single()
@@ -3178,6 +3182,59 @@ class InitialProjectMenuDeviceTest {
         } finally {
             firstFile.delete()
             secondFile.delete()
+        }
+    }
+
+    @Test
+    fun importedConcaveModelUsesItsOpenFootprintForAdditionalObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val lShapeFile = File(activity.cacheDir, "auto-arrange-concave-l.stl")
+        val insertFile = File(activity.cacheDir, "auto-arrange-concave-insert.stl")
+        try {
+            // A 150 mm L has a 125 x 125 mm open corner. A 100 mm square fits there with
+            // the normal 6 mm separation, although their 150/100 mm convex bounds cannot
+            // be packed together on this printer bed.
+            writeConcavePrismStl(activity, lShapeFile)
+            writeScaledBoxStl(activity, insertFile, 5f, 5f, 1f)
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(lShapeFile)
+            importAndWait(insertFile)
+            val plates = readPlateModels(bed)
+            assertEquals("the insert should use the real open area of the L footprint", 1, plates.size)
+            assertEquals("both models should remain independent", 2, plates.single().objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            bounds.forEachIndexed { index, box ->
+                assertTrue("arranged model $index must remain within the build volume",
+                    box[0] >= bedMin.x - 0.1 && box[1] >= bedMin.y - 0.1 &&
+                        box[3] <= bedMax.x + 0.1 && box[4] <= bedMax.y + 0.1)
+            }
+        } finally {
+            lShapeFile.delete()
+            insertFile.delete()
         }
     }
 
@@ -9582,6 +9639,76 @@ class InitialProjectMenuDeviceTest {
             }
         }
         destination.writeBytes(bytes)
+    }
+
+    /** Writes a watertight 150 x 150 x 20 mm L-shaped prism as binary STL. */
+    private fun writeConcavePrismStl(activity: MainActivity, destination: File) {
+        val points = listOf(
+            0f to 0f, 150f to 0f, 150f to 25f,
+            25f to 25f, 25f to 150f, 0f to 150f,
+        )
+        val remaining = points.indices.toMutableList()
+        val capTriangles = ArrayList<Triple<Int, Int, Int>>()
+        fun cross(a: Int, b: Int, c: Int): Float {
+            val abx = points[b].first - points[a].first
+            val aby = points[b].second - points[a].second
+            val acx = points[c].first - points[a].first
+            val acy = points[c].second - points[a].second
+            return abx * acy - aby * acx
+        }
+        fun insideTriangle(p: Int, a: Int, b: Int, c: Int): Boolean =
+            cross(a, b, p) >= -0.001f && cross(b, c, p) >= -0.001f && cross(c, a, p) >= -0.001f
+
+        while (remaining.size > 3) {
+            val ear = remaining.indices.firstOrNull { position ->
+                val a = remaining[(position - 1 + remaining.size) % remaining.size]
+                val b = remaining[position]
+                val c = remaining[(position + 1) % remaining.size]
+                cross(a, b, c) > 0f && remaining.none { candidate ->
+                    candidate != a && candidate != b && candidate != c && insideTriangle(candidate, a, b, c)
+                }
+            } ?: error("L polygon triangulation failed")
+            val a = remaining[(ear - 1 + remaining.size) % remaining.size]
+            val b = remaining[ear]
+            val c = remaining[(ear + 1) % remaining.size]
+            capTriangles += Triple(a, b, c)
+            remaining.removeAt(ear)
+        }
+        capTriangles += Triple(remaining[0], remaining[1], remaining[2])
+
+        data class Point3(val x: Float, val y: Float, val z: Float)
+        fun point(index: Int, top: Boolean): Point3 {
+            val p = points[index]
+            return Point3(p.first, p.second, if (top) 20f else 0f)
+        }
+        val triangles = ArrayList<Triple<Point3, Point3, Point3>>()
+        capTriangles.forEach { (a, b, c) ->
+            triangles += Triple(point(a, false), point(c, false), point(b, false))
+            triangles += Triple(point(a, true), point(b, true), point(c, true))
+        }
+        points.indices.forEach { a ->
+            val b = (a + 1) % points.size
+            val bottomA = point(a, false)
+            val bottomB = point(b, false)
+            val topA = point(a, true)
+            val topB = point(b, true)
+            triangles += Triple(bottomA, bottomB, topB)
+            triangles += Triple(bottomA, topB, topA)
+        }
+
+        val output = ByteBuffer.allocate(84 + triangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
+        output.put("Orkan concave footprint test".toByteArray().copyOf(80))
+        output.putInt(triangles.size)
+        triangles.forEach { (a, b, c) ->
+            repeat(3) { output.putFloat(0f) }
+            listOf(a, b, c).forEach { p ->
+                output.putFloat(p.x)
+                output.putFloat(p.y)
+                output.putFloat(p.z)
+            }
+            output.putShort(0)
+        }
+        destination.writeBytes(output.array())
     }
 
     @Suppress("UNCHECKED_CAST")

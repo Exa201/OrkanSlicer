@@ -488,6 +488,10 @@ public:
     // This method is used by the auto arrange function.
     Polygon       convex_hull_2d(const Transform3d &trafo_instance) const;
 
+    // A tighter arrangement footprint for ordinary, closed printable meshes. If the projection
+    // is too expensive or cannot be represented as one safe island, callers should use the hull.
+    ExPolygon     arrange_footprint_2d(const Transform3d &trafo_instance) const;
+
     void center_around_origin(bool include_modifiers = true);
     void ensure_on_bed(bool allow_negative_z = false);
 
