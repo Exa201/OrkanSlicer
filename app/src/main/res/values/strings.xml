@@ -311,6 +311,7 @@
     <string name="ModelMenuPlaceGroupOnBedShort">Drop to bed</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Selected objects placed on the bed</string>
     <string name="ModelMenuAlignSelected">Align selected objects</string>
+    <string name="ModelMenuAlignPrimaryAxes">Align along primary object axes</string>
     <string name="ModelMenuAlignMinX">Align minimum X edges</string>
     <string name="ModelMenuAlignCenterX">Align X centers</string>
     <string name="ModelMenuAlignMaxX">Align maximum X edges</string>

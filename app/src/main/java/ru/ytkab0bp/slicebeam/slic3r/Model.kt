@@ -91,6 +91,19 @@ open class Model private constructor(@JvmField var pointer: Long) {
         ).takeIf { it.isFinite() }
     }
 
+    /** Exact minimum and maximum vertex projection of printable parts along a world-space axis. */
+    open fun getProjectionRange(objectIndices: IntArray, direction: Vec3d): DoubleArray? {
+        if (pointer == 0L || objectIndices.isEmpty() || objectIndices.any { !hasObject(it) } ||
+            !direction.x.isFinite() || !direction.y.isFinite() || !direction.z.isFinite()
+        ) return null
+        val range = Native.model_get_projection_range(
+            pointer,
+            objectIndices,
+            doubleArrayOf(direction.x, direction.y, direction.z),
+        )
+        return range.takeIf { it.size == 2 && it.all(Double::isFinite) && it[0] <= it[1] }
+    }
+
     open val boundingBoxExactMin: Vec3d
         get() {
         val bounds = boundingExact ?: Native.model_get_bounding_box_exact_global(pointer).also {

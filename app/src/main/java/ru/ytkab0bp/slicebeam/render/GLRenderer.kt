@@ -44,6 +44,7 @@ import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.GLView
 
 enum class ModelAlignmentAxis { MIN_X, CENTER_X, MAX_X, MIN_Y, CENTER_Y, MAX_Y, BASE_Z, CENTER_Z, MAX_Z }
+enum class ModelAlignmentCoordinateSystem { WORLD, PRIMARY_OBJECT }
 internal const val MODEL_EDIT_STALE_SELECTION = -2
 internal const val MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION = -3
 internal const val MODEL_EDIT_OPERATION_FAILED = -4
@@ -370,12 +371,56 @@ fun mirrorSelectedObjects(axis: ModelMirrorAxis): Boolean {
 }
 
 /** Align the selected group to the primary object's X/Y center or Z base. GL-thread only. */
-internal fun alignSelectedObjects(axis: ModelAlignmentAxis, expectedSelection: ModelSelectionSnapshot? = null): Boolean {
+internal fun alignSelectedObjects(
+    axis: ModelAlignmentAxis,
+    expectedSelection: ModelSelectionSnapshot? = null,
+    coordinateSystem: ModelAlignmentCoordinateSystem = ModelAlignmentCoordinateSystem.WORLD,
+): Boolean {
     val activeModel = model ?: return false
     if (expectedSelection != null && !isSelectionSnapshotCurrent(expectedSelection)) return false
     val indices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
     if (indices.size < 2) return false
     val primary = selectedObject.takeIf { it in indices } ?: indices.first()
+    if (coordinateSystem == ModelAlignmentCoordinateSystem.PRIMARY_OBJECT) {
+        val rotation = Vec3d()
+        activeModel.getRotation(primary, rotation)
+        val localAxes = PrimaryObjectAxes.fromEulerXYZ(rotation.x, rotation.y, rotation.z) ?: return false
+        val axisIndex = when (axis) {
+            ModelAlignmentAxis.MIN_X, ModelAlignmentAxis.CENTER_X, ModelAlignmentAxis.MAX_X -> 0
+            ModelAlignmentAxis.MIN_Y, ModelAlignmentAxis.CENTER_Y, ModelAlignmentAxis.MAX_Y -> 1
+            ModelAlignmentAxis.BASE_Z, ModelAlignmentAxis.CENTER_Z, ModelAlignmentAxis.MAX_Z -> 2
+        }
+        val direction = localAxes[axisIndex]
+        fun alignedProjection(range: DoubleArray): Double = when (axis) {
+            ModelAlignmentAxis.MIN_X, ModelAlignmentAxis.MIN_Y, ModelAlignmentAxis.BASE_Z -> range[0]
+            ModelAlignmentAxis.CENTER_X, ModelAlignmentAxis.CENTER_Y, ModelAlignmentAxis.CENTER_Z ->
+                (range[0] + range[1]) / 2.0
+            ModelAlignmentAxis.MAX_X, ModelAlignmentAxis.MAX_Y, ModelAlignmentAxis.MAX_Z -> range[1]
+        }
+
+        val ranges = LinkedHashMap<Int, DoubleArray>(indices.size)
+        for (index in indices) {
+            ranges[index] = activeModel.getProjectionRange(intArrayOf(index), direction) ?: return false
+        }
+        val target = alignedProjection(ranges[primary] ?: return false)
+        val deltas = indices.associateWith { target - alignedProjection(ranges.getValue(it)) }
+        if (deltas.values.any { !it.isFinite() }) return false
+
+        var changed = false
+        for (index in indices) {
+            val delta = deltas.getValue(index)
+            if (kotlin.math.abs(delta) <= 1e-9) continue
+            activeModel.translate(index, direction.x * delta, direction.y * delta, direction.z * delta)
+            invalidateGlModel(index)
+            changed = true
+        }
+        if (!changed) return false
+        activeModel.resetBoundingBox()
+        prepareSelectionTransformPreview()
+        glView.requestRender()
+        return true
+    }
+
     val bounds = LinkedHashMap<Int, ObjectBounds3D>(indices.size)
     for (index in indices) {
         activeModel.getBoundingBoxExact(index, bbMin, bbMax)

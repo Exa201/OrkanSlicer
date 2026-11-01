@@ -306,6 +306,7 @@
     <string name="ModelMenuPlaceGroupOnBedShort">Auf Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Ausgewählte Objekte auf die Platte gestellt</string>
     <string name="ModelMenuAlignSelected">Ausgewählte Objekte ausrichten</string>
+    <string name="ModelMenuAlignPrimaryAxes">An Achsen des Hauptobjekts ausrichten</string>
     <string name="ModelMenuAlignMinX">Kleinste X-Kanten ausrichten</string>
     <string name="ModelMenuAlignCenterX">X-Mittelpunkte ausrichten</string>
     <string name="ModelMenuAlignMaxX">Größte X-Kanten ausrichten</string>

@@ -8,6 +8,7 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
+import ru.ytkab0bp.slicebeam.render.ModelAlignmentCoordinateSystem
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION
@@ -102,6 +103,9 @@ internal class ModelMenuItems(
             }, enabled = availability.hasSelectedObject && objectCount > selectedCount),
             BedComposeMenuAction(R.string.ModelMenuAlignSelected, R.drawable.grid_layout_outline_28, { anchor ->
                 showAlignmentDialog(anchor)
+            }, enabled = selectedCount >= 2),
+            BedComposeMenuAction(R.string.ModelMenuAlignPrimaryAxes, R.drawable.grid_layout_outline_28, { anchor ->
+                showAlignmentDialog(anchor, ModelAlignmentCoordinateSystem.PRIMARY_OBJECT)
             }, enabled = selectedCount >= 2),
             BedComposeMenuAction(R.string.ModelMenuDistributeSelected, R.drawable.grid_layout_outline_28, { anchor ->
                 showDistributionDialog(anchor)
@@ -296,7 +300,10 @@ internal class ModelMenuItems(
         }
     }
 
-    private fun showAlignmentDialog(anchor: android.view.View) {
+    private fun showAlignmentDialog(
+        anchor: android.view.View,
+        coordinateSystem: ModelAlignmentCoordinateSystem = ModelAlignmentCoordinateSystem.WORLD,
+    ) {
         val glView = fragment.glView ?: return
         val labels = listOf(
             anchor.context.getString(R.string.ModelMenuAlignMinX),
@@ -312,7 +319,13 @@ internal class ModelMenuItems(
         captureSelectionSnapshot(glView) { snapshot ->
             fragment.showWorkspaceComposeDialog { dismiss ->
                 ModelChoiceDialog(
-                    title = anchor.context.getString(R.string.ModelMenuAlignSelected),
+                    title = anchor.context.getString(
+                        if (coordinateSystem == ModelAlignmentCoordinateSystem.PRIMARY_OBJECT) {
+                            R.string.ModelMenuAlignPrimaryAxes
+                        } else {
+                            R.string.ModelMenuAlignSelected
+                        },
+                    ),
                     cancelLabel = anchor.context.getString(android.R.string.cancel),
                     choices = labels,
                     onDismiss = dismiss,
@@ -330,7 +343,7 @@ internal class ModelMenuItems(
                             8 -> ModelAlignmentAxis.MAX_Z
                             else -> return@ModelChoiceDialog
                         }
-                        glView.alignSelectedObjects(axis, snapshot) { result ->
+                        glView.alignSelectedObjects(axis, snapshot, coordinateSystem) { result ->
                             when (result) {
                                 1 -> {
                                     fragment.updateModel()

@@ -116,6 +116,7 @@ internal object ModelMenuActionScope {
         R.string.ModelMenuPlaceOnObject,
         R.string.ModelMenuPlaceOnSurface,
         R.string.ModelMenuAlignSelected,
+        R.string.ModelMenuAlignPrimaryAxes,
         R.string.ModelMenuDistributeSelected,
         R.string.ModelMenuCenterOnBed,
         R.string.ModelMenuPlaceGroupOnBed,

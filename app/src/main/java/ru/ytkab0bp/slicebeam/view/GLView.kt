@@ -33,6 +33,7 @@ import ru.ytkab0bp.slicebeam.render.DevicePerformancePolicy
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
+import ru.ytkab0bp.slicebeam.render.ModelAlignmentCoordinateSystem
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
@@ -592,12 +593,13 @@ internal fun placeSelectedObjectsOnBed(
 internal fun alignSelectedObjects(
     axis: ModelAlignmentAxis,
     expectedSelection: ModelSelectionSnapshot? = null,
+    coordinateSystem: ModelAlignmentCoordinateSystem = ModelAlignmentCoordinateSystem.WORLD,
     onComplete: (Int) -> Unit,
 ) {
     queueEvent {
         val aligned = when {
             expectedSelection != null && !renderer.isSelectionSnapshotCurrent(expectedSelection) -> -2
-            renderer.alignSelectedObjects(axis, expectedSelection) -> 1
+            renderer.alignSelectedObjects(axis, expectedSelection, coordinateSystem) -> 1
             else -> 0
         }
         requestRender()

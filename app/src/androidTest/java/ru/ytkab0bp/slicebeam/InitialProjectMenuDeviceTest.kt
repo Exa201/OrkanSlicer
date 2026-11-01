@@ -7207,6 +7207,90 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun modelMenuAlignsAlongRotatedPrimaryObjectAxesWithUndoRedoAndSlice() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "menu-primary-axis-align-test.stl")
+        try {
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                modelFile.outputStream().use(source::copyTo)
+            }
+            loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val model = requireNotNull(glView.renderer.model)
+                model.addObject(model, 0)
+                model.rotate(0, 0.0, 0.0, Math.PI / 2.0)
+                model.scale(1, 0.7, 0.8, 0.55)
+                model.translate(1, 42.0, 37.0, 0.0)
+                model.setUniformFilament(0, 2)
+                model.setUniformFilament(1, 2)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("The rotated multi-object fixture must be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            fun projectionRanges(): List<DoubleArray> {
+                val output = AtomicReference<List<DoubleArray>>()
+                val done = CountDownLatch(1)
+                glView.queueEvent {
+                    val model = requireNotNull(glView.renderer.model)
+                    val localX = Vec3d(0.0, 1.0, 0.0) // primary object's X after a +90° Z rotation
+                    output.set(listOf(0, 1).map { index ->
+                        requireNotNull(model.getProjectionRange(intArrayOf(index), localX))
+                    })
+                    done.countDown()
+                }
+                assertTrue("The native projection ranges must be readable on GL", done.await(10, TimeUnit.SECONDS))
+                return requireNotNull(output.get())
+            }
+
+            val before = projectionRanges()
+            val beforeWorldBounds = readExactBoundsOnGl(glView, 0, 1)
+            assertTrue("The fixture must start unaligned in the rotated primary X axis",
+                kotlin.math.abs((before[0][0] + before[0][1]) - (before[1][0] + before[1][1])) > 1.0)
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.ModelMenuAlignPrimaryAxes)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelMenuAlignPrimaryAxes))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+            val centerX = activity.getString(R.string.ModelMenuAlignCenterX)
+            compose.onNodeWithText(centerX).performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val current = projectionRanges()
+                kotlin.math.abs((current[0][0] + current[0][1]) - (current[1][0] + current[1][1])) < 0.02
+            }
+
+            val after = projectionRanges()
+            val afterWorldBounds = readExactBoundsOnGl(glView, 0, 1)
+            assertEquals("Primary-axis alignment must preserve the secondary object's world X bounds",
+                beforeWorldBounds[1][0], afterWorldBounds[1][0], 0.02)
+            assertEquals(beforeWorldBounds[1][3], afterWorldBounds[1][3], 0.02)
+            assertTrue("A +90° primary rotation must apply local-X alignment along world Y",
+                kotlin.math.abs(beforeWorldBounds[1][1] - afterWorldBounds[1][1]) > 1.0)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                projectionRanges().zip(before).all { (actual, expected) ->
+                    kotlin.math.abs(actual[0] - expected[0]) < 0.02 && kotlin.math.abs(actual[1] - expected[1]) < 0.02
+                }
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                val current = projectionRanges()
+                kotlin.math.abs((current[0][0] + current[0][1]) - (current[1][0] + current[1][1])) < 0.02
+            }
+            assertCurrentWorkspaceModelRoundTripsAndSlices("align-primary-object-axes")
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun modelMenuDistributesSelectedGroupOnXYZWithUndoRedoAndWarnsForZ() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
