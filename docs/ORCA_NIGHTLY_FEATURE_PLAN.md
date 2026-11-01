@@ -8,6 +8,15 @@ Changes 1–8 were already on `nightly-2.5`; changes 9–10 are now focused-test
 The batch APK gate follows full Debug/Slice JVM regression and commit/push. This is a selective
 Android port, not the complete upstream engine.
 
+Batch-4 build verification: Debug and Slice JVM suites both passed 708/708 (0 failures, errors,
+or skips). The two new native slice instrumentations passed 1/1 each on API 36. Nightly APK
+`OrkanSlicerNightly25_a717018b7e.apk` (version 0.8.423 / code 458, application ID
+`com.exa201.orkanslicer.nightly25`) built from code commit `a717018b7e31f871f3903916bc0a391ac786d10e`,
+239,853,168 bytes, SHA-256 `9C8E1340613FDB6C3CCC0C77E631524AC7B28315379BE4FC9CD67ED764C26042`. It installed and
+started on the API-36 emulator without FATAL EXCEPTION, native fatal signal, ANR, or OOM in the
+captured logcat window. Xiaomi 2211133G installation remains blocked by Android's
+`INSTALL_FAILED_USER_RESTRICTED`; this is not a Xiaomi test pass.
+
 ## Verified preview-performance finding
 
 Desktop Orca exposes OpenGL MSAA sample counts (off/2/4/8/16), optional FXAA, and an FPS
