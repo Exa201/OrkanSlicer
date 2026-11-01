@@ -261,7 +261,7 @@ Der Orca-Platzhalter `{printing_filament_types}` wird jetzt im nativen Slice-Exp
 
 Damit ist Batch 2 bei **10/10 fokussiert verifizierten Änderungen**. Vor APK und Nightly-Prerelease laufen jetzt noch die gebündelten Debug-/Slice-JVM-Regressionen; danach folgen APK-Identitäts-/Hashprüfung, Installation und Start auf dem verfügbaren Testemulator sowie Veröffentlichung.
 
-## Nightly Batch 4 — 6/10 (2026-11-01)
+## Nightly Batch 4 — 7/10 (2026-11-01)
 
 1. Orca `2e64ab3db5` — Beschleunigung der Brim-Gruppierung für zusammengesetzte Objekte mit vielen Volumenteilen. Die Android-Portierung erstellt nach dem Offset pro Layer Begrenzungsboxen und führt Polygonüberschneidungen nur bei überlappenden Boxen aus. Die redundante TBB-Parallelisierung für jedes einzelne Volumenpaar entfällt; der serielle Paar-Scan beendet sich beim ersten Treffer. Das 12-Teile-Instrumentierungsfixture slice't auf API 35 erfolgreich und erhält beide Materialzuweisungen sowie Schicht-G-Code (1/1). Der bestehende Zwei-Teil-3MF-Roundtrip-/Slice-Test und der auf den Slot-Konfigurationsparser verstärkte Auto-for-Match-Test bestanden ebenfalls (je 1/1). ARM64-Native-Build, Android-Instrumentierungs-Kompilierung und `git diff --check` bestanden. Der Android-Lauf ist eine Funktions-/Regressionsprüfung, kein kontrollierter Vorher-Nachher-Leistungstest; ein absoluter Speedup wird nicht behauptet. APK/Release erst nach 10/10.
 
@@ -279,7 +279,9 @@ Der strengere Auto-for-Match-Test baut jetzt synthetische Drucker-Slot-`DynamicP
 
 6. Orca `546b9c621d` — 17 Qidi-Q1-/X-CF-Pro-/X-Max-3-/X-Plus-3-/X-Smart-3-Varianten heizen nach dem ausgewählten Plattentyp statt fest nach der High-Temp-Platte. `QidiProfileFilenameTest` bestand 3/3 und prüfte alle betroffenen Startmakros. Der native Q1-Slice auf API 16 verwendete bei gewähltem Textured PEI exakt 71 °C (`PRINT_START BED=71`, `M140 S71`) und nicht die Cool-Plate-Temperatur 31 °C (1/1). Q2/Q2C waren bereits korrekt und blieben unverändert.
 
-Damit steht Batch 4 bei **6/10**. Änderung 6 ist lokal verifiziert, aber noch nicht committet/gepusht. Die vollständigen Debug-/Slice-JVM-Suiten bleiben für den Batchabschluss offen. Keine APK oder Veröffentlichung vor 10/10.
+7. Orca `a30ca5e54a` — By-Object-Druck ordnet hohe Modelle anhand tatsächlicher Y-Überlappung und Querträger-/Deckelhöhenbedingungen um. Sichere ursprüngliche Reihenfolgen bleiben erhalten; für notwendige Änderungen wird eine Warnung erzeugt, bei unlösbaren Bedingungen bleibt die bestehende Kollisionsvalidierung maßgeblich. Der native G-Code-Test mit absichtlich zuerst gelistetem hohen Modell prüft, dass ein kurzes überlappendes Modell zuerst und das hohe Modell danach ausgegeben wird. API 36 Emulator 1/1 bestanden. Xiaomi 2211133G: Testinstallation durch Android blockiert (`INSTALL_FAILED_USER_RESTRICTED`).
+
+Damit steht Batch 4 bei **7/10**. Änderungen 1–6 sind mit `6d3111057f` gepusht; Änderung 7 wartet auf Commit/Push. Die vollständigen Debug-/Slice-JVM-Suiten bleiben für den Batchabschluss offen. Keine APK oder Veröffentlichung vor 10/10.
 
 ## Orca-Upstream-Funktionsprüfung nach `v0.8.421-nightly.1` — 2026-10-31
 
