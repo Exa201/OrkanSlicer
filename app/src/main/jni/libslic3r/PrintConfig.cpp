@@ -10461,9 +10461,9 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         error_message.emplace("nozzle_height", L("invalid value ") + std::to_string(cfg.nozzle_height));
 
     // --extrusion-multiplier
-    for (double em : cfg.filament_flow_ratio.values)
-        if (em <= 0) {
-            error_message.emplace("filament_flow_ratio", L("invalid value ") + cfg.filament_flow_ratio.serialize());
+    for (size_t filament_idx = 0; filament_idx < cfg.filament_flow_ratio.values.size(); ++filament_idx)
+        if (!(cfg.filament_flow_ratio.values[filament_idx] > 0.)) {
+            error_message.emplace("filament_flow_ratio", L("Flow ratio for filament ") + std::to_string(filament_idx + 1) + L(" must be greater than 0."));
             break;
         }
 

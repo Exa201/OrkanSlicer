@@ -1308,6 +1308,51 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun zeroFlowRatioForUsedFilamentFailsClearlyWithoutInvalidGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        val originalFlowRatio = requireNotNull(filament["filament_flow_ratio"])
+        val modelFile = copyCube(context, "zero-flow-ratio-validation.stl")
+        val gcodeFile = File(context.cacheDir, "zero-flow-ratio-validation.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            filament.put("filament_flow_ratio", "0")
+            model = Model(modelFile)
+            SliceBeam.genCurrentConfig(model)
+            val currentConfig = SliceBeam.getCurrentConfigFile()
+            generatedConfig = currentConfig
+            assertTrue("the regression must reach native slicing with a zero ratio",
+                Regex("(?m)^filament_flow_ratio\\s*=\\s*0(?:\\.0*)?(?:,|$)").containsMatchIn(currentConfig.readText()))
+
+            val failure = try {
+                result = model.slice(currentConfig.absolutePath, gcodeFile.absolutePath, null)
+                null
+            } catch (error: Slic3rRuntimeError) {
+                error
+            }
+            assertNotNull("a used zero-flow filament must be rejected before G-code generation", failure)
+            assertTrue("the validation message should explain the invalid flow ratio: ${failure?.message}",
+                failure?.message?.contains("must be greater than 0", ignoreCase = true) == true)
+            if (gcodeFile.isFile) {
+                val gcode = gcodeFile.readText()
+                assertFalse("invalid NaN extrusion must never be written", gcode.contains("NaN", ignoreCase = true))
+                assertFalse("the prior integer-overflow extrusion must never be written", gcode.contains("92233720368547"))
+            }
+        } finally {
+            result?.release()
+            model?.release()
+            filament.put("filament_flow_ratio", originalFlowRatio)
+            modelFile.delete()
+            generatedConfig?.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun cutDowelToleranceDoesNotShiftTheCutPlaneAnchor() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "orca25-centered-dowel-cut.stl")
@@ -2124,6 +2169,77 @@ class NativeSliceDeviceTest {
         } finally {
             model.release()
             modelFile.delete()
+        }
+    }
+
+    @Test
+    fun monotonicTopSurfaceGapFillIsInterleavedWithoutReorderingSurfaceLines() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val modelFile = File(context.cacheDir, "orca-gap-fill-letter-a.obj")
+        InstrumentationRegistry.getInstrumentation().context.assets.open("models/orca-gap-fill-letter-a.obj").use { input ->
+            modelFile.outputStream().use(input::copyTo)
+        }
+        val model = Model(modelFile)
+        val output = File(context.cacheDir, "monotonic-surface-gap-fill.gcode")
+        try {
+            model.ensureOnBed(0)
+            process.put("top_surface_pattern", "monotonicline")
+            process.put("top_shell_layers", "3")
+            process.put("bottom_shell_layers", "0")
+            process.put("top_surface_density", "100%")
+            process.put("filter_out_gap_fill", "0")
+            process.put("skirt_loops", "0")
+            process.put("brim_type", "no_brim")
+
+            fun slice(gapTarget: String): Pair<List<String>, List<String>> {
+                process.put("gap_fill_target", gapTarget)
+                SliceBeam.genCurrentConfig(model)
+                val configFile = SliceBeam.getCurrentConfigFile()
+                output.delete()
+                val result = model.slice(configFile.absolutePath, output.absolutePath, null)
+                try {
+                    val topEndpoints = mutableListOf<String>()
+                    val orderedSurfaceRoles = mutableListOf<String>()
+                    var currentRole = ""
+                    output.forEachLine { line ->
+                        if (line.startsWith(";TYPE:")) {
+                            currentRole = line.removePrefix(";TYPE:").trim()
+                        } else if (line.trimStart().let { it.startsWith("G0 ") || it.startsWith("G1 ") || it.startsWith("G2 ") || it.startsWith("G3 ") } && line.contains(" E")) {
+                            if (currentRole == "Top surface") {
+                                val x = Regex("(?:^|\\s)X(-?\\d+(?:\\.\\d+)?)").find(line)?.groupValues?.get(1)
+                                val y = Regex("(?:^|\\s)Y(-?\\d+(?:\\.\\d+)?)").find(line)?.groupValues?.get(1)
+                                if (x != null && y != null) topEndpoints += "$x,$y"
+                            }
+                            if (currentRole == "Top surface" || currentRole == "Gap infill")
+                                orderedSurfaceRoles += currentRole
+                        }
+                    }
+                    return topEndpoints to orderedSurfaceRoles
+                } finally {
+                    result.release()
+                    configFile.delete()
+                }
+            }
+
+            val withoutGapFill = slice("nowhere").first
+            val withGapFill = slice("topbottom")
+            val observedTypes = output.readText().lineSequence().filter { it.startsWith(";TYPE:") }.distinct().toList()
+            assertTrue(
+                "the letter fixture must generate top-surface extrusion; types=$observedTypes",
+                withoutGapFill.isNotEmpty(),
+            )
+            assertTrue("gap interleaving must preserve every top-surface endpoint", withGapFill.first == withoutGapFill)
+            assertTrue("the fixture must generate top-surface gap fill", withGapFill.second.contains("Gap infill"))
+            assertTrue(
+                "nearby gap-fill paths should be interleaved between monotonic surface lines: ${withGapFill.second}",
+                withGapFill.second.windowed(3).any { it == listOf("Top surface", "Gap infill", "Top surface") },
+            )
+        } finally {
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
         }
     }
 

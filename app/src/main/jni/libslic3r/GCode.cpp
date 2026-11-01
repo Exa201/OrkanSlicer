@@ -6575,10 +6575,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         }
     }
 
-    // Effective extrusion length per distance unit = (filament_flow_ratio/cross_section) * mm3_per_mm / print flow ratio
-    // m_writer.extruder()->e_per_mm3() below is (filament flow ratio / cross-sectional area)
-    double e_per_mm = m_writer.filament()->e_per_mm3() * _mm3_per_mm;
-    e_per_mm /= filament_flow_ratio;
+    // _mm3_per_mm already includes the filament flow ratio; convert volume with the bare cross-section.
+    // This is algebraically equivalent for valid ratios and avoids the 0/0 path for a zero ratio.
+    double e_per_mm = _mm3_per_mm / m_writer.filament()->filament_crossection();
 
     // set speed
     if (speed == -1) {

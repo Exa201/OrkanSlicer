@@ -1268,6 +1268,13 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
 
+    for (const unsigned int filament_id : extruders) {
+        if (m_config.filament_flow_ratio.get_at(filament_id) > 0.)
+            continue;
+        return { Slic3r::format(L("The flow ratio of filament %1% must be greater than 0."), filament_id + 1),
+                 nullptr, "filament_flow_ratio" };
+    }
+
     if (nozzles < 2 && extruders.size() > 1) {
         auto ret = check_multi_filament_valid(*this);
         if (!ret.string.empty())

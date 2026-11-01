@@ -2,10 +2,11 @@
 
 Stand: 2026-11-01. Upstream-Vergleich: OrcaSlicer `main` at
 `3aedd50bcb94221db79ccbf8d6a7985e795fe25d`; the official OrcaSlicer 2.5.0 Beta notes were also
-reviewed. Nightly Batch 4 is at **8/10**: five native slicer ports, Qidi selected-bed start
+reviewed. Nightly Batch 4 is at **10/10 implemented**: five native slicer ports, Qidi selected-bed start
 temperatures, safe By-Object ordering for tall objects, and Orca's sparse-infill-only arc fitting.
-Changes 1–7 are on `nightly-2.5`; change 8 is verified locally and is being secured next. The next
-APK gate remains 10/10. This is a selective Android port, not the complete upstream engine.
+Changes 1–8 were already on `nightly-2.5`; changes 9–10 are now focused-test verified locally.
+The batch APK gate follows full Debug/Slice JVM regression and commit/push. This is a selective
+Android port, not the complete upstream engine.
 
 ## Verified preview-performance finding
 
@@ -260,7 +261,7 @@ Der Orca-Platzhalter `{printing_filament_types}` wird jetzt im nativen Slice-Exp
 
 Damit ist Batch 2 bei **10/10 fokussiert verifizierten Änderungen**. Vor APK und Nightly-Prerelease laufen jetzt noch die gebündelten Debug-/Slice-JVM-Regressionen; danach folgen APK-Identitäts-/Hashprüfung, Installation und Start auf dem verfügbaren Testemulator sowie Veröffentlichung.
 
-## Nightly Batch 4 — 8/10 (2026-11-01)
+## Nightly Batch 4 — 10/10 implementation complete (2026-11-01)
 
 1. Orca `2e64ab3db5` — Beschleunigung der Brim-Gruppierung für zusammengesetzte Objekte mit vielen Volumenteilen. Die Android-Portierung erstellt nach dem Offset pro Layer Begrenzungsboxen und führt Polygonüberschneidungen nur bei überlappenden Boxen aus. Die redundante TBB-Parallelisierung für jedes einzelne Volumenpaar entfällt; der serielle Paar-Scan beendet sich beim ersten Treffer. Das 12-Teile-Instrumentierungsfixture slice't auf API 35 erfolgreich und erhält beide Materialzuweisungen sowie Schicht-G-Code (1/1). Der bestehende Zwei-Teil-3MF-Roundtrip-/Slice-Test und der auf den Slot-Konfigurationsparser verstärkte Auto-for-Match-Test bestanden ebenfalls (je 1/1). ARM64-Native-Build, Android-Instrumentierungs-Kompilierung und `git diff --check` bestanden. Der Android-Lauf ist eine Funktions-/Regressionsprüfung, kein kontrollierter Vorher-Nachher-Leistungstest; ein absoluter Speedup wird nicht behauptet. APK/Release erst nach 10/10.
 
@@ -284,7 +285,11 @@ Der strengere Auto-for-Match-Test baut jetzt synthetische Drucker-Slot-`DynamicP
 
 Verifikation Änderung 8: ARM64-Native-Build erfolgreich; `NativeSliceDeviceTest#sparseInfillArcFittingDoesNotFitWallsAndLegacyBooleanProfilesRemainCompatible` auf API 36 bestanden (1/1), `NativeEnumValueSanitizerTest` 5/5. Der Test liest den echten G-Code und bestätigt, dass im Sparse-only-Modus ausschließlich `Sparse infill` G2/G3-Bögen ausgibt; alte Werte 1/0 erhalten die vormalige volle Ein/Aus-Wirkung. Der erste Testdurchlauf fand einen Android-Sanitizer-Compatibilitätsfehler, der vor dem erfolgreichen Lauf behoben wurde. Xiaomi-Installation bleibt wegen `INSTALL_FAILED_USER_RESTRICTED` ungeprüft.
 
-Damit steht Batch 4 bei **8/10**. Die vollständigen Debug-/Slice-JVM-Suiten bleiben für den Batchabschluss offen. Keine APK oder Veröffentlichung vor 10/10.
+9. Orca `01ae2dd49a` — bei monotoner Oberflächenfüllung werden Gap-Fill-Pfade anhand der kürzesten Anschlusswege zwischen Oberflächenlinien einsortiert; Pfadorientierung wird bei Bedarf umgedreht. Der Android-Port bleibt auf `no_sort`-Ausgaben beschränkt und behält die vorherige Reihenfolge als Rückfall, falls greedy Interleaving keinen kürzeren Weg erzeugt. Ein echter API-36-Slice mit Orcas A-Form-Fixture bestätigt unveränderte Oberflächenlinien-Endpunkte und Gap-Fill zwischen benachbarten Oberflächenlinien (1/1).
+
+10. Flow-Ratio-Validierung — verwendete Filamente mit Flow-Ratio `<= 0` oder ungültigem NaN-Wert werden vor G-Code-Erzeugung mit einer verständlichen filamentbezogenen Validierung abgewiesen. Die E-pro-mm-Rechnung verwendet nun direkt den Querschnitt, sodass eine Nullrate nicht mehr den bisherigen `0/0`-Pfad erzeugt. API-36-Instrumentierung bestätigt die verständliche Ablehnung und dass kein NaN-/Overflow-G-Code geschrieben wird (1/1).
+
+Verifikation der Änderungen 9 und 10: ARM64-Native-Build, Slice-Instrumentierungskompilierung und Instrumentierungs-APK erfolgreich; beide gezielten Tests auf dem API-36-Emulator bestanden. Xiaomi 2211133G war erreichbar, Android verweigerte jedoch die Test-APK-Installation erneut mit `INSTALL_FAILED_USER_RESTRICTED`; keine physische Xiaomi-Verifikation behauptet. `git diff --check` sauber. Die vollständigen Debug-/Slice-JVM-Suiten und anschließendes Nightly-APK-/Prerelease-Gate sind noch offen.
 
 ## OrcaSlicer 2.5.0 Beta — Portierungsprioritäten
 

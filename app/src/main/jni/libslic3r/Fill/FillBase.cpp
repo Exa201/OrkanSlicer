@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <numeric>
+#include <limits>
 
 #include <cmath>
 #include "../ClipperUtils.hpp"
@@ -191,6 +192,82 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
     }
 }
 
+// Preserve monotonic surface order while inserting nearby gap-fill paths to reduce travel.
+static void insert_gap_fill(const ThickPolylines &gaps, const Flow &flow, ExtrusionEntitiesPtr &entities)
+{
+    if (entities.empty()) {
+        variable_width(gaps, erGapFill, flow, entities);
+        return;
+    }
+
+    static constexpr size_t npos = size_t(-1);
+    struct Item { Point in, out; size_t gap; bool reversed; };
+    const auto distance = [](const Point &a, const Point &b) { return (b - a).cast<double>().norm(); };
+    const auto closed = [&gaps](size_t gap) { return gaps[gap].first_point() == gaps[gap].last_point(); };
+    const auto travel = [&](const std::vector<Item> &sequence) {
+        double sum = 0.;
+        Point at = sequence.front().out;
+        for (auto it = sequence.begin() + 1; it != sequence.end(); ++it) {
+            const Point in = it->gap != npos && closed(it->gap) ? *gaps[it->gap].closest_point(at) : it->in;
+            sum += distance(at, in);
+            at = it->gap != npos && closed(it->gap) ? in : it->out;
+        }
+        return sum;
+    };
+
+    std::vector<Item> items;
+    items.reserve(entities.size() + gaps.size());
+    for (const ExtrusionEntity *entity : entities)
+        items.push_back({entity->first_point(), entity->last_point(), npos, false});
+    std::vector<Item> appended = items;
+
+    for (size_t gap = 0; gap < gaps.size(); ++gap) {
+        appended.push_back({gaps[gap].first_point(), gaps[gap].last_point(), gap, false});
+        double best = std::numeric_limits<double>::max();
+        size_t best_slot = 0;
+        Item best_item{};
+        for (size_t slot = 0; slot <= items.size(); ++slot) {
+            const Point *prev = slot > 0 ? &items[slot - 1].out : nullptr;
+            const Point *next = slot < items.size() ? &items[slot].in : nullptr;
+            const auto consider = [&](const Point &in, const Point &out, bool reversed) {
+                const double added = (prev ? distance(*prev, in) : 0.) + (next ? distance(out, *next) : 0.)
+                    - (prev && next ? distance(*prev, *next) : 0.);
+                if (added < best) {
+                    best = added;
+                    best_slot = slot;
+                    best_item = {in, out, gap, reversed};
+                }
+            };
+            if (closed(gap)) {
+                const Point &entry = *gaps[gap].closest_point(prev ? *prev : *next);
+                consider(entry, entry, false);
+            } else {
+                consider(gaps[gap].first_point(), gaps[gap].last_point(), false);
+                consider(gaps[gap].last_point(), gaps[gap].first_point(), true);
+            }
+        }
+        items.insert(items.begin() + best_slot, best_item);
+    }
+
+    if (travel(appended) <= travel(items))
+        items = std::move(appended);
+
+    ExtrusionEntitiesPtr ordered;
+    ordered.reserve(entities.size() + gaps.size());
+    size_t next_entity = 0;
+    for (const Item &item : items) {
+        if (item.gap == npos) {
+            ordered.push_back(entities[next_entity++]);
+        } else {
+            ThickPolylines gap {gaps[item.gap]};
+            if (item.reversed)
+                gap.front().reverse();
+            variable_width(gap, erGapFill, flow, ordered);
+        }
+    }
+    entities = std::move(ordered);
+}
+
 // Orca: Dedicated function to calculate gap fill lines for the provided surface, according to the print object parameters
 // and append them to the out ExtrusionEntityCollection.
 void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, ExtrusionEntityCollection* out){
@@ -240,10 +317,14 @@ void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, Ex
                 return p.length() < scale_(params.config->filter_out_gap_fill.value);
             }), polylines.end());
 
-            ExtrusionEntityCollection gap_fill;
-            variable_width(polylines, erGapFill, params.flow, gap_fill.entities);
-            auto gap = std::move(gap_fill.entities);
-            out->append(gap);
+            if (out->no_sort)
+                insert_gap_fill(polylines, params.flow, out->entities);
+            else {
+                ExtrusionEntityCollection gap_fill;
+                variable_width(polylines, erGapFill, params.flow, gap_fill.entities);
+                auto gap = std::move(gap_fill.entities);
+                out->append(gap);
+            }
         }
     }
 }
