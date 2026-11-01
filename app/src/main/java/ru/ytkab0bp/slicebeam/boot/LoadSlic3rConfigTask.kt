@@ -48,7 +48,9 @@ open class LoadSlic3rConfigTask : BootTask(Runnable {
 
     private companion object {
         private const val KOBRA_3_V2_TITLE = "Anycubic Kobra 3 v2 0.4 nozzle - Stock"
-        private const val KOBRA_3_V2_PA_MIGRATION = "kobra3v2_start_pa_migration_v1"
+        // v2 must run even for installations that already recorded the earlier cleanup. The old
+        // K0.051 command could remain in a stored printer profile and override the filament PA.
+        private const val KOBRA_3_V2_PA_MIGRATION = "kobra3v2_start_pa_migration_v2"
 
         private fun ensureKobra3V2Available() {
             val config = SliceBeam.CONFIG ?: return

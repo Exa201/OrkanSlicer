@@ -3236,3 +3236,11 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Spiegeln und gruppierte Objektlisten-/Flächenplatzierung auf Honor jeweils 1/1 bestanden. Insgesamt fünf gezielte Geräteprüfungen erfolgreich. Vollständige Unit-Suiten und APK-Build wurden in dieser Arbeitsgruppe nicht ausgeführt.
 - Nächster Schritt: die nächsten nicht vollständig abgenommenen Modellaktionen samt Mehrfachauswahl, Materialerhalt und Undo/Redo weiterprüfen; danach die Modellbearbeitungs- und Slice-Regressionsläufe gebündelt ausführen.
 
+# Kobra 3 V2 — Pressure-Advance-Migration (2026-11-01)
+
+- Ursache des zusätzlichen `M900 K0.051`: Geräte mit der früheren Einmalmarkierung `kobra3v2_start_pa_migration_v1` übersprangen die Reparatur des bereits gespeicherten Drucker-Start-G-Codes. Die Migration läuft jetzt unter einer neuen v2-Markierung und entfernt den alten festen Profilwert erneut. Der Filamentwert bleibt die Quelle für den tatsächlich gewählten PA-Wert.
+- Native Slice-Verifikation auf API 36: mit aktiviertem Filament-PA `0.075` enthält der G-Code `SET_PRESSURE_ADVANCE ADVANCE=0.075` und keinen alten `M900 K0.051`; bei deaktiviertem Filament-PA enthält er keinen ausführbaren PA-Befehl. Stable und Nightly bestanden denselben gezielten Test.
+- Stable-Debug-APK wird nach dem Fix gebaut; Xiaomi ist per ADB sichtbar, hat das Stable-Paket derzeit jedoch nicht installiert. Keine Hardwareinstallation wird als erfolgt behauptet.
+- Nightly enthält denselben v2-Migrationsfix. Beim zuvor begonnenen Objektachsen-Test wurde ein fehlendes `invalid`-Sentinel in der neuen JNI-Projektionsfunktion ergänzt; der gezielte Nightly-Native-Slice-Test kompiliert und besteht nun.
+- Nächster Schritt: Stable-APK-Artefakt mit Code-Commit/Hash dokumentieren, Fixes sichern und Nightly-Batch 6 fortsetzen.
+
