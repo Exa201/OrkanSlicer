@@ -96,6 +96,27 @@ class SettingsMenuActionDeviceTest {
     }
 
     @Test
+    fun translucentFilamentPreviewCanBeToggledAndPersists() {
+        val activity = compose.activity
+        val original = Prefs.isTranslucentFilamentPreviewEnabled()
+        try {
+            navigateToSettings(activity)
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
+                .performScrollTo().assertIsDisplayed().performClick()
+            val setting = activity.getString(R.string.SettingsTranslucentFilamentPreview)
+            compose.onNodeWithText(setting).performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { !Prefs.isTranslucentFilamentPreviewEnabled() }
+            compose.onNodeWithText(activity.getString(R.string.SettingsPreviewDisabled)).assertIsDisplayed()
+
+            compose.onNodeWithText(setting).performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.isTranslucentFilamentPreviewEnabled() }
+            compose.onNodeWithText(activity.getString(R.string.SettingsPreviewEnabled)).assertIsDisplayed()
+        } finally {
+            Prefs.setTranslucentFilamentPreviewEnabled(original)
+        }
+    }
+
+    @Test
     fun themeSelectionAppliesAndBackDoesNotChangeTheCommittedTheme() {
         val activity = compose.activity
         val originalTheme = Prefs.getThemeMode()

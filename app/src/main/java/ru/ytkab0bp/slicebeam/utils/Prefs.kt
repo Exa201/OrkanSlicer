@@ -377,6 +377,15 @@ open class Prefs {
         fun setPerformanceModeEnabled(en: Boolean) {
             requirePrefs().edit().putBoolean("performance_mode", en).apply()
         }
+
+        @JvmStatic
+        fun isTranslucentFilamentPreviewEnabled(): Boolean =
+            requirePrefs().getBoolean("preview_translucent_filaments", true)
+
+        @JvmStatic
+        fun setTranslucentFilamentPreviewEnabled(enabled: Boolean) {
+            requirePrefs().edit().putBoolean("preview_translucent_filaments", enabled).apply()
+        }
     }
 
     enum class ThemeMode(@JvmField val title: Int) {

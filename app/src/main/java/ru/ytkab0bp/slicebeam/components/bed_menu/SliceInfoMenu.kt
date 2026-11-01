@@ -138,10 +138,14 @@ private class SliceInfoWorkspaceController(private val bed: BedFragment, private
             val glViewer = getViewer() ?: return@queueEvent
             if (type == GCodeViewer.VIEW_TYPE_TOOL) {
                 val rgba = getResult()?.previewToolColors
-                val previewPalette = rgba ?: Prefs.getFilamentPalette().map {
-                    ((it and 0xFFFFFF) shl 8) or 0xFF
-                }.toIntArray()
-                glViewer.setToolColorsWithAlpha(previewPalette)
+                val translucent = Prefs.isTranslucentFilamentPreviewEnabled()
+                val previewPalette = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.viewerColors(
+                    rgba,
+                    Prefs.getFilamentPalette(),
+                    translucent,
+                )
+                if (translucent) glViewer.setToolColorsWithAlpha(previewPalette)
+                else glViewer.setToolColors(previewPalette)
             }
             glViewer.viewType = type
             glView.requestRender()

@@ -213,6 +213,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "accel_to_decel_factor",
         "wipe_on_loops",
         "gcode_comments",
+        "high_precision_gcode",
         "gcode_label_objects", 
         "exclude_object",
         "support_material_interface_fan_speed",
@@ -385,6 +386,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             //|| opt_key == "resolution"
             //BBS: when enable arc fitting, we must re-generate perimeter
             || opt_key == "enable_arc_fitting"
+            || opt_key == "high_precision_gcode"
             || opt_key == "print_order"
             || opt_key == "wall_sequence") {
             osteps.emplace_back(posPerimeters);

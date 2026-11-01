@@ -61,6 +61,7 @@ import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
 import ru.ytkab0bp.slicebeam.events.ViewportRenderScaleChangedEvent
+import ru.ytkab0bp.slicebeam.events.TranslucentFilamentPreviewChangedEvent
 import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
 import ru.ytkab0bp.slicebeam.events.ObjectSurfacePlacementTapEvent
 import ru.ytkab0bp.slicebeam.events.ModelGeometryChangedEvent
@@ -758,6 +759,13 @@ fun onCameraProjectionChanged(event: CameraProjectionChangedEvent) {
 @EventHandler(runOnMainThread = true)
 fun onViewportRenderScaleChanged(event: ViewportRenderScaleChangedEvent) {
     glView?.applyRenderScale()
+}
+@EventHandler(runOnMainThread = true)
+fun onTranslucentFilamentPreviewChanged(event: TranslucentFilamentPreviewChangedEvent) {
+    val view = glView ?: return
+    view.queueEvent {
+        view.renderer.updateToolPreviewColors()
+    }
 }
 @EventHandler(runOnMainThread = true)
 fun onObjectSurfacePlacementTap(event: ObjectSurfacePlacementTapEvent) {
@@ -2610,7 +2618,13 @@ private fun loadModelInternal(
             }
 
             val existing = platesModels.getOrNull(currentPlateIndex)
-            if (preserveProjectLayout) {
+            // Preserve authored plate coordinates when opening a project onto an empty bed.
+            // If a 3MF is imported into an already populated workspace, it is an additional
+            // model import: run it through the same orient/arrange/overflow path as STL/STEP so
+            // it cannot overlap existing objects or end up at an arbitrary source coordinate.
+            val preserveLoadedProjectLayout = preserveProjectLayout &&
+                (existing == null || existing.objectsCount == 0)
+            if (preserveLoadedProjectLayout) {
                 val selectedModel = existing ?: Model()
                 if (selectedModel.objectsCount > 0) {
                     val firstNewObject = selectedModel.objectsCount
@@ -2654,7 +2668,7 @@ private fun loadModelInternal(
             val max = Vec3d()
             val translation = Vec3d()
             for (index in 0 until sourceCount) {
-                if (autoOrientImportedModels) imported.autoOrient(index)
+                if (autoOrientImportedModels || preserveProjectLayout) imported.autoOrient(index)
                 imported.getTranslation(index, translation)
                 imported.getBoundingBoxExact(index, min, max)
                 imported.translate(index, translation.x, translation.y, -translation.z + (max.z - min.z) / 2.0)

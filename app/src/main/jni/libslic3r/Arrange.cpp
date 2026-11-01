@@ -1082,13 +1082,15 @@ static CircleBed to_circle(const Point &center, const Points& points) {
 static void process_arrangeable(const ArrangePolygon &arrpoly,
                                 std::vector<Item> &   outp)
 {
-    Polygon        p        = arrpoly.poly.contour;
+    ExPolygon      p        = arrpoly.poly;
     const Vec2crd &offs     = arrpoly.translation;
     double         rotation = arrpoly.rotation;
 
-    if (p.is_counter_clockwise()) p.reverse();
+    if (p.contour.is_counter_clockwise()) p.contour.reverse();
+    for (Polygon &hole : p.holes)
+        if (hole.is_clockwise()) hole.reverse();
 
-    if (p.size() < 3)
+    if (p.contour.size() < 3)
         return;
 
     outp.emplace_back(std::move(p));

@@ -6250,6 +6250,13 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
     static constexpr const char* support_transition_label = "support transition";
     static constexpr const char* support_ironing_label    = "support ironing";
 
+    // Supports are removed after printing, so retain standard precision for them. Ironing is a
+    // functional surface and remains at the configured precision. Restore even when generation throws.
+    const bool was_standard_precision = m_writer.force_standard_precision(support_extrusion_role != erIroning);
+    ScopeGuard restore_precision([this, was_standard_precision] {
+        m_writer.force_standard_precision(was_standard_precision);
+    });
+
     std::string gcode;
     if (! support_fills.entities.empty()) {
 
@@ -6457,13 +6464,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (path.z_contoured && !path.polyline.lines().empty()) {
         double current_z = m_writer.get_position().z();
         double first_z = unscale_(path.polyline.lines().begin()->a.z()) + m_nominal_z;
-        if (GCodeFormatter::quantize_xyzf(first_z) != GCodeFormatter::quantize_xyzf(current_z)) {
+        if (GCodeFormatter::quantize_xyz(first_z, m_writer.high_precision()) !=
+            GCodeFormatter::quantize_xyz(current_z, m_writer.high_precision())) {
             gcode += m_writer.travel_to_z(first_z, "set Z for contouring", true);
         }
     }
     if (!path.z_contoured && sloped == nullptr) {
         double current_z = m_writer.get_position().z();
-        if (GCodeFormatter::quantize_xyzf(current_z) != GCodeFormatter::quantize_xyzf(m_nominal_z)) {
+        if (GCodeFormatter::quantize_xyz(current_z, m_writer.high_precision()) !=
+            GCodeFormatter::quantize_xyz(m_nominal_z, m_writer.high_precision())) {
             gcode += this->writer().travel_to_z(m_nominal_z, "reset Z after contouring", true);
         }
     }
@@ -6738,6 +6747,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             ConfigOptionPercents         overhang_overlap_levels({90, 75, 50, 25, 13, 0});
 
             if (m_config.slowdown_for_curled_perimeters){
+                const FloatOrPercent fully_unsupported_speed = path.role() == erBridgeInfill ?
+                    FloatOrPercent{m_config.get_abs_value("bridge_speed") * 100 / ref_speed, true} :
+                    (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5 ?
+                         FloatOrPercent{100, true} :
+                         FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true});
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                     {FloatOrPercent{100, true},
                      (m_config.get_abs_value("overhang_1_4_speed", ref_speed) < 0.5) ?
@@ -6752,9 +6766,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                      (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
                          FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true},
-                     (m_config.get_abs_value("overhang_4_4_speed", ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{m_config.get_abs_value("overhang_4_4_speed", ref_speed) * 100 / ref_speed, true}});
+                     fully_unsupported_speed});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
                                                                               ref_speed, speed, m_config.slowdown_for_curled_perimeters);
@@ -8215,13 +8227,16 @@ Point GCode::gcode_to_point(const Vec2d &point) const
 Vec2d GCode::point_to_gcode_quantized(const Point& point) const
 {
     Vec2d p = this->point_to_gcode(point);
-    return { GCodeFormatter::quantize_xyzf(p.x()), GCodeFormatter::quantize_xyzf(p.y()) };
+    const bool high_precision = m_writer.high_precision();
+    return { GCodeFormatter::quantize_xyz(p.x(), high_precision), GCodeFormatter::quantize_xyz(p.y(), high_precision) };
 }
 
 Vec3d GCode::point_to_gcode_quantized(const Point3& point) const
 {
     Vec3d p = this->point_to_gcode(point);
-    return {GCodeFormatter::quantize_xyzf(p.x()), GCodeFormatter::quantize_xyzf(p.y()), GCodeFormatter::quantize_xyzf(p.z())};
+    const bool high_precision = m_writer.high_precision();
+    return { GCodeFormatter::quantize_xyz(p.x(), high_precision), GCodeFormatter::quantize_xyz(p.y(), high_precision),
+             GCodeFormatter::quantize_xyz(p.z(), high_precision) };
 }
 
 // Goes through by_region std::vector and returns reference to a subvector of entities, that are to be printed

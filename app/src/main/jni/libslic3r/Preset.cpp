@@ -232,10 +232,7 @@ static void extend_parent_extruders_to_child(DynamicPrintConfig &parent_config,
 {
     if (type != Preset::TYPE_PRINTER)
         return;
-    const auto *child_nozzles  = child_config.option<ConfigOptionFloats>("nozzle_diameter");
-    const auto *parent_nozzles = parent_config.option<ConfigOptionFloats>("nozzle_diameter");
-    if (child_nozzles && parent_nozzles && child_nozzles->size() > parent_nozzles->size())
-        parent_config.set_num_extruders((unsigned int)child_nozzles->size());
+    Preset::extend_parent_printer_extruders_to_child(parent_config, child_config);
 }
 
 
@@ -923,6 +920,14 @@ void Preset::get_extruder_names_and_keysets(Type type, std::string& extruder_id_
     }
 }
 
+void Preset::extend_parent_printer_extruders_to_child(DynamicPrintConfig& parent_config, const DynamicPrintConfig& child_config)
+{
+    auto* child_nozzles = child_config.option<ConfigOptionFloats>("nozzle_diameter");
+    auto* parent_nozzles = parent_config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (child_nozzles && parent_nozzles && child_nozzles->size() > parent_nozzles->size())
+        parent_config.set_num_extruders(static_cast<unsigned int>(child_nozzles->size()));
+}
+
 bool Preset::has_lidar(PresetBundle *preset_bundle)
 {
     bool has_lidar = false;
@@ -1223,6 +1228,7 @@ static std::vector<std::string> s_Preset_print_options{
     "tree_support_auto_brim",
     "tree_support_brim_width",
     "gcode_comments",
+    "high_precision_gcode",
     "gcode_label_objects",
     "initial_layer_travel_speed",
     "initial_layer_travel_acceleration",

@@ -67,6 +67,7 @@ import ru.ytkab0bp.slicebeam.events.BeamServerDataUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CloudUserInfoUpdatedEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
 import ru.ytkab0bp.slicebeam.events.ViewportRenderScaleChangedEvent
+import ru.ytkab0bp.slicebeam.events.TranslucentFilamentPreviewChangedEvent
 import ru.ytkab0bp.slicebeam.events.CameraPresetRequestedEvent
 import ru.ytkab0bp.slicebeam.components.bed_menu.CameraPreset
 import ru.ytkab0bp.slicebeam.navigation.Fragment
@@ -134,6 +135,10 @@ class SettingsFragment : Fragment() {
                             onAccent = ::showAccentPicker,
                             onUiTextScale = ::showUiTextScalePicker,
                             onRenderScale = ::showRenderQualityPicker,
+                            translucentFilamentPreview = ctx.getString(
+                                if (Prefs.isTranslucentFilamentPreviewEnabled()) R.string.SettingsPreviewEnabled else R.string.SettingsPreviewDisabled,
+                            ),
+                            onTranslucentFilamentPreview = ::toggleTranslucentFilamentPreview,
                             onConverterFolder = ::chooseConverterFolder,
                             onCameraProjection = ::toggleCameraProjection,
                             onCameraControlMode = ::showCameraControlPicker,
@@ -270,6 +275,13 @@ class SettingsFragment : Fragment() {
             SliceBeam.EVENT_BUS.fireEvent(ViewportRenderScaleChangedEvent())
             themeRevision++
         }
+    }
+
+    private fun toggleTranslucentFilamentPreview() {
+        val enabled = !Prefs.isTranslucentFilamentPreviewEnabled()
+        Prefs.setTranslucentFilamentPreviewEnabled(enabled)
+        SliceBeam.EVENT_BUS.fireEvent(TranslucentFilamentPreviewChangedEvent())
+        themeRevision++
     }
 
     private fun toggleCameraProjection() {
@@ -498,6 +510,8 @@ internal fun SettingsContent(
     onReset: () -> Unit,
     renderScale: String = "",
     onRenderScale: () -> Unit = {},
+    translucentFilamentPreview: String = "",
+    onTranslucentFilamentPreview: () -> Unit = {},
 ) {
     val configuration = LocalConfiguration.current
     val compactLayout = SettingsMenuLayoutPolicy.usesCompactLayout(
@@ -609,6 +623,13 @@ internal fun SettingsContent(
                         description = stringResource(R.string.SettingsRenderQualityDescription),
                         value = renderScale,
                         onClick = onRenderScale,
+                        compactLayout = compactLayout,
+                    )
+                    SettingsRow(
+                        R.string.SettingsTranslucentFilamentPreview,
+                        description = stringResource(R.string.SettingsTranslucentFilamentPreviewDescription),
+                        value = translucentFilamentPreview,
+                        onClick = onTranslucentFilamentPreview,
                         compactLayout = compactLayout,
                     )
                 }

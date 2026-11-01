@@ -21,6 +21,8 @@
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PlaceholderParser.hpp"
 #include "libslic3r/FilamentGroup.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/MeshBoolean.hpp"
@@ -381,6 +383,41 @@ extern "C" {
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
         return result;
+    }
+
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_mesh_1boolean_1isolated_1vertices_1probe(
+            JNIEnv *env, jclass) {
+        using namespace Slic3r;
+        indexed_triangle_set source = its_make_cube(10., 10., 10.);
+        // Isolated vertices before, between, and after the cube's referenced vertices exercise
+        // both removal and index compaction in the production CGAL conversion overload.
+        source.vertices.insert(source.vertices.begin(), Vec3f(-1.f, -1.f, -1.f));
+        source.vertices.insert(source.vertices.begin() + 4, Vec3f(5.f, 5.f, 5.f));
+        source.vertices.emplace_back(20.f, 20.f, 20.f);
+        for (Vec3i32 &face : source.indices)
+            for (int i = 0; i < 3; ++i)
+                face[i] += face[i] >= 3 ? 2 : 1;
+
+        auto converted = MeshBoolean::cgal::triangle_mesh_to_cgal(source);
+        if (!converted) return nullptr;
+        const bool boundsVolume = MeshBoolean::cgal::does_bound_a_volume(*converted);
+        const bool selfIntersects = MeshBoolean::cgal::does_self_intersect(*converted);
+        TriangleMesh result = MeshBoolean::cgal::cgal_to_triangle_mesh(*converted);
+        bool validIndices = true;
+        for (const Vec3i32 &face : result.its.indices)
+            for (int i = 0; i < 3; ++i)
+                validIndices &= face[i] >= 0 && static_cast<size_t>(face[i]) < result.its.vertices.size();
+        const std::array<jdouble, 5> values{
+            boundsVolume ? 1.0 : 0.0,
+            selfIntersects ? 1.0 : 0.0,
+            static_cast<jdouble>(result.volume()),
+            validIndices ? 1.0 : 0.0,
+            static_cast<jdouble>(result.its.indices.size()),
+        };
+        jdoubleArray output = env->NewDoubleArray(static_cast<jsize>(values.size()));
+        if (output != nullptr)
+            env->SetDoubleArrayRegion(output, 0, static_cast<jsize>(values.size()), values.data());
+        return output;
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_get_1print_1config_1def(JNIEnv *env, jclass, jobject def) {
@@ -3933,6 +3970,8 @@ extern "C" {
                         ap.inflation = inflation;
             }
             arrangement::arrange(input, bed, arrange_cfg);
+            if (!sequential_print)
+                fill_compound_arrange_gaps(input, bed);
             return apply_arrange_polys(input, instances, throw_if_out_of_bed);
         } catch (const std::exception& e) {
             // If the model cannot fit the bed, it throws "Objects could not fit on the bed".
@@ -4669,6 +4708,122 @@ extern "C" {
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, static_cast<jsize>(selected.size()), selected.data());
         return result;
+    }
+
+    // Exercises production G-code placeholder vector resolution for filament IDs that
+    // share a physical extruder, plus the unmapped-filament fallback.
+    JNIEXPORT jobjectArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_placeholder_1filament_1map_1regression(JNIEnv* env, jclass) {
+        using namespace Slic3r;
+        DynamicConfig external;
+        external.set_key_value("filament_map", new ConfigOptionInts({1, 1}));
+        PlaceholderParser parser(&external);
+        DynamicPrintConfig values;
+        values.set_key_value("retraction_length", new ConfigOptionFloats({0.4, 3.0}));
+        values.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.6}));
+        values.set_key_value("test_vector", new ConfigOptionFloatsOrPercents({FloatOrPercent{0.2, false}, FloatOrPercent{0.7, false}}));
+        parser.apply_config(values);
+        std::vector<std::string> resolved;
+        resolved.emplace_back(parser.process("{retraction_length}", 0));
+        resolved.emplace_back(parser.process("{retraction_length}", 1));
+        resolved.emplace_back(parser.process("{nozzle_diameter}", 0));
+        resolved.emplace_back(parser.process("{nozzle_diameter}", 1));
+        resolved.emplace_back(parser.process("{test_vector}", 1));
+        external.set_key_value("filament_map", new ConfigOptionInts({1, 0}));
+        resolved.emplace_back(parser.process("{nozzle_diameter}", 1));
+
+        jclass string_class = env->FindClass("java/lang/String");
+        jobjectArray result = env->NewObjectArray(static_cast<jsize>(resolved.size()), string_class, nullptr);
+        for (jsize i = 0; i < static_cast<jsize>(resolved.size()); ++i) {
+            jstring value = env->NewStringUTF(resolved[size_t(i)].c_str());
+            env->SetObjectArrayElement(result, i, value);
+            env->DeleteLocalRef(value);
+        }
+        env->DeleteLocalRef(string_class);
+        return result;
+    }
+
+    // Reuses the production Print::apply path across a single-filament then a multi-filament
+    // model. The tower must be disabled for the first model and re-enabled for the second.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_reused_1print_1prime_1tower_1regression(
+        JNIEnv* env, jclass, jlong first_model_ptr, jlong next_model_ptr, jstring config_path)
+    {
+        try {
+            auto* first_model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(first_model_ptr));
+            auto* next_model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(next_model_ptr));
+            if (first_model == nullptr || next_model == nullptr || config_path == nullptr)
+                throw std::invalid_argument("Prime-tower regression received a null model or config path");
+
+            const char* path = env->GetStringUTFChars(config_path, nullptr);
+            if (path == nullptr) return nullptr;
+            DynamicPrintConfig config;
+            config.load(path, ForwardCompatibilitySubstitutionRule::Disable);
+            env->ReleaseStringUTFChars(config_path, path);
+            if (!config.has("enable_prime_tower"))
+                throw std::runtime_error("Prime-tower regression config has no enable_prime_tower option");
+            config.normalize_fdm();
+
+            Print print;
+            print.is_BBL_printer() = false;
+            print.apply(first_model->model, config);
+            const jint first_tower = print.config().enable_prime_tower.value ? 1 : 0;
+            const jint first_extruders = static_cast<jint>(print.extruders().size());
+            print.process();
+            const jint first_generated_tower = print.has_wipe_tower() ? 1 : 0;
+
+            print.apply(next_model->model, config);
+            const jint next_tower = print.config().enable_prime_tower.value ? 1 : 0;
+            const jint next_extruders = static_cast<jint>(print.extruders().size());
+            print.process();
+            const jint next_generated_tower = print.has_wipe_tower() ? 1 : 0;
+
+            const jint values[] = {first_tower, first_extruders, first_generated_tower,
+                                   next_tower, next_extruders, next_generated_tower};
+            jintArray result = env->NewIntArray(6);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 6, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
+    // Exercises the same inherited-printer extension and child-diff merge used by
+    // PresetCollection's file, project-embedded, and cloud/user preset load paths.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_preset_1parent_1nozzle_1extension_1regression(JNIEnv* env, jclass) {
+        try {
+            DynamicPrintConfig parent = DynamicPrintConfig::full_print_config();
+            parent.set_num_extruders(2);
+            const auto* before = parent.option<ConfigOptionFloats>("nozzle_diameter");
+            if (before == nullptr) throw std::runtime_error("Printer defaults have no nozzle_diameter vector");
+            const jdouble before_count = static_cast<jdouble>(before->size());
+
+            DynamicPrintConfig child = parent;
+            child.set_num_extruders(4);
+            child.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.5, 0.6, 0.8}));
+            Preset::extend_parent_printer_extruders_to_child(parent, child);
+
+            std::string extruder_id_name, extruder_variant_name;
+            std::set<std::string>* key_set1 = nullptr;
+            std::set<std::string>* key_set2 = nullptr;
+            Preset::get_extruder_names_and_keysets(Preset::TYPE_PRINTER, extruder_id_name,
+                extruder_variant_name, &key_set1, &key_set2);
+            parent.update_diff_values_to_child_config(child, extruder_id_name, extruder_variant_name,
+                *key_set1, *key_set2);
+
+            const auto* merged = parent.option<ConfigOptionFloats>("nozzle_diameter");
+            if (merged == nullptr || merged->size() != 4)
+                throw std::runtime_error("Inherited printer config did not retain all four nozzle slots");
+            const jdouble values[] = {before_count, static_cast<jdouble>(merged->size()),
+                merged->get_at(0), merged->get_at(1), merged->get_at(2), merged->get_at(3)};
+            jdoubleArray result = env->NewDoubleArray(6);
+            if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 6, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
     }
 
     // Exercises the production short-chain path optimizer against a fixture where

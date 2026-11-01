@@ -836,11 +836,16 @@ namespace client
         static std::map<std::string, std::string> tag_to_error_message;
 
         size_t get_extruder_id() const {
-            const ConfigOptionInts * filament_map_opt = external_config->option<ConfigOptionInts>("filament_map");
+            const ConfigOptionInts * filament_map_opt = external_config != nullptr ? external_config->option<ConfigOptionInts>("filament_map") : nullptr;
             if (filament_map_opt && current_extruder_id < filament_map_opt->values.size()) {
-                return filament_map_opt->values[current_extruder_id];
+                const int mapped_extruder_id = filament_map_opt->values[current_extruder_id];
+                // filament_map uses 1-based values; placeholder vector indices are 0-based.
+                if (mapped_extruder_id > 0)
+                    return size_t(mapped_extruder_id - 1);
             }
-            return 0;
+            // Without a valid physical-extruder mapping, resolve per-filament vectors by the
+            // selected filament instead of silently falling back to filament/extruder zero.
+            return current_extruder_id;
         }
 
         static bool             evaluate_full_macro(const MyContext *ctx) { return ! ctx->just_boolean_expression; }
@@ -1098,6 +1103,50 @@ namespace client
                 ctx->throw_exception("Indexing an empty vector variable", opt.it_range);
             if (!opt.has_index()) {
                 // Allow omitting extruder id when referencing vectors
+                const std::string opt_key(opt.it_range.begin(), opt.it_range.end());
+                const bool per_filament = std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(), "filament_" + opt_key) != filament_extruder_override_keys.end();
+                const size_t elem_index = per_filament ? ctx->current_extruder_id : ctx->get_extruder_id();
+                auto resolve_float_or_percent = [ctx, &opt, &output](const FloatOrPercent &fop, size_t index) {
+                    const std::string key(opt.it_range.begin(), opt.it_range.end());
+                    if (!fop.percent) {
+                        output.set_d(fop.value);
+                        return;
+                    }
+                    const ConfigOptionDef *def = print_config_def.get(key);
+                    assert(def != nullptr);
+                    double value = fop.value * 0.01;
+                    for (;;) {
+                        const ConfigOption *parent = def->ratio_over.empty() ? nullptr : ctx->resolve_symbol(def->ratio_over);
+                        if (!parent)
+                            ctx->throw_exception("FloatOrPercent variable failed to resolve the ratio_over dependencies", opt.it_range);
+                        if (boost::ends_with(def->ratio_over, "line_width")) {
+                            assert(parent->type() == coFloatOrPercent);
+                            value *= Flow::extrusion_width(def->ratio_over, static_cast<const ConfigOptionFloatOrPercent*>(parent), *ctx, static_cast<unsigned int>(ctx->current_extruder_id));
+                            break;
+                        }
+                        if (parent->type() == coFloat || parent->type() == coFloatOrPercent) {
+                            value *= parent->getFloat();
+                            if (parent->type() == coFloat || !static_cast<const ConfigOptionFloatOrPercent*>(parent)->percent)
+                                break;
+                            value *= 0.01;
+                        } else if (parent->type() == coFloats) {
+                            const auto *nullable = dynamic_cast<const ConfigOptionFloatsNullable*>(parent);
+                            const auto *values = nullable ? nullptr : static_cast<const ConfigOptionFloats*>(parent);
+                            value *= nullable ? nullable->get_at(nullable->size() == 1 ? 0 : index) : values->get_at(values->size() == 1 ? 0 : index);
+                            break;
+                        } else if (parent->type() == coFloatsOrPercents) {
+                            const auto *nullable = dynamic_cast<const ConfigOptionFloatsOrPercentsNullable*>(parent);
+                            const FloatOrPercent &parent_value = nullable
+                                ? nullable->get_at(nullable->size() == 1 ? 0 : index)
+                                : static_cast<const ConfigOptionFloatsOrPercents*>(parent)->get_at(static_cast<const ConfigOptionFloatsOrPercents*>(parent)->size() == 1 ? 0 : index);
+                            value *= parent_value.value * (parent_value.percent ? 0.01 : 1.0);
+                            if (!parent_value.percent) break;
+                        }
+                        def = print_config_def.get(def->ratio_over);
+                        assert(def != nullptr);
+                    }
+                    output.set_d(value);
+                };
                 switch (opt.opt->type()) {
                 case coFloats: {
                     const ConfigOptionFloatsNullable* opt_floatsnullable = static_cast<const ConfigOptionFloatsNullable *>(opt.opt);
@@ -1105,15 +1154,27 @@ namespace client
                         if (opt_floatsnullable->size() == 1) { // old version
                             output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(0));
                         } else {
-                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(elem_index));
                         }
                     } else {
                         const ConfigOptionFloats* opt_floats = static_cast<const ConfigOptionFloats*>(opt.opt);
                         if (opt_floats->size() == 1) { // old version
                             output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(0));
                         } else {
-                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(elem_index));
                         }
+                    }
+                    break;
+                }
+                case coFloatsOrPercents: {
+                    const auto *nullable = dynamic_cast<const ConfigOptionFloatsOrPercentsNullable*>(opt.opt);
+                    if (nullable) {
+                        const size_t index = nullable->size() == 1 ? 0 : elem_index;
+                        resolve_float_or_percent(nullable->get_at(index), index);
+                    } else {
+                        const auto *values = static_cast<const ConfigOptionFloatsOrPercents*>(opt.opt);
+                        const size_t index = values->size() == 1 ? 0 : elem_index;
+                        resolve_float_or_percent(values->get_at(index), index);
                     }
                     break;
                 }

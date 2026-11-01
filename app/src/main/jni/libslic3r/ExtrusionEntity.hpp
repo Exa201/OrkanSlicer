@@ -96,6 +96,13 @@ inline bool is_solid_infill(ExtrusionRole role)
         || role == erIroning;
 }
 
+inline bool is_support(ExtrusionRole role)
+{
+    return role == erSupportMaterial
+        || role == erSupportMaterialInterface
+        || role == erSupportTransition;
+}
+
 inline bool is_bridge(ExtrusionRole role) {
     return role == erBridgeInfill
         || role == erInternalBridgeInfill

@@ -1064,6 +1064,10 @@
     <string name="SettingsRenderQuality">3D-Vorschauqualität</string>
     <string name="SettingsRenderQualityDescription">Eine niedrigere Auflösung kann Kamera und Vorschau beschleunigen. Slicing und Modellgeometrie bleiben unverändert.</string>
     <string name="SettingsRenderQualityAutomatic">Automatisch (%1$d%%)</string>
+    <string name="SettingsTranslucentFilamentPreview">Transparente Filamentvorschau</string>
+    <string name="SettingsTranslucentFilamentPreviewDescription">Transparente Filamentfarben in der geslicten G-Code-Vorschau anzeigen.</string>
+    <string name="SettingsPreviewEnabled">Ein</string>
+    <string name="SettingsPreviewDisabled">Aus</string>
     <string name="SettingsAbout">Über die App</string>
     <string name="SettingsAddPrinter">Drucker aus Presets hinzufügen</string>
     <string name="SettingsAboutVersion">OrkanSlicer für Android · Version %s\n\nApp und Weiterentwicklung: CodeMasterCody3D\nAndroid-Grundlage: SliceBeam von utkabobr (YTKAB0BP)\nSlicing-Kern: OrcaSlicer von SoftFever und Mitwirkenden\nTechnische Grundlagen: Bambu Studio, PrusaSlicer und Slic3r\nFarbmodell-Werkzeug: Kromacut von vycdev\n\nDank an alle Open-Source-Mitwirkenden. Lizenzen und Quellverweise stehen im Projekt.</string>
@@ -1641,4 +1645,11 @@
     <string name="ModelModifierEdit">Bearbeiten</string>
     <string name="ModelModifierSaveChanges">Änderungen speichern</string>
     <string name="ModelModifierInvalid">Bitte gültige Positionen und Größen zwischen 0,2 und 500 mm eingeben.</string>
+    <string name="AdaptivePAModelValidationLine">Filament %1$d, Zeile %2$d: %3$s</string>
+    <string name="AdaptivePAModelInvalidCharacters">Nur Ziffern, Kommas und Dezimalpunkte verwenden.</string>
+    <string name="AdaptivePAModelValueCount">Genau drei durch Kommas getrennte Werte eingeben: PA, Durchfluss und Beschleunigung.</string>
+    <string name="AdaptivePAModelInvalidNumber">Drei gültige endliche Zahlen eingeben.</string>
+    <string name="AdaptivePAModelPaTooHigh">PA muss kleiner als 2 sein.</string>
+    <string name="AdaptivePAModelFlowTooLow">Der Durchfluss muss größer als PA sein.</string>
+    <string name="AdaptivePAModelAccelerationTooLow">Die Beschleunigung muss größer als der Durchfluss sein.</string>
 </resources>

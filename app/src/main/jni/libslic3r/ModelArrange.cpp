@@ -1,8 +1,10 @@
 #include "ModelArrange.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Geometry/ConvexHull.hpp>
+#include <libslic3r/ClipperUtils.hpp>
 #include <libslic3r/Print.hpp>
 #include "MTUtils.hpp"
 
@@ -25,6 +27,142 @@ arrangement::ArrangePolygons get_arrange_polys(const Model &model, ModelInstance
         }
 
     return input;
+}
+
+void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
+{
+    // The general packer treats each logical model as one item. Once it has arranged those
+    // items, use their exact projected islands to fill safe openings between disconnected
+    // parts. This moves only whole instances and validates the requested spacing against every
+    // real silhouette before committing a position.
+    if (bed.size() < 3 || polygons.size() < 2)
+        return;
+
+    struct Geometry {
+        ExPolygons parts;
+        ExPolygons clearance;
+        BoundingBox bounds;
+    };
+    std::vector<Geometry> geometry(polygons.size());
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        ArrangePolygon &item = polygons[i];
+        if (item.bed_idx != 0 || item.physical_parts.empty())
+            continue;
+        geometry[i].parts = item.physical_parts;
+        for (ExPolygon &part : geometry[i].parts) {
+            part.rotate(item.rotation);
+            part.translate(item.translation.x(), item.translation.y());
+            geometry[i].bounds.merge(part.contour.bounding_box());
+        }
+        geometry[i].clearance = offset_ex(geometry[i].parts, float(item.inflation), jtSquare);
+    }
+
+    std::vector<size_t> hosts;
+    for (size_t i = 0; i < geometry.size(); ++i)
+        if (geometry[i].parts.size() > 1)
+            hosts.push_back(i);
+    if (hosts.empty())
+        return;
+
+    std::stable_sort(hosts.begin(), hosts.end(), [&](size_t lhs, size_t rhs) {
+        const Vec2crd a = geometry[lhs].bounds.size(), b = geometry[rhs].bounds.size();
+        return double(a.x()) * a.y() > double(b.x()) * b.y();
+    });
+    std::vector<size_t> candidates(polygons.size());
+    std::iota(candidates.begin(), candidates.end(), size_t(0));
+    std::stable_sort(candidates.begin(), candidates.end(), [&](size_t lhs, size_t rhs) {
+        const Vec2crd a = geometry[lhs].bounds.size(), b = geometry[rhs].bounds.size();
+        return double(a.x()) * a.y() < double(b.x()) * b.y();
+    });
+
+    const Polygon bed_polygon(bed);
+    const BoundingBox bed_bounds(bed);
+    const coord_t search_step = scaled(2.0);
+    constexpr size_t MAX_SEARCH_POSITIONS = 5000;
+    for (size_t candidate_idx : candidates) {
+        ArrangePolygon &candidate = polygons[candidate_idx];
+        if (candidate.bed_idx != 0 || geometry[candidate_idx].parts.empty())
+            continue;
+
+        ExPolygons local_parts = candidate.physical_parts;
+        for (ExPolygon &part : local_parts)
+            part.rotate(candidate.rotation);
+        ExPolygons local_clearance = offset_ex(local_parts, float(candidate.inflation), jtSquare);
+        BoundingBox local_bounds;
+        for (const ExPolygon &part : local_parts)
+            local_bounds.merge(part.contour.bounding_box());
+        if (!local_bounds.defined)
+            continue;
+
+        const double candidate_area = double(local_bounds.size().x()) * local_bounds.size().y();
+        size_t visited = 0;
+        bool placed = false;
+        for (size_t host_idx : hosts) {
+            if (host_idx == candidate_idx || !geometry[host_idx].bounds.defined)
+                continue;
+            const BoundingBox &host_bounds = geometry[host_idx].bounds;
+            if (candidate_area >= double(host_bounds.size().x()) * host_bounds.size().y() * 0.5 ||
+                local_bounds.size().x() + 2 * candidate.inflation >= host_bounds.size().x() ||
+                local_bounds.size().y() + 2 * candidate.inflation >= host_bounds.size().y())
+                continue;
+
+            for (coord_t y = host_bounds.min.y();
+                 y + local_bounds.size().y() <= host_bounds.max.y() && !placed; y += search_step) {
+                for (coord_t x = host_bounds.min.x();
+                     x + local_bounds.size().x() <= host_bounds.max.x(); x += search_step) {
+                    if (++visited > MAX_SEARCH_POSITIONS)
+                        break;
+                    const Vec2crd delta{x - local_bounds.min.x(), y - local_bounds.min.y()};
+                    ExPolygons proposed = local_clearance;
+                    for (ExPolygon &part : proposed)
+                        part.translate(delta.x(), delta.y());
+
+                    BoundingBox proposed_bounds;
+                    bool inside_bed = true;
+                    for (const ExPolygon &part : proposed) {
+                        proposed_bounds.merge(part.contour.bounding_box());
+                        for (const Point &point : part.contour.points)
+                            if (!bed_polygon.contains(point)) { inside_bed = false; break; }
+                        if (!inside_bed) break;
+                    }
+                    if (!inside_bed || proposed_bounds.min.x() < bed_bounds.min.x() ||
+                        proposed_bounds.min.y() < bed_bounds.min.y() ||
+                        proposed_bounds.max.x() > bed_bounds.max.x() ||
+                        proposed_bounds.max.y() > bed_bounds.max.y())
+                        continue;
+
+                    bool collision = false;
+                    for (size_t other_idx = 0; other_idx < geometry.size() && !collision; ++other_idx) {
+                        if (other_idx == candidate_idx || polygons[other_idx].bed_idx != 0 ||
+                            geometry[other_idx].clearance.empty())
+                            continue;
+                        BoundingBox other_bounds;
+                        for (const ExPolygon &part : geometry[other_idx].clearance)
+                            other_bounds.merge(part.contour.bounding_box());
+                        if (proposed_bounds.overlap(other_bounds))
+                            collision = !intersection_ex(proposed, geometry[other_idx].clearance).empty();
+                    }
+                    if (collision)
+                        continue;
+
+                    candidate.translation = delta;
+                    geometry[candidate_idx].parts = local_parts;
+                    geometry[candidate_idx].bounds.reset();
+                    for (ExPolygon &part : geometry[candidate_idx].parts) {
+                        part.translate(delta.x(), delta.y());
+                        geometry[candidate_idx].bounds.merge(part.contour.bounding_box());
+                    }
+                    geometry[candidate_idx].clearance = std::move(proposed);
+                    placed = true;
+                    break;
+                }
+                if (visited > MAX_SEARCH_POSITIONS)
+                    break;
+            }
+            if (placed || visited > MAX_SEARCH_POSITIONS)
+                break;
+        }
+    }
 }
 
 bool apply_arrange_polys(ArrangePolygons &input, ModelInstancePtrs &instances, VirtualBedFn vfn)

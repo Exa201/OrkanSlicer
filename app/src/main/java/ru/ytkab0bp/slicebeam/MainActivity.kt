@@ -1770,7 +1770,7 @@ override fun onFailed(error: Exception) {
         )
     }
 }
-}, stepOptions, autoOrientImportedModels = autoorient && !project3mf)
+}, stepOptions, autoOrientImportedModels = !project3mf)
 }
 }
 catch (e:Slic3rRuntimeError) {
@@ -2140,7 +2140,7 @@ override fun onCancelled() {
 cachedFile.delete()
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 }
-}) }) })
+}, autoOrientImportedModels = true) }) })
 }
 catch (error:Exception) {
 cachedFile.delete()

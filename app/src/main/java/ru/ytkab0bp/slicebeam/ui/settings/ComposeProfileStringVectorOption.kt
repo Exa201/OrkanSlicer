@@ -46,6 +46,7 @@ import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.fragment.ProfileSettingsComposeItem
 import ru.ytkab0bp.slicebeam.config.ProfileStringVectorCodec
 import ru.ytkab0bp.slicebeam.config.ProfileOpenOptionResolver
+import ru.ytkab0bp.slicebeam.config.AdaptivePAModelValidator
 import java.util.function.Consumer
 import java.util.function.Supplier
 
@@ -68,9 +69,10 @@ object ComposeProfileStringVectorOption {
         onChanged: Consumer<String>,
         onLongClick: Runnable,
         onEditorStateChanged: (Boolean) -> Unit = {},
+        optionKey: String? = null,
     ) = StringVectorOptionRow(
         title, initialValue, description, multiline, preferredLines,
-        suggestionLabels, suggestionValues, onChanged, onLongClick, onEditorStateChanged,
+        suggestionLabels, suggestionValues, onChanged, onLongClick, onEditorStateChanged, optionKey,
     )
 
     @JvmStatic
@@ -84,9 +86,10 @@ object ComposeProfileStringVectorOption {
         suggestionValues: Array<String>?,
         onChanged: Consumer<String>,
         onLongClick: Runnable,
+        optionKey: String? = null,
     ): ProfileSettingsComposeItem = StringVectorOptionItem(
         title, valueProvider, description, multiline, preferredLines, suggestionLabels, suggestionValues,
-        onChanged, onLongClick,
+        onChanged, onLongClick, optionKey,
     )
 
     private class StringVectorOptionItem(
@@ -99,11 +102,12 @@ object ComposeProfileStringVectorOption {
         private val suggestionValues: Array<String>?,
         private val onChanged: Consumer<String>,
         private val onLongClick: Runnable,
+        private val optionKey: String?,
     ) : ProfileSettingsComposeItem {
         @Composable
         override fun Content(rowPosition: Int, onEditorStateChanged: (Boolean) -> Unit) {
             val initialValue = valueProvider.get().orEmpty()
-            ComposeProfileStringVectorOption.Content(title, initialValue, description, multiline, preferredLines, suggestionLabels, suggestionValues, onChanged, onLongClick, onEditorStateChanged)
+            ComposeProfileStringVectorOption.Content(title, initialValue, description, multiline, preferredLines, suggestionLabels, suggestionValues, onChanged, onLongClick, onEditorStateChanged, optionKey)
         }
     }
 
@@ -120,10 +124,14 @@ private fun StringVectorOptionRow(
     onChanged: Consumer<String>,
     onLongClick: Runnable,
     onEditorStateChanged: (Boolean) -> Unit,
+    optionKey: String?,
 ) {
     var currentValue by rememberSaveable(initialValue) { mutableStateOf(initialValue) }
     var dialogOpen by rememberSaveable { mutableStateOf(false) }
     var editedValues by rememberSaveable(initialValue, saver = profileStringVectorStateSaver) {
+        mutableStateOf(ProfileStringVectorCodec.parse(initialValue).orEmpty())
+    }
+    var sourceValues by rememberSaveable(initialValue, saver = profileStringVectorStateSaver) {
         mutableStateOf(ProfileStringVectorCodec.parse(initialValue).orEmpty())
     }
     fun closeDialog() {
@@ -135,6 +143,9 @@ private fun StringVectorOptionRow(
     val chooseSuggestionDescription = stringResource(R.string.ProfileStringVectorChooseSuggestion)
     val editorMaxLines = if (multiline) preferredLines.coerceIn(4, 16) else 1
     val suggestions = ProfileOpenOptionResolver.choices(suggestionLabels, suggestionValues, false)
+    val adaptivePAIssue = if (optionKey == "adaptive_pressure_advance_model")
+        AdaptivePAModelValidator.firstEditedVariantIssue(sourceValues, editedValues)
+    else null
 
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
@@ -150,6 +161,7 @@ private fun StringVectorOptionRow(
                     onClick = {
                         val parsed = ProfileStringVectorCodec.parse(currentValue)
                         if (parsed != null) {
+                            sourceValues = parsed
                             editedValues = parsed
                             dialogOpen = true
                             onEditorStateChanged(true)
@@ -265,10 +277,26 @@ private fun StringVectorOptionRow(
                     TextButton(onClick = { editedValues = editedValues + "" }) {
                         Text(stringResource(R.string.ProfileStringVectorAddEntry))
                     }
+                    adaptivePAIssue?.let { issue ->
+                        val message = when (issue.problem) {
+                            AdaptivePAModelValidator.Problem.INVALID_CHARACTERS -> R.string.AdaptivePAModelInvalidCharacters
+                            AdaptivePAModelValidator.Problem.VALUE_COUNT -> R.string.AdaptivePAModelValueCount
+                            AdaptivePAModelValidator.Problem.INVALID_NUMBER -> R.string.AdaptivePAModelInvalidNumber
+                            AdaptivePAModelValidator.Problem.PA_TOO_HIGH -> R.string.AdaptivePAModelPaTooHigh
+                            AdaptivePAModelValidator.Problem.FLOW_NOT_GREATER_THAN_PA -> R.string.AdaptivePAModelFlowTooLow
+                            AdaptivePAModelValidator.Problem.ACCELERATION_NOT_GREATER_THAN_FLOW -> R.string.AdaptivePAModelAccelerationTooLow
+                        }
+                        Text(
+                            stringResource(R.string.AdaptivePAModelValidationLine,
+                                issue.variantIndex + 1, issue.lineNumber, stringResource(message)),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
+                    enabled = adaptivePAIssue == null,
                     onClick = {
                         val serialized = ProfileStringVectorCodec.serialize(editedValues)
                         currentValue = serialized

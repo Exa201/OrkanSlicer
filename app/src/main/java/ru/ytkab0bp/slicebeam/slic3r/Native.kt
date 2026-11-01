@@ -30,6 +30,15 @@ class Native {
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray
+    /** Checks per-filament and physical-extruder placeholder vectors under a shared filament map. */
+    @JvmStatic
+    external fun placeholder_filament_map_regression(): Array<String>
+    /** Reapplies one native Print from a single-filament model to a two-filament model. */
+    @JvmStatic
+    external fun reused_print_prime_tower_regression(firstModel: Long, nextModel: Long, configPath: String): IntArray
+    /** Exercises the inherited custom-printer preset merge when the child adds nozzle slots. */
+    @JvmStatic
+    external fun preset_parent_nozzle_extension_regression(): DoubleArray
     /** Exercises production short-path chaining against a four-segment optimality fixture. */
     @JvmStatic
     external fun shortest_path_exact_chain_regression(): IntArray
@@ -41,6 +50,9 @@ class Native {
     /** Verifies that opened Lightning overhang samples are included in the update-grid bounds. */
     @JvmStatic
     external fun lightning_distance_field_bounds_probe(): IntArray
+    /** Regression probe for CGAL conversion of meshes with isolated vertex indices. */
+    @JvmStatic
+    external fun mesh_boolean_isolated_vertices_probe(): DoubleArray
     @JvmStatic
     external fun set_svg_path_prefix(prefix: String): Unit
     @JvmStatic

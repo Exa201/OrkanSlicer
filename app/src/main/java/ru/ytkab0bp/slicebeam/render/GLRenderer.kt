@@ -1050,19 +1050,33 @@ if (!viewer!!.isOptionVisible(GCodeViewer.OPTION_TYPE_SEAMS))
 {
 viewer!!.toggleOptionVisibility(GCodeViewer.OPTION_TYPE_SEAMS)
 }
+applyToolPreviewColors()
 val sliceToolColors = gcodeResult?.previewToolColors
-if (ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.shouldUseToolPreview(isModelMultiColor, sliceToolColors))
-{
-val rgba = sliceToolColors ?: ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette().map {
-    ((it and 0xFFFFFF) shl 8) or 0xFF
-}.toIntArray()
-viewer!!.setToolColorsWithAlpha(rgba)
-viewer!!.viewType = GCodeViewer.VIEW_TYPE_TOOL
+viewer!!.viewType = if (ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.shouldUseToolPreview(isModelMultiColor, sliceToolColors))
+    GCodeViewer.VIEW_TYPE_TOOL else GCodeViewer.VIEW_TYPE_FEATURE
 }
-else
-{
-viewer!!.viewType = GCodeViewer.VIEW_TYPE_FEATURE
+
+/** Called on the GL thread both when a viewer is created and when the user changes preview opacity. */
+fun updateToolPreviewColors() {
+    if (viewer == null || !isViewerEnabled) return
+    applyToolPreviewColors()
+    glView?.requestRender()
 }
+
+private fun applyToolPreviewColors() {
+    val activeViewer = viewer ?: return
+    val sliceToolColors = gcodeResult?.previewToolColors
+    if (!ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.shouldUseToolPreview(isModelMultiColor, sliceToolColors)) return
+    val colors = ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver.viewerColors(
+        sliceToolColors,
+        ru.ytkab0bp.slicebeam.utils.Prefs.getFilamentPalette(),
+        ru.ytkab0bp.slicebeam.utils.Prefs.isTranslucentFilamentPreviewEnabled(),
+    )
+    if (ru.ytkab0bp.slicebeam.utils.Prefs.isTranslucentFilamentPreviewEnabled()) {
+        activeViewer.setToolColorsWithAlpha(colors)
+    } else {
+        activeViewer.setToolColors(colors)
+    }
 }
 fun setGCodeViewer(result:GCodeProcessorResult?) {
 this.isViewerEnabled = result != null

@@ -73,6 +73,26 @@ class SliceFilamentColorResolverTest {
         )
     }
 
+    @Test fun viewerOpacityCanBeToggledWithoutChangingTheSlicePalette() {
+        val sliceRgba = intArrayOf(0x11223380, 0x44556640)
+        assertArrayEquals(
+            sliceRgba,
+            SliceFilamentColorResolver.viewerColors(sliceRgba, intArrayOf(0xAABBCC), translucent = true),
+        )
+        assertArrayEquals(
+            intArrayOf(0x112233, 0x445566),
+            SliceFilamentColorResolver.viewerColors(sliceRgba, intArrayOf(0xAABBCC), translucent = false),
+        )
+        assertArrayEquals(
+            intArrayOf(0xAABBCCFF.toInt()),
+            SliceFilamentColorResolver.viewerColors(null, intArrayOf(0xAABBCC), translucent = true),
+        )
+        assertArrayEquals(
+            intArrayOf(0xAABBCC),
+            SliceFilamentColorResolver.viewerColors(null, intArrayOf(0xAABBCC), translucent = false),
+        )
+    }
+
     @Test fun aMultiToolSliceUsesToolColorPreviewEvenWhenTheEditableModelLooksSingleColor() {
         assertEquals(true, SliceFilamentColorResolver.shouldUseToolPreview(false, intArrayOf(0x112233, 0x445566)))
         assertEquals(true, SliceFilamentColorResolver.shouldUseToolPreview(true, intArrayOf(0x112233)))

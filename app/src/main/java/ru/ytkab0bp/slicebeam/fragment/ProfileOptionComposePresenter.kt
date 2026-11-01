@@ -205,6 +205,7 @@ object ProfileOptionComposePresenter {
                 onChanged,
                 onLongClick,
                 onEditorStateChanged,
+                def.key,
             )
 
             ProfileOptionDirectComposePolicy.Kind.STRING -> ComposeProfileStringOption.Content(
@@ -384,7 +385,7 @@ object ProfileOptionComposePresenter {
             return ComposeProfileStringVectorOption.create(
                 localized(def.getLabel()), normalizedProvider(valueProvider), localized(def.tooltip), def.multiline,
                 def.height.takeIf { it > 0 } ?: 8,
-                localizedCopy(def.enumLabels), def.enumValues, onChanged, onLongClick,
+                localizedCopy(def.enumLabels), def.enumValues, onChanged, onLongClick, def.key,
             )
         }
 

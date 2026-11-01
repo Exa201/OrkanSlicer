@@ -590,7 +590,7 @@ std::string GCodeWriter::set_speed(double F, const std::string &comment, const s
     assert(F < 100000.);
     
     m_current_speed = F;
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(config.high_precision_gcode.value);
     w.emit_f(F);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -607,7 +607,7 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     //BBS: take plate offset into consider
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(this->high_precision());
     w.emit_xy(point_on_plate);
     auto speed = m_is_first_layer
         ? this->config.get_abs_value("initial_layer_travel_speed") : this->config.travel_speed.value;
@@ -736,7 +736,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 //  /       to make the z list early to avoid to hit some warping place when travel is long.
                 Vec2d temp = delta_no_z.normalized() * delta(2) / tan(this->filament()->travel_slope());
                 Vec3d slope_top_point = Vec3d(temp(0), temp(1), delta(2)) + source;
-                GCodeG1Formatter w0;
+                GCodeG1Formatter w0(this->high_precision());
                 w0.emit_xyz(slope_top_point);
                 w0.emit_f(travel_speed * 60.0);
                 //BBS
@@ -750,7 +750,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
 
         std::string xy_z_move;
         {
-            GCodeG1Formatter w0;
+            GCodeG1Formatter w0(this->high_precision());
             if (this->is_current_position_clear()) {
                 w0.emit_xyz(target);
                 w0.emit_f(travel_speed * 60.0);
@@ -788,7 +788,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
     std::string out_string;
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(this->high_precision());
     if (!this->is_current_position_clear())
     {
         //force to move xy first then z after filament change
@@ -797,7 +797,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string() + _travel_to_z(point_on_plate.z(), comment);
     } else {
-        GCodeG1Formatter w;
+        GCodeG1Formatter w(this->high_precision());
         w.emit_xyz(point_on_plate);
         w.emit_f(this->config.travel_speed.value * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -838,7 +838,7 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
                                  : this->config.travel_speed.value;
     }
 
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(this->high_precision());
     w.emit_z(z);
     w.emit_f(speed * 60.0);
     //BBS
@@ -899,7 +899,7 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
     } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
         output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
 
-        GCodeG2G3Formatter w(true);
+        GCodeG2G3Formatter w(true, config.high_precision_gcode.value);
         w.emit_z(z);
         w.emit_ij(ij_offset);
         w.emit_string(" P1 ");
@@ -943,10 +943,11 @@ std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std:
     //BBS: take plate offset into consider
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG1Formatter w;
+    const bool high_precision = this->high_precision();
+    GCodeG1Formatter w(high_precision);
     w.emit_xy(point_on_plate);
     if (!force_no_extrusion)
-        w.emit_e(filament()->E());
+        w.emit_e(filament()->E_to_emit(high_precision));
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
@@ -964,11 +965,12 @@ std::string GCodeWriter::extrude_arc_to_xy(const Vec2d& point, const Vec2d& cent
 
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG2G3Formatter w(is_ccw);
+    const bool high_precision = this->high_precision();
+    GCodeG2G3Formatter w(is_ccw, high_precision);
     w.emit_xy(point_on_plate);
     w.emit_ij(center_offset);
     if (!force_no_extrusion)
-        w.emit_e(filament()->E());
+        w.emit_e(filament()->E_to_emit(high_precision));
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
@@ -979,7 +981,8 @@ std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std
     // Check if Z actually changes (at export precision) before emitting it.
     // ZAA sloped extrusions call this for every segment, but many consecutive
     // segments share the same quantized Z — emitting it every time is redundant.
-    bool z_changed = (GCodeG1Formatter::quantize_xyzf(point(2)) != GCodeG1Formatter::quantize_xyzf(m_pos(2)));
+    const bool high_precision = this->high_precision();
+    bool z_changed = (GCodeFormatter::quantize_xyz(point(2), high_precision) != GCodeFormatter::quantize_xyz(m_pos(2), high_precision));
 
     m_pos = point;
     m_lifted = 0;
@@ -989,13 +992,13 @@ std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset, point(2) };
 
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(high_precision);
     if (z_changed)
         w.emit_xyz(point_on_plate);
     else
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
     if (!force_no_extrusion)
-        w.emit_e(filament()->E());
+        w.emit_e(filament()->E_to_emit(high_precision));
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
@@ -1038,8 +1041,9 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
         }
         else {
             // BBS
-            GCodeG1Formatter w;
-            w.emit_e(filament()->E());
+            const bool high_precision = this->high_precision();
+            GCodeG1Formatter w(high_precision);
+            w.emit_e(filament()->E_to_emit(high_precision));
             w.emit_f(filament()->retract_speed() * 60.);
             // BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -1068,8 +1072,9 @@ std::string GCodeWriter::unretract()
         else {
             //BBS
             // use G1 instead of G0 because G0 will blend the restart with the previous travel move
-            GCodeG1Formatter w;
-            w.emit_e(filament()->E());
+            const bool high_precision = this->high_precision();
+            GCodeG1Formatter w(high_precision);
+            w.emit_e(filament()->E_to_emit(high_precision));
             w.emit_f(filament()->deretract_speed() * 60.);
             //BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");

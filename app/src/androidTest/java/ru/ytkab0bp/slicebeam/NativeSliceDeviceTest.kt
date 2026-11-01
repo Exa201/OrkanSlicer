@@ -44,6 +44,168 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun cgalBooleanVolumeChecksIgnoreUnreferencedVertices() {
+        val result = Native.mesh_boolean_isolated_vertices_probe()
+        assertEquals("the converted closed cube must bound a volume", 1.0, result[0], 0.0)
+        assertEquals("the converted cube must remain non-self-intersecting", 0.0, result[1], 0.0)
+        assertEquals("isolated vertices must be removed without changing volume", 1000.0, result[2], 1e-3)
+        assertEquals("compacted triangle indices must remain valid", 1.0, result[3], 0.0)
+        assertEquals("all twelve cube triangles must survive conversion", 12.0, result[4], 0.0)
+    }
+
+    @Test(timeout = 120_000)
+    fun bridgeInfillKeepsBridgeSpeedWithCurledPerimeterSlowdown() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val keys = listOf(
+            "initial_layer_print_height", "layer_height", "enable_overhang_speed",
+            "slowdown_for_curled_perimeters", "overhang_1_4_speed", "overhang_2_4_speed",
+            "overhang_3_4_speed", "overhang_4_4_speed", "bridge_speed",
+            "filament_max_volumetric_speed", "slow_down_for_layer_cooling", "slow_down_layers",
+        )
+        val previous = keys.associateWith { process[it] }
+        val source = File(context.cacheDir, "orca-bridge-curled-speed.obj")
+        val output = File(context.cacheDir, "orca-bridge-curled-speed.gcode")
+        val model = try {
+            InstrumentationRegistry.getInstrumentation().context.assets.open("models/orca-bridge-speed.obj").use { input -> source.outputStream().use(input::copyTo) }
+            Model(source).also { it.ensureOnBed(0) }
+        } catch (error: Exception) {
+            source.delete()
+            throw error
+        }
+
+        try {
+            mapOf(
+                "initial_layer_print_height" to "0.2", "layer_height" to "0.2",
+                "enable_overhang_speed" to "1", "slowdown_for_curled_perimeters" to "1",
+                "overhang_1_4_speed" to "0", "overhang_2_4_speed" to "50",
+                "overhang_3_4_speed" to "30", "overhang_4_4_speed" to "10",
+                "bridge_speed" to "45", "filament_max_volumetric_speed" to "1000",
+                "slow_down_for_layer_cooling" to "0", "slow_down_layers" to "0",
+            ).forEach { (key, value) -> process.put(key, value) }
+            SliceBeam.genCurrentConfig(model)
+            val config = SliceBeam.getCurrentConfigFile()
+            output.delete()
+            val result = model.slice(config.absolutePath, output.absolutePath, null)
+            val gcode = try {
+                assertTrue("The bridge fixture must produce a native G-code slice", output.isFile && output.length() > 0L)
+                output.readText()
+            } finally {
+                result.release()
+            }
+
+            val bridgeMoves = mutableListOf<Triple<Double, Double, Double>>()
+            var isBridge = false
+            var x = 0.0
+            var z = 0.0
+            var e = 0.0
+            var feed = 0.0
+            val parameter = Regex("([XYZEF])-?\\d+(?:\\.\\d+)?")
+            for (line in gcode.lineSequence()) {
+                val comment = line.substringAfter(';', "")
+                if ("FEATURE:" in comment || "TYPE:" in comment)
+                    isBridge = "Bridge" in comment && "Internal Bridge" !in comment
+                if (!line.startsWith("G0 ") && !line.startsWith("G1 ")) continue
+                val values = parameter.findAll(line.substringBefore(';')).associate { match ->
+                    match.groupValues[1] to match.value.substring(1).toDouble()
+                }
+                val nextX = values["X"] ?: x
+                val nextZ = values["Z"] ?: z
+                val nextE = values["E"] ?: e
+                feed = values["F"]?.div(60.0) ?: feed
+                if (isBridge && nextZ in 5.19..5.21 && nextE > e && kotlin.math.abs(nextX - x) > 1.0)
+                    bridgeMoves += Triple(x, nextX, feed)
+                x = nextX
+                z = nextZ
+                e = nextE
+            }
+            assertTrue("The fixture must emit bridge infill at Z=5.2", bridgeMoves.isNotEmpty())
+            val minX = bridgeMoves.minOf { minOf(it.first, it.second) }
+            val maxX = bridgeMoves.maxOf { maxOf(it.first, it.second) }
+            val margin = (maxX - minX) * 0.25
+            val centerSpeeds = bridgeMoves.filter { (it.first + it.second) * 0.5 > minX + margin &&
+                (it.first + it.second) * 0.5 < maxX - margin }.map { it.third }
+            assertTrue("the bridge fixture must contain interior strands", centerSpeeds.isNotEmpty())
+            centerSpeeds.forEach { speed ->
+                assertEquals("fully unsupported bridge center must use configured bridge speed", 45.0, speed, 0.5)
+            }
+        } finally {
+            keys.forEach { key ->
+                val value = previous[key]
+                if (value == null) process.remove(key) else process.put(key, value)
+            }
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun placeholderVectorsUseFilamentOrMappedExtruderIndexAsAppropriate() {
+        assertArrayEquals(
+            arrayOf("0.4", "3", "0.4", "0.4", "0.2", "0.6"),
+            Native.placeholder_filament_map_regression(),
+        )
+    }
+
+    @Test
+    fun inheritedPrinterPresetRetainsNozzleValuesBeyondItsParentCount() {
+        assertArrayEquals(
+            doubleArrayOf(2.0, 4.0, 0.4, 0.5, 0.6, 0.8),
+            Native.preset_parent_nozzle_extension_regression(),
+            0.0001,
+        )
+    }
+
+    @Test(timeout = 120_000)
+    fun experimentalHighPrecisionSettingChangesRealSliceCoordinatesAndExtrusionDigits() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val previousValue = process["high_precision_gcode"]
+        val previousRelativeE = process["use_relative_e_distances"]
+        val source = createThinCubeFixture("high-precision-gcode.stl", 20.0, 20.0, 12.0)
+        val output = File(context.cacheDir, "high-precision-gcode.gcode")
+        val model = Model(source).also { it.ensureOnBed(0) }
+
+        fun slice(enabled: Boolean): String {
+            process.put("high_precision_gcode", if (enabled) "1" else "0")
+            SliceBeam.genCurrentConfig(model)
+            val config = SliceBeam.getCurrentConfigFile()
+            val serialized = config.readText()
+            assertTrue("The precision option must reach native slicing", Regex("(?m)^high_precision_gcode\\s*=\\s*${if (enabled) "1" else "0"}\\s*$").containsMatchIn(serialized))
+            output.delete()
+            val result = model.slice(config.absolutePath, output.absolutePath, null)
+            try {
+                assertTrue("Both precision modes must produce a complete native slice", output.isFile && output.length() > 0L)
+                return output.readText()
+            } finally {
+                result.release()
+            }
+        }
+
+        try {
+            process.put("use_relative_e_distances", "1")
+            val standard = slice(enabled = false)
+            val precise = slice(enabled = true)
+            val extrusionMoves = Regex("(?m)^G1 .*\\bE-?\\d+\\.\\d+").findAll(standard).map { it.value }.toList()
+            val preciseExtrusionMoves = Regex("(?m)^G1 .*\\bE-?\\d+\\.\\d+").findAll(precise).map { it.value }.toList()
+            assertTrue("The test slice must contain extrusion moves", extrusionMoves.isNotEmpty())
+            assertTrue("Standard export must retain three decimal places for XY", Regex("(?m)^G1 .*\\bX-?\\d+\\.\\d{3}(?:\\s|$)").containsMatchIn(standard))
+            assertTrue("High precision export must write four decimal places for XY", Regex("(?m)^G1 .*\\bX-?\\d+\\.\\d{4}(?:\\s|$)").containsMatchIn(precise))
+            assertTrue("Standard export must write five decimal places for relative E", extrusionMoves.any { Regex("\\bE-?\\d+\\.\\d{5}(?:\\s|$)").containsMatchIn(it) })
+            assertTrue("High precision export must write six decimal places for relative E", preciseExtrusionMoves.any { Regex("\\bE-?\\d+\\.\\d{6}(?:\\s|$)").containsMatchIn(it) })
+        } finally {
+            process.put("high_precision_gcode", previousValue)
+            process.put("use_relative_e_distances", previousRelativeE)
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun lightningDistanceFieldExpandsBoundsToContainOpenedOverhangSamples() = withKobraProfile {
         val probe = Native.lightning_distance_field_bounds_probe()
         assertEquals("probe returns sample count and old/new bounds violations", 3, probe.size)
@@ -625,6 +787,10 @@ class NativeSliceDeviceTest {
         assertTrue("The library must not add a pretend printer", library.printerModels.isEmpty())
         assertEquals(13, library.filamentConfigs.size)
         assertTrue("3D-Fuel profiles should not contain unknown-option warnings", library.loadWarnings.isEmpty())
+        assertTrue("The ESD profile should use Orca's branded display name",
+            library.filamentConfigs.any { it.title == "3D-Fuel Pro PCTG ESD" })
+        assertFalse("The previous unbranded ESD profile name should not remain",
+            library.filamentConfigs.any { it.title == "3D-Fuel Pro PCTG-ESD" })
         config.filamentConfigs.addAll(library.filamentConfigs)
 
         val source = copyCube(context, "3d-fuel-profile-cube.stl")
@@ -640,6 +806,7 @@ class NativeSliceDeviceTest {
                 "3D-Fuel Standard PLA" to "230",
                 "3D-Fuel Pro PETG" to "255",
                 "3D-Fuel PET CF" to "255",
+                "3D-Fuel Pro PCTG ESD" to "270",
             )
             for ((profileName, expectedTemperature) in representatives) {
                 val filament = requireNotNull(config.findFilament(profileName))
@@ -1209,17 +1376,10 @@ class NativeSliceDeviceTest {
             val centerY = (min.y + max.y) / 2.0
             val baseZ = min.z
             val halfStem = 5.0
-            val stemCorners = listOf(
-                centerX - halfStem to centerY - halfStem,
-                centerX + halfStem to centerY - halfStem,
-                centerX + halfStem to centerY + halfStem,
-                centerX - halfStem to centerY + halfStem,
-            )
-            val stemEdges = stemCorners.indices.map { index ->
-                val start = stemCorners[index]
-                val end = stemCorners[(index + 1) % stemCorners.size]
-                GCodePathSegment(start.first, start.second, end.first, end.second, baseZ + 5.0)
-            }
+            val stemMinX = centerX - halfStem
+            val stemMaxX = centerX + halfStem
+            val stemMinY = centerY - halfStem
+            val stemMaxY = centerY + halfStem
             for (clearance in listOf("0.2", "0.8")) {
                 process.put("support_object_xy_distance", clearance)
                 SliceBeam.genCurrentConfig(model)
@@ -1228,10 +1388,21 @@ class NativeSliceDeviceTest {
                 assertHasExtrusion(gcode)
                 assertTrue("the stepped cap must generate tree-support paths", Regex("(?im)^;TYPE:.*support").containsMatchIn(gcode))
                 val supportSegments = supportExtrusionSegments(gcode).filter {
-                    it.z > baseZ + 0.5 && it.z < baseZ + 9.5
+                    it.z > baseZ + 0.5 && it.z < baseZ + 9.5 &&
+                        kotlin.math.hypot(it.x1 - it.x0, it.y1 - it.y0) > 1e-6
                 }
                 assertTrue("support paths must exist alongside the stem cross-section", supportSegments.isNotEmpty())
-                val minGap = supportSegments.minOf { support -> stemEdges.minOf { pathSegmentDistance(support, it) } }
+                // The stem is a constant 10 x 10 mm cross-section throughout this Z range.
+                // Measure against its actual rectangular surface at each support segment's
+                // height, and treat paths passing through the solid as zero clearance.
+                val minGap = supportSegments.minOf { support ->
+                    pathSegmentRectangleDistance(support, stemMinX, stemMinY, stemMaxX, stemMaxY)
+                }
+                assertTrue(
+                    "positive-length support extrusion must not enter the solid stem cross-section " +
+                        "at clearance $clearance mm (minimum centerline gap=$minGap mm)",
+                    minGap > 1e-4,
+                )
                 minGapsByClearance[clearance] = minGap
                 Log.i("NativeSliceDeviceTest", "tree clearance=$clearance mm minimum support-to-stem cross-section gap=$minGap mm " +
                     "segments=${supportSegments.size}")
@@ -1636,6 +1807,41 @@ class NativeSliceDeviceTest {
             model.release()
             source.delete()
             output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun reusedPrintReenablesPrimeTowerWhenNextModelUsesAnotherFilament() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("enable_prime_tower", "1")
+        val source = copyCube(context, "prime-tower-reused-print-source.stl")
+        val previousModel = Model(source)
+        val nextModel = Model(source)
+        try {
+            previousModel.setUniformFilament(0, 1)
+            nextModel.addObject(nextModel, 0)
+            nextModel.translate(1, 35.0, 0.0, 0.0)
+            nextModel.setUniformFilament(0, 1)
+            nextModel.setUniformFilament(1, 2)
+            SliceBeam.genCurrentConfig(nextModel)
+
+            val states = Native.reused_print_prime_tower_regression(
+                previousModel.pointer,
+                nextModel.pointer,
+                SliceBeam.getCurrentConfigFile().absolutePath,
+            )
+            assertEquals("the first single-filament model should normalize the tower off", 0, states[0])
+            assertEquals("the first model should use one tool", 1, states[1])
+            assertEquals("the first model should slice without a tower", 0, states[2])
+            assertEquals("the next two-filament model should re-enable its configured tower", 1, states[3])
+            assertEquals("the second model's rebuilt regions should expose both tools", 2, states[4])
+            assertEquals("slicing the next model should generate its prime tower", 1, states[5])
+        } finally {
+            previousModel.release()
+            nextModel.release()
+            source.delete()
             SliceBeam.getCurrentConfigFile().delete()
         }
     }
@@ -5521,6 +5727,53 @@ class NativeSliceDeviceTest {
             pointDistance(b.x0, b.y0, a), pointDistance(b.x1, b.y1, a),
         )
     }
+
+    private fun pathSegmentRectangleDistance(
+        path: GCodePathSegment,
+        minX: Double,
+        minY: Double,
+        maxX: Double,
+        maxY: Double,
+    ): Double {
+        // Liang-Barsky segment clipping also catches an entire support segment running inside
+        // the model cross-section; measuring only distance to the four edges could miss that.
+        val dx = path.x1 - path.x0
+        val dy = path.y1 - path.y0
+        var enter = 0.0
+        var leave = 1.0
+        val p = doubleArrayOf(-dx, dx, -dy, dy)
+        val q = doubleArrayOf(path.x0 - minX, maxX - path.x0, path.y0 - minY, maxY - path.y0)
+        for (index in p.indices) {
+            if (kotlin.math.abs(p[index]) <= 1e-12) {
+                if (q[index] < 0.0) {
+                    return rectangleEdgeDistance(path, minX, minY, maxX, maxY)
+                }
+                continue
+            }
+            val ratio = q[index] / p[index]
+            if (p[index] < 0.0) {
+                if (ratio > leave) return rectangleEdgeDistance(path, minX, minY, maxX, maxY)
+                enter = maxOf(enter, ratio)
+            } else {
+                if (ratio < enter) return rectangleEdgeDistance(path, minX, minY, maxX, maxY)
+                leave = minOf(leave, ratio)
+            }
+        }
+        return if (enter <= leave) 0.0 else rectangleEdgeDistance(path, minX, minY, maxX, maxY)
+    }
+
+    private fun rectangleEdgeDistance(
+        path: GCodePathSegment,
+        minX: Double,
+        minY: Double,
+        maxX: Double,
+        maxY: Double,
+    ): Double = minOf(
+        pathSegmentDistance(path, GCodePathSegment(minX, minY, maxX, minY, path.z)),
+        pathSegmentDistance(path, GCodePathSegment(maxX, minY, maxX, maxY, path.z)),
+        pathSegmentDistance(path, GCodePathSegment(maxX, maxY, minX, maxY, path.z)),
+        pathSegmentDistance(path, GCodePathSegment(minX, maxY, minX, minY, path.z)),
+    )
 
     private inline fun withKobraProfile(block: () -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

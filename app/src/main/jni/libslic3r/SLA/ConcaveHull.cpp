@@ -74,6 +74,12 @@ void ConcaveHull::add_connector_rectangles(const Points &centroids,
 
         double dx = c.x() - cc.x(), dy = c.y() - cc.y();
         double l  = std::sqrt(dx * dx + dy * dy);
+        // A symmetric island may sit exactly at the scene center. Other connectors already
+        // reach that center; avoid dividing by zero and emitting a NaN polygon for this island.
+        if (l <= 1.) {
+            ++idx;
+            continue;
+        }
         double nx = dx / l, ny = dy / l;
 
         const Point &ct = centroids[idx];

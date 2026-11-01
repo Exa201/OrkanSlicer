@@ -1,6 +1,67 @@
+# Nightly Orca Batch 6 — Punkt 10/10 verifiziert — 2026-11-01
+
+- Orca `4b3e4194ff`: Lightning-Distanzfeld-Grenzen umfassen jetzt alle geöffneten Überhangproben; verhindert Endlosschleife beim Erzeugen von Lightning-Stützästen.
+- API-36 / `emulator-5556`: gezielter Distanzfeld-Grenzfall 1/1 bestanden; vollständiger Slice des geöffneten Überhang-Fixtures mit erzeugtem Sparse-Infill-G-Code 1/1 bestanden.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich. Vollständige JVM-Suiten danach: Debug 724/724 und Slice 724/724, jeweils 0 Fehler/Skips.
+- Batch 6 erreicht **10/10**. Nächster Schritt: gesamtes Diff prüfen, vollständigen Debug-APK-Build erstellen, auf API 36 installieren/starten, SHA-256/Commit dokumentieren und Nightly-Release hochladen. Bis dahin keine Release-Abnahme behaupten.
+
+# Nachprüfung Plattenanordnung — 2026-11-01
+
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; die fokussierten Arrange-Tests liefen auf `emulator-5556` / API 36 mit eingeschaltetem Display.
+- Zunächst scheiterten Testversuche bei schlafendem/uninitialisiertem GL-Renderer; auf `emulator-5558` brach das Android-System die Instrumentierung ab. Nach `stayon`/Wake und neuem Lauf bestanden **alle sechs** Arrange-Regressionen einzeln 1/1: automatische Folgeplatten, zusätzliches 3MF-Modell auf voller Platte, Mehrfachimport mit Koordinatenerhalt, XY-Drehung, konkave offene Grundfläche sowie Einfügen in die Lücke gruppierter Mesh-Inseln.
+- Die drei Importtests warten jetzt ausdrücklich auf eine angehängte GLView mit initialisiertem Druckbett. So werden Import-/Arrange-Ergebnisse nicht mit einem schlafenden Testemulator verwechselt.
+- Keine Xiaomi-Hardwareprüfung. Die Mesh-Fußabdruckprojektion bleibt auf 20.000 Dreiecke begrenzt; größere Modelle nutzen weiterhin die sichere konvexe Hülle und können freien Raum ungenutzt lassen. Kein APK-, Release- oder GitHub-Upload in diesem Schritt.
+
 # Fortsetzungsstand aktualisiert — 2026-11-01
 
+## Nightly Orca Batch 6 — Punkt 9/10 verifiziert
+
+- Orca `bb4c092ae4`: Das 3D-Fuel-PCTG-ESD-Profil verwendet in Android jetzt den sichtbaren Markennamen `3D-Fuel Pro PCTG ESD`.
+- `NativeSliceDeviceTest#orca3DFuelMaterialLibraryLoadsIndependentlyAndSlicesRepresentativeFilaments` bestand auf API 36 (1/1). Der Test weist den neuen Titel nach, schließt den alten Titel aus und slice't ESD-PCTG mit 270 °C bis in den erzeugten G-Code.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich. Batch 6: 9/10; die nächste konkrete Aufgabe ist ein weiterer tatsächlich ungeporteter Orca-Android-Punkt mit eigenem Verhaltenstest. Noch kein APK-/Release-Gate.
+
+## 3MF-Modellimport auf belegte Platte — 2026-11-01
+
+- Ein 3MF-Projekt auf leerer Platte behält weiter seine gespeicherten Plattenkoordinaten. Wird ein 3MF jedoch als zusätzliches Modell auf eine bereits belegte Platte geladen, läuft es nun durch dieselbe Ausrichtung, Anordnung und automatische Überlaufbehandlung wie ein normaler Modellimport.
+- `InitialProjectMenuDeviceTest#additionalProjectModelOverflowCreatesPlateWithoutMovingExistingModel` bestand auf API 36 (1/1). Bei voller Platte blieb das vorhandene Modell unverändert auf Platte 1; der importierte Eintrag kam auf die automatisch erzeugte Platte 2, die anschließend ausgewählt wurde.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; der fokussierte API-36-Emulatorlauf bestand 1/1, und `git diff --check` ist sauber. Keine Hardwareprüfung, kein APK-/Release-Build und kein GitHub-Upload in diesem Schritt.
+
+## Nightly Orca Batch 6 — Punkt 8/10 verifiziert
+
+- Orca `533d4c3e9e`: Bridge Infill behält bei `slowdown_for_curled_perimeters` die konfigurierte `bridge_speed`; überhängende Perimeter verwenden weiterhin ihre Overhang-Geschwindigkeiten.
+- `NativeSliceDeviceTest#bridgeInfillKeepsBridgeSpeedWithCurledPerimeterSlowdown` erzeugte einen echten G-Code-Slice und bestand 1/1 auf API 36 (0 Fehler/Skips).
+- Batch 6 steht bei **8/10**; noch keine APK oder Release. Nächster Schritt: zwei weitere noch nicht portierte Orca-Punkte mit echtem Android-Codepfad und gezieltem Verhaltenstest auswählen.
+
+## Nightly Orca Batch 6 — Punkt 7/10 verifiziert
+
+- Orca `b3f8d0af15`: CGAL-Konvertierung entfernt jetzt isolierte Mesh-Vertices und kompaktifiziert Indizes, bevor Volumenprüfungen laufen.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich. `NativeSliceDeviceTest#cgalBooleanVolumeChecksIgnoreUnreferencedVertices` bestand 1/1 auf `emulator-5558` / API 36; bestätigt geschlossenes Volumen, fehlende Selbstüberschneidung, Volumen 1000, gültige neue Indizes und 12 erhaltene Dreiecke.
+- Batch 6 stand zu diesem Zeitpunkt bei 7/10; siehe neueren Punkt 8 oben.
+
+## Nightly Orca Batch 6 — Punkt 6/10 verifiziert
+
+- Android-Adaption von Orca `2cb2f0d2e7`: Der adaptive-PA-Editor validiert nur geänderte Filamentvarianten, toleriert Leerzeichen in Kommawerten/mehrzeiligen Messreihen, zeigt Filament- und Zeilennummer an und lässt ungültige Werte nicht speichern.
+- `AdaptivePAModelValidatorTest` 4/4; `AdaptivePAModelEditorDeviceTest` 2/2 auf `solidcraft_port_test_clean_20261101` (API 36). UI-Nachweis: fehlerhafte Messreihe zeigt die richtige Zeile und sperrt Speichern; korrigierte Whitespace-Messreihe lässt sich sichern, der unveränderte `0,0,0`-Platzhalter der zweiten Variante bleibt erhalten. `:app:assembleSliceTestAndroidTest` und `git diff --check` erfolgreich.
+- Derselbe verbundene Lauf auf `solidcraft_touch_isolated_api36` hatte 0/2: Compose fand vor den Assertions keine Semantik-Hierarchie; Systemlogs zeigen starke Graphics-Composer-/Surface-Sync-Verzögerung. Der gezielte Wiederholungslauf nur auf dem sauberen AVD bestand 2/2. Kein Xiaomi- oder physischer Druckertest.
+- Nightly Batch 6 steht bei **6/10**; keine APK/Release bis 10/10. Arbeitsbaum enthält weitere laufende Nightly-Änderungen und bleibt außerhalb des fokussierten Test-Import-Fixes unangetastet. Nächster Schritt: neuen Orca-Upstream-Punkt auswählen, der eine aktive Android-Codebahn besitzt und eine separate Regression mit sichtbarem Slice-/UI-Effekt erlaubt.
+
+## Import/Arrange-Verifikation — 2026-11-01
+
+- Die Arrange-Übergabe reicht jetzt auch Innenlöcher einer ExPolygon-Fußspur an libnest2d weiter; zuvor wurde nur die Außenkontur übertragen. Dadurch kann Nesting echten freien Innenraum berücksichtigen.
+- Gruppierte, getrennte Mesh-Inseln werden mit schmalen 0,5-mm-Sicherheitsstegen als ein Arrange-Umriss verbunden. Nach dem normalen Packen sucht ein begrenzter Nachpack-Schritt in 2-mm-Schritten nach freien Positionen innerhalb der Gruppe. Er prüft projizierte Mesh-Inseln, den eingestellten Objektabstand und die Bettgrenze und verschiebt nur vollständige Modellinstanzen.
+- Der vorherige gruppierte Fußspurenansatz verwendete Orkas SLA-ConcaveHull-Bridge; er wurde jetzt durch schmale MST-Verbindungsstege ersetzt, um unnötig belegte Keilflächen zu vermeiden. Die Nullvektorabsicherung in `ConcaveHull` bleibt als unabhängiger Schutz bestehen.
+- `InitialProjectMenuDeviceTest#groupedDisconnectedImportArrangesAnotherModelWithoutBreakingTheGroup` bestand isoliert 1/1 auf API 36: ein kleines separates Modell wird in den offenen Zwischenraum zweier gruppierter Würfel gelegt; die Modellgruppe bleibt erhalten und beide liegen innerhalb der Platte. Vor dem JNI-Aufruf des Nachpack-Schritts schlug die strengere Innenplatzierungsassertion fehl; nach Einbindung in den echten Android-Arrange-Aufruf bestand sie.
+- Die drei bestehenden Instrumentierungsregressionen für automatische neue Platte bei vollem Bett, XY-Ausrichtung und konkaven L-Fußabdruck bestanden gemeinsam 3/3 in einem direkten ADB-Lauf auf API 36. Eine spätere kombinierte Wiederholung mit dem neuen Gruppenfall wurde durch einen ActivityScenario-/Emulator-Systemabbruch beendet; sie wird nicht als vollständiger grüner Lauf gewertet.
+- Ein Gradle-`connectedSliceTestAndroidTest`-Lauf wurde zunächst irrtümlich auf beide AVDs gestartet, weil der Runner den `tests=`-Filter ignoriert. Der Wiederholungslauf wurde vom Gradle-Ergebnisverzeichnis wegen einer nicht lesbaren/gesperrten `utp.0.log.lck` abgebrochen. Daher zählt nur der direkte ADB-Instrumentierungslauf als Verifikation; es wurde keine bestehende Ergebnisdatei gelöscht.
+- Die Produktlogik dafür war bereits vorhanden: atomarer Arrange-Rollback, gemeinsames Packen als schneller Normalfall, Einzelobjekt-Fallback mit neuen Platten, Zentrierung einzeln zu großer Objekte und begrenzte konkave Mesh-Projektion. Neu geändert wurde `MainActivity`: normale Einzel- und Mehrfachdateiimporte aktivieren jetzt die automatische Modellorientierung; importierte 3MF-Projekte behalten weiterhin ihr gespeichertes Layout.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; die SliceTest-APK wurde auf `emulator-5556` installiert. Der neue Gruppen-Gap-Fill-Test bestand 1/1 und konkave Kontur, automatische Folgeplatte sowie XY-Drehung bestanden danach gemeinsam 3/3 per direktem ADB/API-36-Lauf. Die früheren Emulatorabstürze bleiben als historische fehlgeschlagene Wiederholungen dokumentiert; der spätere gezielte Lauf war grün.
+- Begrenzung: offene oder über 20.000 Dreiecke große Meshes verwenden weiterhin die konservative konvexe Hülle. Der Gap-Fill ist für das Zwei-Insel-STL und die drei Importregressionen verifiziert; komplexe Mehrfachgruppen und reale Xiaomi-Hardware sind damit noch nicht geprüft. APK basiert auf Arbeitsbaum-HEAD `68f9ad5ff4a54227daa1bb633cf05a7aebbb1c3e` plus lokalen Änderungen.
+
 ## Druckplatten-Platznutzung — in Arbeit, 2026-11-01
+
+- Gezielte Wiederholung auf `emulator-5558` (API 36) nach Zusammenstellung der aktuellen SliceTest-APK: `importedConcaveModelUsesItsOpenFootprintForAdditionalObjects`, `multiFileImportCreatesPlatesAndPreservesExistingModelsWhenBedFills`, `importedObjectsRotateInPlaneToUseAvailableBedSpace` und `groupedDisconnectedImportArrangesAnotherModelWithoutBreakingTheGroup` jeweils **1/1 bestanden**. Damit sind freie L-förmige Fläche, automatische Folgeplatten bei Mehrfachimport, XY-Drehung und ein Einfügemodell im Zwischenraum gruppierter Mesh-Inseln mit dem aktuellen Arbeitsbaum verifiziert.
+- Importverhalten: normale Modellimporte orientieren vor dem Packen und legen die Geometrie auf Z=0; 3MF-Projektimporte behalten absichtlich ihre gespeicherten Platten/Anordnungen. Der automatische Überlauf legt bei Bedarf neue Platten an und wählt die letzte neu belegte Platte. Zu große Einzelobjekte werden zentriert und erhalten eine Warnung.
+- Begrenzung: die exakten konkaven Projektionskonturen sind auf geschlossene Meshes bis 20.000 Dreiecke begrenzt. Größere/offene Meshes fallen für sichere Kollisionsvermeidung auf die konvexe Hülle zurück; bei diesen kann die Packung weiterhin freien Raum übersehen. Es wurde keine neue Produktänderung in diesem Durchgang vorgenommen; die Tests bestätigen vorhandene lokale Änderungen. Arbeitsbaum bleibt gemischt und ungecommittet; kein APK-/Release-Gate für diese Arrange-Prüfung.
 
 - Neue Anordnungsfläche: geschlossene druckbare Meshes bis 20.000 Dreiecke werden für Arrange als projizierte 2D-Kontur angeordnet. Eine einzelne konkave Kontur kann damit ihren freien Innenbereich für andere Objekte nutzbar machen. Offene, zu große oder getrennte Mehrfachinseln verwenden weiterhin die sichere konvexe Hülle.
 - Neue Regression `InitialProjectMenuDeviceTest#importedConcaveModelUsesItsOpenFootprintForAdditionalObjects`: ein 150-mm-L-Modell und ein 100-mm-Objekt müssen gemeinsam auf eine Platte passen. Der Overflow-Test prüft nun zusätzlich drei aufeinanderfolgende, jeweils zu große Importe und erwartet drei korrekt ausgewählte Platten.
@@ -3576,3 +3637,23 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Orca-Upstream aktuell `1093ff0714e26ca8d81f3d7fe15d782cc047346f`. `041df4031` (By-Object-Anordnung kurzer Objekte) bleibt offen, bis die Android-Anordnungsaufrufe die aktive Druckkonfiguration GL-sicher übergeben; `1093ff071` hat keinen Android-PostProcessor-Aufrufpfad.
 - Nächster konkreter Schritt: `Bed3D.arrange`-/JNI-Aufrufketten für manuelles Anordnen, Duplizieren, Bettfüllen und Import auf sichere Konfigurationsübergabe prüfen; dann den Orca-By-Object-Arrange-Fix vollständig oder mit konkreter Inapplicability-Begründung abnehmen. APK erst bei Batch 3 10/10.
 - Letzter Code-Commit vor diesem Teilpaket: `a485000a66a09f00c92430fc55da57baf45748ef`. Die aktuellen MMU-Änderungen und diese Statusnotiz sind noch lokal/uncommitted.
+# Nightly Orca-Portierungsstand — 2026-11-01
+
+- Aktive Arbeit: Nightly Batch 6, **6/10** verifizierte Orca-Punkte. Punkt 3 (transparente G-Code-Filamentvorschau) hat Resolver 10/10 und zwei GLES-/Einstellungs-Gerätetests auf zwei API-36-Emulatoren bestanden. Punkt 4 (`e52c735d1a`) korrigiert G-Code-Platzhaltervektoren anhand Filament- und Druckkopfindex; gezielter Regressionstest bestand auf beiden API-36-Emulatoren. Punkt 5 (`4c7928d8aa`) verifiziert Prime-Tower-Re-Normalisierung beim Wechsel einer wiederverwendeten `Print`-Instanz von einem Ein- zu einem Zweifilamentmodell; der echte `Print::process()`-Test bestand auf beiden API-36-Emulatoren. Punkt 6 (`2cb2f0d2e7`) validiert im mobilen Dialog nur geänderte adaptive-PA-Varianten; Unit 4/4 und Compose-UI 2/2 auf dem sauberen API-36-AVD.
+- Kandidat `304924a69a` (unabhängige Infill-/Oberflächen-Filament-IDs) ist bereits umgesetzt und getestet in `6d8f78d9d`; nicht erneut zählen. Orca `59f0cc3806` (leere Layerlisten) ist bereits in `28a92f87bc` portiert.
+- Aktueller Nightly-Code-HEAD: `68f9ad5ff4a54227daa1bb633cf05a7aebbb1c3e`; Arbeitsbaum enthält weitere laufende Änderungen. Nicht zurücksetzen. Batch-6-Punkte 3 bis 6 sind lokal und noch nicht in einer APK/einem Release enthalten.
+- Verifikation außerhalb der Batch-Zählung: der bereits vorhandene Orca-Fix `9b4f84a923` für benutzerdefinierte Druckerprofile mit mehr Düsen als das Elternprofil besteht mit 2→4 Düsen und vier erhaltenen `nozzle_diameter`-Werten auf beiden API-36-Emulatoren (je 1/1). Die Verifikation zählt nicht als neue Produktänderung.
+- Nächster Schritt: weitere ungeportete Orca-Kandidaten gegen Android-Aufrufpfade prüfen und einen weiteren Batch-6-Punkt als echte Slice-/UI-Regressionsänderung implementieren. Keine Batch-APK/Release vor 10/10.
+
+# Auto-arrange footprint regression — 2026-11-01
+
+- Auto-arrange used the convex hull for every open/non-manifold triangle mesh, even when its projected triangles formed a valid concave footprint. This blocked usable bed space and could force extra plates.
+- `ModelObject::arrange_footprint_2d()` now uses bounded mesh projection for non-empty open/non-manifold meshes too. The 20,000-facet cap remains because arrange runs on the renderer thread; higher-facet models still use the conservative convex-hull fallback to avoid UI stalls.
+- Extended `InitialProjectMenuDeviceTest#importedConcaveModelUsesItsOpenFootprintForAdditionalObjects` to import an open-bottom concave STL and a second object; both remain independent and fit on one plate.
+- Verification: `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` succeeded; focused API-36 emulator test passed 1/1 (0 failures/errors/skips; 53.927 s); `git diff --check` passed.
+
+# Current Nightly continuation — 2026-11-01
+
+- Batch 6: **8/10**. Points 7 (`b3f8d0af15`, isolated CGAL vertices) and 8 (`533d4c3e9e`, curled-perimeter slowdown preserving bridge speed) are implemented and targeted API-36 tests pass. No Batch 6 APK/release before 10/10.
+- The separate bed-space regression allows non-manifold/open mesh projections under the existing 20,000-facet cap; the open concave STL and insert test passes 1/1. Higher-facet meshes still use the conservative convex hull because arrange currently runs on the renderer thread.
+- Next concrete task: choose and implement Batch 6 point 9 from the remaining Orca upstream history, then add a focused test on the active Android slice/UI path. Working tree remains mixed and uncommitted; preserve unrelated changes.

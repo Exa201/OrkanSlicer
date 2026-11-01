@@ -4,6 +4,7 @@
 #include <libslic3r/Arrange.hpp>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Model.hpp"
+#include <type_traits>
 
 namespace Slic3r {
 using ModelInstancePtrs = std::vector<ModelInstance*>;
@@ -25,6 +26,7 @@ using VirtualBedFn = std::function<void(arrangement::ArrangePolygon&)>;
 ArrangePolygons get_arrange_polys(const Model &model, ModelInstancePtrs &instances);
 ArrangePolygon  get_arrange_poly(const Model &model);
 bool apply_arrange_polys(ArrangePolygons &polys, ModelInstancePtrs &instances, VirtualBedFn);
+void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed);
 
 void duplicate(Model &model, ArrangePolygons &copies, VirtualBedFn);
 void duplicate_objects(Model &model, size_t copies_num);
@@ -38,6 +40,8 @@ bool arrange_objects(Model &              model,
     ModelInstancePtrs instances;
     auto&& input = get_arrange_polys(model, instances);
     arrangement::arrange(input, bed, params);
+    if constexpr (std::is_same_v<std::decay_t<TBed>, Points>)
+        fill_compound_arrange_gaps(input, bed);
     
     return apply_arrange_polys(input, instances, vfn);
 }

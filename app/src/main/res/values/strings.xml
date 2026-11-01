@@ -1077,6 +1077,10 @@
     <string name="SettingsRenderQuality">3D viewport quality</string>
     <string name="SettingsRenderQualityDescription">Lower resolution can improve camera and preview performance. Slicing quality and model geometry are unchanged.</string>
     <string name="SettingsRenderQualityAutomatic">Automatic (%1$d%%)</string>
+    <string name="SettingsTranslucentFilamentPreview">Translucent filament preview</string>
+    <string name="SettingsTranslucentFilamentPreviewDescription">Show translucent filament colors in the sliced G-code preview.</string>
+    <string name="SettingsPreviewEnabled">On</string>
+    <string name="SettingsPreviewDisabled">Off</string>
     <string name="SettingsAbout">About app</string>
     <string name="SettingsAddPrinter">Add printer from presets</string>
     <string name="SettingsAboutVersion">OrkanSlicer for Android · Version %s\n\nApp and ongoing development: CodeMasterCody3D\nAndroid foundation: SliceBeam by utkabobr (YTKAB0BP)\nSlicing engine: OrcaSlicer by SoftFever and contributors\nTechnical foundations: Bambu Studio, PrusaSlicer and Slic3r\nColor-model tool: Kromacut by vycdev\n\nThanks to all open-source contributors. Licenses and source references are in the project.</string>
@@ -1541,4 +1545,11 @@
     <string name="ModelModifierEdit">Edit</string>
     <string name="ModelModifierSaveChanges">Save changes</string>
     <string name="ModelModifierInvalid">Enter valid coordinates and sizes between 0.2 and 500 mm.</string>
+    <string name="AdaptivePAModelValidationLine">Filament %1$d, line %2$d: %3$s</string>
+    <string name="AdaptivePAModelInvalidCharacters">Use only digits, commas and decimal points.</string>
+    <string name="AdaptivePAModelValueCount">Enter exactly three comma-separated values: PA, flow and acceleration.</string>
+    <string name="AdaptivePAModelInvalidNumber">Enter three valid finite numbers.</string>
+    <string name="AdaptivePAModelPaTooHigh">PA must be less than 2.</string>
+    <string name="AdaptivePAModelFlowTooLow">Flow must be greater than PA.</string>
+    <string name="AdaptivePAModelAccelerationTooLow">Acceleration must be greater than flow.</string>
 </resources>

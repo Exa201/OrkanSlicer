@@ -22,6 +22,7 @@
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include <float.h>
+#include <limits>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -1716,11 +1717,12 @@ Polygon ModelObject::convex_hull_2d(const Transform3d& trafo_instance) const
 #endif
 }
 
-ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance) const
+ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, ExPolygons *exact_parts) const
 {
     // Mesh projection gives the arrange packer a tighter silhouette than the convex hull for
-    // L-shaped and other concave parts. Keep this bounded: placement runs synchronously on
-    // Android's GL thread, so high-poly or open meshes use the cheap conservative hull instead.
+    // concave parts. Arrange currently runs on the renderer thread, so keep projection bounded
+    // to avoid blocking camera interaction on dense meshes. Open/non-manifold but valid triangle
+    // surfaces still have a meaningful projected footprint and should not fall back to a hull.
     constexpr size_t MAX_PROJECTION_FACETS = 20000;
     size_t facet_count = 0;
     Polygons projected;
@@ -1728,7 +1730,7 @@ ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance) c
         if (!volume->is_model_part())
             continue;
         const TriangleMesh &mesh = volume->mesh();
-        if (mesh.empty() || !mesh.stats().manifold())
+        if (mesh.empty())
             return {};
         facet_count += mesh.facets_count();
         if (facet_count > MAX_PROJECTION_FACETS)
@@ -1744,11 +1746,61 @@ ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance) c
     if (projected.empty())
         return {};
     ExPolygons islands = union_ex(projected);
-    // ArrangePolygon is one logical item. If this geometry has multiple disconnected islands,
-    // let the caller fall back to a convex enclosure instead of leaving space between parts open.
-    if (islands.size() != 1 || islands.front().contour.empty())
+    if (islands.empty())
         return {};
-    return std::move(islands.front());
+    if (exact_parts)
+        *exact_parts = islands;
+    if (islands.size() == 1)
+        return std::move(islands.front());
+
+    // ArrangePolygon is one ExPolygon, while a multipart model must remain one rigid arrange
+    // item. Join disconnected silhouettes with a minimum spanning set of thin conservative
+    // bridges. The previous centroid-to-centre fan filled large triangular wedges in the
+    // footprint, causing the packer to reject objects that physically fit between the parts.
+    Polygons connectors;
+    std::vector<bool> connected(islands.size(), false);
+    connected.front() = true;
+    constexpr float CONNECTOR_RADIUS_MM = 0.25f;
+    while (std::find(connected.begin(), connected.end(), false) != connected.end()) {
+        double nearest_distance_squared = std::numeric_limits<double>::infinity();
+        Point nearest_from, nearest_to;
+        size_t nearest_island = islands.size();
+        for (size_t from = 0; from < islands.size(); ++from) {
+            if (!connected[from])
+                continue;
+            for (size_t to = 0; to < islands.size(); ++to) {
+                if (connected[to])
+                    continue;
+                for (const Point &from_point : islands[from].contour.points) {
+                    for (const Point &to_point : islands[to].contour.points) {
+                        const double dx = double(from_point.x()) - double(to_point.x());
+                        const double dy = double(from_point.y()) - double(to_point.y());
+                        const double distance_squared = dx * dx + dy * dy;
+                        if (distance_squared < nearest_distance_squared) {
+                            nearest_distance_squared = distance_squared;
+                            nearest_from = from_point;
+                            nearest_to = to_point;
+                            nearest_island = to;
+                        }
+                    }
+                }
+            }
+        }
+        if (nearest_island == islands.size())
+        return {};
+        Polyline bridge{nearest_from, nearest_to};
+        Polygons bridge_area = offset(bridge, scaled(CONNECTOR_RADIUS_MM), ClipperLib::jtRound,
+                                      DefaultLineMiterLimit, ClipperLib::etOpenRound);
+        if (bridge_area.empty())
+            return {};
+        connectors.insert(connectors.end(), std::make_move_iterator(bridge_area.begin()),
+                          std::make_move_iterator(bridge_area.end()));
+        connected[nearest_island] = true;
+    }
+    ExPolygons grouped = union_ex(islands, connectors);
+    if (grouped.size() != 1 || grouped.front().contour.empty())
+        return {};
+    return std::move(grouped.front());
 }
 
 void ModelObject::center_around_origin(bool include_modifiers)
@@ -3422,7 +3474,8 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
     Geometry::Transformation t(m_transformation);
     t.set_offset(get_offset().z() * Vec3d::UnitZ());
     t.set_rotation(rotation);
-    ExPolygon footprint = get_object()->arrange_footprint_2d(t.get_matrix());
+    ExPolygons physical_parts;
+    ExPolygon footprint = get_object()->arrange_footprint_2d(t.get_matrix(), &physical_parts);
     if (footprint.contour.empty())
         footprint = ExPolygon{get_object()->convex_hull_2d(t.get_matrix())};
 
@@ -3434,6 +3487,7 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
 
     arrangement::ArrangePolygon& ret = *(arrangement::ArrangePolygon*)ap;
     ret.poly = std::move(footprint);
+    ret.physical_parts = std::move(physical_parts);
     ret.translation  = Vec2crd{scaled(get_offset(X)), scaled(get_offset(Y))};
     ret.rotation     = get_rotation(Z);
 

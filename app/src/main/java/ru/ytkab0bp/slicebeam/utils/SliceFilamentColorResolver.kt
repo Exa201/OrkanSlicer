@@ -22,6 +22,19 @@ object SliceFilamentColorResolver {
         }
     }
 
+    /** Colors for libvgcode: packed RGBA when enabled, RGB when the user wants an opaque preview. */
+    @JvmStatic
+    fun viewerColors(sliceRgba: IntArray?, fallbackColors: IntArray, translucent: Boolean): IntArray {
+        if (translucent) {
+            return sliceRgba?.takeIf { it.isNotEmpty() } ?: fallbackColors.map {
+                ((it and 0xFFFFFF) shl 8) or 0xFF
+            }.toIntArray()
+        }
+        val rgba = sliceRgba?.takeIf { it.isNotEmpty() }
+        return rgba?.map { it ushr 8 }?.toIntArray()
+            ?: fallbackColors.map { it and 0xFFFFFF }.toIntArray()
+    }
+
     @JvmStatic
     fun resolve(configColors: String?, toolCount: Int, fallbackColors: IntArray): IntArray {
         val parsed = configColors?.let(ProfileStringVectorCodec::parse).orEmpty()

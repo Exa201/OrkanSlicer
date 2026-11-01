@@ -3762,6 +3762,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionBool(0));
 
+    def = this->add("high_precision_gcode", coBool);
+    def->label = L("High precision G-code (experimental)");
+    def->tooltip = L("Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors. With relative E distances, rounding error is carried over to the next move. This can help with small nozzles and thin layers, but increases G-code size and may slow down some printers.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
     // BBS
     def = this->add("scan_first_layer", coBool);
     def->label = L("Scan first layer");
