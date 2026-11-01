@@ -3048,6 +3048,191 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun importedObjectsMoveToAutomaticallyCreatedPlateWhenCurrentPlateIsFull() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "auto-plate-import-140mm.stl")
+        try {
+            writeScaledCubeStl(activity, modelFile, 7f)
+            fun importAndWait() {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait()
+            assertEquals("first 140 mm object should use the initial plate", 0, bed.activePlateIndex)
+            val initialModel = readPlateModels(bed).first()
+            assertEquals(1, initialModel.objectsCount)
+            val initialBounds = readExactBoundsOnGl(glView, 0).single()
+
+            importAndWait()
+            compose.waitUntil(timeoutMillis = 10_000) { readPlateModels(bed).size == 2 }
+            assertEquals("the overflow import should select the newly created plate", 1, bed.activePlateIndex)
+            importAndWait()
+            compose.waitUntil(timeoutMillis = 10_000) { readPlateModels(bed).size == 3 }
+            assertEquals("each additional oversized import should advance to a new plate", 2, bed.activePlateIndex)
+            val models = readPlateModels(bed)
+            assertEquals("the original plate must keep its object", 1, models[0].objectsCount)
+            assertEquals("the second imported object should remain on plate two", 1, models[1].objectsCount)
+            assertEquals("the third imported object should be placed on plate three", 1, models[2].objectsCount)
+            assertArrayEquals("failed first-plate packing must not shift the existing object", initialBounds,
+                readExactBoundsOnGl(glView, models[0], 0), 0.03)
+            val placedBounds = readExactBoundsOnGl(glView, 0).single()
+            val volumeMin = glView.renderer.bed?.getVolumeMin() ?: error("bed bounds unavailable")
+            val volumeMax = glView.renderer.bed?.getVolumeMax() ?: error("bed bounds unavailable")
+            assertTrue("auto-placed object must be inside the active bed X bounds",
+                placedBounds[0] >= volumeMin.x - 0.1 && placedBounds[3] <= volumeMax.x + 0.1)
+            assertTrue("auto-placed object must be inside the active bed Y bounds",
+                placedBounds[1] >= volumeMin.y - 0.1 && placedBounds[4] <= volumeMax.y + 0.1)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun importedConcaveModelUsesItsOpenFootprintForAdditionalObjects() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val lShapeFile = File(activity.cacheDir, "auto-arrange-concave-l.stl")
+        val insertFile = File(activity.cacheDir, "auto-arrange-concave-insert.stl")
+        try {
+            // This 110 mm square fits in the L's 125 mm open corner with the 6 mm spacing.
+            // Their 150/110 mm convex bounds cannot be packed together on this test bed.
+            writeConcavePrismStl(lShapeFile)
+            writeScaledBoxStl(activity, insertFile, 3.9f, 3.9f, 1f)
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                }, autoOrientImportedModels = true)
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(lShapeFile)
+            importAndWait(insertFile)
+            val plates = readPlateModels(bed)
+            assertEquals("the insert should use free space inside the concave footprint", 1, plates.size)
+            assertEquals("the imported models should remain independent", 2, plates.single().objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            val lModel = bounds.maxBy { (it[3] - it[0]) * (it[4] - it[1]) }
+            val insert = bounds.minBy { (it[3] - it[0]) * (it[4] - it[1]) }
+            val notchMargin = 3.0 // Half of the configured 6 mm object clearance.
+            val inOpenCorner = listOf(
+                insert[0] >= lModel[0] + 25.0 + notchMargin && insert[1] >= lModel[1] + 25.0 + notchMargin,
+                insert[0] >= lModel[0] + 25.0 + notchMargin && insert[4] <= lModel[4] - 25.0 - notchMargin,
+                insert[3] <= lModel[3] - 25.0 - notchMargin && insert[1] >= lModel[1] + 25.0 + notchMargin,
+                insert[3] <= lModel[3] - 25.0 - notchMargin && insert[4] <= lModel[4] - 25.0 - notchMargin,
+            ).any { it }
+            assertTrue("the smaller model must clear both arms and occupy an open L-shaped corner; " +
+                "L=${lModel.contentToString()}, insert=${insert.contentToString()}", inOpenCorner)
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            bounds.forEachIndexed { index, box ->
+                assertTrue("arranged model $index must remain within the build volume",
+                    box[0] >= bedMin.x - 0.1 && box[1] >= bedMin.y - 0.1 &&
+                        box[3] <= bedMax.x + 0.1 && box[4] <= bedMax.y + 0.1)
+            }
+        } finally {
+            lShapeFile.delete()
+            insertFile.delete()
+        }
+    }
+
+    @Test
+    fun importedObjectsRotateInPlaneToUseAvailableBedSpace() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val firstFile = File(activity.cacheDir, "auto-arrange-140x80.stl")
+        val secondFile = File(activity.cacheDir, "auto-arrange-80x140.stl")
+        try {
+            val activeBed = requireNotNull(glView.renderer.bed)
+            val bedMin = requireNotNull(activeBed.getVolumeMin())
+            val bedMax = requireNotNull(activeBed.getVolumeMax())
+            val longBedSide = maxOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y)
+            val shortBedSide = minOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y)
+            val longSide = longBedSide * 0.65
+            val shortSide = shortBedSide * 0.40
+            writeScaledBoxStl(activity, firstFile, (longSide / 20.0).toFloat(), (shortSide / 20.0).toFloat(), 1f)
+            writeScaledBoxStl(activity, secondFile, (shortSide / 20.0).toFloat(), (longSide / 20.0).toFloat(), 1f)
+
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(firstFile)
+            importAndWait(secondFile)
+
+            val plates = readPlateModels(bed)
+            assertEquals("XY rotation should pack perpendicular footprints on one plate", 1, plates.size)
+            assertEquals("both models should remain separate objects", 2, plates.single().objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            bounds.forEachIndexed { index, box ->
+                val width = box[3] - box[0]
+                val depth = box[4] - box[1]
+                assertTrue("arranged object $index should use the compact rotated footprint, got ${width}x${depth}",
+                    kotlin.math.abs(width - longSide) < 0.2 && kotlin.math.abs(depth - shortSide) < 0.2)
+                assertTrue("object $index must remain inside the bed",
+                    box[0] >= bedMin.x - 0.1 && box[1] >= bedMin.y - 0.1 &&
+                        box[3] <= bedMax.x + 0.1 && box[4] <= bedMax.y + 0.1)
+            }
+            val overlapX = minOf(bounds[0][3], bounds[1][3]) - maxOf(bounds[0][0], bounds[1][0])
+            val overlapY = minOf(bounds[0][4], bounds[1][4]) - maxOf(bounds[0][1], bounds[1][1])
+            assertTrue("packed objects must not overlap", overlapX <= 0.1 || overlapY <= 0.1)
+        } finally {
+            firstFile.delete()
+            secondFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         var modelEditStageStartedAt = SystemClock.elapsedRealtime()
         fun logModelEditStage(stage: String, details: String = "") {
@@ -9260,6 +9445,122 @@ class InitialProjectMenuDeviceTest {
         destination.writeBytes(output.array())
     }
 
+    private fun writeScaledCubeStl(activity: MainActivity, destination: File, scale: Float) {
+        val source = activity.assets.open("models/xyz_cube.stl").use { it.readBytes() }
+        val triangleCount = ByteBuffer.wrap(source, 80, 4).order(ByteOrder.LITTLE_ENDIAN).int
+        val bytes = source.copyOf()
+        val data = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        repeat(triangleCount) { triangle ->
+            val base = 84 + triangle * 50
+            listOf(12, 24, 36).forEach { vertex ->
+                repeat(3) { axis ->
+                    val offset = base + vertex + axis * 4
+                    data.putFloat(offset, data.getFloat(offset) * scale)
+                }
+            }
+        }
+        destination.writeBytes(bytes)
+    }
+
+    private fun writeScaledBoxStl(
+        activity: MainActivity,
+        destination: File,
+        scaleX: Float,
+        scaleY: Float,
+        scaleZ: Float,
+    ) {
+        val source = activity.assets.open("models/xyz_cube.stl").use { it.readBytes() }
+        val triangleCount = ByteBuffer.wrap(source, 80, 4).order(ByteOrder.LITTLE_ENDIAN).int
+        val bytes = source.copyOf()
+        val data = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        val scales = floatArrayOf(scaleX, scaleY, scaleZ)
+        repeat(triangleCount) { triangle ->
+            val base = 84 + triangle * 50
+            listOf(12, 24, 36).forEach { vertex ->
+                repeat(3) { axis ->
+                    val offset = base + vertex + axis * 4
+                    data.putFloat(offset, data.getFloat(offset) * scales[axis])
+                }
+            }
+        }
+        destination.writeBytes(bytes)
+    }
+
+    /** Writes a watertight 150 x 150 x 20 mm L-shaped prism as binary STL. */
+    private fun writeConcavePrismStl(destination: File) {
+        val points = listOf(
+            0f to 0f, 150f to 0f, 150f to 25f,
+            25f to 25f, 25f to 150f, 0f to 150f,
+        )
+        val remaining = points.indices.toMutableList()
+        val capTriangles = ArrayList<Triple<Int, Int, Int>>()
+        fun cross(a: Int, b: Int, c: Int): Float {
+            val abx = points[b].first - points[a].first
+            val aby = points[b].second - points[a].second
+            val acx = points[c].first - points[a].first
+            val acy = points[c].second - points[a].second
+            return abx * acy - aby * acx
+        }
+        fun insideTriangle(p: Int, a: Int, b: Int, c: Int): Boolean =
+            cross(a, b, p) >= -0.001f && cross(b, c, p) >= -0.001f && cross(c, a, p) >= -0.001f
+
+        while (remaining.size > 3) {
+            val ear = remaining.indices.firstOrNull { position ->
+                val a = remaining[(position - 1 + remaining.size) % remaining.size]
+                val b = remaining[position]
+                val c = remaining[(position + 1) % remaining.size]
+                cross(a, b, c) > 0f && remaining.none { candidate ->
+                    candidate != a && candidate != b && candidate != c && insideTriangle(candidate, a, b, c)
+                }
+            } ?: error("L polygon triangulation failed")
+            val a = remaining[(ear - 1 + remaining.size) % remaining.size]
+            val b = remaining[ear]
+            val c = remaining[(ear + 1) % remaining.size]
+            capTriangles += Triple(a, b, c)
+            remaining.removeAt(ear)
+        }
+        capTriangles += Triple(remaining[0], remaining[1], remaining[2])
+
+        data class Point3(val x: Float, val y: Float, val z: Float)
+        fun point(index: Int, top: Boolean): Point3 {
+            val p = points[index]
+            return Point3(p.first, p.second, if (top) 20f else 0f)
+        }
+        val triangles = ArrayList<Triple<Point3, Point3, Point3>>()
+        capTriangles.forEach { (a, b, c) ->
+            triangles += Triple(point(a, false), point(c, false), point(b, false))
+            triangles += Triple(point(a, true), point(b, true), point(c, true))
+        }
+        points.indices.forEach { a ->
+            val b = (a + 1) % points.size
+            val bottomA = point(a, false)
+            val bottomB = point(b, false)
+            val topA = point(a, true)
+            val topB = point(b, true)
+            triangles += Triple(bottomA, bottomB, topB)
+            triangles += Triple(bottomA, topB, topA)
+        }
+
+        val output = ByteBuffer.allocate(84 + triangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
+        output.put("Orkan concave footprint test".toByteArray().copyOf(80))
+        output.putInt(triangles.size)
+        triangles.forEach { (a, b, c) ->
+            repeat(3) { output.putFloat(0f) }
+            listOf(a, b, c).forEach { p ->
+                output.putFloat(p.x)
+                output.putFloat(p.y)
+                output.putFloat(p.z)
+            }
+            output.putShort(0)
+        }
+        destination.writeBytes(output.array())
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun readPlateModels(bed: BedFragment): List<Model> =
+        BedFragment::class.java.getDeclaredField("platesModels").apply { isAccessible = true }
+            .get(bed).let { it as List<Model?> }.filterNotNull()
+
     private fun scrollMenuToIndex(index: Int) {
         // Compact portrait menus use a two-row LazyHorizontalGrid. Wide and landscape
         // layouts use a vertically scrollable action column, where individual actions
@@ -9778,6 +10079,25 @@ class InitialProjectMenuDeviceTest {
             finished.countDown()
         }
         assertTrue("GL thread did not return exact bounds", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(bounds.get())
+    }
+
+    private fun readExactBoundsOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        model: Model,
+        index: Int,
+    ): DoubleArray {
+        val finished = CountDownLatch(1)
+        val bounds = AtomicReference<DoubleArray>()
+        glView.queueEvent {
+            val min = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            val max = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            model.getBoundingBoxExact(index, min, max)
+            bounds.set(doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return exact bounds for the requested plate model",
+            finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(bounds.get())
     }
 

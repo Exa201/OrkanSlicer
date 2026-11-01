@@ -2425,7 +2425,7 @@ private fun refreshPlateThumbnails() {
     }
 }
 @Throws(Slic3rRuntimeError::class)
-@JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null, stepOptions:StepImportOptions? = null) {
+@JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null, stepOptions:StepImportOptions? = null, autoOrientImportedModels:Boolean = false) {
 if (destroyed || modelLoadInProgress)
 {
 if (callback != null)
@@ -2443,7 +2443,7 @@ Thread({ try
 StlImportPreflight.largeTriangleCount(f, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
     if (!confirmLargeStlImport(it)) throw ImportCancelledException()
 }
-loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, callback, stepOptions)
+loadModelBlocking(f, preserveProjectLayout, plateCount, importGeneration, callback, stepOptions, autoOrientImportedModels)
 }
 catch (e:Exception) {
 if (e is ImportCancelledException || e is java.util.concurrent.CancellationException) {
@@ -2485,7 +2485,7 @@ if (model != null && model !== emptyModel) model.release()
 glView!!.requestRender() }) })
 }
 @Throws(Slic3rRuntimeError::class)
-private fun loadModelBlocking(f:File, preserveProjectLayout:Boolean, plateCount:Int, importGeneration:Int, callback:ModelLoadCallback?, stepOptions:StepImportOptions?) {
+private fun loadModelBlocking(f:File, preserveProjectLayout:Boolean, plateCount:Int, importGeneration:Int, callback:ModelLoadCallback?, stepOptions:StepImportOptions?, autoOrientImportedModels:Boolean) {
 if (destroyed) return
 if (importGeneration != modelImportGeneration) return
 this.totalPlates = plateCount
@@ -2576,125 +2576,191 @@ if (platesModels.get(currentPlateIndex) == null)
 {
 platesModels.set(currentPlateIndex, Model())
 }
-loadModelInternal(f, preserveProjectLayout, callback, stepOptions)
+loadModelInternal(f, preserveProjectLayout, callback, stepOptions, autoOrientImportedModels)
 }
 updatePlateIndicator()
 }
 @Throws(Slic3rRuntimeError::class)
-private fun loadModelInternal(f:File, preserveProjectLayout:Boolean, callback:ModelLoadCallback?, stepOptions:StepImportOptions?) {
-// Wait, if it's a 3mf project, it already passed plate count, so currentPlateIndex is correct.
- val m = if (stepOptions != null)
-     Model(f, currentPlateIndex + 1, stepOptions, callback?.let { progress -> ImportProgressCallback { fraction -> progress.onProgress(fraction) } })
- else if (callback != null && f.name.endsWith(".stl", ignoreCase = true))
-     Model(f, currentPlateIndex + 1, ImportProgressCallback { fraction -> callback.onProgress(fraction) })
- else Model(f, currentPlateIndex + 1) // 1-based in JNI for specific plate, or 0 for default
- val reduction = try { simplifyImportedModel(m) } catch (e: Exception) { m.release(); throw e }
-val currentModel = currentModel
-if (currentModel != null && currentModel.objectsCount > 0)
-{
-glView!!.queueEvent(object:Runnable {
-override fun run() {
-val bed = glView!!.renderer.bed
-if (bed == null)
-{
-ViewUtils.postOnMainThread({ glView!!.queueEvent(this) })
-return
+private fun loadModelInternal(
+    f: File,
+    preserveProjectLayout: Boolean,
+    callback: ModelLoadCallback?,
+    stepOptions: StepImportOptions?,
+    autoOrientImportedModels: Boolean,
+) {
+    val imported = if (stepOptions != null)
+        Model(f, currentPlateIndex + 1, stepOptions, callback?.let { progress -> ImportProgressCallback { fraction -> progress.onProgress(fraction) } })
+    else if (callback != null && f.name.endsWith(".stl", ignoreCase = true))
+        Model(f, currentPlateIndex + 1, ImportProgressCallback { fraction -> callback.onProgress(fraction) })
+    else Model(f, currentPlateIndex + 1)
+    val reduction = try { simplifyImportedModel(imported) } catch (e: Exception) { imported.release(); throw e }
+
+    glView!!.queueEvent(object : Runnable {
+        override fun run() {
+            val viewport = glView ?: run { imported.release(); return }
+            val bed = viewport.renderer.bed
+            if (bed == null) {
+                ViewUtils.postOnMainThread { if (!destroyed) viewport.queueEvent(this) else imported.release() }
+                return
+            }
+
+            val existing = platesModels.getOrNull(currentPlateIndex)
+            if (preserveProjectLayout) {
+                val selectedModel = existing ?: Model()
+                if (selectedModel.objectsCount > 0) {
+                    val firstNewObject = selectedModel.objectsCount
+                    repeat(imported.objectsCount) { selectedModel.addObject(imported, it) }
+                    imported.release()
+                    selectedModel.resetBoundingBox()
+                    viewport.renderer.model = selectedModel
+                    viewport.renderer.resetGlModels()
+                    onModelImportCommitted()
+                    callback?.onLoaded(selectedModel, firstNewObject, selectedModel.objectsCount - firstNewObject)
+                } else {
+                    if (existing != null && existing !== imported) existing.release()
+                    if (totalPlates > 1) {
+                        val fileBed = DoubleArray(2)
+                        val haveProjectBed = readProjectBedSize(f, fileBed)
+                        val bedW = if (haveProjectBed) fileBed[0] else bed.getVolumeMax()!!.x - bed.getVolumeMin()!!.x
+                        val bedD = if (haveProjectBed) fileBed[1] else bed.getVolumeMax()!!.y - bed.getVolumeMin()!!.y
+                        val origin = DoubleArray(2)
+                        computePlateOrigin(currentPlateIndex, computePlateCols(totalPlates), bedW, bedD, origin)
+                        if (origin[0] != 0.0 || origin[1] != 0.0)
+                            repeat(imported.objectsCount) { imported.translate(it, -origin[0], -origin[1], 0.0) }
+                        imported.resetBoundingBox()
+                    }
+                    platesModels.set(currentPlateIndex, imported)
+                    viewport.renderer.model = imported
+                    viewport.renderer.resetGlModels()
+                    onModelImportCommitted()
+                    callback?.onLoaded(imported, 0, imported.objectsCount)
+                }
+                reportImportReduction(reduction)
+                viewport.requestRender()
+                return
+            }
+
+            // Orient and put each incoming object on the bed before packing. Previously the
+            // post-import callback rotated models after Arrange had already reserved their old
+            // footprint, which could leave an apparently oversized selection box or move the
+            // geometry outside its packed location.
+            val sourceCount = imported.objectsCount
+            val min = Vec3d()
+            val max = Vec3d()
+            val translation = Vec3d()
+            for (index in 0 until sourceCount) {
+                if (autoOrientImportedModels) imported.autoOrient(index)
+                imported.getTranslation(index, translation)
+                imported.getBoundingBoxExact(index, min, max)
+                imported.translate(index, translation.x, translation.y, -translation.z + (max.z - min.z) / 2.0)
+            }
+
+            var target = existing ?: Model()
+            var targetIsNew = existing == null
+            if (existing == null) platesModels.set(currentPlateIndex, target)
+            var finalFirstNew = target.objectsCount
+            var finalAddedCount = 0
+            var finalTarget: Model? = null
+            val automaticallyCreated = ArrayList<Model>()
+            var objectsTooLargeForBed = 0
+
+            val originalTargetObjectCount = target.objectsCount
+            // Most imports fit on the current plate. Arrange that common case once instead
+            // of running the full packer after every object (quadratic work on large 3MFs).
+            repeat(sourceCount) { target.addObject(imported, it) }
+            if (bed.arrange(target)) {
+                finalTarget = target
+                finalFirstNew = originalTargetObjectCount
+                finalAddedCount = sourceCount
+            } else {
+                // ModelArrange commits only complete one-bed arrangements. Remove the failed
+                // batch and retry object-by-object only for the uncommon overflow case.
+                while (target.objectsCount > originalTargetObjectCount)
+                    target.deleteObject(target.objectsCount - 1)
+
+                for (sourceIndex in 0 until sourceCount) {
+                    target.addObject(imported, sourceIndex)
+                    var destinationIndex = target.objectsCount - 1
+                    if (!bed.arrange(target)) {
+                        target.deleteObject(destinationIndex)
+                        val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
+                        if (!bed.arrange(nextPlate)) {
+                            centerObjectOnBed(nextPlate, 0, bed)
+                            objectsTooLargeForBed++
+                        }
+                        automaticallyCreated.add(nextPlate)
+                        target = nextPlate
+                        targetIsNew = true
+                        destinationIndex = 0
+                    }
+
+                    if (finalTarget !== target) {
+                        finalTarget = target
+                        finalFirstNew = destinationIndex
+                        finalAddedCount = 1
+                    } else {
+                        finalAddedCount++
+                    }
+                }
+            }
+            imported.release()
+            target.resetBoundingBox()
+            val completedTarget = target
+            val completedFirstNew = finalFirstNew
+            val completedAddedCount = finalAddedCount
+            val completedTooLargeCount = objectsTooLargeForBed
+
+            fun finishOnGlThread() {
+                viewport.renderer.setCurrentPlateIndex(currentPlateIndex)
+                viewport.renderer.model = completedTarget
+                viewport.renderer.resetGlModels()
+                resetModelHistory()
+                onModelImportCommitted()
+                callback?.onLoaded(completedTarget, completedFirstNew, completedAddedCount)
+                if (completedTooLargeCount > 0)
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.WARNING,
+                        R.string.ImportedObjectsTooLargeForBed, completedTooLargeCount))
+                reportImportReduction(reduction)
+                viewport.requestRender()
+            }
+
+            if (automaticallyCreated.isEmpty()) {
+                if (!targetIsNew) platesModels.set(currentPlateIndex, completedTarget)
+                finishOnGlThread()
+            } else {
+                ViewUtils.postOnMainThread {
+                    if (destroyed || viewport !== glView) {
+                        automaticallyCreated.forEach { it.release() }
+                        return@postOnMainThread
+                    }
+                    automaticallyCreated.forEach { newPlate ->
+                        platesModels.add(newPlate)
+                        projectPlateIds.add(0)
+                    }
+                    totalPlates = platesModels.size
+                    currentPlateIndex = platesModels.lastIndex
+                    platePreviewRevision++
+                    updatePlateIndicator()
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.INFO,
+                        R.string.ImportedObjectsMovedToNewPlates, automaticallyCreated.size))
+                    pushPlatesToRenderer()
+                    viewport.queueEvent { finishOnGlThread() }
+                }
+            }
+        }
+    })
 }
-val firstNewObject = currentModel.objectsCount
-val addedObjects = m.objectsCount
-if (!preserveProjectLayout)
-{
-val objMin = Vec3d()
-val objMax = Vec3d()
-val objTranslate = Vec3d()
-for (i in 0 until addedObjects)
-{
-m.getTranslation(i, objTranslate)
-m.getBoundingBoxExact(i, objMin, objMax)
-// Only fix Z (floor level); arrange will handle X/Y placement.
- m.translate(i, objTranslate.x, objTranslate.y, -objTranslate.z + (objMax.z - objMin.z) / 2)
-}
-}
-for (i in 0 until addedObjects)
-{
-currentModel.addObject(m, i)
-}
-m.release()
-currentModel.resetBoundingBox()
-if (!preserveProjectLayout)
-{
-bed.arrange(currentModel)
-}
-glView!!.renderer.resetGlModels()
-onModelImportCommitted()
-if (callback != null)
-{
-callback?.onLoaded(currentModel, firstNewObject, addedObjects)
-}
-reportImportReduction(reduction)
-}
-})
-}
-else
-{
-glView!!.queueEvent(object:Runnable {
-override fun run() {
-val bed = glView!!.renderer.bed
-if (bed == null)
-{
-ViewUtils.postOnMainThread({ glView!!.queueEvent(this) })
-return
-}
-if (currentModel != null) currentModel.release()
-if (preserveProjectLayout && totalPlates > 1)
-{
-// Multi-plate 3MF meshes are stored at desktop grid coordinates. Convert
- // the selected plate back to local bed coordinates as the initial plate
- // does, using the source project's bed dimensions when available.
- val fileBed = DoubleArray(2)
-val haveFileBed = readProjectBedSize(f, fileBed)
-val bedW = if (haveFileBed) fileBed[0] else bed.getVolumeMax()!!.x - bed.getVolumeMin()!!.x
-val bedD = if (haveFileBed) fileBed[1] else bed.getVolumeMax()!!.y - bed.getVolumeMin()!!.y
-val origin = DoubleArray(2)
-computePlateOrigin(currentPlateIndex, computePlateCols(totalPlates), bedW, bedD, origin)
-if (origin[0] != 0.0 || origin[1] != 0.0)
-{
-for (i in 0 until m.objectsCount)
-{
-m.translate(i, -origin[0], -origin[1], (0).toDouble())
-}
-m.resetBoundingBox()
-}
-}
-platesModels.set(currentPlateIndex, m)
-glView!!.renderer.model = m
-val addedObjects = m.objectsCount
-if (!preserveProjectLayout)
-{
-val center = bed.getVolumeMin()!!.center(bed.getVolumeMax()!!)
-val objMin = Vec3d()
-val objMax = Vec3d()
-val objTranslate = Vec3d()
-for (i in 0 until addedObjects)
-{
-m.getTranslation(i, objTranslate)
-m.getBoundingBoxExact(i, objMin, objMax)
-// Move to center, fix Z
- m.translate(i, center.x - (objMax.x + objMin.x) / 2, center.y - (objMax.y + objMin.y) / 2, -objTranslate.z + (objMax.z - objMin.z) / 2)
-}
-bed.arrange(m)
-}
-glView!!.renderer.resetGlModels()
-onModelImportCommitted()
-if (callback != null)
-{
-callback?.onLoaded(m, 0, addedObjects)
-}
-reportImportReduction(reduction)
-}
-})
-}
-glView!!.requestRender()
+
+private fun centerObjectOnBed(model: Model, objectIndex: Int, bed: Bed3D) {
+    val bedMin = bed.getVolumeMin() ?: return
+    val bedMax = bed.getVolumeMax() ?: return
+    val objectMin = Vec3d()
+    val objectMax = Vec3d()
+    model.getBoundingBoxExact(objectIndex, objectMin, objectMax)
+    model.translate(objectIndex,
+        (bedMin.x + bedMax.x - objectMin.x - objectMax.x) / 2.0,
+        (bedMin.y + bedMax.y - objectMin.y - objectMax.y) / 2.0,
+        0.0)
 }
 override fun onApplyTheme() {
 super.onApplyTheme()

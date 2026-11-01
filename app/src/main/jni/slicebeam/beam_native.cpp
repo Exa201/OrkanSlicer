@@ -3253,6 +3253,9 @@ extern "C" {
             Points bed = get_bed_shape(config);
             ArrangeParams arrange_cfg;
             arrange_cfg.min_obj_distance = scaled(6.0);
+            // Permit quarter-turn rotations in the bed plane to use otherwise wasted space.
+            // This does not change the model's Z orientation.
+            arrange_cfg.allow_rotations = true;
 
             // arrange_objects() / arrange() do NOT translate min_obj_distance into the per-item inflation
             // that the packer uses for spacing — _arrange() zeroes min_obj_distance and expects every item

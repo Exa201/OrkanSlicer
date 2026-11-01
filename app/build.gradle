@@ -26,7 +26,10 @@ android {
         buildConfigField "boolean", "USE_PREBUILT_NATIVE", usePrebuiltNative.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders = [fileProviderAuthority: "${applicationId}.slicermore.files"]
+        manifestPlaceholders = [
+                fileProviderAuthority: "${applicationId}.slicermore.files",
+                testSaveDestinationAuthority: "${applicationId}.test.save-destination"
+        ]
 
         if (!usePrebuiltNative) {
             externalNativeBuild {
@@ -74,7 +77,10 @@ android {
             initWith debug
             resValue "string", "AppName", "OrkanSlicer Tests"
             applicationIdSuffix ".slicetest"
-            manifestPlaceholders = [fileProviderAuthority: "${defaultConfig.applicationId}.slicetest.slicermore.files"]
+            manifestPlaceholders = [
+                    fileProviderAuthority: "${defaultConfig.applicationId}.slicetest.slicermore.files",
+                    testSaveDestinationAuthority: "${defaultConfig.applicationId}.slicetest.test.save-destination"
+            ]
             matchingFallbacks = ['debug']
         }
     }

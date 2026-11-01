@@ -1670,20 +1670,10 @@ SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 var bigObject = false
 for (i in firstNewObject until firstNewObject + addedObjects)
 {
-if (autoorient && !project3mf)
-{
-model.autoOrient(i)
-fragment.glView!!.renderer.invalidateGlModel(i)
-}
 if (model.isBigObject(i))
 {
 bigObject = true
 }
-}
-if (autoorient && !project3mf)
-{
-fragment.rebaseModelHistoryAfterImportAdjustment()
-fragment.glView!!.requestRender()
 }
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 if (project3mf)
@@ -1728,7 +1718,7 @@ override fun onFailed(error: Exception) {
         )
     }
 }
-}, stepOptions)
+}, stepOptions, autoOrientImportedModels = !project3mf)
 }
 }
 catch (e:Slic3rRuntimeError) {
@@ -1873,7 +1863,7 @@ if (uri.scheme.equals(ContentResolver.SCHEME_FILE, ignoreCase = true)) {
                 }
                 ViewUtils.postOnMainThread {
                     if (isFinishing || isDestroyed) cachedFile.delete()
-                    else loadFile(cachedFile, false)
+                    else loadFile(cachedFile, true)
                 }
             } catch (error: Exception) {
                 Log.e("MainActivity", "Failed to copy readable file URI into the model cache", error)
@@ -1984,7 +1974,7 @@ input.use { stream ->
         }
     }
 }
-loadFile(f, false)
+loadFile(f, true)
 }
 catch (e:Exception) {
 Log.e("MainActivity", "Failed to write cache file", e)
@@ -2098,7 +2088,7 @@ override fun onCancelled() {
 cachedFile.delete()
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 }
-}) }) })
+}, autoOrientImportedModels = true) }) })
 }
 catch (error:Exception) {
 cachedFile.delete()
