@@ -1,12 +1,11 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
-Stand: 2026-10-31. Upstream-Vergleich: OrcaSlicer `main` at
-`4045a87b70fc4745d586bda69d844b2e7b09f74e` (latest fetched 2026-10-31 Europe/Berlin; upstream
-commit timestamp 2026-11-01 01:01 +08:00). Since the earlier `5cc5fb7f` comparison, the fetched
-source adds BenFab 450 printer profiles, 3D-Fuel filament profiles, OpenEYE/Blocks profile edits,
-Sovol process-profile cleanup, an RF50 start-G-code update and localization changes. No
-`src/libslic3r` commits or native engine changes were present in that interval. This is a selective
-Android port plan; the app must not be described as containing the complete upstream engine.
+Stand: 2026-11-01. Upstream-Vergleich: OrcaSlicer `main` at
+`3aedd50bcb94221db79ccbf8d6a7985e795fe25d` (latest fetched 2026-11-01 Europe/Berlin). Batch 4 is
+at 3/10: multipart brim grouping, configurable painted-surface penetration, and the dense-layer
+internal-bridge detection fast path. The latter builds for Android ARM64 and passes a native API-35
+stepped-overhang slice regression. Changes 3/10 is local and not yet committed. This remains a
+selective Android port; the app must not be described as containing the complete upstream engine.
 
 ## Verified preview-performance finding
 

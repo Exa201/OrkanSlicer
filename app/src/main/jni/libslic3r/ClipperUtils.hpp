@@ -430,6 +430,10 @@ Slic3r::Lines _clipper_ln(ClipperLib::ClipType clipType, const Slic3r::Lines &su
 // Safety offset is applied to the clipping polygons only.
 Slic3r::Polygons   diff(const Slic3r::Polygon &subject, const Slic3r::Polygon &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   diff(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
+// Fast rejection for the common case where an expanded clip fully covers a subject. The coarse
+// round expansion is deliberately conservative; callers must tolerate tiny slivers (about 1% of
+// delta) being simplified differently from the full expansion.
+Slic3r::Polygons   diff_expanded(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, float delta);
 Slic3r::Polygons   diff(const Slic3r::Polygons &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 // Optimized version clipping the "clipping" polygon using clip_clipper_polygon_with_subject_bbox().
 // To be used with complex clipping polygons, where majority of the clipping polygons are outside of the source polygon.

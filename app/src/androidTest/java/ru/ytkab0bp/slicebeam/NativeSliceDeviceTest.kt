@@ -472,6 +472,39 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 90_000)
+    fun denseInfillBridgeDetectionCompletesOnSteppedOverhangFixture() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("sparse_infill_density", "100")
+        process.put("top_shell_layers", "3")
+        val modelFile = createSteppedOverhangFixture("orca25-dense-bridge-stepped.stl")
+        val output = File(context.cacheDir, "orca25-dense-bridge-stepped.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the dense overhang slice must retain multiple layers",
+                Regex("(?m)^;LAYER_CHANGE\\s*$").findAll(gcode).count() > 3)
+            assertTrue("the dense overhang slice must include infill paths",
+                gcode.contains("TYPE:Internal infill", ignoreCase = true) ||
+                    gcode.contains("TYPE:Solid infill", ignoreCase = true) ||
+                    gcode.contains("TYPE:Top surface", ignoreCase = true))
+            Log.i("NativeSliceDeviceTest", "PASS dense-infill bridge detection G-code bytes=${output.length()}")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test(timeout = 90_000)
     fun lightningInfillCompletesWhenOpenedOverhangExtendsPastInfillBounds() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)

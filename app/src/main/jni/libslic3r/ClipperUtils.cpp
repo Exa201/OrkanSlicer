@@ -677,6 +677,29 @@ Slic3r::Polygons diff(const Slic3r::Polygon &subject, const Slic3r::Polygon &cli
     { return _clipper(ClipperLib::ctDifference, ClipperUtils::SinglePathProvider(subject.points), ClipperUtils::SinglePathProvider(clip.points), do_safety_offset); }
 Slic3r::Polygons diff(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper(ClipperLib::ctDifference, ClipperUtils::PolygonsProvider(subject), ClipperUtils::PolygonsProvider(clip), do_safety_offset); }
+Slic3r::Polygons diff_expanded(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, float delta)
+{
+    if (subject.empty())
+        return {};
+
+    // Simplify each path independently. Preserve it if simplification would reverse its winding,
+    // which can otherwise turn a contour into a hole (or vice versa).
+    Polygons coarse;
+    for (const Polygon &path : clip) {
+        Polygons simplified = polygons_simplify({ path }, delta / 8.);
+        if (!simplified.empty() && (area(simplified) > 0.) != path.is_counter_clockwise())
+            coarse.emplace_back(path);
+        else
+            append(coarse, std::move(simplified));
+    }
+
+    // Round expansion has its arc tolerance in the miter-limit parameter. This smaller,
+    // simplified expansion is contained by the full expansion; if it already covers subject,
+    // the expensive full difference is known to be empty.
+    if (diff(subject, expand(coarse, 0.7f * delta, jtRound, 0.01 * delta)).empty())
+        return {};
+    return diff(subject, expand(clip, delta));
+}
 Slic3r::Polygons diff_clipped(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset) 
     { return diff(subject, ClipperUtils::clip_clipper_polygons_with_subject_bbox(clip, get_extents(subject).inflated(SCALED_EPSILON)), do_safety_offset); }
 Slic3r::ExPolygons diff_clipped(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
