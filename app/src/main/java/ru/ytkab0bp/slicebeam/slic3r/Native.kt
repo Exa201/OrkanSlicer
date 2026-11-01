@@ -33,6 +33,9 @@ class Native {
     /** Exercises production short-path chaining against a four-segment optimality fixture. */
     @JvmStatic
     external fun shortest_path_exact_chain_regression(): IntArray
+    /** Exercises exact default object-tour ordering against a six-object fixture. */
+    @JvmStatic
+    external fun shortest_path_exact_object_tour_regression(): IntArray
     @JvmStatic
     external fun set_svg_path_prefix(prefix: String): Unit
     @JvmStatic

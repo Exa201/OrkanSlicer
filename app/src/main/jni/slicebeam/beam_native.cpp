@@ -4592,6 +4592,15 @@ extern "C" {
         return result;
     }
 
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_shortest_1path_1exact_1object_1tour_1regression(JNIEnv* env, jclass) {
+        const std::vector<int> encoded = Slic3r::shortest_path_exact_object_tour_regression();
+        std::vector<jint> values(encoded.begin(), encoded.end());
+        jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (result != nullptr && !values.empty())
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+        return result;
+    }
+
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1has_1paint(JNIEnv* env, jclass, jlong modelPtr, jint objIdx) {
         ModelRef* m = (ModelRef*) (intptr_t) modelPtr;
         if (objIdx < 0 || objIdx >= (int) m->model.objects.size()) return false;

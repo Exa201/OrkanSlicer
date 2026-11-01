@@ -357,3 +357,11 @@ Orca `69193d5681` enthält exakte dynamische Programmierung für kurze Extrusion
 `NativeSliceDeviceTest#shortExtrusionChainsUseTheMinimumTravelOrder` prüft den produktiven nativen Pfad mit einer Vier-Segment-Geometrie. Das Ergebnis stimmt mit einer vollständigen Enumeration aller Reihenfolgen und erlaubten Orientierungen überein und ist kürzer als eine einfache Nearest-Neighbor-Kette. ARM64-SliceTest-Native-Build und APK-Paketierung bestanden; gezielter Test 1/1 auf API-36-Emulator. Xiaomi 2211133G blieb wach und per ADB online, doch MIUI verweigerte die Testinstallation mit `INSTALL_FAILED_USER_RESTRICTED`; kein physischer Xiaomi-Testpass. Ein vollständiger Instrumentierungslauf wurde wegen eines bestehenden Release-Notes-Testfehlers und der Geräteinstallationssperre nicht als bestanden gewertet.
 
 Batch 5 steht bei **6/10 fokussiert verifizierten Produktänderungen**. Es wurde kein APK/Release aus diesem Teilbatch erstellt.
+
+## Nightly Batch 5 — Änderung 7/10: exakte Default-Objekttour (2026-11-01)
+
+Für `PrintOrder::Default` wird bei bis zu zehn Objektinstanzen die Reihenfolge nun als exakt minimale geschlossene Tour optimiert. Das nutzt Orcas TSP-Dynamic-Programming aus `69193d5681`; bei mehr als zehn Instanzen bleibt die vorhandene Kettenheuristik aktiv. Der By-Object-Pfad mit übergebenem Düsen-/Wipe-Tower-Startpunkt bleibt unverändert.
+
+`NativeSliceDeviceTest#defaultObjectOrderUsesTheMinimumClosedTourForSmallProjects` ruft den Tour-DP mit sechs Objektmittelpunkten auf und vergleicht die geschlossene Distanz gegen vollständige Enumeration aller 120 Touren sowie eine Nearest-Neighbor-Tour. ARM64-SliceTest-Native-Build, Test-APK-Paketierung und direkter API-36-Emulatorlauf bestanden (1/1). Der Xiaomi 2211133G war per ADB online und auf `stay_on_while_plugged_in=15`, aber MIUI verweigerte erneut die Testinstallation (`INSTALL_FAILED_USER_RESTRICTED`); kein physischer Gerätetest.
+
+Batch 5 steht bei **7/10 fokussiert verifizierten Produktänderungen**. Kein APK/Release aus diesem Teilbatch.

@@ -1103,6 +1103,73 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy2(SegmentEndPointFunc 
 	return chain_segments_greedy_constrained_reversals2_<PointType, SegmentEndPointFunc, false, decltype(could_reverse_func)>(end_point_func, could_reverse_func, num_segments, start_near);
 }
 
+static std::vector<size_t> chain_points_exact_cycle(const Points& points)
+{
+	const size_t n = points.size();
+	if (n <= 1)
+		return n == 0 ? std::vector<size_t>{} : std::vector<size_t>{0};
+	assert(n <= 10);
+	const size_t masks = size_t(1) << n;
+	std::vector<double> cost(masks * n, std::numeric_limits<double>::max());
+	std::vector<size_t> from(masks * n, size_t(-1));
+	auto distance = [&points](size_t a, size_t b) {
+		return (points[a].cast<double>() - points[b].cast<double>()).norm();
+	};
+	cost[n] = 0.; // mask {0}, last point 0
+	for (size_t mask = 1; mask < masks; ++mask) {
+		if ((mask & 1) == 0)
+			continue;
+		for (size_t last = 0; last < n; ++last) {
+			const size_t state = mask * n + last;
+			if ((mask & (size_t(1) << last)) == 0 || cost[state] == std::numeric_limits<double>::max())
+				continue;
+			for (size_t next = 1; next < n; ++next) {
+				if ((mask & (size_t(1) << next)) != 0)
+					continue;
+				const size_t next_mask = mask | (size_t(1) << next);
+				const size_t next_state = next_mask * n + next;
+				const double candidate = cost[state] + distance(last, next);
+				if (candidate < cost[next_state]) {
+					cost[next_state] = candidate;
+					from[next_state] = last;
+				}
+			}
+		}
+	}
+	const size_t full = masks - 1;
+	size_t best_last = 1;
+	double best_cost = cost[full * n + best_last] + distance(best_last, 0);
+	for (size_t last = 2; last < n; ++last) {
+		const double candidate = cost[full * n + last] + distance(last, 0);
+		if (candidate < best_cost) {
+			best_cost = candidate;
+			best_last = last;
+		}
+	}
+	std::vector<size_t> order(n);
+	order[0] = 0;
+	size_t mask = full;
+	size_t last = best_last;
+	for (size_t position = n; position-- > 1;) {
+		order[position] = last;
+		const size_t previous = from[mask * n + last];
+		mask ^= size_t(1) << last;
+		last = previous;
+	}
+	return order;
+}
+
+std::vector<int> shortest_path_exact_object_tour_regression()
+{
+	const Points points { Point(3, 15), Point(9, 6), Point(7, 10), Point(10, 14), Point(19, 0), Point(6, 8) };
+	const std::vector<size_t> order = chain_points_exact_cycle(points);
+	std::vector<int> encoded;
+	encoded.reserve(order.size());
+	for (size_t index : order)
+		encoded.emplace_back(static_cast<int>(index));
+	return encoded;
+}
+
 std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
 {
 	auto segment_end_point = [&entities](size_t idx, bool first_point) -> Point { return first_point ? entities[idx]->first_point() : entities[idx]->last_point(); };
@@ -2121,6 +2188,14 @@ std::vector<const PrintInstance*> chain_print_object_instances(const std::vector
 			object_reference_points.emplace_back(object.instances()[j].shift);
 			instances.emplace_back(i, j);
 		}
+	}
+	if (start_near == nullptr && instances.size() <= 10) {
+		std::vector<const PrintInstance*> out;
+		for (size_t index : chain_points_exact_cycle(object_reference_points)) {
+			const auto& instance = instances[index];
+			out.emplace_back(&print_objects[instance.first]->instances()[instance.second]);
+		}
+		return out;
 	}
 	auto segment_end_point = [&object_reference_points](size_t idx, bool /* first_point */) -> const Point& { return object_reference_points[idx]; };
 	std::vector<std::pair<size_t, bool>> ordered = chain_segments_greedy<Point, decltype(segment_end_point)>(segment_end_point, instances.size(), start_near);

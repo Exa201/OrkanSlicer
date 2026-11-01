@@ -348,6 +348,47 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun defaultObjectOrderUsesTheMinimumClosedTourForSmallProjects() {
+        val points = listOf(
+            doubleArrayOf(3.0, 15.0), doubleArrayOf(9.0, 6.0),
+            doubleArrayOf(7.0, 10.0), doubleArrayOf(10.0, 14.0),
+            doubleArrayOf(19.0, 0.0), doubleArrayOf(6.0, 8.0),
+        )
+        val order = Native.shortest_path_exact_object_tour_regression()
+        assertEquals(points.size, order.size)
+        assertEquals(points.indices.toSet(), order.toSet())
+
+        fun distance(a: Int, b: Int) = kotlin.math.hypot(
+            points[a][0] - points[b][0], points[a][1] - points[b][1],
+        )
+        val actual = order.indices.sumOf { distance(order[it], order[(it + 1) % order.size]) }
+        var optimum = Double.POSITIVE_INFINITY
+        fun enumerate(path: MutableList<Int>, remaining: Set<Int>, cost: Double) {
+            if (remaining.isEmpty()) {
+                optimum = minOf(optimum, cost + distance(path.last(), path.first()))
+                return
+            }
+            for (next in remaining) {
+                path.add(next)
+                enumerate(path, remaining - next, cost + distance(path[path.lastIndex - 1], next))
+                path.removeAt(path.lastIndex)
+            }
+        }
+        enumerate(mutableListOf(0), points.indices.drop(1).toSet(), 0.0)
+
+        val remaining = points.indices.drop(1).toMutableSet()
+        val greedyOrder = mutableListOf(0)
+        while (remaining.isNotEmpty()) {
+            val next = remaining.minWith(compareBy<Int> { distance(greedyOrder.last(), it) }.thenBy { it })
+            greedyOrder += next
+            remaining.remove(next)
+        }
+        val greedy = greedyOrder.indices.sumOf { distance(greedyOrder[it], greedyOrder[(it + 1) % greedyOrder.size]) }
+        assertEquals(optimum, actual, 1e-8)
+        assertTrue("exact tour $actual must improve on nearest-neighbor tour $greedy", actual < greedy)
+    }
+
+    @Test
     fun arachneSlicesPinchedTubeWithOnlyOneWallOnTop() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
