@@ -2,10 +2,12 @@
 
 Stand: 2026-11-01. Upstream-Vergleich: OrcaSlicer `main` at
 `3aedd50bcb94221db79ccbf8d6a7985e795fe25d` (latest fetched 2026-11-01 Europe/Berlin). Batch 4 is
-at 3/10: multipart brim grouping, configurable painted-surface penetration, and the dense-layer
-internal-bridge detection fast path. The latter builds for Android ARM64 and passes a native API-35
-stepped-overhang slice regression. Changes 3/10 is local and not yet committed. This remains a
-selective Android port; the app must not be described as containing the complete upstream engine.
+at 4/10: multipart brim grouping, configurable painted-surface penetration, the dense-layer
+internal-bridge detection fast path, and lower-layer rotation alignment for Hilbert/Octagram
+internal bridges. Change 4 builds for Android ARM64 and passes an API-16 instrumented G-code
+direction regression for both patterns. Changes 3 and 4 were locally tested at the time of this
+update; the current batch has not yet been published as an APK. This remains a selective Android
+port; the app must not be described as containing the complete upstream engine.
 
 ## Verified preview-performance finding
 

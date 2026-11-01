@@ -14,6 +14,11 @@ namespace Slic3r {
 
 class ExtrusionEntityCollection;
 class LayerRegion;
+class PrintObject;
+
+// Shared rotation-template evaluation used by infill generation and bridge preparation.
+double calculate_infill_rotation_angle(const PrintObject *object, size_t layer_id,
+                                       const double &fixed_infill_angle, const std::string &template_string);
 
 // An interface class to Perl, aggregating an instance of a Fill and a FillData.
 class Filler

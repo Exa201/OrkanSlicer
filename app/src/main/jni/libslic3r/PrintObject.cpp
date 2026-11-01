@@ -20,6 +20,7 @@
 #include "TriangleMeshSlicer.hpp"
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
+#include "Fill/Fill.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Format/STL.hpp"
 #include "format.hpp"
@@ -2885,7 +2886,7 @@ void PrintObject::bridge_over_infill()
     };
 
     // LAMBDA do determine optimal bridging angle
-    auto determine_bridging_angle = [](const Polygons &bridged_area, const Lines &anchors, InfillPattern dominant_pattern, double infill_direction) {
+    auto determine_bridging_angle = [](const Polygons &bridged_area, const Lines &anchors) {
         AABBTreeLines::LinesDistancer<Line> lines_tree(anchors);
 
         // Orca: since 3D Honeycomb was "fixed" by forcing coordf_t layerHeight = scale_(1.0), this is no longer needed.
@@ -2964,12 +2965,6 @@ void PrintObject::bridge_over_infill()
         if (bridging_angle == 0) {
             bridging_angle = 0.001;
         }
-        switch (dominant_pattern) {
-        case ipHilbertCurve: bridging_angle += 0.25 * PI; break;
-        case ipOctagramSpiral: bridging_angle += (1.0 / 16.0) * PI; break;
-        default: break;
-        }
-
         return bridging_angle;
     };
 
@@ -3239,7 +3234,7 @@ void PrintObject::bridge_over_infill()
                 total_fill_area   = closing(total_fill_area, float(SCALED_EPSILON));
                 expansion_area    = closing(expansion_area, float(SCALED_EPSILON));
                 expansion_area    = intersection(expansion_area, deep_infill_area);
-                Polylines anchors = intersection_pl(infill_lines[lidx - 1], shrink(expansion_area, spacing));
+                const Polylines anchors = intersection_pl(infill_lines[lidx - 1], shrink(expansion_area, spacing));
                 Polygons internal_unsupported_area = shrink(deep_infill_area, spacing * 4.5);
 
 #ifdef DEBUG_BRIDGE_OVER_INFILL
@@ -3250,6 +3245,9 @@ void PrintObject::bridge_over_infill()
                 std::vector<CandidateSurface> expanded_surfaces;
                 expanded_surfaces.reserve(surfaces_by_layer[lidx].size());
                 for (const CandidateSurface &candidate : surfaces_by_layer[lidx]) {
+                    const auto &region_config = candidate.region->region().config();
+                    const bool turning_pattern = region_config.sparse_infill_pattern == ipHilbertCurve ||
+                                                 region_config.sparse_infill_pattern == ipOctagramSpiral;
                     const Flow &flow              = candidate.region->bridging_flow(frSolidInfill, true);
                     Polygons    area_to_be_bridge = expand(candidate.new_polys, flow.scaled_spacing());
                     area_to_be_bridge             = intersection(area_to_be_bridge, deep_infill_area);
@@ -3278,16 +3276,34 @@ void PrintObject::bridge_over_infill()
                                to_lines(area_to_be_bridge), to_lines(boundary_plines), to_lines(anchors), to_lines(expansion_area));
 #endif
 
-                    double bridging_angle = 0;
-                    if (!anchors.empty()) {
-                        bridging_angle = determine_bridging_angle(area_to_be_bridge, to_lines(anchors),
-                                                                  candidate.region->region().config().sparse_infill_pattern.value,
-                                                                  candidate.region->region().config().infill_direction.value);
-                    } else {
-                        // use expansion boundaries as anchors.
-                        // Also, use Infill pattern that is neutral for angle determination, since there are no infill lines.
-                        bridging_angle = determine_bridging_angle(area_to_be_bridge, to_lines(boundary_plines), InfillPattern::ipLine, 0);
+                    double bridging_angle = -1.;
+                    if (!anchors.empty() && turning_pattern && layer->lower_layer != nullptr) {
+                        // Hilbert and Octagram infill turn locally, so their anchor directions
+                        // cannot provide a stable bridge direction. Match Orca by using the
+                        // actual rotation of the supporting sparse infill on the lower layer.
+                        for (const LayerRegion *lower_region : layer->lower_layer->regions()) {
+                            if (&lower_region->region() != &candidate.region->region() ||
+                                intersection(area_to_be_bridge,
+                                             to_polygons(lower_region->fill_surfaces.filter_by_type(stInternal))).empty())
+                                continue;
+                            bridging_angle = calculate_infill_rotation_angle(po, layer->lower_layer->id(),
+                                                                              region_config.infill_direction.value,
+                                                                              region_config.sparse_infill_rotate_template.value) + 0.5 * PI;
+                            if (region_config.align_infill_direction_to_model) {
+                                const auto &m = po->trafo().matrix();
+                                bridging_angle += std::atan2(double(m(1, 0)), double(m(0, 0)));
+                            }
+                            bridging_angle = std::fmod(bridging_angle, PI);
+                            if (bridging_angle < 0.)
+                                bridging_angle += PI;
+                            break;
+                        }
                     }
+                    // A different lower-layer region (for example a height modifier) or no
+                    // sparse infill still requires the geometry-based anchor fallback.
+                    if (bridging_angle < 0.)
+                        bridging_angle = determine_bridging_angle(area_to_be_bridge,
+                                                                  to_lines(anchors.empty() ? boundary_plines : anchors));
                     
                     // ORCA: Internal bridge angle override
                     if (candidate.region->region().config().internal_bridge_angle.value > 0) {

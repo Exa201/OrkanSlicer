@@ -504,6 +504,109 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 120_000)
+    fun hilbertInternalBridgeDirectionFollowsSupportingLayerRotationTemplate() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("sparse_infill_density", "15")
+        process.put("sparse_infill_smooth_factor", "100%")
+        process.put("fill_multiline", "1")
+        process.put("top_shell_layers", "3")
+        process.put("bottom_shell_layers", "2")
+        process.put("top_shell_thickness", "0")
+        process.put("bottom_shell_thickness", "0")
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("thick_internal_bridges", "1")
+        process.put("infill_direction", "45")
+        process.put("internal_bridge_angle", "0")
+        process.put("align_infill_direction_to_model", "0")
+        val modelFile = createInternalBridgeStepFixture("orca25-hilbert-bridge-rotation.stl")
+        val output = File(context.cacheDir, "orca25-hilbert-bridge-rotation.gcode")
+
+        fun bridgeAnglesFor(pattern: String, rotationTemplate: String): List<Double> {
+            process.put("sparse_infill_pattern", pattern)
+            process.put("sparse_infill_rotate_template", rotationTemplate)
+            val model = Model(modelFile)
+            var result: GCodeProcessorResult? = null
+            try {
+                model.ensureOnBed(0)
+                SliceBeam.genCurrentConfig(model)
+                val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+                assertTrue("the lower-layer rotation template must reach the native slicer",
+                    nativeConfig.contains("sparse_infill_rotate_template") && nativeConfig.contains(rotationTemplate))
+                result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+                val gcode = output.readText()
+                val gcodeTypes = gcode.lineSequence().filter { it.startsWith(";TYPE:") }.distinct().toList()
+                assertTrue("Slicing must keep bridge paths; generated types=$gcodeTypes", gcodeTypes.any { it.contains("Bridge", ignoreCase = true) })
+                var bridgeRole = false
+                var x: Double? = null
+                var y: Double? = null
+                val coordinate = Regex("([XY])(-?\\d+(?:\\.\\d+)?)")
+                val angles = mutableListOf<Double>()
+                for (line in gcode.lineSequence()) {
+                    if (line.startsWith(";TYPE:")) bridgeRole = line.contains("Bridge", ignoreCase = true)
+                    if (!bridgeRole || !line.startsWith("G1 ") || !line.contains('E')) continue
+                    var nextX = x
+                    var nextY = y
+                    coordinate.findAll(line).forEach { match ->
+                        val value = match.groupValues[2].toDouble()
+                        when (match.groupValues[1]) {
+                            "X" -> nextX = value
+                            "Y" -> nextY = value
+                        }
+                    }
+                    if (x != null && y != null && nextX != null && nextY != null) {
+                        val dx = nextX - x
+                        val dy = nextY - y
+                        if (kotlin.math.hypot(dx, dy) > 0.2) {
+                            var angle = kotlin.math.atan2(dy, dx) % Math.PI
+                            if (angle < 0.0) angle += Math.PI
+                            angles += angle
+                        }
+                    }
+                    x = nextX
+                    y = nextY
+                }
+                assertTrue("Bridge role should contain measurable extruding XY segments", angles.isNotEmpty())
+                return angles
+            } finally {
+                result?.release()
+                model.release()
+                output.delete()
+                SliceBeam.getCurrentConfigFile().delete()
+            }
+        }
+
+        fun meanUndirectedAngle(angles: List<Double>): Double {
+            val sin = angles.sumOf { kotlin.math.sin(2.0 * it) }
+            val cos = angles.sumOf { kotlin.math.cos(2.0 * it) }
+            var mean = 0.5 * kotlin.math.atan2(sin, cos)
+            if (mean < 0.0) mean += Math.PI
+            return mean
+        }
+
+        try {
+            for (pattern in listOf("hilbertcurve", "octagramspiral")) {
+                val unrotated = meanUndirectedAngle(bridgeAnglesFor(pattern, "0"))
+                val rotated = meanUndirectedAngle(bridgeAnglesFor(pattern, "45"))
+                var difference = (rotated - unrotated) % Math.PI
+                if (difference < 0.0) difference += Math.PI
+                val circularDifference = minOf(difference, Math.PI - difference)
+                assertTrue(
+                    "$pattern bridges should follow the lower-layer rotation template (unrotated=$unrotated, rotated=$rotated)",
+                    kotlin.math.abs(circularDifference - Math.PI / 4.0) < Math.toRadians(15.0),
+                )
+                Log.i("NativeSliceDeviceTest", "PASS $pattern internal bridge direction follows lower-layer rotation template")
+            }
+        } finally {
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test(timeout = 90_000)
     fun lightningInfillCompletesWhenOpenedOverhangExtendsPastInfillBounds() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -4945,6 +5048,42 @@ class NativeSliceDeviceTest {
         quad(capTop[0], capTop[1], capTop[2], capTop[3])
         stl.append("endsolid stepped_lightning_overhang\n")
         target.writeText(stl.toString())
+        return target
+    }
+
+    /** Orca's small stepped body creates internal bridge areas above sparse infill. */
+    private fun createInternalBridgeStepFixture(name: String): File {
+        val target = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name)
+        val faces = arrayOf(
+            intArrayOf(0, 2, 1), intArrayOf(0, 3, 2), intArrayOf(4, 5, 6), intArrayOf(4, 6, 7),
+            intArrayOf(0, 1, 5), intArrayOf(0, 5, 4), intArrayOf(1, 2, 6), intArrayOf(1, 6, 5),
+            intArrayOf(2, 3, 7), intArrayOf(2, 7, 6), intArrayOf(3, 0, 4), intArrayOf(3, 4, 7),
+        )
+        val boxes = listOf(
+            doubleArrayOf(0.0, 0.0, 0.0, 30.0, 24.0, 3.0),
+            doubleArrayOf(8.0, 7.0, 3.0, 22.0, 17.0, 4.0),
+        )
+        val stl = buildString {
+            append("solid internal_bridge_step\n")
+            boxes.forEach { box ->
+                val points = arrayOf(
+                    doubleArrayOf(box[0], box[1], box[2]), doubleArrayOf(box[3], box[1], box[2]),
+                    doubleArrayOf(box[3], box[4], box[2]), doubleArrayOf(box[0], box[4], box[2]),
+                    doubleArrayOf(box[0], box[1], box[5]), doubleArrayOf(box[3], box[1], box[5]),
+                    doubleArrayOf(box[3], box[4], box[5]), doubleArrayOf(box[0], box[4], box[5]),
+                )
+                faces.forEach { face ->
+                    append("facet normal 0 0 0\nouter loop\n")
+                    face.forEach { index ->
+                        val point = points[index]
+                        append("vertex ${point[0]} ${point[1]} ${point[2]}\n")
+                    }
+                    append("endloop\nendfacet\n")
+                }
+            }
+            append("endsolid internal_bridge_step\n")
+        }
+        target.writeText(stl)
         return target
     }
 
