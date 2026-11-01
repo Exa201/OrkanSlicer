@@ -1,5 +1,13 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## Kobra 3 V2 Pressure Advance — Stable APK 0.8.410 (2026-11-01)
+
+- Ursache: Installationen, die bereits die einmalige `kobra3v2_start_pa_migration_v1`-Markierung gespeichert hatten, übersprangen die spätere Bereinigung des gespeicherten Stockprofil-Start-G-Codes. Die Migration läuft nun mit einer v2-Markierung und entfernt das alte feste `M900 K0.051` erneut; der aktive Filament-PA-Wert bleibt erhalten.
+- Native Slice-Gerätetest auf API 36 bestanden: Filament-PA `0.075` ergibt `SET_PRESSURE_ADVANCE ADVANCE=0.075` ohne `M900 K0.051`; deaktiviertes Filament-PA ergibt keinen ausführbaren PA-Befehl.
+- Stable-Commit `c9da8bee4d49e084ce9cd301bd8635f5f71a2565`; Versionserhöhung separat in `b29aad26fd6f2c3e8c2753e0ed29268ee483e0f8`. Debug-APK: `app/build/outputs/apk/debug/OrkanSlicer_b29aad26fd.apk`, Version 0.8.410 / Code 445, 239,646,411 Bytes, SHA-256 `2E0D37EADF11B3B2FB41B39D8B9E76CCB483E4090D7E9484DC7126FB564C2347`.
+- Xiaomi 2211133G ist per ADB sichtbar, aber die Installation endete mit `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; kein Hardwarestart oder Xiaomi-Test wird behauptet. API-36-Emulator ist der bestätigte Slice-Test.
+- Nächster Schritt: Nightly-2.5-Upstream-Audit fortsetzen. Die Pressure-Advance-Migration ist dort ebenfalls v2-korrigiert und der gleiche API-36-Slice-Test bestand.
+
 ## Erneute Modellierungs- und STEP/STP-Abnahme — 2026-10-24, HEAD `940d4788`
 
 - Honor PTP-N49 / Android 16: drei aktuelle Modellaktionen erneut bestanden (3/3): Ebenenschnitt teilt das gewählte Modell auf dem GL-Thread, schräge Fläche abflachen erhält Undo/Redo, Drei-Objekt-Boolean-Schnittmenge erhält Undo/Redo.
