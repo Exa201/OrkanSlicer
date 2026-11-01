@@ -4,8 +4,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -77,5 +79,40 @@ class ModelObjectProcessOverridesComposeDeviceTest {
         compose.onNodeWithTag("model-object-process-settings-cancel").performClick()
         assertEquals(true, dismissed)
         assertEquals(false, applied)
+    }
+
+    @Test fun eachMultipartRowExposesAnIndependentProcessSettingsAction() {
+        var editedPart: Pair<Int, Int>? = null
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectsDialog(
+                    title = "Objects",
+                    cancelLabel = "Cancel",
+                    assignLabel = "Filament",
+                    rows = listOf(
+                        ModelObjectRow(
+                            name = "Assembly", tool = 0, material = "PLA", color = 0xFF00FF00.toInt(),
+                            selected = true, assignEnabled = true,
+                            parts = listOf(
+                                ModelObjectPartRow("Part 1", 0, "PLA", 0xFF00FF00.toInt()),
+                                ModelObjectPartRow("Part 2", 1, "PETG", 0xFF0000FF.toInt()),
+                            ),
+                        ),
+                    ),
+                    onDismiss = {},
+                    onSelect = {},
+                    onAssign = {},
+                    onAssignPart = { _, _ -> },
+                    onEditPartProcessSettings = { objectIndex, partIndex -> editedPart = objectIndex to partIndex },
+                    onTransformPart = { _, _ -> },
+                    onEditPart = { _, _ -> },
+                    onApplySelection = {},
+                )
+            }
+        }
+        compose.onNodeWithTag("model-objects-dialog-rows")
+            .performScrollToNode(hasTestTag("model-object-part-process-settings-0-1"))
+        compose.onNodeWithTag("model-object-part-process-settings-0-1").assertIsDisplayed().performClick()
+        assertEquals(0 to 1, editedPart)
     }
 }

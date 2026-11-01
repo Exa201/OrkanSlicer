@@ -65,6 +65,7 @@ internal data class ModelObjectPartRow(
 internal fun ModelObjectProcessOverridesDialog(
     objectName: String,
     initialValues: Map<String, String>,
+    scopeHint: Int = R.string.ModelObjectProcessSettingsHint,
     onDismiss: () -> Unit,
     onApply: (Map<String, String>) -> Unit,
 ) {
@@ -91,7 +92,7 @@ internal fun ModelObjectProcessOverridesDialog(
         title = { Text(stringResource(R.string.ModelObjectProcessSettingsTitle, objectName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.ModelObjectProcessSettingsHint))
+                Text(stringResource(scopeHint))
                 val labels = listOf(
                     R.string.ModelObjectProcessWallLoops,
                     R.string.ModelObjectProcessInfillDensity,
@@ -163,6 +164,7 @@ internal fun ModelObjectsDialog(
     onSelect: (Int) -> Unit,
     onAssign: (Int) -> Unit,
     onAssignPart: (objectIndex: Int, partIndex: Int) -> Unit,
+    onEditPartProcessSettings: (objectIndex: Int, partIndex: Int) -> Unit = { _, _ -> },
     onTransformPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onEditPart: (objectIndex: Int, partIndex: Int) -> Unit,
     onApplySelection: (IntArray) -> Unit,
@@ -270,6 +272,11 @@ internal fun ModelObjectsDialog(
                                         Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.End,
                                     ) {
+                                        TextButton(
+                                            onClick = { onEditPartProcessSettings(index, partIndex) },
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                                .testTag("model-object-part-process-settings-$index-$partIndex"),
+                                        ) { Text(stringResource(R.string.ModelObjectPartProcessSettings)) }
                                         TextButton(
                                             onClick = { onTransformPart(index, partIndex) },
                                             modifier = Modifier.heightIn(min = 48.dp)

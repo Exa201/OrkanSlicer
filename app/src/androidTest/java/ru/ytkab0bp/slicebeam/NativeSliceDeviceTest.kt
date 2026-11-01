@@ -194,6 +194,79 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun perPartProcessOverridesRemainIsolatedAcrossThreeMfAndNativeSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = createThinCubeFixture("per-part-process-overrides.stl", 20.0, 20.0, 12.0)
+        val project = File(context.cacheDir, "per-part-process-overrides.3mf")
+        val output = File(context.cacheDir, "per-part-process-overrides.gcode")
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("sparse_infill_density", "25%")
+        process.put("infill_wall_overlap", "0")
+        var model: Model? = null
+        var restored: Model? = null
+        fun sparseInfillMoves(current: Model): Int {
+            SliceBeam.genCurrentConfig(current)
+            output.delete()
+            val result = current.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                var sparse = false
+                var count = 0
+                val extrusion = Regex("(?:^|\\s)E(-?\\d+(?:\\.\\d+)?)")
+                output.forEachLine { line ->
+                    if (line.startsWith(";TYPE:")) sparse = line.removePrefix(";TYPE:").trim() == "Sparse infill"
+                    else if (sparse && line.startsWith("G1 ") && (extrusion.find(line)?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0) > 0.0)
+                        count++
+                }
+                return count
+            } finally { result.release() }
+        }
+        try {
+            model = Model(source).also { it.ensureOnBed(0); it.addObject(it, 0); it.translate(1, 25.0, 0.0, 0.0) }
+            assertEquals(2, model.objectsCount)
+            assertEquals(0, model.combineObjectsAsParts(intArrayOf(0, 1)))
+            assertEquals(2, model.getObjectPartCount(0))
+            val baseline = sparseInfillMoves(model)
+            assertTrue("both printable parts should generate baseline sparse infill", baseline > 0)
+
+            assertEquals(1, model.setObjectPartConfigOptions(0, 0, mapOf(
+                "wall_loops" to "1", "sparse_infill_density" to "0%", "top_shell_layers" to "1",
+            )))
+            assertEquals("1", model.getObjectPartConfigOption(0, 0, "wall_loops"))
+            assertEquals("0%", model.getObjectPartConfigOption(0, 0, "sparse_infill_density"))
+            assertEquals("1", model.getObjectPartConfigOption(0, 0, "top_shell_layers"))
+            assertEquals("the adjacent part must remain profile-inherited", null,
+                model.getObjectPartConfigOption(0, 1, "sparse_infill_density"))
+            assertEquals("<mixed>", model.getObjectConfigOption(0, "sparse_infill_density"))
+            assertEquals("same part settings must be a no-op", 0, model.setObjectPartConfigOptions(0, 0, mapOf(
+                "wall_loops" to "1", "sparse_infill_density" to "0%", "top_shell_layers" to "1",
+            )))
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            restored = Model(project).also { it.ensureOnBed(0) }
+            assertEquals(2, restored.getObjectPartCount(0))
+            assertEquals("1", restored.getObjectPartConfigOption(0, 0, "wall_loops"))
+            assertEquals("0%", restored.getObjectPartConfigOption(0, 0, "sparse_infill_density"))
+            assertEquals(null, restored.getObjectPartConfigOption(0, 1, "sparse_infill_density"))
+            val edited = sparseInfillMoves(restored)
+            assertTrue("the one-part zero-density override must change actual slice paths; baseline=$baseline edited=$edited",
+                edited < baseline)
+
+            assertEquals(1, restored.setObjectPartConfigOptions(0, 0, mapOf(
+                "wall_loops" to "", "sparse_infill_density" to "", "top_shell_layers" to "",
+            )))
+            assertEquals(null, restored.getObjectPartConfigOption(0, 0, "wall_loops"))
+            assertEquals(null, restored.getObjectPartConfigOption(0, 1, "wall_loops"))
+            assertEquals(baseline, sparseInfillMoves(restored))
+        } finally {
+            restored?.release(); model?.release()
+            source.delete(); project.delete(); output.delete(); SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun autoForMatchPrefersClosestColorAndSameFilamentSubtype() {
         // Same-colour sub-type preference; then exact colour wins over a sub-type match;
         // finer distance resolves a former whole-unit tie; finally a colour step outweighs id.

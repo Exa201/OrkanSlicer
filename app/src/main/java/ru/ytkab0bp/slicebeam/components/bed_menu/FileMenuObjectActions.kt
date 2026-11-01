@@ -121,6 +121,10 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                         dismiss()
                         showObjectPartFilamentSlotDialog(view, index, partIndex, snapshot)
                     },
+                    onEditPartProcessSettings = { index, partIndex ->
+                        dismiss()
+                        showObjectPartProcessSettingsDialog(view, index, partIndex, snapshot)
+                    },
                     onTransformPart = { index, partIndex ->
                         dismiss()
                         showObjectPartTransformDialog(view, index, partIndex, snapshot)
@@ -324,6 +328,57 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     }
                 },
             )
+        }
+    }
+
+    private fun showObjectPartProcessSettingsDialog(
+        view: View,
+        objectIndex: Int,
+        partIndex: Int,
+        expectedSelection: ModelSelectionSnapshot,
+    ) {
+        val context = view.context
+        val viewport = fragment.glView ?: return
+        viewport.queueEvent {
+            val renderer = viewport.renderer
+            val model = expectedSelection.model
+            if (renderer.model !== model || !renderer.isSelectionBindingCurrent(expectedSelection) ||
+                objectIndex !in 0 until model.objectsCount || partIndex !in 0 until model.getObjectPartCount(objectIndex)) return@queueEvent
+            val revision = model.stateRevision
+            val values = listOf("wall_loops", "sparse_infill_density", "top_shell_layers")
+                .associateWith { model.getObjectPartConfigOption(objectIndex, partIndex, it).orEmpty() }
+            val name = "${model.getObjectName(objectIndex) ?: context.getString(R.string.MenuFileObjectNumber, objectIndex + 1)} · " +
+                context.getString(R.string.ModelObjectPartNumber, partIndex + 1)
+            ViewUtils.postOnMainThread {
+                if (fragment.glView !== viewport || !fragment.canShowWorkspaceComposeDialog()) return@postOnMainThread
+                fragment.showWorkspaceComposeDialog { dismiss ->
+                    ModelObjectProcessOverridesDialog(
+                        objectName = name,
+                        initialValues = values,
+                        scopeHint = R.string.ModelObjectPartProcessSettingsHint,
+                        onDismiss = dismiss,
+                        onApply = { overrides ->
+                            dismiss()
+                            viewport.queueEvent {
+                                val currentRenderer = viewport.renderer
+                                val result = if (currentRenderer.model === model && model.stateRevision == revision &&
+                                    currentRenderer.isSelectionBindingCurrent(expectedSelection)) {
+                                    model.setObjectPartConfigOptions(objectIndex, partIndex, overrides)
+                                } else -1
+                                if (result == 1) fragment.updateModelOnGlThread()
+                                ViewUtils.postOnMainThread {
+                                    SliceBeam.EVENT_BUS.fireEvent(
+                                        NeedSnackbarEvent(
+                                            if (result >= 0) R.string.ModelObjectProcessSettingsSaved
+                                            else R.string.ModelObjectProcessSettingsStale,
+                                        ),
+                                    )
+                                }
+                            }
+                        },
+                    )
+                }
+            }
         }
     }
 

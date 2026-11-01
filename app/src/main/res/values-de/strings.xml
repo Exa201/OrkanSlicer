@@ -193,6 +193,8 @@
     <string name="ModelMenuCombineFailed">Die Objekte konnten nicht verbunden werden. Die Originale sind erhalten geblieben.</string>
     <string name="ModelMenuSplit">Teile trennen</string>
     <string name="ModelObjectPartNumber">Teil %1$d</string>
+    <string name="ModelObjectPartProcessSettings">Teil-Druckwerte</string>
+    <string name="ModelObjectPartProcessSettingsHint">Diese optionalen Werte gelten nur für dieses Teil. Leer lassen übernimmt die Objektwerte oder das Druckprofil. Speichern ist rückgängig machbar und bleibt in der 3MF erhalten.</string>
     <string name="ModelMenuObjectSettings">Objekt-Druckeinstellungen</string>
     <string name="ModelObjectProcessSettingsTitle">Einstellungen · %1$s</string>
     <string name="ModelObjectProcessSettingsHint">Optionale Werte gelten nur für dieses Objekt. Ein leeres Feld übernimmt die aktive Druckkonfiguration. Speichern erzeugt einen rückgängig machbaren Modellzustand und wird in der 3MF gespeichert.</string>

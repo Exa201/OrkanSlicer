@@ -215,6 +215,8 @@
     <string name="ModelObjectProcessSettingsStale">The model or selection changed. Reopen object settings and try again.</string>
     <string name="ModelMenuSplit">Separate parts</string>
     <string name="ModelObjectPartNumber">Part %1$d</string>
+    <string name="ModelObjectPartProcessSettings">Part settings</string>
+    <string name="ModelObjectPartProcessSettingsHint">These optional values apply only to this part. Leave blank to inherit the object settings or print profile. Saving is undoable and preserved in the 3MF.</string>
     <string name="ModelObjectAssignPartFilament">Filament</string>
     <string name="ModelObjectPartFilamentApplied">Part assigned to T%1$d.</string>
     <string name="ModelObjectEditPart">Separate to edit</string>

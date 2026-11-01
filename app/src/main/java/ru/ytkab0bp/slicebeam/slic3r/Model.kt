@@ -228,6 +228,24 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return 1
     }
 
+    /** Returns a serialized process override on one printable object part, or null to inherit. */
+    open fun getObjectPartConfigOption(objectIndex: Int, partIndex: Int, key: String): String? =
+        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex) || key !in OBJECT_OVERRIDE_KEYS) null
+        else Native.model_get_object_part_config_option(pointer, objectIndex, partIndex, key)
+
+    /** Atomically applies or clears process overrides on one printable object part. */
+    open fun setObjectPartConfigOptions(objectIndex: Int, partIndex: Int, values: Map<String, String>): Int {
+        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex) ||
+            values.isEmpty() || values.keys.any { it !in OBJECT_OVERRIDE_KEYS }) return -1
+        val current = values.keys.associateWith { getObjectPartConfigOption(objectIndex, partIndex, it).orEmpty() }
+        if (current == values) return 0
+        val serialized = values.values.toTypedArray()
+        if (serialized.any { it.length > 256 }) return -1
+        if (!Native.model_set_object_part_config_options(pointer, objectIndex, partIndex, values.keys.toTypedArray(), serialized)) return -1
+        markStateChanged()
+        return 1
+    }
+
     /** Adds an Orca-compatible modifier volume to the selected model object. Type: 1 negative, 2 parameter, 3 support blocker, 4 support enforcer. */
     open fun addModifierBox(objectIndex: Int, type: Int, x: Double, y: Double, z: Double, width: Double, depth: Double, height: Double): Int {
         if (!hasObject(objectIndex) || type !in 1..4) return -1
