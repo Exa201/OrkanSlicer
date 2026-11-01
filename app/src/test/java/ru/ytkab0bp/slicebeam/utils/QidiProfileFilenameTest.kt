@@ -52,4 +52,32 @@ class QidiProfileFilenameTest {
             assertTrue("$header must initialize Qidi Box tool mapping", startGcode.contains("INIT_MAPPING_VALUE"))
         }
     }
+
+    @Test
+    fun qidiLegacyProfilesUseTheSelectedBedTypeTemperature() {
+        val affectedFamilies = listOf(
+            "[printer:Qidi Q1 Pro ",
+            "[printer:Qidi X-CF Pro ",
+            "[printer:Qidi X-Max 3 ",
+            "[printer:Qidi X-Plus 3 ",
+            "[printer:Qidi X-Smart 3 ",
+        )
+        val affectedSections = qidiProfile()
+            .split(Regex("(?=^\\[)", RegexOption.MULTILINE))
+            .filter { section -> affectedFamilies.any { section.startsWith(it) } }
+
+        assertTrue("All 17 Q1/X-CF/X-Max/X-Plus/X-Smart nozzle profiles should be covered", affectedSections.size == 17)
+        affectedSections.forEach { section ->
+            val header = section.lineSequence().first()
+            val startGcode = section.lineSequence()
+                .firstOrNull { it.startsWith("start_gcode =") }
+                .orEmpty()
+            assertTrue(
+                "$header must heat the selected plate type",
+                startGcode.contains("M140 S[bed_temperature_initial_layer_single]") ||
+                    startGcode.contains("M190 S[bed_temperature_initial_layer_single]"),
+            )
+            assertFalse("$header must not force the high-temperature plate setting", startGcode.contains("hot_plate_temp_initial_layer"))
+        }
+    }
 }

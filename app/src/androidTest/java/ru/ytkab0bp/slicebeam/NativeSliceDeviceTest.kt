@@ -3979,6 +3979,32 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun qidiQ1StartGcodeUsesTemperatureOfTheSelectedPlateType() = withQidiProfile("Qidi Q1 Pro 0.4 nozzle") {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "qidi-q1-selected-bed-type-source.stl")
+        val model = Model(source)
+        try {
+            model.ensureOnBed(0)
+            val config = requireNotNull(SliceBeam.CONFIG)
+            val printer = requireNotNull(config.presets?.get("printer")?.let(config::findPrinter))
+            val filament = requireNotNull(config.presets?.get("filament")?.let(config::findFilament))
+            printer.put("curr_bed_type", "Textured PEI Plate")
+            filament.put("textured_plate_temp_initial_layer", "71")
+            filament.put("cool_plate_temp_initial_layer", "31")
+
+            val gcode = sliceToGcode(context, model, "qidi-q1-selected-bed-type.gcode")
+            assertTrue("Q1 PRINT_START should receive the selected textured-plate temperature", gcode.contains("PRINT_START BED=71"))
+            assertTrue("Q1 should heat the selected textured plate", Regex("(?m)^M140 S71(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("Q1 must not use the unselected cool-plate temperature", Regex("(?m)^M140 S31(?:\\s|$)").containsMatchIn(gcode))
+            assertFalse("Q1 start G-code must not retain an unresolved selected-bed placeholder", gcode.contains("[bed_temperature_initial_layer_single]"))
+        } finally {
+            model.release()
+            source.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun disjointBooleanUnionKeepsItsInstanceBoundsAndProducesGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
@@ -4832,7 +4858,9 @@ class NativeSliceDeviceTest {
         }
     }
 
-    private inline fun withQidiQ2Profile(block: () -> Unit) {
+    private inline fun withQidiQ2Profile(block: () -> Unit) = withQidiProfile("Qidi Q2 0.4 nozzle", block)
+
+    private inline fun withQidiProfile(printerName: String, block: () -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
         SliceBeam.INSTANCE = application as SliceBeam
@@ -4841,7 +4869,7 @@ class NativeSliceDeviceTest {
         try {
             context.assets.open("orca_profiles/Qidi.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
             val config = requireNotNull(SliceBeam.CONFIG)
-            val printer = requireNotNull(config.findPrinter("Qidi Q2 0.4 nozzle"))
+            val printer = requireNotNull(config.findPrinter(printerName))
             val process = requireNotNull(
                 config.findPrint(printer.get("default_print_profile"))
                     ?: config.findPrint("0.20mm Standard"),
