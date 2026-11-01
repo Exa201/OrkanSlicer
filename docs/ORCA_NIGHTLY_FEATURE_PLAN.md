@@ -1,5 +1,12 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 6 — 1/10: Düsengrößen mit Dezimalkomma (2026-11-01)
+
+- Orca-Upstream `27cafaa06c` korrigiert Düsengrößen, die unter einer UI-Locale mit Dezimalkomma ankommen. Die Android-Profilfilterung hatte denselben Fehler: `0,6` wurde vor dem Zahlenvergleich am Komma getrennt und als `0` interpretiert.
+- Android liest jetzt ein einzelnes Dezimalkomma als Dezimalpunkt, erhält aber die Auswahl des ersten Werts aus Punkt-/Komma-getrennten Düsengrößenlisten und unterstützt Semikolonlisten mit lokal formatiertem Einzelwert. Profilnamen, Layerhöhen- und Linienbreitenprüfungen normalisieren ebenfalls Dezimalkomma.
+- `Slic3rUtilsNozzleLocaleTest`: 4/4 bestanden (Einzeldüse, Mehrdüsenlisten, Profil-Kompatibilität, Layerhöhe/Linienbreite). `:app:testDebugUnitTest --tests ru.ytkab0bp.slicebeam.slic3r.Slic3rUtilsNozzleLocaleTest` erfolgreich; `git diff --check` erfolgreich. Das ist ein gezielter Android-Profilpfad-Test, kein vollständiger Build oder Geräteslice.
+- Batch 6: **1/10**. Noch keine APK oder Release; nächste Aufgabe ist ein weiterer neuer Orca-Punkt mit einem aktiven Android-Aufrufpfad und verifizierbarem Laufzeiteffekt.
+
 ## Workspace-Import-Fortsetzung — 2026-11-01
 
 - Import-Arrange ist jetzt atomar: bei Überlauf bleiben vorhandene Modelle an ihren Positionen. Aktivierte Auto-Ausrichtung wird vor dem Arrange angewendet. Nicht passende importierte Objekte werden auf automatisch erzeugten und ausgewählten Druckplatten platziert; einzeln zu große Objekte werden zentriert und gewarnt.

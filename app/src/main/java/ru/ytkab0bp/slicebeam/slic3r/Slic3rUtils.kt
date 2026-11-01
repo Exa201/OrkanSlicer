@@ -8,14 +8,15 @@ import ru.ytkab0bp.slicebeam.utils.Vec3d
 open class Slic3rUtils {
     companion object {
         // Matches a nozzle size embedded in a preset / printer name, e.g. "... 0.4 nozzle" -> "0.4".
-        private val NOZZLE_PATTERN: Pattern = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*nozzle")
+        private val NOZZLE_PATTERN: Pattern = Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*nozzle")
+        private val SINGLE_DECIMAL_COMMA: Pattern = Pattern.compile("[+-]?\\d+,\\d+")
 
         /** Extract the nozzle size token from a preset/printer name, or null if it has none. */
         @JvmStatic
         fun extractNozzle(name: String?): String? {
             if (name.isNullOrEmpty()) return null
             val matcher = NOZZLE_PATTERN.matcher(name)
-            return if (matcher.find()) matcher.group(1) else null
+            return if (matcher.find()) normalizeDecimalComma(matcher.group(1).orEmpty()) else null
         }
 
         /** Remove a trailing " <size> nozzle" suffix from a printer name, leaving its model portion. */
@@ -32,7 +33,16 @@ open class Slic3rUtils {
         @JvmStatic
         fun firstNozzleDiameter(nozzleDiameter: String?): String? {
             if (nozzleDiameter.isNullOrEmpty()) return null
-            return nozzleDiameter.split(Regex("[;,]"), limit = 0).first().trim()
+            val value = nozzleDiameter.trim()
+            // A decimal comma is part of a single diameter (for example 0,6 mm),
+            // while Orca's multi-nozzle values use commas or semicolons as separators.
+            // Semicolon is unambiguous; a lone comma between two digits is decimal.
+            val first = when {
+                ';' in value -> value.substringBefore(';').trim()
+                SINGLE_DECIMAL_COMMA.matcher(value).matches() -> value
+                else -> value.substringBefore(',').trim()
+            }
+            return normalizeDecimalComma(first)
         }
 
         /** Orca rejects slicing when layer height exceeds nozzle diameter. */
@@ -40,7 +50,7 @@ open class Slic3rUtils {
         fun layerHeightFitsNozzle(layerHeight: String?, nozzleDiameter: String?): Boolean {
             if (layerHeight.isNullOrEmpty() || nozzleDiameter.isNullOrEmpty()) return true
             return try {
-                layerHeight.toFloat() <= nozzleDiameter.toFloat() + 1e-4f
+                parseLocaleIndependentFloat(layerHeight) <= parseLocaleIndependentFloat(nozzleDiameter) + 1e-4f
             } catch (_: NumberFormatException) {
                 true
             }
@@ -51,8 +61,8 @@ open class Slic3rUtils {
         fun lineWidthFitsNozzle(lineWidth: String?, nozzleDiameter: String?): Boolean {
             if (lineWidth.isNullOrEmpty() || nozzleDiameter.isNullOrEmpty()) return true
             return try {
-                val width = lineWidth.toFloat()
-                val nozzle = nozzleDiameter.toFloat()
+                val width = parseLocaleIndependentFloat(lineWidth)
+                val nozzle = parseLocaleIndependentFloat(nozzleDiameter)
                 if (width <= 0 || nozzle <= 0) true
                 else width >= nozzle * 0.65f - 1e-4f && width <= nozzle * 1.3f + 1e-4f
             } catch (_: NumberFormatException) {
@@ -63,11 +73,17 @@ open class Slic3rUtils {
         private fun nozzleEquals(a: String?, b: String?): Boolean {
             if (a == null || b == null) return false
             return try {
-                kotlin.math.abs(a.toFloat() - b.toFloat()) < 1e-4f
+                kotlin.math.abs(parseLocaleIndependentFloat(a) - parseLocaleIndependentFloat(b)) < 1e-4f
             } catch (_: NumberFormatException) {
                 a == b
             }
         }
+
+        private fun normalizeDecimalComma(value: String): String =
+            if (SINGLE_DECIMAL_COMMA.matcher(value.trim()).matches()) value.trim().replace(',', '.') else value.trim()
+
+        private fun parseLocaleIndependentFloat(value: String): Float =
+            normalizeDecimalComma(value).toFloat()
 
         /** Check explicit preset compatibility, model siblings, conditions and declared nozzle size. */
         @JvmStatic

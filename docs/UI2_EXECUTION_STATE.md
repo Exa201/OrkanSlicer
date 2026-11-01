@@ -1,5 +1,12 @@
 # Fortsetzungsstand aktualisiert — 2026-11-01
 
+## Nightly Batch 6 — Fortsetzung
+
+- Feature **1/10** portiert: Orca `27cafaa06c` Dezimalkomma-Düsengrößen im Android-Profilpfad. `Slic3rUtils.firstNozzleDiameter("0,6")` liefert jetzt `0.6` statt des zuvor fälschlich vor dem Komma getrennten `0`; Profilnamen sowie Layerhöhen-/Linienbreitenvergleiche akzeptieren das locale-formatierte Dezimalkomma. Mehrdüsenlisten mit Punkt-Komma sowie Semikolonlisten bleiben abgedeckt.
+- Gezielter JVM-Lauf `Slic3rUtilsNozzleLocaleTest`: 4/4 bestanden, 0 übersprungen/fehlgeschlagen; `git diff --check` sauber. Kein APK-Build/Gerätetest in diesem Featurepunkt.
+- Arbeitsänderungen in `Slic3rUtils.kt`, neuem `Slic3rUtilsNozzleLocaleTest.kt` und dieser Batchnotiz sind lokal; noch nicht committet oder gepusht. Batch 6 ist **1/10**, daher kein APK-/Release-Gate.
+- Nächster konkreter Schritt nach Commit/Push: nächsten nicht bereits portierten Orca-Upstream-Punkt mit aktivem Android-Aufrufpfad prüfen, seine native/UI-Wirkung testen und Zähler nur bei neuem verifizierten Verhalten erhöhen.
+
 ## Importplatzierung und automatische Druckplatten — 2026-11-01
 
 - Beim Import wurde ein fehlgeschlagenes `Bed3D.arrange()` ignoriert. Arrange konnte dabei bereits passende Objekte auf virtuelle Überlaufpositionen verschieben, während andere außerhalb des aktiven Betts blieben. `apply_arrange_polys()` committet jetzt atomar: sobald ein Element nicht auf das reale Bett passt, bleiben sämtliche Originaltransformationen erhalten.
