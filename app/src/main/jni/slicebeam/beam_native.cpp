@@ -1,4 +1,5 @@
 #include <android/log.h>
+#include <array>
 #include <typeinfo>
 #include <set>
 #include <algorithm>
@@ -20,6 +21,7 @@
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/FilamentGroup.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/CSGMesh/ModelToCSGMesh.hpp"
@@ -4262,6 +4264,61 @@ extern "C" {
         if (!its.indices.empty())
             g->model.init_from(its);
         return (jint) its.indices.size();
+    }
+
+    // Native regression seam for the Orca match-mode ranking. It runs the production
+    // FilamentGroup solver against small synthetic printer-slot palettes on-device.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_filament_1group_1match_1regression(JNIEnv* env, jclass) {
+        using namespace Slic3r;
+        using namespace Slic3r::FilamentGroupUtils;
+        auto choose_slot = [](const std::string& model_color, const std::string& model_id,
+                              const std::string& slot0_color, const std::string& slot0_id,
+                              const std::string& slot1_color, const std::string& slot1_id) {
+            FilamentGroupContext context{};
+            context.model_info.layer_filaments = {{0}};
+            Slic3r::FilamentGroupUtils::FilamentInfo model_filament;
+            model_filament.color = Color(model_color);
+            model_filament.type = "PLA";
+            model_filament.is_support = false;
+            context.model_info.filament_info = {model_filament};
+            context.model_info.filament_ids = {model_id};
+            context.model_info.unprintable_filaments.resize(2);
+            context.group_info.total_filament_num = 1;
+            context.group_info.max_gap_threshold = 0.01;
+            context.group_info.mode = MatchMode;
+            context.group_info.strategy = BestCost;
+            context.group_info.ignore_ext_filament = false;
+            context.machine_info.master_extruder_id = 0;
+            context.machine_info.max_group_size = {1, 1};
+            context.machine_info.machine_filament_info.resize(2);
+            const std::array<std::pair<std::string, std::string>, 2> slots{{
+                {slot0_color, slot0_id}, {slot1_color, slot1_id}
+            }};
+            for (int extruder = 0; extruder < 2; ++extruder) {
+                MachineFilamentInfo slot;
+                slot.color = Color(slots[extruder].first);
+                slot.type = "PLA";
+                slot.is_support = false;
+                slot.extruder_id = extruder;
+                slot.is_extended = false;
+                slot.filament_id = slots[extruder].second;
+                context.machine_info.machine_filament_info[extruder].push_back(std::move(slot));
+            }
+            FilamentGroup group(context);
+            const std::vector<int> mapping = group.calc_filament_group_for_match();
+            return mapping.empty() ? -1 : mapping[0];
+        };
+
+        const std::array<jint, 4> selected{{
+            choose_slot("#FFFFFF", "GFA00", "#FFFFFF", "GFL99", "#FFFFFF", "GFA00"),
+            choose_slot("#FFFFFF", "GFA00", "#FFFFFF", "GFL99", "#D0D0D0", "GFA00"),
+            choose_slot("#37A850", "", "#40C111", "", "#3F8A30", ""),
+            choose_slot("#FFFFFF", "GFA00", "#F0F1F2", "GFA00", "#F0F1F1", "GFL99")
+        }};
+        jintArray result = env->NewIntArray(static_cast<jsize>(selected.size()));
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(selected.size()), selected.data());
+        return result;
     }
 
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1has_1paint(JNIEnv* env, jclass, jlong modelPtr, jint objIdx) {

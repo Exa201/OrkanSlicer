@@ -36,6 +36,8 @@ namespace Slic3r
         struct MachineFilamentInfo: public FilamentInfo {
             int extruder_id;
             bool is_extended;
+            // Printer slot preset id. Prefer the same sub-type only when colour distance is equal.
+            std::string filament_id;
             bool operator<(const MachineFilamentInfo& other) const;
         };
 

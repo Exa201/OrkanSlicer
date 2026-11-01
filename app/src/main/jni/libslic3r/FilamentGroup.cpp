@@ -9,6 +9,19 @@
 namespace Slic3r
 {
     using namespace FilamentGroupUtils;
+
+    // Keep colour as the primary match criterion. Round the distance to 0.01 and weight it
+    // above all possible sub-type preferences; among effectively equal colours, prefer the
+    // same printer filament preset id as the model's filament id.
+    static int calc_match_mode_cost(float color_distance, const std::string& model_filament_id,
+                                    const std::string& machine_filament_id, int max_assignment_count)
+    {
+        constexpr int color_distance_scale = 100;
+        const int color_priority_weight = std::max(1, max_assignment_count) + 1;
+        const int weighted_color_cost = static_cast<int>(std::lround(color_distance * color_distance_scale)) * color_priority_weight;
+        const bool filament_id_match = !model_filament_id.empty() && model_filament_id == machine_filament_id;
+        return weighted_color_cost + (filament_id_match ? 0 : 1);
+    }
     // clear the array and heap,save the groups in heap to the array
     static void change_memoryed_heaps_to_arrays(MemoryedGroupHeap& heap,const int total_filament_num,const std::vector<unsigned int>& used_filaments, std::vector<std::vector<int>>& arrs)
     {
@@ -614,13 +627,17 @@ namespace Slic3r
         std::map<int, int> unprintable_limit_indices; // key stores filament idx in used_filament, value stores unprintable extruder
         extract_unprintable_limit_indices(ctx.model_info.unprintable_filaments, used_filaments, unprintable_limit_indices);
 
-        std::vector<std::vector<float>> color_dist_matrix(used_filament_list.size(), std::vector<float>(machine_filament_list.size()));
+        std::vector<std::vector<float>> match_cost_matrix(used_filament_list.size(), std::vector<float>(machine_filament_list.size()));
         for (size_t i = 0; i < used_filament_list.size(); ++i) {
+            const unsigned int model_filament_idx = used_filaments[i];
+            const std::string model_filament_id = model_filament_idx < ctx.model_info.filament_ids.size()
+                ? ctx.model_info.filament_ids[model_filament_idx] : std::string();
             for (size_t j = 0; j < machine_filament_list.size(); ++j) {
-                color_dist_matrix[i][j] = calc_color_distance(
+                const float color_dist = calc_color_distance(
                     RGBColor(used_filament_list[i].color.r, used_filament_list[i].color.g, used_filament_list[i].color.b),
-                    RGBColor(machine_filament_list[j].color.r, machine_filament_list[j].color.g, machine_filament_list[j].color.b)
-                );
+                    RGBColor(machine_filament_list[j].color.r, machine_filament_list[j].color.g, machine_filament_list[j].color.b));
+                match_cost_matrix[i][j] = calc_match_mode_cost(color_dist, model_filament_id, machine_filament_list[j].filament_id,
+                                                               static_cast<int>(used_filament_list.size()));
             }
         }
 
@@ -717,7 +734,7 @@ namespace Slic3r
             });
 
         {
-            MatchModeGroupSolver s(color_dist_matrix, l_nodes, r_nodes, machine_filament_capacity, unlink_limits_full);
+            MatchModeGroupSolver s(match_cost_matrix, l_nodes, r_nodes, machine_filament_capacity, unlink_limits_full);
             ungrouped_filaments = optimize_map_to_machine_filament(s.solve(), l_nodes, r_nodes,group,false);
             if (ungrouped_filaments.empty())
                 return group;
@@ -730,7 +747,7 @@ namespace Slic3r
                 return is_extruder_filament_compatible(used_filament_idx, machine_filament_list[machine_filament_idx].extruder_id);
                 });
 
-            MatchModeGroupSolver s(color_dist_matrix, l_nodes, r_nodes, machine_filament_capacity, unlink_limits);
+            MatchModeGroupSolver s(match_cost_matrix, l_nodes, r_nodes, machine_filament_capacity, unlink_limits);
             ungrouped_filaments = optimize_map_to_machine_filament(s.solve(), l_nodes, r_nodes, group,false);
             if (ungrouped_filaments.empty())
                 return group;
@@ -739,7 +756,7 @@ namespace Slic3r
         // remove all limits
         {
             l_nodes = ungrouped_filaments;
-            MatchModeGroupSolver s(color_dist_matrix, l_nodes, r_nodes, machine_filament_capacity, {});
+            MatchModeGroupSolver s(match_cost_matrix, l_nodes, r_nodes, machine_filament_capacity, {});
             auto ret = optimize_map_to_machine_filament(s.solve(), l_nodes, r_nodes, group,false);
             for (size_t idx = 0; idx < ret.size(); ++idx) {
                 if (ret[idx] == MaxFlowGraph::INVALID_ID)

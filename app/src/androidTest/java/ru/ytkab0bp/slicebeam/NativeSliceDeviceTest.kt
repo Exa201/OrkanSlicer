@@ -43,6 +43,13 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun autoForMatchPrefersClosestColorAndSameFilamentSubtype() {
+        // Same-colour sub-type preference; then exact colour wins over a sub-type match;
+        // finer distance resolves a former whole-unit tie; finally a colour step outweighs id.
+        assertArrayEquals(intArrayOf(1, 0, 1, 1), Native.filament_group_match_regression())
+    }
+
+    @Test
     fun arachneSlicesPinchedTubeWithOnlyOneWallOnTop() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)

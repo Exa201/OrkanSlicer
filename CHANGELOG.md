@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.422 — Nightly 2.5 experimental — 2026-11-01
+
+- Orca match-mode filament assignment now uses filament preset IDs as a tie-breaker after rounded color distance, preferring the same subtype when colors are effectively equal while keeping color similarity primary.
+- The Android machine-slot reader retains each slot's `filament_id`; a native regression test covers subtype preference, color priority, and distance tie-breaks.
+- Nightly Batch 3 reached 10/10 scoped, focused changes. Debug and Slice JVM suites passed 705/705 each; the targeted native Android test passed 1/1 on API 35 x86_64 with ARM64 translation. No physical printer, physical GPU, or Xiaomi verification is claimed.
+- This is a selective Orca Android backport, not a full OrcaSlicer 2.5 core replacement. Nightly remains isolated under `com.exa201.orkanslicer.nightly25`.
+- A fresh debug APK and prerelease will be attached after building this committed source.
+
 ## 0.8.421 — Nightly 2.5 experimental — 2026-10-31
 
 - Orca filename templates now list all distinct filament types used by the sliced plate, in tool order. OpenEYE Peacock V2 profiles include the model, optional plate name, used materials, and estimated print time in the recommended G-code filename.

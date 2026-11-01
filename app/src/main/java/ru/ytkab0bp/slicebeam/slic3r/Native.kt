@@ -27,6 +27,9 @@ class Native {
 
     @JvmStatic
     external fun get_print_config_def(def: PrintConfigDef): Unit
+    /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
+    @JvmStatic
+    external fun filament_group_match_regression(): IntArray
     @JvmStatic
     external fun set_svg_path_prefix(prefix: String): Unit
     @JvmStatic
