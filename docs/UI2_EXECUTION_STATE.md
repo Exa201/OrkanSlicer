@@ -1,5 +1,13 @@
 # Fortsetzungsstand aktualisiert — 2026-11-01
 
+## Drucker-PA-Reparatur und Nightly-Fortsetzung — 2026-11-01
+
+- Nightly-PA-Fix `fc6d9251eeaec997d083bd625cfd8d90221e700e`: v2-Profilmigration bereinigt auch gespeicherte Kobra-3-V2-Profile, die bereits die v1-Markierung hatten. API-36-Slice-Nachweis bestand mit Filament-PA `0.075` sowie deaktiviertem Filament-PA.
+- Ergänzende Benutzerfunktion „An Achsen des Hauptobjekts ausrichten“ ist in `75c87032fa` integriert. Ihre lokale X/Y/Z-Basis folgt der Eulerrotation des Hauptobjekts; native exakte Projektionsbereiche verschieben die übrigen ausgewählten Objekte entlang derselben Welt-Richtung. Auswahlgruppen-Zuordnung, JNI-Bindung, Undo/Redo und 3MF-/Slice-Rundlauf sind korrigiert und geprüft.
+- Verifikation: `PrimaryObjectAxesTest` erfolgreich; `modelMenuAlignsAlongRotatedPrimaryObjectAxesWithUndoRedoAndSlice` 1/1 auf API 36. Der erste Gerätelauf entdeckte den fehlenden JNI-`@JvmStatic`-Export, der nächste die falsche Menügruppe; beide sind korrigiert.
+- Diese ergänzende Workspace-Funktion ist **kein** Orca-Upstream-Featurepunkt und wird nicht auf den 10er-Portierungszähler angerechnet. Batch 6 benötigt weiterhin Upstream-Audit und einen getrennten, Android-relevanten Kandidaten. Kein Batch-6-APK/Release.
+- Xiaomi-Installation wurde vom Gerät mit `INSTALL_FAILED_USER_RESTRICTED` abgebrochen; keine physische Prüfung.
+
 - Nightly Batch 5 is **10/10 verified and published**. Change 10 ports Orca `fb36d5e73b` Hilbert Curve sparse-infill smoothing: a 0–100% process-profile setting is wired through native config/preset/state invalidation into the real infill generator and exposed in the mobile Infill settings. Emulator API 36 native slice regression passed 1/1, confirming actual sparse-infill G-code changes while walls/top/bottom remain identical. ARM64 native + instrumentation APK build succeeded; full Debug and Slice JVM suites passed 712/712 each, zero failures/errors/skips; APK installed and launched on emulator. Code commit `4867891309e46c796a70b8bd710131792ce29889`; APK `OrkanSlicerNightly25_4867891309.apk`, 239,951,714 bytes, SHA-256 `96DB4552AEADCBFAEC0FD3715E8460D0E0C76A235AF7361678A43C8F70C6F536`; prerelease `v0.8.424-nightly.1`.
 - Xiaomi 2211133G remains ADB-online but MIUI rejects app/test installation with `INSTALL_FAILED_USER_RESTRICTED`; no physical-device pass is claimed. Next: start Nightly Batch 6 upstream review, select the first unported Orca 2.5 feature with an active Android code path and define a real native/UI regression before implementation.
 - Xiaomi 2211133G remains ADB-online but MIUI rejects app/test installation with `INSTALL_FAILED_USER_RESTRICTED`; no physical-device pass is claimed.
