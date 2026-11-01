@@ -1615,8 +1615,8 @@ class NativeSliceDeviceTest {
             val upperHeight = requireNotNull(model.getModifierVolumeBoxState(0, upperConnector)).size[2]
             val lowerHeight = requireNotNull(model.getModifierVolumeBoxState(1, lowerConnector)).size[2]
             assertTrue("both halves of a cut-plane dowel must keep positive depth", upperHeight > 1.5 && lowerHeight > 1.5)
-            assertEquals("dowel tolerance must not move the lower cut-plane anchor", 2.0, lowerHeight, 0.02)
-            assertEquals("the tolerance extension belongs at the far end", 2.1, upperHeight, 0.02)
+            assertEquals("dowel holes should break through the cut face without shortening", 2.05, lowerHeight, 0.02)
+            assertEquals("the opposite dowel hole should retain its far-end tolerance", 2.15, upperHeight, 0.02)
         } finally {
             model.release()
             modelFile.delete()

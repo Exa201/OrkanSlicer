@@ -11,6 +11,9 @@ namespace Slic3r {
 
 using ModelObjectPtrs = std::vector<ModelObject*>;
 
+// Keep connector holes slightly open through the cut face, avoiding a coplanar skin.
+inline constexpr double CONNECTOR_HOLE_OVERLAP = 0.05;
+
 enum class ModelObjectCutAttribute : int { KeepUpper, KeepLower, KeepAsParts, FlipUpper, FlipLower, PlaceOnCutUpper, PlaceOnCutLower, CreateDowels, InvalidateCutInfo, KeepPaint };
 using ModelObjectCutAttributes = enum_bitmask<ModelObjectCutAttribute>;
 ENABLE_ENUM_BITMASK_OPERATORS(ModelObjectCutAttribute);
