@@ -1,5 +1,13 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 5 — Änderung 9/10: lange Extrusionsketten lokal verfeinern (2026-11-01)
+
+Port Orca `69193d5681`'s bounded travel refinement into the active extrusion-entity ordering path. Chains longer than eight paths now refine the existing greedy chain with reversible 2-opt and short/long or-opt moves, using a uniform endpoint grid and a capped work queue. A nearest-next chain is also refined and selected only when its measured travel is shorter. Chains without a fixed nozzle start keep the existing behavior; paths that cannot reverse are never flipped. This changes path order only, not geometry or extrusion values.
+
+`NativeSliceDeviceTest#longExtrusionChainsAreRefinedWithoutIncreasingTravel` passed 1/1 on API 36. Its deterministic 12-segment adversarial route verifies that each segment occurs once and that the refined travel is shorter. ARM64 native build and Slice instrumentation APK compilation passed. Full Debug and Slice JVM suites passed 712/712 each, with no failed or skipped tests. Xiaomi physical installation remains unavailable due to `INSTALL_FAILED_USER_RESTRICTED`.
+
+Batch 5 is now **9/10**. One more suitable, runtime-verified change is required before its APK/release gate.
+
 ## Nightly Batch 5 — Änderung 8/10: Kobra-3-V2-Pressure-Advance-Startwert entfernt (2026-11-01)
 
 Das eingebaute Stockprofil setzte fest `M900 K0.051` im Drucker-Start-G-Code. Damit blieb Pressure Advance aktiv und wurde zusätzlich zum Filamentwert ausgegeben, selbst wenn der Benutzer den Filament-PA-Wert anders einstellte oder ausschaltete. Der feste Befehl wurde aus dem Profil entfernt. Beim ersten Start nach dem Update entfernt eine einmalige Migration exakt diese alte Zeile aus dem gespeicherten Stockprofil `Anycubic Kobra 3 v2 0.4 nozzle - Stock`; andere Profilwerte und manuelle Änderungen bleiben erhalten.

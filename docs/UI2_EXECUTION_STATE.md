@@ -1,5 +1,8 @@
 # Fortsetzungsstand aktualisiert — 2026-11-01
 
+- Nightly Batch 5, Änderung 9/10: Orca `69193d5681` long-chain path refinement is now in the active native extrusion-entity ordering path. The API-36 12-segment travel regression passed 1/1; ARM64 native/test APK build passed; full Debug and Slice JVM suites passed 712/712 each. Change remains local until the code/docs commit is pushed. Next: select and verify one suitable tenth change, then run the full batch gate and build/publish the isolated Nightly APK.
+- Xiaomi 2211133G remains ADB-online but MIUI rejects app/test installation with `INSTALL_FAILED_USER_RESTRICTED`; no physical-device pass is claimed.
+
 - Stable-Fix: Ursache für den immer aktiven Kobra-3-V2-PA-Wert war `M900 K0.051` im fest eingebauten `machine_start_gcode`. Stable korrigiert und als Commit `e28e071335228d31a331b2a577fa792d5d31d85e` gebaut (APK 0.8.409); Tests: Migration-Unit 2/2, Profil-Instrumentierung API 36 1/1. Xiaomi-Installationsversuch von Android mit `INSTALL_FAILED_USER_RESTRICTED` abgewiesen.
 - Nightly hatte denselben Profilfehler. Asset und einmalige Migration vorhandener gespeicherter Stockprofile korrigiert. Migration-Unit 2/2, Profil-Instrumentierung API 36 1/1, Nightly-HEAD mit Änderung 7 davor `e5ddb76147b66168ccaa65070bb720910e5fe0b1`. Damit Batch 5: 8/10 verifizierte Produktänderungen einschließlich dieses PA-Bugfixes; es wurde noch keine Nightly-APK erstellt.
 - Nächster konkreter Schritt: zwei weitere geeignete Orca-2.5-Änderungen aus `docs/ORCA_NIGHTLY_FEATURE_PLAN.md` auswählen, aktive Android-Aufrufpfade bestätigen und jeweils mit echtem nativen Slice-/UI-Nachweis umsetzen; nach zehn Änderungen JVM-Suiten ausführen, APK bauen und Nightly-Artefakt aktualisieren.

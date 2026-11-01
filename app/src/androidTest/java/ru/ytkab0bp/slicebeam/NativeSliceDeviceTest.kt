@@ -348,6 +348,40 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun longExtrusionChainsAreRefinedWithoutIncreasingTravel() {
+        val encoded = Native.shortest_path_long_chain_refinement_regression()
+        val segmentCount = 12
+        assertEquals(segmentCount * 2, encoded.size)
+        val segments = (0 until segmentCount).map { index ->
+            Pair(doubleArrayOf(index * 10.0, 0.0), doubleArrayOf(index * 10.0 + 1.0, 0.0))
+        }
+        fun chainLength(order: IntArray): Double {
+            assertEquals(segmentCount, order.size)
+            assertEquals("each segment must appear exactly once", (0 until segmentCount).toSet(), order.map { it / 2 }.toSet())
+            var x = 0.0
+            var y = 0.0
+            var length = 0.0
+            for (item in order) {
+                val (first, second) = segments[item / 2]
+                val entry = if (item % 2 == 0) first else second
+                val exit = if (item % 2 == 0) second else first
+                length += kotlin.math.hypot(entry[0] - x, entry[1] - y)
+                x = exit[0]
+                y = exit[1]
+            }
+            return length
+        }
+
+        val greedy = encoded.copyOfRange(0, segmentCount)
+        val refined = encoded.copyOfRange(segmentCount, encoded.size)
+        val greedyLength = chainLength(greedy)
+        val refinedLength = chainLength(refined)
+        assertTrue("the long-chain local search should shorten the adversarial chain: $greedyLength -> $refinedLength",
+            refinedLength < greedyLength)
+        assertTrue(refined.all { it in 0 until segmentCount * 2 })
+    }
+
+    @Test
     fun defaultObjectOrderUsesTheMinimumClosedTourForSmallProjects() {
         val points = listOf(
             doubleArrayOf(3.0, 15.0), doubleArrayOf(9.0, 6.0),
