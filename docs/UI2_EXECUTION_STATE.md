@@ -1,3 +1,9 @@
+# Fortsetzungsstand aktualisiert — 2026-11-01
+
+- Stable-Fix: Ursache für den immer aktiven Kobra-3-V2-PA-Wert war `M900 K0.051` im fest eingebauten `machine_start_gcode`. Stable korrigiert und als Commit `e28e071335228d31a331b2a577fa792d5d31d85e` gebaut (APK 0.8.409); Tests: Migration-Unit 2/2, Profil-Instrumentierung API 36 1/1. Xiaomi-Installationsversuch von Android mit `INSTALL_FAILED_USER_RESTRICTED` abgewiesen.
+- Nightly hatte denselben Profilfehler. Asset und einmalige Migration vorhandener gespeicherter Stockprofile korrigiert. Migration-Unit 2/2, Profil-Instrumentierung API 36 1/1, Nightly-HEAD mit Änderung 7 davor `e5ddb76147b66168ccaa65070bb720910e5fe0b1`. Damit Batch 5: 8/10 verifizierte Produktänderungen einschließlich dieses PA-Bugfixes; es wurde noch keine Nightly-APK erstellt.
+- Nächster konkreter Schritt: zwei weitere geeignete Orca-2.5-Änderungen aus `docs/ORCA_NIGHTLY_FEATURE_PLAN.md` auswählen, aktive Android-Aufrufpfade bestätigen und jeweils mit echtem nativen Slice-/UI-Nachweis umsetzen; nach zehn Änderungen JVM-Suiten ausführen, APK bauen und Nightly-Artefakt aktualisieren.
+
 # Aktueller Fortsetzungsstand — 2026-11-01, Nightly-Batch 5
 
 - Batch 4 bleibt abgeschlossen: 10/10 Änderungen, APK und Prerelease `v0.8.423-nightly.1` sind veröffentlicht (Codebasis `a717018b7e31f871f3903916bc0a391ac786d10e`; Statusdaten dazu folgen unten in der Batch-4-Historie).

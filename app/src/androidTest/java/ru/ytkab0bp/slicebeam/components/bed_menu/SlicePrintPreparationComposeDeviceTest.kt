@@ -19,6 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.json.JSONObject
 import ru.ytkab0bp.slicebeam.MainActivity
 import ru.ytkab0bp.slicebeam.R
 import ru.ytkab0bp.slicebeam.SliceBeam
@@ -44,6 +45,19 @@ import java.io.File
 class SlicePrintPreparationComposeDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
+
+    @Test
+    fun kobra3V2StockStartGcodeDoesNotForcePressureAdvance() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val profile = context.assets.open(
+            "orca_profiles/kobra3v2/printer/Anycubic Kobra 3 v2 0.4 nozzle - Stock.json",
+        ).bufferedReader().use { JSONObject(it.readText()) }
+        val startGcode = profile.getString("machine_start_gcode")
+        assertFalse(
+            "The stock Kobra 3 V2 profile must not override the filament Pressure Advance setting",
+            Regex("(?im)^\\s*(?:M900\\s+K|SET_PRESSURE_ADVANCE\\b|M572\\b).*").containsMatchIn(startGcode),
+        )
+    }
 
     @Test
     fun sharedAceGateWarningResolvesItsPluralResource() {

@@ -1,5 +1,11 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 5 — Änderung 8/10: Kobra-3-V2-Pressure-Advance-Startwert entfernt (2026-11-01)
+
+Das eingebaute Stockprofil setzte fest `M900 K0.051` im Drucker-Start-G-Code. Damit blieb Pressure Advance aktiv und wurde zusätzlich zum Filamentwert ausgegeben, selbst wenn der Benutzer den Filament-PA-Wert anders einstellte oder ausschaltete. Der feste Befehl wurde aus dem Profil entfernt. Beim ersten Start nach dem Update entfernt eine einmalige Migration exakt diese alte Zeile aus dem gespeicherten Stockprofil `Anycubic Kobra 3 v2 0.4 nozzle - Stock`; andere Profilwerte und manuelle Änderungen bleiben erhalten.
+
+`Kobra3V2ProfileMigrationTest` besteht 2/2. `SlicePrintPreparationComposeDeviceTest#kobra3V2StockStartGcodeDoesNotForcePressureAdvance` prüft das ausgelieferte Profil und bestand 1/1 auf API 36. Debug-Unit- und Slice-Unit-Gesamtsuiten laufen am Batch-Gate; Xiaomi-Installationen bleiben wegen `INSTALL_FAILED_USER_RESTRICTED` ungeprüft. Stable-Ausgabe wurde separat als 0.8.409 (`e28e071`) gebaut. Nightly 5 steht bei 8/10; noch keine APK aus diesem Teilbatch.
+
 Stand: 2026-11-01. Upstream-Vergleich: OrcaSlicer `main` at
 `3aedd50bcb94221db79ccbf8d6a7985e795fe25d`; the official OrcaSlicer 2.5.0 Beta notes were also
 reviewed. Nightly Batch 4 is at **10/10 implemented**: five native slicer ports, Qidi selected-bed start
