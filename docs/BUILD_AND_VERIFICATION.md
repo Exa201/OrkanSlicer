@@ -33,6 +33,15 @@
 - APK `OrkanSlicer_7d304fa518.apk`, 239,652,439 bytes, SHA-256 `DAAAAC5F913C1B6FEDCBC2C1154EA45CE225154A3979F22C7FF7AF449826BFFF`; `aapt` verified application ID, version, and `arm64-v8a`. This is debug-signed.
 - Two OrcaSlicer 2.5 changes are ported: empty-layer guards and 64-bit filament masks. No fixed slicing fixture, multi-color output, G-code, printer upload, Xiaomi, Honor, or physical-printer validation was performed. Do not treat this as a completed 2.5 engine update.
 
+# OrkanSlicer Nightly 2.5 — 0.8.422 — 2026-11-01
+
+- Code commit `30dbeeb070`; branch `nightly-2.5`; package `com.exa201.orkanslicer.nightly25`; app version 0.8.422 / code 457; native engine 0.8.414 / build ID 449.
+- `:app:assembleDebug` succeeded in 36:36. APK `OrkanSlicerNightly25_30dbeeb070.apk`, 239,825,573 bytes, SHA-256 `2262AFF34CF2A1C9C9CD846349CDE963F17B5E261FA780EB7539F54996A71096`. APK is debug-signed and ARM64-only.
+- Debug JVM and Slice JVM suites each passed 705/705; focused native Auto-for-Match device test passed 1/1 on API 35 x86_64 using ARM64 translation. These tests were run on the code before only the release version metadata was bumped.
+- API-35 emulator `emulator-5554`: APK installation and launcher start succeeded; package manager reports version 0.8.422/code 457 and `MainActivity` resumed. Captured logcat window had no crash, ANR, or OOM markers.
+- Xiaomi 2211133G appeared on ADB but install was denied by Android with `INSTALL_FAILED_USER_RESTRICTED`. Physical Xiaomi behavior remains unverified. No printer was connected and no print was started.
+- Published Nightly prerelease `v0.8.422-nightly.1`: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.422-nightly.1. GitHub asset digest is `sha256:2262aff34cf2a1c9c9cd846349cde963f17b5e261fa780eb7539f54996a71096`; the `.sha256` sidecar is attached.
+
 # OrkanSlicer 0.8.409 — OrcaSlicer 2.5 baseline publication — 2026-10-30
 
 - Orca upstream review: latest `main` `98b539c3e6b44e87bbde950e26d1b23c66691a0a`; latest 2.5 prerelease `v2.5.0-beta` (2026-10-27). This app build deliberately retains the existing Android native engine; no upstream 2.5 source is claimed as integrated.

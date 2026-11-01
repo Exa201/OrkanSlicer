@@ -6,7 +6,9 @@
 - The Android machine-slot reader retains each slot's `filament_id`; a native regression test covers subtype preference, color priority, and distance tie-breaks.
 - Nightly Batch 3 reached 10/10 scoped, focused changes. Debug and Slice JVM suites passed 705/705 each; the targeted native Android test passed 1/1 on API 35 x86_64 with ARM64 translation. No physical printer, physical GPU, or Xiaomi verification is claimed.
 - This is a selective Orca Android backport, not a full OrcaSlicer 2.5 core replacement. Nightly remains isolated under `com.exa201.orkanslicer.nightly25`.
-- A fresh debug APK and prerelease will be attached after building this committed source.
+- Debug APK `OrkanSlicerNightly25_30dbeeb070.apk`, 239,825,573 bytes, SHA-256 `2262AFF34CF2A1C9C9CD846349CDE963F17B5E261FA780EB7539F54996A71096`; manifest confirms app ID, label, and version 0.8.422/code 457. Full debug build succeeded for code commit `30dbeeb070`.
+- API-35 emulator installation and launch succeeded with no Crash/ANR/OOM markers in the captured logcat window. Xiaomi 2211133G was attached but rejected ADB install with `INSTALL_FAILED_USER_RESTRICTED`; physical Xiaomi verification remains outstanding.
+- [Nightly 2.5 prerelease v0.8.422](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.422-nightly.1).
 
 ## 0.8.421 — Nightly 2.5 experimental — 2026-10-31
 

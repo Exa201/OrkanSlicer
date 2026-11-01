@@ -1,12 +1,16 @@
-# Aktueller Fortsetzungsstand — 2026-11-01, Nightly-Batch 3 (10/10 implementiert; APK/Release in Arbeit)
+# Aktueller Fortsetzungsstand — 2026-11-01, Nightly-Batch 3 abgeschlossen; Batch 4 steht an
 
 - Änderung 9/10: Orca `f7d23705ea` adressiert Temperaturwechsel im Temperaturturm explizit an das Werkzeug, dem das Modell zugeordnet ist. Android-`GCode::process_layer` erzeugt diese `M104`-Befehle nun mit dem aktiven Filamentwerkzeug statt ohne Werkzeugnummer.
 - Verifikation Änderung 9: ARM64-Native-Slice-Build sowie Slice-App und Android-Test kompiliert; `NativeSliceDeviceTest#temperatureTowerTargetsTheAssignedToolOnEveryLayer` auf API 35 x86_64 mit ARM64-Übersetzungsumgebung bestanden (1/1). Der Test slice-t einen Würfel als T1-Temperaturturm und prüft, dass alle Schicht-Temperaturbefehle `M104 ... T1` enthalten.
 - Änderung 10/10: Orca `8e37d7d4b2` Auto-for-Match passt bei annähernd gleichen Farben nun zusätzlich den Filament-Preset-Identifier ab. Die Farbähnlichkeit bleibt das primäre Kriterium; der Slot-Reader übernimmt `filament_id` der Druckerfächer.
 - Verifikation Änderung 10: nativer ARM64-Slice-Build und Android-Test kompiliert; `NativeSliceDeviceTest#autoForMatchPrefersClosestColorAndSameFilamentSubtype` auf API 35 x86_64 mit ARM64-Übersetzung bestanden (1/1). Debug- und Slice-Unit-Suiten je 705/705 bestanden; `git diff --check` sauber. Die vorherige Build-/Suite-Verifikation erfolgte vor dem hier dokumentierten Release-Metadaten-Update.
 - Ein Orca-Kandidat `98b539c3e6` für filamentbezogene Liftgrenzen war bereits im Android-Port umgesetzt und wurde nicht als neue Änderung gezählt.
-- Aktueller Arbeits-HEAD vor Abschluss: `1887290b71`; die sechs Änderungen 10/10 liegen noch uncommittet. App-Version wird für den Release auf 0.8.422 / Code 457 angehoben; nativer Engine-Identifier auf 0.8.414 / Build-ID 449.
-- Nächster konkreter Schritt: Änderung und Release-Metadaten committen/pushen, Debug-APK nach dem Code-Commit erstellen, Paket/Hash prüfen, auf API-35-Emulator starten und Nightly-Prerelease veröffentlichen. Danach neuen Orca-Upstream-Featurekandidaten für Batch 4 auswählen.
+- Commit `30dbeeb070` ist auf `nightly-2.5` gepusht. Nightly-App-Version 0.8.422/code 457 und Engine-Identifier 0.8.414/build ID 449.
+- Debug-APK `OrkanSlicerNightly25_30dbeeb070.apk`, 239,825,573 Bytes, SHA-256 `2262AFF34CF2A1C9C9CD846349CDE963F17B5E261FA780EB7539F54996A71096`; Manifest bestätigt Paket `com.exa201.orkanslicer.nightly25`, Label `OrkanSlicer Nightly 2.5`, Version 0.8.422/457. `:app:assembleDebug` erfolgreich (36:36).
+- Emulator `emulator-5554` / API 35: APK installiert und gestartet; `MainActivity` aktiv; erfasster Logcat-Ausschnitt ohne Crash/ANR/OOM. Debug/Slice JVM-Suiten jeweils 705/705 und gezielter NativeSliceDeviceTest 1/1 stammen aus der verifizierten Änderung vor dem Release-Build.
+- Nightly-Prerelease `v0.8.422-nightly.1` veröffentlicht mit APK und SHA-Sidecar: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.422-nightly.1. GitHub-Assetgrößen und Digest stimmen mit den lokalen Werten überein.
+- Xiaomi 2211133G war verbunden, aber Android verweigerte Installation mit `INSTALL_FAILED_USER_RESTRICTED`; keine Xiaomi-Laufzeitprüfung behauptet. Keine physische GPU-/Druckerprüfung und kein Druckstart.
+- Nächster konkreter Schritt: aktuellen OrcaSlicer-Upstream samt 2.5-Tag/Prerelease aktualisieren, geeignete Android-kompatible Commits für Batch 4 nach echtem App-Aufrufpfad auswählen; bereits portierte Funktionen aussortieren, dann die nächsten zehn fokussierten Anpassungen einzeln verifizieren.
 
 - Repository/Branch: `Exa201/OrkanSlicer-Nightly-2.5`, `nightly-2.5`; Stable-App und Stable-Repository unverändert. Änderungen 6 (`d1f249c99b`) und 7 (`d79713fc98`) sind verifiziert und gepusht.
 - Änderung 1/10: unbekannte, farblich bekannte Moonraker-MMU-Fächer bleiben indexstabil auswählbar; `MmuFilamentSyncDeviceTest` 18/18 auf API 35 und 36.
