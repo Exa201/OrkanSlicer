@@ -5596,6 +5596,48 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 120_000)
+    fun spiralVaseSlicesSingleFilamentObjectWithHeightRangeOverride() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("spiral_mode", "1")
+        process.put("top_shell_layers", "0")
+        process.put("bottom_shell_layers", "1")
+
+        val source = copyCube(context, "spiral-height-range-source.stl")
+        val baseProject = File(context.cacheDir, "spiral-height-range-base.3mf")
+        val projectWithRange = File(context.cacheDir, "spiral-height-range-override.3mf")
+        var model: Model? = null
+        var sourceModel: Model? = null
+        try {
+            sourceModel = Model(source).also { it.ensureOnBed(0) }
+            SliceBeam.genCurrentConfig(sourceModel)
+            sourceModel.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, baseProject.absolutePath)
+            addLayerConfigRange(
+                baseProject,
+                projectWithRange,
+                """<?xml version="1.0" encoding="UTF-8"?><objects><object id="1"><range min_z="0.4" max_z="1.2"><option opt_key="outer_wall_speed">42</option></range></object></objects>""",
+            )
+
+            model = Model(projectWithRange).also { it.ensureOnBed(0) }
+            SliceBeam.genCurrentConfig(model)
+            val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+            assertTrue("The actual native slice config must enable spiral vase mode", nativeConfig.contains("spiral_mode = 1"))
+            val gcode = sliceToGcode(context, model, "spiral-height-range-override.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("The sliced output must keep the vase-mode object perimeter", gcode.contains("TYPE:Outer wall") || gcode.contains("TYPE:External perimeter"))
+            Log.i("NativeSliceDeviceTest", "PASS single-filament spiral vase with layer-range perimeter-speed override")
+        } finally {
+            model?.release()
+            sourceModel?.release()
+            source.delete()
+            baseProject.delete()
+            projectWithRange.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun selectedBedSurfaceTemperatureReachesNativeGcode() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -5882,6 +5924,21 @@ class NativeSliceDeviceTest {
             }
         }
         check(changed) { "3MF model XML did not contain an item build transform" }
+    }
+
+    private fun addLayerConfigRange(source: File, destination: File, xml: String) {
+        ZipFile(source).use { archive ->
+            ZipOutputStream(destination.outputStream()).use { output ->
+                archive.entries().asSequence().forEach { entry ->
+                    output.putNextEntry(ZipEntry(entry.name))
+                    archive.getInputStream(entry).use { it.copyTo(output) }
+                    output.closeEntry()
+                }
+                output.putNextEntry(ZipEntry("Metadata/Prusa_Slicer_layer_config_ranges.xml"))
+                output.write(xml.toByteArray(Charsets.UTF_8))
+                output.closeEntry()
+            }
+        }
     }
 
     /** Writes one small ZIP member whose central directory claims a ZIP64-sized XML payload. */
