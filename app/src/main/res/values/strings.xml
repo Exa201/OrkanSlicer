@@ -681,6 +681,8 @@
     <string name="SvgSimplifyFailedFallback">The contours could not be safely reduced.</string>
     <string name="MenuFileOpenFileFailedNullName">Failed to resolve file name.</string>
     <string name="MenuFileOpenFileBigObject">Large model loaded. Processing may take longer.</string>
+    <string name="ImportedObjectsMovedToNewPlates">%1$d object(s) did not fit and were moved to new plate(s).</string>
+    <string name="ImportedObjectsTooLargeForBed">%1$d object(s) are larger than the build area and were centered on a new plate. Scale them down to fit.</string>
     <string name="MenuFileOpenSimplifiedLoaded">Simplified and loaded: %1$s → %2$s triangles.</string>
     <string name="MenuFileOpenFileLoading">Loading file…</string>
     <string name="MenuFileOpenMultipleStlOnly">Only STL files can be loaded together in a multiple selection.</string>

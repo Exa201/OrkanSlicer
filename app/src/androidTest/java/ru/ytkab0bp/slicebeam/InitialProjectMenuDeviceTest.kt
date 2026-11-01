@@ -3049,6 +3049,61 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun importedObjectsMoveToAutomaticallyCreatedPlateWhenCurrentPlateIsFull() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "auto-plate-import-140mm.stl")
+        try {
+            writeScaledCubeStl(activity, modelFile, 7f)
+            fun importAndWait() {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(modelFile, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait()
+            assertEquals("first 140 mm object should use the initial plate", 0, bed.activePlateIndex)
+            val initialModel = readPlateModels(bed).first()
+            assertEquals(1, initialModel.objectsCount)
+            val initialBounds = readExactBoundsOnGl(glView, 0).single()
+
+            importAndWait()
+            compose.waitUntil(timeoutMillis = 10_000) { readPlateModels(bed).size == 2 }
+            assertEquals("the overflow import should select the newly created plate", 1, bed.activePlateIndex)
+            val models = readPlateModels(bed)
+            assertEquals("the original plate must keep its object", 1, models[0].objectsCount)
+            assertEquals("the incoming object should be placed on the new plate", 1, models[1].objectsCount)
+            assertArrayEquals("failed first-plate packing must not shift the existing object", initialBounds,
+                readExactBoundsOnGl(glView, models[0], 0), 0.03)
+            val placedBounds = readExactBoundsOnGl(glView, 0).single()
+            val volumeMin = glView.renderer.bed?.getVolumeMin() ?: error("bed bounds unavailable")
+            val volumeMax = glView.renderer.bed?.getVolumeMax() ?: error("bed bounds unavailable")
+            assertTrue("auto-placed object must be inside the active bed X bounds",
+                placedBounds[0] >= volumeMin.x - 0.1 && placedBounds[3] <= volumeMax.x + 0.1)
+            assertTrue("auto-placed object must be inside the active bed Y bounds",
+                placedBounds[1] >= volumeMin.y - 0.1 && placedBounds[4] <= volumeMax.y + 0.1)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         var modelEditStageStartedAt = SystemClock.elapsedRealtime()
         fun logModelEditStage(stage: String, details: String = "") {
@@ -9410,6 +9465,28 @@ class InitialProjectMenuDeviceTest {
         destination.writeBytes(output.array())
     }
 
+    private fun writeScaledCubeStl(activity: MainActivity, destination: File, scale: Float) {
+        val source = activity.assets.open("models/xyz_cube.stl").use { it.readBytes() }
+        val triangleCount = ByteBuffer.wrap(source, 80, 4).order(ByteOrder.LITTLE_ENDIAN).int
+        val bytes = source.copyOf()
+        val data = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        repeat(triangleCount) { triangle ->
+            val base = 84 + triangle * 50
+            listOf(12, 24, 36).forEach { vertex ->
+                repeat(3) { axis ->
+                    val offset = base + vertex + axis * 4
+                    data.putFloat(offset, data.getFloat(offset) * scale)
+                }
+            }
+        }
+        destination.writeBytes(bytes)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun readPlateModels(bed: BedFragment): List<Model> =
+        BedFragment::class.java.getDeclaredField("platesModels").apply { isAccessible = true }
+            .get(bed).let { it as List<Model?> }.filterNotNull()
+
     private fun scrollMenuToIndex(index: Int) {
         // Compact portrait menus use a two-row LazyHorizontalGrid. Wide and landscape
         // layouts use a vertically scrollable action column, where individual actions
@@ -9928,6 +10005,25 @@ class InitialProjectMenuDeviceTest {
             finished.countDown()
         }
         assertTrue("GL thread did not return exact bounds", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(bounds.get())
+    }
+
+    private fun readExactBoundsOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        model: Model,
+        index: Int,
+    ): DoubleArray {
+        val finished = CountDownLatch(1)
+        val bounds = AtomicReference<DoubleArray>()
+        glView.queueEvent {
+            val min = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            val max = ru.ytkab0bp.slicebeam.utils.Vec3d()
+            model.getBoundingBoxExact(index, min, max)
+            bounds.set(doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return exact bounds for the requested plate model",
+            finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(bounds.get())
     }
 

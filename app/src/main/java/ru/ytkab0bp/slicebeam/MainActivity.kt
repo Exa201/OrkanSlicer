@@ -1722,20 +1722,10 @@ SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 var bigObject = false
 for (i in firstNewObject until firstNewObject + addedObjects)
 {
-if (autoorient && !project3mf)
-{
-model.autoOrient(i)
-fragment.glView!!.renderer.invalidateGlModel(i)
-}
 if (model.isBigObject(i))
 {
 bigObject = true
 }
-}
-if (autoorient && !project3mf)
-{
-fragment.rebaseModelHistoryAfterImportAdjustment()
-fragment.glView!!.requestRender()
 }
 SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
 if (project3mf)
@@ -1780,7 +1770,7 @@ override fun onFailed(error: Exception) {
         )
     }
 }
-}, stepOptions)
+}, stepOptions, autoOrientImportedModels = autoorient && !project3mf)
 }
 }
 catch (e:Slic3rRuntimeError) {

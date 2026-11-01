@@ -1,5 +1,6 @@
 #include "ModelArrange.hpp"
 
+#include <algorithm>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Geometry/ConvexHull.hpp>
 #include <libslic3r/Print.hpp>
@@ -28,16 +29,22 @@ arrangement::ArrangePolygons get_arrange_polys(const Model &model, ModelInstance
 
 bool apply_arrange_polys(ArrangePolygons &input, ModelInstancePtrs &instances, VirtualBedFn vfn)
 {
-    bool ret = true;
-
-    for(size_t i = 0; i < input.size(); ++i) {
-        if (input[i].bed_idx != 0) { ret = false; if (vfn) vfn(input[i]); }
-        if (input[i].bed_idx >= 0)
-            instances[i]->apply_arrange_result(input[i].translation.cast<double>(),
-                                               input[i].rotation);
+    // Arrange is committed to one physical bed. Applying only the objects that fit after
+    // another item was sent to a virtual overflow bin leaves a partially shifted model.
+    // Keep the source transforms intact so the caller can retry the overflow on another plate.
+    const bool fits_single_bed = std::all_of(input.begin(), input.end(), [](const ArrangePolygon& polygon) {
+        return polygon.bed_idx == 0;
+    });
+    if (!fits_single_bed) {
+        if (vfn)
+            for (ArrangePolygon& polygon : input)
+                if (polygon.bed_idx != 0) vfn(polygon);
+        return false;
     }
 
-    return ret;
+    for (size_t i = 0; i < input.size(); ++i)
+        instances[i]->apply_arrange_result(input[i].translation.cast<double>(), input[i].rotation);
+    return true;
 }
 
 Slic3r::arrangement::ArrangePolygon get_arrange_poly(const Model &model)

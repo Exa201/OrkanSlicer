@@ -1,5 +1,13 @@
 # Fortsetzungsstand aktualisiert — 2026-11-01
 
+## Importplatzierung und automatische Druckplatten — 2026-11-01
+
+- Beim Import wurde ein fehlgeschlagenes `Bed3D.arrange()` ignoriert. Arrange konnte dabei bereits passende Objekte auf virtuelle Überlaufpositionen verschieben, während andere außerhalb des aktiven Betts blieben. `apply_arrange_polys()` committet jetzt atomar: sobald ein Element nicht auf das reale Bett passt, bleiben sämtliche Originaltransformationen erhalten.
+- Bei Importen ohne erhaltenes Projektlayout erfolgt die aktivierte Auto-Ausrichtung vor dem Packen. Objekte werden einzeln gegen die aktuelle Platte angeordnet; passt eines nicht mehr, wird automatisch eine Platte angelegt, das Objekt dorthin gepackt und die neue Platte ausgewählt. Ein Objekt, das einzeln nicht passt, wird auf der neuen Platte zentriert und mit einer Warnung markiert.
+- `InitialProjectMenuDeviceTest#importedObjectsMoveToAutomaticallyCreatedPlateWhenCurrentPlateIsFull` bestand 1/1 auf beiden API-36-AVDs; `arrangeFailureRestoresEveryObjectAndDoesNotCommitAChangedLayout` bestand 1/1 per direktem API-36-Instrumentierungslauf. Kotlin-, ARM64-Native- und Slice-Test-Instrumentierungs-APK-Kompilierung erfolgreich. Der verbundene Gradle-Lauf bestand auf beiden AVDs, endete aber wegen des bereits bekannten Xiaomi-Fehlers `INSTALL_FAILED_USER_RESTRICTED`; beide relevanten Tests wurden danach direkt auf API 36 ausgeführt.
+- Dies ist ein zusätzlicher Workspace-Importfix und zählt nicht als Orca-Upstream-Feature für Batch 6. Die konservative konvexe Arrange-Hülle kann bei konkaven/mehrteiligen Mesh-Footprints weiterhin unnötige Fläche blockieren; gezielte Messung dieser Fälle bleibt offen.
+- Nächster konkreter Schritt: anhand eines konkaven oder mehrteiligen Modells nachweisen, ob die konvexe Arrange-Hülle tatsächlich freien Platz blockiert, bevor die sichere Packgeometrie geändert wird. Orca #14s exakter Support-Mesh-Clearance-Nachweis bleibt offen. Kein Batch-6-APK/Release.
+
 ## Drucker-PA-Reparatur und Nightly-Fortsetzung — 2026-11-01
 
 - Nightly-PA-Fix `fc6d9251eeaec997d083bd625cfd8d90221e700e`: v2-Profilmigration bereinigt auch gespeicherte Kobra-3-V2-Profile, die bereits die v1-Markierung hatten. API-36-Slice-Nachweis bestand mit Filament-PA `0.075` sowie deaktiviertem Filament-PA.

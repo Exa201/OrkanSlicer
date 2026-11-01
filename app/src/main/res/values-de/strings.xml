@@ -670,6 +670,8 @@
     <string name="SvgSimplifyFailedFallback">Die Konturen konnten nicht sicher reduziert werden.</string>
     <string name="MenuFileOpenFileFailedNullName">Fehler beim Auflösen des Dateinamens.</string>
     <string name="MenuFileOpenFileBigObject">Großes Modell geladen. Die Verarbeitung kann etwas länger dauern.</string>
+    <string name="ImportedObjectsMovedToNewPlates">%1$d Objekt(e) passten nicht mehr und wurden auf neue Druckplatte(n) verschoben.</string>
+    <string name="ImportedObjectsTooLargeForBed">%1$d Objekt(e) sind größer als die Druckfläche und wurden auf einer neuen Platte zentriert. Skaliere sie kleiner, damit sie passen.</string>
     <string name="MenuFileOpenSimplifiedLoaded">Vereinfacht und geladen: %1$s → %2$s Dreiecke.</string>
     <string name="MenuFileOpenFileLoading">Modell wird geladen …</string>
     <string name="MenuFileOpenMultipleStlOnly">Bei einer Mehrfachauswahl werden nur STL-Dateien gemeinsam geladen.</string>
