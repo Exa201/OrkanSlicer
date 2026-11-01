@@ -208,6 +208,26 @@ open class Model private constructor(@JvmField var pointer: Long) {
     open fun getObjectPartCount(i: Int): Int =
         if (!hasObject(i)) 0 else Native.model_get_object_part_count(pointer, i)
 
+    /** Returns a serialized, explicitly overridden Orca object setting, or null to inherit. */
+    open fun getObjectConfigOption(objectIndex: Int, key: String): String? =
+        if (!hasObject(objectIndex) || key !in OBJECT_OVERRIDE_KEYS) null
+        else Native.model_get_object_config_option(pointer, objectIndex, key)
+
+    /** Atomically applies or clears supported per-object process overrides. Empty values inherit. */
+    /** Returns 1 when changed, 0 when already equal, and -1 when the update is invalid. */
+    open fun setObjectConfigOptions(objectIndex: Int, values: Map<String, String>): Int {
+        if (!hasObject(objectIndex) || values.isEmpty() || values.keys.any { it !in OBJECT_OVERRIDE_KEYS }) return -1
+        val current = values.keys.associateWith { getObjectConfigOption(objectIndex, it) ?: "" }
+        if (current == values) return 0
+        val keys = values.keys.toTypedArray()
+        val serialized = values.values.toTypedArray()
+        if (serialized.any { it.length > 256 }) return -1
+        val applied = Native.model_set_object_config_options(pointer, objectIndex, keys, serialized)
+        if (!applied) return -1
+        markStateChanged()
+        return 1
+    }
+
     /** Adds an Orca-compatible modifier volume to the selected model object. Type: 1 negative, 2 parameter, 3 support blocker, 4 support enforcer. */
     open fun addModifierBox(objectIndex: Int, type: Int, x: Double, y: Double, z: Double, width: Double, depth: Double, height: Double): Int {
         if (!hasObject(objectIndex) || type !in 1..4) return -1
@@ -724,6 +744,10 @@ open class Model private constructor(@JvmField var pointer: Long) {
     }
 
     companion object {
+        // These PrintRegionConfig keys are applied consistently to each printable model-part volume.
+        // Keep the first mobile editor focused on high-value, unambiguous controls.
+        private val OBJECT_OVERRIDE_KEYS = setOf("wall_loops", "sparse_infill_density", "top_shell_layers")
+
         private fun readModelPointer(
             path: String,
             plateId: Int,

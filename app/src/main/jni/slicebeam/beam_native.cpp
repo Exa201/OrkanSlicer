@@ -750,6 +750,144 @@ extern "C" {
         return name.empty() ? nullptr : env->NewStringUTF(name.c_str());
     }
 
+    JNIEXPORT jstring JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1config_1option(
+        JNIEnv* env, jclass, jlong ptr, jint object_index, jstring key_value) {
+        ModelRef* model = (ModelRef*)(intptr_t)ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() || key_value == nullptr)
+            return nullptr;
+        const char* key_chars = env->GetStringUTFChars(key_value, nullptr);
+        if (key_chars == nullptr) return nullptr;
+        const std::string key(key_chars);
+        env->ReleaseStringUTFChars(key_value, key_chars);
+        PrintObjectConfig object_config;
+        PrintRegionConfig region_config;
+        const auto& object_keys = object_config.keys_ref();
+        const auto& region_keys = region_config.keys_ref();
+        if (std::find(region_keys.begin(), region_keys.end(), key) != region_keys.end()) {
+            const ModelObject* object = model->model.objects[object_index];
+            if (object == nullptr) return nullptr;
+            std::optional<std::string> value;
+            bool found_model_part = false;
+            bool missing_on_model_part = false;
+            for (const ModelVolume* volume : object->volumes) {
+                if (volume == nullptr || volume->type() != ModelVolumeType::MODEL_PART || volume->mesh().facets_count() < 3) continue;
+                found_model_part = true;
+                if (!volume->config.has(key)) {
+                    missing_on_model_part = true;
+                    continue;
+                }
+                const std::string serialized = volume->config.opt_serialize(key);
+                if (!value.has_value()) value = serialized;
+                else if (*value != serialized) return env->NewStringUTF("<mixed>");
+            }
+            if (value.has_value() && missing_on_model_part) return env->NewStringUTF("<mixed>");
+            return found_model_part && value.has_value() ? env->NewStringUTF(value->c_str()) : nullptr;
+        }
+        if (std::find(object_keys.begin(), object_keys.end(), key) == object_keys.end()) return nullptr;
+        const ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr || !object->config.has(key)) return nullptr;
+        const std::string serialized = object->config.opt_serialize(key);
+        return env->NewStringUTF(serialized.c_str());
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1set_1object_1config_1options(
+        JNIEnv* env, jclass, jlong ptr, jint object_index, jobjectArray keys_array, jobjectArray values_array) {
+        ModelRef* model = (ModelRef*)(intptr_t)ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() ||
+            keys_array == nullptr || values_array == nullptr) return JNI_FALSE;
+        const jsize count = env->GetArrayLength(keys_array);
+        if (count <= 0 || count > 32 || env->GetArrayLength(values_array) != count) return JNI_FALSE;
+        ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr) return JNI_FALSE;
+
+        struct PendingObjectOption {
+            std::string key;
+            std::string value;
+            std::unique_ptr<ConfigOption> option;
+        };
+        std::vector<PendingObjectOption> pending;
+        pending.reserve(static_cast<size_t>(count));
+        std::unordered_set<std::string> seen;
+        PrintObjectConfig object_config;
+        PrintRegionConfig region_config;
+        const auto& object_keys = object_config.keys_ref();
+        const auto& region_keys = region_config.keys_ref();
+        std::vector<ModelVolume*> model_parts;
+        for (ModelVolume* volume : object->volumes) {
+            if (volume != nullptr && volume->type() == ModelVolumeType::MODEL_PART && volume->mesh().facets_count() >= 3)
+                model_parts.push_back(volume);
+        }
+        for (jsize i = 0; i < count; ++i) {
+            auto key_string = static_cast<jstring>(env->GetObjectArrayElement(keys_array, i));
+            auto value_string = static_cast<jstring>(env->GetObjectArrayElement(values_array, i));
+            if (key_string == nullptr || value_string == nullptr) {
+                if (key_string != nullptr) env->DeleteLocalRef(key_string);
+                if (value_string != nullptr) env->DeleteLocalRef(value_string);
+                return JNI_FALSE;
+            }
+            const char* key_chars = env->GetStringUTFChars(key_string, nullptr);
+            const char* value_chars = env->GetStringUTFChars(value_string, nullptr);
+            if (key_chars == nullptr || value_chars == nullptr) {
+                if (key_chars != nullptr) env->ReleaseStringUTFChars(key_string, key_chars);
+                if (value_chars != nullptr) env->ReleaseStringUTFChars(value_string, value_chars);
+                env->DeleteLocalRef(key_string);
+                env->DeleteLocalRef(value_string);
+                return JNI_FALSE;
+            }
+            PendingObjectOption item;
+            item.key = key_chars;
+            item.value = value_chars;
+            env->ReleaseStringUTFChars(key_string, key_chars);
+            env->ReleaseStringUTFChars(value_string, value_chars);
+            env->DeleteLocalRef(key_string);
+            env->DeleteLocalRef(value_string);
+            const bool is_object_key = std::find(object_keys.begin(), object_keys.end(), item.key) != object_keys.end();
+            const bool is_region_key = std::find(region_keys.begin(), region_keys.end(), item.key) != region_keys.end();
+            if (item.key.empty() || item.key.size() > 128 || item.value.size() > 256 || !seen.insert(item.key).second ||
+                is_object_key == is_region_key || (is_region_key && model_parts.empty())) return JNI_FALSE;
+            if (!item.value.empty()) {
+                const ConfigOptionDef* definition = print_config_def.get(item.key);
+                if (definition == nullptr) return JNI_FALSE;
+                item.option.reset(definition->create_default_option());
+                if (item.option == nullptr || !item.option->deserialize(item.value)) return JNI_FALSE;
+            }
+            pending.push_back(std::move(item));
+        }
+
+        // Allocate every per-volume option before touching the model so invalid input or
+        // allocation failures cannot leave a multipart object only partly updated.
+        std::vector<std::vector<std::unique_ptr<ConfigOption>>> volume_options(pending.size());
+        for (size_t i = 0; i < pending.size(); ++i) {
+            if (std::find(region_keys.begin(), region_keys.end(), pending[i].key) == region_keys.end() || pending[i].value.empty()) continue;
+            volume_options[i].reserve(model_parts.size());
+            for (size_t part = 0; part < model_parts.size(); ++part)
+                volume_options[i].emplace_back(pending[i].option->clone());
+        }
+
+        bool changed = false;
+        for (size_t i = 0; i < pending.size(); ++i) {
+            PendingObjectOption& item = pending[i];
+            const bool is_region_key = std::find(region_keys.begin(), region_keys.end(), item.key) != region_keys.end();
+            if (!is_region_key) {
+                if (item.value.empty()) changed |= object->config.erase(item.key);
+                else if (!object->config.has(item.key) || object->config.opt_serialize(item.key) != item.option->serialize()) {
+                    object->config.set_key_value(item.key, item.option.release());
+                    changed = true;
+                }
+                continue;
+            }
+            for (size_t part = 0; part < model_parts.size(); ++part) {
+                ModelConfigObject& config = model_parts[part]->config;
+                if (item.value.empty()) changed |= config.erase(item.key);
+                else if (!config.has(item.key) || config.opt_serialize(item.key) != item.option->serialize()) {
+                    config.set_key_value(item.key, volume_options[i][part].release());
+                    changed = true;
+                }
+            }
+        }
+        return changed ? JNI_TRUE : JNI_FALSE;
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1part_1count(JNIEnv*, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef *) (intptr_t) ptr;
         if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;

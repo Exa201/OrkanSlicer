@@ -118,6 +118,10 @@ class Native {
     @JvmStatic
     external fun model_get_object_part_count(ptr: Long, i: Int): Int
     @JvmStatic
+    external fun model_get_object_config_option(ptr: Long, objectIndex: Int, key: String): String?
+    @JvmStatic
+    external fun model_set_object_config_options(ptr: Long, objectIndex: Int, keys: Array<String>, values: Array<String>): Boolean
+    @JvmStatic
     external fun model_add_modifier_box(ptr: Long, objectIndex: Int, type: Int, x: Double, y: Double, z: Double, width: Double, depth: Double, height: Double): Int
     @JvmStatic
     external fun model_get_modifier_volume_indices(ptr: Long, objectIndex: Int): IntArray

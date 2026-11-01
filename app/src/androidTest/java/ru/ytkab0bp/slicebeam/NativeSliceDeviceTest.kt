@@ -103,6 +103,97 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun perObjectProcessOverridesRoundTripThroughThreeMfAndChangeNativeSliceToolpaths() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("wall_loops", "3")
+        process.put("sparse_infill_density", "25%")
+        process.put("top_shell_layers", "4")
+        process.put("infill_wall_overlap", "0")
+        val source = createThinCubeFixture("object-process-overrides.stl", 20.0, 20.0, 12.0)
+        val project = File(context.cacheDir, "object-process-overrides-roundtrip.3mf")
+        val output = File(context.cacheDir, "object-process-overrides.gcode")
+        var baseline: Model? = null
+        var edited: Model? = null
+        var restored: Model? = null
+
+        fun sliceMetrics(model: Model): Map<String, Int> {
+            SliceBeam.genCurrentConfig(model)
+            output.delete()
+            val result = model.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                assertTrue("The object settings must produce a real native G-code slice", output.isFile && output.length() > 0L)
+                val counts = mutableMapOf<String, Int>()
+                var feature = ""
+                val extrusion = Regex("(?:^|\\s)E(-?\\d+(?:\\.\\d+)?)")
+                output.forEachLine { line ->
+                    if (line.startsWith(";TYPE:")) feature = line.removePrefix(";TYPE:").trim()
+                    else if (line.startsWith("G1 ")) {
+                        val amount = extrusion.find(line)?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+                        if (amount > 0.0) counts[feature] = (counts[feature] ?: 0) + 1
+                    }
+                }
+                return counts
+            } finally {
+                result.release()
+            }
+        }
+
+        try {
+            baseline = Model(source).also { it.ensureOnBed(0) }
+            val baselineMetrics = sliceMetrics(requireNotNull(baseline))
+            edited = Model(source).also { it.ensureOnBed(0) }
+            val objectIndex = 0
+            assertEquals(null, edited.getObjectConfigOption(objectIndex, "wall_loops"))
+            assertEquals(1, edited.setObjectConfigOptions(objectIndex, mapOf(
+                "wall_loops" to "1",
+                "sparse_infill_density" to "0%",
+                "top_shell_layers" to "1",
+            )))
+            assertEquals(0, edited.setObjectConfigOptions(objectIndex, mapOf(
+                "wall_loops" to "1",
+                "sparse_infill_density" to "0%",
+                "top_shell_layers" to "1",
+            )))
+            assertEquals("1", edited.getObjectConfigOption(objectIndex, "wall_loops"))
+            assertFalse("Unsupported settings must not be written into model objects",
+                edited.setObjectConfigOptions(objectIndex, mapOf("machine_start_gcode" to "G28")) >= 0)
+            SliceBeam.genCurrentConfig(requireNotNull(edited))
+            edited.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            val modelConfigXml = ZipFile(project).use { archive ->
+                val entry = archive.getEntry("Metadata/Slic3r_PE_model.config")
+                assertNotNull("The exported 3MF must include model configuration metadata", entry)
+                archive.getInputStream(entry).bufferedReader().use { it.readText() }
+            }
+            assertTrue("The exported 3MF must persist wall-loop overrides on its model volumes", modelConfigXml.contains("key=\"wall_loops\""))
+            restored = Model(project).also { it.ensureOnBed(0) }
+            assertEquals("1", restored.getObjectConfigOption(objectIndex, "wall_loops"))
+            assertEquals("0%", restored.getObjectConfigOption(objectIndex, "sparse_infill_density"))
+            assertEquals("1", restored.getObjectConfigOption(objectIndex, "top_shell_layers"))
+            val overrideMetrics = sliceMetrics(requireNotNull(restored))
+            assertTrue("Zero sparse infill density must remove sparse-infill extrusion; base=$baselineMetrics override=$overrideMetrics",
+                (overrideMetrics["Sparse infill"] ?: 0) < (baselineMetrics["Sparse infill"] ?: 0))
+
+            assertEquals(1, restored.setObjectConfigOptions(objectIndex, mapOf(
+                "wall_loops" to "", "sparse_infill_density" to "", "top_shell_layers" to "",
+            )))
+            assertEquals(null, restored.getObjectConfigOption(objectIndex, "wall_loops"))
+            val inheritedAgain = sliceMetrics(requireNotNull(restored))
+            assertEquals("Clearing object overrides restores the profile toolpath", baselineMetrics, inheritedAgain)
+        } finally {
+            baseline?.release()
+            edited?.release()
+            restored?.release()
+            source.delete()
+            project.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun autoForMatchPrefersClosestColorAndSameFilamentSubtype() {
         // Same-colour sub-type preference; then exact colour wins over a sub-type match;
         // finer distance resolves a former whole-unit tie; finally a colour step outweighs id.

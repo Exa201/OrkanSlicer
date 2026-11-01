@@ -62,6 +62,98 @@ internal data class ModelObjectPartRow(
 )
 
 @Composable
+internal fun ModelObjectProcessOverridesDialog(
+    objectName: String,
+    initialValues: Map<String, String>,
+    onDismiss: () -> Unit,
+    onApply: (Map<String, String>) -> Unit,
+) {
+    val mixedValues = remember(initialValues) {
+        listOf("wall_loops", "sparse_infill_density", "top_shell_layers")
+            .mapIndexedNotNull { index, key -> index.takeIf { initialValues[key] == "<mixed>" } }
+            .toSet()
+    }
+    val values = remember(initialValues) {
+        mutableStateListOf(
+            initialValues["wall_loops"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
+            initialValues["sparse_infill_density"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty().removeSuffix("%"),
+            initialValues["top_shell_layers"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
+        )
+    }
+    val wallLoops = values[0].trim().toIntOrNull()
+    val density = values[1].trim().replace(',', '.').toDoubleOrNull()
+    val topLayers = values[2].trim().toIntOrNull()
+    val valid = (values[0].isBlank() || wallLoops != null && wallLoops in 1..20) &&
+        (values[1].isBlank() || density != null && density.isFinite() && density in 0.0..100.0) &&
+        (values[2].isBlank() || topLayers != null && topLayers in 0..50)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ModelObjectProcessSettingsTitle, objectName)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.ModelObjectProcessSettingsHint))
+                val labels = listOf(
+                    R.string.ModelObjectProcessWallLoops,
+                    R.string.ModelObjectProcessInfillDensity,
+                    R.string.ModelObjectProcessTopLayers,
+                )
+                values.indices.forEach { index ->
+                    OutlinedTextField(
+                        value = values[index],
+                        onValueChange = { input ->
+                            values[index] = input.filter { it.isDigit() || it == '.' || it == ',' }.take(8)
+                        },
+                        label = { Text(stringResource(labels[index])) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = if (index == 1) KeyboardType.Decimal else KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth().testTag("model-object-process-setting-$index"),
+                    )
+                    if (index in mixedValues) Text(
+                        stringResource(R.string.ModelObjectProcessSettingMixed),
+                        modifier = Modifier.padding(start = 12.dp).testTag("model-object-process-setting-mixed-$index"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (!valid) Text(
+                    stringResource(R.string.ModelObjectProcessSettingsInvalid),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("model-object-process-settings-error"),
+                )
+                TextButton(
+                    onClick = { values.indices.forEach { values[it] = "" } },
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-process-settings-inherit-all"),
+                ) { Text(stringResource(R.string.ModelObjectProcessSettingsInheritAll)) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = valid,
+                onClick = {
+                    val densityValue = values[1].trim().replace(',', '.')
+                    onApply(
+                        mapOf(
+                            "wall_loops" to (wallLoops?.toString().orEmpty()),
+                            "sparse_infill_density" to if (densityValue.isEmpty()) "" else "$densityValue%",
+                            "top_shell_layers" to (topLayers?.toString().orEmpty()),
+                        ),
+                    )
+                },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-process-settings-apply"),
+            ) { Text(stringResource(R.string.ModelObjectProcessSettingsApply)) }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-process-settings-cancel"),
+            ) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
 internal fun ModelObjectsDialog(
     title: String,
     cancelLabel: String,

@@ -56,6 +56,9 @@ internal class ModelMenuItems(
             BedComposeMenuAction(R.string.ModelMenuModifiers, R.drawable.square_stack_up_outline_28, { anchor ->
                 showModifierVolumesDialog(anchor, currentSelection.selectedObject)
             }, enabled = availability.hasSelectedObject),
+            BedComposeMenuAction(R.string.ModelMenuObjectSettings, R.drawable.sliders_outline_28, { anchor ->
+                showObjectProcessSettingsDialog(anchor)
+            }, enabled = availability.hasSelectedObject),
             BedComposeMenuAction(R.string.ModelMenuCenterOnBed, R.drawable.view_in_ar_24, { anchor ->
                 val activeGlView = fragment.glView ?: return@BedComposeMenuAction
                 captureSelectionSnapshot(activeGlView) { snapshot ->
@@ -423,6 +426,53 @@ internal class ModelMenuItems(
             val snapshot = glView.renderer.captureSelectionSnapshot(allowEmptySelection) ?: return@queueEvent
             ViewUtils.postOnMainThread {
                 if (fragment.canShowWorkspaceComposeDialog()) onCaptured(snapshot)
+            }
+        }
+    }
+
+    private fun showObjectProcessSettingsDialog(anchor: android.view.View) {
+        val activeGlView = fragment.glView ?: return
+        activeGlView.queueEvent {
+            val activeRenderer = activeGlView.renderer
+            val snapshot = activeRenderer.captureSelectionSnapshot() ?: return@queueEvent
+            val model = snapshot.model
+            val objectIndex = snapshot.primaryObject
+            if (objectIndex !in 0 until model.objectsCount) return@queueEvent
+            val revision = model.stateRevision
+            val values = listOf("wall_loops", "sparse_infill_density", "top_shell_layers")
+                .associateWith { model.getObjectConfigOption(objectIndex, it).orEmpty() }
+            val name = model.getObjectName(objectIndex)
+                ?: anchor.context.getString(R.string.MenuFileObjectNumber, objectIndex + 1)
+            ViewUtils.postOnMainThread {
+                if (!fragment.canShowWorkspaceComposeDialog()) return@postOnMainThread
+                fragment.showWorkspaceComposeDialog { dismiss ->
+                    ModelObjectProcessOverridesDialog(
+                        objectName = name,
+                        initialValues = values,
+                        onDismiss = dismiss,
+                        onApply = { overrides ->
+                            dismiss()
+                            activeGlView.queueEvent {
+                                val renderer = activeGlView.renderer
+                                val result = if (renderer.model === model && model.stateRevision == revision &&
+                                    renderer.isSelectionBindingCurrent(snapshot)) {
+                                    model.setObjectConfigOptions(objectIndex, overrides)
+                                } else -1
+                                if (result == 1) fragment.updateModelOnGlThread()
+                                ViewUtils.postOnMainThread {
+                                    SliceBeam.EVENT_BUS.fireEvent(
+                                        NeedSnackbarEvent(
+                                            when (result) {
+                                                1, 0 -> R.string.ModelObjectProcessSettingsSaved
+                                                else -> R.string.ModelObjectProcessSettingsStale
+                                            },
+                                        ),
+                                    )
+                                }
+                            }
+                        },
+                    )
+                }
             }
         }
     }

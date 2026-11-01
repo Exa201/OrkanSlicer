@@ -117,7 +117,7 @@ Missing vs OrcaSlicer desktop:
 | **SVG import / emboss** | ⚠️ | SAF picker, bounded validation and surface-tap emboss/engrave workflow are implemented; integration source compiles, but the new ARM64 slice/3MF round-trip test still requires a compatible device. |
 | **Measure** | ✅ | `MeasureModePanel` and renderer surface-point measurement |
 | **Negative / Modifier / Support-blocker volumes** | ✅ | Model menu adds, places, resizes and removes native Orca modifier types; mesh overlays, undo/redo, 3MF round-trip and slice behavior have device coverage. Arbitrary per-volume setting overrides remain out of scope. |
-| **Per-object / per-part setting overrides** | ❌ | No mobile editing/apply workflow for model-object or volume config overrides |
+| **Per-object process overrides** | ✅ | The Model menu exposes wall loops, sparse-infill density, and top shell layers for the selected object. Values are applied to all printable part volumes, survive 3MF save/reload, and affect native slicing. Arbitrary per-part and modifier-volume overrides remain out of scope. |
 | **Variable / adaptive layer height** | ✅ | Model menu opens the layer-height profile editor and writes the native object layer-height profile; this does not use the commented-out `adaptive_layer_height` preset key |
 | **Split to objects / parts** | ✅ | `splitSelectedObject()` invokes native `Model.split` |
 | **Simplify mesh** | ✅ | Selected-object simplification with ratio/target controls and large-model safeguards |
@@ -127,9 +127,9 @@ Missing vs OrcaSlicer desktop:
 
 ## 5. Prioritized recommendations
 
-1. **Per-object / per-part setting overrides** — largest remaining Orca workflow gap; needs a model-aware editor and explicit native application of per-object configuration.
+1. **Per-part and modifier-volume overrides** — object-wide process overrides are now available; extending them to selected individual parts needs an explicit part-selection workflow and per-volume conflict/inheritance semantics.
 2. **SVG surface emboss verification** — workflow is implemented; complete ARM64 slice/3MF round-trip verification and add a live placement preview/cancel path.
-3. **Mesh boolean operations** — MCUT is bundled; expose only after validating memory use, cancellation, and undo for mobile-sized meshes.
+3. **Mesh boolean operations** — MCUT is bundled; extend only after continued validation of memory use, cancellation, and undo for mobile-sized meshes.
 4. **Complex multi-volume painting** — extend raycast results with volume/facet ownership before claiming support for arbitrary compound 3MF objects.
 5. **Remaining profile options** — `adaptive_layer_height` is commented out in the native preset schema; `brim_use_efc_outline` carries a fusion warning; sequence choice requires related setting state. Keep these hidden until their behavior can be represented safely.
 
