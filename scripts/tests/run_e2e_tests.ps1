@@ -69,7 +69,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Compiling E2E suite failed with exit code $LASTEXITCODE" }
 
     Write-Host 'Running headless OrcaMobile suite...'
-    & java -cp $classpath scripts.tests.E2ETestRunner
+    $runnerArgs = @()
+    if (-not [string]::IsNullOrWhiteSpace($env:ORCA_E2E_TEST_NAME)) {
+        $runnerArgs = @($env:ORCA_E2E_TEST_NAME)
+    }
+    & java -cp $classpath scripts.tests.E2ETestRunner @runnerArgs
     $headlessExitCode = $LASTEXITCODE
     if ($headlessExitCode -eq 0) {
         $jsonMockSources = @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'json-mocks') -Recurse -Filter '*.java' |

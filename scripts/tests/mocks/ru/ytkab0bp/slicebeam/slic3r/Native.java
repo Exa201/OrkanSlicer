@@ -21,7 +21,7 @@ public class Native {
         public long glmodel_create() { return Native.glmodel_create(); }
         public void glmodel_init_from_model(long arg0, long arg1) { Native.glmodel_init_from_model(arg0, arg1); }
         public void glmodel_init_from_model_object(long arg0, long arg1, int arg2) { Native.glmodel_init_from_model_object(arg0, arg1, arg2); }
-        public void glmodel_init_raycast_data(long arg0) { Native.glmodel_init_raycast_data(arg0); }
+        public boolean glmodel_init_raycast_data(long arg0) { return Native.glmodel_init_raycast_data(arg0); }
         public void glmodel_set_color(long arg0, float arg1, float arg2, float arg3, float arg4) { Native.glmodel_set_color(arg0, arg1, arg2, arg3, arg4); }
         public void glmodel_render(long arg0) { Native.glmodel_render(arg0); }
         public void glmodel_stilized_arrow(long arg0, float arg1, float arg2, float arg3, float arg4) { Native.glmodel_stilized_arrow(arg0, arg1, arg2, arg3, arg4); }
@@ -38,11 +38,12 @@ public class Native {
         public double[] bed_get_bounding_volume(long arg0) { return Native.bed_get_bounding_volume(arg0); }
         public void bed_configure(long arg0, java.lang.String arg1) { Native.bed_configure(arg0, arg1); }
         public void bed_init_triangles_mesh(long arg0, long arg1) { Native.bed_init_triangles_mesh(arg0, arg1); }
-        public boolean bed_arrange(long arg0, long arg1) { return Native.bed_arrange(arg0, arg1); }
+        public boolean bed_arrange(long arg0, long arg1, String arg2) { return Native.bed_arrange(arg0, arg1, arg2); }
         public void bed_release(long arg0) { Native.bed_release(arg0); }
         public long models_merge(long[] arg0) { return Native.models_merge(arg0); }
         public long model_create() { return Native.model_create(); }
         public int model_get_objects_count(long arg0) { return Native.model_get_objects_count(arg0); }
+        public int model_get_triangle_count(long arg0, int arg1) { return Native.model_get_triangle_count(arg0, arg1); }
         public void model_add_object_from_another(long arg0, long arg1, int arg2) { Native.model_add_object_from_another(arg0, arg1, arg2); }
         public void model_delete_object(long arg0, int arg1) { Native.model_delete_object(arg0, arg1); }
         public double[] model_get_translation(long arg0, int arg1) { return Native.model_get_translation(arg0, arg1); }
@@ -72,7 +73,7 @@ public class Native {
         public void paint_height(long arg0, double arg1, double arg2, int arg3) { Native.paint_height(arg0, arg1, arg2, arg3); }
         public void paint_clear(long arg0) { Native.paint_clear(arg0); }
         public void paint_commit(long arg0) { Native.paint_commit(arg0); }
-        public int glmodel_init_from_paint(long arg0, long arg1, int arg2) { return Native.glmodel_init_from_paint(arg0, arg1, arg2); }
+        public int glmodel_init_from_paint(long arg0, long arg1, int arg2, int arg3) { return Native.glmodel_init_from_paint(arg0, arg1, arg2, arg3); }
         public void paint_end(long arg0) { Native.paint_end(arg0); }
         public int model_paint_max_filament(long arg0, int arg1) { return Native.model_paint_max_filament(arg0, arg1); }
         public int[] model_get_used_filaments(long arg0, int arg1) { return Native.model_get_used_filaments(arg0, arg1); }
@@ -278,7 +279,7 @@ public class Native {
         }
     }
     public static void bed_init_triangles_mesh(long ptr, long triangles) {}
-    public static boolean bed_arrange(long ptr, long modelPtr) {
+    public static boolean bed_arrange(long ptr, long modelPtr, String arrangeConfig) {
         MockModel model = models.get(modelPtr);
         if (model != null) {
             // Simulate placing them nicely
@@ -289,6 +290,9 @@ public class Native {
             return true;
         }
         return false;
+    }
+    public static boolean bed_arrange(long ptr, long modelPtr) {
+        return bed_arrange(ptr, modelPtr, "");
     }
     public static void bed_release(long ptr) {
         beds.remove(ptr);
@@ -328,6 +332,12 @@ public class Native {
     public static int model_get_objects_count(long ptr) {
         MockModel model = models.get(ptr);
         return model != null ? model.objects.size() : 0;
+    }
+
+    public static int model_get_triangle_count(long ptr, int objectIndex) {
+        MockModel model = models.get(ptr);
+        if (model == null || objectIndex < 0 || objectIndex >= model.objects.size()) return 0;
+        return 24;
     }
 
     public static int model_paint_max_filament(long ptr, int objectIndex) {
@@ -581,7 +591,7 @@ public class Native {
     }
     public static void paint_clear(long sessionPtr) { nativeLifecycleEvents.add("paint_clear"); }
     public static void paint_commit(long sessionPtr) { nativeLifecycleEvents.add("paint_commit"); }
-    public static int glmodel_init_from_paint(long glPtr, long sessionPtr, int filamentIdx) {
+    public static int glmodel_init_from_paint(long glPtr, long sessionPtr, int filamentIdx, int baseFilamentPreview) {
         lastPaintFilament = filamentIdx;
         nativeLifecycleEvents.add("glmodel_init_from_paint");
         return 29;
@@ -605,7 +615,7 @@ public class Native {
     public static long glmodel_create() { return nextPtr++; }
     public static void glmodel_init_from_model(long ptr, long model) {}
     public static void glmodel_init_from_model_object(long ptr, long model, int i) {}
-    public static void glmodel_init_raycast_data(long ptr) {}
+    public static boolean glmodel_init_raycast_data(long ptr) { return true; }
     public static void glmodel_set_color(long ptr, float red, float green, float blue, float alpha) {}
     public static void glmodel_render(long ptr) {}
     public static void glmodel_stilized_arrow(long ptr, float tipRadius, float tipLength, float stemRadius, float stemLength) {}

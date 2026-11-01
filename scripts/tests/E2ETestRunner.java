@@ -17,7 +17,7 @@ public class E2ETestRunner {
         int failed = 0;
 
         for (Method m : methods) {
-            if (m.getName().startsWith("test")) {
+            if (m.getName().startsWith("test") && (args.length == 0 || m.getName().equals(args[0]))) {
                 System.out.print("Running " + m.getName() + " ... ");
                 try {
                     m.invoke(null);

@@ -16,10 +16,10 @@ public final class GCodeIntegrityValidatorTest {
         testEarlyCompletionIsRejected();
         testFinalLayerWithoutExtrusionIsRejected();
         testMissingEndMarkerIsRejected();
-        testHeightMismatchIsRejected();
+        testMaximumHeightMetadataDoesNotOverrideLayerCompleteness();
         testHeaderRecognitionIsLocaleIndependent();
         if (args.length > 0) testRealSlicedFiles(args);
-        System.out.println("GCodeIntegrityValidatorTest passed: layer completeness, final extrusion, height and end order.");
+        System.out.println("GCodeIntegrityValidatorTest passed: layer completeness, final extrusion and end order.");
     }
 
     private static void testCompleteFilePasses() throws Exception {
@@ -30,7 +30,7 @@ public final class GCodeIntegrityValidatorTest {
     }
 
     private static void testMissingFinalLayerIsRejected() throws Exception {
-        String gcode = completeFile().replace("; total layers count = 3", "; total layers count = 4");
+        String gcode = completeFile().replace("; total layer number: 3", "; total layer number: 4");
         expectFailure(gcode, GCodeIntegrityValidator.Failure.LAYER_COUNT_MISMATCH);
     }
 
@@ -54,9 +54,12 @@ public final class GCodeIntegrityValidatorTest {
         expectFailure(gcode, GCodeIntegrityValidator.Failure.MISSING_COMPLETION_MARKER);
     }
 
-    private static void testHeightMismatchIsRejected() throws Exception {
+    private static void testMaximumHeightMetadataDoesNotOverrideLayerCompleteness() throws Exception {
         String gcode = completeFile().replace("; max_z_height: 0.6", "; max_z_height: 0.7");
-        expectFailure(gcode, GCodeIntegrityValidator.Failure.HEIGHT_MISMATCH);
+        GCodeIntegrityValidator.Result result = validate(gcode);
+        check(result.isValid(), "maximum-height metadata does not replace explicit layer completeness: " + result.details);
+        equal(3, result.expectedLayers, "expected layers with differing maximum-height metadata");
+        equal(3, result.actualLayers, "actual layers with differing maximum-height metadata");
     }
 
     private static void testHeaderRecognitionIsLocaleIndependent() throws Exception {

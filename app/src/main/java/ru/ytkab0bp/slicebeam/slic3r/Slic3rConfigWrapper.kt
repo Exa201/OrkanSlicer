@@ -10,6 +10,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.nio.charset.StandardCharsets
 import java.io.UnsupportedEncodingException
 import java.util.ArrayList
 import java.util.Arrays
@@ -546,7 +547,9 @@ open class Slic3rConfigWrapper {
 
     @Throws(IOException::class)
     open fun readFromStream(input: InputStream) {
-        val reader = BufferedReader(InputStreamReader(input))
+        // saveConfig writes UTF-8 explicitly; do not let profile names (including the
+        // printer-scoping separator) change when a saved config is reloaded on Windows.
+        val reader = BufferedReader(InputStreamReader(input, StandardCharsets.UTF_8))
         var currentPrintConfig: ConfigObject? = null
         var currentPrinterConfig: ConfigObject? = null
         var currentFilamentConfig: ConfigObject? = null

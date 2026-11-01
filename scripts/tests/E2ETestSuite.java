@@ -476,10 +476,12 @@ public class E2ETestSuite {
         assertTrue(!duplicateClick, "A quick repeated touch at the same point must not dispatch a second click");
     }
 
-    public static void testExplicitMoreActionOpensMenu() {
+    public static void testQuickActionsExposeDuplicateAction() {
         resetEnvironment();
-        assertEquals("MORE", SelectedObjectQuickAction.MORE.name(),
-                "The visible selected-object action must retain its explicit More entry point");
+        assertEquals("DUPLICATE", SelectedObjectQuickAction.DUPLICATE.name(),
+                "The selected-object quick actions must expose direct duplication");
+        assertEquals(4, SelectedObjectQuickAction.values().length,
+                "The selected-object toolbar must expose move, rotate, scale and duplicate");
     }
 
     public static void testLongPressMenuOptionsList() {
@@ -739,21 +741,21 @@ public class E2ETestSuite {
         assertTrue(SliceBeam.applyProfileSelection("Alternate Printer", null, null),
                 "Selecting a saved printer profile should succeed");
         assertEquals("Alternate Printer", config.presets.get("printer"), "The selected printer should change");
-        assertEquals("Alternate Quality", config.presets.get("print"),
+        assertPrinterScopedProcessSelected("Alternate Quality", "Alternate Printer", config.presets.get("print"),
                 "Changing printers should immediately choose a compatible print profile");
         assertEquals("Alternate PLA", config.presets.get("filament"),
                 "Changing printers should immediately choose a compatible filament profile");
 
         assertTrue(SliceBeam.applyProfileSelection("MyPrinter", null, null),
                 "Returning to a previously used printer profile should succeed");
-        assertEquals("MyPrint", config.presets.get("print"),
+        assertPrinterScopedProcessSelected("MyPrint", "MyPrinter", config.presets.get("print"),
                 "Returning to a printer should restore its previous print profile instead of the first compatible preset");
         assertEquals("MyFilament", config.presets.get("filament"),
                 "Returning to a printer should restore its previous filament instead of the first compatible preset");
 
         assertTrue(SliceBeam.applyProfileSelection("Alternate Printer", null, null),
                 "Switching back to the second printer should succeed");
-        assertEquals("Alternate Quality", config.presets.get("print"),
+        assertPrinterScopedProcessSelected("Alternate Quality", "Alternate Printer", config.presets.get("print"),
                 "The second printer should also restore its own print choice");
         assertEquals("Alternate PLA", config.presets.get("filament"),
                 "The second printer should also restore its own filament choice");
@@ -762,14 +764,14 @@ public class E2ETestSuite {
             Slic3rConfigWrapper reloaded = new Slic3rConfigWrapper(SliceBeam.getConfigFile());
             assertEquals("Alternate Printer", reloaded.presets.get("printer"),
                     "The selected printer should survive reloading the saved configuration");
-            assertEquals("Alternate Quality", reloaded.presets.get("print"),
+            assertPrinterScopedProcessSelected("Alternate Quality", "Alternate Printer", reloaded.presets.get("print"),
                     "The compatible print profile should survive reloading the saved configuration");
             assertEquals("Alternate PLA", reloaded.presets.get("filament"),
                     "The compatible filament profile should survive reloading the saved configuration");
             SliceBeam.CONFIG = reloaded;
             assertTrue(SliceBeam.applyProfileSelection("MyPrinter", null, null),
                     "Per-printer selections should remain available after reloading the saved configuration");
-            assertEquals("MyPrint", reloaded.presets.get("print"),
+            assertPrinterScopedProcessSelected("MyPrint", "MyPrinter", reloaded.presets.get("print"),
                     "The original print profile should be restored after configuration reload");
             assertEquals("MyFilament", reloaded.presets.get("filament"),
                     "The original filament should be restored after configuration reload");
@@ -778,6 +780,11 @@ public class E2ETestSuite {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static void assertPrinterScopedProcessSelected(String profile, String printer, String actual, String message) {
+        assertTrue(actual != null && actual.startsWith(profile) && actual.endsWith(printer),
+                message + " -> got " + actual);
     }
 
     public static void testBackgroundSavePersistsPendingProfileEdits() {

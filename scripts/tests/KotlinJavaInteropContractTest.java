@@ -6,10 +6,6 @@ import android.animation.TimeInterpolator;
 import android.app.Application;
 import android.net.Uri;
 import android.os.Handler;
-import android.webkit.JavascriptInterface;
-import android.widget.FrameLayout;
-import ru.ytkab0bp.slicebeam.components.UnfoldMenu;
-import ru.ytkab0bp.slicebeam.components.WebViewMenu;
 import ru.ytkab0bp.slicebeam.components.SvgImportGuard;
 import ru.ytkab0bp.slicebeam.components.CableClipGenerator;
 import ru.ytkab0bp.slicebeam.components.CableGrommetGenerator;
@@ -74,8 +70,6 @@ import ru.ytkab0bp.slicebeam.events.CloudModelsRemainingCountUpdatedEvent;
 import ru.ytkab0bp.slicebeam.events.CloudSyncFinishedEvent;
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent;
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent;
-import ru.ytkab0bp.slicebeam.events.NeedDismissAIGeneratorMenu;
-import ru.ytkab0bp.slicebeam.events.NeedDismissCalibrationsMenu;
 import ru.ytkab0bp.slicebeam.events.NeedDismissSnackbarEvent;
 import ru.ytkab0bp.slicebeam.events.NeedSnackbarEvent;
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent;
@@ -130,14 +124,12 @@ public final class KotlinJavaInteropContractTest {
                 CloudModelsRemainingCountUpdatedEvent.class,
                 CloudSyncFinishedEvent.class,
                 FlattenModeResetEvent.class,
-                NeedDismissAIGeneratorMenu.class,
-                NeedDismissCalibrationsMenu.class,
                 ObjectsListChangedEvent.class,
                 SelectedObjectChangedEvent.class);
         assertEventPayloadContracts();
         assertSmartSliceContracts();
         assertUtilityAndJniContracts();
-        assertViewAndWebMenuContracts();
+        assertViewUtilityContracts();
         assertConfigMetadataContracts();
         assertPrefsJavaContract();
         assertProfileUtilityContracts();
@@ -412,7 +404,7 @@ public final class KotlinJavaInteropContractTest {
                     double[].class, boolean.class);
             PaintSession.class.getMethod("bucket", double[].class, int.class, int.class, boolean.class, double.class);
             PaintSession.class.getMethod("height", double.class, double.class, int.class);
-            PaintSession.class.getMethod("buildOverlay", GLModel.class, int.class);
+            PaintSession.class.getMethod("buildOverlay", GLModel.class, int.class, int.class);
         } catch (ReflectiveOperationException error) {
             throw new AssertionError("Native Slicer resource wrappers lost a Java-callable constructor or method", error);
         }
@@ -448,7 +440,7 @@ public final class KotlinJavaInteropContractTest {
         }
         session.clear();
         session.commit();
-        if (session.buildOverlay(new GLModel(), 6) != 29 || Native.getLastPaintFilament() != 6) {
+        if (session.buildOverlay(new GLModel(), 6, 0) != 29 || Native.getLastPaintFilament() != 6) {
             throw new AssertionError("PaintSession overlay must use the native painting mesh and return its triangle count");
         }
         session.end();
@@ -487,7 +479,7 @@ public final class KotlinJavaInteropContractTest {
         glModel.initBox(10f, 20f, 30f);
         glModel.initBackgroundTriangles();
         glModel.stilizedArrow(1f, 2f, 3f, 4f);
-        if (glModel.initFromPaint(71L, 2) != 29) {
+        if (glModel.initFromPaint(71L, 2, 0) != 29) {
             throw new AssertionError("GLModel painted-overlay initialization must return the native triangle count");
         }
         GLModel.MeshRaycaster originalRaycaster = glModel.getRaycaster();
@@ -498,7 +490,7 @@ public final class KotlinJavaInteropContractTest {
         if (originalRaycaster == glModel.getRaycaster()) {
             throw new AssertionError("GLModel.reset must invalidate its cached raycaster");
         }
-        GLModel.HitResult hit = new GLModel.HitResult(new Vec3d(1, 2, 3), new Vec3d(0, 0, 1));
+        GLModel.HitResult hit = new GLModel.HitResult(new Vec3d(1, 2, 3), new Vec3d(0, 0, 1), false);
         if (hit.position.x != 1 || hit.position.y != 2 || hit.position.z != 3
                 || hit.normal.x != 0 || hit.normal.y != 0 || hit.normal.z != 1) {
             throw new AssertionError("GLModel.HitResult must retain its public position and normal values");
@@ -542,12 +534,12 @@ public final class KotlinJavaInteropContractTest {
             GLModel.class.getConstructor(Model.class);
             GLModel.class.getMethod("initFrom", Model.class);
             GLModel.class.getMethod("initFrom", Model.class, int.class);
-            GLModel.class.getMethod("initFromPaint", long.class, int.class);
+            GLModel.class.getMethod("initFromPaint", long.class, int.class, int.class);
             GLModel.class.getMethod("initBox", float.class, float.class, float.class);
             GLModel.class.getMethod("getRaycaster");
             GLModel.MeshRaycaster.class.getMethod("raycast", ru.ytkab0bp.slicebeam.render.GLRenderer.class,
                     java.util.ArrayList.class, float.class, float.class);
-            GLModel.HitResult.class.getConstructor(Vec3d.class, Vec3d.class);
+            GLModel.HitResult.class.getConstructor(Vec3d.class, Vec3d.class, boolean.class);
             Bed3D.class.getConstructor();
             Bed3D.class.getMethod("configure", java.io.File.class);
             Bed3D.class.getMethod("arrange", Model.class);
@@ -1059,7 +1051,9 @@ public final class KotlinJavaInteropContractTest {
                 {"getLastCommit", "0"}, {"setLastCommit", "0"}, {"getFilamentSlots", "0"},
                 {"setFilamentSlots", "1"}, {"getFilamentPalette", "0"}, {"getThemeMode", "0"},
                 {"setThemeMode", "1"}, {"getCloudAPIToken", "0"}, {"setCloudAPIToken", "1"},
-                {"getRenderScale", "0"}, {"setRenderScale", "1"}, {"getCameraControlMode", "0"},
+                {"getAutomaticRenderScale", "0"}, {"getRenderScale", "0"},
+                {"getRenderScaleOverridePercent", "0"}, {"setRenderScaleOverridePercent", "1"},
+                {"getCameraControlMode", "0"},
                 {"setCameraControlMode", "1"}, {"isScaleLinked", "0"}, {"setScaleLinked", "1"},
         }) {
             boolean found = false;
@@ -1083,7 +1077,7 @@ public final class KotlinJavaInteropContractTest {
         }
     }
 
-    private static void assertViewAndWebMenuContracts() {
+    private static void assertViewUtilityContracts() {
         try {
             ViewUtils.class.getConstructor();
             if (ViewUtils.class.getField("CUBIC_INTERPOLATOR").getType() != TimeInterpolator.class
@@ -1103,28 +1097,8 @@ public final class KotlinJavaInteropContractTest {
             assertStaticViewMethod("dp", int.class, float.class);
             assertStaticViewMethod("dp", int.class, int.class);
 
-            if (!UnfoldMenu.class.isAssignableFrom(WebViewMenu.class)
-                    || Modifier.isFinal(WebViewMenu.class.getModifiers())) {
-                throw new AssertionError("WebViewMenu must remain an extensible UnfoldMenu subtype");
-            }
-            WebViewMenu.class.getConstructor(Uri.class);
-            WebViewMenu.class.getConstructor(Uri.class, String.class);
-            if (WebViewMenu.class.getMethod("setFragment", ru.ytkab0bp.slicebeam.fragment.BedFragment.class)
-                    .getReturnType() != WebViewMenu.class
-                    || WebViewMenu.class.getMethod("getRequestedSize", FrameLayout.class, boolean.class)
-                    .getReturnType() != int.class) {
-                throw new AssertionError("WebViewMenu constructors or fluent Java methods changed");
-            }
-
-            Class<?> bridge = Class.forName(
-                    "ru.ytkab0bp.slicebeam.components.WebViewMenu$Bridge",
-                    false,
-                    WebViewMenu.class.getClassLoader());
-            assertJavascriptBridgeMethod(bridge, "beginDownload", String.class);
-            assertJavascriptBridgeMethod(bridge, "writeData", String.class);
-            assertJavascriptBridgeMethod(bridge, "finishDownload");
         } catch (ReflectiveOperationException error) {
-            throw new AssertionError("View/WebView Java and JavascriptInterface contracts changed", error);
+            throw new AssertionError("View utility Java contracts changed", error);
         }
     }
 
@@ -1759,15 +1733,6 @@ public final class KotlinJavaInteropContractTest {
         java.lang.reflect.Method method = ViewUtils.class.getMethod(name, parameters);
         if (method.getReturnType() != returnType || !Modifier.isStatic(method.getModifiers())) {
             throw new AssertionError("ViewUtils." + name + " must retain its static Java signature");
-        }
-    }
-
-    private static void assertJavascriptBridgeMethod(Class<?> bridge, String name, Class<?>... parameters)
-            throws ReflectiveOperationException {
-        java.lang.reflect.Method method = bridge.getDeclaredMethod(name, parameters);
-        if (method.getReturnType() != Void.TYPE || !Modifier.isPublic(method.getModifiers())
-                || !method.isAnnotationPresent(JavascriptInterface.class)) {
-            throw new AssertionError("WebView JavascriptInterface method is not JavaScript-callable: " + name);
         }
     }
 

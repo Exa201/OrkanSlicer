@@ -3645,6 +3645,16 @@ Phase 4 — workspace overlay migration is continuing. The model context menu an
 - Verifikation außerhalb der Batch-Zählung: der bereits vorhandene Orca-Fix `9b4f84a923` für benutzerdefinierte Druckerprofile mit mehr Düsen als das Elternprofil besteht mit 2→4 Düsen und vier erhaltenen `nozzle_diameter`-Werten auf beiden API-36-Emulatoren (je 1/1). Die Verifikation zählt nicht als neue Produktänderung.
 - Nächster Schritt: weitere ungeportete Orca-Kandidaten gegen Android-Aufrufpfade prüfen und einen weiteren Batch-6-Punkt als echte Slice-/UI-Regressionsänderung implementieren. Keine Batch-APK/Release vor 10/10.
 
+# Nightly follow-up — 2026-11-02
+
+- Aktueller Code-HEAD vor diesem Follow-up: `1ac138047d4b0dbe93d2f390305d536ffef47d4b`; Branch `nightly-2.5`, bereits 3 Commits vor `nightly25/nightly-2.5`. Die Änderungen dieses Follow-ups sind lokal und noch nicht committed.
+- Behoben: Druckprofile mit Unicode-Namen und dem Drucker-Suffix ` · ` wurden nach dem Speichern unter Windows nicht zuverlässig wiederhergestellt. `Slic3rConfigWrapper.readFromStream` nutzte den Plattform-Standardzeichensatz, während die Konfiguration als UTF-8 gespeichert wird. Der Reader verwendet nun explizit UTF-8; ein Roundtrip-Unit-Test schützt Profilnamen und Abschnittsauswahl.
+- Verifikation: vollständige Headless-E2E-Suite 99/99 bestanden; Java/Kotlin-Interop-Vertrag bestanden; Upload-/Filament-Routing-, G-Code-Integritäts-, Lithophane- und Fastener-Geometrie-Tests bestanden. `Slic3rConfigWrapperEncodingTest` 1/1 und `Kobra3V2ProfileMigrationTest` 4/4 bestanden. `git diff --check` erfolgreich.
+- Die E2E-Testharness wurde an entfernte Menütypen sowie aktuelle JNI-, Paint-, Arrangement- und Render-Scale-Signaturen angepasst. Die optionale Auswahl eines einzelnen E2E-Tests wurde ergänzt; ohne Filter laufen weiterhin alle 99 Tests.
+- Orca-Funktionsbatch 6 ist bereits **10/10** (siehe Status am Dateianfang); die UTF-8- und Harness-Korrekturen zählen nicht als Orca-Funktionsports. Der Debug-APK-Build und Nightly-Release-Gate bleiben offen.
+- Gerätepfad gefunden: `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`. Xiaomi ist nicht angeschlossen; zwei API-36-AVDs sind erreichbar. Der fokussierte Kobra-PA-Slice-Test bestand auf `emulator-5556` 1/1, aber `emulator-5558` brach seine Instrumentierung mit einem Prozessabsturz ab; daher war der aggregierte Gradle-Aufruf insgesamt fehlgeschlagen. Das Einzelergebnis für `emulator-5556` ist grün, die Multi-AVD-Ausführung nicht.
+- Nächster konkreter Schritt: Änderungen konsistent committen, vollständigen Nightly-Debug-APK-Build ausführen, APK installieren/starten und Logcat prüfen. Danach die bereits genehmigte Nightly-Veröffentlichung im Nightly-Repository aktualisieren; kein Stable-Release.
+
 # Auto-arrange footprint regression — 2026-11-01
 
 - Auto-arrange used the convex hull for every open/non-manifold triangle mesh, even when its projected triangles formed a valid concave footprint. This blocked usable bed space and could force extra plates.
