@@ -1353,6 +1353,87 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun adaptivePressureAdvanceUsesWallSpeedWhenWallInheritsTravelFeedrate() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
+        process.put("wall_loops", "1")
+        process.put("sparse_infill_density", "0%")
+        process.put("top_shell_layers", "0")
+        process.put("bottom_shell_layers", "0")
+        process.put("skirt_loops", "0")
+        process.put("brim_type", "no_brim")
+        process.put("outer_wall_speed", "150")
+        process.put("inner_wall_speed", "150")
+        process.put("initial_layer_speed", "30")
+        process.put("slow_down_layers", "0")
+        process.put("travel_speed", "150")
+        process.put("initial_layer_travel_speed", "150")
+        process.put("enable_overhang_speed", "0")
+        process.put("wipe", "0")
+        process.put("retraction_length", "0")
+        process.put("gcode_comments", "1")
+        filament.put("enable_pressure_advance", "1")
+        filament.put("adaptive_pressure_advance", "1")
+        filament.put("adaptive_pressure_advance_model", "0.08,1,4000\\n0.04,20,4000\\n0.08,1,100000\\n0.04,20,100000")
+        filament.put("pressure_advance", "0.08")
+        filament.put("filament_max_volumetric_speed", "200")
+        filament.put("slow_down_for_layer_cooling", "0")
+        filament.put("slow_down_layer_time", "0")
+
+        val modelFile = copyCube(context, "adaptive-pa-modal-feedrate.stl")
+        val gcodeFile = File(context.cacheDir, "adaptive-pa-modal-feedrate.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(modelFile)
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            val currentConfig = SliceBeam.getCurrentConfigFile()
+            generatedConfig = currentConfig
+            val nativeConfig = currentConfig.readText()
+            assertTrue(nativeConfig.contains("adaptive_pressure_advance = 1"))
+            assertTrue(nativeConfig.contains("outer_wall_speed = 150"))
+            assertTrue(nativeConfig.contains("initial_layer_speed = 30"))
+            assertTrue(nativeConfig.contains("travel_speed = 150"))
+            result = model.slice(currentConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            var currentType = ""
+            var modalFeedrate = 0
+            var pendingAdaptiveSpeed: Double? = null
+            val inheritedWallSpeeds = mutableListOf<Double>()
+            gcode.lineSequence().forEach { line ->
+                if (line.startsWith(";TYPE:")) currentType = line.removePrefix(";TYPE:")
+                if (line.startsWith("; APA Speed Used: "))
+                    pendingAdaptiveSpeed = line.substringAfter(": ").toDouble()
+                if (line.startsWith("G0 ") || line.startsWith("G1 ") || line.startsWith("G2 ") || line.startsWith("G3 ")) {
+                    Regex("(?:^| )F([0-9]+)(?: |$)").find(line)?.groupValues?.get(1)?.toIntOrNull()?.let {
+                        modalFeedrate = it
+                    }
+                    if (currentType == "Outer wall" && line.startsWith("G1 ") &&
+                        line.contains(" X") && line.contains(" Y") && line.contains(" E") && !line.contains(" F") &&
+                        modalFeedrate == 9000 && pendingAdaptiveSpeed != null) {
+                        inheritedWallSpeeds += pendingAdaptiveSpeed!!
+                        pendingAdaptiveSpeed = null
+                    }
+                }
+            }
+            assertTrue("fixture must contain an outer-wall extrusion inheriting the travel feedrate", inheritedWallSpeeds.isNotEmpty())
+            assertTrue("adaptive PA speed must match the inherited 150 mm/s travel feedrate: $inheritedWallSpeeds",
+                inheritedWallSpeeds.all { kotlin.math.abs(it - 150.0) < 0.01 })
+        } finally {
+            result?.release()
+            model?.release()
+            modelFile.delete()
+            generatedConfig?.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun cutDowelToleranceDoesNotShiftTheCutPlaneAnchor() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val modelFile = copyCube(context, "orca25-centered-dowel-cut.stl")

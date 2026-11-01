@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iostream>
 #include <cmath>
+#include <cctype>
 
 namespace Slic3r {
 
@@ -27,6 +28,7 @@ AdaptivePAProcessor::AdaptivePAProcessor(GCode &gcodegen, const std::vector<unsi
       m_max_next_feedrate(0.0),
       m_next_feedrate(0.0),
       m_current_feedrate(0.0),
+      m_modal_feedrate(0.0),
       m_last_extruder_id(-1),
       m_pa_change_pattern(R"(; PA_CHANGE:T(\d+) MM3MM:([0-9]*\.[0-9]+) ACCEL:(\d+) BR:(\d+) RC:(\d+) OV:(\d+))"),
       m_g1_f_pattern(R"(G1 F([0-9]+))")
@@ -54,6 +56,19 @@ AdaptivePAInterpolator* AdaptivePAProcessor::getInterpolator(unsigned int tool_i
     return nullptr;  // Handle the case where the tool_id was not found
 }
 
+// Return the modal feedrate set by a G0-G3 move, in mm/s. Ignore feedrate-like text in comments.
+static double feedrate_word(const std::string& line)
+{
+    if (line.size() < 3 || line[0] != 'G' || line[2] != ' ' ||
+        (line[1] != '0' && line[1] != '1' && line[1] != '2' && line[1] != '3'))
+        return 0.0;
+    const std::size_t pos = line.find(" F");
+    if (pos == std::string::npos || pos + 2 >= line.size() ||
+        !std::isdigit(static_cast<unsigned char>(line[pos + 2])) || line.find(';') < pos)
+        return 0.0;
+    return std::stod(line.substr(pos + 2)) / 60.0;
+}
+
 /**
  * @brief Processes a layer of G-code and applies adaptive pressure advance.
  *
@@ -79,6 +94,11 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
         if (line.find("WIPE_START") != std::string::npos) {
             wipe_command = true;
         }
+
+        // Motion feedrate is modal. Travels and wipes can set the speed inherited by a later
+        // extrusion when CoolingBuffer removes a redundant G1 F word.
+        if (const double feedrate = feedrate_word(line); feedrate > 0)
+            m_modal_feedrate = feedrate;
                 
         // Update current feed rate (this is preceding an extrude or wipe command only). Ignore any speed changes that are emitted during a wipe move.
         // Travel feedrate is output as part of a G1 X Y (Z) F command
@@ -125,6 +145,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                 std::streampos current_pos = stream.tellg();
                 std::string next_line;
                 double temp_feed_rate = 0;
+                double modal_feedrate = m_modal_feedrate;
                 bool extrude_move_found = false;
                 int line_counter = 0;
                 
@@ -134,6 +155,10 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                 // until a feature change pattern or a wipe command is detected
                 while (std::getline(stream, next_line)) {
                     line_counter++;
+                    // Capture travel, wipe, and extrusion feedrates through the first extrusion.
+                    if (!extrude_move_found)
+                        if (const double feedrate = feedrate_word(next_line); feedrate > 0)
+                            modal_feedrate = feedrate;
                     // Found an extrude move, set extrude move found flag and move to the next line
                     if ((!extrude_move_found) && next_line.find("G1 ") == 0 &&
                         next_line.find('X') != std::string::npos &&
@@ -141,6 +166,13 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                         next_line.find('E') != std::string::npos) {
                         // Pattern matched, break the loop
                         extrude_move_found = true;
+                        // The cooling buffer may remove the extrusion's redundant G1 F. In that
+                        // case the firmware uses the last travel/wipe feedrate instead.
+                        if (temp_feed_rate == 0 && modal_feedrate > 0) {
+                            temp_feed_rate = modal_feedrate;
+                            m_next_feedrate = modal_feedrate;
+                            m_current_feedrate = modal_feedrate;
+                        }
                         continue;
                     }
                     

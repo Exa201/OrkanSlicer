@@ -62,6 +62,7 @@ private:
     double m_max_next_feedrate; ///< Maximum feed rate (speed) for the upcomming island. If no speed is found, the previous island speed is used.
     double m_next_feedrate; ///< First feed rate (speed) for the upcomming island.
     double m_current_feedrate; ///< Current, latest feedrate.
+    double m_modal_feedrate; ///< Feedrate last set by a motion command, including travels and wipes.
     int m_last_extruder_id; ///< Last used extruder ID.
 
     std::regex m_pa_change_pattern; ///< Regular expression to detect PA_CHANGE pattern.
