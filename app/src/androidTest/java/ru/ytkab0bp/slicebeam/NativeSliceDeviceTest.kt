@@ -42,6 +42,66 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test(timeout = 120_000)
+    fun hilbertSparseInfillSmoothFactorChangesOnlySparseInfillToolpaths() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val source = createThinCubeFixture("hilbert-smooth-factor.stl", 20.0, 20.0, 12.0)
+        val output = File(context.cacheDir, "hilbert-smooth-factor.gcode")
+        val model = Model(source).also { it.ensureOnBed(0) }
+        try {
+            process.put("sparse_infill_pattern", "hilbertcurve")
+            process.put("sparse_infill_density", "25")
+            process.put("wall_loops", "2")
+            process.put("top_shell_layers", "3")
+            process.put("bottom_shell_layers", "3")
+            process.put("resolution", "0.005")
+
+            fun featureMoves(smoothPercent: Int): Map<String, List<String>> {
+                process.put("sparse_infill_smooth_factor", smoothPercent.toString())
+                SliceBeam.genCurrentConfig(model)
+                val config = SliceBeam.getCurrentConfigFile()
+                val serialized = config.readText()
+                assertTrue(
+                    "The Orca smoothing setting must reach native slicing",
+                    Regex("(?m)^sparse_infill_smooth_factor\\s*=\\s*$smoothPercent(?:\\.0+)?\\s*$")
+                        .containsMatchIn(serialized),
+                )
+                output.delete()
+                val result = model.slice(config.absolutePath, output.absolutePath, null)
+                try {
+                    val byFeature = linkedMapOf<String, MutableList<String>>()
+                    var feature = ""
+                    output.forEachLine { line ->
+                        if (line.startsWith(";TYPE:")) feature = line.removePrefix(";TYPE:")
+                        else if (line.startsWith("G1 ") && line.contains('E') &&
+                            (line.contains(" X") || line.contains(" Y"))) {
+                            byFeature.getOrPut(feature) { mutableListOf() }.add(line)
+                        }
+                    }
+                    return byFeature.mapValues { it.value.toList() }
+                } finally {
+                    result.release()
+                }
+            }
+
+            val sharp = featureMoves(0)
+            val smooth = featureMoves(100)
+            assertTrue("Both Hilbert slices must contain sparse infill", (sharp["Sparse infill"]?.size ?: 0) > 0)
+            assertTrue("Smoothing must change the real sliced Hilbert toolpath", sharp["Sparse infill"] != smooth["Sparse infill"])
+            assertTrue("Smooth corners should add flattened path segments",
+                (smooth["Sparse infill"]?.size ?: 0) > (sharp["Sparse infill"]?.size ?: 0))
+            for (feature in listOf("Outer wall", "Inner wall", "Top surface", "Bottom surface"))
+                assertEquals("Smoothing is scoped to sparse infill; $feature must remain unchanged",
+                    sharp[feature], smooth[feature])
+        } finally {
+            model.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun sparseInfillArcFittingDoesNotFitWallsAndLegacyBooleanProfilesRemainCompatible() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

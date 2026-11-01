@@ -1,3 +1,7 @@
+#include <algorithm>
+#include <array>
+#include <cmath>
+
 #include "../ClipperUtils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
@@ -110,12 +114,12 @@ void FillPlanePath::_fill_surface_single(
             // Filling in a bounding box over the whole object, clip generated polyline against the snug bounding box.
             snug_bounding_box.translate(-shift.x(), -shift.y());
             InfillPolylineClipper output(snug_bounding_box, distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, output);
+            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
             polyline.points = std::move(output.result());
         } else {
             // Filling in a snug bounding box, no need to clip.
             InfillPolylineOutput output(distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, output);
+            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
             polyline.points = std::move(output.result());
         }
     }
@@ -272,6 +276,120 @@ void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coo
         generate_hilbert_curve(min_x, min_y, max_x, max_y, static_cast<InfillPolylineClipper&>(output));
     else
         generate_hilbert_curve(min_x, min_y, max_x, max_y, output);
+}
+
+namespace {
+using HilbertCorner = std::array<Vec2d, 6>;
+
+bool hilbertBezierFlat(const HilbertCorner &curve, double deviation)
+{
+    const Vec2d chord = curve.back() - curve.front();
+    const double maxCrossSquared = deviation * deviation * chord.squaredNorm();
+    for (size_t i = 1; i + 1 < curve.size(); ++i) {
+        const Vec2d offset = curve[i] - curve.front();
+        const double cross = chord.x() * offset.y() - chord.y() * offset.x();
+        if (cross * cross > maxCrossSquared) return false;
+    }
+    return true;
+}
+
+void subdivideHilbertBezier(const HilbertCorner &curve, HilbertCorner &left, HilbertCorner &right)
+{
+    HilbertCorner work = curve;
+    left.front() = work.front();
+    right.back() = work.back();
+    for (size_t level = 1; level < curve.size(); ++level) {
+        for (size_t i = 0; i + level < curve.size(); ++i)
+            work[i] = 0.5 * (work[i] + work[i + 1]);
+        left[level] = work.front();
+        right[curve.size() - level - 1] = work[curve.size() - level - 1];
+    }
+}
+
+std::vector<Vec2d> flattenHilbertCorner(const HilbertCorner &curve, double deviation)
+{
+    constexpr size_t maxDepth = 16;
+    std::vector<HilbertCorner> segments(2);
+    subdivideHilbertBezier(curve, segments[0], segments[1]);
+    for (size_t depth = 1; depth < maxDepth; ++depth) {
+        const bool flat = std::all_of(segments.begin(), segments.end(), [deviation](const auto &segment) {
+            return hilbertBezierFlat(segment, deviation);
+        });
+        if (flat) break;
+        std::vector<HilbertCorner> finer(segments.size() * 2);
+        for (size_t i = 0; i < segments.size(); ++i)
+            subdivideHilbertBezier(segments[i], finer[i * 2], finer[i * 2 + 1]);
+        segments = std::move(finer);
+    }
+    std::vector<Vec2d> points;
+    points.reserve(segments.size());
+    for (const auto &segment : segments) points.push_back(segment.back());
+    return points;
+}
+
+template<typename Output>
+void generateSmoothedHilbert(coord_t minX, coord_t minY, coord_t maxX, coord_t maxY,
+                             double resolution, double reach, Output &output)
+{
+    size_t size = 2;
+    const size_t required = std::max(maxX + 1 - minX, maxY + 1 - minY);
+    while (size < required) size <<= 1;
+    const size_t count = size * size;
+    output.reserve(count);
+
+    const double tolerance = resolution > 0. && std::isfinite(resolution) ? resolution : EPSILON;
+    const HilbertCorner corner{{ {-reach, 0.}, {-0.7 * reach, 0.}, {-0.4 * reach, 0.},
+                                  {0., 0.4 * reach}, {0., 0.7 * reach}, {0., reach} }};
+    const auto curve = flattenHilbertCorner(corner, tolerance);
+    auto pointAt = [minX, minY](size_t index) {
+        const Point point = hilbert_n_to_xy(index);
+        return Vec2d(double(point.x() + minX), double(point.y() + minY));
+    };
+    bool hasLast = false;
+    Vec2d last;
+    auto emit = [&output, &hasLast, &last](const Vec2d &point) {
+        if (!hasLast || point.x() != last.x() || point.y() != last.y()) {
+            output.add_point(point);
+            last = point;
+            hasLast = true;
+        }
+    };
+
+    Vec2d previous = pointAt(0);
+    Vec2d cornerPoint = pointAt(1);
+    emit(previous);
+    for (size_t i = 1; i + 1 < count; ++i) {
+        const Vec2d next = pointAt(i + 1);
+        const Vec2d incoming = (cornerPoint - previous).normalized();
+        const Vec2d outgoing = (next - cornerPoint).normalized();
+        const double cross = incoming.x() * outgoing.y() - incoming.y() * outgoing.x();
+        if (std::abs(cross) < EPSILON) {
+            emit(cornerPoint);
+        } else {
+            emit(cornerPoint - reach * incoming);
+            for (const Vec2d &coefficient : curve)
+                emit(cornerPoint + coefficient.x() * incoming + coefficient.y() * outgoing);
+        }
+        previous = cornerPoint;
+        cornerPoint = next;
+    }
+    emit(cornerPoint);
+}
+} // namespace
+
+void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y,
+                                const double resolution, const FillParams &params, InfillPolylineOutput &output)
+{
+    const double factor = std::isfinite(params.smooth_factor) ? std::clamp(params.smooth_factor, 0., 1.) : 0.;
+    if (factor == 0.) {
+        generate(min_x, min_y, max_x, max_y, resolution, output);
+        return;
+    }
+    if (output.clips())
+        generateSmoothedHilbert(min_x, min_y, max_x, max_y, resolution, 0.5 * factor,
+                                static_cast<InfillPolylineClipper &>(output));
+    else
+        generateSmoothedHilbert(min_x, min_y, max_x, max_y, resolution, 0.5 * factor, output);
 }
 
 template<typename Output>

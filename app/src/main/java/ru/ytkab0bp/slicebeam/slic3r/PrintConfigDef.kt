@@ -52,6 +52,7 @@ class PrintConfigDef @Keep constructor() {
             // Infill
             "fill_density" to "Sparse infill density",
             "fill_pattern" to "Sparse infill pattern",
+            "sparse_infill_smooth_factor" to "Sparse infill smooth factor",
             "fill_angle" to "Sparse infill direction",
             "infill_overlap" to "Infill/wall overlap",
             "bridge_flow_ratio" to "Bridge flow",

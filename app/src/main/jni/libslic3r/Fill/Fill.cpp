@@ -272,6 +272,9 @@ struct SurfaceFillParams
     // For Gyroid: when true, use the parameterized "optimized" wave.
     bool gyroid_optimized = false;
 
+    // Orca: smooth sharp turns in Hilbert Curve sparse infill.
+    double smooth_factor = 0.;
+
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
 #define RETURN_COMPARE_NON_EQUAL_TYPED(TYPE, KEY) if (TYPE(this->KEY) < TYPE(rhs.KEY)) return true; if (TYPE(this->KEY) > TYPE(rhs.KEY)) return false;
@@ -303,6 +306,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(infill_lock_depth);
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);		RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
 		RETURN_COMPARE_NON_EQUAL(gyroid_optimized);
+		RETURN_COMPARE_NON_EQUAL(smooth_factor);
 
 		return false;
 	}
@@ -329,7 +333,8 @@ struct SurfaceFillParams
 				this->infill_lock_depth       == rhs.infill_lock_depth       &&
 				this->skin_infill_depth       == rhs.skin_infill_depth       &&
                 this->infill_overhang_angle   == rhs.infill_overhang_angle   &&
-                this->gyroid_optimized        == rhs.gyroid_optimized;
+                this->gyroid_optimized        == rhs.gyroid_optimized &&
+                this->smooth_factor           == rhs.smooth_factor;
 	}
 };
 
@@ -930,6 +935,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // (which would unnecessarily split fill batching).
                 // Stored on SurfaceFillParams; copied to FillParams during conversion.
                 params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized;
+                // Smoothing is intentionally limited to Hilbert Curve sparse infill.
+                params.smooth_factor = params.extrusion_role == erInternalInfill && params.pattern == ipHilbertCurve
+                    ? 0.01 * region_config.sparse_infill_smooth_factor.value : 0.;
 
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
@@ -1292,6 +1300,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
+        params.smooth_factor             = surface_fill.params.smooth_factor;
 
 		// BBS
 		params.flow = surface_fill.params.flow;
@@ -1488,6 +1497,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.multiline         = surface_fill.params.multiline;
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
+        params.smooth_factor             = surface_fill.params.smooth_factor;
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
             // Spacing is modified by the filler to indicate adjustments. Reset it for each expolygon.

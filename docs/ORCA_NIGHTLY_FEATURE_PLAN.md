@@ -1,12 +1,20 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
-## Nightly Batch 5 — Änderung 9/10: lange Extrusionsketten lokal verfeinern (2026-11-01)
+## Nightly Batch 5 — abgeschlossen: 10/10 Änderungen (2026-11-01)
+
+### Änderung 10/10: Hilbert-Curve-Sparse-Infill glätten
+
+Port Orca `fb36d5e73b`'s configurable Hilbert corner smoothing. `sparse_infill_smooth_factor` (0–100%) is a native process-profile option, appears in the mobile Infill settings, participates in preset save/load and invalidates sparse-infill slicing state. At 0% the original Hilbert path is preserved; higher values round only sparse Hilbert infill corners. Wall, top and bottom toolpaths are unaffected.
+
+`NativeSliceDeviceTest#hilbertSparseInfillSmoothFactorChangesOnlySparseInfillToolpaths` passed 1/1 on an API-36 emulator using real native slices and comparing G-code moves at 0% and 100%. The test confirms the setting reaches the serialized native config, sparse-infill moves change and add flattened segments, and outer/inner walls plus top/bottom surfaces remain byte-for-byte equal. ARM64 native and instrumentation APK builds passed. Full Debug and Slice JVM suites both passed 712/712, zero failures/errors/skips. The complete batch has 10/10 verified changes; its isolated Nightly APK and release are being built from the committed source.
+
+### Änderung 9/10: lange Extrusionsketten lokal verfeinern (2026-11-01)
 
 Port Orca `69193d5681`'s bounded travel refinement into the active extrusion-entity ordering path. Chains longer than eight paths now refine the existing greedy chain with reversible 2-opt and short/long or-opt moves, using a uniform endpoint grid and a capped work queue. A nearest-next chain is also refined and selected only when its measured travel is shorter. Chains without a fixed nozzle start keep the existing behavior; paths that cannot reverse are never flipped. This changes path order only, not geometry or extrusion values.
 
 `NativeSliceDeviceTest#longExtrusionChainsAreRefinedWithoutIncreasingTravel` passed 1/1 on API 36. Its deterministic 12-segment adversarial route verifies that each segment occurs once and that the refined travel is shorter. ARM64 native build and Slice instrumentation APK compilation passed. Full Debug and Slice JVM suites passed 712/712 each, with no failed or skipped tests. Xiaomi physical installation remains unavailable due to `INSTALL_FAILED_USER_RESTRICTED`.
 
-Batch 5 is now **9/10**. One more suitable, runtime-verified change is required before its APK/release gate.
+Change 9 verification details follow; Batch 5 completion is recorded above.
 
 ## Nightly Batch 5 — Änderung 8/10: Kobra-3-V2-Pressure-Advance-Startwert entfernt (2026-11-01)
 
