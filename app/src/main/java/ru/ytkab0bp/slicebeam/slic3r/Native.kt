@@ -30,6 +30,9 @@ class Native {
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray
+    /** Exercises production short-path chaining against a four-segment optimality fixture. */
+    @JvmStatic
+    external fun shortest_path_exact_chain_regression(): IntArray
     @JvmStatic
     external fun set_svg_path_prefix(prefix: String): Unit
     @JvmStatic

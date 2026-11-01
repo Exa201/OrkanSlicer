@@ -28,6 +28,7 @@
 #include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
 #include <libslic3r/SVG.hpp>
 #include <libslic3r/GCode.hpp>
+#include <libslic3r/ShortestPath.hpp>
 #include <libslic3r/Print.hpp>
 #include <libslic3r/Utils.hpp>
 #include <libslic3r/AppConfig.hpp>
@@ -4577,6 +4578,17 @@ extern "C" {
         jintArray result = env->NewIntArray(static_cast<jsize>(selected.size()));
         if (result != nullptr)
             env->SetIntArrayRegion(result, 0, static_cast<jsize>(selected.size()), selected.data());
+        return result;
+    }
+
+    // Exercises the production short-chain path optimizer against a fixture where
+    // nearest-neighbor chaining is measurably longer than the exact solution.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_shortest_1path_1exact_1chain_1regression(JNIEnv* env, jclass) {
+        const std::vector<int> encoded = Slic3r::shortest_path_exact_chain_regression();
+        std::vector<jint> values(encoded.begin(), encoded.end());
+        jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (result != nullptr && !values.empty())
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
         return result;
     }
 

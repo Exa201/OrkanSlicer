@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <array>
 
 namespace Slic3r {
 
@@ -80,6 +81,77 @@ std::vector<std::pair<size_t, bool>> chain_segments_closest_point(std::vector<En
 	return out;
 }
 
+// For a small number of segments, dynamic programming finds the minimum travel chain
+// exactly instead of relying on the greedy nearest-edge construction below.
+static std::vector<std::pair<size_t, bool>> chain_segments_exact(
+    const std::vector<Vec2d>& end_points, const std::vector<char>& could_reverse, const Vec2d* start)
+{
+    const size_t n = could_reverse.size();
+    assert(n >= 1 && n <= 8 && end_points.size() == 2 * n);
+    const size_t num_states = (size_t(1) << n) * n * 2;
+    std::vector<double> cost(num_states, std::numeric_limits<double>::max());
+    std::vector<size_t> from(num_states, size_t(-1));
+    auto entry = [&end_points](size_t segment, size_t reversed) -> const Vec2d& {
+        return end_points[2 * segment + reversed];
+    };
+    auto exit = [&end_points](size_t segment, size_t reversed) -> const Vec2d& {
+        return end_points[2 * segment + 1 - reversed];
+    };
+
+    for (size_t j = 0; j < n; ++j) {
+        for (size_t reversed = 0; reversed <= size_t(could_reverse[j] != 0); ++reversed) {
+            const size_t state = ((size_t(1) << j) * n + j) * 2 + reversed;
+            cost[state] = start == nullptr ? 0. : (entry(j, reversed) - *start).norm();
+        }
+    }
+    for (size_t mask = 1; mask < (size_t(1) << n); ++mask) {
+        for (size_t state = mask * n * 2; state < (mask + 1) * n * 2; ++state) {
+            if (cost[state] == std::numeric_limits<double>::max()) continue;
+            const size_t last = state / 2 % n;
+            const size_t last_reversed = state & 1;
+            for (size_t next = 0; next < n; ++next) {
+                if ((mask >> next) & 1) continue;
+                for (size_t reversed = 0; reversed <= size_t(could_reverse[next] != 0); ++reversed) {
+                    const size_t next_state = (((mask | (size_t(1) << next)) * n) + next) * 2 + reversed;
+                    const double candidate = cost[state] + (entry(next, reversed) - exit(last, last_reversed)).norm();
+                    if (candidate < cost[next_state]) {
+                        cost[next_state] = candidate;
+                        from[next_state] = state;
+                    }
+                }
+            }
+        }
+    }
+
+    const size_t full_mask = (size_t(1) << n) - 1;
+    size_t best = full_mask * n * 2;
+    for (size_t state = best + 1; state < num_states; ++state)
+        if (cost[state] < cost[best]) best = state;
+
+    std::vector<std::pair<size_t, bool>> out(n);
+    for (size_t state = best, pos = n; pos-- > 0; state = from[state])
+        out[pos] = { state / 2 % n, (state & 1) != 0 };
+    return out;
+}
+
+template<typename PointType, typename SegmentEndPointFunc, typename CouldReverseFunc>
+static std::vector<std::pair<size_t, bool>> chain_segments_exact_from_endpoints(
+    SegmentEndPointFunc end_point_func, CouldReverseFunc could_reverse_func, size_t num_segments,
+    const PointType* start_near)
+{
+    std::vector<Vec2d> end_points;
+    std::vector<char> reverse_allowed;
+    end_points.reserve(num_segments * 2);
+    reverse_allowed.reserve(num_segments);
+    for (size_t i = 0; i < num_segments; ++i) {
+        end_points.emplace_back(end_point_func(i, true).template cast<double>());
+        end_points.emplace_back(end_point_func(i, false).template cast<double>());
+        reverse_allowed.emplace_back(could_reverse_func(i));
+    }
+    const Vec2d start = start_near != nullptr ? Vec2d(start_near->template cast<double>()) : Vec2d::Zero();
+    return chain_segments_exact(end_points, reverse_allowed, start_near != nullptr ? &start : nullptr);
+}
+
 // Chain perimeters (always closed) and thin fills (closed or open) using a greedy algorithm.
 // Solving a Traveling Salesman Problem (TSP) with the modification, that the sites are not always points, but points and segments.
 // Solving using a greedy algorithm, where a shortest edge is added to the solution if it does not produce a bifurcation or a cycle.
@@ -102,6 +174,10 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		out.emplace_back(0, could_reverse_func(0) && start_near != nullptr && 
             (end_point_func(0, false) - *start_near).template cast<double>().squaredNorm() < (end_point_func(0, true) - *start_near).template cast<double>().squaredNorm());
 	} 
+	else if (num_segments <= 8 && start_near != nullptr)
+	{
+		out = chain_segments_exact_from_endpoints(end_point_func, could_reverse_func, num_segments, start_near);
+	}
 	else
 	{
 		// End points of segments for the KD tree closest point search.
@@ -501,6 +577,10 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		out.emplace_back(0, start_near != nullptr && 
             (end_point_func(0, true) - *start_near).template cast<double>().squaredNorm() < (end_point_func(0, false) - *start_near).template cast<double>().squaredNorm());
 	} 
+	else if (num_segments <= 8 && start_near != nullptr)
+	{
+		out = chain_segments_exact_from_endpoints(end_point_func, could_reverse_func, num_segments, start_near);
+	}
 	else
 	{
 		// End points of segments for the KD tree closest point search.
@@ -1091,6 +1171,23 @@ void reorder_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const 
 void chain_and_reorder_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const Point *start_near)
 {
 	reorder_extrusion_paths(extrusion_paths, chain_extrusion_paths(extrusion_paths, start_near));
+}
+
+std::vector<int> shortest_path_exact_chain_regression()
+{
+	const std::array<Vec2d, 8> endpoints {{
+		Vec2d(14., 3.), Vec2d(6., 19.), Vec2d(15., 2.), Vec2d(13., 4.),
+		Vec2d(0., 12.), Vec2d(19., 9.), Vec2d(1., 18.), Vec2d(17., 18.)
+	}};
+	auto endpoint = [&endpoints](size_t idx, bool first) -> const Vec2d& { return endpoints[idx * 2 + (first ? 0 : 1)]; };
+	auto can_reverse = [](size_t) { return true; };
+	const Vec2d start(0., 0.);
+	auto chain = chain_segments_greedy_constrained_reversals<Vec2d, decltype(endpoint), decltype(can_reverse)>(endpoint, can_reverse, 4, &start);
+	std::vector<int> encoded;
+	encoded.reserve(chain.size());
+	for (const auto& segment : chain)
+		encoded.emplace_back(static_cast<int>(segment.first * 2 + (segment.second ? 1 : 0)));
+	return encoded;
 }
 
 std::vector<size_t> chain_expolygons(const ExPolygons &input_exploy) {

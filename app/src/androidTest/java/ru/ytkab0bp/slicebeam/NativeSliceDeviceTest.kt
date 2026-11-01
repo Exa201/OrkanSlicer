@@ -274,6 +274,80 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun shortExtrusionChainsUseTheMinimumTravelOrder() {
+        val segments = listOf(
+            Pair(doubleArrayOf(14.0, 3.0), doubleArrayOf(6.0, 19.0)),
+            Pair(doubleArrayOf(15.0, 2.0), doubleArrayOf(13.0, 4.0)),
+            Pair(doubleArrayOf(0.0, 12.0), doubleArrayOf(19.0, 9.0)),
+            Pair(doubleArrayOf(1.0, 18.0), doubleArrayOf(17.0, 18.0)),
+        )
+        val encoded = Native.shortest_path_exact_chain_regression()
+        assertEquals(segments.size, encoded.size)
+        assertEquals(segments.indices.toSet().size, encoded.map { it / 2 }.toSet().size)
+
+        var x = 0.0
+        var y = 0.0
+        var actual = 0.0
+        encoded.forEach { item ->
+            val (first, second) = segments[item / 2]
+            val entry = if (item % 2 == 0) first else second
+            val exit = if (item % 2 == 0) second else first
+            actual += kotlin.math.hypot(entry[0] - x, entry[1] - y)
+            x = exit[0]
+            y = exit[1]
+        }
+
+        var optimum = Double.POSITIVE_INFINITY
+        fun enumerate(remaining: List<Int>, px: Double, py: Double, cost: Double) {
+            if (remaining.isEmpty()) {
+                optimum = minOf(optimum, cost)
+                return
+            }
+            for (index in remaining) {
+                val (first, second) = segments[index]
+                val rest = remaining - index
+                for ((entry, exit) in listOf(first to second, second to first)) {
+                    enumerate(
+                        rest, exit[0], exit[1],
+                        cost + kotlin.math.hypot(entry[0] - px, entry[1] - py),
+                    )
+                }
+            }
+        }
+        enumerate(segments.indices.toList(), 0.0, 0.0, 0.0)
+
+        // A simple nearest-neighbor chain picks the closest next endpoint greedily.
+        val remaining = segments.indices.toMutableSet()
+        var gx = 0.0
+        var gy = 0.0
+        var greedy = 0.0
+        while (remaining.isNotEmpty()) {
+            var bestDistance = Double.POSITIVE_INFINITY
+            var bestIndex = -1
+            var bestReversed = false
+            for (index in remaining) {
+                val (first, second) = segments[index]
+                for ((reversed, entry) in listOf(false to first, true to second)) {
+                    val distance = kotlin.math.hypot(entry[0] - gx, entry[1] - gy)
+                    if (distance < bestDistance) {
+                        bestDistance = distance
+                        bestIndex = index
+                        bestReversed = reversed
+                    }
+                }
+            }
+            greedy += bestDistance
+            val segment = segments[bestIndex]
+            val exit = if (bestReversed) segment.first else segment.second
+            gx = exit[0]
+            gy = exit[1]
+            remaining.remove(bestIndex)
+        }
+        assertEquals(optimum, actual, 1e-8)
+        assertTrue("exact travel $actual must improve on nearest-neighbor $greedy", actual < greedy)
+    }
+
+    @Test
     fun arachneSlicesPinchedTubeWithOnlyOneWallOnTop() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)

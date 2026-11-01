@@ -349,3 +349,11 @@ Beim Verarbeiten einer Pause flusht der G-Code-Prozessor den Zeitplan und fügt 
 `GCodePauseLayerPreviewDeviceTest#pauseAfterTimeFlushRemainsOnItsOwnLayerAndPreviewLayersStayOrdered` verarbeitet einen dreischichtigen G-Code mit Rückzug, Pause und Extrusion auf der Folgeschicht, lädt die Moves in libvgcode unter einem GLES3-Kontext und prüft, dass die Vorschau bei drei fortlaufenden Schichten bleibt. API-35- und API-36-Emulatoren bestanden je 1/1; ARM64-Debug-Build erfolgreich. Die vollständigen JVM-Suiten werden am Batch-Gate erneut ausgeführt.
 
 Nightly-Batch 3: **3/10**. Kein APK/Release vor 10/10 fokussiert verifizierten Änderungen.
+
+## Nightly Batch 5 — Änderung 6/10: exakte kurze Verfahrwegketten (2026-11-01)
+
+Orca `69193d5681` enthält exakte dynamische Programmierung für kurze Extrusionspfadketten. Android minimiert jetzt die Verfahrdistanz für Gruppen mit bis zu acht Segmenten, wenn ein fester Startpunkt existiert. Das gilt für die aktive Kettenbildung der Extrusionspfade und für die zweite Greedy-Kettenvariante der Infill-Polylinien. Bei fehlendem Startpunkt bleibt das bisherige Greedy-Verhalten erhalten. Lange Kettenverfeinerung, geschlossene Objekt-/Insel-Touren und verbundene Infill-Linien aus demselben Orca-Commit sind **nicht** übernommen.
+
+`NativeSliceDeviceTest#shortExtrusionChainsUseTheMinimumTravelOrder` prüft den produktiven nativen Pfad mit einer Vier-Segment-Geometrie. Das Ergebnis stimmt mit einer vollständigen Enumeration aller Reihenfolgen und erlaubten Orientierungen überein und ist kürzer als eine einfache Nearest-Neighbor-Kette. ARM64-SliceTest-Native-Build und APK-Paketierung bestanden; gezielter Test 1/1 auf API-36-Emulator. Xiaomi 2211133G blieb wach und per ADB online, doch MIUI verweigerte die Testinstallation mit `INSTALL_FAILED_USER_RESTRICTED`; kein physischer Xiaomi-Testpass. Ein vollständiger Instrumentierungslauf wurde wegen eines bestehenden Release-Notes-Testfehlers und der Geräteinstallationssperre nicht als bestanden gewertet.
+
+Batch 5 steht bei **6/10 fokussiert verifizierten Produktänderungen**. Es wurde kein APK/Release aus diesem Teilbatch erstellt.
