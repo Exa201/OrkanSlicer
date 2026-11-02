@@ -1,15 +1,21 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## Orca Batch 9 point 4 — verified
+
+- Ported upstream Orca `896557bce5281553ee0c6210f2da301b3b3c262e` in `PrintObjectSlice.cpp`: spiral-vase largest-contour slicing and bottom-shell transition are selected from the matching volume region even when the model has multiple height-range regions.
+- `NativeSliceDeviceTest#spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode` passed 1/1 on API 36 after adding a generated-G-code assertion that no inner-wall paths are emitted above the configured bottom shell. This verifies the actual Android native slice path; no physical print was run.
+- Orca Batch 9 is now **4/10**. No distribution APK/release before 10/10. Next: select and verify an independent Android-reachable upstream behavior for point 5.
+
 ## Catan packing follow-up — verified on Nightly
 
 - Current Nightly branch: `nightly-2.5`; tested working tree was based on `dec90593fe2138147761cda5035f9ac1526b4254`.
 - The single-model import path now checks prior auto-created non-project plates from newest to oldest before allocating another overflow plate. An arrangement is committed only if exact bounds stay within the bed and same-plate meshes do not intersect; failed trial copies are discarded without moving the existing plate.
 - Supplied Settlers archive SHA-256: `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`. Nightly production-import instrumentation on API 36 passed 1/1: 109 models on 56 plates, all within bounds, and 147 same-plate mesh pairs disjoint. This improves on the previously recorded Nightly result of 60 plates while preserving the collision/bounds checks.
 - `InitialProjectMenuDeviceTest#modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` passed 1/1 after the import-path change; explicit Arrange still moves the off-bed object and preserves its model/filament state through undo/redo. `git diff --check` passed.
-- This is a user-requested arrangement correction, not an Orca feature point. Orca Batch 9 is independently at 3/10; no distribution APK or release has been produced for this follow-up.
-- Next: continue selecting an independent Android-reachable Orca 2.5 behavior for Batch 9 point 4.
+- This is a user-requested arrangement correction, not an Orca feature point. Orca Batch 9 is independently at 4/10; no distribution APK or release has been produced for this follow-up.
+- Next: continue selecting an independent Android-reachable Orca 2.5 behavior for Batch 9 point 5.
 
-## Latest verified status — Batch 9 at 3/10
+## Latest verified status — Batch 9 at 4/10
 
 - Unknown but occupied ACE/CFS gates now retain their physical color/index and display an explicit unknown-material status; sync no longer substitutes `Generic PLA` or overwrites the configured project material. Targeted API-36 device suite: 18/18. Debug JVM and Slice JVM: 739/739 each, zero failures/errors/skips. `git diff --check` clean.
 - The attached Settlers archive was already run via Nightly's production import/arrange flow: 109/109 models oriented and within bounds, overflow expanded to 60 plates, and 139 same-plate pairs were non-overlapping. On current code commit `cbe2542c15`, reran `InitialProjectMenuDeviceTest#settlersArchiveModelsAreOrientedPackedAndMovedToOverflowPlates` on API 36: 1/1 passed (test 211.124 s; Gradle task 5:15), 109 models on 60 plates and 139 disjoint same-plate pairs. ZIP SHA-256: `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`. Higher-facet packing experiments caused reproducible Clipper crashes and were fully reverted; 60 plates is a conservative known limitation.

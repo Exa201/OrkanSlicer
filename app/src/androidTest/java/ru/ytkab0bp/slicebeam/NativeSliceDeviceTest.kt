@@ -6163,6 +6163,16 @@ class NativeSliceDeviceTest {
             assertHasExtrusion(gcode)
             assertTrue("Spiral vase output must contain the object's exterior perimeter",
                 gcode.contains("TYPE:Outer wall") || gcode.contains("TYPE:External perimeter"))
+            val wallTypesByLayer = mutableMapOf<Int, MutableSet<String>>()
+            var layerIndex = -1
+            gcode.lineSequence().forEach { line ->
+                if (line.startsWith(";LAYER_CHANGE")) ++layerIndex
+                if (line.startsWith(";TYPE:"))
+                    wallTypesByLayer.getOrPut(layerIndex) { mutableSetOf() } += line.removePrefix(";TYPE:").trim()
+            }
+            assertTrue("The layer-range vase fixture must slice multiple layers", wallTypesByLayer.size > 3)
+            assertTrue("Vase-mode layers above the configured bottom shell must not generate inner walls: $wallTypesByLayer",
+                wallTypesByLayer.filterKeys { it >= 1 }.values.none { "Inner wall" in it })
             Log.i("NativeSliceDeviceTest", "PASS single-filament spiral vase with height-range speed override")
         } finally {
             model?.release()

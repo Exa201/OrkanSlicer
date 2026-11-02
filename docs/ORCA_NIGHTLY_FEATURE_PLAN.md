@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 9 — Punkt 4/10 verifiziert (2026-11-02)
+
+### Spiralvase mit mehreren Höhenbereichen
+
+Portiert Orca `896557bce5`: `PositiveLargestContour` und die reguläre Behandlung der unteren Schale werden jetzt auch dann auf die Modellkontur angewendet, wenn ein Objekt mehrere Layer-Range-Regionen hat. Zuvor galt die Vase-Slicing-Strategie nur bei genau einem Höhenbereich; ein Objekt mit Höhenbereich-Override fiel dadurch auf reguläres Konturslicing zurück.
+
+`NativeSliceDeviceTest#spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode` bestand auf API 36 (1/1). Der produktive Slice erzeugt Extrusion und Außenwand; oberhalb der konfigurierten unteren Schale entstehen keine inneren Wandbahnen, obwohl der Höhenbereich mehrere Regionen erzeugt. Kein physischer Drucktest.
+
+Batch 9: **4/10**. Der Catan-Packungstest bleibt ein separater Anordnungsnachweis. Keine APK/Veröffentlichung vor 10/10.
+
 ## Nightly Batch 9 — Punkt 3/10 verifiziert (2026-11-02)
 
 ### Z-/Düsenbewusste Hindernisse bei Arrange
