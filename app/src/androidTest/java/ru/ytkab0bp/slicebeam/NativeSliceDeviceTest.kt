@@ -43,6 +43,51 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test(timeout = 120_000)
+    fun orcaPrimitiveModelsHaveExpectedBoundsAndProduceExtrusion() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val shapes = listOf(
+            Triple(0, doubleArrayOf(20.0, 15.0, 10.0), "Cube"),
+            Triple(1, doubleArrayOf(20.0, 0.0, 10.0), "Cylinder"),
+            Triple(2, doubleArrayOf(20.0, 0.0, 10.0), "Cone"),
+            Triple(3, doubleArrayOf(20.0, 0.0, 0.0), "Sphere"),
+            Triple(4, doubleArrayOf(24.0, 4.0, 0.0), "Torus"),
+            Triple(5, doubleArrayOf(20.0, 0.0, 2.0), "Disc"),
+            Triple(6, doubleArrayOf(20.0, 15.0, 2.0), "Slab"),
+        )
+        shapes.forEachIndexed { ordinal, (type, dims, name) ->
+            val model = Model()
+            val project = File(context.cacheDir, "orca-primitive-$ordinal.3mf")
+            var restored: Model? = null
+            try {
+                val index = model.createPrimitive(type, dims[0], dims[1], dims[2], name, centerX = 100.0, centerY = 100.0)
+                assertEquals("$name should produce one independent printable object", 0, index)
+                assertEquals(1, model.objectsCount)
+                assertEquals(name, model.getObjectName(index))
+                assertTrue("$name should have a nonempty mesh", model.getTriangleCount(index) > 0)
+                val min = Vec3d(); val max = Vec3d()
+                model.getBoundingBoxExact(index, min, max)
+                assertEquals("$name should rest on the bed", 0.0, min.z, 1e-3)
+                assertTrue("$name should have positive height", max.z - min.z >= 1.9)
+                assertTrue("$name should fit the test bed", max.x - min.x <= 24.1 && max.y - min.y <= 24.1)
+                assertTrue("$name should be placed on the positive-coordinate bed", min.x >= 0.0 && min.y >= 0.0)
+                SliceBeam.genCurrentConfig(model)
+                model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+                val roundTrip = Model(project)
+                restored = roundTrip
+                assertEquals("$name should survive 3MF project storage", name, roundTrip.getObjectName(0))
+                assertEquals("$name should retain its mesh", model.getTriangleCount(0), roundTrip.getTriangleCount(0))
+                val gcode = sliceToGcode(context, roundTrip, "orca-primitive-$ordinal.gcode")
+                assertHasExtrusion(gcode)
+            } finally {
+                restored?.release()
+                model.release()
+                project.delete()
+                SliceBeam.getCurrentConfigFile().delete()
+            }
+        }
+    }
+
     @Test
     fun cgalBooleanVolumeChecksIgnoreUnreferencedVertices() {
         val result = Native.mesh_boolean_isolated_vertices_probe()

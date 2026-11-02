@@ -15,6 +15,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -2297,6 +2298,59 @@ extern "C" {
             return (jint) model->model.objects.size() - 1;
         } catch (const std::exception& e) {
             env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+            return -1;
+        }
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1create_1primitive(
+        JNIEnv* env, jclass, jlong ptr, jint type, jdouble a, jdouble b, jdouble c, jstring nameStr) {
+        try {
+            ModelRef* ref = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+            if (ref == nullptr || nameStr == nullptr || type < 0 || type > 6) return -1;
+            auto valid = [](double value) { return std::isfinite(value) && value >= 0.2 && value <= 500.0; };
+            const bool dimensionsValid = (type == 0 || type == 6) ? valid(a) && valid(b) && valid(c) :
+                (type == 1 || type == 2 || type == 5) ? valid(a) && valid(c) :
+                type == 3 ? valid(a) :
+                type == 4 ? valid(a) && a >= 0.6 && std::isfinite(b) && b >= 0.2 && b < a / 2.0 && b <= 500.0 : false;
+            if (!dimensionsValid) return -1;
+
+            const char* chars = env->GetStringUTFChars(nameStr, JNI_FALSE);
+            if (chars == nullptr) return -1;
+            const std::string name(chars);
+            env->ReleaseStringUTFChars(nameStr, chars);
+            if (name.empty() || name.size() > 240) return -1;
+
+            indexed_triangle_set mesh;
+            switch (type) {
+                case 0: mesh = its_make_cube(a, b, c); break;                 // Cube / slab
+                case 1: mesh = its_make_cylinder(a / 2.0, c, PI / 45.0); break;
+                case 2: mesh = its_make_cone(a / 2.0, c, PI / 45.0); break;
+                case 3: mesh = its_make_sphere(a / 2.0, PI / 30.0); break;
+                case 4: mesh = its_make_torus((a - b) / 2.0, b / 2.0, PI / 30.0); break;
+                case 5: mesh = its_make_cylinder(a / 2.0, c, PI / 45.0); break; // Disc
+                case 6: mesh = its_make_cube(a, b, c); break;                 // Slab
+            }
+            if (mesh.vertices.empty() || mesh.indices.empty()) return -1;
+            const BoundingBoxf3 bounds = bounding_box(mesh);
+            its_translate(mesh, Vec3f(
+                static_cast<float>(-bounds.center().x()),
+                static_cast<float>(-bounds.center().y()),
+                static_cast<float>(-bounds.min.z())));
+
+            ModelObject* object = ref->model.add_object();
+            if (object == nullptr) return -1;
+            object->name = name;
+            ModelVolume* volume = object->add_volume(TriangleMesh(std::move(mesh)), ModelVolumeType::MODEL_PART, false);
+            if (volume == nullptr) {
+                ref->model.delete_object(static_cast<int>(ref->model.objects.size()) - 1);
+                return -1;
+            }
+            volume->name = name;
+            object->add_instance();
+            object->invalidate_bounding_box();
+            return static_cast<jint>(ref->model.objects.size()) - 1;
+        } catch (const std::exception& error) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), error.what());
             return -1;
         }
     }

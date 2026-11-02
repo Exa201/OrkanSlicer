@@ -611,6 +611,35 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return index
     }
 
+    /** Creates an Orca-style standalone primitive. Dimensions are millimetres and shape-specific. */
+    open fun createPrimitive(
+        type: Int,
+        a: Double,
+        b: Double = 0.0,
+        c: Double = 0.0,
+        name: String,
+        centerX: Double = 0.0,
+        centerY: Double = 0.0,
+    ): Int {
+        val dimensionsValid = when (type) {
+            0, 6 -> listOf(a, b, c).all { it.isFinite() && it in 0.2..500.0 }
+            1, 2, 5 -> a.isFinite() && a in 0.2..500.0 && c.isFinite() && c in 0.2..500.0
+            3 -> a.isFinite() && a in 0.2..500.0
+            4 -> a.isFinite() && a in 0.6..500.0 && b.isFinite() && b >= 0.2 && b < a / 2.0 && b <= 500.0
+            else -> false
+        }
+        if (pointer == 0L || !dimensionsValid || !centerX.isFinite() || !centerY.isFinite() ||
+            kotlin.math.abs(centerX) > 10_000.0 || kotlin.math.abs(centerY) > 10_000.0
+        ) return -1
+        if (name.isBlank() || name.length > 80) return -1
+        val index = Native.model_create_primitive(pointer, type, a, b, c, name)
+        if (index >= 0) {
+            if (centerX != 0.0 || centerY != 0.0) translate(index, centerX, centerY, 0.0)
+            resetBoundingBox()
+        }
+        return index
+    }
+
     /** Combines objects, materializing every linked instance as a placed multipart volume. */
     open fun combineObjectsAsParts(objectIndices: IntArray): Int {
         if (pointer == 0L) return -1

@@ -286,6 +286,8 @@ class Native {
     @JvmStatic
     external fun model_create_text_object(ptr: Long, fontPath: String, text: String, size: Float, depth: Float, px: Double, py: Double, pz: Double, nx: Double, ny: Double, nz: Double, targetObjectIndex: Int): Int
     @JvmStatic
+    external fun model_create_primitive(ptr: Long, type: Int, a: Double, b: Double, c: Double, name: String): Int
+    @JvmStatic
     external fun model_combine_objects_as_parts(ptr: Long, objectIndices: IntArray): Int
     /** op: 0=union, 1=target minus tool, 2=intersection. Negative values mean no mutation was applied. */
     @JvmStatic

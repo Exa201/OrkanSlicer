@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 8 — 2/10 verifiziert (2026-11-02)
+
+### Punkt 2/10 — Maßhaltige Orca-Grundkörper direkt auf der Platte erzeugen
+
+Der Modell-Menüpunkt „Grundkörper hinzufügen“ adaptiert Orcas Primitive-Dialogfunktion (`0ef9015904`) als Android-Compose-Dialog für Quader, Zylinder, Kegel, Kugel, Torus, Scheibe und flache Platte. Die Eingabefelder richten sich nach der Form; Maße werden vor JNI-Aufruf begrenzt, der Torus verhindert eine selbstüberschneidende Rohrgeometrie. Der Native-Kern erzeugt die druckbare Mesh-Geometrie und fügt sie als separates Modellobjekt in der Mitte des konfigurierten Betts hinzu (auch bei positiv beginnenden Druckbettkoordinaten). Nach dem Erstellen wird das Objekt ausgewählt, damit es direkt weiterbearbeitet oder verschoben werden kann.
+
+`PrimitiveModelDialogDeviceTest`: 2/2 auf API 36 (Form-/Maßrückgabe und Torus-Selbstüberschneidungsvalidierung). `NativeSliceDeviceTest#orcaPrimitiveModelsHaveExpectedBoundsAndProduceExtrusion`: 1/1 auf API 36; alle sieben Formen geprüft, je einschließlich Dreiecks-/Bounding-Box-Prüfung, 3MF-Export und -Reload sowie echtem G-Code-Slice mit Extrusion. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich. Kein Hardwaredruck und keine Distribution-APK.
+
+Batch 8: **2/10**. Noch acht getrennte, app-relevante Orca-Funktionspunkte und ihre fokussierten Verifikationen bis zum APK-/Nightly-Release-Gate.
+
 ## Nightly Batch 8 — 1/10 verifiziert (2026-11-02)
 
 ### Punkt 1/10 — Druckbettrand an Elephant-Foot-Kompensation anpassen

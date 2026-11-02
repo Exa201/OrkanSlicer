@@ -183,6 +183,33 @@ internal class ModelMenuItems(
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.MenuOrientationArrangeFinished))
                 }
             }, enabled = availability.canArrange),
+            BedComposeMenuAction(R.string.ModelMenuCreatePrimitive, R.drawable.square_stack_up_outline_28, { anchor ->
+                val activeGlView = fragment.glView ?: return@BedComposeMenuAction
+                fragment.showWorkspaceComposeDialog { dismiss ->
+                    PrimitiveModelDialog(
+                        onDismiss = dismiss,
+                        onCreate = { type, a, b, c, name ->
+                            dismiss()
+                            activeGlView.queueEvent {
+                                val activeModel = activeGlView.renderer.model ?: return@queueEvent
+                                val bed = activeGlView.renderer.bed ?: return@queueEvent
+                                val min = bed.getVolumeMin() ?: return@queueEvent
+                                val max = bed.getVolumeMax() ?: return@queueEvent
+                                val created = activeModel.createPrimitive(
+                                    type, a, b, c, name,
+                                    centerX = (min.x + max.x) / 2.0,
+                                    centerY = (min.y + max.y) / 2.0,
+                                )
+                                if (created < 0) return@queueEvent
+                                activeGlView.renderer.resetGlModels()
+                                activeGlView.renderer.setSelectedObject(created)
+                                activeGlView.requestRender()
+                                fragment.updateModelOnGlThread()
+                            }
+                        },
+                    )
+                }
+            }, enabled = availability.canArrange),
             BedComposeMenuAction(R.string.ModelMenuOrientAll, R.drawable.menu_orientation_auto_28, {
                 val activeGlView = fragment.glView ?: return@BedComposeMenuAction
                 activeGlView.autoOrientAllObjects { orientedCount ->
