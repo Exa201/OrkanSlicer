@@ -380,6 +380,21 @@ class MmuFilamentSyncDeviceTest {
                             flush()
                         }
                     }
+                    val mmu = response.optJSONObject("result")?.optJSONObject("status")?.optJSONObject("mmu")
+                    if (mmu != null && !mmu.optBoolean("enabled", false)) {
+                        server.accept().use { socket ->
+                            socket.soTimeout = 10_000
+                            val reader = socket.getInputStream().bufferedReader()
+                            assertTrue(reader.readLine().startsWith("GET /printer/objects/query?box "))
+                            while (!reader.readLine().isNullOrEmpty()) { }
+                            val emptyBox = """{"result":{"status":{}}}""".toByteArray(Charsets.UTF_8)
+                            socket.getOutputStream().apply {
+                                write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${emptyBox.size}\r\nConnection: close\r\n\r\n".toByteArray())
+                                write(emptyBox)
+                                flush()
+                            }
+                        }
+                    }
                 } catch (error: Throwable) { failure.set(error) }
             }.apply { start() }
             val completed = CountDownLatch(1)
@@ -398,10 +413,9 @@ class MmuFilamentSyncDeviceTest {
             return requireNotNull(result.get())
         }
     }
-
     private fun syncCrealityBox(): Pair<Int, String?> {
         val responses = listOf(
-            """{"result":{"status":{}}}""",
+            """{"result":{"status":{"mmu":{"enabled":false}}}}""",
             """{"result":{"status":{"box":{
                 "T1":{"state":"connect","material_type":["-1","000003","999999","000001"],"color_value":["-1","0FF1E1E","0AABBCC","000FF00"]},
                 "T2":{"state":"None","material_type":["000002","-1","-1","-1"],"color_value":["0FFFFFF","-1","-1","-1"]}

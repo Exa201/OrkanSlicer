@@ -12,7 +12,7 @@ Verifikation: `MmuFilamentSyncDeviceTest` 18/18 auf API 36; Debug-Unit und Slice
 
 Die Filamentsynchronisierung fragt nun nach dem generischen `?mmu`-Status bei leerer MMU-Antwort die Creality-CFS-Daten über `?box` ab. T1–T4 werden auf 16 physische Gate-Indizes abgebildet; getrennte oder leere Trays verschieben dadurch keine ACE-Fächer. Generische und in `same_material` aufgelöste Material-IDs sowie Creality-Farbwerte bleiben erhalten. Eine belegte Spule mit unbekanntem Material und lesbarer Farbe wird als unbekannt gekennzeichnet statt einem falschen Material zugeordnet.
 
-Verifikation: Parser-Gerätetests 3/3 auf API 36; echter `MmuFilamentSync`-Fallbacktest 1/1 auf API 36 (simulierte Moonraker-Antworten für `?mmu` und `?box`, physische Gate-Indizes, unbekannte Spule, Auswahl und Snapshot). `git diff --check` sauber. Keine physische Creality-Hardware getestet; Debug-Unit und Slice-Unit bestanden nach der Änderung jeweils 739/739, ohne Fehler, Ausnahmen oder Skips.
+Verifikation: Parser-Gerätetests 3/3 und vollständige `MmuFilamentSyncDeviceTest` 19/19 auf API 36. Der End-to-End-Test simuliert `?mmu` mit `enabled=false`, danach `?box`, und prüft physische Gate-Indizes, unbekannte Spule, Auswahl und Snapshot. Debug-Unit und Slice-Unit bestanden jeweils 739/739, ohne Fehler, Ausnahmen oder Skips; `git diff --check` sauber. Keine physische Creality-Hardware getestet.
 
 Batch 9: **2/10**. Noch acht unabhängig verifizierte Punkte bis zur gebündelten Regression und dem APK-/Nightly-Release-Gate. Der Catan-Anordnungsnachweis ist separat und zählt nicht als Orca-Funktionspunkt.
 

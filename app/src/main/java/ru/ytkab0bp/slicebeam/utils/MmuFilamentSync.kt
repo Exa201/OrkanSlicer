@@ -86,7 +86,7 @@ class MmuFilamentSync private constructor() {
                     override fun onSuccess(statusCode: Int, responseHeaders: Array<Header>?, body: ByteArray?) {
                         val hasMmu = try {
                             body != null && JSONObject(String(body, Charsets.UTF_8))
-                                .optJSONObject("result")?.optJSONObject("status")?.has("mmu") == true
+                                .optJSONObject("result")?.optJSONObject("status")?.optJSONObject("mmu")?.optBoolean("enabled", false) == true
                         } catch (_: Exception) { false }
                         if (hasMmu) applyBody(body) else requestCrealityBox()
                     }
