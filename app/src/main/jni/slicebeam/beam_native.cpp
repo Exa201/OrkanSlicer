@@ -4861,6 +4861,56 @@ extern "C" {
         return result;
     }
 
+    // Regression for Orca's flush-saving candidate pool: an AMS match may justify one typical
+    // filament-change worth of extra flush when that keeps both model filaments on their loaded slots.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_filament_1group_1flush_1candidate_1regression(JNIEnv* env, jclass) {
+        using namespace Slic3r;
+        using namespace Slic3r::FilamentGroupUtils;
+
+        FilamentGroupContext context{};
+        context.model_info.layer_filaments = {{0, 1}};
+        // reorder_filaments_for_minimum_flush_volume needs one matrix per extruder group.
+        context.model_info.flush_matrix = {
+            FlushMatrix{{0.f, 100.f}, {100.f, 0.f}},
+            FlushMatrix{{0.f, 100.f}, {100.f, 0.f}}
+        };
+        context.model_info.filament_info = {
+            {Color("#FF0000"), "PLA", false},
+            {Color("#0000FF"), "PLA", false}
+        };
+        context.model_info.unprintable_filaments.resize(2);
+        context.group_info.total_filament_num = 2;
+        context.group_info.max_gap_threshold = 0.01;
+        context.group_info.mode = FlushMode;
+        context.group_info.strategy = BestCost;
+        context.group_info.ignore_ext_filament = false;
+        context.machine_info.master_extruder_id = 1;
+        context.machine_info.max_group_size = {2, 2};
+        context.machine_info.machine_filament_info.resize(2);
+
+        auto add_loaded_slot = [&context](int extruder_id, const char* color) {
+            MachineFilamentInfo slot{};
+            slot.color = Color(color);
+            slot.type = "PLA";
+            slot.is_support = false;
+            slot.extruder_id = extruder_id;
+            slot.is_extended = false;
+            context.machine_info.machine_filament_info[extruder_id].push_back(std::move(slot));
+        };
+        add_loaded_slot(0, "#FF0000");
+        add_loaded_slot(0, "#0000FF");
+        add_loaded_slot(1, "#FFFFFF");
+
+        FilamentGroup group(context);
+        const std::vector<int> mapping = group.calc_filament_group_for_flush();
+        const std::array<jint, 2> selected{{mapping.size() > 0 ? mapping[0] : -1,
+                                             mapping.size() > 1 ? mapping[1] : -1}};
+        jintArray result = env->NewIntArray(static_cast<jsize>(selected.size()));
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, static_cast<jsize>(selected.size()), selected.data());
+        return result;
+    }
+
     // Exercises the production scarf split around layer-dependent perimeter vertices.
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_scarf_1ramp_1regression(JNIEnv* env, jclass) {
         auto probe = [](double near_vertex, bool corner) {

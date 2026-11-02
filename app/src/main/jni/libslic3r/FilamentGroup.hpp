@@ -64,7 +64,7 @@ namespace Slic3r
 
         using MemoryedGroupHeap = std::priority_queue<MemoryedGroup, std::vector<MemoryedGroup>, std::greater<MemoryedGroup>>;
 
-        void update_memoryed_groups(const MemoryedGroup& item,const double gap_threshold, MemoryedGroupHeap& groups);
+        void update_memoryed_groups(const MemoryedGroup& item, const double one_change_budget, const double gap_threshold, MemoryedGroupHeap& groups);
     }
 
     struct FilamentGroupContext
@@ -129,6 +129,7 @@ namespace Slic3r
     public:
         std::vector<int> calc_filament_group_for_match(int* cost = nullptr);
         std::vector<int> calc_filament_group_for_flush(int* cost = nullptr);
+        double calc_one_change_budget(const std::vector<unsigned int>& used_filaments) const;
 
     private:
         std::vector<int> calc_min_flush_group(int* cost = nullptr);
@@ -176,6 +177,7 @@ namespace Slic3r
         void do_clustering(const FGStrategy& g_strategy,int timeout_ms = 100);
 
         void set_memory_threshold(double threshold) { memory_threshold = threshold; }
+        void set_one_change_budget(double budget) { m_one_change_budget = budget; }
         MemoryedGroupHeap get_memoryed_groups()const { return memoryed_groups; }
 
         std::vector<int>get_cluster_labels()const { return m_cluster_labels; }
@@ -195,6 +197,7 @@ namespace Slic3r
         int m_elem_count;
         int m_default_group_id{ 0 };
         double memory_threshold{ 0 };
+        double m_one_change_budget{ 0 };
     };
 }
 #endif // !FILAMENT_GROUP_HPP

@@ -232,16 +232,17 @@ namespace Slic3r
     }
 
 
-    void FilamentGroupUtils::update_memoryed_groups(const MemoryedGroup& item, const double gap_threshold, MemoryedGroupHeap& groups)
+    void FilamentGroupUtils::update_memoryed_groups(const MemoryedGroup& item, const double one_change_budget,
+                                                     const double gap_threshold, MemoryedGroupHeap& groups)
     {
-        auto emplace_if_accepatle = [gap_threshold](MemoryedGroupHeap& heap, const MemoryedGroup& elem, const MemoryedGroup& best) {
-            if (best.cost == 0) {
-                if (std::abs(elem.cost - best.cost) <= ABSOLUTE_FLUSH_GAP_TOLERANCE)
-                    heap.push(elem);
-                return;
-            }
-            double gap_rate = (double)std::abs(elem.cost - best.cost) / (double)best.cost;
-            if (gap_rate < gap_threshold)
+        // Keep candidates within roughly five typical filament changes, plus absolute and
+        // relative floors. The AMS matcher can then prefer slots already loaded in the printer.
+        auto emplace_if_accepatle = [one_change_budget, gap_threshold](MemoryedGroupHeap& heap, const MemoryedGroup& elem, const MemoryedGroup& best) {
+            const double gap = std::abs(double(elem.cost) - double(best.cost));
+            const double tolerance = std::max(std::max(ABSOLUTE_FLUSH_GAP_TOLERANCE * 6.0,
+                                                       one_change_budget * 5.0),
+                                               double(best.cost) * gap_threshold);
+            if (gap <= tolerance)
                 heap.push(elem);
             };
 
@@ -275,6 +276,31 @@ namespace Slic3r
                 groups.push(item);
             }
         }
+    }
+
+    double FilamentGroup::calc_one_change_budget(const std::vector<unsigned int>& used_filaments) const
+    {
+        if (used_filaments.size() < 2 || ctx.model_info.flush_matrix.empty())
+            return 0.0;
+
+        std::vector<float> pair_flush;
+        for (const auto& matrix : ctx.model_info.flush_matrix) {
+            for (size_t i = 0; i < used_filaments.size(); ++i) {
+                for (size_t j = i + 1; j < used_filaments.size(); ++j) {
+                    const size_t a = used_filaments[i];
+                    const size_t b = used_filaments[j];
+                    if (a >= matrix.size() || b >= matrix.size() || a >= matrix[a].size() || b >= matrix[b].size())
+                        continue;
+                    pair_flush.push_back(std::max(matrix[a][b], matrix[b][a]));
+                }
+            }
+        }
+        if (pair_flush.empty())
+            return 0.0;
+
+        const size_t middle = pair_flush.size() / 2;
+        std::nth_element(pair_flush.begin(), pair_flush.begin() + middle, pair_flush.end());
+        return double(pair_flush[middle]) * 1.2;
     }
 
     std::vector<unsigned int> collect_sorted_used_filaments(const std::vector<std::vector<unsigned int>>& layer_filaments)
@@ -454,7 +480,7 @@ namespace Slic3r
                         cluster_center[m_cluster_labels[idx]] = idx;
                 }
                 MemoryedGroup g(m_cluster_labels, calc_cost(m_cluster_labels, cluster_center), 1);
-                update_memoryed_groups(g, memory_threshold, memoryed_groups);
+                update_memoryed_groups(g, m_one_change_budget, memory_threshold, memoryed_groups);
             }
             return;
         }
@@ -482,7 +508,7 @@ namespace Slic3r
 
                 {
                     MemoryedGroup g(new_labels,new_cost,1);
-                    update_memoryed_groups(g, memory_threshold, memoryed_groups);
+                    update_memoryed_groups(g, m_one_change_budget, memory_threshold, memoryed_groups);
                 }
 
                 if (T.time_machine_end() > timeout_ms)
@@ -815,6 +841,7 @@ namespace Slic3r
         extract_unprintable_limit_indices(ctx.model_info.unprintable_filaments, used_filaments, unplaceable_limit_indices);
 
         int used_filament_num = used_filaments.size();
+        const double one_change_budget = calc_one_change_budget(used_filaments);
         uint64_t max_group_num = (static_cast<uint64_t>(1) << used_filament_num);
 
         int best_cost = std::numeric_limits<int>::max();
@@ -864,7 +891,7 @@ namespace Slic3r
 
             {
                 MemoryedGroup mg(filament_maps, total_cost, prefer_level);
-                update_memoryed_groups(mg, ctx.group_info.max_gap_threshold, memoryed_groups);
+                update_memoryed_groups(mg, one_change_budget, ctx.group_info.max_gap_threshold, memoryed_groups);
             }
         }
 
@@ -894,6 +921,7 @@ namespace Slic3r
         PAM.set_max_cluster_size(ctx.machine_info.max_group_size);
         PAM.set_unplaceable_limits(unplaceable_limits);
         PAM.set_memory_threshold(ctx.group_info.max_gap_threshold);
+        PAM.set_one_change_budget(calc_one_change_budget(used_filaments));
         PAM.do_clustering(ctx.group_info.strategy, timeout_ms);
 
         std::vector<int>filament_labels = PAM.get_cluster_labels();

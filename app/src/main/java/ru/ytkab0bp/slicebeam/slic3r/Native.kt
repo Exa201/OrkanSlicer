@@ -30,6 +30,9 @@ class Native {
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray
+    /** Verifies flush grouping may trade one transition to keep both matching loaded filaments together. */
+    @JvmStatic
+    external fun filament_group_flush_candidate_regression(): IntArray
     @JvmStatic
     external fun scarf_ramp_regression(): DoubleArray
     @JvmStatic

@@ -874,6 +874,13 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun flushGroupingCanTradeOneFilamentChangeToMatchLoadedSlots() {
+        // The minimum-flush split separates two filaments whose combined transition costs 100 mm³.
+        // A one-change candidate should let AMS matching keep both on the extruder where they are loaded.
+        assertArrayEquals(intArrayOf(0, 0), Native.filament_group_flush_candidate_regression())
+    }
+
+    @Test
     fun scarfRampRemainsStableAcrossLayerVertexShiftsAndCorners() {
         assertArrayEquals(
             doubleArrayOf(
