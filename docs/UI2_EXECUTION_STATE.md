@@ -1,12 +1,21 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## Current verified continuation state — 2026-11-02
+
+- Current code HEAD: `aaabcb8179004692abe7fa463f3dced3af0661f5`, branch `nightly-2.5`; pushed to `nightly25/nightly-2.5`, clean worktree at the start of this continuation.
+- Nightly Orca feature Batch 9 remains **4/10**. Do not create the batch APK/prerelease until ten newly completed and verified feature points are recorded.
+- Import behavior: the production `MainActivity` path enables auto-orientation for individual model files and multi-file STL import. `BedFragment` normalizes and packs those imported objects only during import. Ordinary X/Y/Z transforms do not invoke Arrange; a model is repacked after placement only through the explicit Arrange action. Opening an authored 3MF project preserves its saved plate layout; importing a 3MF into a populated workspace follows the incoming-model packing path.
+- Verification on API 36: the supplied Settlers archive (109 models) completed production-path import across 16 plates; all objects were on-bed/in-bounds and 458 same-plate mesh pairs were checked without intersections. Focused concave insert, overflow-import, free XYZ movement with undo/redo, and explicit-Arrange-only tests passed. Debug JVM and Slice JVM suites each passed 740/740. These results are on the pushed `aaabcb8179` source; no new APK/release was produced for this arrangement follow-up.
+- Upstream audit at `orcaslicer-upstream/main` (`896557bce5`): recent shared-core candidates already present in Nightly include bridge-speed handling, isolated-vertex cleanup for Boolean conversion, scarf-ramp behavior, and Z shrinkage across height ranges. The newer preset-cache change has no Android preset-cache call path; the AMS settings ordering and Windows object-list changes target Orca desktop UI. Texture displacement remains a substantial mesh/RAM/persistence candidate requiring a bounded Android design before implementation.
+- Next concrete step: choose an unported, Android-reachable Orca behavior (or complete a bounded Texture Displacement feasibility prototype), add a focused runtime regression, and advance Batch 9 from 4/10 only when product behavior is verified. Continue preserving free movement and import/manual-Arrange boundaries.
+
 ## User priority — nesting, import placement, and manual movement — 2026-11-02
 
 - The imported Settlers archive is now arranged with a 2 mm positive clearance first (6 mm fallback), concave and multipart footprints can fill verified free regions, and a final native validation rejects placements outside the bed or overlapping another footprint. Small open meshes (up to 256 accumulated facets) may use their exact projected outline; repaired/detailed meshes retain the conservative fallback to avoid the reproduced Clipper crash.
 - Imported geometry is centered before the packer applies its placement, correcting off-origin CAD STL coordinates. Interactive model transforms do not invoke automatic arrange. The manual Arrange action still uses the normal 6 mm spacing; moving on X/Y/Z remains a separate action.
 - On API 36, the supplied Settlers archive (SHA-256 `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`) passed production import: all 109 objects in bounds/on-bed across 16 plates; all 458 same-plate mesh pairs were disjoint. The preceding Nightly result was 56 plates / 147 pairs. The regression now requires at most 35 plates.
 - Also passed on the same source: concave L plus insert uses one plate (1/1), multi-file overflow import (1/1), manual XYZ movement with undo/redo (1/1), and explicit Arrange only changes an off-bed object after pressing the button (1/1). Debug JVM and Slice JVM suites both passed 740/740. SliceTest ARM64 and instrumentation APKs assembled successfully; no distribution APK or release was produced.
-- Current source branch `nightly-2.5`, base code commit `75a847712a`; these verified changes are local pending commit/push. Next: commit/push this nesting improvement, then continue the separate Orca Batch 9 from 4/10. Avoid raising the detailed-mesh projection limit without a crash-safe geometry-union implementation.
+- Historical note (superseded): at this point the verified changes were based on `75a847712a` and still pending commit/push. They were subsequently committed and pushed as `aaabcb8179`. Avoid raising the detailed-mesh projection limit without a crash-safe geometry-union implementation.
 
 ## Orca Batch 9 point 4 — verified
 
