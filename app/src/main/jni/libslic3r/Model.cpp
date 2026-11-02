@@ -1731,16 +1731,16 @@ ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, E
         const TriangleMesh &mesh = volume->mesh();
         if (mesh.empty())
             return {};
-        // Clipper's union of projected triangles can crash on open, repaired, or otherwise
-        // non-manifold imported STLs (reproduced with Catan settlement meshes). Keep the
-        // accurate concave footprint for clean closed meshes; use the caller's conservative
-        // convex-hull fallback for geometry that cannot safely be unioned.
-        if (mesh.stats().open_edges > 0 || mesh.stats().repaired() ||
-            its_num_open_edges(mesh.its) > 0)
-            return {};
-
         facet_count += mesh.facets_count();
         if (facet_count > MAX_PROJECTION_FACETS)
+            return {};
+
+        // Small open meshes (for example a simple open-bottom concave prism) still have a
+        // useful and safe projected silhouette. Keep Clipper away from repaired and detailed
+        // non-manifold imports, which have crashed during projection union on Android.
+        constexpr size_t MAX_OPEN_MESH_PROJECTION_FACETS = 256;
+        const bool has_open_edges = mesh.stats().open_edges > 0 || its_num_open_edges(mesh.its) > 0;
+        if (mesh.stats().repaired() || (has_open_edges && facet_count > MAX_OPEN_MESH_PROJECTION_FACETS))
             return {};
 
         Polygons volume_projection = project_mesh(

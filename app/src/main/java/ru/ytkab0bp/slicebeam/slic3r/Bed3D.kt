@@ -76,6 +76,15 @@ open class Bed3D {
         ru.ytkab0bp.slicebeam.SliceBeam.buildCurrentConfigObjectOrNull()?.serialize().orEmpty(),
     )
 
+    /** A tighter positive gap for import packing; interactive arrange keeps the 6 mm default. */
+    @Synchronized
+    open fun arrangeCompact(model: Model): Boolean = Native.bed_arrange_with_distance(
+        pointer,
+        model.pointer,
+        ru.ytkab0bp.slicebeam.SliceBeam.buildCurrentConfigObjectOrNull()?.serialize().orEmpty(),
+        2.0,
+    )
+
     @Synchronized
     open fun getVolumeMin(): Vec3d? {
         if (min == null && boundingVolume != null) {

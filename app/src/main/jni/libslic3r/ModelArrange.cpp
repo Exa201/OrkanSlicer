@@ -31,36 +31,35 @@ arrangement::ArrangePolygons get_arrange_polys(const Model &model, ModelInstance
 
 void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
 {
-    // The general packer treats each logical model as one item. Once it has arranged those
-    // items, use their exact projected islands to fill safe openings between disconnected
-    // parts. This moves only whole instances and validates the requested spacing against every
-    // real silhouette before committing a position.
+    // The arrange packer treats each model as one rigid polygon. For concave and multipart
+    // models, its nominal placement can leave usable regions or overlap projected islands.
+    // Reposition only whole instances, using exact projected geometry for each collision check.
     if (bed.size() < 3 || polygons.size() < 2)
         return;
 
-    struct Geometry {
-        ExPolygons parts;
-        ExPolygons clearance;
-        BoundingBox bounds;
-    };
-    std::vector<Geometry> geometry(polygons.size());
+    struct PartGeometry { ExPolygons parts; ExPolygons clearance; BoundingBox bounds; };
+    std::vector<PartGeometry> geometry(polygons.size());
+    std::vector<size_t> hosts;
     for (size_t i = 0; i < polygons.size(); ++i) {
         ArrangePolygon &item = polygons[i];
         if (item.bed_idx != 0 || item.physical_parts.empty())
             continue;
         geometry[i].parts = item.physical_parts;
+        Points points;
+        double exact_area = 0.0;
         for (ExPolygon &part : geometry[i].parts) {
             part.rotate(item.rotation);
             part.translate(item.translation.x(), item.translation.y());
             geometry[i].bounds.merge(part.contour.bounding_box());
+            exact_area += part.area();
+            points.insert(points.end(), part.contour.points.begin(), part.contour.points.end());
         }
-        geometry[i].clearance = offset_ex(geometry[i].parts, float(item.inflation), jtSquare);
-    }
-
-    std::vector<size_t> hosts;
-    for (size_t i = 0; i < geometry.size(); ++i)
-        if (geometry[i].parts.size() > 1)
+        geometry[i].clearance = offset_ex(geometry[i].parts, float(item.inflation), ClipperLib::jtSquare);
+        const Polygon convex = Geometry::convex_hull(std::move(points));
+        if (geometry[i].parts.size() > 1 ||
+            (exact_area > 0.0 && convex.area() > exact_area * 1.05))
             hosts.push_back(i);
+    }
     if (hosts.empty())
         return;
 
@@ -78,45 +77,55 @@ void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
     const Polygon bed_polygon(bed);
     const BoundingBox bed_bounds(bed);
     const coord_t search_step = scaled(2.0);
-    constexpr size_t MAX_SEARCH_POSITIONS = 5000;
+    constexpr size_t MAX_SEARCH_POSITIONS = 12000;
     for (size_t candidate_idx : candidates) {
         ArrangePolygon &candidate = polygons[candidate_idx];
         if (candidate.bed_idx != 0 || geometry[candidate_idx].parts.empty())
             continue;
-
         ExPolygons local_parts = candidate.physical_parts;
-        for (ExPolygon &part : local_parts)
-            part.rotate(candidate.rotation);
-        ExPolygons local_clearance = offset_ex(local_parts, float(candidate.inflation), jtSquare);
+        for (ExPolygon &part : local_parts) part.rotate(candidate.rotation);
+        ExPolygons local_clearance = offset_ex(local_parts, float(candidate.inflation), ClipperLib::jtSquare);
         BoundingBox local_bounds;
-        for (const ExPolygon &part : local_parts)
-            local_bounds.merge(part.contour.bounding_box());
-        if (!local_bounds.defined)
-            continue;
+        for (const ExPolygon &part : local_parts) local_bounds.merge(part.contour.bounding_box());
+        if (!local_bounds.defined) continue;
 
-        const double candidate_area = double(local_bounds.size().x()) * local_bounds.size().y();
         size_t visited = 0;
         bool placed = false;
+        bool has_unsafe_overlap = false;
         for (size_t host_idx : hosts) {
-            if (host_idx == candidate_idx || !geometry[host_idx].bounds.defined)
-                continue;
+            if (host_idx == candidate_idx || !geometry[host_idx].bounds.defined) continue;
             const BoundingBox &host_bounds = geometry[host_idx].bounds;
-            if (candidate_area >= double(host_bounds.size().x()) * host_bounds.size().y() * 0.5 ||
+            if (geometry[host_idx].clearance.empty() || geometry[candidate_idx].clearance.empty() ||
                 local_bounds.size().x() + 2 * candidate.inflation >= host_bounds.size().x() ||
-                local_bounds.size().y() + 2 * candidate.inflation >= host_bounds.size().y())
-                continue;
+                local_bounds.size().y() + 2 * candidate.inflation >= host_bounds.size().y()) continue;
+
+            // Repack a nearby item into a real opening even when the first-pass polygon
+            // packer placed it just outside the compound bounds. Far-away objects remain
+            // untouched, and a failed optional gap search never invalidates a safe placement.
+            const BoundingBox &current_bounds = geometry[candidate_idx].bounds;
+            const coord_t gap_x = std::max<coord_t>(0, std::max(
+                host_bounds.min.x() - current_bounds.max.x(),
+                current_bounds.min.x() - host_bounds.max.x()));
+            const coord_t gap_y = std::max<coord_t>(0, std::max(
+                host_bounds.min.y() - current_bounds.max.y(),
+                current_bounds.min.y() - host_bounds.max.y()));
+            const coord_t nearby_x = local_bounds.size().x() + 2 * candidate.inflation;
+            const coord_t nearby_y = local_bounds.size().y() + 2 * candidate.inflation;
+            const bool nearby = gap_x <= nearby_x && gap_y <= nearby_y;
+            const bool overlaps_clearance = host_bounds.overlap(current_bounds) &&
+                !intersection_ex(geometry[host_idx].clearance,
+                                geometry[candidate_idx].clearance).empty();
+            if (!nearby && !overlaps_clearance) continue;
+            has_unsafe_overlap |= overlaps_clearance;
 
             for (coord_t y = host_bounds.min.y();
                  y + local_bounds.size().y() <= host_bounds.max.y() && !placed; y += search_step) {
                 for (coord_t x = host_bounds.min.x();
                      x + local_bounds.size().x() <= host_bounds.max.x(); x += search_step) {
-                    if (++visited > MAX_SEARCH_POSITIONS)
-                        break;
+                    if (++visited > MAX_SEARCH_POSITIONS) break;
                     const Vec2crd delta{x - local_bounds.min.x(), y - local_bounds.min.y()};
                     ExPolygons proposed = local_clearance;
-                    for (ExPolygon &part : proposed)
-                        part.translate(delta.x(), delta.y());
-
+                    for (ExPolygon &part : proposed) part.translate(delta.x(), delta.y());
                     BoundingBox proposed_bounds;
                     bool inside_bed = true;
                     for (const ExPolygon &part : proposed) {
@@ -128,22 +137,19 @@ void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
                     if (!inside_bed || proposed_bounds.min.x() < bed_bounds.min.x() ||
                         proposed_bounds.min.y() < bed_bounds.min.y() ||
                         proposed_bounds.max.x() > bed_bounds.max.x() ||
-                        proposed_bounds.max.y() > bed_bounds.max.y())
-                        continue;
+                        proposed_bounds.max.y() > bed_bounds.max.y()) continue;
 
                     bool collision = false;
                     for (size_t other_idx = 0; other_idx < geometry.size() && !collision; ++other_idx) {
                         if (other_idx == candidate_idx || polygons[other_idx].bed_idx != 0 ||
-                            geometry[other_idx].clearance.empty())
-                            continue;
+                            geometry[other_idx].clearance.empty()) continue;
                         BoundingBox other_bounds;
                         for (const ExPolygon &part : geometry[other_idx].clearance)
                             other_bounds.merge(part.contour.bounding_box());
                         if (proposed_bounds.overlap(other_bounds))
                             collision = !intersection_ex(proposed, geometry[other_idx].clearance).empty();
                     }
-                    if (collision)
-                        continue;
+                    if (collision) continue;
 
                     candidate.translation = delta;
                     geometry[candidate_idx].parts = local_parts;
@@ -156,13 +162,67 @@ void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed)
                     placed = true;
                     break;
                 }
-                if (visited > MAX_SEARCH_POSITIONS)
-                    break;
+                if (visited > MAX_SEARCH_POSITIONS) break;
             }
-            if (placed || visited > MAX_SEARCH_POSITIONS)
-                break;
+            if (placed || visited > MAX_SEARCH_POSITIONS) break;
+        }
+        // Never report a successful one-bed arrangement while retaining a known collision.
+        // The import caller will retry the model on an automatically created overflow plate.
+        if (has_unsafe_overlap && !placed)
+            candidate.bed_idx = arrangement::UNARRANGED;
+    }
+}
+
+bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed)
+{
+    // Validate final bed containment and packed outlines before applying transforms to instances.
+    // This is a last safety net for imported meshes whose projection is approximated by a
+    // hull or whose exact-outline gap-fill changed a placement after the main NFP pass.
+    std::vector<ExPolygons> clearances(polygons.size());
+    std::vector<BoundingBox> bounds(polygons.size());
+    const Polygon bed_polygon(bed);
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        ArrangePolygon &item = polygons[i];
+        if (item.bed_idx != 0)
+            continue;
+
+        ExPolygons parts = item.physical_parts;
+        if (parts.empty() && !item.poly.contour.empty())
+            parts.emplace_back(item.poly);
+        for (ExPolygon &part : parts) {
+            part.rotate(item.rotation);
+            part.translate(item.translation.x(), item.translation.y());
+            for (const Point &point : part.contour.points) {
+                if (!bed_polygon.contains(point)) {
+                    item.bed_idx = arrangement::UNARRANGED;
+                    return false;
+                }
+            }
+            bounds[i].merge(part.contour.bounding_box());
+        }
+        if (parts.empty())
+            continue;
+        clearances[i] = item.inflation > 0
+            ? offset_ex(parts, float(item.inflation), ClipperLib::jtSquare)
+            : std::move(parts);
+    }
+
+    for (size_t first = 0; first < polygons.size(); ++first) {
+        if (polygons[first].bed_idx != 0 || clearances[first].empty())
+            continue;
+        for (size_t second = first + 1; second < polygons.size(); ++second) {
+            if (polygons[second].bed_idx != 0 || clearances[second].empty() ||
+                !bounds[first].overlap(bounds[second]))
+                continue;
+            if (!intersection_ex(clearances[first], clearances[second]).empty()) {
+                // Keep already-arranged objects in place and let the importer retry this
+                // later object on the current or a new plate. No partial transforms commit.
+                polygons[second].bed_idx = arrangement::UNARRANGED;
+                return false;
+            }
         }
     }
+    return true;
 }
 
 bool apply_arrange_polys(ArrangePolygons &input, ModelInstancePtrs &instances, VirtualBedFn vfn)

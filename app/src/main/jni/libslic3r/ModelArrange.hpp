@@ -27,6 +27,7 @@ ArrangePolygons get_arrange_polys(const Model &model, ModelInstancePtrs &instanc
 ArrangePolygon  get_arrange_poly(const Model &model);
 bool apply_arrange_polys(ArrangePolygons &polys, ModelInstancePtrs &instances, VirtualBedFn);
 void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed);
+bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed);
 
 void duplicate(Model &model, ArrangePolygons &copies, VirtualBedFn);
 void duplicate_objects(Model &model, size_t copies_num);
@@ -42,6 +43,8 @@ bool arrange_objects(Model &              model,
     arrangement::arrange(input, bed, params);
     if constexpr (std::is_same_v<std::decay_t<TBed>, Points>)
         fill_compound_arrange_gaps(input, bed);
+    if constexpr (std::is_same_v<std::decay_t<TBed>, Points>)
+        validate_arrange_placements(input, bed);
     
     return apply_arrange_polys(input, instances, vfn);
 }

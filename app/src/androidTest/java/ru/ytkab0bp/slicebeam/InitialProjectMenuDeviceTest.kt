@@ -198,6 +198,8 @@ class InitialProjectMenuDeviceTest {
             assertTrue("Overflow models must be assigned to new plates", plates.size > 1)
             assertTrue("Arrangement must pack multiple archive models instead of using one plate per model; " +
                 "plates=${plates.size}, objectsPerPlate=${plates.map { it.objectsCount }}", plates.size < selected.size)
+            assertTrue("Automatic nesting should use the bed efficiently for the supplied 109-part set; " +
+                "plates=${plates.size}", plates.size <= 35)
 
             val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
             val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())

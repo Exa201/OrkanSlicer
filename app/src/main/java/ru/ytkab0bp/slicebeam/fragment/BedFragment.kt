@@ -2694,7 +2694,10 @@ private fun loadModelInternal(
                 if (autoOrientImportedModels || preserveProjectLayout) imported.autoOrient(index)
                 imported.getTranslation(index, translation)
                 imported.getBoundingBoxExact(index, min, max)
-                imported.translate(index, translation.x, translation.y, -translation.z + (max.z - min.z) / 2.0)
+                // Imported STL vertices may keep a distant source-CAD origin. Normalize the
+                // geometry center before packing so that translation is not applied twice.
+                imported.translate(index, -translation.x, -translation.y,
+                    -translation.z + (max.z - min.z) / 2.0)
             }
 
             val originalPlateCount = platesModels.size
@@ -2712,7 +2715,8 @@ private fun loadModelInternal(
             // a placement whose exact mesh bounds are outside the build volume. Never commit it.
             val packedImport = copyModelForArrangement(target)
             repeat(sourceCount) { packedImport.addObject(imported, it) }
-            if (bed.arrange(packedImport) && isModelInsideBuildVolume(packedImport, bed) &&
+            if ((bed.arrangeCompact(packedImport) || bed.arrange(packedImport)) &&
+                isModelInsideBuildVolume(packedImport, bed) &&
                 (sourceCount != 1 || !hasMeshIntersections(packedImport))
             ) {
                 target.replaceContentsFrom(packedImport)
@@ -2730,7 +2734,8 @@ private fun loadModelInternal(
                     var placedOnNewPlate = false
                     var placedOnExistingPlate = false
                     var placedDestinationIndex = destinationIndex
-                    if (bed.arrange(candidate) && isModelInsideBuildVolume(candidate, bed) &&
+                    if ((bed.arrangeCompact(candidate) || bed.arrange(candidate)) &&
+                        isModelInsideBuildVolume(candidate, bed) &&
                         (sourceCount != 1 || !hasMeshIntersections(candidate))
                     ) {
                         target.replaceContentsFrom(candidate)
@@ -2750,7 +2755,8 @@ private fun loadModelInternal(
                                 val alternate = copyModelForArrangement(existingPlate)
                                 val destinationIndex = alternate.objectsCount
                                 alternate.addObject(imported, sourceIndex)
-                                if (bed.arrange(alternate) && isModelInsideBuildVolume(alternate, bed) &&
+                                if ((bed.arrangeCompact(alternate) || bed.arrange(alternate)) &&
+                                    isModelInsideBuildVolume(alternate, bed) &&
                                     !hasMeshIntersections(alternate)
                                 ) {
                                     existingPlate.replaceContentsFrom(alternate)
@@ -2767,7 +2773,8 @@ private fun loadModelInternal(
 
                         if (!placedOnExistingPlate) {
                             val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
-                            if (!bed.arrange(nextPlate) || !isModelInsideBuildVolume(nextPlate, bed)) {
+                            if ((!bed.arrangeCompact(nextPlate) && !bed.arrange(nextPlate)) ||
+                                !isModelInsideBuildVolume(nextPlate, bed)) {
                                 centerObjectOnBed(nextPlate, 0, bed)
                                 if (!isModelInsideBuildVolume(nextPlate, bed)) objectsTooLargeForBed++
                             }

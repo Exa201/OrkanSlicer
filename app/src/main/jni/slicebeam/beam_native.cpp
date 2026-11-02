@@ -3929,7 +3929,8 @@ extern "C" {
         bed_util_init_triangles_its(contour, &tRef->mesh.its);
     }
 
-    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange(JNIEnv* env, jclass, jlong ptr, jlong model, jstring arrange_config) {
+    static jboolean bed_arrange_with_distance(JNIEnv* env, jlong ptr, jlong model,
+            jstring arrange_config, jdouble min_distance_mm) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
 
@@ -3954,7 +3955,7 @@ extern "C" {
             // rather than the arr2::ArrangeBed/ArrangeSettings types of newer PrusaSlicer.
             Points bed = get_bed_shape(ref->config);
             ArrangeParams arrange_cfg;
-            arrange_cfg.min_obj_distance = scaled(6.0);
+            arrange_cfg.min_obj_distance = scaled(std::max(0.0, min_distance_mm));
             // Let the packer rotate footprints in the XY plane. Without this, two
             // perpendicular long parts can be rejected even when one 90-degree turn
             // makes the pair fit on the same plate. This does not change their Z pose.
@@ -4080,14 +4081,26 @@ extern "C" {
             // The exclusions argument is what preloads fixed geometry into libnest2d.
             // ArrangeParams::excluded_regions alone only informs its alignment scoring.
             arrangement::arrange(input, arrange_cfg.excluded_regions, bed, arrange_cfg);
-            if (!sequential_print)
+            if (!sequential_print) {
                 fill_compound_arrange_gaps(input, bed);
+                validate_arrange_placements(input, bed);
+            }
             return apply_arrange_polys(input, instances, throw_if_out_of_bed);
         } catch (const std::exception& e) {
             // If the model cannot fit the bed, it throws "Objects could not fit on the bed".
             // Catch it here to avoid JNI crash.
             return false;
         }
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange(
+            JNIEnv* env, jclass, jlong ptr, jlong model, jstring arrange_config) {
+        return bed_arrange_with_distance(env, ptr, model, arrange_config, 6.0);
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange_1with_1distance(
+            JNIEnv* env, jclass, jlong ptr, jlong model, jstring arrange_config, jdouble min_distance_mm) {
+        return bed_arrange_with_distance(env, ptr, model, arrange_config, min_distance_mm);
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1get_1bounding_1volume(JNIEnv* env, jclass, jlong ptr) {

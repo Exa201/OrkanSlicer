@@ -1,5 +1,13 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## User priority — nesting, import placement, and manual movement — 2026-11-02
+
+- The imported Settlers archive is now arranged with a 2 mm positive clearance first (6 mm fallback), concave and multipart footprints can fill verified free regions, and a final native validation rejects placements outside the bed or overlapping another footprint. Small open meshes (up to 256 accumulated facets) may use their exact projected outline; repaired/detailed meshes retain the conservative fallback to avoid the reproduced Clipper crash.
+- Imported geometry is centered before the packer applies its placement, correcting off-origin CAD STL coordinates. Interactive model transforms do not invoke automatic arrange. The manual Arrange action still uses the normal 6 mm spacing; moving on X/Y/Z remains a separate action.
+- On API 36, the supplied Settlers archive (SHA-256 `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`) passed production import: all 109 objects in bounds/on-bed across 16 plates; all 458 same-plate mesh pairs were disjoint. The preceding Nightly result was 56 plates / 147 pairs. The regression now requires at most 35 plates.
+- Also passed on the same source: concave L plus insert uses one plate (1/1), multi-file overflow import (1/1), manual XYZ movement with undo/redo (1/1), and explicit Arrange only changes an off-bed object after pressing the button (1/1). Debug JVM and Slice JVM suites both passed 740/740. SliceTest ARM64 and instrumentation APKs assembled successfully; no distribution APK or release was produced.
+- Current source branch `nightly-2.5`, base code commit `75a847712a`; these verified changes are local pending commit/push. Next: commit/push this nesting improvement, then continue the separate Orca Batch 9 from 4/10. Avoid raising the detailed-mesh projection limit without a crash-safe geometry-union implementation.
+
 ## Orca Batch 9 point 4 — verified
 
 - Ported upstream Orca `896557bce5281553ee0c6210f2da301b3b3c262e` in `PrintObjectSlice.cpp`: spiral-vase largest-contour slicing and bottom-shell transition are selected from the matching volume region even when the model has multiple height-range regions.
