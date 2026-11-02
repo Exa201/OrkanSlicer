@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 9 — Punkt 5/10 verifiziert (2026-11-02)
+
+### Slicing-Status-Callbacks thread-safe austauschen
+
+Portiert den gemeinsamen Orca-Core-Fix aus `19b8d2138e`: der geteilte Print-State-Zeitstempel ist atomar, und `PrintBase` schützt Status-Callback-Registrierung mit einem Mutex. Statusmeldungen rufen eine lokale Callback-Kopie erst nach Freigabe des Mutex auf, sodass eine laufende Slice-Statusmeldung keinen Datenwettlauf mit Callback-Austausch hat und ein Callback sich selbst ersetzen kann. Desktop-Plater-Lifecycle-Code wurde nicht übernommen; der Android-JNI-Slice-Aufruf bleibt synchron und seine lokale Listener-Lebensdauer ist unverändert.
+
+`NativeSliceDeviceTest#printStatusCallbacksCanBeReplacedFromCallbackAndConcurrently` bestand auf API 36 (1/1). Der Test ersetzt den Callback innerhalb seiner Ausführung, prüft den Ersatzaufruf, stress-testet parallele Statusmeldungen/Registrierungen und verifiziert den abschließend installierten Callback. Keine physischen Druckstarts.
+
+Batch 9: **5/10**. Keine APK/Veröffentlichung vor 10/10.
+
 ## Nightly Batch 9 — Punkt 4/10 verifiziert (2026-11-02)
 
 ### Spiralvase mit mehreren Höhenbereichen

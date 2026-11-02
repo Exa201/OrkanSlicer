@@ -913,6 +913,16 @@ class NativeSliceDeviceTest {
             0.0, result[14], 0.0)
     }
 
+    @Test(timeout = 30_000)
+    fun printStatusCallbacksCanBeReplacedFromCallbackAndConcurrently() {
+        val result = Native.print_status_callback_regression()
+        assertEquals("the initial callback must run once", 1, result[0])
+        assertEquals("the callback installed by the initial callback must run next", 1, result[1])
+        assertTrue("the stress callback should run both before and during concurrent reports",
+            result[2] >= 1)
+        assertEquals("the callback installed after concurrent updates must remain callable", 1, result[3])
+    }
+
     @Test
     fun shortExtrusionChainsUseTheMinimumTravelOrder() {
         val segments = listOf(

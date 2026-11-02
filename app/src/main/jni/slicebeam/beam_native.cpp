@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <memory>
 #include <mutex>
+#include <atomic>
 #include <optional>
 #include <stdexcept>
 
@@ -5165,6 +5166,53 @@ extern "C" {
         jdoubleArray result = env->NewDoubleArray(15);
         if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 15, values);
         return result;
+    }
+
+    // A status callback may be replaced from a UI callback while a slice worker is
+    // reporting progress. Verify callbacks run outside the registration lock and that
+    // concurrent replacement/reporting does not race on std::function storage.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_print_1status_1callback_1regression(JNIEnv* env, jclass) {
+        try {
+            Print print;
+            std::atomic<int> first_callback{0};
+            std::atomic<int> replacement_callback{0};
+            std::atomic<int> stress_callbacks{0};
+            std::atomic<int> final_callback{0};
+
+            print.set_status_callback([&](const PrintBase::SlicingStatus&) {
+                ++first_callback;
+                print.set_status_callback([&](const PrintBase::SlicingStatus&) { ++replacement_callback; });
+            });
+            print.set_status(1, "first callback replaces itself");
+            print.set_status(2, "replacement callback runs");
+
+            auto stress_callback = [&stress_callbacks](const PrintBase::SlicingStatus&) { ++stress_callbacks; };
+            print.set_status_callback(stress_callback);
+            print.set_status(3, "stress callback is installed before concurrent updates");
+
+            std::thread replace_worker([&] {
+                for (int i = 0; i < 2000; ++i)
+                    print.set_status_callback((i & 1) ? stress_callback : PrintBase::status_callback_type{});
+            });
+            std::thread report_worker([&] {
+                for (int i = 0; i < 2000; ++i)
+                    print.set_status(i % 100, "concurrent callback report");
+            });
+            replace_worker.join();
+            report_worker.join();
+
+            print.set_status_callback([&](const PrintBase::SlicingStatus&) { ++final_callback; });
+            print.set_status(100, "final callback remains callable");
+            const jint values[] = {first_callback.load(), replacement_callback.load(),
+                stress_callbacks.load(), final_callback.load()};
+            jintArray result = env->NewIntArray(4);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 4, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
     }
 
     // Exercises production G-code placeholder vector resolution for filament IDs that

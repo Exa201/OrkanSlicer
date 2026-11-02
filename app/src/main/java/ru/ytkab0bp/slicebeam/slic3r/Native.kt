@@ -39,6 +39,9 @@ class Native {
     /** Verifies Orca sequential placement keeps short objects inside the bed and clear. */
     @JvmStatic
     external fun short_object_arrangement_regression(): DoubleArray
+    /** Exercises status-callback replacement from callbacks and concurrent slice progress. */
+    @JvmStatic
+    external fun print_status_callback_regression(): IntArray
     /** Checks per-filament and physical-extruder placeholder vectors under a shared filament map. */
     @JvmStatic
     external fun placeholder_filament_map_regression(): Array<String>

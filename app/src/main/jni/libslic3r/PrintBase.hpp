@@ -98,10 +98,8 @@ public:
     };
 
 protected:
-    //FIXME last timestamp is shared between Print & SLAPrint,
-    // and if multiple Print or SLAPrint instances are executed in parallel, modification of g_last_timestamp
-    // is not synchronized!
-    static size_t g_last_timestamp;
+    // Shared by all Print and SLAPrint instances, which may update state in parallel.
+    static std::atomic<size_t> g_last_timestamp;
 };
 
 // To be instantiated over PrintStep or PrintObjectStep enums.
@@ -472,11 +470,11 @@ public:
     };
     typedef std::function<void(const SlicingStatus&)>  status_callback_type;
     // Default status console print out in the form of percent => message.
-    void                    set_status_default() { m_status_callback = nullptr; }
+    void                    set_status_default() { this->set_status_callback(nullptr); }
     // No status output or callback whatsoever, useful mostly for automatic tests.
-    void                    set_status_silent() { m_status_callback = [](const SlicingStatus&){}; }
-    // Register a custom status callback.
-    void                    set_status_callback(status_callback_type cb) { m_status_callback = cb; }
+    void                    set_status_silent() { this->set_status_callback([](const SlicingStatus&){}); }
+    // Register a custom callback while a worker may still be invoking the previous one.
+    void                    set_status_callback(status_callback_type cb);
     // Calls a registered callback to update the status, or print out the default message.
     void                    set_status(int percent, const std::string &message, unsigned int flags = SlicingStatus::DEFAULT, int warning_step = -1) const;
 
@@ -562,6 +560,7 @@ protected:
     std::string m_plate_name;
 
     // Callback to be evoked regularly to update state of the UI thread.
+    // Read or replace only under m_status_callback_mutex; invoke a local copy after unlocking.
     status_callback_type                    m_status_callback;
 
 private:
@@ -574,6 +573,8 @@ private:
     // The mutex will be used to guard the worker thread against entering a stage
     // while the data influencing the stage is modified.
     mutable std::mutex                      m_state_mutex;
+    mutable std::mutex                      m_status_callback_mutex;
+    status_callback_type                    status_callback() const;
 
     friend PrintTryCancel;
 };
