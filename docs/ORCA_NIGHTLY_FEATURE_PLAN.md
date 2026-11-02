@@ -1,6 +1,14 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
-## Nightly Batch 8 — 3/10 verifiziert (2026-11-02)
+## Nightly Batch 8 — 4/10 verifiziert (2026-11-02)
+
+### Punkt 4/10 — Per-Objekt-Düsen-Layergrenzen und Prime-Tower-Kompatibilität
+
+Der Orca-Port `fcd96ad91c` war im Android-Kern vorhanden, aber der Laufzeitnachweis fehlte. Die Instrumentierungsprüfung ruft jetzt zusätzlich direkt `SlicingParameters::create_from_config` mit drei verschieden begrenzten Düsen auf und bestätigt für Filament/Düse 1 die Grenzen 0,04–0,48 mm sowie für Filament/Düse 3 0,12–0,24 mm. Anschließend werden zwei Würfel unterschiedlichen Werkzeugen zugewiesen und mit aktivem Prime Tower tatsächlich gesliced; beide Werkzeugwechsel und abgeschlossene Layer-G-Code-Ausgabe werden geprüft.
+
+`NativeSliceDeviceTest#objectsWithDifferentNozzleLayerLimitsCanSharePrimeTower` bestand auf API 36 (1/1). Native ARM64-Build, SliceTest- und Instrumentierungsbuild sowie tatsächlicher G-Code-Slice erfolgreich. Kein physischer Drucktest; kein APK/Release bis 10/10.
+
+Batch 8: **4/10**. Noch sechs unabhängig verifizierte Produkt-/Portierungspunkte bis zum APK-/Nightly-Release-Gate.
 
 ### Punkt 3/10 — Orca-Eckenglättung auf Hilbert- und Octagram-Sparse-Infill
 
@@ -8,7 +16,7 @@ Portiert Orcas gleichmäßig abgewinkelte, auf die G-Code-Auflösung abgeflachte
 
 `NativeSliceDeviceTest#supportedSparseInfillSmoothingChangesOnlyHilbertAndOctagramToolpaths` bestand auf API 36 (1/1): echte 0-%-/100-%-Slices zeigen geänderte Sparse-Infill-Züge und zusätzliche Kurvensegmente für beide Muster; Außen-/Innenwände und obere/untere Flächen bleiben unverändert. Grid dient als Negativkontrolle und bleibt unverändert. `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: je 738/738, keine Fehler/Skips. ARM64-Native-/SliceTest-/Instrumentierungsbuilds erfolgreich; Profilrouten-Audit: 497/497 sichtbare Settings zu nativer Definition und Profilparser aufgelöst; `git diff --check` sauber. Kein Distributionsbuild/Release.
 
-Batch 8: **3/10**. Noch sieben unabhängig verifizierte Orca-Funktionspunkte bis zum APK-/Nightly-Release-Gate.
+Batch 8: **3/10** zu diesem Zwischenstand. Noch sieben unabhängig verifizierte Orca-Funktionspunkte bis zum APK-/Nightly-Release-Gate.
 
 ## Nightly Batch 8 — 2/10 verifiziert (2026-11-02)
 

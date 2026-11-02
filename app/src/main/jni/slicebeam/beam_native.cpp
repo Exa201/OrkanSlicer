@@ -4859,6 +4859,41 @@ extern "C" {
         return result;
     }
 
+    // Regression for object_extruders' zero-based IDs being passed to the one-based nozzle limit lookup.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_object_1nozzle_1layer_1limits_1regression(JNIEnv* env, jclass)
+    {
+        try {
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            config.set_deserialize_strict({
+                { "nozzle_diameter",  "0.4,0.4,0.4" },
+                { "min_layer_height", "0.04,0.08,0.12" },
+                { "max_layer_height", "0.48,0.32,0.24" },
+                { "layer_height",     0.12 },
+                { "enable_support",   0 },
+                { "raft_layers",      0 },
+            });
+            PrintConfig print_config;
+            PrintObjectConfig object_config;
+            print_config.apply(config, true);
+            object_config.apply(config, true);
+            const auto first = SlicingParameters::create_from_config(
+                print_config, object_config, 20., { 0 }, Vec3d(1., 1., 1.));
+            const auto third = SlicingParameters::create_from_config(
+                print_config, object_config, 20., { 2 }, Vec3d(1., 1., 1.));
+            const std::array<jdouble, 4> values{
+                first.min_layer_height, first.max_layer_height,
+                third.min_layer_height, third.max_layer_height,
+            };
+            jdoubleArray result = env->NewDoubleArray(static_cast<jsize>(values.size()));
+            if (result != nullptr) env->SetDoubleArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
     // Reuses the production Print::apply path across a single-filament then a multi-filament
     // model. The tower must be disabled for the first model and re-enabled for the second.
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_reused_1print_1prime_1tower_1regression(

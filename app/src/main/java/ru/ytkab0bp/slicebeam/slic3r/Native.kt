@@ -38,6 +38,9 @@ class Native {
     /** Reapplies one native Print from a single-filament model to a two-filament model. */
     @JvmStatic
     external fun reused_print_prime_tower_regression(firstModel: Long, nextModel: Long, configPath: String): IntArray
+    /** Reads layer-height limits for first and third logical filaments through production slicing parameters. */
+    @JvmStatic
+    external fun object_nozzle_layer_limits_regression(): DoubleArray
     /** Exercises height-range Z shrinkage and cached-region invalidation through native Print::process. */
     @JvmStatic
     external fun z_shrinkage_height_range_regression(model: Long, configPath: String, firstPercent: Double, nextPercent: Double): DoubleArray

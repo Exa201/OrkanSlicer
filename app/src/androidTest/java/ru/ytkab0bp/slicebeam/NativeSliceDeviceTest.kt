@@ -1902,6 +1902,12 @@ class NativeSliceDeviceTest {
 
     @Test
     fun objectsWithDifferentNozzleLayerLimitsCanSharePrimeTower() = withToolChangerProfile {
+        val limits = Native.object_nozzle_layer_limits_regression()
+        assertEquals("first tool uses its own minimum layer limit", 0.04, limits[0], 1e-6)
+        assertEquals("first tool uses its own maximum layer limit", 0.48, limits[1], 1e-6)
+        assertEquals("third tool uses its own minimum layer limit", 0.12, limits[2], 1e-6)
+        assertEquals("third tool uses its own maximum layer limit", 0.24, limits[3], 1e-6)
+
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
         val printer = requireNotNull(config.findPrinter("MyToolChanger 0.4 nozzle"))
