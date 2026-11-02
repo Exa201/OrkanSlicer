@@ -72,11 +72,20 @@ internal fun modelSparseInfillPatternOptions(): List<Pair<String, String>> = run
     values.mapIndexed { index, value -> value to labels.getOrNull(index).orEmpty().ifBlank { value } }
 }.getOrDefault(emptyList())
 
+/** Uses the bundled Orca enum so support strategies remain compatible with the native core. */
+internal fun modelSupportTypeOptions(): List<Pair<String, String>> = runCatching {
+    val definition = PrintConfigDef.getInstance().options["support_type"]
+    val values = definition?.enumValues.orEmpty()
+    val labels = definition?.enumLabels.orEmpty()
+    values.mapIndexed { index, value -> value to labels.getOrNull(index).orEmpty().ifBlank { value } }
+}.getOrDefault(emptyList())
+
 @Composable
 internal fun ModelObjectProcessOverridesDialog(
     objectName: String,
     initialValues: Map<String, String>,
     patternOptions: List<Pair<String, String>> = emptyList(),
+    supportTypeOptions: List<Pair<String, String>> = emptyList(),
     includeObjectSupport: Boolean = true,
     scopeHint: Int = R.string.ModelObjectProcessSettingsHint,
     onDismiss: () -> Unit,
@@ -84,6 +93,9 @@ internal fun ModelObjectProcessOverridesDialog(
 ) {
     val availablePatternOptions = remember(patternOptions) {
         patternOptions.ifEmpty { modelSparseInfillPatternOptions() }
+    }
+    val availableSupportTypeOptions = remember(supportTypeOptions) {
+        supportTypeOptions.ifEmpty { modelSupportTypeOptions() }
     }
     val mixedValues = remember(initialValues) {
         listOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern")
@@ -97,10 +109,12 @@ internal fun ModelObjectProcessOverridesDialog(
             initialValues["top_shell_layers"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
             initialValues["sparse_infill_pattern"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
             if (includeObjectSupport) initialValues["enable_support"].orEmpty() else "",
+            if (includeObjectSupport) initialValues["support_type"].orEmpty() else "",
         )
     }
     var patternExpanded by remember { mutableStateOf(false) }
     var supportExpanded by remember { mutableStateOf(false) }
+    var supportTypeExpanded by remember { mutableStateOf(false) }
     val wallLoops = values[0].trim().toIntOrNull()
     val density = values[1].trim().replace(',', '.').toDoubleOrNull()
     val topLayers = values[2].trim().toIntOrNull()
@@ -109,7 +123,8 @@ internal fun ModelObjectProcessOverridesDialog(
         (values[2].isBlank() || topLayers != null && topLayers in 0..50) &&
         (values[3].isBlank() || availablePatternOptions.any { it.first == values[3] } ||
             initialValues["sparse_infill_pattern"] == values[3]) &&
-        (values[4].isBlank() || values[4] == "0" || values[4] == "1")
+        (values[4].isBlank() || values[4] == "0" || values[4] == "1") &&
+        (values[5].isBlank() || availableSupportTypeOptions.any { it.first == values[5] })
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ModelObjectProcessSettingsTitle, objectName)) },
@@ -150,6 +165,35 @@ internal fun ModelObjectProcessOverridesDialog(
                                         text = { Text(stringResource(label)) },
                                         onClick = { values[index] = value; supportExpanded = false },
                                         modifier = Modifier.testTag("model-object-process-support-$value"),
+                                    )
+                                }
+                            }
+                        }
+                        return@forEach
+                    }
+                    if (index == 5) {
+                        if (!includeObjectSupport) return@forEach
+                        val selectedLabel = if (values[index].isBlank()) {
+                            stringResource(R.string.ModelObjectProcessInheritPattern)
+                        } else {
+                            availableSupportTypeOptions.firstOrNull { it.first == values[index] }?.second ?: values[index]
+                        }
+                        Box {
+                            TextButton(
+                                onClick = { supportTypeExpanded = true },
+                                modifier = Modifier.fillMaxWidth().testTag("model-object-process-support-type"),
+                            ) { Text("${stringResource(R.string.ModelObjectProcessSupportType)}: $selectedLabel") }
+                            DropdownMenu(expanded = supportTypeExpanded, onDismissRequest = { supportTypeExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.ModelObjectProcessInheritPattern)) },
+                                    onClick = { values[index] = ""; supportTypeExpanded = false },
+                                    modifier = Modifier.testTag("model-object-process-support-type-inherit"),
+                                )
+                                availableSupportTypeOptions.forEach { (value, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = { values[index] = value; supportTypeExpanded = false },
+                                        modifier = Modifier.testTag("model-object-process-support-type-$value"),
                                     )
                                 }
                             }
@@ -232,6 +276,7 @@ internal fun ModelObjectProcessOverridesDialog(
                             "sparse_infill_pattern" to values[3],
                         )
                     if (includeObjectSupport) overrides["enable_support"] = values[4]
+                    if (includeObjectSupport) overrides["support_type"] = values[5]
                     onApply(overrides)
                 },
                 modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-process-settings-apply"),

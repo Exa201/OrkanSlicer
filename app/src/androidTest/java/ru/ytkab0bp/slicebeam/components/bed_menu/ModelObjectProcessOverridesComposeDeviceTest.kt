@@ -42,7 +42,7 @@ class ModelObjectProcessOverridesComposeDeviceTest {
         assertEquals(
             mapOf(
                 "wall_loops" to "2", "sparse_infill_density" to "35%", "top_shell_layers" to "3",
-                "sparse_infill_pattern" to "", "enable_support" to "",
+                "sparse_infill_pattern" to "", "enable_support" to "", "support_type" to "",
             ),
             applied,
         )
@@ -67,6 +67,27 @@ class ModelObjectProcessOverridesComposeDeviceTest {
         assertEquals(null, applied)
         compose.onNodeWithTag("model-object-process-settings-apply").performClick()
         assertEquals("1", applied?.get("enable_support"))
+    }
+
+    @Test fun supportTypeUsesOrcaChoicesAndAppliesOnlyAfterConfirmation() {
+        var applied: Map<String, String>? = null
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectProcessOverridesDialog(
+                    objectName = "Object A",
+                    initialValues = emptyMap(),
+                    supportTypeOptions = listOf("normal(auto)" to "Normal (auto)", "tree(auto)" to "Tree (auto)"),
+                    onDismiss = {},
+                    onApply = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("model-object-process-support-type").performClick()
+        compose.onNodeWithTag("model-object-process-support-type-tree(auto)").performClick()
+        assertEquals(null, applied)
+        compose.onNodeWithTag("model-object-process-settings-apply").performClick()
+        assertEquals("tree(auto)", applied?.get("support_type"))
     }
 
     @Test fun infillPatternUsesOrcaChoicesAndAppliesOnlyAfterConfirmation() {

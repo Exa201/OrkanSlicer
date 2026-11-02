@@ -1,5 +1,11 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 8 — Punkt 7/10 verifiziert (2026-11-02)
+
+7. Objektbezogener Support-Typ ergänzt. Das Modellmenü bietet die im geladenen Orca-Schema definierten Supportstrategien samt Profilvererbung an; die Auswahl wird bis zur Bestätigung lokal gehalten. `Model` erlaubt `support_type` nur als Objekt-Override, nicht als Teil-Override.
+
+`ModelObjectProcessOverridesComposeDeviceTest` bestand 7/7 auf API 36. `NativeSliceDeviceTest#supportOverrideIsIsolatedPerObjectAndChangesThreeMfSlice` bestand 1/1: `enable_support` bleibt für das ausgewählte Objekt isoliert und überlebt den 3MF-Rundlauf; echte Supportbahnen für Normal- und Tree-Strategie unterscheiden sich. Für die Strategie-G-Code-Prüfung wurde globaler Support aktiviert, damit beide Strategien tatsächlich Werkzeugwege erzeugen. Null-Längen-E-/Prime-Marker werden nicht als Supportgeometrie gezählt. ARM64-Native-Testbuild und `git diff --check` erfolgreich. Batch 8: **7/10**; kein APK/Release vor 10/10. Nächster Schritt: einen weiteren app-erreichbaren Orca-Punkt mit eigenständigem Verhaltensnachweis auswählen.
+
 ## Nightly Batch 8 — Punkt 6/10 verifiziert (2026-11-02)
 
 Objektoptionen aus nativen Orca-3MF-Projekten werden nun auch durch den klassischen 3MF-Importer übernommen. Dieser ließ zuvor nur eine feste Liste generischer Metadaten durch und verwarf gültige `PrintObjectConfig`-Optionen. Der Modell-/Werkzeugdialog unterstützt zusätzlich die Support-Erzeugung pro Objekt mit den Zuständen Profil übernehmen, ein und aus; `enable_support` bleibt auf Objektebene und kann nicht versehentlich als Einzelteil-Option gespeichert werden.

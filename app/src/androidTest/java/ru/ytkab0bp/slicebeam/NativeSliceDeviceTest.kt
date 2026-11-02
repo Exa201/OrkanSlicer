@@ -486,9 +486,11 @@ class NativeSliceDeviceTest {
         process.put("support_on_build_plate_only", "1")
         val source = createSteppedOverhangFixture("object-support-override.stl")
         val project = File(context.cacheDir, "object-support-override.3mf")
+        val treeProject = File(context.cacheDir, "object-support-override-tree.3mf")
         val output = File(context.cacheDir, "object-support-override.gcode")
         var model: Model? = null
         var restored: Model? = null
+        var treeModel: Model? = null
 
         fun objectCenters(current: Model): List<Pair<Double, Double>> = (0 until current.objectsCount).map { index ->
             val min = Vec3d()
@@ -503,7 +505,11 @@ class NativeSliceDeviceTest {
             try {
                 val gcode = output.readText()
                 assertHasExtrusion(gcode)
-                return supportExtrusionSegments(gcode)
+                // Retract/prime records can contain E with the current XY position and
+                // inherit the last support type marker. They are not toolpath geometry.
+                return supportExtrusionSegments(gcode).filter {
+                    kotlin.math.hypot(it.x1 - it.x0, it.y1 - it.y0) > 1e-6
+                }
             } finally { result.release() }
         }
         fun hasSupportNear(paths: List<GCodePathSegment>, center: Pair<Double, Double>): Boolean = paths.any { path ->
@@ -514,8 +520,9 @@ class NativeSliceDeviceTest {
             model = Model(source).also { it.ensureOnBed(0); it.addObject(it, 0); it.translate(1, 50.0, 0.0, 0.0); it.ensureOnBed(1) }
             assertEquals(2, model.objectsCount)
             val centers = objectCenters(model)
-            assertEquals(1, model.setObjectConfigOptions(0, mapOf("enable_support" to "1")))
+            assertEquals(1, model.setObjectConfigOptions(0, mapOf("enable_support" to "1", "support_type" to "normal(auto)")))
             assertEquals("1", model.getObjectConfigOption(0, "enable_support"))
+            assertEquals("normal(auto)", model.getObjectConfigOption(0, "support_type"))
             assertEquals("the other object must keep inheriting the profile", null,
                 model.getObjectConfigOption(1, "enable_support"))
             assertEquals("support is an object setting, not a printable-part setting", -1,
@@ -533,19 +540,50 @@ class NativeSliceDeviceTest {
                 modelConfigXml.contains("key=\"enable_support\" value=\"1\""))
             assertEquals("round-trip object configs: " + (0 until restored.objectsCount).map { restored.getObjectName(it) to restored.getObjectConfigOption(it, "enable_support") },
                 "1", restored.getObjectConfigOption(0, "enable_support"))
+            assertEquals("normal(auto)", restored.getObjectConfigOption(0, "support_type"))
             assertEquals(null, restored.getObjectConfigOption(1, "enable_support"))
             val restoredCenters = objectCenters(restored)
-            val firstSupport = supportPaths(restored)
-            assertTrue("the selected overhang object must emit support G-code", hasSupportNear(firstSupport, restoredCenters[0]))
-            assertFalse("the profile-disabled sibling must not emit support G-code", hasSupportNear(firstSupport, restoredCenters[1]))
+            val normalSupport = supportPaths(restored)
+            assertTrue("the selected overhang object must emit support G-code", hasSupportNear(normalSupport, restoredCenters[0]))
+            assertFalse("the profile-disabled sibling must not emit support G-code; centers=$restoredCenters, nearby=${normalSupport.filter { kotlin.math.hypot((it.x0 + it.x1) / 2.0 - restoredCenters[1].first, (it.y0 + it.y1) / 2.0 - restoredCenters[1].second) < 18.0 }.take(8)}",
+                hasSupportNear(normalSupport, restoredCenters[1]))
 
-            assertEquals(1, restored.setObjectConfigOptions(1, mapOf("enable_support" to "1")))
+            // With global support enabled, the explicit per-object strategy is compared
+            // against the normal-support G-code above. This avoids conflating the engine's
+            // global support gate with its object-level strategy selection.
+            process.put("enable_support", "1")
+            assertEquals(1, restored.setObjectConfigOptions(0, mapOf("support_type" to "tree(auto)")))
+            assertEquals("tree(auto)", restored.getObjectConfigOption(0, "support_type"))
+            // Reopen after persisting the changed strategy so the native slicer builds
+            // a fresh PrintObject rather than reusing its already-sliced support cache.
+            SliceBeam.genCurrentConfig(restored)
+            restored.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, treeProject.absolutePath)
+            treeModel = Model(treeProject)
+            assertEquals("tree(auto)", treeModel.getObjectConfigOption(0, "support_type"))
+            val treeSupport = supportPaths(treeModel)
+            fun pathsNear(paths: List<GCodePathSegment>, center: Pair<Double, Double>) = paths.filter {
+                kotlin.math.hypot((it.x0 + it.x1) / 2.0 - center.first, (it.y0 + it.y1) / 2.0 - center.second) < 18.0
+            }
+            val normalGeometry = pathsNear(normalSupport, restoredCenters[0])
+            val treeCenters = objectCenters(treeModel)
+            val treeGeometry = pathsNear(treeSupport, treeCenters[0])
+            assertTrue("Tree support must remain enabled on the selected object; supportSegments=${treeSupport.size}, " +
+                "centers=$treeCenters, enable=${treeModel.getObjectConfigOption(0, "enable_support")}, " +
+                "type=${treeModel.getObjectConfigOption(0, "support_type")}, " +
+                "profile=${SliceBeam.getCurrentConfigFile().readText().lines().filter { it.startsWith("enable_support =") || it.startsWith("support_type =") }}",
+                treeGeometry.isNotEmpty())
+            assertNotEquals("Normal and tree strategy overrides must change the selected object's support toolpath",
+                normalGeometry, treeGeometry)
+            assertTrue("global support is enabled for the strategy comparison, so both objects emit support",
+                hasSupportNear(treeSupport, treeCenters[0]) && hasSupportNear(treeSupport, treeCenters[1]))
+
+            assertEquals(1, restored.setObjectConfigOptions(1, mapOf("enable_support" to "1", "support_type" to "normal(auto)")))
             val bothSupports = supportPaths(restored)
             assertTrue("the sibling can be enabled independently", hasSupportNear(bothSupports, restoredCenters[0]) &&
                 hasSupportNear(bothSupports, restoredCenters[1]))
         } finally {
-            restored?.release(); model?.release()
-            source.delete(); project.delete(); output.delete(); SliceBeam.getCurrentConfigFile().delete()
+            treeModel?.release(); restored?.release(); model?.release()
+            source.delete(); project.delete(); treeProject.delete(); output.delete(); SliceBeam.getCurrentConfigFile().delete()
         }
     }
 
