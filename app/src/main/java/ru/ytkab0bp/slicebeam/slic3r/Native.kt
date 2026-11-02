@@ -32,6 +32,9 @@ class Native {
     external fun filament_group_match_regression(): IntArray
     @JvmStatic
     external fun scarf_ramp_regression(): DoubleArray
+    /** Verifies Orca sequential placement keeps short objects inside the bed and clear. */
+    @JvmStatic
+    external fun short_object_arrangement_regression(): DoubleArray
     /** Checks per-filament and physical-extruder placeholder vectors under a shared filament map. */
     @JvmStatic
     external fun placeholder_filament_map_regression(): Array<String>

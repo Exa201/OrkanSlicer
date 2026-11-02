@@ -4827,6 +4827,112 @@ extern "C" {
         return result;
     }
 
+    // Exercises Orca's sequential-arrangement edge cases on a deterministic 200 mm bed.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_short_1object_1arrangement_1regression(JNIEnv* env, jclass) {
+        using namespace Slic3r;
+        DynamicPrintConfig config;
+        config.set_key_value("printable_area", new ConfigOptionPoints({
+            Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.)
+        }));
+        const Points physical_bed = get_bed_shape(config);
+        const BoundingBox physical_bounds(physical_bed);
+
+        auto make_square = [](double side, double height) {
+            Polygon polygon;
+            polygon.points = {Point(0, 0), Point(scaled(side), 0),
+                Point(scaled(side), scaled(side)), Point(0, scaled(side))};
+            arrangement::ArrangePolygon item;
+            item.poly = ExPolygon(std::move(polygon));
+            item.bed_idx = 0;
+            item.height = height;
+            item.extrude_ids = {1};
+            return item;
+        };
+        auto make_disc = [](double diameter, double height) {
+            Polygon polygon;
+            for (int i = 0; i < 64; ++i) {
+                const double angle = 2. * PI * i / 64.;
+                polygon.points.emplace_back(scaled(diameter / 2. * std::cos(angle)),
+                    scaled(diameter / 2. * std::sin(angle)));
+            }
+            arrangement::ArrangePolygon item;
+            item.poly = ExPolygon(std::move(polygon));
+            item.bed_idx = 0;
+            item.height = height;
+            item.extrude_ids = {1};
+            return item;
+        };
+        auto arrange_short = [&](arrangement::ArrangePolygons& items) {
+            arrangement::ArrangeParams params;
+            params.progressind = [](unsigned, std::string) {};
+            params.parallel = false;
+            params.is_seq_print = true;
+            // Match Orca's regression fixture: 2.5 mm nozzle/clearance height and
+            // objects at half that height must use the nozzle-width floor.
+            params.nozzle_height = 2.5f;
+            params.clearance_radius = 30.f;
+            params.clearance_height_to_rod = 4.f;
+            params.clearance_height_to_lid = 16.f;
+            params.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
+            params.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
+            arrangement::update_arrange_params(params, &config, items);
+            arrangement::update_selected_items_inflation(items, &config, params);
+            arrangement::ArrangePolygons fixed;
+            arrangement::update_unselected_items_inflation(fixed, &config, params);
+            const Points arrange_bed = arrangement::get_shrink_bedpts(&config, params);
+            arrangement::arrange(items, fixed, arrange_bed, params);
+        };
+        auto is_inside_bed = [&](const arrangement::ArrangePolygon& item) {
+            return item.bed_idx == 0 && physical_bounds.contains(item.transformed_poly().contour.bounding_box());
+        };
+
+        arrangement::ArrangePolygons disc{make_disc(196., 1.25)};
+        arrange_short(disc);
+        const bool large_short_inside = is_inside_bed(disc.front());
+
+        const double turned_side = 196. / (std::cos(PI / 6.) + std::sin(PI / 6.));
+        arrangement::ArrangePolygon turned = make_square(turned_side, 1.25);
+        turned.rotation = PI / 6.;
+        arrangement::ArrangePolygons turned_items{std::move(turned)};
+        arrange_short(turned_items);
+        const bool turned_short_inside = is_inside_bed(turned_items.front());
+
+        arrangement::ArrangePolygons crowded;
+        for (int i = 0; i < 20; ++i)
+            crowded.emplace_back(make_square(50., 1.25));
+        arrange_short(crowded);
+        int placed = 0;
+        int outside = 0;
+        int overlapping_clearance_pairs = 0;
+        for (const auto& item : crowded) {
+            if (item.bed_idx == 0) {
+                ++placed;
+                if (!is_inside_bed(item)) ++outside;
+            }
+        }
+        for (size_t i = 0; i < crowded.size(); ++i) {
+            if (crowded[i].bed_idx != 0) continue;
+            const ExPolygons left = offset_ex(crowded[i].transformed_poly(), float(crowded[i].inflation), jtSquare);
+            for (size_t j = i + 1; j < crowded.size(); ++j) {
+                if (crowded[j].bed_idx != 0) continue;
+                const ExPolygons right = offset_ex(crowded[j].transformed_poly(), float(crowded[j].inflation), jtSquare);
+                if (!intersection_ex(left, right).empty()) ++overlapping_clearance_pairs;
+            }
+        }
+        const auto disc_bounds = disc.front().transformed_poly().contour.bounding_box();
+        const auto turned_bounds = turned_items.front().transformed_poly().contour.bounding_box();
+        const jdouble values[] = {large_short_inside ? 1. : 0., static_cast<double>(disc.front().bed_idx),
+            unscale<double>(disc_bounds.min.x()), unscale<double>(disc_bounds.min.y()),
+            unscale<double>(disc_bounds.max.x()), unscale<double>(disc_bounds.max.y()),
+            turned_short_inside ? 1. : 0., static_cast<double>(turned_items.front().bed_idx),
+            unscale<double>(turned_bounds.min.x()), unscale<double>(turned_bounds.min.y()),
+            unscale<double>(turned_bounds.max.x()), unscale<double>(turned_bounds.max.y()),
+            static_cast<double>(placed), static_cast<double>(outside), static_cast<double>(overlapping_clearance_pairs)};
+        jdoubleArray result = env->NewDoubleArray(15);
+        if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 15, values);
+        return result;
+    }
+
     // Exercises production G-code placeholder vector resolution for filament IDs that
     // share a physical extruder, plus the unmapped-filament fallback.
     JNIEXPORT jobjectArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_placeholder_1filament_1map_1regression(JNIEnv* env, jclass) {

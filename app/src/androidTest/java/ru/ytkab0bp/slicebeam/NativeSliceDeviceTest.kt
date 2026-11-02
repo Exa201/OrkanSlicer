@@ -727,6 +727,20 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun byObjectArrangementKeepsShortObjectsInsideBedAndSeparated() {
+        val result = Native.short_object_arrangement_regression()
+        assertEquals("a short object filling the bed must stay within its physical bounds: ${result.contentToString()}",
+            1.0, result[0], 0.0)
+        assertEquals("a rotated short object filling the bed must stay within its physical bounds: ${result.contentToString()}",
+            1.0, result[6], 0.0)
+        assertTrue("the crowded plate should still pack multiple models: ${result.contentToString()}", result[12] > 1.0)
+        assertEquals("no arranged short object may be outside the physical bed: ${result.contentToString()}",
+            0.0, result[13], 0.0)
+        assertEquals("the required by-object clearance must be preserved: ${result.contentToString()}",
+            0.0, result[14], 0.0)
+    }
+
+    @Test
     fun shortExtrusionChainsUseTheMinimumTravelOrder() {
         val segments = listOf(
             Pair(doubleArrayOf(14.0, 3.0), doubleArrayOf(6.0, 19.0)),
