@@ -43,6 +43,7 @@ class ModelObjectProcessOverridesComposeDeviceTest {
             mapOf(
                 "wall_loops" to "2", "sparse_infill_density" to "35%", "top_shell_layers" to "3",
                 "sparse_infill_pattern" to "", "enable_support" to "", "support_type" to "",
+                "top_surface_pattern" to "", "bottom_surface_pattern" to "", "seam_position" to "", "raft_layers" to "",
             ),
             applied,
         )
@@ -109,6 +110,71 @@ class ModelObjectProcessOverridesComposeDeviceTest {
         assertEquals(null, applied)
         compose.onNodeWithTag("model-object-process-settings-apply").performClick()
         assertEquals("gyroid", applied?.get("sparse_infill_pattern"))
+    }
+
+    @Test fun topAndBottomSurfacePatternsUseOrcaChoicesAndApplyOnlyAfterConfirmation() {
+        var applied: Map<String, String>? = null
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectProcessOverridesDialog(
+                    objectName = "Part A",
+                    initialValues = emptyMap(),
+                    surfacePatternOptions = listOf("monotonicline" to "Monotonic line", "concentric" to "Concentric"),
+                    includeObjectSupport = false,
+                    onDismiss = {},
+                    onApply = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("model-object-process-top-surface-pattern").performClick()
+        compose.onNodeWithTag("model-object-process-top-surface-pattern-concentric").performClick()
+        compose.onNodeWithTag("model-object-process-bottom-surface-pattern").performClick()
+        compose.onNodeWithTag("model-object-process-bottom-surface-pattern-monotonicline").performClick()
+        assertEquals(null, applied)
+        compose.onNodeWithTag("model-object-process-settings-apply").performClick()
+        assertEquals("concentric", applied?.get("top_surface_pattern"))
+        assertEquals("monotonicline", applied?.get("bottom_surface_pattern"))
+    }
+
+    @Test fun objectSeamPositionUsesOrcaChoicesAndAppliesOnlyAfterConfirmation() {
+        var applied: Map<String, String>? = null
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectProcessOverridesDialog(
+                    objectName = "Object A",
+                    initialValues = emptyMap(),
+                    seamPositionOptions = listOf("aligned" to "Aligned", "back" to "Back"),
+                    onDismiss = {},
+                    onApply = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("model-object-process-seam-position").performClick()
+        compose.onNodeWithTag("model-object-process-seam-position-back").performClick()
+        assertEquals(null, applied)
+        compose.onNodeWithTag("model-object-process-settings-apply").performClick()
+        assertEquals("back", applied?.get("seam_position"))
+    }
+
+    @Test fun objectRaftLayerCountValidatesAndAppliesOnlyAfterConfirmation() {
+        var applied: Map<String, String>? = null
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectProcessOverridesDialog(
+                    objectName = "Object A",
+                    initialValues = emptyMap(),
+                    onDismiss = {},
+                    onApply = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("model-object-process-raft-layers").performTextInput("2")
+        assertEquals(null, applied)
+        compose.onNodeWithTag("model-object-process-settings-apply").performClick()
+        assertEquals("2", applied?.get("raft_layers"))
     }
 
     @Test fun invalidValuesBlockSavingAndMixedPartsAreIdentified() {

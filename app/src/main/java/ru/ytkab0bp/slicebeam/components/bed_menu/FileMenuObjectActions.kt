@@ -345,7 +345,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
             if (renderer.model !== model || !renderer.isSelectionBindingCurrent(expectedSelection) ||
                 objectIndex !in 0 until model.objectsCount || partIndex !in 0 until model.getObjectPartCount(objectIndex)) return@queueEvent
             val revision = model.stateRevision
-            val values = listOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern")
+            val values = listOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern", "top_surface_pattern", "bottom_surface_pattern")
                 .associateWith { model.getObjectPartConfigOption(objectIndex, partIndex, it).orEmpty() }
             val name = "${model.getObjectName(objectIndex) ?: context.getString(R.string.MenuFileObjectNumber, objectIndex + 1)} · " +
                 context.getString(R.string.ModelObjectPartNumber, partIndex + 1)

@@ -1,5 +1,24 @@
 # Nightly continuation — Orca Batch 8 — 2026-11-02
 
+## Latest verified status — Batch 8 at 10/10
+
+- Point 10: per-object `raft_layers` (0–20 or inherit) added to the object process dialog and persistence whitelist. UI confirmation test 1/1; native API-36 3MF round-trip/slice test 1/1. The fixture verifies sibling isolation and real raft/support G-code output. Invalid-value feedback was moved above the controls after the 10-test Compose run exposed it could fall below the viewport; full Compose class now passes 10/10.
+- Batch 8 complete: Debug JVM 738/738 and Slice JVM 738/738, zero failures/errors/skips. Focused native seam-position and raft tests each passed 1/1. Catan archive arrangement remains separately verified: 109 models across 60 plates and 139 disjoint same-plate mesh pairs; API-36 test 1/1.
+- Next: build version 0.8.427/code 462, inspect APK metadata/hash, install and launch on available emulator, then publish the authorized Nightly prerelease. No physical-printer test is claimed.
+
+## Latest verified status — Batch 8 at 9/10
+
+- New point 9: per-object Orca seam-position choice added to the object process dialog, schema-driven options, inherit behavior, and the object-config persistence whitelist. It is intentionally omitted from per-part settings. Compose device test and API-36 native slice/3MF round-trip test passed 1/1 each; the actual extruding wall toolpaths changed for the selected object and the sibling remained profile-inherited. The first native fixture used outdated `rear`; the loaded Orca schema correctly rejected it, so the fixture was corrected to current value `back` and passed. ARM64 native/instrumentation packaging succeeded.
+- Catan archive packing verification remains: 109 models fit in-bound across 60 plates; 139 same-plate mesh pairs were disjoint; API-36 production-path instrumentation passed 1/1. This is arrangement-specific verification and does not count as an Orca feature point.
+- Batch 8 is now **9/10**. Next: one independent feature with a focused UI/core behavior proof, then grouped regression and release APK/prerelease. No release before the gate.
+
+## Aktueller Fortsetzungsstand — Batch 8 bei 8/10
+
+- Neu abgeschlossen: Orca-Overrides für obere/untere Oberflächenmuster (`top_surface_pattern`, `bottom_surface_pattern`) pro Bauteil, mit Profilvererbung und Bestätigungsübernahme. Compose-Instrumentierung `ModelObjectProcessOverridesComposeDeviceTest`: 8/8; nativer 3MF-Rundlauf- und tatsächlicher Top-/Bottom-G-Code-Test `NativeSliceDeviceTest#perPartProcessOverridesRemainIsolatedAcrossThreeMfAndNativeSlice`: 1/1 auf API 36. `:app:assembleSliceTestAndroidTest` und `git diff --check` erfolgreich. Kein physischer Druckertest.
+- Catan-Anordnungsprüfung und Sicherheitskap-Versuch stehen im nachfolgenden Eintrag; sie zählen nicht als Orca-Batchpunkt.
+- Aktueller Batchstand: **8/10**. Noch zwei unabhängig implementierte und fokussiert verifizierte Produktpunkte, danach gebündelte Regression, Debug-APK und Nightly-Prerelease. Kein vorzeitiger Release.
+- Nächster konkreter Schritt: nächstes app-erreichbares Orca-Feature anhand des Upstream-Kerns und der Android-Pfade auswählen; dazu native/Compose-Test ergänzen und beide Ebenen verifizieren.
+
 - 2026-11-02 arrangement follow-up: Orca's short-object sequential-arrangement edge cases now have a focused API-36 instrumentation regression matching upstream's 2.5 mm nozzle fixture; `NativeSliceDeviceTest#byObjectArrangementKeepsShortObjectsInsideBedAndSeparated` passed 1/1. The supplied Settlers archive was then run through the Nightly production import/arrange path: 109/109 STL objects oriented and placed within bed bounds, overflow expanded to 60 plates, all 139 same-plate mesh pairs were disjoint. `InitialProjectMenuDeviceTest#settlersArchiveModelsAreOrientedPackedAndMovedToOverflowPlates` passed 1/1 on API 36 in 207.551 s (full Gradle task 4:27). ZIP SHA-256: `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`. This is a focused verification, not a new Batch 8 feature point or a distribution build. Packing remains conservative (60 plates); the 1,000-facet safety cap remains because the 50,000-facet experiment crashed Clipper.
 - Packing-efficiency experiment after the archive run: a 20,000-facet cap plus a stricter manifold guard still reproduced a native SIGSEGV in Clipper `ProcessHorizontal` from `ModelObject::arrange_footprint_2d` late in the fixture. It briefly reached 54 plates before crashing; this is not a valid result. The experiment was reverted completely. A fresh full run on the restored production limit passed 1/1, 0 skips/failures, 209.719 s test time (Gradle task 5:06), again with 60 plates and 139 disjoint pairs. Keep the 1,000-facet cap until projection/union is made crash-safe; do not ship the 20,000-facet experiment.
 

@@ -80,12 +80,30 @@ internal fun modelSupportTypeOptions(): List<Pair<String, String>> = runCatching
     values.mapIndexed { index, value -> value to labels.getOrNull(index).orEmpty().ifBlank { value } }
 }.getOrDefault(emptyList())
 
+/** Surface pattern enums are read from the bundled Orca schema, like sparse infill patterns. */
+internal fun modelSurfacePatternOptions(): List<Pair<String, String>> = runCatching {
+    val definition = PrintConfigDef.getInstance().options["top_surface_pattern"]
+    val values = definition?.enumValues.orEmpty()
+    val labels = definition?.enumLabels.orEmpty()
+    values.mapIndexed { index, value -> value to labels.getOrNull(index).orEmpty().ifBlank { value } }
+}.getOrDefault(emptyList())
+
+/** Seam positions use Orca's object-level schema and retain the profile-defined enum labels. */
+internal fun modelSeamPositionOptions(): List<Pair<String, String>> = runCatching {
+    val definition = PrintConfigDef.getInstance().options["seam_position"]
+    val values = definition?.enumValues.orEmpty()
+    val labels = definition?.enumLabels.orEmpty()
+    values.mapIndexed { index, value -> value to labels.getOrNull(index).orEmpty().ifBlank { value } }
+}.getOrDefault(emptyList())
+
 @Composable
 internal fun ModelObjectProcessOverridesDialog(
     objectName: String,
     initialValues: Map<String, String>,
     patternOptions: List<Pair<String, String>> = emptyList(),
+    surfacePatternOptions: List<Pair<String, String>> = emptyList(),
     supportTypeOptions: List<Pair<String, String>> = emptyList(),
+    seamPositionOptions: List<Pair<String, String>> = emptyList(),
     includeObjectSupport: Boolean = true,
     scopeHint: Int = R.string.ModelObjectProcessSettingsHint,
     onDismiss: () -> Unit,
@@ -97,10 +115,17 @@ internal fun ModelObjectProcessOverridesDialog(
     val availableSupportTypeOptions = remember(supportTypeOptions) {
         supportTypeOptions.ifEmpty { modelSupportTypeOptions() }
     }
+    val availableSurfacePatternOptions = remember(surfacePatternOptions) {
+        surfacePatternOptions.ifEmpty { modelSurfacePatternOptions() }
+    }
+    val availableSeamPositionOptions = remember(seamPositionOptions) {
+        seamPositionOptions.ifEmpty { modelSeamPositionOptions() }
+    }
     val mixedValues = remember(initialValues) {
-        listOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern")
-            .mapIndexedNotNull { index, key -> index.takeIf { initialValues[key] == "<mixed>" } }
-            .toSet()
+        listOf(
+            0 to "wall_loops", 1 to "sparse_infill_density", 2 to "top_shell_layers",
+            3 to "sparse_infill_pattern", 6 to "top_surface_pattern", 7 to "bottom_surface_pattern",
+        ).mapNotNull { (index, key) -> index.takeIf { initialValues[key] == "<mixed>" } }.toSet()
     }
     val values = remember(initialValues, includeObjectSupport) {
         mutableStateListOf(
@@ -110,21 +135,33 @@ internal fun ModelObjectProcessOverridesDialog(
             initialValues["sparse_infill_pattern"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
             if (includeObjectSupport) initialValues["enable_support"].orEmpty() else "",
             if (includeObjectSupport) initialValues["support_type"].orEmpty() else "",
+            initialValues["top_surface_pattern"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
+            initialValues["bottom_surface_pattern"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
+            if (includeObjectSupport) initialValues["seam_position"].orEmpty() else "",
+            if (includeObjectSupport) initialValues["raft_layers"].orEmpty() else "",
         )
     }
     var patternExpanded by remember { mutableStateOf(false) }
     var supportExpanded by remember { mutableStateOf(false) }
     var supportTypeExpanded by remember { mutableStateOf(false) }
+    var topSurfaceExpanded by remember { mutableStateOf(false) }
+    var bottomSurfaceExpanded by remember { mutableStateOf(false) }
+    var seamPositionExpanded by remember { mutableStateOf(false) }
     val wallLoops = values[0].trim().toIntOrNull()
     val density = values[1].trim().replace(',', '.').toDoubleOrNull()
     val topLayers = values[2].trim().toIntOrNull()
+    val raftLayers = values.getOrNull(9)?.trim()?.toIntOrNull()
     val valid = (values[0].isBlank() || wallLoops != null && wallLoops in 1..20) &&
         (values[1].isBlank() || density != null && density.isFinite() && density in 0.0..100.0) &&
         (values[2].isBlank() || topLayers != null && topLayers in 0..50) &&
         (values[3].isBlank() || availablePatternOptions.any { it.first == values[3] } ||
             initialValues["sparse_infill_pattern"] == values[3]) &&
         (values[4].isBlank() || values[4] == "0" || values[4] == "1") &&
-        (values[5].isBlank() || availableSupportTypeOptions.any { it.first == values[5] })
+        (values[5].isBlank() || availableSupportTypeOptions.any { it.first == values[5] }) &&
+        (values[6].isBlank() || availableSurfacePatternOptions.any { it.first == values[6] }) &&
+        (values[7].isBlank() || availableSurfacePatternOptions.any { it.first == values[7] }) &&
+        (values.getOrNull(8).isNullOrBlank() || availableSeamPositionOptions.any { it.first == values[8] }) &&
+        (values.getOrNull(9).isNullOrBlank() || raftLayers != null && raftLayers in 0..20)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ModelObjectProcessSettingsTitle, objectName)) },
@@ -134,6 +171,11 @@ internal fun ModelObjectProcessOverridesDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(stringResource(scopeHint))
+                if (!valid) Text(
+                    stringResource(R.string.ModelObjectProcessSettingsInvalid),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("model-object-process-settings-error"),
+                )
                 val labels = listOf(
                     R.string.ModelObjectProcessWallLoops,
                     R.string.ModelObjectProcessInfillDensity,
@@ -200,6 +242,88 @@ internal fun ModelObjectProcessOverridesDialog(
                         }
                         return@forEach
                     }
+                    if (index == 6 || index == 7) {
+                        val expanded = if (index == 6) topSurfaceExpanded else bottomSurfaceExpanded
+                        val label = if (index == 6) R.string.ModelObjectProcessTopSurfacePattern else R.string.ModelObjectProcessBottomSurfacePattern
+                        val testTag = if (index == 6) "model-object-process-top-surface-pattern" else "model-object-process-bottom-surface-pattern"
+                        val itemTag = if (index == 6) "model-object-process-top-surface-pattern-" else "model-object-process-bottom-surface-pattern-"
+                        val selectedLabel = if (values[index].isBlank()) {
+                            stringResource(R.string.ModelObjectProcessInheritPattern)
+                        } else {
+                            availableSurfacePatternOptions.firstOrNull { it.first == values[index] }?.second ?: values[index]
+                        }
+                        Box {
+                            TextButton(
+                                onClick = { if (index == 6) topSurfaceExpanded = true else bottomSurfaceExpanded = true },
+                                modifier = Modifier.fillMaxWidth().testTag(testTag),
+                            ) { Text("${stringResource(label)}: $selectedLabel") }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { if (index == 6) topSurfaceExpanded = false else bottomSurfaceExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.ModelObjectProcessInheritPattern)) },
+                                    onClick = { values[index] = ""; if (index == 6) topSurfaceExpanded = false else bottomSurfaceExpanded = false },
+                                    modifier = Modifier.testTag("${itemTag}inherit"),
+                                )
+                                availableSurfacePatternOptions.forEach { (value, optionLabel) ->
+                                    DropdownMenuItem(
+                                        text = { Text(optionLabel) },
+                                        onClick = { values[index] = value; if (index == 6) topSurfaceExpanded = false else bottomSurfaceExpanded = false },
+                                        modifier = Modifier.testTag("$itemTag$value"),
+                                    )
+                                }
+                            }
+                        }
+                        if (index in mixedValues) Text(
+                            stringResource(R.string.ModelObjectProcessSettingMixed),
+                            modifier = Modifier.padding(start = 12.dp).testTag("model-object-process-setting-mixed-$index"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        return@forEach
+                    }
+                    if (index == 8) {
+                        if (!includeObjectSupport) return@forEach
+                        val selectedLabel = if (values[index].isBlank()) {
+                            stringResource(R.string.ModelObjectProcessInheritPattern)
+                        } else {
+                            availableSeamPositionOptions.firstOrNull { it.first == values[index] }?.second ?: values[index]
+                        }
+                        Box {
+                            TextButton(
+                                onClick = { seamPositionExpanded = true },
+                                modifier = Modifier.fillMaxWidth().testTag("model-object-process-seam-position"),
+                            ) { Text("${stringResource(R.string.ModelObjectProcessSeamPosition)}: $selectedLabel") }
+                            DropdownMenu(expanded = seamPositionExpanded, onDismissRequest = { seamPositionExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.ModelObjectProcessInheritPattern)) },
+                                    onClick = { values[index] = ""; seamPositionExpanded = false },
+                                    modifier = Modifier.testTag("model-object-process-seam-position-inherit"),
+                                )
+                                availableSeamPositionOptions.forEach { (value, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = { values[index] = value; seamPositionExpanded = false },
+                                        modifier = Modifier.testTag("model-object-process-seam-position-$value"),
+                                    )
+                                }
+                            }
+                        }
+                        return@forEach
+                    }
+                    if (index == 9) {
+                        if (!includeObjectSupport) return@forEach
+                        OutlinedTextField(
+                            value = values[index],
+                            onValueChange = { input -> values[index] = input.filter(Char::isDigit).take(2) },
+                            label = { Text(stringResource(R.string.ModelObjectProcessRaftLayers)) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth().testTag("model-object-process-raft-layers"),
+                        )
+                        return@forEach
+                    }
                     if (index == 3) {
                         val selectedLabel = if (values[index].isBlank()) {
                             stringResource(R.string.ModelObjectProcessInheritPattern)
@@ -253,11 +377,6 @@ internal fun ModelObjectProcessOverridesDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (!valid) Text(
-                    stringResource(R.string.ModelObjectProcessSettingsInvalid),
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.testTag("model-object-process-settings-error"),
-                )
                 TextButton(
                     onClick = { values.indices.forEach { values[it] = "" } },
                     modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-process-settings-inherit-all"),
@@ -274,9 +393,13 @@ internal fun ModelObjectProcessOverridesDialog(
                             "sparse_infill_density" to if (densityValue.isEmpty()) "" else "$densityValue%",
                             "top_shell_layers" to (topLayers?.toString().orEmpty()),
                             "sparse_infill_pattern" to values[3],
+                            "top_surface_pattern" to values[6],
+                            "bottom_surface_pattern" to values[7],
                         )
                     if (includeObjectSupport) overrides["enable_support"] = values[4]
                     if (includeObjectSupport) overrides["support_type"] = values[5]
+                    if (includeObjectSupport) overrides["seam_position"] = values.getOrNull(8).orEmpty()
+                    if (includeObjectSupport) overrides["raft_layers"] = raftLayers?.toString().orEmpty()
                     onApply(overrides)
                 },
                 modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-process-settings-apply"),

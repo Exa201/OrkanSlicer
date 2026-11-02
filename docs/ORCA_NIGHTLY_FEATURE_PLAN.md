@@ -1,5 +1,35 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 8 — 10/10 verifiziert (2026-11-02)
+
+### Punkt 10/10 — Raft-Schichten pro Objekt
+
+Der Modell-Einstellungsdialog kann `raft_layers` nun objektbezogen setzen (0–20) oder vom Profil erben. Die Einstellung wird erst nach Bestätigung angewendet, im Objekt-Override gespeichert und beim nativen Slice berücksichtigt.
+
+`ModelObjectProcessOverridesComposeDeviceTest#objectRaftLayerCountValidatesAndAppliesOnlyAfterConfirmation` bestand 1/1. `NativeSliceDeviceTest#perObjectRaftLayerOverridePersistsAndProducesRaftGcode` bestand 1/1 auf API 36: 3MF-Rundlauf, Objektisolation sowie Änderung der tatsächlichen Support-/Raft-Ausgabepfade geprüft. Der Dialoghinweis für ungültige Werte wurde nach oben verschoben, damit er bei größeren Dialogen sichtbar bleibt; danach bestand die gesamte Compose-Testklasse 10/10. Zusätzlich bestanden Debug- und Slice-Unit-Suiten mit je 738/738.
+
+Batch 8 ist **10/10**. Catan-Anordnungsfixture (109 Modelle, 60 Platten, 139 kollisionsfreie gleichplatten-Paare) bleibt ein separater Import-/Packing-Nachweis. Debug-APK und Nightly-Prerelease werden im Release-Gate-Eintrag dokumentiert.
+
+## Nightly Batch 8 — Punkt 9/10 verifiziert (2026-11-02)
+
+### Nahtposition pro Objekt
+
+Der Modell-Einstellungsdialog stellt jetzt Orcas Objektoption `seam_position` bereit. Die Optionen und Bezeichnungen werden aus dem geladenen Orca-Schema gelesen; „Profilvorgabe“ entfernt einen vorhandenen Objekt-Override. Die Option bleibt auf Objektebene und erscheint nicht im Teile-Dialog.
+
+Verifikation auf API 36: `ModelObjectProcessOverridesComposeDeviceTest#objectSeamPositionUsesOrcaChoicesAndAppliesOnlyAfterConfirmation` sowie `NativeSliceDeviceTest#perObjectSeamPositionOverridePersistsAndChangesNativeSlice` bestanden (je 1/1). Der native Lauf weist nach, dass nur das ausgewählte Objekt `back` erhält, der Geschwisterwert aus dem Profil stammt, beide Werte den 3MF-Rundlauf überleben und die echten extrudierenden Wandpfade im G-Code wechseln. ARM64 Native-/Instrumentierungs-APK-Kompilierung erfolgreich. Ein erster Fixturelauf verwendete den alten Orca-Wert `rear`; die Enumprüfung lehnte ihn korrekt ab. Nach Umstellung auf den aktuellen Orca-Schemawert `back` bestand der Test.
+
+Batch 8: **9/10**. Noch ein eigenständiger Produktpunkt und gebündelte Regression bis zum APK-/Nightly-Release-Gate.
+
+## Nightly Batch 8 — Punkt 8/10 verifiziert (2026-11-02)
+
+### Bauteilbezogene obere und untere Oberflächenmuster
+
+Ergänzt die fehlenden Orca-`top_surface_pattern`- und `bottom_surface_pattern`-Overrides in den bestehenden Modell-/Bauteil-Einstellungsdialogen. Die Auswahllisten stammen aus dem nativen Profil-Schema und unterstützen Profilvererbung; die Werte werden erst mit „Übernehmen“ angewendet. Die native Schnittkonfiguration erhält die Overrides pro Bauteil.
+
+Verifikation auf API 36: `ModelObjectProcessOverridesComposeDeviceTest` **8/8**; `NativeSliceDeviceTest#perPartProcessOverridesRemainIsolatedAcrossThreeMfAndNativeSlice` **1/1**. Der Native-Test prüft unabhängige Werte für zwei Bauteile, 3MF-Export und erneuten Import, Vererbung beim jeweils anderen Bauteil sowie tatsächliche obere und untere Extrusionspfade im erzeugten G-Code. `:app:assembleSliceTestAndroidTest` und `git diff --check` erfolgreich. Dies ist Emulator-/Instrumentierungsverifikation, kein physischer Druckertest.
+
+Batch 8: **8/10**. Kein APK-/Nightly-Release vor 10/10 und gebündelter Regression. Nächster Schritt: einen weiteren eigenständigen, Android-erreichbaren Orca-Funktionspunkt auswählen und mit Verhaltenstest nachweisen.
+
 ## Nightly Batch 8 — Punkt 7/10 verifiziert (2026-11-02)
 
 7. Objektbezogener Support-Typ ergänzt. Das Modellmenü bietet die im geladenen Orca-Schema definierten Supportstrategien samt Profilvererbung an; die Auswahl wird bis zur Bestätigung lokal gehalten. `Model` erlaubt `support_type` nur als Objekt-Override, nicht als Teil-Override.

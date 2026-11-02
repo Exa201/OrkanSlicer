@@ -208,6 +208,10 @@
     <string name="ModelObjectProcessInfillDensity">Sparse infill density (0–100%)</string>
     <string name="ModelObjectProcessTopLayers">Top shell layers (0–50)</string>
     <string name="ModelObjectProcessInfillPattern">Sparse infill pattern</string>
+    <string name="ModelObjectProcessTopSurfacePattern">Top surface pattern</string>
+    <string name="ModelObjectProcessBottomSurfacePattern">Bottom surface pattern</string>
+    <string name="ModelObjectProcessSeamPosition">Seam position for this object</string>
+    <string name="ModelObjectProcessRaftLayers">Raft layers for this object (0–20)</string>
     <string name="ModelObjectProcessInheritPattern">Use profile default</string>
     <string name="ModelObjectProcessSupport">Support generation</string>
     <string name="ModelObjectProcessSupportEnabled">Enabled</string>

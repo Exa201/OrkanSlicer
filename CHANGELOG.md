@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.427 — Nightly 2.5 experimental — 2026-11-02
+
+- Add per-object Orca `seam_position` and `raft_layers` process overrides with schema-backed seam choices, confirmation, and 3MF persistence. Native slicing tests verify object isolation and changed G-code paths/support output.
+- Validate Catan archive arrangement on API 36: all 109 STL models are inside bed bounds across 60 plates; 139 same-plate pairs are collision-free. This arrangement test is separate from the feature batch.
+- Batch 8 reached 10/10. Debug and Slice JVM suites each passed 738/738; the focused per-object settings Compose instrumentation passed 10/10; native seam and raft slice tests each passed 1/1; the Settlers archive arrangement instrumentation passed 1/1. No physical printer test is claimed.
+- This is a selective Orca 2.5 Android backport, not a full upstream engine replacement. APK is debug-signed and ARM64-only.
+
 ## 0.8.422 — Nightly 2.5 experimental — 2026-11-01
 
 - Orca match-mode filament assignment now uses filament preset IDs as a tie-breaker after rounded color distance, preferring the same subtype when colors are effectively equal while keeping color similarity primary.
@@ -1095,4 +1102,3 @@ This fork includes the earlier OrcaMobile/SliceBeam Kotlin UI migration, model a
 
 - Debug- und Slice-Unit-Suiten: 586/586 bestanden. Vollständige Honor-Instrumentierung: 237 Tests, keine Fehler oder Überspringungen; KromaCut-Fixture separat 3/3 bestanden.
 - Finaler Code-Commit `ba7c1b85ee33a909a7857fca42ad6a18ce735b3a`; Debug-APK `app/build/outputs/apk/debug/OrkanSlicer_ba7c1b85ee.apk` (239,126,049 Bytes, SHA-256 `90964E8769D99BE1FD1B7A41086250AE338CFAB143298E45881B915D20E5042A`). Auf Honor PTP-N49 installiert und gestartet.
-

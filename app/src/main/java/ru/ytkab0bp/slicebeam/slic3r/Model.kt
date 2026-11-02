@@ -823,8 +823,11 @@ open class Model private constructor(@JvmField var pointer: Long) {
     companion object {
         // These PrintRegionConfig keys are applied consistently to each printable model-part volume.
         // Keep the first mobile editor focused on high-value, unambiguous controls.
-        private val PART_OVERRIDE_KEYS = setOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern")
-        private val OBJECT_OVERRIDE_KEYS = PART_OVERRIDE_KEYS + setOf("enable_support", "support_type")
+        private val PART_OVERRIDE_KEYS = setOf(
+            "wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern",
+            "top_surface_pattern", "bottom_surface_pattern",
+        )
+        private val OBJECT_OVERRIDE_KEYS = PART_OVERRIDE_KEYS + setOf("enable_support", "support_type", "seam_position", "raft_layers")
 
         private fun readModelPointer(
             path: String,

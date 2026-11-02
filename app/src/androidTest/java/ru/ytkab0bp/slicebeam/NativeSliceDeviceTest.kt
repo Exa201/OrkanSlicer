@@ -598,9 +598,14 @@ class NativeSliceDeviceTest {
         process.put("initial_layer_print_height", "0.2")
         process.put("sparse_infill_density", "25%")
         process.put("sparse_infill_pattern", "grid")
+        process.put("top_shell_layers", "3")
+        process.put("bottom_shell_layers", "3")
+        process.put("top_surface_pattern", "monotonicline")
+        process.put("bottom_surface_pattern", "monotonic")
         process.put("infill_wall_overlap", "0")
         var model: Model? = null
         var restored: Model? = null
+        var surfaceRestored: Model? = null
         fun sparseInfillMoves(current: Model): Int {
             SliceBeam.genCurrentConfig(current)
             output.delete()
@@ -630,6 +635,28 @@ class NativeSliceDeviceTest {
                         moves += line.substringBefore(';').trim()
                 }
                 return moves
+            } finally { result.release() }
+        }
+        fun surfaceToolpaths(current: Model): Map<String, List<String>> {
+            SliceBeam.genCurrentConfig(current)
+            output.delete()
+            val result = current.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                val roles = setOf("Top surface", "Bottom surface")
+                val paths = roles.associateWith { mutableListOf<String>() }
+                var activeRole: String? = null
+                val extrusion = Regex("(?:^|\\s)E(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))")
+                output.forEachLine { line ->
+                    if (line.startsWith(";TYPE:")) {
+                        val type = line.removePrefix(";TYPE:").trim()
+                        activeRole = type.takeIf { it in roles }
+                    } else if (activeRole != null && line.startsWith("G1 ") &&
+                        (line.contains(" X") || line.contains(" Y")) &&
+                        (extrusion.find(line)?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0) > 0.0) {
+                        paths.getValue(requireNotNull(activeRole)).add(line.substringBefore(';').trim())
+                    }
+                }
+                return paths.mapValues { it.value.toList() }
             } finally { result.release() }
         }
         try {
@@ -698,6 +725,31 @@ class NativeSliceDeviceTest {
                 patternRestored.release()
             }
 
+            val inheritedSurfacePaths = surfaceToolpaths(restored)
+            assertTrue("both parts should produce top and bottom surface extrusion paths",
+                inheritedSurfacePaths.getValue("Top surface").isNotEmpty() &&
+                    inheritedSurfacePaths.getValue("Bottom surface").isNotEmpty())
+            assertEquals("only part 0 receives the top surface pattern", 1,
+                restored.setObjectPartConfigOptions(0, 0, mapOf("top_surface_pattern" to "concentric")))
+            assertEquals("only part 1 receives the bottom surface pattern", 1,
+                restored.setObjectPartConfigOptions(0, 1, mapOf("bottom_surface_pattern" to "hilbertcurve")))
+            assertEquals("concentric", restored.getObjectPartConfigOption(0, 0, "top_surface_pattern"))
+            assertEquals(null, restored.getObjectPartConfigOption(0, 1, "top_surface_pattern"))
+            assertEquals("hilbertcurve", restored.getObjectPartConfigOption(0, 1, "bottom_surface_pattern"))
+            assertEquals(null, restored.getObjectPartConfigOption(0, 0, "bottom_surface_pattern"))
+            SliceBeam.genCurrentConfig(restored)
+            restored.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            surfaceRestored = Model(project).also { it.ensureOnBed(0) }
+            assertEquals("concentric", surfaceRestored.getObjectPartConfigOption(0, 0, "top_surface_pattern"))
+            assertEquals(null, surfaceRestored.getObjectPartConfigOption(0, 1, "top_surface_pattern"))
+            assertEquals("hilbertcurve", surfaceRestored.getObjectPartConfigOption(0, 1, "bottom_surface_pattern"))
+            assertEquals(null, surfaceRestored.getObjectPartConfigOption(0, 0, "bottom_surface_pattern"))
+            val overriddenSurfacePaths = surfaceToolpaths(surfaceRestored)
+            assertNotEquals("per-part top surface pattern must change real sliced paths",
+                inheritedSurfacePaths.getValue("Top surface"), overriddenSurfacePaths.getValue("Top surface"))
+            assertNotEquals("per-part bottom surface pattern must change real sliced paths",
+                inheritedSurfacePaths.getValue("Bottom surface"), overriddenSurfacePaths.getValue("Bottom surface"))
+
             assertEquals(1, restored.setObjectPartConfigOptions(0, 0, mapOf(
                 "wall_loops" to "", "sparse_infill_density" to "", "top_shell_layers" to "", "sparse_infill_pattern" to "",
             )))
@@ -705,8 +757,106 @@ class NativeSliceDeviceTest {
             assertEquals(null, restored.getObjectPartConfigOption(0, 1, "wall_loops"))
             assertEquals(baseline, sparseInfillMoves(restored))
         } finally {
-            restored?.release(); model?.release()
+            surfaceRestored?.release(); restored?.release(); model?.release()
             source.delete(); project.delete(); output.delete(); SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun perObjectSeamPositionOverridePersistsAndChangesNativeSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = createThinCubeFixture("object-seam-position.stl", 20.0, 20.0, 12.0)
+        val project = File(context.cacheDir, "object-seam-position.3mf")
+        val output = File(context.cacheDir, "object-seam-position.gcode")
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("seam_position", "aligned")
+        var model: Model? = null
+        var restored: Model? = null
+        fun perimeterMoves(current: Model): List<String> {
+            SliceBeam.genCurrentConfig(current)
+            output.delete()
+            val result = current.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                val moves = mutableListOf<String>()
+                val extrusion = Regex("(?:^|\\s)E(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))")
+                var perimeter = false
+                output.forEachLine { line ->
+                    if (line.startsWith(";TYPE:")) {
+                        perimeter = line.removePrefix(";TYPE:").trim() in setOf("Outer wall", "Inner wall", "Overhang wall")
+                    } else if (perimeter && line.startsWith("G1 ") && (line.contains(" X") || line.contains(" Y")) &&
+                        (extrusion.find(line)?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0) > 0.0) {
+                        moves += line.substringBefore(';').trim()
+                    }
+                }
+                return moves
+            } finally { result.release() }
+        }
+        try {
+            model = Model(source).also { it.ensureOnBed(0); it.addObject(it, 0); it.translate(1, 25.0, 0.0, 0.0) }
+            assertEquals(2, model.objectsCount)
+            val aligned = perimeterMoves(model)
+            assertTrue("the fixture should emit perimeter paths", aligned.isNotEmpty())
+
+            assertEquals(1, model.setObjectConfigOptions(0, mapOf("seam_position" to "back")))
+            assertEquals("back", model.getObjectConfigOption(0, "seam_position"))
+            assertEquals("the sibling object should inherit the process profile", null,
+                model.getObjectConfigOption(1, "seam_position"))
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            restored = Model(project).also { it.ensureOnBed(0) }
+            assertEquals("back", restored.getObjectConfigOption(0, "seam_position"))
+            assertEquals("the sibling should remain unmodified after the 3MF round trip", null,
+                restored.getObjectConfigOption(1, "seam_position"))
+            val rear = perimeterMoves(restored)
+            assertTrue("the object-specific seam choice must change real perimeter G-code",
+                rear.isNotEmpty() && rear != aligned)
+        } finally {
+            restored?.release(); model?.release(); source.delete(); project.delete(); output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun perObjectRaftLayerOverridePersistsAndProducesRaftGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = createThinCubeFixture("object-raft-layers.stl", 20.0, 20.0, 12.0)
+        val project = File(context.cacheDir, "object-raft-layers.3mf")
+        val output = File(context.cacheDir, "object-raft-layers.gcode")
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("layer_height", "0.2")
+        process.put("initial_layer_print_height", "0.2")
+        process.put("raft_layers", "0")
+        var model: Model? = null
+        var restored: Model? = null
+        fun sliceText(current: Model): String {
+            SliceBeam.genCurrentConfig(current)
+            output.delete()
+            val result = current.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try { return output.readText() } finally { result.release() }
+        }
+        try {
+            model = Model(source).also { it.ensureOnBed(0); it.addObject(it, 0); it.translate(1, 25.0, 0.0, 0.0) }
+            assertEquals(2, model.objectsCount)
+            val baseline = sliceText(model)
+            assertFalse("the zero-raft profile baseline should not emit support or raft paths", baseline.contains(";TYPE:Support"))
+            assertEquals(1, model.setObjectConfigOptions(0, mapOf("raft_layers" to "2")))
+            assertEquals("2", model.getObjectConfigOption(0, "raft_layers"))
+            assertEquals("sibling object should inherit the zero-layer profile", null,
+                model.getObjectConfigOption(1, "raft_layers"))
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            restored = Model(project).also { it.ensureOnBed(0) }
+            assertEquals("2", restored.getObjectConfigOption(0, "raft_layers"))
+            assertEquals(null, restored.getObjectConfigOption(1, "raft_layers"))
+
+            val raftGcode = sliceText(restored)
+            assertTrue("the selected object's nonzero raft override must generate support/raft extrusion paths",
+                raftGcode.contains(";TYPE:Support") && raftGcode != baseline)
+        } finally {
+            restored?.release(); model?.release(); source.delete(); project.delete(); output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
         }
     }
 
