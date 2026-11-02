@@ -935,8 +935,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // (which would unnecessarily split fill batching).
                 // Stored on SurfaceFillParams; copied to FillParams during conversion.
                 params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized;
-                // Smoothing is intentionally limited to Hilbert Curve sparse infill.
-                params.smooth_factor = params.extrusion_role == erInternalInfill && params.pattern == ipHilbertCurve
+                // Keep the setting scoped to sparse infill patterns with a supported continuous path generator.
+                params.smooth_factor = params.extrusion_role == erInternalInfill &&
+                    (params.pattern == ipHilbertCurve || params.pattern == ipOctagramSpiral)
                     ? 0.01 * region_config.sparse_infill_smooth_factor.value : 0.;
 
                 if (params.extrusion_role == erInternalInfill) {

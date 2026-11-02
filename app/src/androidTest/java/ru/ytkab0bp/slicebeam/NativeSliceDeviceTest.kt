@@ -260,21 +260,21 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 120_000)
-    fun hilbertSparseInfillSmoothFactorChangesOnlySparseInfillToolpaths() = withKobraProfile {
+    fun supportedSparseInfillSmoothingChangesOnlyHilbertAndOctagramToolpaths() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
-        val source = createThinCubeFixture("hilbert-smooth-factor.stl", 20.0, 20.0, 12.0)
-        val output = File(context.cacheDir, "hilbert-smooth-factor.gcode")
+        val source = createThinCubeFixture("sparse-infill-smooth-factor.stl", 20.0, 20.0, 12.0)
+        val output = File(context.cacheDir, "sparse-infill-smooth-factor.gcode")
         val model = Model(source).also { it.ensureOnBed(0) }
         try {
-            process.put("sparse_infill_pattern", "hilbertcurve")
             process.put("sparse_infill_density", "25")
             process.put("wall_loops", "2")
             process.put("top_shell_layers", "3")
             process.put("bottom_shell_layers", "3")
             process.put("resolution", "0.005")
 
-            fun featureMoves(smoothPercent: Int): Map<String, List<String>> {
+            fun featureMoves(pattern: String, smoothPercent: Int): Map<String, List<String>> {
+                process.put("sparse_infill_pattern", pattern)
                 process.put("sparse_infill_smooth_factor", smoothPercent.toString())
                 SliceBeam.genCurrentConfig(model)
                 val config = SliceBeam.getCurrentConfigFile()
@@ -302,15 +302,21 @@ class NativeSliceDeviceTest {
                 }
             }
 
-            val sharp = featureMoves(0)
-            val smooth = featureMoves(100)
-            assertTrue("Both Hilbert slices must contain sparse infill", (sharp["Sparse infill"]?.size ?: 0) > 0)
-            assertTrue("Smoothing must change the real sliced Hilbert toolpath", sharp["Sparse infill"] != smooth["Sparse infill"])
-            assertTrue("Smooth corners should add flattened path segments",
-                (smooth["Sparse infill"]?.size ?: 0) > (sharp["Sparse infill"]?.size ?: 0))
-            for (feature in listOf("Outer wall", "Inner wall", "Top surface", "Bottom surface"))
-                assertEquals("Smoothing is scoped to sparse infill; $feature must remain unchanged",
-                    sharp[feature], smooth[feature])
+            for (pattern in listOf("hilbertcurve", "octagramspiral")) {
+                val sharp = featureMoves(pattern, 0)
+                val smooth = featureMoves(pattern, 100)
+                assertTrue("Both $pattern slices must contain sparse infill", (sharp["Sparse infill"]?.size ?: 0) > 0)
+                assertTrue("Smoothing must change the real sliced $pattern toolpath", sharp["Sparse infill"] != smooth["Sparse infill"])
+                assertTrue("Smooth corners should add flattened path segments for $pattern",
+                    (smooth["Sparse infill"]?.size ?: 0) > (sharp["Sparse infill"]?.size ?: 0))
+                for (feature in listOf("Outer wall", "Inner wall", "Top surface", "Bottom surface"))
+                    assertEquals("Smoothing is scoped to sparse infill; $feature must remain unchanged for $pattern",
+                        sharp[feature], smooth[feature])
+            }
+            val gridSharp = featureMoves("grid", 0)
+            val gridConfigured = featureMoves("grid", 100)
+            assertTrue("The control Grid slices must contain sparse infill", (gridSharp["Sparse infill"]?.size ?: 0) > 0)
+            assertEquals("Unsupported patterns must ignore the smoothing option", gridSharp, gridConfigured)
         } finally {
             model.release()
             source.delete()

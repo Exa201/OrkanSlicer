@@ -859,6 +859,8 @@ add_library(slic3r
         src/main/jni/libslic3r/Fill/FillConcentric.hpp
         src/main/jni/libslic3r/Fill/FillConcentricInternal.cpp
         src/main/jni/libslic3r/Fill/FillConcentricInternal.hpp
+        src/main/jni/libslic3r/Fill/FillCornerSmoothing.cpp
+        src/main/jni/libslic3r/Fill/FillCornerSmoothing.hpp
         src/main/jni/libslic3r/Fill/Fill.cpp
         src/main/jni/libslic3r/Fill/FillCrossHatch.cpp
         src/main/jni/libslic3r/Fill/FillCrossHatch.hpp

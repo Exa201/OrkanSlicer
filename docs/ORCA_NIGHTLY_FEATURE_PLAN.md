@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 8 — 3/10 verifiziert (2026-11-02)
+
+### Punkt 3/10 — Orca-Eckenglättung auf Hilbert- und Octagram-Sparse-Infill
+
+Portiert Orcas gleichmäßig abgewinkelte, auf die G-Code-Auflösung abgeflachte Corner-Smoothing-Routine (`9b37da699b`). Die vorhandene Einstellung `sparse_infill_smooth_factor` wirkt jetzt zusätzlich zu Hilbert Curve auch auf Octagram Spiral. Glättung erfolgt vor dem Clipping; andere Muster bleiben unverändert. Die bestehende Einstellung und Profilserialisierung werden weiterverwendet.
+
+`NativeSliceDeviceTest#supportedSparseInfillSmoothingChangesOnlyHilbertAndOctagramToolpaths` bestand auf API 36 (1/1): echte 0-%-/100-%-Slices zeigen geänderte Sparse-Infill-Züge und zusätzliche Kurvensegmente für beide Muster; Außen-/Innenwände und obere/untere Flächen bleiben unverändert. Grid dient als Negativkontrolle und bleibt unverändert. `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: je 738/738, keine Fehler/Skips. ARM64-Native-/SliceTest-/Instrumentierungsbuilds erfolgreich; Profilrouten-Audit: 497/497 sichtbare Settings zu nativer Definition und Profilparser aufgelöst; `git diff --check` sauber. Kein Distributionsbuild/Release.
+
+Batch 8: **3/10**. Noch sieben unabhängig verifizierte Orca-Funktionspunkte bis zum APK-/Nightly-Release-Gate.
+
 ## Nightly Batch 8 — 2/10 verifiziert (2026-11-02)
 
 ### Punkt 2/10 — Maßhaltige Orca-Grundkörper direkt auf der Platte erzeugen
@@ -8,7 +18,7 @@ Der Modell-Menüpunkt „Grundkörper hinzufügen“ adaptiert Orcas Primitive-D
 
 `PrimitiveModelDialogDeviceTest`: 2/2 auf API 36 (Form-/Maßrückgabe und Torus-Selbstüberschneidungsvalidierung). `NativeSliceDeviceTest#orcaPrimitiveModelsHaveExpectedBoundsAndProduceExtrusion`: 1/1 auf API 36; alle sieben Formen geprüft, je einschließlich Dreiecks-/Bounding-Box-Prüfung, 3MF-Export und -Reload sowie echtem G-Code-Slice mit Extrusion. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich. Kein Hardwaredruck und keine Distribution-APK.
 
-Batch 8: **2/10**. Noch acht getrennte, app-relevante Orca-Funktionspunkte und ihre fokussierten Verifikationen bis zum APK-/Nightly-Release-Gate.
+Batch 8: **2/10** zu diesem Zwischenstand. Noch acht getrennte, app-relevante Orca-Funktionspunkte und ihre fokussierten Verifikationen bis zum APK-/Nightly-Release-Gate.
 
 ## Nightly Batch 8 — 1/10 verifiziert (2026-11-02)
 

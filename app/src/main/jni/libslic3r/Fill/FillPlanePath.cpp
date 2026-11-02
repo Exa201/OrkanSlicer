@@ -1,12 +1,13 @@
 #include <algorithm>
-#include <array>
 #include <cmath>
+#include <type_traits>
 
 #include "../ClipperUtils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 
 #include "FillPlanePath.hpp"
+#include "FillCornerSmoothing.hpp"
 
 namespace Slic3r {
 
@@ -279,117 +280,55 @@ void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coo
 }
 
 namespace {
-using HilbertCorner = std::array<Vec2d, 6>;
-
-bool hilbertBezierFlat(const HilbertCorner &curve, double deviation)
-{
-    const Vec2d chord = curve.back() - curve.front();
-    const double maxCrossSquared = deviation * deviation * chord.squaredNorm();
-    for (size_t i = 1; i + 1 < curve.size(); ++i) {
-        const Vec2d offset = curve[i] - curve.front();
-        const double cross = chord.x() * offset.y() - chord.y() * offset.x();
-        if (cross * cross > maxCrossSquared) return false;
-    }
-    return true;
-}
-
-void subdivideHilbertBezier(const HilbertCorner &curve, HilbertCorner &left, HilbertCorner &right)
-{
-    HilbertCorner work = curve;
-    left.front() = work.front();
-    right.back() = work.back();
-    for (size_t level = 1; level < curve.size(); ++level) {
-        for (size_t i = 0; i + level < curve.size(); ++i)
-            work[i] = 0.5 * (work[i] + work[i + 1]);
-        left[level] = work.front();
-        right[curve.size() - level - 1] = work[curve.size() - level - 1];
-    }
-}
-
-std::vector<Vec2d> flattenHilbertCorner(const HilbertCorner &curve, double deviation)
-{
-    constexpr size_t maxDepth = 16;
-    std::vector<HilbertCorner> segments(2);
-    subdivideHilbertBezier(curve, segments[0], segments[1]);
-    for (size_t depth = 1; depth < maxDepth; ++depth) {
-        const bool flat = std::all_of(segments.begin(), segments.end(), [deviation](const auto &segment) {
-            return hilbertBezierFlat(segment, deviation);
-        });
-        if (flat) break;
-        std::vector<HilbertCorner> finer(segments.size() * 2);
-        for (size_t i = 0; i < segments.size(); ++i)
-            subdivideHilbertBezier(segments[i], finer[i * 2], finer[i * 2 + 1]);
-        segments = std::move(finer);
-    }
-    std::vector<Vec2d> points;
-    points.reserve(segments.size());
-    for (const auto &segment : segments) points.push_back(segment.back());
-    return points;
-}
-
+// Round generated paths before they are clipped to the fill region.
 template<typename Output>
-void generateSmoothedHilbert(coord_t minX, coord_t minY, coord_t maxX, coord_t maxY,
-                             double resolution, double reach, Output &output)
-{
-    size_t size = 2;
-    const size_t required = std::max(maxX + 1 - minX, maxY + 1 - minY);
-    while (size < required) size <<= 1;
-    const size_t count = size * size;
-    output.reserve(count);
-
-    const double tolerance = resolution > 0. && std::isfinite(resolution) ? resolution : EPSILON;
-    const HilbertCorner corner{{ {-reach, 0.}, {-0.7 * reach, 0.}, {-0.4 * reach, 0.},
-                                  {0., 0.4 * reach}, {0., 0.7 * reach}, {0., reach} }};
-    const auto curve = flattenHilbertCorner(corner, tolerance);
-    auto pointAt = [minX, minY](size_t index) {
-        const Point point = hilbert_n_to_xy(index);
-        return Vec2d(double(point.x() + minX), double(point.y() + minY));
-    };
-    bool hasLast = false;
-    Vec2d last;
-    auto emit = [&output, &hasLast, &last](const Vec2d &point) {
-        if (!hasLast || point.x() != last.x() || point.y() != last.y()) {
-            output.add_point(point);
-            last = point;
-            hasLast = true;
-        }
-    };
-
-    Vec2d previous = pointAt(0);
-    Vec2d cornerPoint = pointAt(1);
-    emit(previous);
-    for (size_t i = 1; i + 1 < count; ++i) {
-        const Vec2d next = pointAt(i + 1);
-        const Vec2d incoming = (cornerPoint - previous).normalized();
-        const Vec2d outgoing = (next - cornerPoint).normalized();
-        const double cross = incoming.x() * outgoing.y() - incoming.y() * outgoing.x();
-        if (std::abs(cross) < EPSILON) {
-            emit(cornerPoint);
-        } else {
-            emit(cornerPoint - reach * incoming);
-            for (const Vec2d &coefficient : curve)
-                emit(cornerPoint + coefficient.x() * incoming + coefficient.y() * outgoing);
-        }
-        previous = cornerPoint;
-        cornerPoint = next;
+class SmoothingPolylineOutput {
+public:
+    SmoothingPolylineOutput(Output &output, const CornerSmoothing &smoothing)
+        : m_output(output), m_smoother(smoothing) {}
+    void reserve(size_t n) { m_output.reserve(n); }
+    void add_point(const Vec2d &pt) { auto emit = emitter(); m_smoother.push(pt, emit); }
+    void finish() { auto emit = emitter(); m_smoother.flush(emit); }
+private:
+    auto emitter() {
+        return [this](const Vec2d &pt) {
+            const Point snapped = m_output.scaled(pt);
+            if (m_has_last_snapped && snapped == m_last_snapped) return;
+            m_last_snapped = snapped;
+            m_has_last_snapped = true;
+            m_output.add_point(pt);
+        };
     }
-    emit(cornerPoint);
+    Output &m_output;
+    CornerSmoother m_smoother;
+    Point m_last_snapped { Point::Zero() };
+    bool m_has_last_snapped { false };
+};
+
+template<typename GenerateFn>
+static void generate_smoothed_path(InfillPolylineOutput &output, const FillParams &params,
+                                   const double resolution, GenerateFn generate)
+{
+    const CornerSmoothing smoothing{ params.smooth_factor, resolution };
+    auto run = [&smoothing, &generate](auto &out) {
+        if (sanitize_smooth_factor(smoothing.factor) == 0.) generate(out);
+        else {
+            SmoothingPolylineOutput<std::remove_reference_t<decltype(out)>> smoother(out, smoothing);
+            generate(smoother);
+            smoother.finish();
+        }
+    };
+    if (output.clips()) run(static_cast<InfillPolylineClipper &>(output));
+    else run(output);
 }
 } // namespace
 
 void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y,
                                 const double resolution, const FillParams &params, InfillPolylineOutput &output)
 {
-    const double factor = std::isfinite(params.smooth_factor) ? std::clamp(params.smooth_factor, 0., 1.) : 0.;
-    if (factor == 0.) {
-        generate(min_x, min_y, max_x, max_y, resolution, output);
-        return;
-    }
-    if (output.clips())
-        generateSmoothedHilbert(min_x, min_y, max_x, max_y, resolution, 0.5 * factor,
-                                static_cast<InfillPolylineClipper &>(output));
-    else
-        generateSmoothedHilbert(min_x, min_y, max_x, max_y, resolution, 0.5 * factor, output);
+    generate_smoothed_path(output, params, resolution, [min_x, min_y, max_x, max_y](auto &out) {
+        generate_hilbert_curve(min_x, min_y, max_x, max_y, out);
+    });
 }
 
 template<typename Output>
@@ -430,6 +369,14 @@ void FillOctagramSpiral::generate(coord_t min_x, coord_t min_y, coord_t max_x, c
         generate_octagram_spiral(min_x, min_y, max_x, max_y, static_cast<InfillPolylineClipper&>(output));
     else
         generate_octagram_spiral(min_x, min_y, max_x, max_y, output);
+}
+
+void FillOctagramSpiral::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y,
+                                  const double resolution, const FillParams &params, InfillPolylineOutput &output)
+{
+    generate_smoothed_path(output, params, resolution, [min_x, min_y, max_x, max_y](auto &out) {
+        generate_octagram_spiral(min_x, min_y, max_x, max_y, out);
+    });
 }
 
 } // namespace Slic3r

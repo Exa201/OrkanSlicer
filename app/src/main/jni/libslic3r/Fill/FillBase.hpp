@@ -82,7 +82,7 @@ struct FillParams
     // For Gyroid: when true, use the parameterized "optimized" variant.
     bool        gyroid_optimized { false };
 
-    // Orca: corner smoothing factor for Hilbert Curve sparse infill, in [0, 1].
+    // Orca: corner smoothing factor for supported sparse infill patterns, in [0, 1].
     double      smooth_factor { 0. };
 
     // For Lateral lattice

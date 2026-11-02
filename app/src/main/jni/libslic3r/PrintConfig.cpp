@@ -3086,7 +3086,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_smooth_factor", coPercent);
     def->label = L("Sparse infill smooth factor");
     def->category = L("Strength");
-    def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original path; 100% gives the largest curves. Currently applies only to Hilbert Curve.");
+    def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original path; 100% gives the largest curves. Applies to Hilbert Curve and Octagram Spiral.");
     def->sidetext = "%";
     def->min = 0;
     def->max = 100;
