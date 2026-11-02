@@ -6131,6 +6131,53 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 120_000)
+    fun spiralVaseByObjectAllowsSeparateSingleFilamentObjects() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.20mm Standard"))
+        process.put("spiral_mode", "1")
+        process.put("print_sequence", "by object")
+        process.put("top_shell_layers", "0")
+        process.put("bottom_shell_layers", "1")
+
+        val source = copyCube(context, "spiral-vase-by-object-source.stl")
+        val output = File(context.cacheDir, "spiral-vase-by-object.gcode")
+        val configFile = SliceBeam.getCurrentConfigFile()
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        try {
+            model = Model(source).also {
+                it.ensureOnBed(0)
+                it.addObject(it, 0)
+                it.translate(1, 100.0, 0.0, 0.0)
+                it.ensureOnBed(1)
+                it.setUniformFilament(0, 1)
+                it.setUniformFilament(1, 2)
+            }
+            assertEquals("the fixture must contain two independent objects", 2, model.objectsCount)
+            assertEquals("each object must have exactly one filament", listOf(1), model.getUsedFilaments(0).toList())
+            assertEquals("each object must have exactly one filament", listOf(2), model.getUsedFilaments(1).toList())
+
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = configFile.readText()
+            assertTrue("vase mode must stay enabled", generatedConfig.contains("spiral_mode = 1"))
+            assertTrue("multiple vase objects must use sequential printing", generatedConfig.contains("print_sequence = by object"))
+            result = model.slice(configFile.absolutePath, output.absolutePath, null)
+            val gcode = output.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the first object's tool must be present in G-code", Regex("(?m)^T0(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the second object's tool must be present in G-code", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            Log.i("NativeSliceDeviceTest", "PASS by-object spiral vase with one filament per object")
+        } finally {
+            result?.release()
+            model?.release()
+            source.delete()
+            output.delete()
+            configFile.delete()
+        }
+    }
+
+    @Test(timeout = 120_000)
     fun zShrinkageCompensationKeepsHeightRangeAlignedAfterPrintConfigChanges() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val source = copyCube(context, "z-shrinkage-height-range-source.stl")
