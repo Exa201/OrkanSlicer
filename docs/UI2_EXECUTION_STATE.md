@@ -2,10 +2,13 @@
 
 ## Release-Gate-Stand — Nightly 0.8.426 (Code 461)
 
-- Batch 7 umfasst zehn Punkte. Punkt 8 (Back/Escape) wurde zuvor 1/1 auf API 36 bestanden; Z-Schrumpfung (Punkt 9) und Spiralvase mit gleichfarbigem Höhenbereich-Override (Punkt 10) wurden im gezielten API-36-Lauf zusammen 2/2 bestanden.
-- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: beide vollständig erfolgreich; je 737 Tests, 0 Fehler, 0 Übersprungene.
-- `:app:assembleDebug`: erfolgreich. Ein anschließender vollständiger SliceTest-Instrumentierungslauf startete 553 Tests; bei Test 1/553 fiel der alte Changelog-Versionsassert, und der Lauf wurde bei 8/553 kontrolliert abgebrochen. Ursache: Release-Notiz nannte 0.8.420, der Build 0.8.425. Changelog-Text und Assertion wurden auf Nightly 0.8.426 aktualisiert; Release-Build und gezielte Geräteprüfungen folgen.
-- Es wurde in diesem Lauf kein PR oder Release aktualisiert. Aktueller Quellcode-HEAD bleibt `85cefe7626c8548492766737c02c3b34f5dff8e4`; Arbeitsbaum enthält bestehende Nightly-Änderungen. Kein Xiaomi-Test.
+- Batch 7 umfasst zehn verifizierte Punkte. Back/Escape der Profilfiltersuche, Z-Schrumpfung mit Höhenbereichen und Spiralvase mit gleichfarbigem Höhenbereich-Override sind jeweils auf API 36 geprüft.
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: beide vollständig erfolgreich; je 737 Tests, 0 Fehler, 0 übersprungene.
+- Vier gezielte API-36-Instrumentierungstests bestanden 4/4: Release-Notizen/Android-Zurück, Profilfiltersuche/Zurück+Escape, Z-Schrumpfung und Spiralvase. Changelog-Text wurde von veraltetem 0.8.420 auf Nightly 0.8.426 aktualisiert. Der Back-Test nutzt den Activity-BackDispatcher; der Dialog hat zusätzlich einen expliziten Compose-BackHandler.
+- Vollständiger Instrumentierungslauf: 553 Tests erkannt, nach 8 begonnenen Tests kontrolliert abgebrochen. Ein alter Changelog-Versionsassert war der erste Fehler; er ist behoben und der gezielte Test ist grün. Der restliche Vollauf bleibt offen und wird nicht als bestanden gewertet.
+- Debug-APK: `OrkanSlicerNightly25_600351b8dd.apk`, 240,064,706 Bytes, SHA-256 `A26895F67CC3535A981AA249AD0AFCDC77DB9EF78018F3E52DA15875CE83A02C`. Paket `com.exa201.orkanslicer.nightly25`, Version 0.8.426 / Code 461. Auf API-36-Emulator installiert und gestartet; erfasster Logcat ohne Crash, ANR, Fatal-Signal oder OOM.
+- Code-Commit: `600351b8ddafcd30a39d89064147bce13a4b5837`, auf `nightly25/nightly-2.5` gepusht. Physischer Xiaomi-Test nicht verfügbar. Nightly-Release folgt beziehungsweise wird unten verlinkt.
+- GitHub-Prerelease veröffentlicht: [v0.8.426-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.426-nightly.1). APK-Asset `OrkanSlicer-Nightly-2.5-v0.8.426.apk`; Release-Tag zeigt auf den getesteten Code-Commit `600351b8ddafcd30a39d89064147bce13a4b5837`.
 
 ## Punkt 9/10 — Z-Schrumpfung skaliert Höhenbereiche konsistent
 
@@ -16,7 +19,7 @@
 
 - Orca `2a8abac43d`: die Materialprüfung soll gleichfarbige, filament-neutrale Höhenbereich-Overrides nicht als Mehrmaterialkonflikt werten. Android-Produktlogik war bereits passend; Regressionstest ergänzt.
 - `NativeSliceDeviceTest#spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode`: API 36, echter G-Code-Slice, 1/1 bestanden. Dieser Nachweis ersetzt den früheren Fixture-Vorbehalt.
-- Nächster Schritt: gezielten Satz aus Changelog, Back/Escape, Z-Schrumpfung und Spiralvase erneut auf API 36 ausführen; danach Release-APK installieren/starten, SHA-256 erfassen, Änderungen scoped committen/pushen und Nightly-Release veröffentlichen.
+- Release-APK, Hash und gezielte Geräteverifikation sind unter „Release-Gate-Stand“ dokumentiert. Nächster Schritt: Nightly-Batch 8 mit zehn neuen Android-relevanten Orca-Punkten beginnen. Der ausgelassene Rest der 553-Test-Instrumentierung und der Xiaomi-Gerätetest bleiben als offene Verifikation sichtbar.
 
 ## Punkt 8/10 — Android-Back/Escape schließt die Profilfiltersuche
 

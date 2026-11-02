@@ -2,7 +2,7 @@
 
 ## Nightly Batch 7 — 10/10 (2026-11-02)
 
-Der Batch hat das Verifikations-Gate erreicht. Zwei aktuelle JVM-Suites sind vollständig grün; der vollständige 553-Test-Instrumentierungslauf wurde nach einem veralteten Changelog-Assert gestoppt. Dieser Fehler wird mit dem 0.8.426-Kandidaten gezielt nachgeprüft. APK-/Release-Freigabe folgt erst nach diesem gezielten Instrumentierungssatz.
+Der Batch hat das 10/10-Gate erreicht. `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden mit je 737/737 Tests. Vier gezielte API-36-Instrumentierungstests (Changelog/Back, Profilfiltersuche/Back+Escape, Z-Schrumpfung und Spiralvase) bestanden 4/4. Der 553-Test-Vollauf wurde nach 8 Tests kontrolliert abgebrochen: der alte Changelog-Text zeigte 0.8.420 statt der Build-Version; Text und Back-Behandlung wurden behoben und der Test danach gezielt bestanden. Nightly 0.8.426 wurde gebaut und auf dem AVD gestartet. Prerelease: [v0.8.426-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.426-nightly.1). Der Vollauf und ein physischer Xiaomi-Test bleiben offen.
 
 ### Punkt 8 — Android-Back/Escape schließt die Profilfiltersuche
 
