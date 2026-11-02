@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 8 — 1/10 verifiziert (2026-11-02)
+
+### Punkt 1/10 — Druckbettrand an Elephant-Foot-Kompensation anpassen
+
+Die Orca-Nativeinstellung `brim_use_efc_outline` war im mobilen Prozesskatalog nicht erreichbar, obwohl der Android-Native-Kern die Funktion bereits unterstützt. Sie ist jetzt in „Skirt and brim → Brim“ im Prozessprofil-Editor sichtbar und bleibt eine Experteneinstellung. Der Native-Kern nutzt die kompensierte Erstschichtkontur nur, wenn die Option aktiv ist, Elephant-Foot-Kompensation und deren Layerzahl größer null sind und kein Raft verwendet wird.
+
+`OrcaProcessSettingsCatalogTest#compensatedOutlineBrimControlIsExposedInBrimSection`: Teil der Klasse mit 11/11 erfolgreichen Tests. `scripts/check_profile_setting_routes.py`: 497 sichtbare Settings auf native Definitionen und passende Profilparser aufgelöst, 107 Gruppennamen eindeutig. `NativeSliceDeviceTest#brimCanFollowElephantFootCompensatedFirstLayerOutline` bestand auf Android API 36 (1/1): derselbe 20-mm-Würfel wurde mit 0,6-mm Elephant-Foot-Kompensation jeweils mit deaktivierter und aktivierter Einstellung gesliced; beide G-Codes enthalten Brim-Extrusion und die XY-Brim-Pfade unterscheiden sich. SliceTest- und Instrumentierungs-APK wurden gebaut und auf dem Emulator installiert. Kein physischer Drucktest.
+
+Batch 8 steht bei **1/10**. Keine Distribution-APK oder Nightly-Veröffentlichung bis zehn neue Produktänderungen unabhängig verifiziert sind.
+
 ## Nightly Batch 7 — 10/10 (2026-11-02)
 
 Der Batch hat das 10/10-Gate erreicht. `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest` bestanden mit je 737/737 Tests. Vier gezielte API-36-Instrumentierungstests (Changelog/Back, Profilfiltersuche/Back+Escape, Z-Schrumpfung und Spiralvase) bestanden 4/4. Der 553-Test-Vollauf wurde nach 8 Tests kontrolliert abgebrochen: der alte Changelog-Text zeigte 0.8.420 statt der Build-Version; Text und Back-Behandlung wurden behoben und der Test danach gezielt bestanden. Nightly 0.8.426 wurde gebaut und auf dem AVD gestartet. Prerelease: [v0.8.426-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.426-nightly.1). Der Vollauf und ein physischer Xiaomi-Test bleiben offen.

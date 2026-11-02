@@ -47,7 +47,7 @@ object OrcaProcessSettingsCatalog {
         OrcaSettingsCategory(
             "Skirt and brim", R.drawable.print_skirt_28, listOf(
                 section("Skirt", "skirt_loops", "skirt_distance", "skirt_height", "skirt_type", "skirt_speed", "skirt_start_angle", "draft_shield", "single_loop_draft_shield", "min_skirt_length"),
-                section("Brim", "brim_type", "brim_width", "brim_object_gap", "brim_ears", "brim_ears_max_angle", "brim_ears_detection_length", "combine_brims", "brim_flow_ratio"),
+                section("Brim", "brim_type", "brim_width", "brim_object_gap", "brim_use_efc_outline", "brim_ears", "brim_ears_max_angle", "brim_ears_detection_length", "combine_brims", "brim_flow_ratio"),
             ),
         ),
         OrcaSettingsCategory(

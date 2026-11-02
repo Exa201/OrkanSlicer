@@ -1361,6 +1361,76 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun brimCanFollowElephantFootCompensatedFirstLayerOutline() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        val modelFile = createThinCubeFixture("efc-aware-brim.stl", 20.0, 20.0, 5.0)
+        val model = Model(modelFile)
+        val output = File(context.cacheDir, "efc-aware-brim.gcode")
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            process.put("brim_type", "outer_only")
+            process.put("brim_width", "6")
+            process.put("brim_object_gap", "0")
+            process.put("skirt_loops", "0")
+            process.put("elefant_foot_compensation", "0.6")
+            process.put("elefant_foot_compensation_layers", "1")
+            process.put("support_on_build_plate_only", "0")
+
+            fun sliceWithBrimUsesCompensatedOutline(enabled: Boolean): List<String> {
+                process.put("brim_use_efc_outline", if (enabled) "1" else "0")
+                SliceBeam.genCurrentConfig(model)
+                val configFile = SliceBeam.getCurrentConfigFile()
+                val configText = configFile.readText()
+                assertTrue("brim outline control must reach the native slice config",
+                    Regex("(?m)^brim_use_efc_outline\\s*=\\s*${if (enabled) 1 else 0}\\s*$").containsMatchIn(configText))
+                output.delete()
+                result = model.slice(configFile.absolutePath, output.absolutePath, null)
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                val brimSegments = mutableListOf<String>()
+                var inBrim = false
+                var x: String? = null
+                var y: String? = null
+                val axis = Regex("(?:^|\\s)([XY])(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))(?=\\s|$)")
+                for (line in gcode.lineSequence()) {
+                    if (line.startsWith(";TYPE:", ignoreCase = true)) {
+                        inBrim = line.contains("brim", ignoreCase = true)
+                        continue
+                    }
+                    if (!line.startsWith("G0 ") && !line.startsWith("G1 ")) continue
+                    val clean = line.substringBefore(';')
+                    val axes = axis.findAll(clean).associate { it.groupValues[1] to it.groupValues[2] }
+                    val nextX = axes["X"] ?: x
+                    val nextY = axes["Y"] ?: y
+                    if (inBrim && clean.contains(" E") && nextX != null && nextY != null)
+                        brimSegments += "$nextX,$nextY"
+                    x = nextX
+                    y = nextY
+                }
+                assertTrue("the cube must produce brim extrusion", brimSegments.isNotEmpty())
+                result?.release()
+                result = null
+                configFile.delete()
+                return brimSegments
+            }
+
+            val rawOutlineBrim = sliceWithBrimUsesCompensatedOutline(false)
+            val compensatedOutlineBrim = sliceWithBrimUsesCompensatedOutline(true)
+            assertFalse("the brim toolpath must follow the post-EFC outline when enabled",
+                rawOutlineBrim == compensatedOutlineBrim)
+            Log.i("NativeSliceDeviceTest", "PASS EFC-aware brim emitted distinct first-layer brim paths")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun treeSupportClearanceIncreasesMinimumGapToSteppedModelCrossSection() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)

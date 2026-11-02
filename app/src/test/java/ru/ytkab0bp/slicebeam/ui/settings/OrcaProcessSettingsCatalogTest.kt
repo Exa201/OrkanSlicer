@@ -176,4 +176,15 @@ class OrcaProcessSettingsCatalogTest {
         )))
         assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
     }
+
+    @Test
+    fun compensatedOutlineBrimControlIsExposedInBrimSection() {
+        val brim = OrcaProcessSettingsCatalog.categories()
+            .single { it.title == "Skirt and brim" }
+            .sections.single { it.title == "Brim" }
+
+        assertTrue("Orca's EFC-aware brim option must be available with other brim controls",
+            "brim_use_efc_outline" in brim.keys)
+        assertTrue(OrcaProcessSettingsCatalog.hasUniqueProcessKeys())
+    }
 }

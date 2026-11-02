@@ -1,10 +1,21 @@
-# Nightly continuation — Settlers archive arrangement regression — 2026-11-02
+# Nightly continuation — Settlers archive + Orca Batch 8 — 2026-11-02
 
+- Follow-up packing experiment: increasing `MAX_PROJECTION_FACETS` from 1,000 to 5,000 caused a reproducible native SIGSEGV during the Catan archive instrumented test in Clipper `ProcessHorizontal` (`union_ex` from `ModelObject::arrange_footprint_2d`). The experiment was reverted; production remains at the 1,000-facet guard. The safe 1,000-facet implementation previously passed the full archive test. Do not raise this cap without making projection/union safe for the problematic meshes and rerunning the full fixture.
+- Rebuilt the reverted 1,000-facet SliceTest APK and reinstalled both app and instrumentation APK on API 36 (`emulator-5554`). The earlier 60-plate run is superseded by the latest packing test: the same attached 109-model Settlers archive now passes on 30 plates, with 318 same-plate pairs free of mesh intersections (1/1, 211.318 s). Every model remained within bed bounds and on the build surface. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` succeeded. This is a SliceTest APK, not a distribution APK; no Nightly release was created.
+- Full JVM regressions after the arrangement fix passed: `:app:testDebugUnitTest` 737/737 and `:app:testSliceTestUnitTest` 737/737, with 0 failures, errors, or skips. `git diff --check` is clean.
+- Refreshed `orcaslicer-upstream/main` on 2026-11-02; HEAD is `d9f6b69506129a8d1cfab54cd88b227d9f6f3bee`. Recent changes were checked against the Android source. Preference dialog tab reorganization, desktop preset-cache use, belt-printer height changes, clone tooltip, LAN printer persistence, and desktop post-processing retry have no corresponding live Android path or are already covered by Nightly behavior. The upstream feature-filament default semantics (`304924a69a`) and per-printer MMU persistence (`913c622574`) already have Nightly runtime coverage and must not be counted again.
 - Added an API-36 device regression for all 109 STL files in the supplied Settlers of Catan archive. The production import path placed all 109 inside printable bed bounds across 60 plates; all 139 pairs sharing a plate passed native mesh-intersection checks.
 - The fixture exposed a false-success case where the native arranger returned an out-of-bed placement. Imports now arrange against a staging model and commit only after exact 3D bounds validation; rejected placements are retried on overflow plates without mutating the existing plate.
 - A 50,000-facet projection experiment crashed Clipper `ProcessHorizontal` at `obj_24_Settlement_1.stl`. It was reverted to the 1,000-facet safety cap; the full archive test then passed again. Conservative hull fallback can use extra plates, so 60 plates is a known packing-efficiency limitation.
 - `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` succeeded; `git diff --check` is clean. No production APK/release was created. The Catan fix and test remain local pending the next grouped Nightly batch.
 - Nightly Batch 7 remains 10/10 and published as `v0.8.426-nightly.1`. Next: start Batch 8 by auditing fresh Orca upstream commits for app-reachable gaps and defining ten separately testable items.
+
+## Nightly Batch 8 — Punkt 1/10 verifiziert — 2026-11-02
+
+- Die Orca-Kernoption `brim_use_efc_outline` war im Android-Prozesskatalog nicht sichtbar. Sie ist nun unter „Skirt and brim → Brim“ verfügbar; die vorhandene native Konfigurationsserialisierung bleibt unverändert.
+- `OrcaProcessSettingsCatalogTest`: 11/11. `scripts/check_profile_setting_routes.py`: 497 sichtbare Einstellungen auf native Definition und Profilparser aufgelöst, eindeutige Gruppennamen. ARM64-SliceTest- und Instrumentierungs-APKs erfolgreich gebaut.
+- `NativeSliceDeviceTest#brimCanFollowElephantFootCompensatedFirstLayerOutline`: 1/1 auf API 36. Derselbe 20-mm-Würfel wurde mit/ohne Option und 0,6-mm Elephant-Foot-Kompensation gesliced; beide Ausgaben enthalten Brim-Extrusion und die Brim-Werkzeugpfade unterscheiden sich. Kein physischer Drucktest.
+- Batch 8 steht bei 1/10. Keine Distribution-APK oder Veröffentlichung vor 10/10; nächster Schritt ist ein weiterer Orca-Punkt mit Android-Laufzeitpfad und eigenständigem Effekt-/Regressionstest.
 
 # Nightly Orca Batch 7 — 10/10 Feature-Punkte verifiziert; Release-Kandidat wird geprüft — 2026-11-02
 
