@@ -497,7 +497,7 @@ internal class ModelMenuItems(
             val objectIndex = snapshot.primaryObject
             if (objectIndex !in 0 until model.objectsCount) return@queueEvent
             val revision = model.stateRevision
-            val values = listOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern")
+            val values = listOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern", "enable_support")
                 .associateWith { model.getObjectConfigOption(objectIndex, it).orEmpty() }
             val name = model.getObjectName(objectIndex)
                 ?: anchor.context.getString(R.string.MenuFileObjectNumber, objectIndex + 1)

@@ -42,10 +42,31 @@ class ModelObjectProcessOverridesComposeDeviceTest {
         assertEquals(
             mapOf(
                 "wall_loops" to "2", "sparse_infill_density" to "35%", "top_shell_layers" to "3",
-                "sparse_infill_pattern" to "",
+                "sparse_infill_pattern" to "", "enable_support" to "",
             ),
             applied,
         )
+    }
+
+    @Test fun objectSupportOverrideHasInheritEnableAndDisableStates() {
+        var applied: Map<String, String>? = null
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectProcessOverridesDialog(
+                    objectName = "Object A",
+                    initialValues = emptyMap(),
+                    patternOptions = listOf("grid" to "Grid", "gyroid" to "Gyroid"),
+                    onDismiss = {},
+                    onApply = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("model-object-process-support").performClick()
+        compose.onNodeWithTag("model-object-process-support-1").performClick()
+        assertEquals(null, applied)
+        compose.onNodeWithTag("model-object-process-settings-apply").performClick()
+        assertEquals("1", applied?.get("enable_support"))
     }
 
     @Test fun infillPatternUsesOrcaChoicesAndAppliesOnlyAfterConfirmation() {

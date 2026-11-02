@@ -77,6 +77,7 @@ internal fun ModelObjectProcessOverridesDialog(
     objectName: String,
     initialValues: Map<String, String>,
     patternOptions: List<Pair<String, String>> = emptyList(),
+    includeObjectSupport: Boolean = true,
     scopeHint: Int = R.string.ModelObjectProcessSettingsHint,
     onDismiss: () -> Unit,
     onApply: (Map<String, String>) -> Unit,
@@ -89,15 +90,17 @@ internal fun ModelObjectProcessOverridesDialog(
             .mapIndexedNotNull { index, key -> index.takeIf { initialValues[key] == "<mixed>" } }
             .toSet()
     }
-    val values = remember(initialValues) {
+    val values = remember(initialValues, includeObjectSupport) {
         mutableStateListOf(
             initialValues["wall_loops"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
             initialValues["sparse_infill_density"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty().removeSuffix("%"),
             initialValues["top_shell_layers"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
             initialValues["sparse_infill_pattern"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
+            if (includeObjectSupport) initialValues["enable_support"].orEmpty() else "",
         )
     }
     var patternExpanded by remember { mutableStateOf(false) }
+    var supportExpanded by remember { mutableStateOf(false) }
     val wallLoops = values[0].trim().toIntOrNull()
     val density = values[1].trim().replace(',', '.').toDoubleOrNull()
     val topLayers = values[2].trim().toIntOrNull()
@@ -105,7 +108,8 @@ internal fun ModelObjectProcessOverridesDialog(
         (values[1].isBlank() || density != null && density.isFinite() && density in 0.0..100.0) &&
         (values[2].isBlank() || topLayers != null && topLayers in 0..50) &&
         (values[3].isBlank() || availablePatternOptions.any { it.first == values[3] } ||
-            initialValues["sparse_infill_pattern"] == values[3])
+            initialValues["sparse_infill_pattern"] == values[3]) &&
+        (values[4].isBlank() || values[4] == "0" || values[4] == "1")
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ModelObjectProcessSettingsTitle, objectName)) },
@@ -122,6 +126,36 @@ internal fun ModelObjectProcessOverridesDialog(
                     R.string.ModelObjectProcessInfillPattern,
                 )
                 values.indices.forEach { index ->
+                    if (index == 4) {
+                        if (!includeObjectSupport) return@forEach
+                        val supportLabel = when (values[index]) {
+                            "1" -> stringResource(R.string.ModelObjectProcessSupportEnabled)
+                            "0" -> stringResource(R.string.ModelObjectProcessSupportDisabled)
+                            else -> stringResource(R.string.ModelObjectProcessInheritPattern)
+                        }
+                        Box {
+                            TextButton(
+                                onClick = { supportExpanded = true },
+                                modifier = Modifier.fillMaxWidth().testTag("model-object-process-support"),
+                            ) {
+                                Text("${stringResource(R.string.ModelObjectProcessSupport)}: $supportLabel")
+                            }
+                            DropdownMenu(expanded = supportExpanded, onDismissRequest = { supportExpanded = false }) {
+                                listOf(
+                                    "" to R.string.ModelObjectProcessInheritPattern,
+                                    "1" to R.string.ModelObjectProcessSupportEnabled,
+                                    "0" to R.string.ModelObjectProcessSupportDisabled,
+                                ).forEach { (value, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(label)) },
+                                        onClick = { values[index] = value; supportExpanded = false },
+                                        modifier = Modifier.testTag("model-object-process-support-$value"),
+                                    )
+                                }
+                            }
+                        }
+                        return@forEach
+                    }
                     if (index == 3) {
                         val selectedLabel = if (values[index].isBlank()) {
                             stringResource(R.string.ModelObjectProcessInheritPattern)
@@ -133,7 +167,7 @@ internal fun ModelObjectProcessOverridesDialog(
                                 onClick = { patternExpanded = true },
                                 modifier = Modifier.fillMaxWidth().testTag("model-object-process-setting-3"),
                             ) {
-                                Text("${stringResource(labels[index])}: $selectedLabel")
+                        Text("${stringResource(labels[index])}: $selectedLabel")
                             }
                             DropdownMenu(expanded = patternExpanded, onDismissRequest = { patternExpanded = false }) {
                                 DropdownMenuItem(
@@ -191,14 +225,14 @@ internal fun ModelObjectProcessOverridesDialog(
                 enabled = valid,
                 onClick = {
                     val densityValue = values[1].trim().replace(',', '.')
-                    onApply(
-                        mapOf(
+                    val overrides = linkedMapOf(
                             "wall_loops" to (wallLoops?.toString().orEmpty()),
                             "sparse_infill_density" to if (densityValue.isEmpty()) "" else "$densityValue%",
                             "top_shell_layers" to (topLayers?.toString().orEmpty()),
                             "sparse_infill_pattern" to values[3],
-                        ),
-                    )
+                        )
+                    if (includeObjectSupport) overrides["enable_support"] = values[4]
+                    onApply(overrides)
                 },
                 modifier = Modifier.heightIn(min = 48.dp).testTag("model-object-process-settings-apply"),
             ) { Text(stringResource(R.string.ModelObjectProcessSettingsApply)) }

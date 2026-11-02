@@ -355,6 +355,7 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     ModelObjectProcessOverridesDialog(
                         objectName = name,
                         initialValues = values,
+                        includeObjectSupport = false,
                         scopeHint = R.string.ModelObjectPartProcessSettingsHint,
                         onDismiss = dismiss,
                         onApply = { overrides ->

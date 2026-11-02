@@ -2079,12 +2079,17 @@ ModelVolumeType type_from_string(const std::string &s)
             "modifier"
         };
 
+        PrintObjectConfig object_config;
+        const auto& object_process_keys = object_config.keys_ref();
+        const bool is_known_object_process_option = type == OBJECT_TYPE &&
+            std::find(object_process_keys.begin(), object_process_keys.end(), key) != object_process_keys.end();
+
         PrintRegionConfig region_config;
         const auto& volume_process_keys = region_config.keys_ref();
         const bool is_known_volume_process_option = type == VOLUME_TYPE &&
             std::find(volume_process_keys.begin(), volume_process_keys.end(), key) != volume_process_keys.end();
         auto itor = std::find(valid_keys.begin(), valid_keys.end(), key);
-        if (itor == valid_keys.end() && !is_known_volume_process_option) {
+        if (itor == valid_keys.end() && !is_known_object_process_option && !is_known_volume_process_option) {
             // do nothing if not valid keys
             return true;
         }

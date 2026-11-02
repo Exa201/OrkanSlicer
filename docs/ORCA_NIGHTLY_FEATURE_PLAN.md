@@ -1,5 +1,11 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 8 — Punkt 6/10 verifiziert (2026-11-02)
+
+Objektoptionen aus nativen Orca-3MF-Projekten werden nun auch durch den klassischen 3MF-Importer übernommen. Dieser ließ zuvor nur eine feste Liste generischer Metadaten durch und verwarf gültige `PrintObjectConfig`-Optionen. Der Modell-/Werkzeugdialog unterstützt zusätzlich die Support-Erzeugung pro Objekt mit den Zuständen Profil übernehmen, ein und aus; `enable_support` bleibt auf Objektebene und kann nicht versehentlich als Einzelteil-Option gespeichert werden.
+
+Verifikation: `NativeSliceDeviceTest#supportOverrideIsIsolatedPerObjectAndChangesThreeMfSlice` bestand 1/1 auf API 36, einschließlich exportierter `model_settings.config`, 3MF-Rundlauf und G-Code-Nachweis: ein Objekt erzeugt Support, das Geschwisterobjekt übernimmt das deaktivierte Profil, nach Aktivierung beider Objekte erzeugen beide Support. `ModelObjectProcessOverridesComposeDeviceTest` bestand 6/6; der bestehende native Einzelteil-Override-Test bestand 1/1. ARM64-Native-Build und `git diff --check` erfolgreich. Batch 8 steht bei 6/10; kein APK/Release vor 10/10.
+
 ## Nightly Batch 8 — 5/10 verifiziert (2026-11-02)
 
 ### Punkt 5/10 — Einzelteil-Füllmuster aus Orca-Profilen überschreiben

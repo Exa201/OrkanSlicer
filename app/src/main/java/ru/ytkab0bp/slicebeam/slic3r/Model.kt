@@ -245,13 +245,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
 
     /** Returns a serialized process override on one printable object part, or null to inherit. */
     open fun getObjectPartConfigOption(objectIndex: Int, partIndex: Int, key: String): String? =
-        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex) || key !in OBJECT_OVERRIDE_KEYS) null
+        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex) || key !in PART_OVERRIDE_KEYS) null
         else Native.model_get_object_part_config_option(pointer, objectIndex, partIndex, key)
 
     /** Atomically applies or clears process overrides on one printable object part. */
     open fun setObjectPartConfigOptions(objectIndex: Int, partIndex: Int, values: Map<String, String>): Int {
         if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex) ||
-            values.isEmpty() || values.keys.any { it !in OBJECT_OVERRIDE_KEYS }) return -1
+            values.isEmpty() || values.keys.any { it !in PART_OVERRIDE_KEYS }) return -1
         val current = values.keys.associateWith { getObjectPartConfigOption(objectIndex, partIndex, it).orEmpty() }
         if (current == values) return 0
         val serialized = values.values.toTypedArray()
@@ -823,9 +823,8 @@ open class Model private constructor(@JvmField var pointer: Long) {
     companion object {
         // These PrintRegionConfig keys are applied consistently to each printable model-part volume.
         // Keep the first mobile editor focused on high-value, unambiguous controls.
-        private val OBJECT_OVERRIDE_KEYS = setOf(
-            "wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern",
-        )
+        private val PART_OVERRIDE_KEYS = setOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern")
+        private val OBJECT_OVERRIDE_KEYS = PART_OVERRIDE_KEYS + "enable_support"
 
         private fun readModelPointer(
             path: String,

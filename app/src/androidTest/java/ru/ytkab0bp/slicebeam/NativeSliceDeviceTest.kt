@@ -452,7 +452,7 @@ class NativeSliceDeviceTest {
                 archive.getInputStream(entry).bufferedReader().use { it.readText() }
             }
             assertTrue("The exported 3MF must persist wall-loop overrides on its model volumes", modelConfigXml.contains("key=\"wall_loops\""))
-            restored = Model(project).also { it.ensureOnBed(0) }
+            restored = Model(project)
             assertEquals("1", restored.getObjectConfigOption(objectIndex, "wall_loops"))
             assertEquals("0%", restored.getObjectConfigOption(objectIndex, "sparse_infill_density"))
             assertEquals("1", restored.getObjectConfigOption(objectIndex, "top_shell_layers"))
@@ -474,6 +474,78 @@ class NativeSliceDeviceTest {
             project.delete()
             output.delete()
             SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun supportOverrideIsIsolatedPerObjectAndChangesThreeMfSlice() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("enable_support", "0")
+        process.put("support_type", "tree(auto)")
+        process.put("support_on_build_plate_only", "1")
+        val source = createSteppedOverhangFixture("object-support-override.stl")
+        val project = File(context.cacheDir, "object-support-override.3mf")
+        val output = File(context.cacheDir, "object-support-override.gcode")
+        var model: Model? = null
+        var restored: Model? = null
+
+        fun objectCenters(current: Model): List<Pair<Double, Double>> = (0 until current.objectsCount).map { index ->
+            val min = Vec3d()
+            val max = Vec3d()
+            current.getBoundingBoxExact(index, min, max)
+            (min.x + max.x) / 2.0 to (min.y + max.y) / 2.0
+        }
+        fun supportPaths(current: Model): List<GCodePathSegment> {
+            SliceBeam.genCurrentConfig(current)
+            output.delete()
+            val result = current.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                return supportExtrusionSegments(gcode)
+            } finally { result.release() }
+        }
+        fun hasSupportNear(paths: List<GCodePathSegment>, center: Pair<Double, Double>): Boolean = paths.any { path ->
+            kotlin.math.hypot((path.x0 + path.x1) / 2.0 - center.first, (path.y0 + path.y1) / 2.0 - center.second) < 18.0
+        }
+
+        try {
+            model = Model(source).also { it.ensureOnBed(0); it.addObject(it, 0); it.translate(1, 50.0, 0.0, 0.0); it.ensureOnBed(1) }
+            assertEquals(2, model.objectsCount)
+            val centers = objectCenters(model)
+            assertEquals(1, model.setObjectConfigOptions(0, mapOf("enable_support" to "1")))
+            assertEquals("1", model.getObjectConfigOption(0, "enable_support"))
+            assertEquals("the other object must keep inheriting the profile", null,
+                model.getObjectConfigOption(1, "enable_support"))
+            assertEquals("support is an object setting, not a printable-part setting", -1,
+                model.setObjectPartConfigOptions(0, 0, mapOf("enable_support" to "1")))
+
+            SliceBeam.genCurrentConfig(model)
+            model.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            val (modelConfigName, modelConfigXml) = ZipFile(project).use { zip ->
+                val entry = zip.entries().asSequence().firstOrNull { it.name.endsWith("model_settings.config", ignoreCase = true) }
+                    ?: zip.entries().asSequence().firstOrNull { it.name.endsWith("Slic3r_PE_model.config", ignoreCase = true) }
+                entry?.name.orEmpty() to entry?.let { zip.getInputStream(it).bufferedReader().use { reader -> reader.readText() } }.orEmpty()
+            }
+            restored = Model(project)
+            assertEquals("enable_support override should be written to the model config '$modelConfigName': $modelConfigXml", true,
+                modelConfigXml.contains("key=\"enable_support\" value=\"1\""))
+            assertEquals("round-trip object configs: " + (0 until restored.objectsCount).map { restored.getObjectName(it) to restored.getObjectConfigOption(it, "enable_support") },
+                "1", restored.getObjectConfigOption(0, "enable_support"))
+            assertEquals(null, restored.getObjectConfigOption(1, "enable_support"))
+            val restoredCenters = objectCenters(restored)
+            val firstSupport = supportPaths(restored)
+            assertTrue("the selected overhang object must emit support G-code", hasSupportNear(firstSupport, restoredCenters[0]))
+            assertFalse("the profile-disabled sibling must not emit support G-code", hasSupportNear(firstSupport, restoredCenters[1]))
+
+            assertEquals(1, restored.setObjectConfigOptions(1, mapOf("enable_support" to "1")))
+            val bothSupports = supportPaths(restored)
+            assertTrue("the sibling can be enabled independently", hasSupportNear(bothSupports, restoredCenters[0]) &&
+                hasSupportNear(bothSupports, restoredCenters[1]))
+        } finally {
+            restored?.release(); model?.release()
+            source.delete(); project.delete(); output.delete(); SliceBeam.getCurrentConfigFile().delete()
         }
     }
 
