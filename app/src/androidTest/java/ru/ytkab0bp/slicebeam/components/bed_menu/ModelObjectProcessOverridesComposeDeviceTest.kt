@@ -27,6 +27,7 @@ class ModelObjectProcessOverridesComposeDeviceTest {
                 ModelObjectProcessOverridesDialog(
                     objectName = "Part A",
                     initialValues = emptyMap(),
+                    patternOptions = listOf("grid" to "Grid", "gyroid" to "Gyroid"),
                     onDismiss = {},
                     onApply = { applied = it },
                 )
@@ -39,9 +40,33 @@ class ModelObjectProcessOverridesComposeDeviceTest {
         assertEquals(null, applied)
         compose.onNodeWithTag("model-object-process-settings-apply").assertIsEnabled().performClick()
         assertEquals(
-            mapOf("wall_loops" to "2", "sparse_infill_density" to "35%", "top_shell_layers" to "3"),
+            mapOf(
+                "wall_loops" to "2", "sparse_infill_density" to "35%", "top_shell_layers" to "3",
+                "sparse_infill_pattern" to "",
+            ),
             applied,
         )
+    }
+
+    @Test fun infillPatternUsesOrcaChoicesAndAppliesOnlyAfterConfirmation() {
+        var applied: Map<String, String>? = null
+        compose.setContent {
+            MaterialTheme {
+                ModelObjectProcessOverridesDialog(
+                    objectName = "Part A",
+                    initialValues = emptyMap(),
+                    patternOptions = listOf("grid" to "Grid", "gyroid" to "Gyroid"),
+                    onDismiss = {},
+                    onApply = { applied = it },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("model-object-process-setting-3").performClick()
+        compose.onNodeWithTag("model-object-process-pattern-gyroid").performClick()
+        assertEquals(null, applied)
+        compose.onNodeWithTag("model-object-process-settings-apply").performClick()
+        assertEquals("gyroid", applied?.get("sparse_infill_pattern"))
     }
 
     @Test fun invalidValuesBlockSavingAndMixedPartsAreIdentified() {

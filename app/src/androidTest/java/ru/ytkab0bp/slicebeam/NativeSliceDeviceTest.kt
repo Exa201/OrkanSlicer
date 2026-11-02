@@ -9,6 +9,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -486,6 +487,7 @@ class NativeSliceDeviceTest {
         process.put("layer_height", "0.2")
         process.put("initial_layer_print_height", "0.2")
         process.put("sparse_infill_density", "25%")
+        process.put("sparse_infill_pattern", "grid")
         process.put("infill_wall_overlap", "0")
         var model: Model? = null
         var restored: Model? = null
@@ -503,6 +505,21 @@ class NativeSliceDeviceTest {
                         count++
                 }
                 return count
+            } finally { result.release() }
+        }
+        fun sparseInfillToolpaths(current: Model): List<String> {
+            SliceBeam.genCurrentConfig(current)
+            output.delete()
+            val result = current.slice(SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null)
+            try {
+                val moves = mutableListOf<String>()
+                val extrusion = Regex("(?:^|\\s)E(-?\\d+(?:\\.\\d+)?)")
+                output.forEachLine { line ->
+                    if (line.startsWith("G1 ") && (line.contains(" X") || line.contains(" Y")) &&
+                        (extrusion.find(line)?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0) > 0.0)
+                        moves += line.substringBefore(';').trim()
+                }
+                return moves
             } finally { result.release() }
         }
         try {
@@ -537,8 +554,42 @@ class NativeSliceDeviceTest {
             assertTrue("the one-part zero-density override must change actual slice paths; baseline=$baseline edited=$edited",
                 edited < baseline)
 
+            assertEquals("Clear the earlier density test before comparing infill paths", 1,
+                restored.setObjectPartConfigOptions(0, 0, mapOf(
+                    "wall_loops" to "", "sparse_infill_density" to "", "top_shell_layers" to "",
+                )))
+            assertEquals("1 patterned part and 1 inherited part", 1,
+                restored.setObjectPartConfigOptions(0, 0, mapOf("sparse_infill_pattern" to "gyroid")))
+            assertEquals("gyroid", restored.getObjectPartConfigOption(0, 0, "sparse_infill_pattern"))
+            assertEquals(null, restored.getObjectPartConfigOption(0, 1, "sparse_infill_pattern"))
+            SliceBeam.genCurrentConfig(restored)
+            restored.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, project.absolutePath)
+            val patternConfigXml = ZipFile(project).use { archive ->
+                val entry = archive.getEntry("Metadata/Slic3r_PE_model.config")
+                assertNotNull(entry)
+                archive.getInputStream(entry).bufferedReader().use { it.readText() }
+            }
+            assertTrue("3MF must retain the per-part Orca infill-pattern enum",
+                patternConfigXml.contains("key=\"sparse_infill_pattern\"") && patternConfigXml.contains("gyroid"))
+            val patternRestored = Model(project).also { it.ensureOnBed(0) }
+            try {
+                assertEquals("gyroid", patternRestored.getObjectPartConfigOption(0, 0, "sparse_infill_pattern"))
+                assertEquals(null, patternRestored.getObjectPartConfigOption(0, 1, "sparse_infill_pattern"))
+                val gridToolpaths = sparseInfillToolpaths(patternRestored.apply {
+                    setObjectPartConfigOptions(0, 0, mapOf("sparse_infill_pattern" to ""))
+                })
+                val gyroidToolpaths = sparseInfillToolpaths(patternRestored.apply {
+                    setObjectPartConfigOptions(0, 0, mapOf("sparse_infill_pattern" to "gyroid"))
+                })
+                assertTrue("Both patterns should generate actual extruding G-code", gridToolpaths.isNotEmpty() && gyroidToolpaths.isNotEmpty())
+                assertNotEquals("The selected part's infill pattern must change real G-code toolpaths",
+                    gridToolpaths, gyroidToolpaths)
+            } finally {
+                patternRestored.release()
+            }
+
             assertEquals(1, restored.setObjectPartConfigOptions(0, 0, mapOf(
-                "wall_loops" to "", "sparse_infill_density" to "", "top_shell_layers" to "",
+                "wall_loops" to "", "sparse_infill_density" to "", "top_shell_layers" to "", "sparse_infill_pattern" to "",
             )))
             assertEquals(null, restored.getObjectPartConfigOption(0, 0, "wall_loops"))
             assertEquals(null, restored.getObjectPartConfigOption(0, 1, "wall_loops"))

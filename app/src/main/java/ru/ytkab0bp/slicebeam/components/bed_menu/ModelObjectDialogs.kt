@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -43,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.withFrameNanos
 import ru.ytkab0bp.slicebeam.R
+import ru.ytkab0bp.slicebeam.slic3r.PrintConfigDef
 
 internal data class ModelObjectRow(
     val name: String,
@@ -61,16 +64,28 @@ internal data class ModelObjectPartRow(
     val color: Int,
 )
 
+/** Uses Orca's loaded schema so the editor only offers patterns supported by this bundled core. */
+internal fun modelSparseInfillPatternOptions(): List<Pair<String, String>> = runCatching {
+    val definition = PrintConfigDef.getInstance().options["sparse_infill_pattern"]
+    val values = definition?.enumValues.orEmpty()
+    val labels = definition?.enumLabels.orEmpty()
+    values.mapIndexed { index, value -> value to labels.getOrNull(index).orEmpty().ifBlank { value } }
+}.getOrDefault(emptyList())
+
 @Composable
 internal fun ModelObjectProcessOverridesDialog(
     objectName: String,
     initialValues: Map<String, String>,
+    patternOptions: List<Pair<String, String>> = emptyList(),
     scopeHint: Int = R.string.ModelObjectProcessSettingsHint,
     onDismiss: () -> Unit,
     onApply: (Map<String, String>) -> Unit,
 ) {
+    val availablePatternOptions = remember(patternOptions) {
+        patternOptions.ifEmpty { modelSparseInfillPatternOptions() }
+    }
     val mixedValues = remember(initialValues) {
-        listOf("wall_loops", "sparse_infill_density", "top_shell_layers")
+        listOf("wall_loops", "sparse_infill_density", "top_shell_layers", "sparse_infill_pattern")
             .mapIndexedNotNull { index, key -> index.takeIf { initialValues[key] == "<mixed>" } }
             .toSet()
     }
@@ -79,26 +94,70 @@ internal fun ModelObjectProcessOverridesDialog(
             initialValues["wall_loops"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
             initialValues["sparse_infill_density"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty().removeSuffix("%"),
             initialValues["top_shell_layers"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
+            initialValues["sparse_infill_pattern"].orEmpty().takeUnless { it == "<mixed>" }.orEmpty(),
         )
     }
+    var patternExpanded by remember { mutableStateOf(false) }
     val wallLoops = values[0].trim().toIntOrNull()
     val density = values[1].trim().replace(',', '.').toDoubleOrNull()
     val topLayers = values[2].trim().toIntOrNull()
     val valid = (values[0].isBlank() || wallLoops != null && wallLoops in 1..20) &&
         (values[1].isBlank() || density != null && density.isFinite() && density in 0.0..100.0) &&
-        (values[2].isBlank() || topLayers != null && topLayers in 0..50)
+        (values[2].isBlank() || topLayers != null && topLayers in 0..50) &&
+        (values[3].isBlank() || availablePatternOptions.any { it.first == values[3] } ||
+            initialValues["sparse_infill_pattern"] == values[3])
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ModelObjectProcessSettingsTitle, objectName)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(stringResource(scopeHint))
                 val labels = listOf(
                     R.string.ModelObjectProcessWallLoops,
                     R.string.ModelObjectProcessInfillDensity,
                     R.string.ModelObjectProcessTopLayers,
+                    R.string.ModelObjectProcessInfillPattern,
                 )
                 values.indices.forEach { index ->
+                    if (index == 3) {
+                        val selectedLabel = if (values[index].isBlank()) {
+                            stringResource(R.string.ModelObjectProcessInheritPattern)
+                        } else {
+                            availablePatternOptions.firstOrNull { it.first == values[index] }?.second ?: values[index]
+                        }
+                        Box {
+                            TextButton(
+                                onClick = { patternExpanded = true },
+                                modifier = Modifier.fillMaxWidth().testTag("model-object-process-setting-3"),
+                            ) {
+                                Text("${stringResource(labels[index])}: $selectedLabel")
+                            }
+                            DropdownMenu(expanded = patternExpanded, onDismissRequest = { patternExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.ModelObjectProcessInheritPattern)) },
+                                    onClick = { values[index] = ""; patternExpanded = false },
+                                    modifier = Modifier.testTag("model-object-process-pattern-inherit"),
+                                )
+                                availablePatternOptions.forEach { (value, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = { values[index] = value; patternExpanded = false },
+                                        modifier = Modifier.testTag("model-object-process-pattern-$value"),
+                                    )
+                                }
+                            }
+                        }
+                        if (index in mixedValues) Text(
+                            stringResource(R.string.ModelObjectProcessSettingMixed),
+                            modifier = Modifier.padding(start = 12.dp).testTag("model-object-process-setting-mixed-$index"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        return@forEach
+                    }
                     OutlinedTextField(
                         value = values[index],
                         onValueChange = { input ->
@@ -137,6 +196,7 @@ internal fun ModelObjectProcessOverridesDialog(
                             "wall_loops" to (wallLoops?.toString().orEmpty()),
                             "sparse_infill_density" to if (densityValue.isEmpty()) "" else "$densityValue%",
                             "top_shell_layers" to (topLayers?.toString().orEmpty()),
+                            "sparse_infill_pattern" to values[3],
                         ),
                     )
                 },

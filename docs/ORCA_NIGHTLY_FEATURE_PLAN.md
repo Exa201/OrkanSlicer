@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 8 — 5/10 verifiziert (2026-11-02)
+
+### Punkt 5/10 — Einzelteil-Füllmuster aus Orca-Profilen überschreiben
+
+Die vorhandene Objekt-/Bauteil-Einstellung deckt jetzt zusätzlich Orcas `sparse_infill_pattern` ab. Das Auswahlmenü liest Werte und Anzeigenamen aus der nativen Orca-Konfigurationsdefinition, lässt Profilvererbung zu und schreibt den Override über denselben 3MF-/Undo-fähigen Modellpfad wie die übrigen Einstellungen. Damit kann ein Bauteil innerhalb eines gruppierten Mehrteiler-Objekts ein eigenes Füllmuster erhalten.
+
+API-36: `NativeSliceDeviceTest#perPartProcessOverridesRemainIsolatedAcrossThreeMfAndNativeSlice` bestanden (1/1); Gyroid-Override bleibt nach 3MF-Export/Reload nur auf dem ausgewählten Teil und ändert dessen tatsächliche extrudierende G-Code-Bewegungen gegenüber dem Profilmuster. `ModelObjectProcessOverridesComposeDeviceTest` bestanden (5/5), inklusive Musterwahl, Speichern, ungültiger Eingaben und Abbruch. Kein physischer Drucktest; kein APK/Release bis 10/10.
+
+Batch 8: **5/10**. Noch fünf unabhängig verifizierte Punkte bis zum APK-/Nightly-Release-Gate.
+
 ## Nightly Batch 8 — 4/10 verifiziert (2026-11-02)
 
 ### Punkt 4/10 — Per-Objekt-Düsen-Layergrenzen und Prime-Tower-Kompatibilität
