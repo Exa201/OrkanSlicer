@@ -3107,6 +3107,74 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun importingSinglePlateThreeMfIntoOccupiedWorkspaceArrangesAndAddsOverflowPlate() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val blockerFile = File(activity.cacheDir, "three-mf-overflow-blocker.stl")
+        val projectFile = File(activity.cacheDir, "three-mf-overflow-import.3mf")
+        try {
+            // A bed-sized blocker leaves no clearance for the colored 3MF fixture. This catches
+            // the previous preserve-layout branch, which appended the project at its stored
+            // coordinates without arranging it or creating an overflow plate.
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            val bedSide = minOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y)
+            writeScaledCubeStl(activity, blockerFile, (bedSide * 0.96 / 20.0).toFloat())
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("models/two-color-project.3mf").use { source ->
+                projectFile.outputStream().use(source::copyTo)
+            }
+
+            fun importAndWait(file: File, preserveProjectLayout: Boolean) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+                assertTrue("model import should finish", completed.await(45, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 15_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(blockerFile, preserveProjectLayout = false)
+            val originalBounds = readExactBoundsOnGl(glView, 0).single()
+            importAndWait(projectFile, preserveProjectLayout = true)
+            compose.waitUntil(timeoutMillis = 15_000) {
+                bed.plateCount == 2 && bed.currentPlateIndex == 1
+            }
+
+            val plates = readPlateModels(bed)
+            assertEquals("the existing blocker must remain on plate one", 1, plates[0].objectsCount)
+            assertTrue("the imported 3MF objects must be placed on the overflow plate",
+                plates[1].objectsCount > 0)
+            assertTrue("3MF material assignments must survive the automatic plate move",
+                (0 until plates[1].objectsCount).all { plates[1].getUsedFilaments(it).isNotEmpty() })
+            assertArrayEquals("overflow packing must not move the existing model", originalBounds,
+                readExactBoundsOnGl(glView, plates[0], 0), 0.03)
+            (0 until plates[1].objectsCount).forEach { index ->
+                val bounds = readExactBoundsOnGl(glView, plates[1], index)
+                assertTrue("imported object $index must be inside the new plate",
+                    bounds[0] >= bedMin.x - 0.1 && bounds[1] >= bedMin.y - 0.1 &&
+                        bounds[3] <= bedMax.x + 0.1 && bounds[4] <= bedMax.y + 0.1)
+            }
+        } finally {
+            blockerFile.delete()
+            projectFile.delete()
+        }
+    }
+
+    @Test
     fun importedConcaveModelUsesItsOpenFootprintForAdditionalObjects() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

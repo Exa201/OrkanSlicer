@@ -2605,36 +2605,29 @@ private fun loadModelInternal(
             }
 
             val existing = platesModels.getOrNull(currentPlateIndex)
-            if (preserveProjectLayout) {
-                val selectedModel = existing ?: Model()
-                if (selectedModel.objectsCount > 0) {
-                    val firstNewObject = selectedModel.objectsCount
-                    repeat(imported.objectsCount) { selectedModel.addObject(imported, it) }
-                    imported.release()
-                    selectedModel.resetBoundingBox()
-                    viewport.renderer.model = selectedModel
-                    viewport.renderer.resetGlModels()
-                    onModelImportCommitted()
-                    callback?.onLoaded(selectedModel, firstNewObject, selectedModel.objectsCount - firstNewObject)
-                } else {
-                    if (existing != null && existing !== imported) existing.release()
-                    if (totalPlates > 1) {
-                        val fileBed = DoubleArray(2)
-                        val haveProjectBed = readProjectBedSize(f, fileBed)
-                        val bedW = if (haveProjectBed) fileBed[0] else bed.getVolumeMax()!!.x - bed.getVolumeMin()!!.x
-                        val bedD = if (haveProjectBed) fileBed[1] else bed.getVolumeMax()!!.y - bed.getVolumeMin()!!.y
-                        val origin = DoubleArray(2)
-                        computePlateOrigin(currentPlateIndex, computePlateCols(totalPlates), bedW, bedD, origin)
-                        if (origin[0] != 0.0 || origin[1] != 0.0)
-                            repeat(imported.objectsCount) { imported.translate(it, -origin[0], -origin[1], 0.0) }
-                        imported.resetBoundingBox()
-                    }
-                    platesModels.set(currentPlateIndex, imported)
-                    viewport.renderer.model = imported
-                    viewport.renderer.resetGlModels()
-                    onModelImportCommitted()
-                    callback?.onLoaded(imported, 0, imported.objectsCount)
+            // Keep a newly opened project's stored 3MF coordinates intact. If a project is
+            // imported into an already populated plate, however, it is an additional model
+            // load: run it through the normal packer so objects are placed on the bed and
+            // overflow is moved to automatically created plates instead of preserving stale
+            // coordinates on top of the existing workspace.
+            if (preserveProjectLayout && (existing == null || existing.objectsCount == 0)) {
+                if (existing != null && existing !== imported) existing.release()
+                if (totalPlates > 1) {
+                    val fileBed = DoubleArray(2)
+                    val haveProjectBed = readProjectBedSize(f, fileBed)
+                    val bedW = if (haveProjectBed) fileBed[0] else bed.getVolumeMax()!!.x - bed.getVolumeMin()!!.x
+                    val bedD = if (haveProjectBed) fileBed[1] else bed.getVolumeMax()!!.y - bed.getVolumeMin()!!.y
+                    val origin = DoubleArray(2)
+                    computePlateOrigin(currentPlateIndex, computePlateCols(totalPlates), bedW, bedD, origin)
+                    if (origin[0] != 0.0 || origin[1] != 0.0)
+                        repeat(imported.objectsCount) { imported.translate(it, -origin[0], -origin[1], 0.0) }
+                    imported.resetBoundingBox()
                 }
+                platesModels.set(currentPlateIndex, imported)
+                viewport.renderer.model = imported
+                viewport.renderer.resetGlModels()
+                onModelImportCommitted()
+                callback?.onLoaded(imported, 0, imported.objectsCount)
                 reportImportReduction(reduction)
                 viewport.requestRender()
                 return
@@ -2649,7 +2642,10 @@ private fun loadModelInternal(
             val max = Vec3d()
             val translation = Vec3d()
             for (index in 0 until sourceCount) {
-                if (autoOrientImportedModels) imported.autoOrient(index)
+                // A 3MF opened into an empty workspace keeps its saved orientation and
+                // placement. When it is added to a populated workspace, orient its new
+                // objects too, then calculate their packed footprint from that orientation.
+                if (autoOrientImportedModels || preserveProjectLayout) imported.autoOrient(index)
                 imported.getTranslation(index, translation)
                 imported.getBoundingBoxExact(index, min, max)
                 imported.translate(index, translation.x, translation.y, -translation.z + (max.z - min.z) / 2.0)

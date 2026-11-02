@@ -1,5 +1,15 @@
 # Aktueller Fortsetzungsstand — 2026-10-24, OrkanSlicer 0.8.367 veröffentlicht
 
+## Modellimport auf belegte Druckplatten — 2026-11-02
+
+- Ursache der verbliebenen Überlauf-Lücke: Ein einplattiges 3MF, das in eine bereits belegte Platte geladen wurde, lief durch den Layout-Erhalt-Zweig und wurde ohne Arrange an die vorhandenen Objekte angehängt. Ein neu geöffnetes 3MF-Projekt auf leerer Platte soll sein gespeichertes Layout weiter behalten.
+- Korrektur: 3MF-Import in eine belegte Platte wird nun wie ein zusätzlicher Modellimport vor dem Packen auto-orientiert und durch die vorhandene atomare Arrange-/Folgeplatten-Logik geführt. Wenn kein Platz mehr bleibt, wird eine neue Platte angelegt, ausgewählt und der Import dort weitergeführt. Das bestehende Modell bleibt bei Arrange-Fehlschlag unverändert.
+- Neuer API-36-Instrumentierungstest mit mehrfarbigem 3MF: Folgeplatte angelegt/aktiviert, importierte Objekte innerhalb der Bettgrenzen, vorheriges Objekt unverändert, Filamentzuordnungen erhalten — 1/1 bestanden auf `emulator-5556`.
+- Wiederholte Arrange-Regressionen auf demselben Emulator: volle Platte/automatische Folgeplatten, konkave L-Kontur mit Einsetzen in die freie Ecke sowie XY-Drehung zur besseren Plattennutzung — 3/3 bestanden. SliceTest- und Instrumentierungs-APK-Build erfolgreich; `git diff --check` sauber.
+- Nicht erneut erweitert: präzise Konturprojektion bleibt auf geeignete geschlossene zusammenhängende Meshes bis 20.000 Facetten begrenzt. Offene, getrennte oder komplexere Footprints verwenden weiterhin eine sichere Hülle; die frühere 100.000-Facetten-Experimentierung war auf dem Emulator zu langsam und wurde verworfen. Dieses Qualitätslimit bleibt offen.
+- Xiaomi-Hardware nicht angeschlossen. Der automatische Gradle-Connected-Lauf wählte zunächst einen instabilen AVD (0 gestartete Tests); direkte Läufe auf `emulator-5556` lieferten die oben genannten Ergebnisse. Ein fehlerhafter Mehrfachmethodenfilter erzeugte zwei Test-Discovery-Fehler; diese Fälle wurden einzeln korrekt erneut ausgeführt und bestanden.
+- Nächster konkreter Schritt: auf physischem Xiaomi eine belegte Platte mit 3MF-Import prüfen; danach die sichere Konturverbesserung für getrennte/hochkomplexe Footprints untersuchen, ohne Modellteile als unabhängige Objekte zu verschieben.
+
 ## Modellimport und Druckplatten-Anordnung — 2026-11-01
 
 - Importierte Einzeldateien werden vor dem Packen auto-orientiert und auf der Druckfläche angeordnet. Der Mehrfach-STL-Import verwendete diesen Pfad bisher nicht; er reicht Auto-Orientierung jetzt ebenfalls an `BedFragment.loadModel` weiter. Gespeicherte 3MF-Projektlayouts bleiben unverändert erhalten.
