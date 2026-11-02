@@ -4,7 +4,7 @@
 
 - Point 10: per-object `raft_layers` (0–20 or inherit) added to the object process dialog and persistence whitelist. UI confirmation test 1/1; native API-36 3MF round-trip/slice test 1/1. The fixture verifies sibling isolation and real raft/support G-code output. Invalid-value feedback was moved above the controls after the 10-test Compose run exposed it could fall below the viewport; full Compose class now passes 10/10.
 - Batch 8 complete: Debug JVM 738/738 and Slice JVM 738/738, zero failures/errors/skips. Focused native seam-position and raft tests each passed 1/1. Catan archive arrangement remains separately verified: 109 models across 60 plates and 139 disjoint same-plate mesh pairs; API-36 test 1/1.
-- Next: build version 0.8.427/code 462, inspect APK metadata/hash, install and launch on available emulator, then publish the authorized Nightly prerelease. No physical-printer test is claimed.
+- Release gate complete: `OrkanSlicerNightly25_bb2f1e8e9a.apk`, 240,156,107 bytes, SHA-256 `D4FF0755168DF5FB43CA4B0A259072062EB4EF74C8F3B00EF32C099F063FEF6E`; package `com.exa201.orkanslicer.nightly25`, 0.8.427/code 462. Commit `bb2f1e8e9a09d75e98ef08979d586d85530d8161` pushed to `nightly25/nightly-2.5`, installed/launched on API 36 with no crash/ANR/OOM markers in the captured log. Prerelease: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.427-nightly.1. No physical-printer test is claimed.
 
 ## Latest verified status — Batch 8 at 9/10
 

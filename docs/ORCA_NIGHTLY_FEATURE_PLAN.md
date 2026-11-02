@@ -8,7 +8,14 @@ Der Modell-Einstellungsdialog kann `raft_layers` nun objektbezogen setzen (0–2
 
 `ModelObjectProcessOverridesComposeDeviceTest#objectRaftLayerCountValidatesAndAppliesOnlyAfterConfirmation` bestand 1/1. `NativeSliceDeviceTest#perObjectRaftLayerOverridePersistsAndProducesRaftGcode` bestand 1/1 auf API 36: 3MF-Rundlauf, Objektisolation sowie Änderung der tatsächlichen Support-/Raft-Ausgabepfade geprüft. Der Dialoghinweis für ungültige Werte wurde nach oben verschoben, damit er bei größeren Dialogen sichtbar bleibt; danach bestand die gesamte Compose-Testklasse 10/10. Zusätzlich bestanden Debug- und Slice-Unit-Suiten mit je 738/738.
 
-Batch 8 ist **10/10**. Catan-Anordnungsfixture (109 Modelle, 60 Platten, 139 kollisionsfreie gleichplatten-Paare) bleibt ein separater Import-/Packing-Nachweis. Debug-APK und Nightly-Prerelease werden im Release-Gate-Eintrag dokumentiert.
+Batch 8 ist **10/10**. Catan-Anordnungsfixture (109 Modelle, 60 Platten, 139 kollisionsfreie gleichplatten-Paare) bleibt ein separater Import-/Packing-Nachweis. Debug-APK und Nightly-Prerelease sind im Release-Gate-Eintrag dokumentiert.
+
+## Release-Gate-Stand — Nightly 0.8.427 (Code 462)
+
+- Debug-APK `OrkanSlicerNightly25_bb2f1e8e9a.apk`, 240,156,107 Bytes, SHA-256 `D4FF0755168DF5FB43CA4B0A259072062EB4EF74C8F3B00EF32C099F063FEF6E`; Paket `com.exa201.orkanslicer.nightly25`, Version 0.8.427 / Code 462.
+- Commit `bb2f1e8e9a09d75e98ef08979d586d85530d8161` wurde auf `nightly25/nightly-2.5` gepusht. Debug-APK erfolgreich auf dem API-36-Emulator installiert und gestartet; Prozess blieb aktiv. Im geprüften Logcat-Ausschnitt keine Fatal Exception, kein natives Fatal Signal, ANR oder OOM.
+- Veröffentlicht als GitHub-Prerelease [v0.8.427-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.427-nightly.1), APK-Asset `OrkanSlicerNightly25_bb2f1e8e9a.apk`.
+- Batch 8: 10/10. Catan-Anordnungsprüfung separat: 109 Modelle auf 60 Platten innerhalb der Bettgrenzen; 139 gleichplatten Mesh-Paare ohne Überschneidung; Instrumentierung 1/1. Der 1.000-Facetten-Projektionsschutz bleibt bestehen, weil höhere Grenzwerte reproduzierbare Clipper-Crashes verursacht haben. Kein physischer Druckertest.
 
 ## Nightly Batch 8 — Punkt 9/10 verifiziert (2026-11-02)
 
