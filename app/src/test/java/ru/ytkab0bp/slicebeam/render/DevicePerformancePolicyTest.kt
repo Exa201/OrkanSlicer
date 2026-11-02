@@ -47,6 +47,24 @@ class DevicePerformancePolicyTest {
         assertEquals(1f, DevicePerformancePolicy.renderScale(false, 55))
     }
 
+    @Test fun viewportFrameRateDefaultsLowerOnWeakGpusAndHonorsSupportedCaps() {
+        assertEquals(30, DevicePerformancePolicy.defaultViewportFpsCap(true))
+        assertEquals(30, DevicePerformancePolicy.defaultViewportFpsCap(false, "Mali-G57"))
+        assertEquals(60, DevicePerformancePolicy.defaultViewportFpsCap(false, "Adreno 740"))
+        assertEquals(30, DevicePerformancePolicy.viewportFpsCap(true, 0))
+        assertEquals(45, DevicePerformancePolicy.viewportFpsCap(true, 45))
+        assertEquals(60, DevicePerformancePolicy.viewportFpsCap(false, 29))
+    }
+
+    @Test fun viewportFrameLimiterCoalescesRedrawsWithoutBlockingChanges() {
+        assertEquals(0L, DevicePerformancePolicy.frameRequestDelayMs(100L, 100L, 30))
+        val nextFrame = DevicePerformancePolicy.nextAllowedFrameAtMs(100L, 30)
+        assertEquals(33L, nextFrame - 100L)
+        assertEquals(23L, DevicePerformancePolicy.frameRequestDelayMs(110L, nextFrame, 30))
+        assertEquals(0L, DevicePerformancePolicy.frameRequestDelayMs(140L, nextFrame, 30))
+        assertEquals(0L, DevicePerformancePolicy.frameRequestDelayMs(100L, 200L, 0))
+    }
+
     @Test fun inactivePlatesCanUseCheapPreviewWithoutChangingTheActiveModel() {
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(true, false))
         assertTrue(DevicePerformancePolicy.useSimpleInactivePlatePreview(false, true))

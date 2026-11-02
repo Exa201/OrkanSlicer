@@ -1077,6 +1077,10 @@
     <string name="SettingsRenderQuality">3D viewport quality</string>
     <string name="SettingsRenderQualityDescription">Lower resolution can improve camera and preview performance. Slicing quality and model geometry are unchanged.</string>
     <string name="SettingsRenderQualityAutomatic">Automatic (%1$d%%)</string>
+    <string name="SettingsViewportFpsTitle">Viewport frame rate</string>
+    <string name="SettingsViewportFpsDescription">Limits camera and preview redraws to reduce GPU load. Slicing is unchanged.</string>
+    <string name="SettingsViewportFpsAutomatic">Automatic (%1$d FPS)</string>
+    <string name="SettingsViewportFpsValue">%1$d FPS</string>
     <string name="SettingsTranslucentFilamentPreview">Translucent filament preview</string>
     <string name="SettingsTranslucentFilamentPreviewDescription">Show translucent filament colors in the sliced G-code preview.</string>
     <string name="SettingsPreviewEnabled">On</string>

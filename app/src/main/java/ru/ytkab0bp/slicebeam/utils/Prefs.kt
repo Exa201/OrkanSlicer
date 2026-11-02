@@ -249,6 +249,31 @@ open class Prefs {
             requirePrefs().edit().putInt("viewport_render_scale_percent", percent).apply()
         }
 
+        @JvmStatic
+        fun getViewportFpsCapOverride(): Int = requirePrefs()
+            .getInt("viewport_fps_cap", 0)
+            .takeIf { it in setOf(0, 30, 45, 60) } ?: 0
+
+        /** 0 follows the automatic low-GPU policy; explicit caps are 30/45/60 FPS. */
+        @JvmStatic
+        fun getViewportFpsCap(): Int = DevicePerformancePolicy.viewportFpsCap(
+            lowRamDevice,
+            getViewportFpsCapOverride(),
+            glRendererName,
+        )
+
+        @JvmStatic
+        fun getAutomaticViewportFpsCap(): Int = DevicePerformancePolicy.defaultViewportFpsCap(
+            lowRamDevice,
+            glRendererName,
+        )
+
+        @JvmStatic
+        fun setViewportFpsCapOverride(fps: Int) {
+            require(fps in setOf(0, 30, 45, 60))
+            requirePrefs().edit().putInt("viewport_fps_cap", fps).apply()
+        }
+
         /** App-specific text zoom, multiplied on top of the Android accessibility font scale. */
         @JvmStatic
         fun getUiTextScale(): Float = requirePrefs()

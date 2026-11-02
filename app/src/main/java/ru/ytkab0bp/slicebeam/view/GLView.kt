@@ -13,6 +13,9 @@ import android.graphics.Typeface
 import android.opengl.GLES30
 import android.opengl.GLException
 import android.opengl.GLSurfaceView
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -48,6 +51,14 @@ import ru.ytkab0bp.slicebeam.utils.Vec3d
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 class GLView(context:Context):GLSurfaceView(context), IThemeView {
 lateinit var renderer: GLRenderer
+private val renderRequestLock = Any()
+private val renderRequestHandler = Handler(Looper.getMainLooper())
+private var nextRenderAllowedAtMs = 0L
+private var delayedRenderPending = false
+private val delayedRenderRequest = Runnable {
+    synchronized(renderRequestLock) { delayedRenderPending = false }
+    requestRender()
+}
 private var lastX:Float = 0.toFloat()
 private var lastY:Float = 0.toFloat()
 private var lastLength:Float = 0.toFloat()
@@ -137,6 +148,36 @@ private fun surfaceTouchX(x: Float): Float =
     DevicePerformancePolicy.mapTouchCoordinate(x, width, glSurfaceWidth)
 private fun surfaceTouchY(y: Float): Float =
     DevicePerformancePolicy.mapTouchCoordinate(y, height, glSurfaceHeight)
+
+/** Throttle viewport redraw requests without delaying input/model updates on the GL queue. */
+override fun requestRender() {
+    val fpsCap = Prefs.getViewportFpsCap()
+    if (fpsCap <= 0) {
+        synchronized(renderRequestLock) {
+            delayedRenderPending = false
+            renderRequestHandler.removeCallbacks(delayedRenderRequest)
+            nextRenderAllowedAtMs = SystemClock.uptimeMillis()
+        }
+        super.requestRender()
+        return
+    }
+
+    var renderNow = false
+    synchronized(renderRequestLock) {
+        val now = SystemClock.uptimeMillis()
+        val delay = DevicePerformancePolicy.frameRequestDelayMs(now, nextRenderAllowedAtMs, fpsCap)
+        if (delay == 0L) {
+            delayedRenderPending = false
+            renderRequestHandler.removeCallbacks(delayedRenderRequest)
+            nextRenderAllowedAtMs = DevicePerformancePolicy.nextAllowedFrameAtMs(now, fpsCap)
+            renderNow = true
+        } else if (!delayedRenderPending) {
+            delayedRenderPending = true
+            renderRequestHandler.postDelayed(delayedRenderRequest, delay)
+        }
+    }
+    if (renderNow) super.requestRender()
+}
 private fun paintAtScreen(x:Float, y:Float) {
 if (paintInputCoalescer.submit(surfaceTouchX(x), surfaceTouchY(y))) {
     queueEvent { drainPaintInput() }
@@ -1168,6 +1209,13 @@ if (getWidth() > 0 && getHeight() > 0 && lastScale != Prefs.getRenderScale())
 {
 applyRenderScale()
 }
+}
+override fun onDetachedFromWindow() {
+    synchronized(renderRequestLock) {
+        delayedRenderPending = false
+        renderRequestHandler.removeCallbacks(delayedRenderRequest)
+    }
+    super.onDetachedFromWindow()
 }
 override fun surfaceCreated(holder:SurfaceHolder) {
 super.surfaceCreated(holder)

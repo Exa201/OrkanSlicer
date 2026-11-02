@@ -1064,6 +1064,10 @@
     <string name="SettingsRenderQuality">3D-Vorschauqualität</string>
     <string name="SettingsRenderQualityDescription">Eine niedrigere Auflösung kann Kamera und Vorschau beschleunigen. Slicing und Modellgeometrie bleiben unverändert.</string>
     <string name="SettingsRenderQualityAutomatic">Automatisch (%1$d%%)</string>
+    <string name="SettingsViewportFpsTitle">Bildrate der Vorschau</string>
+    <string name="SettingsViewportFpsDescription">Begrenzt Kamera- und Vorschauaktualisierungen zur GPU-Entlastung. Das Slicing bleibt unverändert.</string>
+    <string name="SettingsViewportFpsAutomatic">Automatisch (%1$d FPS)</string>
+    <string name="SettingsViewportFpsValue">%1$d FPS</string>
     <string name="SettingsTranslucentFilamentPreview">Transparente Filamentvorschau</string>
     <string name="SettingsTranslucentFilamentPreviewDescription">Transparente Filamentfarben in der geslicten G-Code-Vorschau anzeigen.</string>
     <string name="SettingsPreviewEnabled">Ein</string>

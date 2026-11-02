@@ -1,3 +1,13 @@
+# Nightly Orca Batch 7 — Punkt 2/10 verifiziert — 2026-11-02
+
+## Android-Vorschau-FPS für schwächere GPUs
+
+- Ergänzt eine viewport-only FPS-Begrenzung mit `Automatisch`, 30, 45 und 60 FPS in den App-Einstellungen. Automatik wählt 30 FPS für erkannte Low-RAM-/Low-GPU-Geräte und 60 FPS für andere Geräte.
+- `GLView.requestRender()` bündelt und verzögert ausschließlich Render-Anforderungen. Eingabe-/Modelloperationen laufen weiter sofort auf ihrer bisherigen Queue; native Geometrie, Slicing und G-Code werden nicht verändert. Verzögerte Render-Callbacks werden beim View-Detach entfernt.
+- Frisch erzwungene Unit-Prüfung `DevicePerformancePolicyTest`: 8/8, einschließlich GPU-Erkennung, unterstützter Caps und Frame-Request-Timing. Compose-Gerätetest auf `emulator-5556` / API 36: Auswahl von 45 FPS, Rückkehr zu Automatik und Anzeige des automatisch berechneten Caps 1/1 bestanden.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; `git diff --check` sauber. Die Gerätemessung bestätigt Bedienpfad und Policy, aber noch keinen quantitativen Frame-/GPU-Verbrauchsbenchmark auf physischer Hardware.
+- Batch 7 steht bei **2/10** (Punkt 1: Vase-Mode-Height-Range-Slice-Fix; Punkt 2: Android-Vorschau-FPS). Noch kein Batch-APK-/Release-Gate. Nächste Aufgabe: einen tatsächlich ungeporteten, Android-relevanten Orca-Upstream-Punkt mit eigenem Verhaltenstest auswählen.
+
 # Nightly Orca Batch 6 — Punkt 10/10 verifiziert — 2026-11-01
 
 - Orca `4b3e4194ff`: Lightning-Distanzfeld-Grenzen umfassen jetzt alle geöffneten Überhangproben; verhindert Endlosschleife beim Erzeugen von Lightning-Stützästen.

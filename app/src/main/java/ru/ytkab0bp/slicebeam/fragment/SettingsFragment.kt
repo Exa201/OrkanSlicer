@@ -126,6 +126,9 @@ class SettingsFragment : Fragment() {
                             renderScale = if (Prefs.getRenderScaleOverridePercent() == 0) {
                                 ctx.getString(R.string.SettingsRenderQualityAutomatic, (Prefs.getAutomaticRenderScale() * 100).toInt())
                             } else "${Prefs.getRenderScaleOverridePercent()}%",
+                            viewportFpsCap = if (Prefs.getViewportFpsCapOverride() == 0) {
+                                ctx.getString(R.string.SettingsViewportFpsAutomatic, Prefs.getAutomaticViewportFpsCap())
+                            } else "${Prefs.getViewportFpsCapOverride()} FPS",
                             converterRoot = ConverterStorage.getRootDisplayName(ctx),
                             cameraProjection = ctx.getString(if (Prefs.isOrthoProjectionEnabled()) R.string.SettingsCameraOrthographic else R.string.SettingsCameraPerspective),
                             cameraControlMode = cameraControlModeLabel(ctx, Prefs.getCameraControlMode()),
@@ -135,6 +138,7 @@ class SettingsFragment : Fragment() {
                             onAccent = ::showAccentPicker,
                             onUiTextScale = ::showUiTextScalePicker,
                             onRenderScale = ::showRenderQualityPicker,
+                            onViewportFpsCap = ::showViewportFpsCapPicker,
                             translucentFilamentPreview = ctx.getString(
                                 if (Prefs.isTranslucentFilamentPreviewEnabled()) R.string.SettingsPreviewEnabled else R.string.SettingsPreviewDisabled,
                             ),
@@ -272,6 +276,24 @@ class SettingsFragment : Fragment() {
             percentages.indexOf(Prefs.getRenderScaleOverridePercent()).coerceAtLeast(0),
         ) { index ->
             Prefs.setRenderScaleOverridePercent(percentages[index])
+            SliceBeam.EVENT_BUS.fireEvent(ViewportRenderScaleChangedEvent())
+            themeRevision++
+        }
+    }
+
+    private fun showViewportFpsCapPicker() {
+        val context = getContext() ?: return
+        val choices = listOf(0, 30, 45, 60)
+        val labels = choices.map { fps ->
+            if (fps == 0) context.getString(R.string.SettingsViewportFpsAutomatic, Prefs.getAutomaticViewportFpsCap())
+            else context.getString(R.string.SettingsViewportFpsValue, fps)
+        }
+        showChoiceDialog(
+            R.string.SettingsViewportFpsTitle,
+            labels,
+            choices.indexOf(Prefs.getViewportFpsCapOverride()).coerceAtLeast(0),
+        ) { index ->
+            Prefs.setViewportFpsCapOverride(choices[index])
             SliceBeam.EVENT_BUS.fireEvent(ViewportRenderScaleChangedEvent())
             themeRevision++
         }
@@ -510,6 +532,8 @@ internal fun SettingsContent(
     onReset: () -> Unit,
     renderScale: String = "",
     onRenderScale: () -> Unit = {},
+    viewportFpsCap: String = "",
+    onViewportFpsCap: () -> Unit = {},
     translucentFilamentPreview: String = "",
     onTranslucentFilamentPreview: () -> Unit = {},
 ) {
@@ -623,6 +647,13 @@ internal fun SettingsContent(
                         description = stringResource(R.string.SettingsRenderQualityDescription),
                         value = renderScale,
                         onClick = onRenderScale,
+                        compactLayout = compactLayout,
+                    )
+                    SettingsRow(
+                        R.string.SettingsViewportFpsTitle,
+                        description = stringResource(R.string.SettingsViewportFpsDescription),
+                        value = viewportFpsCap,
+                        onClick = onViewportFpsCap,
                         compactLayout = compactLayout,
                     )
                     SettingsRow(

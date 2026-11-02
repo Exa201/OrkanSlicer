@@ -35,6 +35,26 @@ object DevicePerformancePolicy {
         else -> defaultRenderScale(lowRamDevice, renderer)
     }
 
+    /** Orca's viewport FPS cap adapted to Android's request-driven GL surface. */
+    fun defaultViewportFpsCap(lowRamDevice: Boolean, renderer: String? = null): Int =
+        if (isLowPerformanceDevice(lowRamDevice, renderer)) 30 else 60
+
+    fun viewportFpsCap(lowRamDevice: Boolean, overrideFps: Int, renderer: String? = null): Int =
+        if (overrideFps in SUPPORTED_VIEWPORT_FPS_CAPS) {
+            if (overrideFps == 0) defaultViewportFpsCap(lowRamDevice, renderer) else overrideFps
+        } else defaultViewportFpsCap(lowRamDevice, renderer)
+
+    /** Delay until the next frame may be requested; 0 means render immediately. */
+    fun frameRequestDelayMs(nowMs: Long, nextAllowedAtMs: Long, fpsCap: Int): Long {
+        if (fpsCap <= 0 || nextAllowedAtMs <= nowMs) return 0L
+        return nextAllowedAtMs - nowMs
+    }
+
+    fun nextAllowedFrameAtMs(nowMs: Long, fpsCap: Int): Long =
+        if (fpsCap <= 0) nowMs else nowMs + (1000L / fpsCap).coerceAtLeast(1L)
+
+    private val SUPPORTED_VIEWPORT_FPS_CAPS = setOf(0, 30, 45, 60)
+
     /** Convert View pixels to the actual GL surface coordinate space. */
     fun mapTouchCoordinate(inputPx: Float, viewSizePx: Int, surfaceSizePx: Int): Float =
         if (viewSizePx > 0 && surfaceSizePx > 0) inputPx * surfaceSizePx / viewSizePx else inputPx

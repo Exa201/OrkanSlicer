@@ -96,6 +96,37 @@ class SettingsMenuActionDeviceTest {
     }
 
     @Test
+    fun viewportFrameRateCapCanBeChangedAndAutomaticModeUsesGpuPolicy() {
+        val activity = compose.activity
+        val prefs = requireNotNull(Prefs.getPrefs())
+        val originalOverride = Prefs.getViewportFpsCapOverride()
+        try {
+            navigateToSettings(activity)
+            compose.onNodeWithText(activity.getString(R.string.SettingsInterface))
+                .performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsViewportFpsTitle))
+                .assertIsDisplayed().performClick()
+            compose.onNodeWithText(activity.getString(R.string.SettingsViewportFpsValue, 45))
+                .assertIsDisplayed().performClick()
+            compose.waitUntil(timeoutMillis = 5_000) { Prefs.getViewportFpsCapOverride() == 45 }
+            assertEquals(45, Prefs.getViewportFpsCap())
+
+            compose.onNodeWithText(activity.getString(R.string.SettingsViewportFpsTitle))
+                .assertIsDisplayed().performClick()
+            val automaticCap = DevicePerformancePolicy.defaultViewportFpsCap(
+                Prefs.isLowRamDevice(), Prefs.getGlRendererName(),
+            )
+            compose.onNodeWithText(activity.getString(R.string.SettingsViewportFpsAutomatic, automaticCap))
+                .assertIsDisplayed().performClick()
+            assertEquals(0, Prefs.getViewportFpsCapOverride())
+            assertEquals(automaticCap, Prefs.getViewportFpsCap())
+        } finally {
+            prefs.edit().putInt("viewport_fps_cap", originalOverride).commit()
+            Prefs.init(activity.application as Application)
+        }
+    }
+
+    @Test
     fun translucentFilamentPreviewCanBeToggledAndPersists() {
         val activity = compose.activity
         val original = Prefs.isTranslucentFilamentPreviewEnabled()
