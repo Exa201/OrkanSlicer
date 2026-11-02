@@ -74,6 +74,7 @@ import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.replaceGCodeResult
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.ImportProgressCallback
 import ru.ytkab0bp.slicebeam.slic3r.StepImportOptions
@@ -2696,8 +2697,9 @@ private fun loadModelInternal(
                 imported.translate(index, translation.x, translation.y, -translation.z + (max.z - min.z) / 2.0)
             }
 
+            val originalPlateCount = platesModels.size
             var target = existing ?: Model()
-            var targetIsNew = existing == null
+            var targetPlateIndex: Int? = currentPlateIndex
             if (existing == null) platesModels.set(currentPlateIndex, target)
             val originalTargetObjectCount = target.objectsCount
             var finalFirstNew = originalTargetObjectCount
@@ -2710,7 +2712,9 @@ private fun loadModelInternal(
             // a placement whose exact mesh bounds are outside the build volume. Never commit it.
             val packedImport = copyModelForArrangement(target)
             repeat(sourceCount) { packedImport.addObject(imported, it) }
-            if (bed.arrange(packedImport) && isModelInsideBuildVolume(packedImport, bed)) {
+            if (bed.arrange(packedImport) && isModelInsideBuildVolume(packedImport, bed) &&
+                (sourceCount != 1 || !hasMeshIntersections(packedImport))
+            ) {
                 target.replaceContentsFrom(packedImport)
                 packedImport.release()
                 finalTarget = target
@@ -2724,25 +2728,63 @@ private fun loadModelInternal(
                     val destinationIndex = candidate.objectsCount
                     candidate.addObject(imported, sourceIndex)
                     var placedOnNewPlate = false
-                    if (bed.arrange(candidate) && isModelInsideBuildVolume(candidate, bed)) {
+                    var placedOnExistingPlate = false
+                    var placedDestinationIndex = destinationIndex
+                    if (bed.arrange(candidate) && isModelInsideBuildVolume(candidate, bed) &&
+                        (sourceCount != 1 || !hasMeshIntersections(candidate))
+                    ) {
                         target.replaceContentsFrom(candidate)
                         candidate.release()
                     } else {
                         candidate.release()
-                        val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
-                        if (!bed.arrange(nextPlate) || !isModelInsideBuildVolume(nextPlate, bed)) {
-                            centerObjectOnBed(nextPlate, 0, bed)
-                            if (!isModelInsideBuildVolume(nextPlate, bed)) objectsTooLargeForBed++
+
+                        // A sequence of individual STL imports can overflow several plates.
+                        // Before creating another one, try already-created non-project plates
+                        // from newest to oldest. This lets later, differently-shaped parts use
+                        // free space left behind by earlier imports without moving anything on
+                        // plates that are not being considered for this import.
+                        if (sourceCount == 1) {
+                            for (plateIndex in platesModels.indices.reversed()) {
+                                if (plateIndex == targetPlateIndex || getProjectPlateId(plateIndex) > 0) continue
+                                val existingPlate = platesModels.getOrNull(plateIndex) ?: continue
+                                val alternate = copyModelForArrangement(existingPlate)
+                                val destinationIndex = alternate.objectsCount
+                                alternate.addObject(imported, sourceIndex)
+                                if (bed.arrange(alternate) && isModelInsideBuildVolume(alternate, bed) &&
+                                    !hasMeshIntersections(alternate)
+                                ) {
+                                    existingPlate.replaceContentsFrom(alternate)
+                                    alternate.release()
+                                    target = existingPlate
+                                    targetPlateIndex = plateIndex
+                                    placedDestinationIndex = destinationIndex
+                                    placedOnExistingPlate = true
+                                    break
+                                }
+                                alternate.release()
+                            }
                         }
-                        automaticallyCreated.add(nextPlate)
-                        target = nextPlate
-                        targetIsNew = true
-                        placedOnNewPlate = true
+
+                        if (!placedOnExistingPlate) {
+                            val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
+                            if (!bed.arrange(nextPlate) || !isModelInsideBuildVolume(nextPlate, bed)) {
+                                centerObjectOnBed(nextPlate, 0, bed)
+                                if (!isModelInsideBuildVolume(nextPlate, bed)) objectsTooLargeForBed++
+                            }
+                            automaticallyCreated.add(nextPlate)
+                            target = nextPlate
+                            targetPlateIndex = null
+                            placedOnNewPlate = true
+                        }
                     }
 
                     if (finalTarget !== target) {
                         finalTarget = target
-                        finalFirstNew = if (placedOnNewPlate) 0 else destinationIndex
+                        finalFirstNew = when {
+                            placedOnNewPlate -> 0
+                            placedOnExistingPlate -> placedDestinationIndex
+                            else -> destinationIndex
+                        }
                         finalAddedCount = 1
                     } else {
                         finalAddedCount++
@@ -2755,9 +2797,11 @@ private fun loadModelInternal(
             val completedFirstNew = finalFirstNew
             val completedAddedCount = finalAddedCount
             val completedTooLargeCount = objectsTooLargeForBed
+            val completedTargetPlateIndex = targetPlateIndex
+                ?: (originalPlateCount + automaticallyCreated.indexOfFirst { it === completedTarget })
 
             fun finishOnGlThread() {
-                viewport.renderer.setCurrentPlateIndex(currentPlateIndex)
+                viewport.renderer.setCurrentPlateIndex(completedTargetPlateIndex)
                 viewport.renderer.model = completedTarget
                 viewport.renderer.resetGlModels()
                 resetModelHistory()
@@ -2771,8 +2815,18 @@ private fun loadModelInternal(
             }
 
             if (automaticallyCreated.isEmpty()) {
-                if (!targetIsNew) platesModels.set(currentPlateIndex, completedTarget)
-                finishOnGlThread()
+                if (completedTargetPlateIndex == currentPlateIndex) {
+                    finishOnGlThread()
+                } else {
+                    ViewUtils.postOnMainThread {
+                        if (destroyed || viewport !== glView || completedTargetPlateIndex !in platesModels.indices) return@postOnMainThread
+                        currentPlateIndex = completedTargetPlateIndex
+                        platePreviewRevision++
+                        updatePlateIndicator()
+                        pushPlatesToRenderer()
+                        viewport.queueEvent { finishOnGlThread() }
+                    }
+                }
             } else {
                 ViewUtils.postOnMainThread {
                     if (destroyed || viewport !== glView) {
@@ -2784,7 +2838,8 @@ private fun loadModelInternal(
                         projectPlateIds.add(0)
                     }
                     totalPlates = platesModels.size
-                    currentPlateIndex = platesModels.lastIndex
+                    if (completedTargetPlateIndex !in platesModels.indices) return@postOnMainThread
+                    currentPlateIndex = completedTargetPlateIndex
                     platePreviewRevision++
                     updatePlateIndicator()
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.INFO,
@@ -2811,6 +2866,33 @@ private fun centerObjectOnBed(model: Model, objectIndex: Int, bed: Bed3D) {
 
 private fun copyModelForArrangement(source: Model): Model = Model().also { copy ->
     repeat(source.objectsCount) { copy.addObject(source, it) }
+}
+
+/** Exact mesh pair check before committing an arrangement, with an AABB broad phase. */
+private fun hasMeshIntersections(model: Model): Boolean {
+    val firstMin = Vec3d()
+    val firstMax = Vec3d()
+    val secondMin = Vec3d()
+    val secondMax = Vec3d()
+    for (first in 0 until model.objectsCount) {
+        model.getBoundingBoxExact(first, firstMin, firstMax)
+        for (second in first + 1 until model.objectsCount) {
+            model.getBoundingBoxExact(second, secondMin, secondMax)
+            val aabbOverlaps = firstMin.x < secondMax.x - 0.001 && firstMax.x > secondMin.x + 0.001 &&
+                firstMin.y < secondMax.y - 0.001 && firstMax.y > secondMin.y + 0.001 &&
+                firstMin.z < secondMax.z - 0.001 && firstMax.z > secondMin.z + 0.001
+            if (!aabbOverlaps) continue
+            val probe = Model()
+            try {
+                probe.addObject(model, first)
+                probe.addObject(model, second)
+                if (probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION) >= 0) return true
+            } finally {
+                probe.release()
+            }
+        }
+    }
+    return false
 }
 
 private fun isModelInsideBuildVolume(model: Model, bed: Bed3D, tolerance: Double = 0.2): Boolean {
