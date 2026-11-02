@@ -6,6 +6,38 @@ import org.junit.Test
 
 class AdaptivePAModelValidatorTest {
     @Test
+    fun sliceWarningsAreLimitedToUsedEnabledFilamentsAndMapSelfIndices() {
+        val config = mapOf(
+            "adaptive_pressure_advance_model" to ProfileStringVectorCodec.serialize(listOf("0,0,0", "0.04,10")),
+            "adaptive_pressure_advance" to "1;1",
+            "enable_pressure_advance" to "1;1",
+            "filament_self_index" to "2;4",
+        )
+
+        assertEquals(
+            listOf(AdaptivePAModelValidator.SliceWarning(
+                filamentNumber = 4,
+                lineNumber = 1,
+                problem = AdaptivePAModelValidator.Problem.VALUE_COUNT,
+            )),
+            AdaptivePAModelValidator.sliceWarnings(config, setOf(3)),
+        )
+        assertEquals(emptyList<AdaptivePAModelValidator.SliceWarning>(),
+            AdaptivePAModelValidator.sliceWarnings(config, setOf(0)))
+    }
+
+    @Test
+    fun sliceWarningsIgnoreDisabledAdaptivePressureAdvance() {
+        val config = mapOf(
+            "adaptive_pressure_advance_model" to "0.04,10",
+            "adaptive_pressure_advance" to "0",
+            "enable_pressure_advance" to "1",
+        )
+        assertEquals(emptyList<AdaptivePAModelValidator.SliceWarning>(),
+            AdaptivePAModelValidator.sliceWarnings(config, setOf(0)))
+    }
+
+    @Test
     fun acceptsWhitespaceAroundMeasurementValues() {
         assertNull(AdaptivePAModelValidator.firstEditedVariantIssue(
             listOf("0,0,0"), listOf(" 0.027 , 8.1416 , 2000.0 \n 0.025, 12, 5000 "),

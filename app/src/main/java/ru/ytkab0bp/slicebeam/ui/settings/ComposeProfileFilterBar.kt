@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +28,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringArrayResource
@@ -65,6 +71,10 @@ fun ProfileFilterBar(
     LaunchedEffect(initialFavoritesOnly) { favoritesOnly = initialFavoritesOnly }
     var filtersExpanded by rememberSaveable { mutableStateOf(false) }
     val showFilters = expanded ?: filtersExpanded
+    val dismissFilters = {
+        if (onToggle != null) onToggle() else filtersExpanded = false
+    }
+    BackHandler(enabled = showFilters, onBack = dismissFilters)
     val stacked = ProfileSettingsMenuLayoutPolicy.usesStackedFilterControls(
         LocalConfiguration.current.screenWidthDp,
         ru.ytkab0bp.slicebeam.ui.LocalBeamLayoutFontScale.current,
@@ -82,6 +92,7 @@ fun ProfileFilterBar(
                 query = value
                 onQueryChanged(value.trim())
             },
+            onEscape = dismissFilters,
             modifier = modifier,
         )
     }
@@ -178,12 +189,22 @@ fun ProfileFilterBar(
 private fun ProfileSearchField(
     query: String,
     onValueChanged: (String) -> Unit,
+    onEscape: () -> Unit,
     modifier: Modifier,
 ) {
     OutlinedTextField(
         value = query,
         onValueChange = onValueChanged,
-        modifier = modifier.heightIn(min = 56.dp),
+        modifier = modifier
+            .heightIn(min = 56.dp)
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                    onEscape()
+                    true
+                } else {
+                    false
+                }
+            },
         singleLine = true,
         textStyle = TextStyle(fontSize = 16.sp, lineHeight = 20.sp),
         label = {

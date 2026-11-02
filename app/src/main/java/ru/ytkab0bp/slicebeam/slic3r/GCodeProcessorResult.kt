@@ -1,5 +1,6 @@
 package ru.ytkab0bp.slicebeam.slic3r
 
+import ru.ytkab0bp.slicebeam.config.AdaptivePAModelValidator
 import java.io.File
 
 /** Owns the native analysis result for one G-code file. */
@@ -10,6 +11,9 @@ open class GCodeProcessorResult {
 
     /** Exact tool palette passed to native slicing, in 0-based RGB values. */
     @Volatile var previewToolColors: IntArray? = null
+
+    /** Invalid Adaptive PA measurements found in the used filament variants for this slice. */
+    @Volatile var adaptivePAModelWarnings: List<AdaptivePAModelValidator.SliceWarning> = emptyList()
 
     @JvmField
     internal var pointer: Long

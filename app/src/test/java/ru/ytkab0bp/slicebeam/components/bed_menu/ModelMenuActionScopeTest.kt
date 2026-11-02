@@ -12,6 +12,7 @@ class ModelMenuActionScopeTest {
             R.string.ModelMenuDuplicate,
             R.string.ModelMenuMoveToPlate,
             R.string.ModelMenuCenterOnBed,
+            R.string.ModelScaleToBuildVolume,
             R.string.ModelMenuFillBed,
             R.string.ModelMenuAutoOrientSelected,
             R.string.ModelMenuFlatten,

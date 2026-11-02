@@ -1,6 +1,7 @@
 package ru.ytkab0bp.slicebeam
 
 import android.content.res.Configuration
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -9,11 +10,13 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -29,7 +32,7 @@ import ru.ytkab0bp.slicebeam.ui.settings.ProfileFilterBar
 @RunWith(AndroidJUnit4::class)
 class ProfileFilterAccessibilityDeviceTest {
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun favoritesToggleAnnouncesStateAndProfileFiltersRemainReachable() {
@@ -84,5 +87,41 @@ class ProfileFilterAccessibilityDeviceTest {
             .assertIsDisplayed()
             .performTextInput("  layer height  ")
         compose.runOnIdle { assertEquals("layer height", submittedQuery) }
+    }
+
+    @Test
+    fun backClosesProfileSearchWithoutClosingItsHost() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        compose.setContent {
+            BeamComposeTheme {
+                ProfileFilterBar(
+                    initialQuery = "",
+                    initialLevel = 0,
+                    initialFavoritesOnly = false,
+                    onQueryChanged = {},
+                    onLevelChanged = {},
+                    onFavoritesChanged = {},
+                )
+            }
+        }
+
+        val toggleLabel = context.getString(R.string.ProfileSettingsSearchAndFilter)
+        compose.onNodeWithText(toggleLabel).assertIsDisplayed().performClick()
+        compose.onNodeWithText(context.getString(R.string.SettingsSearchHint)).assertIsDisplayed()
+
+        compose.activity.onBackPressedDispatcher.onBackPressed()
+
+        compose.onNodeWithText(context.getString(R.string.SettingsSearchHint)).assertDoesNotExist()
+        compose.onNodeWithText(toggleLabel).assertIsDisplayed()
+
+        compose.onNodeWithText(toggleLabel).performClick()
+        compose.onNodeWithText(context.getString(R.string.SettingsSearchHint))
+            .performClick()
+            .performKeyInput {
+                keyDown(Key.Escape)
+                keyUp(Key.Escape)
+            }
+        compose.onNodeWithText(context.getString(R.string.SettingsSearchHint)).assertDoesNotExist()
+        compose.onNodeWithText(toggleLabel).assertIsDisplayed()
     }
 }

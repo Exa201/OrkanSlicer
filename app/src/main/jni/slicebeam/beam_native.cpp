@@ -21,6 +21,7 @@
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PlaceholderParser.hpp"
 #include "libslic3r/FilamentGroup.hpp"
@@ -3999,6 +4000,32 @@ extern "C" {
         return ref->build_volume.bounding_volume().max_size();
     }
 
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1is_1rectangular_1build_1volume(JNIEnv* env, jclass, jlong ptr) {
+        BedRef* ref = (BedRef*) (intptr_t) ptr;
+        return ref != nullptr && ref->build_volume.type() == BuildVolume_Type::Rectangle;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1is_1circular_1build_1volume(JNIEnv* env, jclass, jlong ptr) {
+        BedRef* ref = (BedRef*) (intptr_t) ptr;
+        return ref != nullptr && ref->build_volume.type() == BuildVolume_Type::Circle;
+    }
+
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1get_1circular_1build_1volume(JNIEnv* env, jclass, jlong ptr) {
+        BedRef* ref = (BedRef*) (intptr_t) ptr;
+        if (ref == nullptr || ref->build_volume.type() != BuildVolume_Type::Circle)
+            return nullptr;
+        const Geometry::Circled& circle = ref->build_volume.circle();
+        const jdouble values[] = {
+            unscaled<double>(circle.center.x()),
+            unscaled<double>(circle.center.y()),
+            unscaled<double>(circle.radius),
+        };
+        jdoubleArray result = env->NewDoubleArray(3);
+        if (result != nullptr)
+            env->SetDoubleArrayRegion(result, 0, 3, values);
+        return result;
+    }
+
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1release(JNIEnv* env, jclass, jlong ptr) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;
         delete[] ref->meshes;
@@ -4710,6 +4737,42 @@ extern "C" {
         return result;
     }
 
+    // Exercises the production scarf split around layer-dependent perimeter vertices.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_scarf_1ramp_1regression(JNIEnv* env, jclass) {
+        auto probe = [](double near_vertex, bool corner) {
+            using namespace Slic3r;
+            ExtrusionPaths source;
+            source.emplace_back(erExternalPerimeter, 1., 0.45f, 0.2f);
+            const std::array<Point3, 7> points = corner
+                ? std::array<Point3, 7>{Point3::new_scale(0., 0., 0.), Point3::new_scale(5., 0., 0.),
+                    Point3::new_scale(10., 0., 0.), Point3::new_scale(15., 0., 0.),
+                    Point3::new_scale(near_vertex, 0., 0.), Point3::new_scale(24.63, 2.5, 0.),
+                    Point3::new_scale(28.96, 5., 0.)}
+                : std::array<Point3, 7>{Point3::new_scale(0., 0., 0.), Point3::new_scale(5., 0., 0.),
+                    Point3::new_scale(10., 0., 0.), Point3::new_scale(15., 0., 0.),
+                    Point3::new_scale(near_vertex, 0., 0.), Point3::new_scale(25., 0., 0.),
+                    Point3::new_scale(30., 0., 0.)};
+            for (const Point3& point : points) source.front().polyline.append(point);
+            ExtrusionLoopSloped loop(source, 0., 20., scale_(2.), 0.);
+            const auto &flat = loop.paths.front().polyline;
+            return std::array<jdouble, 4>{
+                unscale<double>(loop.starts.front().polyline.last_point().x()),
+                unscale<double>(flat.first_point().x()),
+                unscale<double>(flat.lines().front().length()),
+                unscale<double>(flat.last_point().x()),
+            };
+        };
+        const auto first = probe(20.1, false);
+        const auto second = probe(20.4, false);
+        const auto corner = probe(20.3, true);
+        const jdouble values[] = {first[0], first[1], first[2], first[3],
+                                  second[0], second[1], second[2], second[3],
+                                  corner[0], corner[1], corner[2], corner[3]};
+        jdoubleArray result = env->NewDoubleArray(12);
+        if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 12, values);
+        return result;
+    }
+
     // Exercises production G-code placeholder vector resolution for filament IDs that
     // share a physical extruder, plus the unmapped-filament fallback.
     JNIEXPORT jobjectArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_placeholder_1filament_1map_1regression(JNIEnv* env, jclass) {
@@ -4785,6 +4848,102 @@ extern "C" {
             jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
             if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
             return nullptr;
+        }
+    }
+
+    // Exercises Orca's height-range Z-shrinkage behavior and cached-region invalidation on
+    // one reused Print. The synthetic range mirrors Orca's 10-15 mm thin/dense fixture.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_z_1shrinkage_1height_1range_1regression(
+        JNIEnv* env, jclass, jlong model_ptr, jstring config_path, jdouble first_percent, jdouble next_percent)
+    {
+        try {
+            auto* model_ref = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(model_ptr));
+            if (model_ref == nullptr || config_path == nullptr || model_ref->model.objects.empty())
+                throw std::invalid_argument("Height-range regression received an empty model or config path");
+
+            const char* path = env->GetStringUTFChars(config_path, nullptr);
+            if (path == nullptr) return nullptr;
+            DynamicPrintConfig base_config;
+            base_config.load(path, ForwardCompatibilitySubstitutionRule::Disable);
+            env->ReleaseStringUTFChars(config_path, path);
+            base_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+            base_config.set_key_value("initial_layer_print_height", new ConfigOptionFloat(0.2));
+            base_config.set_key_value("precise_z_height", new ConfigOptionBool(false));
+            base_config.set_key_value("raft_layers", new ConfigOptionInt(0));
+            base_config.set_key_value("xy_contour_compensation", new ConfigOptionFloat(0.));
+            base_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(15.));
+            base_config.normalize_fdm();
+
+            ModelObject& object = *model_ref->model.objects.front();
+            DynamicPrintConfig range_config;
+            range_config.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+            range_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(50.));
+            object.layer_config_ranges.clear();
+            object.layer_config_ranges[{10., 15.}].assign_config(std::move(range_config));
+
+            Print print;
+            print.is_BBL_printer() = false;
+            const auto inspect = [&](double percent) {
+                DynamicPrintConfig config = base_config;
+                auto* shrinkage = dynamic_cast<ConfigOptionPercents*>(config.option("filament_shrinkage_compensation_z", false));
+                if (shrinkage == nullptr)
+                    throw std::runtime_error("Slice config has no Z shrinkage compensation vector");
+                if (shrinkage->values.empty()) shrinkage->values.push_back(percent);
+                else std::fill(shrinkage->values.begin(), shrinkage->values.end(), percent);
+                print.apply(model_ref->model, std::move(config));
+                print.process();
+
+                const PrintObject& print_object = *print.objects().front();
+                size_t mismatched = 0;
+                double first_dense_z = -1.;
+                for (const Layer* layer : print_object.layers()) {
+                    const bool thin = layer->height < 0.15;
+                    const bool dense = std::any_of(layer->regions().begin(), layer->regions().end(), [](const LayerRegion* region) {
+                        return !region->slices.empty() && region->region().config().sparse_infill_density.value > 40.;
+                    });
+                    if (thin != dense) {
+                        ++mismatched;
+                        __android_log_print(ANDROID_LOG_INFO, "ZShrinkTest",
+                            "mismatch z=%g slice_z=%g height=%g thin=%d dense=%d regions=%zu shrink=%g",
+                            layer->print_z, layer->slice_z, layer->height, thin ? 1 : 0, dense ? 1 : 0,
+                            layer->regions().size(), percent);
+                    }
+                    if (dense && first_dense_z < 0.) first_dense_z = layer->slice_z;
+                }
+                return std::array<double, 3>{static_cast<double>(mismatched), first_dense_z,
+                    print_object.layers().empty() ? 0. : print_object.layers().back()->print_z};
+            };
+
+            const auto first = inspect(first_percent);
+            const auto next = inspect(next_percent);
+            const std::array<jdouble, 6> values{first[0], first[1], first[2], next[0], next[1], next[2]};
+            jdoubleArray result = env->NewDoubleArray(static_cast<jsize>(values.size()));
+            if (result != nullptr) env->SetDoubleArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1layer_1range_1test_1config(
+        JNIEnv* env, jclass, jlong model_ptr, jdouble min_z, jdouble max_z, jdouble layer_height, jdouble outer_wall_speed)
+    {
+        try {
+            auto* model_ref = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(model_ptr));
+            if (model_ref == nullptr || model_ref->model.objects.empty() || min_z < 0. || max_z <= min_z ||
+                layer_height <= 0. || outer_wall_speed <= 0.)
+                throw std::invalid_argument("Invalid model or layer-range test fixture");
+            DynamicPrintConfig range_config;
+            range_config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
+            range_config.set_key_value("outer_wall_speed", new ConfigOptionFloat(outer_wall_speed));
+            model_ref->model.objects.front()->layer_config_ranges[{min_z, max_z}].assign_config(std::move(range_config));
+            return JNI_TRUE;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return JNI_FALSE;
         }
     }
 

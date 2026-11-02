@@ -49,6 +49,7 @@ internal const val MODEL_EDIT_STALE_SELECTION = -2
 internal const val MODEL_EDIT_SURFACE_NEEDS_SIMPLIFICATION = -3
 internal const val MODEL_EDIT_OPERATION_FAILED = -4
 internal const val MODEL_EDIT_ROLLBACK_FAILED = -5
+internal const val MODEL_EDIT_UNSUPPORTED_BUILD_VOLUME = -6
 
 class GLRenderer(glView:GLView):GLSurfaceView.Renderer {
 var camera = Camera()
@@ -2976,6 +2977,83 @@ selZ = 0.0
 selY = selZ
 selX = selY
 return 1
+}
+
+/** Uniformly fit the selected object group to a rectangular or circular build volume. */
+internal fun scaleSelectedObjectToBuildVolume(expectedSelection: ModelSelectionSnapshot): Int {
+    if (!isSelectionSnapshotCurrent(expectedSelection)) return MODEL_EDIT_STALE_SELECTION
+    val activeModel = model ?: return 0
+    val activeBed = bed ?: return 0
+    if (!activeBed.isValid() || !activeBed.supportsScaleToFit()) return MODEL_EDIT_UNSUPPORTED_BUILD_VOLUME
+    val indices = expectedSelection.selectedIndices.filter { it in 0 until activeModel.objectsCount }
+    if (indices.isEmpty()) return 0
+    data class FitObject(val index: Int, val min: Vec3d, val max: Vec3d, val scale: Vec3d) {
+        val centerX get() = (min.x + max.x) / 2.0
+        val centerY get() = (min.y + max.y) / 2.0
+    }
+    val objects = indices.map { index ->
+        activeModel.getBoundingBoxExact(index, bbMin, bbMax)
+        val min = Vec3d(bbMin.x, bbMin.y, bbMin.z)
+        val max = Vec3d(bbMax.x, bbMax.y, bbMax.z)
+        val scale = Vec3d()
+        activeModel.getScale(index, scale)
+        if (listOf(min.x, min.y, min.z, max.x, max.y, max.z, scale.x, scale.y, scale.z)
+                .any { !it.isFinite() } || listOf(scale.x, scale.y, scale.z).any { it <= 0.0 }) return 0
+        FitObject(index, min, max, scale)
+    }
+    val groupMinX = objects.minOf { it.min.x }
+    val groupMinY = objects.minOf { it.min.y }
+    val groupMinZ = objects.minOf { it.min.z }
+    val groupMaxX = objects.maxOf { it.max.x }
+    val groupMaxY = objects.maxOf { it.max.y }
+    val groupMaxZ = objects.maxOf { it.max.z }
+    val groupCenterX = (groupMinX + groupMaxX) / 2.0
+    val groupCenterY = (groupMinY + groupMaxY) / 2.0
+    val objectSizeX = groupMaxX - groupMinX
+    val objectSizeY = groupMaxY - groupMinY
+    val objectSizeZ = groupMaxZ - groupMinZ
+    val bedMin = activeBed.getVolumeMin() ?: return 0
+    val bedMax = activeBed.getVolumeMax() ?: return 0
+    val circle = activeBed.getCircularBuildVolume()
+    val fitPlan = if (circle != null && circle.size >= 3) {
+        BuildVolumeFitPolicy.circularFitPlan(
+            groupMinX, groupMinY, groupMinZ, groupMaxX, groupMaxY, groupMaxZ,
+            circle[0], circle[1], circle[2], bedMin.z, bedMax.z,
+        )
+    } else {
+        val factor = BuildVolumeFitPolicy.uniformScale(
+            objectSizeX, objectSizeY, objectSizeZ,
+            bedMax.x - bedMin.x, bedMax.y - bedMin.y, bedMax.z - bedMin.z,
+        ) ?: return 0
+        BuildVolumeFitPolicy.FitPlan(
+            factor,
+            (bedMin.x + bedMax.x) / 2.0,
+            (bedMin.y + bedMax.y) / 2.0,
+            bedMin.z,
+        )
+    } ?: return 0
+    val factor = fitPlan.uniformScale
+
+    for (item in objects) {
+        val nextScale = Vec3d(item.scale.x * factor, item.scale.y * factor, item.scale.z * factor)
+        if (listOf(nextScale.x, nextScale.y, nextScale.z).any { !it.isFinite() || it <= 0.0 }) return 0
+        activeModel.scale(item.index, nextScale.x, nextScale.y, nextScale.z)
+        activeModel.getBoundingBoxExact(item.index, bbMin, bbMax)
+        val targetCenterX = fitPlan.targetCenterX + (item.centerX - groupCenterX) * factor
+        val targetCenterY = fitPlan.targetCenterY + (item.centerY - groupCenterY) * factor
+        val targetMinZ = fitPlan.targetMinZ + (item.min.z - groupMinZ) * factor
+        activeModel.translate(
+            item.index,
+            targetCenterX - (bbMin.x + bbMax.x) / 2.0,
+            targetCenterY - (bbMin.y + bbMax.y) / 2.0,
+            targetMinZ - bbMin.z,
+        )
+        invalidateGlModel(item.index)
+    }
+    setSelectionScale(1.0, 1.0, 1.0)
+    setSelectionRotation(0.0, 0.0, 0.0)
+    prepareSelectionTransformPreview()
+    return 1
 }
 /** Drops the complete selected group onto the printable bed using one shared Z translation. */
 internal fun placeSelectedObjectsOnBed(expectedSelection: ModelSelectionSnapshot? = null): Int {

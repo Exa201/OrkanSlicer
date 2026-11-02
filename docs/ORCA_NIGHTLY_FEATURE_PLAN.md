@@ -1,5 +1,53 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 7 — 10/10 (2026-11-02)
+
+Der Batch hat das Verifikations-Gate erreicht. Zwei aktuelle JVM-Suites sind vollständig grün; der vollständige 553-Test-Instrumentierungslauf wurde nach einem veralteten Changelog-Assert gestoppt. Dieser Fehler wird mit dem 0.8.426-Kandidaten gezielt nachgeprüft. APK-/Release-Freigabe folgt erst nach diesem gezielten Instrumentierungssatz.
+
+### Punkt 8 — Android-Back/Escape schließt die Profilfiltersuche
+
+- Orca `06bccd5570` schließt Suchoberflächen beim Escape-Tastendruck. In OrkanSlicer schließen Android-Zurück und Escape die geöffnete Profilfiltersuche, ohne den Profil-Host oder die Einstellungen zu verlassen.
+- `ProfileFilterAccessibilityDeviceTest#backClosesProfileSearchWithoutClosingItsHost` wurde auf API 36 (`emulator-5554`) ausgeführt: 1/1 bestanden. Der Test öffnet die Suche, prüft Android-Zurück, öffnet sie erneut und prüft Escape.
+- Der Back/Escape-Punkt ist als Punkt 8 verifiziert. Frühere Zwischenstände zählten 7/10; die hierunter dokumentierten Punkte 9 und 10 vervollständigen den Batch.
+- Der frühere Fixture-Vorbehalt zu Vase/Höhenbereich wurde durch einen gezielten nativen Fixture-Test abgelöst; siehe Punkt 10. Der Test prüft die Höhenbereichskonfiguration und erzeugten G-Code im selben Slice.
+
+### Punkt 9/10 — Z-Schrumpfung skaliert Höhenbereiche konsistent
+
+- Portiert Orca `5fd0edf5cc`: `LayerRanges` berücksichtigt den Z-Schrumpfungsfaktor; nach Änderung der skalierten Grenzen werden abhängige PrintObjectRegions neu aufgebaut. Beim Clipping wird die unkompensierte Objekthöhe verwendet.
+- `NativeSliceDeviceTest#zShrinkageCompensationKeepsHeightRangeAlignedAfterPrintConfigChanges` bestand auf API 36 (1/1): dieselbe native Print-Instanz wird mit 100 % und danach 95 % Z-Schrumpfung verarbeitet; der konfigurierte dünne/dichte Höhenbereich bleibt mit der skalierten Geometrie ausgerichtet.
+- Der erste Testlauf scheiterte an einer vom Orca-Fixture abweichenden Testkonfiguration; nach Anpassung an Orcas tatsächliche Schichthöhen- und Kontureinstellungen bestand der Test. Kein Hardwaredrucktest.
+
+### Punkt 10/10 — Spiralvase akzeptiert gleichfarbige Höhenbereich-Overrides
+
+- Orca `2a8abac43d`: Materialprüfung im Spiralvasenmodus darf einen Geschwindigkeits-/Höhenbereich-Override derselben Filamentzuordnung nicht fälschlich als Mehrmaterialkonflikt einstufen. Die Android-Produktlogik entsprach dem bereits; neu ist der explizite native Regressionstest.
+- `NativeSliceDeviceTest#spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode` bestand auf API 36 (1/1) und erzeugte realen G-Code für Spiralvase mit einem Filament und aktivem Höhenbereich-Override.
+- Voriger Fixture-Vorbehalt ist damit ersetzt. Kein physischer Drucktest.
+
+### Zusatzprüfung — Bridge-Speed bei Curling-Verlangsamung (bereits Batch 6, nicht erneut gezählt)
+
+- Orca `533d4c3e9e` war bereits Punkt 8/10 in Batch 6; seine Android-Portierung und der erste echte G-Code-Test sind im Batch-6-Protokoll unten dokumentiert.
+- `NativeSliceDeviceTest#bridgeInfillKeepsBridgeSpeedWithCurledPerimeterSlowdown` wurde erneut auf API 36 / `emulator-5554` ausgeführt: 1/1 bestanden; die inneren Bridge-Infill-Bahnen bei Z=5,2 mm verwenden weiterhin 45 mm/s.
+- Diese Wiederholungsprüfung ändert den Batch-7-Zähler nicht. Batch 7 bleibt bei **10/10**; die gezielte Release-Verifikation steht noch aus.
+
+### Punkt 7 — Ausgewählte Objektgruppe ins Druckvolumen einpassen
+
+- Orca `b3819e7c9e` dokumentiert die Verfügbarkeitsregel für „Scale to build volume“: nur bei unterstütztem rechteckigem oder rundem Bett, nicht für eine Volumenauswahl. OrkanSlicer hat keine separate Volumenauswahl; die Aktion ist für ein oder mehrere ausgewählte Modellobjekte verfügbar.
+- Die mobile Implementierung berechnet die gemeinsame Begrenzungsbox, skaliert alle ausgewählten Objekte mit demselben Faktor und erhält relative Abstände. Die Gruppe wird auf den Bettmittelpunkt ausgerichtet und auf Z=Minimum gesetzt; pro Objekt werden GL-Mesh und Vorschau erneuert. Die vorhandenen Modellhistoriepfade erhalten Undo/Redo.
+- `InitialProjectMenuDeviceTest#scaleToBuildVolumeFitsSelectedGroupAndPreservesRelativeLayout` bestand auf API 36 / `emulator-5554` (1/1): zwei getrennte, absichtlich zu große Objekte werden gemeinsam eingepasst; relative Distanz und Objektzahl bleiben erhalten, Undo/Redo funktionieren. `:app:connectedSliceTestAndroidTest` war erfolgreich.
+- Kein physischer Drucktest. Batch 7 steht bei **10/10**; APK-/Release-Gate folgt nach gezielter Instrumentierungsprüfung.
+
+### Punkt 6 — Scarf-Rampenendpunkt stabilisieren
+
+- Orca `6c96e41162`: auf fast geraden Segmenten wird ein knapp hinter der exakten Rampenlänge liegender Knotenpunkt übersprungen. Dadurch bleibt der Seam-Endpunkt über Layer konsistent und ein kurzer Planer-Stummel entfällt; echte Ecken dürfen den Endpunkt auf den Eckknoten setzen.
+- Android-Port in `ExtrusionEntity.cpp`. `scarfRampRemainsStableAcrossLayerVertexShiftsAndCorners` prüft den Produktionspfad auf API 36 mit zwei verschobenen Layerknoten und einer Ecke: 1/1 bestanden. ARM64 Native- und Instrumentierungsbuild erfolgreich.
+- Kein echter Druck-/Firmwaretest. Batch 7 steht bei **6/10**; APK-/Release-Gate folgt bei 10/10.
+
+### Punkt 5 — Filament-für-Funktion überschreibt keine anderen Feature-Zuordnungen
+
+- Orca `304924a69a` trennt die Filamentwahl für Sparse Infill, interne massive Füllung sowie obere/untere Oberfläche. Ein Feature mit Wert `Default` verwendet weiter das Objektfilament; eine andere explizite Feature-Auswahl darf es nicht verändern.
+- Diese Upstream-Semantik ist im aktuellen Android-Port bereits vorhanden. `NativeSliceDeviceTest#oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures` wurde frisch auf API 36 ausgeführt und bestand 1/1. Der Test erstellt vier echte G-Code-Slices und kontrolliert die erzeugten Config-Werte und Feature-Werkzeugnummern.
+- Keine Produktionsänderung erforderlich. Batch 7 steht bei **5/10**; APK-/Release-Gate erst bei 10/10.
+
 ## Nightly Batch 6 — 10/10 (2026-11-01)
 
 - Orca-Upstream `27cafaa06c` korrigiert Düsengrößen, die unter einer UI-Locale mit Dezimalkomma ankommen. Die Android-Profilfilterung hatte denselben Fehler: `0,6` wurde vor dem Zahlenvergleich am Komma getrennt und als `0` interpretiert.
@@ -62,13 +110,14 @@
 - `NativeSliceDeviceTest#lightningDistanceFieldExpandsBoundsToContainOpenedOverhangSamples` bestand 1/1 und reproduziert Proben außerhalb der ursprünglichen Kontur ohne doppelte Ausgabe. `NativeSliceDeviceTest#lightningInfillCompletesWhenOpenedOverhangExtendsPastInfillBounds` bestand 1/1 mit einem vollständigen nativen Slice samt Sparse-Infill-G-Code.
 - ARM64-Slice- und Instrumentierungsbuild erfolgreich. Batch 6 ist damit 10/10 funktional verifiziert; APK-/Release-Gate folgt nach vollständigen Debug-/Slice-Unit-Tests und Release-Build.
 
-## Workspace-Import-Fortsetzung — 2026-11-01
+## Workspace-Import-Fortsetzung — 2026-11-02
 
 - Import-Arrange ist jetzt atomar: bei Überlauf bleiben vorhandene Modelle an ihren Positionen. Aktivierte Auto-Ausrichtung wird vor dem Arrange angewendet. Nicht passende importierte Objekte werden auf automatisch erzeugten und ausgewählten Druckplatten platziert; einzeln zu große Objekte werden zentriert und gewarnt.
 - Die Arrange-Parameter erlauben jetzt zusätzlich XY-Rotationen. API-36-Test mit zwei rechtwinkligen Modellen auf dem 255×255-mm-Bett bewies Platzgewinn, gemeinsame Plattenbelegung und überlappungsfreie Bounds. Import-Overflow und atomarer Arrange-Rollback bestanden ebenfalls direkt auf API 36.
 - Mehrmodell-Importe versuchen zuerst ein gemeinsames Arrange; nur bei Platzmangel folgt der atomare pro-Objekt-Overflow-Fallback.
 - Android-16-Regressionsprüfung: automatische Plattenerzeugung bei voller Platte, XY-Drehung, Nutzung der konkaven L-Freifläche und Mehrfachauswahl großer STL-Dateien mit Erhalt der vorhandenen Platte bestanden. Der Mehrfachimporttest bestätigt drei belegte Platten, aktive Auswahl der letzten Platte sowie innerhalb der Bettgrenzen platzierte, auf Z=0 liegende Modelle.
-- Diese Workspace-Änderung ist kein Orca-Upstream-Port und kein Batch-6-Zähler. `ModelInstance::get_arrange_polygon()` verwendet für geeignete geschlossene Meshes bis 20.000 Facetten die vereinigte konkave Projektion; bei offenen, zu großen oder getrennten Projektionen bleibt die konvexe Hülle als sichere Rückfallebene. Die Bounds belegen gedrehte Instanzen; `Model.getRotation()` liest dagegen den ModelObject-Transform, nicht die ModelInstance-Rotation, und ist daher für diesen Test nicht aussagekräftig.
+- Erneute API-36-Ausführung im aktuellen Arbeitsbaum: `detailedConcaveModelKeepsItsOpenFootprintAboveLegacyProjectionLimit`, `importedObjectsMoveToAutomaticallyCreatedPlateWhenCurrentPlateIsFull`, `importedObjectsRotateInPlaneToUseAvailableBedSpace` und `additionalProjectModelOverflowCreatesPlateWithoutMovingExistingModel` jeweils 1/1 bestanden. `git diff --check` ebenfalls erfolgreich. Xiaomi-Hardware wurde nicht geprüft; diese Gegenprüfung erstellt weder APK noch Release.
+- Diese Workspace-Änderung ist kein Orca-Upstream-Port und kein Batch-Zähler. `ModelInstance::get_arrange_polygon()` verwendet für geeignete Meshes bis 50.000 Facetten die vereinigte konkave Projektion; bei ungültigen, zu großen oder nicht projizierbaren Meshes bleibt die konvexe Hülle als sichere Rückfallebene. Die Bounds belegen gedrehte Instanzen; `Model.getRotation()` liest dagegen den ModelObject-Transform, nicht die ModelInstance-Rotation, und ist daher für diesen Test nicht aussagekräftig.
 
 ## Fortsetzung nach Batch 5 — Stand 2026-11-01
 

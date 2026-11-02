@@ -302,6 +302,9 @@
     <string name="ModelMenuDuplicate">Ausgewähltes Objekt oder Gruppe duplizieren und Anzahl wählen</string>
     <string name="ModelMenuMoveToPlate">Ausgewähltes Modell auf andere Druckplatte verschieben</string>
     <string name="ModelMenuCenterOnBed">Ausgewähltes Objekt oder Gruppe auf der Platte zentrieren</string>
+    <string name="ModelScaleToBuildVolume">Objekt ins Druckvolumen einpassen</string>
+    <string name="ModelScaleToBuildVolumeDone">Objekt proportional skaliert, zentriert und auf dem Bett platziert.</string>
+    <string name="ModelScaleToBuildVolumeUnsupported">Das Einpassen ist für ein einzelnes Objekt auf rechteckigen Druckplatten verfügbar.</string>
     <string name="ModelMenuPlaceGroupOnBed">Ausgewählte Objektgruppe auf die Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedShort">Auf Platte ablegen</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Ausgewählte Objekte auf die Platte gestellt</string>
@@ -1656,4 +1659,7 @@
     <string name="AdaptivePAModelPaTooHigh">PA muss kleiner als 2 sein.</string>
     <string name="AdaptivePAModelFlowTooLow">Der Durchfluss muss größer als PA sein.</string>
     <string name="AdaptivePAModelAccelerationTooLow">Die Beschleunigung muss größer als der Durchfluss sein.</string>
+    <string name="AdaptivePAModelSliceWarningTitle">Warnung zum adaptiven Pressure-Advance-Modell</string>
+    <string name="AdaptivePAModelSliceWarningBody">Das Slicing ist abgeschlossen, aber einige Messwerte für Adaptive Pressure Advance sind möglicherweise ungültig. Prüfe das Filamentmodell vor dem Drucken:\n%1$s</string>
+    <string name="AdaptivePAModelSliceWarningContinue">Fortfahren</string>
 </resources>

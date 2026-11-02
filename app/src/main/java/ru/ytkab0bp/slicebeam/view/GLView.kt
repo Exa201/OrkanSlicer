@@ -621,6 +621,16 @@ internal fun centerSelectedOnBed(
         ViewUtils.postOnMainThread { onComplete(centered) }
     }
 }
+internal fun scaleSelectedObjectToBuildVolume(
+    expectedSelection: ModelSelectionSnapshot,
+    onComplete: (Int) -> Unit,
+) {
+    queueEvent {
+        val result = renderer.scaleSelectedObjectToBuildVolume(expectedSelection)
+        requestRender()
+        ViewUtils.postOnMainThread { onComplete(result) }
+    }
+}
 internal fun placeSelectedObjectsOnBed(
     expectedSelection: ModelSelectionSnapshot,
     onComplete: (Int) -> Unit,

@@ -506,6 +506,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun scarfRampRemainsStableAcrossLayerVertexShiftsAndCorners() {
+        assertArrayEquals(
+            doubleArrayOf(20.0, 20.0, 5.0, 30.0, 20.0, 20.0, 5.0, 30.0, 20.3, 20.3, 5.0, 28.96),
+            Native.scarf_ramp_regression(),
+            0.001,
+        )
+    }
+
+    @Test
     fun shortExtrusionChainsUseTheMinimumTravelOrder() {
         val segments = listOf(
             Pair(doubleArrayOf(14.0, 3.0), doubleArrayOf(6.0, 19.0)),
@@ -5559,6 +5568,7 @@ class NativeSliceDeviceTest {
         val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
         val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
         val originalStart = printer.get("machine_start_gcode")
+        val originalPrinterModel = printer.get("printer_model")
         val originalEnabled = filament.get("enable_pressure_advance")
         val originalAdvance = filament.get("pressure_advance")
         val modelFile = copyAsset(context, "models/box.stl", "kobra-pa-migration-device-test.stl")
@@ -5567,13 +5577,15 @@ class NativeSliceDeviceTest {
             // Recreate the stale stock profile that shipped the fixed value shown in the report.
             val staleStart = "G9111 bedTemp=[first_layer_bed_temperature] extruderTemp=[first_layer_temperature[initial_tool]]\nM117\nM900 K0.051"
             printer.put("machine_start_gcode", staleStart)
+            printer.put("printer_model", "Anycubic Kobra 3 V2")
             filament.put("enable_pressure_advance", "1")
             filament.put("pressure_advance", "0.075")
-            val migratedStart = Kobra3V2ProfileMigration.removeLegacyPressureAdvance(
-                printer.get("machine_start_gcode").orEmpty(),
+
+            val effectiveConfig = SliceBeam.buildCurrentConfigObject()
+            assertFalse(
+                "The generated Kobra 3 V2 slice config must strip the stale fixed PA command",
+                effectiveConfig["machine_start_gcode"].orEmpty().contains("M900 K0.051"),
             )
-            printer.put("machine_start_gcode", migratedStart)
-            assertFalse("The legacy printer start code must no longer force K0.051", migratedStart.contains("M900 K0.051"))
 
             model = Model(modelFile)
             val enabledGcode = sliceToGcode(context, model, "kobra-pa-enabled-device-test.gcode")
@@ -5590,6 +5602,7 @@ class NativeSliceDeviceTest {
             model?.release()
             modelFile.delete()
             if (originalStart == null) printer.values.remove("machine_start_gcode") else printer.put("machine_start_gcode", originalStart)
+            if (originalPrinterModel == null) printer.values.remove("printer_model") else printer.put("printer_model", originalPrinterModel)
             if (originalEnabled == null) filament.values.remove("enable_pressure_advance") else filament.put("enable_pressure_advance", originalEnabled)
             if (originalAdvance == null) filament.values.remove("pressure_advance") else filament.put("pressure_advance", originalAdvance)
             SliceBeam.getCurrentConfigFile().delete()
@@ -5597,7 +5610,7 @@ class NativeSliceDeviceTest {
     }
 
     @Test(timeout = 120_000)
-    fun spiralVaseSlicesSingleFilamentObjectWithHeightRangeOverride() = withKobraProfile {
+    fun spiralVaseSlicesSingleFilamentObject() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
         val process = requireNotNull(config.findPrint("0.16mm Standard"))
@@ -5605,36 +5618,81 @@ class NativeSliceDeviceTest {
         process.put("top_shell_layers", "0")
         process.put("bottom_shell_layers", "1")
 
-        val source = copyCube(context, "spiral-height-range-source.stl")
-        val baseProject = File(context.cacheDir, "spiral-height-range-base.3mf")
-        val projectWithRange = File(context.cacheDir, "spiral-height-range-override.3mf")
+        val source = copyCube(context, "spiral-vase-source.stl")
+        val configFile = SliceBeam.getCurrentConfigFile()
         var model: Model? = null
-        var sourceModel: Model? = null
         try {
-            sourceModel = Model(source).also { it.ensureOnBed(0) }
-            SliceBeam.genCurrentConfig(sourceModel)
-            sourceModel.export3mf(SliceBeam.getCurrentConfigFile().absolutePath, baseProject.absolutePath)
-            addLayerConfigRange(
-                baseProject,
-                projectWithRange,
-                """<?xml version="1.0" encoding="UTF-8"?><objects><object id="1"><range min_z="0.4" max_z="1.2"><option opt_key="outer_wall_speed">42</option></range></object></objects>""",
-            )
-
-            model = Model(projectWithRange).also { it.ensureOnBed(0) }
+            model = Model(source).also { it.ensureOnBed(0) }
             SliceBeam.genCurrentConfig(model)
-            val nativeConfig = SliceBeam.getCurrentConfigFile().readText()
+            val nativeConfig = configFile.readText()
             assertTrue("The actual native slice config must enable spiral vase mode", nativeConfig.contains("spiral_mode = 1"))
-            val gcode = sliceToGcode(context, model, "spiral-height-range-override.gcode")
+            val gcode = sliceToGcode(context, model, "spiral-vase-single-filament.gcode")
             assertHasExtrusion(gcode)
             assertTrue("The sliced output must keep the vase-mode object perimeter", gcode.contains("TYPE:Outer wall") || gcode.contains("TYPE:External perimeter"))
-            Log.i("NativeSliceDeviceTest", "PASS single-filament spiral vase with layer-range perimeter-speed override")
+            Log.i("NativeSliceDeviceTest", "PASS single-filament spiral vase slice")
         } finally {
             model?.release()
-            sourceModel?.release()
             source.delete()
-            baseProject.delete()
-            projectWithRange.delete()
-            SliceBeam.getCurrentConfigFile().delete()
+            configFile.delete()
+        }
+    }
+
+    @Test(timeout = 120_000)
+    fun zShrinkageCompensationKeepsHeightRangeAlignedAfterPrintConfigChanges() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "z-shrinkage-height-range-source.stl")
+        val configFile = SliceBeam.getCurrentConfigFile()
+        var model: Model? = null
+        try {
+            model = Model(source).also { it.ensureOnBed(0) }
+            SliceBeam.genCurrentConfig(model)
+
+            // The JNI regression applies a 10–15 mm thin, dense range and processes the same
+            // model/Print at 100% and then 95% Z scale, exercising region-cache invalidation.
+            val values = Native.z_shrinkage_height_range_regression(
+                model.pointer,
+                configFile.absolutePath,
+                100.0,
+                95.0,
+            )
+            assertEquals("Every thin layer must use the dense range and vice versa at 100%", 0.0, values[0], 0.0)
+            assertEquals("The dense range must start at 10 mm", 10.0, values[1], 0.2)
+            assertEquals("The 20 mm model must end at 20 mm", 20.0, values[2], 0.2)
+            assertEquals("Every thin layer must follow the new compensated range after config change", 0.0, values[3], 0.0)
+            assertEquals("The range start must scale with 95% Z compensation", 10.0 * 100.0 / 95.0, values[4], 0.2)
+            assertEquals("The model height must scale with 95% Z compensation", 20.0 * 100.0 / 95.0, values[5], 0.2)
+        } finally {
+            model?.release()
+            source.delete()
+            configFile.delete()
+        }
+    }
+
+    @Test(timeout = 120_000)
+    fun spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.16mm Standard"))
+        process.put("spiral_mode", "1")
+        process.put("top_shell_layers", "0")
+        process.put("bottom_shell_layers", "1")
+
+        val source = copyCube(context, "spiral-height-range-source.stl")
+        val configFile = SliceBeam.getCurrentConfigFile()
+        var model: Model? = null
+        try {
+            model = Model(source).also { it.ensureOnBed(0) }
+            assertTrue("The native model must accept an object-local height-range override",
+                Native.model_add_layer_range_test_config(model.pointer, 0.4, 1.2, 0.2, 42.0))
+
+            val gcode = sliceToGcode(context, model, "spiral-height-range-override.gcode")
+            assertHasExtrusion(gcode)
+            assertTrue("Spiral vase output must contain the object's exterior perimeter",
+                gcode.contains("TYPE:Outer wall") || gcode.contains("TYPE:External perimeter"))
+            Log.i("NativeSliceDeviceTest", "PASS single-filament spiral vase with height-range speed override")
+        } finally {
+            model?.release()
+            source.delete()
+            configFile.delete()
         }
     }
 
@@ -5926,21 +5984,6 @@ class NativeSliceDeviceTest {
         check(changed) { "3MF model XML did not contain an item build transform" }
     }
 
-    private fun addLayerConfigRange(source: File, destination: File, xml: String) {
-        ZipFile(source).use { archive ->
-            ZipOutputStream(destination.outputStream()).use { output ->
-                archive.entries().asSequence().forEach { entry ->
-                    output.putNextEntry(ZipEntry(entry.name))
-                    archive.getInputStream(entry).use { it.copyTo(output) }
-                    output.closeEntry()
-                }
-                output.putNextEntry(ZipEntry("Metadata/Prusa_Slicer_layer_config_ranges.xml"))
-                output.write(xml.toByteArray(Charsets.UTF_8))
-                output.closeEntry()
-            }
-        }
-    }
-
     /** Writes one small ZIP member whose central directory claims a ZIP64-sized XML payload. */
     private fun writeZip64EntryWithDeclaredSize(file: File, entryName: String, content: ByteArray, declaredSize: Long) {
         require(declaredSize > Int.MAX_VALUE)
@@ -6213,6 +6256,12 @@ class NativeSliceDeviceTest {
             generatedConfig?.delete()
         }
     }
+
+    private fun layerZValues(gcode: String): List<Double> =
+        Regex("(?m)^;Z:([0-9]+(?:\\.[0-9]+)?)$")
+            .findAll(gcode)
+            .map { it.groupValues[1].toDouble() }
+            .toList()
 
     private fun assertHasExtrusion(gcode: String) {
         assertTrue("Slicing should produce non-empty G-code", gcode.isNotBlank())

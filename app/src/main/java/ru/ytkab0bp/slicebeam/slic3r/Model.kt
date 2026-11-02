@@ -1,6 +1,8 @@
 package ru.ytkab0bp.slicebeam.slic3r
 
 import ru.ytkab0bp.slicebeam.SliceBeam
+import ru.ytkab0bp.slicebeam.config.AdaptivePAModelValidator
+import ru.ytkab0bp.slicebeam.config.ProfileStringVectorCodec
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.utils.SliceFilamentColorResolver
 import ru.ytkab0bp.slicebeam.utils.Vec3d
@@ -720,6 +722,21 @@ open class Model private constructor(@JvmField var pointer: Long) {
                     Prefs.getFilamentPalette(),
                 )
             } else null
+            // Invalid calibration rows are advisory only; they must not fail slicing.
+            result.adaptivePAModelWarnings = runCatching {
+                val config = File(configPath).useLines { lines ->
+                    lines.mapNotNull { line ->
+                        val separator = line.indexOf(" = ")
+                        if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 3)
+                    }.toMap()
+                }
+                val usedFilaments = (0 until objectsCount)
+                    .flatMap { getUsedFilaments(it).asIterable() }
+                    .filter { it > 0 }
+                    .map { it - 1 }
+                    .toSet()
+                AdaptivePAModelValidator.sliceWarnings(config, usedFilaments)
+            }.getOrDefault(emptyList())
         }
     }
 

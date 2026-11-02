@@ -30,12 +30,20 @@ class Native {
     /** Exercises the native Auto For Match solver against four synthetic two-slot palettes. */
     @JvmStatic
     external fun filament_group_match_regression(): IntArray
+    @JvmStatic
+    external fun scarf_ramp_regression(): DoubleArray
     /** Checks per-filament and physical-extruder placeholder vectors under a shared filament map. */
     @JvmStatic
     external fun placeholder_filament_map_regression(): Array<String>
     /** Reapplies one native Print from a single-filament model to a two-filament model. */
     @JvmStatic
     external fun reused_print_prime_tower_regression(firstModel: Long, nextModel: Long, configPath: String): IntArray
+    /** Exercises height-range Z shrinkage and cached-region invalidation through native Print::process. */
+    @JvmStatic
+    external fun z_shrinkage_height_range_regression(model: Long, configPath: String, firstPercent: Double, nextPercent: Double): DoubleArray
+    /** Adds an object-local layer-height/speed range for native slice regression tests. */
+    @JvmStatic
+    external fun model_add_layer_range_test_config(model: Long, minZ: Double, maxZ: Double, layerHeight: Double, outerWallSpeed: Double): Boolean
     /** Exercises the inherited custom-printer preset merge when the child adds nozzle slots. */
     @JvmStatic
     external fun preset_parent_nozzle_extension_regression(): DoubleArray
@@ -109,6 +117,12 @@ class Native {
     external fun bed_get_bounding_volume_max_size(ptr: Long): Int
     @JvmStatic
     external fun bed_get_bounding_volume(ptr: Long): DoubleArray
+    @JvmStatic
+    external fun bed_is_rectangular_build_volume(ptr: Long): Boolean
+    @JvmStatic
+    external fun bed_is_circular_build_volume(ptr: Long): Boolean
+    @JvmStatic
+    external fun bed_get_circular_build_volume(ptr: Long): DoubleArray?
     @JvmStatic
     external fun bed_configure(ptr: Long, configPath: String): Unit
     @JvmStatic

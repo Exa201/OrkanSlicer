@@ -1,4 +1,107 @@
-# Nightly Orca Batch 7 — Punkt 2/10 verifiziert — 2026-11-02
+# Nightly Orca Batch 7 — 10/10 Feature-Punkte verifiziert; Release-Kandidat wird geprüft — 2026-11-02
+
+## Release-Gate-Stand — Nightly 0.8.426 (Code 461)
+
+- Batch 7 umfasst zehn Punkte. Punkt 8 (Back/Escape) wurde zuvor 1/1 auf API 36 bestanden; Z-Schrumpfung (Punkt 9) und Spiralvase mit gleichfarbigem Höhenbereich-Override (Punkt 10) wurden im gezielten API-36-Lauf zusammen 2/2 bestanden.
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: beide vollständig erfolgreich; je 737 Tests, 0 Fehler, 0 Übersprungene.
+- `:app:assembleDebug`: erfolgreich. Ein anschließender vollständiger SliceTest-Instrumentierungslauf startete 553 Tests; bei Test 1/553 fiel der alte Changelog-Versionsassert, und der Lauf wurde bei 8/553 kontrolliert abgebrochen. Ursache: Release-Notiz nannte 0.8.420, der Build 0.8.425. Changelog-Text und Assertion wurden auf Nightly 0.8.426 aktualisiert; Release-Build und gezielte Geräteprüfungen folgen.
+- Es wurde in diesem Lauf kein PR oder Release aktualisiert. Aktueller Quellcode-HEAD bleibt `85cefe7626c8548492766737c02c3b34f5dff8e4`; Arbeitsbaum enthält bestehende Nightly-Änderungen. Kein Xiaomi-Test.
+
+## Punkt 9/10 — Z-Schrumpfung skaliert Höhenbereiche konsistent
+
+- Portiert Orca `5fd0edf5cc` in `PrintApply.cpp` und `Slicing.cpp`; dieselbe Print-Instanz wird im Test bei 100 % und 95 % Z-Schrumpfung verarbeitet.
+- `NativeSliceDeviceTest#zShrinkageCompensationKeepsHeightRangeAlignedAfterPrintConfigChanges`: API 36, 1/1 bestanden. Der erste Lauf verwendete eine abweichende Fixture-Konfiguration und scheiterte; nach Anpassung an Orcas Einstellungen bestand der produktionsnahe Test.
+
+## Punkt 10/10 — Spiralvase und Höhenbereich-Override bei einem Filament
+
+- Orca `2a8abac43d`: die Materialprüfung soll gleichfarbige, filament-neutrale Höhenbereich-Overrides nicht als Mehrmaterialkonflikt werten. Android-Produktlogik war bereits passend; Regressionstest ergänzt.
+- `NativeSliceDeviceTest#spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode`: API 36, echter G-Code-Slice, 1/1 bestanden. Dieser Nachweis ersetzt den früheren Fixture-Vorbehalt.
+- Nächster Schritt: gezielten Satz aus Changelog, Back/Escape, Z-Schrumpfung und Spiralvase erneut auf API 36 ausführen; danach Release-APK installieren/starten, SHA-256 erfassen, Änderungen scoped committen/pushen und Nightly-Release veröffentlichen.
+
+## Punkt 8/10 — Android-Back/Escape schließt die Profilfiltersuche
+
+- Portiert Orca `06bccd5570`: Android-Zurück und Escape schließen die aktive Profilfiltersuche, ohne den Profil-Host zu verlassen.
+- `ProfileFilterAccessibilityDeviceTest#backClosesProfileSearchWithoutClosingItsHost`: API 36 (`emulator-5554`), 1/1 bestanden. Gezielte Slice-Test- und Instrumentierungs-APK-Installation erfolgreich.
+- Batch 7 steht bei **7/10**; noch drei unabhängige Android-relevante Orca-Punkte vor dem APK-/Release-Gate. Kein Xiaomi-Test.
+- Korrektur: Der „Vase Mode mit Höhenbereich“-Punkt wird bis zu einem aussagekräftigen Fixture nicht gezählt. `zShrinkageCompensationKeepsLayerRangeOverrideAlignedWithScaledGeometry` scheitert bereits beim Roundtrip-Nachweis, dass die Höhenbereich-Metadaten im Modell erhalten blieben; zuvor angezeigte 0,16-mm-Layer allein belegen keine Z-Schrumpfungswirkung. Der aktive 98%-Slice-Konfigurationswert ist nachgewiesen, die Höhenbereich-Wirkung nicht.
+- Der aktuelle Instrumentierungslauf bestätigt weiterhin `spiralVaseSlicesSingleFilamentObjectWithHeightRangeOverride` 1/1; wegen des fehlenden Roundtrip-Nachweises zählt dieser Lauf nur als erfolgreicher Single-Filament-Vase-Slice, nicht als Höhenbereich-Port.
+
+- Batch-6-Punkt 8 (`533d4c3e9e`, Bridge-Speed bei Curling-Verlangsamung) wurde nochmals Ende-zu-Ende geprüft, zählt aber nicht erneut für Batch 7: `NativeSliceDeviceTest#bridgeInfillKeepsBridgeSpeedWithCurledPerimeterSlowdown` auf API 36 1/1 bestanden; echte innere Brückenbahnen auf Z=5,2 mm bleiben bei 45 mm/s.
+- Batch 7: **7/10**. Noch drei neue, unabhängige Orca-Punkte bis zum APK-/Nightly-Release-Gate. Xiaomi nicht per ADB angeschlossen.
+
+## Workspace-Import-Regressionen erneut geprüft — 2026-11-02
+
+- API 36: detaillierte konkave Fläche über der alten 20k-Facetten-Grenze nutzt ihre offene Kontur (1/1); volle Platte erstellt eine Folgeplatte (1/1); gedrehte Modelle passen gemeinsam auf eine Platte (1/1); zusätzliches Projektmodell erzeugt bei Überlauf eine Platte, ohne das vorhandene Modell zu verschieben (1/1).
+- Packung nutzt bis 50.000 Facetten eine vereinigte konkave XY-Projektion. Für ungültige, nicht projizierbare oder größere Meshes bleibt aus Kollisionssicherheitsgründen die konvexe Hülle; dort kann freier Raum weiter ungenutzt bleiben. Reguläre Einzelmodellimporte werden vor dem Packen automatisch ausgerichtet. Beim erstmaligen Laden eines 3MF-Projekts bleibt dessen gespeichertes Layout erhalten.
+- `git diff --check` erfolgreich. Kein Xiaomi-Test, APK oder Release in diesem Prüflauf. Nightly-Batchzähler bleibt 7/10.
+
+## Punkt 7/10 — Ausgewählte Objektgruppe ins Druckvolumen einpassen
+
+- „Scale to build volume“ ist für eine Mehrfachauswahl verfügbar. Der Renderer skaliert alle ausgewählten Objekte mit einem gemeinsamen Faktor, bewahrt relative Abstände und Objektgrenzen, zentriert die Gruppe und setzt sie auf die Bettunterkante.
+- `InitialProjectMenuDeviceTest#scaleToBuildVolumeFitsSelectedGroupAndPreservesRelativeLayout` auf API 36 (`emulator-5554`): 1/1 bestanden; Gruppen-Fit, Abstandserhalt, Zentrierung sowie Undo/Redo geprüft. `:app:connectedSliceTestAndroidTest` erfolgreich.
+
+- Orca-Referenz: `b3819e7c9e` (Verfügbarkeitsregel für rechteckige/runde Betten und Volumenauswahl). OrkanSlicer besitzt keine separate Volumenauswahl, daher gilt die Aktion für ausgewählte Modellobjekte.
+
+# Kobra-3-V2-PA-Gegenprüfung — 2026-11-02
+
+- Nightly nutzt jetzt dieselbe zusätzliche Slice-Konfigurationsbereinigung wie Stable: ein altes `M900 K0.051` wird nur für erkannte Kobra-3-V2-Profile aus dem temporären Slice-Start-G-Code entfernt; die gespeicherten Profile bleiben unangetastet.
+- `NativeSliceDeviceTest#kobraLegacyStartPressureAdvanceDoesNotOverrideFilamentSetting` bestand auf Android 16 (1/1): aktiver Filamentwert `0.075` bleibt im echten G-Code, das alte feste `0.051` ist abwesend, und bei deaktiviertem PA erscheint kein ausführbarer PA-Befehl.
+- Ein zusätzlicher Z-Hop-Probe-Test wurde entfernt, da er Drucker- statt Filament-Konfigurationsschlüssel setzte und daher keinen gültigen Produktfehler prüfte. Kein Z-Hop-Regressionsergebnis wird behauptet.
+- Dieser PA-Fix zählt nicht als Orca-Feature-Batchpunkt. Nightly-Gegenprüfung auf API 36 bestand 1/1; Xiaomi war nicht per ADB verfügbar. Batch 7 steht nach Punkt 7 bei **7/10**; kein Nightly-APK/Release vor 10/10.
+
+# Nightly Orca Batch 7 — Punkt 6/10 verifiziert; Kreisplattenpfad nachgewiesen — 2026-11-02
+
+## Batch 7 — Punkt 6/10: Scarf-Rampen bleiben über Layer hinweg am gleichen Endpunkt
+
+- Portiert Orca `6c96e41162`: endet eine Scarf-Rampe knapp vor einem nahezu kollinearen Perimeterpunkt, wird dieser Punkt übersprungen. Die Rampe behält ihre exakte Länge; an einer echten Ecke wird dagegen bis zum Eckpunkt erweitert, damit kein winziger flacher Bewegungsrest entsteht. Die Abweichungsprüfung berücksichtigt XYZ.
+- ARM64 Native-/Instrumentierungsbuild erfolgreich. `NativeSliceDeviceTest#scarfRampRemainsStableAcrossLayerVertexShiftsAndCorners` bestand auf API 36 (1/1): Vertexverschiebungen bei 20,1 und 20,4 mm behalten denselben Rampenendpunkt bei 20 mm und beginnen den flachen Pfad mit 5 mm; an einer Ecke endet die Rampe erwartungsgemäß bei 20,3 mm.
+- Kein physischer Druck-/Firmwaretest. Batch 7: **6/10**; APK und Release erst nach 10/10.
+
+## Batch 7 — Punkt 5/10: Filament-für-Funktion bleibt unabhängig
+
+- Orca `304924a69a` entfernt die automatische Normalisierung, durch die eine gewählte Sparse-Infill-, Solid-Infill- oder Oberflächenfarbe ungewollt die übrigen Feature-Filamente überschreiben konnte. Der aktuelle Android-Kern enthält diese unabhängige Default-Semantik bereits in `DynamicPrintConfig::normalize_fdm()`.
+- Der vorhandene stärkere Ende-zu-Ende-Test `NativeSliceDeviceTest#oneFeatureFilamentOverrideDoesNotCascadeToOtherInfillOrSurfaceFeatures` wurde jetzt frisch auf API 36 ausgeführt: 1/1 bestanden. Er erzeugt für jede der vier Feature-Zuordnungen einen echten G-Code-Slice und prüft sowohl die erzeugte Konfiguration als auch die tatsächlich verwendeten T-Werkzeuge aller vier Featuretypen.
+- Keine zusätzliche Produktionsänderung war nötig. Ein separates experimentelles Dual-Nozzle-Testgerüst crashte im Test-Setup vor einer aussagekräftigen Assertion und wurde vollständig entfernt; das Produktverhalten wurde davon nicht geändert. Batch 7: **5/10**. Kein APK oder Release vor 10/10.
+
+## Punkt 4/10 — Dünne Raft-Modelle geben kontrollierten Slice-Fehler aus
+
+- Der Orca-Fix für leere Slice-Layerlisten ist im Android-Native-Kern enthalten. Ein zu dünnes Modell mit Raft und präziser Z-Höhe beendet den Slice jetzt mit dem normalen Hinweis „No layers were detected“, statt in nachgelagerter Layer-/Raft-Logik abzustürzen.
+- `NativeSliceDeviceTest#tooThinObjectWithRaftReturnsSlicingErrorInsteadOfCrashing` erneut auf API 36 ausgeführt: 1/1 bestanden. Der Test deckt Raft an/aus und präzise Z-Höhe an/aus ab.
+- Der Codefix war bereits vorhanden; dieser Batchpunkt zählt erst mit dem jetzt bestätigten Instrumentierungsnachweis. Kein APK-Build oder Release vor 10/10.
+
+## Kreisplatten-Fit — Renderer-Ende-zu-Ende-Prüfung abgeschlossen
+
+- `InitialProjectMenuDeviceTest#rendererFitsOversizedObjectToOffsetCircularBedAndSupportsUndoRedo` besteht auf API 36. Der Test konfiguriert ein versetztes 100-mm-Kreisbett, skaliert ein übergroßes Modell über `GLRenderer.scaleSelectedObjectToBuildVolume`, prüft Mittelpunkt, Umkreis, Bauhöhe sowie Undo/Redo und stellt danach das ursprüngliche Druckbettprofil wieder her.
+- Der Kreisplatten-Fit ist damit als passender Rendererpfad verifiziert; er ist kein zusätzlicher Batch-7-Punkt. Batch 7 steht jetzt bei **6/10**.
+- Der vorher offene nächste Schritt „einen noch nicht portierten Orca-Punkt auswählen“ bleibt aktiv. Kein APK-Build, Release oder Push für diesen Zwischenstand.
+
+## Modellimport und tatsächliche Druckflächen effizient nutzen — 2026-11-02
+
+- Normale Dateieingaben aus dem Projektmenü rufen `loadModel(..., autoOrientImportedModels = !project3mf)` auf: einzelne STL-/STEP-Modelle werden vor dem Anordnen automatisch ausgerichtet. Authentische 3MF-Projektlayouts bleiben absichtlich erhalten. Die bestehende Arrange-/Importlogik legt neue Modelle auf die aktive Platte und erstellt bei Überlauf Folgeplatten; die Regressionen dazu sind weiterhin grün.
+- Ursache für unnötig frühe Folgeplatten bei detaillierten konkaven Modellen: `ModelObject::arrange_footprint_2d` gab ab 20.001 Facetten keine projizierte Kontur zurück; danach wurde die konvexe Hülle verwendet und leere Aussparungen erschienen belegt. Das begrenzte Projektionsbudget wurde auf 50.000 Facetten erhöht, um häufige detaillierte Modelle weiterhin exakt zu packen, ohne die bisherige Obergrenze für Laufzeit und Speicher aufzugeben.
+- Neue Regression `detailedConcaveModelKeepsItsOpenFootprintAboveLegacyProjectionLimit`: API 36, 1/1 bestanden. Das 20.480-Dreiecke-L-Modell behält seine freie Aussparung; ein separates 100-mm-Modell passt daneben auf dieselbe Platte und beide bleiben innerhalb der Bettgrenzen. Ein erster Fixtureentwurf hatte wegen offener Unterseite nur 16.384 Facetten und wurde vor dem gültigen Lauf korrigiert.
+- Import-Überlauf erneut geprüft: `multiFileImportCreatesPlatesAndPreservesExistingModelsWhenBedFills` API 36, 1/1; `additionalProjectModelOverflowCreatesPlateWithoutMovingExistingModel` API 36, 1/1. Neue Objekte gelangen auf automatisch erzeugte Platten; bestehende Modellpositionen bleiben erhalten.
+- `:app:assembleSliceTestAndroidTest` und gezielte Debug-/Slice-Unit-Tests erfolgreich; `BuildVolumeFitPolicyTest` jeweils 6/6. Vollständiger Debug-/Slice-Suite-Lauf, Xiaomi-Hardwaretest, APK und Release sind für diese Änderung noch nicht erfolgt.
+- Noch offen: Modelle mit mehr als 50.000 projizierten Dreiecken verwenden weiterhin den konservativen konvexen Hüllfallback. Die genaue Geometrie wird nicht herabgesampelt, um Kollisionssicherheit zu erhalten. Kreisplatten-Fit ist jetzt auf API 36 im Rendererpfad nachgewiesen; die nächste Infrastrukturfrage ist, ob ein sicherer Projektionspfad für sehr dichte Meshes Android ohne GL-Blockade möglich ist.
+
+## Batch 7 — Punkt 3: einzelnes Objekt ins rechteckige Druckvolumen einpassen — Geräteprüfung bestanden
+
+- Neues Modellmenü „Objekt ins Druckvolumen einpassen“: schrumpft ein einzelnes ausgewähltes Objekt bei Bedarf proportional, zentriert X/Y, setzt die Unterkante auf die Druckplattenhöhe und hält 0,02 mm Innenabstand. Kleine passende Modelle werden nicht vergrößert; Rund-/Sonderbetten und Mehrfachauswahl sind ausgeschlossen.
+- Verarbeitung läuft über die bestehende GL-Queue und Selection-Snapshot-Prüfung; Ergebnis wird über den vorhandenen Modell-Commitpfad erfasst, sodass Undo/Redo erhalten bleibt.
+- `BuildVolumeFitPolicyTest`: Debug 3/3 und Slice 3/3 bestanden; `ModelMenuActionScopeTest` nach Aufnahme der Auswahlaktion ebenfalls bestanden.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; der native ARM64-Build, Kotlin und Instrumentierungsquellen wurden kompiliert.
+- `InitialProjectMenuDeviceTest#scaleToBuildVolumeShrinksCentersAndPlacesSingleObject`: 1/1 auf API 36 (`solidcraft_port_test_clean_20261101`, ADB `emulator-5554`). Der Test prüft proportionalen Maßstab, Zentrierung X/Y, Bettkontakt Z sowie Undo/Redo. Bei der ersten erfolgreichen Funktionsausführung fand die Testabschlussprüfung einen inzwischen ersetzten `Model`-Wrapper; die Assertion wurde auf das aktive Modell korrigiert und der Wiederholungslauf bestand.
+- `emulator-5558` zeigte wiederholt GL-Startverzögerungen und Launcher-ANRs; für den Nachweis wurde der bekannte saubere API-36-AVD verwendet. Kein Xiaomi-Hardwaretest; Xiaomi war nicht per ADB verfügbar.
+- Batch 7 steht nun bei **4/10 verifiziert**. Nächster Schritt: einen noch nicht portierten, Android-relevanten Orca-Upstream-Punkt mit eigenem Verhaltenstest auswählen. Für Punkt 3 bleibt die praktische Prüfung auf physischer Hardware offen.
+
+## Batch 7 — Kreisplatten-Fit; Gruppenpfad inzwischen ebenfalls geräteverifiziert
+
+- Aktueller Orca-Upstream geprüft: `b3819e7c9e` (`FIX: Disable "Scale to build volume" context menu item for volumes`). Orca nutzt Kreisgeometrie für runde Betten und sperrt Aktionen in der Volume-Auswahl. OrkanSlicer hat keine separate Volume-Auswahl; der Menüeintrag gilt inzwischen auch für mehrere ausgewählte Modellobjekte.
+- OrkanSlicer erweitert `Bed3D`/JNI um Erkennung sowie Mittelpunkt und Radius runder Druckbetten. Der Fit-Ansatz passt den Umkreis des XY-Begrenzungsrahmens inklusive Höhe ein und zentriert das Modell auf den echten Bettmittelpunkt.
+- Debug-/Slice-Unit-Nachweis: `BuildVolumeFitPolicyTest` jeweils 5/5; zusätzlich `ModelMenuActionScopeTest` 3/3. ARM64-Native-Build und `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich.
+- API-36-Gerätetest `nativeBedRecognizesOffsetCircularBuildVolumeAndExposesMillimeters`: 1/1 bestanden; die native BuildVolume-Erkennung liefert den versetzten Mittelpunkt und 100-mm-Radius korrekt zurück.
+- Der separate Renderer-End-to-End-Versuch lieferte keinen gültigen Abschluss: der Emulator erzeugte einen Input-Dispatch-ANR bei der Compose-Interaktion; ein kürzerer GL-Renderer-Versuch blieb ebenfalls ohne Resultat. Der Renderer-Fit für runde Betten gilt daher noch nicht als geräteverifiziert. Das unzuverlässige Testexperiment wurde entfernt; der JNI-Test bleibt erhalten.
+- Dieser ältere Zwischeneintrag wurde inzwischen durch den oben dokumentierten Renderer-Ende-zu-Ende-Nachweis abgelöst. Batch 7 steht bei **5/10**.
 
 ## Android-Vorschau-FPS für schwächere GPUs
 
@@ -6,7 +109,7 @@
 - `GLView.requestRender()` bündelt und verzögert ausschließlich Render-Anforderungen. Eingabe-/Modelloperationen laufen weiter sofort auf ihrer bisherigen Queue; native Geometrie, Slicing und G-Code werden nicht verändert. Verzögerte Render-Callbacks werden beim View-Detach entfernt.
 - Frisch erzwungene Unit-Prüfung `DevicePerformancePolicyTest`: 8/8, einschließlich GPU-Erkennung, unterstützter Caps und Frame-Request-Timing. Compose-Gerätetest auf `emulator-5556` / API 36: Auswahl von 45 FPS, Rückkehr zu Automatik und Anzeige des automatisch berechneten Caps 1/1 bestanden.
 - `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` erfolgreich; `git diff --check` sauber. Die Gerätemessung bestätigt Bedienpfad und Policy, aber noch keinen quantitativen Frame-/GPU-Verbrauchsbenchmark auf physischer Hardware.
-- Batch 7 steht bei **2/10** (Punkt 1: Vase-Mode-Height-Range-Slice-Fix; Punkt 2: Android-Vorschau-FPS). Noch kein Batch-APK-/Release-Gate. Nächste Aufgabe: einen tatsächlich ungeporteten, Android-relevanten Orca-Upstream-Punkt mit eigenem Verhaltenstest auswählen.
+- Dieser ältere Zähler wurde durch die oben dokumentierten Punkte 3 bis 5 abgelöst. Batch 7: **5/10**, noch kein Batch-APK-/Release-Gate.
 
 # Nightly Orca Batch 6 — Punkt 10/10 verifiziert — 2026-11-01
 

@@ -307,6 +307,9 @@
     <string name="ModelMenuDuplicate">Duplicate selected object or group and choose the number of copies</string>
     <string name="ModelMenuMoveToPlate">Move selected model to another plate</string>
     <string name="ModelMenuCenterOnBed">Center selected object or group on the plate</string>
+    <string name="ModelScaleToBuildVolume">Scale object to build volume</string>
+    <string name="ModelScaleToBuildVolumeDone">Object scaled proportionally, centered and placed on the bed.</string>
+    <string name="ModelScaleToBuildVolumeUnsupported">Scale-to-fit is available for one object on rectangular build plates.</string>
     <string name="ModelMenuPlaceGroupOnBed">Place selected object group on the bed</string>
     <string name="ModelMenuPlaceGroupOnBedShort">Drop to bed</string>
     <string name="ModelMenuPlaceGroupOnBedDone">Selected objects placed on the bed</string>
@@ -1556,4 +1559,7 @@
     <string name="AdaptivePAModelPaTooHigh">PA must be less than 2.</string>
     <string name="AdaptivePAModelFlowTooLow">Flow must be greater than PA.</string>
     <string name="AdaptivePAModelAccelerationTooLow">Acceleration must be greater than flow.</string>
+    <string name="AdaptivePAModelSliceWarningTitle">Adaptive pressure advance model warning</string>
+    <string name="AdaptivePAModelSliceWarningBody">Slicing completed, but some adaptive pressure advance measurements may be invalid. Check the filament model before printing:\n%1$s</string>
+    <string name="AdaptivePAModelSliceWarningContinue">Continue</string>
 </resources>

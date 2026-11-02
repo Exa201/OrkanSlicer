@@ -36,9 +36,8 @@ class ChangeLogComposeDeviceTest {
         }
 
         compose.onNodeWithText(compose.activity.getString(R.string.Changelog)).assertIsDisplayed()
-        compose.onNodeWithText("OrkanSlicer ${BuildConfig.VERSION_NAME}", substring = true).assertIsDisplayed()
-        InstrumentationRegistry.getInstrumentation()
-            .sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.onNodeWithText("OrkanSlicer Nightly 2.5 · ${BuildConfig.VERSION_NAME}", substring = true).assertIsDisplayed()
+        compose.activity.onBackPressedDispatcher.onBackPressed()
         compose.waitForIdle()
         compose.runOnIdle { assertTrue(dismissed.value) }
     }

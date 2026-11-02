@@ -21,6 +21,8 @@ open class Bed3D {
     private var min: Vec3d? = null
     private var max: Vec3d? = null
     private var likelyDelta: Boolean = false
+    private var rectangularBuildVolume: Boolean = false
+    private var circularBuildVolume: Boolean = false
     @Volatile
     var configurationRevision: Long = 0L
         private set
@@ -45,6 +47,8 @@ open class Bed3D {
         Native.bed_configure(pointer, path)
         Native.bed_init_triangles_mesh(pointer, triangles.pointer)
         boundingVolume = Native.bed_get_bounding_volume(pointer)
+        rectangularBuildVolume = Native.bed_is_rectangular_build_volume(pointer)
+        circularBuildVolume = Native.bed_is_circular_build_volume(pointer)
 
         min = null
         max = null
@@ -92,6 +96,15 @@ open class Bed3D {
 
     @Synchronized
     open fun isValid(): Boolean = pointer != 0L && boundingVolume != null
+
+    /** Orca scale-to-fit is supported for rectangular and circular printable areas. */
+    @Synchronized
+    open fun supportsScaleToFit(): Boolean = isValid() && (rectangularBuildVolume || circularBuildVolume)
+
+    /** Returns circle center X/Y and radius in millimeters, or null for other bed geometries. */
+    @Synchronized
+    open fun getCircularBuildVolume(): DoubleArray? =
+        if (isValid() && circularBuildVolume) Native.bed_get_circular_build_volume(pointer) else null
 
     open val raycaster: GLModel.MeshRaycaster
         get() = triangles.raycaster

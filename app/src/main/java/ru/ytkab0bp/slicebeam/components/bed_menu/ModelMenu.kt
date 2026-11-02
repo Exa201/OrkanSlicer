@@ -119,6 +119,7 @@ internal object ModelMenuActionScope {
         R.string.ModelMenuAlignPrimaryAxes,
         R.string.ModelMenuDistributeSelected,
         R.string.ModelMenuCenterOnBed,
+        R.string.ModelScaleToBuildVolume,
         R.string.ModelMenuPlaceGroupOnBed,
         R.string.ModelMenuCombineSelected,
         R.string.ModelMenuBoolean,

@@ -57,6 +57,7 @@ import ru.ytkab0bp.slicebeam.components.bed_menu.OptionsMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.SliceMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.TransformMenu
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.AdaptivePAModelValidator
 import ru.ytkab0bp.slicebeam.config.ProfileSettingsRepository
 import ru.ytkab0bp.slicebeam.events.FlattenModeResetEvent
 import ru.ytkab0bp.slicebeam.events.CameraProjectionChangedEvent
@@ -532,7 +533,28 @@ tempExportingFile = null
 val portrait = usesCompactPortraitLayout(ctx)
 (menuMap.get(WorkspaceDestination.SLICE.ordinal) as SliceMenu)
 .refreshItems(portrait)
-if (onSuccess != null) onSuccess.run() })
+val warnings = produced.adaptivePAModelWarnings
+if (warnings.isNotEmpty()) {
+    val messages = warnings.map { warning ->
+        val problem = when (warning.problem) {
+            AdaptivePAModelValidator.Problem.INVALID_CHARACTERS -> R.string.AdaptivePAModelInvalidCharacters
+            AdaptivePAModelValidator.Problem.VALUE_COUNT -> R.string.AdaptivePAModelValueCount
+            AdaptivePAModelValidator.Problem.INVALID_NUMBER -> R.string.AdaptivePAModelInvalidNumber
+            AdaptivePAModelValidator.Problem.PA_TOO_HIGH -> R.string.AdaptivePAModelPaTooHigh
+            AdaptivePAModelValidator.Problem.FLOW_NOT_GREATER_THAN_PA -> R.string.AdaptivePAModelFlowTooLow
+            AdaptivePAModelValidator.Problem.ACCELERATION_NOT_GREATER_THAN_FLOW -> R.string.AdaptivePAModelAccelerationTooLow
+        }
+        ctx.getString(R.string.AdaptivePAModelValidationLine, warning.filamentNumber, warning.lineNumber, ctx.getString(problem))
+    }.distinct().joinToString("\n")
+    showWorkspaceMessageDialog(
+        ctx.getString(R.string.AdaptivePAModelSliceWarningTitle),
+        ctx.getString(R.string.AdaptivePAModelSliceWarningBody, messages),
+        ctx.getString(R.string.AdaptivePAModelSliceWarningContinue),
+        ctx.getString(android.R.string.cancel),
+        onConfirm = { onSuccess?.run() },
+    )
+} else if (onSuccess != null) onSuccess.run()
+})
 }
 catch (e:Exception) {
 Log.e("BedFragment", "Slice failed", e)

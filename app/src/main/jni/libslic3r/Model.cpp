@@ -1723,7 +1723,12 @@ ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, E
     // concave parts. Arrange currently runs on the renderer thread, so keep projection bounded
     // to avoid blocking camera interaction on dense meshes. Open/non-manifold but valid triangle
     // surfaces still have a meaningful projected footprint and should not fall back to a hull.
-    constexpr size_t MAX_PROJECTION_FACETS = 20000;
+    // STL imports may legitimately contain tens of thousands of triangles while still having
+    // a simple, compact XY footprint. Falling back to the convex hull at 20k made those models
+    // reserve empty concave regions as if they were solid, causing automatic arrangement to
+    // spill otherwise fitting objects onto another plate. Keep projection bounded for renderer
+    // responsiveness, but allow common detailed models to retain their real footprint.
+    constexpr size_t MAX_PROJECTION_FACETS = 50000;
     size_t facet_count = 0;
     Polygons projected;
     for (const ModelVolume *volume : this->volumes) {

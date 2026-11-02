@@ -3386,6 +3386,64 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun detailedConcaveModelKeepsItsOpenFootprintAboveLegacyProjectionLimit() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val detailedLShapeFile = File(activity.cacheDir, "auto-arrange-detailed-concave-l.stl")
+        val insertFile = File(activity.cacheDir, "auto-arrange-detailed-concave-insert.stl")
+        try {
+            // Subdivision keeps the same L silhouette but raises its facet count beyond the
+            // former 20k projection cutoff. The 100 mm insert fits in the 125 mm open corner;
+            // a convex-hull fallback would incorrectly force it to another plate.
+            writeConcavePrismStl(activity, detailedLShapeFile, subdivisionLevels = 5)
+            writeScaledBoxStl(activity, insertFile, 5f, 5f, 1f)
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(detailedLShapeFile)
+            val platesAfterL = readPlateModels(bed)
+            assertEquals("the detailed L should be on the active plate", 1, platesAfterL.size)
+            assertTrue("the fixture must exceed the previous 20k facet cutoff",
+                platesAfterL.single().getTriangleCount(0) > 20_000)
+
+            importAndWait(insertFile)
+            val plates = readPlateModels(bed)
+            assertEquals("the 100 mm insert should fit in the detailed L's 125 mm opening", 1, plates.size)
+            assertEquals("both independent models should remain on the same plate", 2, plates.single().objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            bounds.forEachIndexed { index, box ->
+                assertTrue("arranged model $index must remain within the build volume",
+                    box[0] >= bedMin.x - 0.1 && box[1] >= bedMin.y - 0.1 &&
+                        box[3] <= bedMax.x + 0.1 && box[4] <= bedMax.y + 0.1)
+            }
+        } finally {
+            detailedLShapeFile.delete()
+            insertFile.delete()
+        }
+    }
+
+    @Test
     fun objectListGroupCanBeCombinedAsPartsFromTheModelMenu() {
         var modelEditStageStartedAt = SystemClock.elapsedRealtime()
         fun logModelEditStage(stage: String, details: String = "") {
@@ -7944,6 +8002,347 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun scaleToBuildVolumeShrinksCentersAndPlacesSingleObject() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "scale-to-build-volume-test.stl")
+        try {
+            writeScaledCubeStl(activity, modelFile, 20f)
+            val model = loadSingleTestModel(bed, modelFile)
+            val selected = CountDownLatch(1)
+            glView.queueEvent {
+                glView.renderer.setSelectedObjects(intArrayOf(0))
+                selected.countDown()
+            }
+            assertTrue("test model selection should be set on GL", selected.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+
+            val before = readExactBoundsOnGl(glView, 0).single()
+            val bedBounds = readBuildVolumeBoundsOnGl(glView)
+            assertTrue("fixture should begin larger than the build volume",
+                before[3] - before[0] > bedBounds[3] - bedBounds[0])
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.ModelScaleToBuildVolume)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelScaleToBuildVolume))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val bounds = readExactBoundsOnGl(glView, 0).single()
+                bounds[3] - bounds[0] <= bedBounds[3] - bedBounds[0] + 0.05 &&
+                    bounds[4] - bounds[1] <= bedBounds[4] - bedBounds[1] + 0.05 &&
+                    bounds[5] - bounds[2] <= bedBounds[5] - bedBounds[2] + 0.05
+            }
+            val after = readExactBoundsOnGl(glView, 0).single()
+            val scaleX = (after[3] - after[0]) / (before[3] - before[0])
+            val scaleY = (after[4] - after[1]) / (before[4] - before[1])
+            val scaleZ = (after[5] - after[2]) / (before[5] - before[2])
+            assertTrue("oversized object should be proportionally shrunk", scaleX < 1.0)
+            assertEquals("X and Y should use the same scale factor", scaleX, scaleY, 0.01)
+            assertEquals("X and Z should use the same scale factor", scaleX, scaleZ, 0.01)
+            assertEquals("object should be centered on X", (bedBounds[0] + bedBounds[3]) / 2.0,
+                (after[0] + after[3]) / 2.0, 0.05)
+            assertEquals("object should be centered on Y", (bedBounds[1] + bedBounds[4]) / 2.0,
+                (after[1] + after[4]) / 2.0, 0.05)
+            assertEquals("object should rest at the build-volume minimum Z", bedBounds[2], after[2], 0.05)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val current = readExactBoundsOnGl(glView, 0).single()
+                kotlin.math.abs((current[3] - current[0]) - (before[3] - before[0])) < 0.1
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val current = readExactBoundsOnGl(glView, 0).single()
+                kotlin.math.abs((current[3] - current[0]) - (after[3] - after[0])) < 0.1
+            }
+            assertEquals("model instance remains present after undo/redo", 1,
+                requireNotNull(bed.currentModel).objectsCount)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun scaleToBuildVolumeFitsSelectedGroupAndPreservesRelativeLayout() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val modelFile = File(activity.cacheDir, "scale-group-to-build-volume-test.stl")
+        try {
+            writeScaledCubeStl(activity, modelFile, 20f)
+            val model = loadSingleTestModel(bed, modelFile)
+            val prepared = CountDownLatch(1)
+            glView.queueEvent {
+                val minimum = Vec3d()
+                val maximum = Vec3d()
+                model.getBoundingBoxExact(0, minimum, maximum)
+                val width = maximum.x - minimum.x
+                model.addObject(model, 0)
+                model.scale(0, 12.0, 12.0, 12.0)
+                model.scale(1, 12.0, 12.0, 12.0)
+                model.translate(1, width * 1.8, 0.0, 0.0)
+                glView.renderer.setSelectedObject(1)
+                glView.renderer.setSelectedObjects(intArrayOf(0, 1))
+                glView.requestRender()
+                prepared.countDown()
+            }
+            assertTrue("oversized two-object group should be prepared on GL", prepared.await(10, TimeUnit.SECONDS))
+            compose.runOnUiThread { bed.updateModel() }
+            instrumentationWaitForGlIdle()
+            val before = readExactBoundsOnGl(glView, 0, 1)
+            val beforeWidth = before[0][3] - before[0][0]
+            val beforeCenterDistance = kotlin.math.abs(
+                ((before[1][0] + before[1][3]) - (before[0][0] + before[0][3])) / 2.0,
+            )
+
+            openSelectedObjectMenu(activity)
+            revealMenuAction(activity, R.string.ModelScaleToBuildVolume)
+            compose.onNodeWithContentDescription(activity.getString(R.string.ModelScaleToBuildVolume))
+                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+
+            val bedBounds = readBuildVolumeBoundsOnGl(glView)
+            compose.waitUntil(timeoutMillis = 20_000) {
+                val bounds = readExactBoundsOnGl(glView, 0, 1)
+                val minX = bounds.minOf { it[0] }
+                val minY = bounds.minOf { it[1] }
+                val minZ = bounds.minOf { it[2] }
+                val maxX = bounds.maxOf { it[3] }
+                val maxY = bounds.maxOf { it[4] }
+                val maxZ = bounds.maxOf { it[5] }
+                maxX - minX <= bedBounds[3] - bedBounds[0] + 0.1 &&
+                    maxY - minY <= bedBounds[4] - bedBounds[1] + 0.1 &&
+                    maxZ - minZ <= bedBounds[5] - bedBounds[2] + 0.1 &&
+                    kotlin.math.abs(minZ - bedBounds[2]) <= 0.1
+            }
+
+            val after = readExactBoundsOnGl(glView, 0, 1)
+            val afterCenterDistance = kotlin.math.abs(
+                ((after[1][0] + after[1][3]) - (after[0][0] + after[0][3])) / 2.0,
+            )
+            val factor = (after[0][3] - after[0][0]) / beforeWidth
+            assertTrue("the oversized selection should shrink as one group", factor > 0.0 && factor < 1.0)
+            for (index in 0..1) {
+                for (axis in 0..2) {
+                    val minIndex = axis
+                    val maxIndex = axis + 3
+                    val beforeSize = before[index][maxIndex] - before[index][minIndex]
+                    val afterSize = after[index][maxIndex] - after[index][minIndex]
+                    assertEquals("object $index axis $axis should use the group's uniform factor",
+                        factor, afterSize / beforeSize, 0.01)
+                }
+            }
+            assertTrue("each selected object should remain a separate object", requireNotNull(bed.currentModel).objectsCount == 2)
+            assertEquals("the relative object spacing should scale uniformly", beforeCenterDistance * factor,
+                afterCenterDistance, 0.2)
+            assertEquals("the whole group should be centered on X", (bedBounds[0] + bedBounds[3]) / 2.0,
+                (after.minOf { it[0] } + after.maxOf { it[3] }) / 2.0, 0.1)
+            assertEquals("the whole group should be centered on Y", (bedBounds[1] + bedBounds[4]) / 2.0,
+                (after.minOf { it[1] } + after.maxOf { it[4] }) / 2.0, 0.1)
+
+            compose.runOnUiThread { bed.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val current = readExactBoundsOnGl(glView, 0, 1)
+                kotlin.math.abs((current[0][3] - current[0][0]) - beforeWidth) < 0.1
+            }
+            compose.runOnUiThread { bed.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val current = readExactBoundsOnGl(glView, 0, 1)
+                kotlin.math.abs((current[0][3] - current[0][0]) - (after[0][3] - after[0][0])) < 0.1
+            }
+            assertEquals("both selected objects remain present after undo/redo", 2,
+                requireNotNull(bed.currentModel).objectsCount)
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun nativeBedRecognizesOffsetCircularBuildVolumeAndExposesMillimeters() {
+        val activity = compose.activity
+        val glView = requireNotNull((activity.navigationDelegate.getCurrentFragment() as BedFragment).glView)
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val originalConfig = configFile.readBytes()
+        val circularConfigFile = File(activity.cacheDir, "circular-bed-test.ini")
+        val bedPointer = AtomicReference<Long>()
+        val actualCircle = AtomicReference<DoubleArray?>()
+        val isCircular = AtomicReference<Boolean>()
+        val nativeFailure = AtomicReference<Throwable?>()
+        val nativeResult = CountDownLatch(1)
+        try {
+            val circleCenterX = 17.0
+            val circleCenterY = -11.0
+            val radius = 100.0
+            val circlePoints = (0 until 72).joinToString(",") { index ->
+                val angle = 2.0 * Math.PI * index / 72.0
+                String.format(
+                    java.util.Locale.US,
+                    "%.6fx%.6f",
+                    circleCenterX + radius * kotlin.math.cos(angle),
+                    circleCenterY + radius * kotlin.math.sin(angle),
+                )
+            }
+            val currentConfigText = String(originalConfig, StandardCharsets.UTF_8)
+            val areaRegex = Regex("(?m)^printable_area\\s*=.*$")
+            val heightRegex = Regex("(?m)^printable_height\\s*=.*$")
+            assertTrue("active config should expose printable_area", areaRegex.containsMatchIn(currentConfigText))
+            assertTrue("active config should expose printable_height", heightRegex.containsMatchIn(currentConfigText))
+            val circularConfig = heightRegex.replace(
+                areaRegex.replace(currentConfigText, "printable_area = $circlePoints"),
+                "printable_height = 180",
+            )
+            circularConfigFile.writeText(circularConfig, StandardCharsets.UTF_8)
+
+            glView.queueEvent {
+                val modelPointers = LongArray(3)
+                try {
+                    bedPointer.set(ru.ytkab0bp.slicebeam.slic3r.Native.bed_create(modelPointers))
+                    ru.ytkab0bp.slicebeam.slic3r.Native.bed_configure(
+                        requireNotNull(bedPointer.get()), circularConfigFile.absolutePath,
+                    )
+                    isCircular.set(ru.ytkab0bp.slicebeam.slic3r.Native.bed_is_circular_build_volume(
+                        requireNotNull(bedPointer.get()),
+                    ))
+                    actualCircle.set(ru.ytkab0bp.slicebeam.slic3r.Native.bed_get_circular_build_volume(
+                        requireNotNull(bedPointer.get()),
+                    ))
+                } catch (failure: Throwable) {
+                    nativeFailure.set(failure)
+                } finally {
+                    bedPointer.getAndSet(0L)?.takeIf { it != 0L }?.let {
+                        ru.ytkab0bp.slicebeam.slic3r.Native.bed_release(it)
+                    }
+                    nativeResult.countDown()
+                }
+            }
+            assertTrue("native circular bed configuration should finish on the GL thread",
+                nativeResult.await(15, TimeUnit.SECONDS))
+            nativeFailure.get()?.let { throw AssertionError("native circle configuration failed", it) }
+            assertEquals("native build volume should classify the generated profile as circular", true, isCircular.get())
+            assertArrayEquals("native circle center and radius should be returned in millimeters",
+                doubleArrayOf(circleCenterX, circleCenterY, radius), requireNotNull(actualCircle.get()), 0.02)
+        } finally {
+            circularConfigFile.delete()
+            configFile.writeBytes(originalConfig)
+        }
+    }
+
+    @Test
+    fun rendererFitsOversizedObjectToOffsetCircularBedAndSupportsUndoRedo() {
+        val activity = compose.activity
+        val bedFragment = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bedFragment.glView)
+        val configFile = SliceBeam.getCurrentConfigFile()
+        val circularConfigFile = File(activity.cacheDir, "circular-renderer-fit-test.ini")
+        val modelFile = File(activity.cacheDir, "circular-renderer-fit-object.stl")
+        val originalConfig = configFile.readBytes()
+        var circleBedConfigured = false
+        try {
+            // Load into the normal profile first, then replace only the active renderer bed.
+            // That isolates the fit behavior from importer packing and tests the actual renderer path.
+            writeScaledCubeStl(activity, modelFile, 20f)
+            loadSingleTestModel(bedFragment, modelFile)
+            val before = readExactBoundsOnGl(glView, 0).single()
+            assertTrue("fixture must be larger than the circular bed diameter", before[3] - before[0] > 200.0)
+
+            val circleCenterX = 17.0
+            val circleCenterY = -11.0
+            val radius = 100.0
+            val circlePoints = (0 until 72).joinToString(",") { index ->
+                val angle = 2.0 * Math.PI * index / 72.0
+                String.format(
+                    java.util.Locale.US,
+                    "%.6fx%.6f",
+                    circleCenterX + radius * kotlin.math.cos(angle),
+                    circleCenterY + radius * kotlin.math.sin(angle),
+                )
+            }
+            val areaRegex = Regex("(?m)^printable_area\\s*=.*$")
+            val heightRegex = Regex("(?m)^printable_height\\s*=.*$")
+            val currentConfigText = String(originalConfig, StandardCharsets.UTF_8)
+            assertTrue("profile must provide printable_area", areaRegex.containsMatchIn(currentConfigText))
+            assertTrue("profile must provide printable_height", heightRegex.containsMatchIn(currentConfigText))
+            circularConfigFile.writeText(
+                heightRegex.replace(
+                    areaRegex.replace(currentConfigText, "printable_area = $circlePoints"),
+                    "printable_height = 180",
+                ),
+                StandardCharsets.UTF_8,
+            )
+
+            val editResult = AtomicReference<Int>()
+            val editFailure = AtomicReference<Throwable?>()
+            val configured = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    val renderer = glView.renderer
+                    val activeBed = requireNotNull(renderer.bed)
+                    activeBed.configure(circularConfigFile)
+                    circleBedConfigured = true
+                    check(activeBed.supportsScaleToFit()) { "renderer should expose circular scale-to-fit" }
+                    val circle = requireNotNull(activeBed.getCircularBuildVolume())
+                    assertArrayEquals(
+                        "renderer bed should expose the configured circle in millimeters",
+                        doubleArrayOf(circleCenterX, circleCenterY, radius), circle, 0.02,
+                    )
+                    renderer.setSelectedObjects(intArrayOf(0))
+                    val selection = requireNotNull(renderer.captureSelectionSnapshot())
+                    editResult.set(renderer.scaleSelectedObjectToBuildVolume(selection))
+                    if (editResult.get() == 1) bedFragment.updateModelOnGlThread()
+                } catch (failure: Throwable) {
+                    editResult.set(-99)
+                    editFailure.set(failure)
+                } finally {
+                    configured.countDown()
+                }
+            }
+            assertTrue("renderer fit must finish on the GL thread", configured.await(20, TimeUnit.SECONDS))
+            editFailure.get()?.let { throw AssertionError("renderer fit should not throw", it) }
+            assertEquals("renderer should fit the oversized object", 1, editResult.get())
+
+            val after = readExactBoundsOnGl(glView, 0).single()
+            val centerX = (after[0] + after[3]) / 2.0
+            val centerY = (after[1] + after[4]) / 2.0
+            val halfX = (after[3] - after[0]) / 2.0
+            val halfY = (after[4] - after[1]) / 2.0
+            assertEquals("model should be centered on the circular bed X", circleCenterX, centerX, 0.05)
+            assertEquals("model should be centered on the circular bed Y", circleCenterY, centerY, 0.05)
+            assertTrue(
+                "the fitted model's XY bounding-box circumcircle must stay inside the plate",
+                kotlin.math.hypot(halfX, halfY) <= radius - 0.02 + 0.05,
+            )
+            assertTrue("model should stay below the configured circular bed height", after[5] <= 180.0 + 0.05)
+
+            compose.runOnUiThread { bedFragment.undoModelEdit() }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val current = readExactBoundsOnGl(glView, 0).single()
+                kotlin.math.abs((current[3] - current[0]) - (before[3] - before[0])) < 0.1
+            }
+            compose.runOnUiThread { bedFragment.redoModelEdit() }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                val current = readExactBoundsOnGl(glView, 0).single()
+                kotlin.math.abs((current[3] - current[0]) - (after[3] - after[0])) < 0.1
+            }
+        } finally {
+            // Restore the active bed profile before returning to other instrumentation tests.
+            if (circleBedConfigured) {
+                configFile.writeBytes(originalConfig)
+                val restored = CountDownLatch(1)
+                glView.queueEvent {
+                    runCatching { glView.renderer.bed?.configure(configFile) }
+                    glView.requestRender()
+                    restored.countDown()
+                }
+                assertTrue("the original renderer bed should be restored", restored.await(20, TimeUnit.SECONDS))
+            }
+            circularConfigFile.delete()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun scaleEditorScalesSelectedGroupGeometryAndSpacingTogetherWithUndoRedo() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -9709,7 +10108,7 @@ class InitialProjectMenuDeviceTest {
 
     private fun loadSingleTestModel(bed: BedFragment, modelFile: File): Model {
         val testGlView = requireNotNull(bed.glView)
-        compose.waitUntil(timeoutMillis = 10_000) {
+        compose.waitUntil(timeoutMillis = 45_000) {
             testGlView.isAttachedToWindow && testGlView.width > 0 && testGlView.height > 0 &&
                 testGlView.renderer.bed != null
         }
@@ -9869,7 +10268,12 @@ class InitialProjectMenuDeviceTest {
     }
 
     /** Writes a watertight 150 x 150 x 20 mm L-shaped prism as binary STL. */
-    private fun writeConcavePrismStl(activity: MainActivity, destination: File, openBottom: Boolean = false) {
+    private fun writeConcavePrismStl(
+        activity: MainActivity,
+        destination: File,
+        openBottom: Boolean = false,
+        subdivisionLevels: Int = 0,
+    ) {
         val points = listOf(
             0f to 0f, 150f to 0f, 150f to 25f,
             25f to 25f, 25f to 150f, 0f to 150f,
@@ -9923,10 +10327,26 @@ class InitialProjectMenuDeviceTest {
             triangles += Triple(bottomA, topB, topA)
         }
 
-        val output = ByteBuffer.allocate(84 + triangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
+        fun midpoint(a: Point3, b: Point3) = Point3(
+            (a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f, (a.z + b.z) * 0.5f,
+        )
+        var detailedTriangles: List<Triple<Point3, Point3, Point3>> = triangles
+        repeat(subdivisionLevels.coerceIn(0, 6)) {
+            detailedTriangles = detailedTriangles.flatMap { (a, b, c) ->
+                val ab = midpoint(a, b)
+                val bc = midpoint(b, c)
+                val ca = midpoint(c, a)
+                listOf(
+                    Triple(a, ab, ca), Triple(ab, b, bc),
+                    Triple(ca, bc, c), Triple(ab, bc, ca),
+                )
+            }
+        }
+
+        val output = ByteBuffer.allocate(84 + detailedTriangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
         output.put("Orkan concave footprint test".toByteArray().copyOf(80))
-        output.putInt(triangles.size)
-        triangles.forEach { (a, b, c) ->
+        output.putInt(detailedTriangles.size)
+        detailedTriangles.forEach { (a, b, c) ->
             repeat(3) { output.putFloat(0f) }
             listOf(a, b, c).forEach { p ->
                 output.putFloat(p.x)
@@ -10461,6 +10881,22 @@ class InitialProjectMenuDeviceTest {
             finished.countDown()
         }
         assertTrue("GL thread did not return exact bounds", finished.await(10, TimeUnit.SECONDS))
+        return requireNotNull(bounds.get())
+    }
+
+    private fun readBuildVolumeBoundsOnGl(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+    ): DoubleArray {
+        val finished = CountDownLatch(1)
+        val bounds = AtomicReference<DoubleArray>()
+        glView.queueEvent {
+            val bed = requireNotNull(glView.renderer.bed)
+            val min = requireNotNull(bed.getVolumeMin())
+            val max = requireNotNull(bed.getVolumeMax())
+            bounds.set(doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z))
+            finished.countDown()
+        }
+        assertTrue("GL thread did not return build-volume bounds", finished.await(10, TimeUnit.SECONDS))
         return requireNotNull(bounds.get())
     }
 

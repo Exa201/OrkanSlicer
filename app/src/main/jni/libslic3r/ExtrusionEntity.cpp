@@ -4,6 +4,7 @@
 #include "ClipperUtils.hpp"
 #include "Extruder.hpp"
 #include "Flow.hpp"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <sstream>
@@ -14,6 +15,48 @@
 namespace Slic3r {
     
 static const double slope_inner_outer_wall_gap = 0.4;
+static const double seam_path_tolerance = scale_(0.05);
+
+// Keep scarf ends stable as perimeter vertices shift between layers. If a short remainder
+// ends at a nearly-collinear vertex, skip that vertex while preserving the exact ramp length.
+// At a corner, extend to the vertex so the flat path does not start with a tiny planner move.
+static void split_at_slope_end(const Polyline3 &polyline, double length,
+                               double slope_max_segment_length, Polyline3 &slope, Polyline3 &flat)
+{
+    const double snap_distance = std::min(0.5 * slope_max_segment_length, scale_(1.));
+    double accumulated_length = 0.;
+    size_t line_index = 0;
+    for (const Line3 &line : polyline.lines()) {
+        const double end_length = accumulated_length + line.length();
+        if (end_length >= length) {
+            if (end_length - length < snap_distance) {
+                const size_t after_vertex = line_index + 2;
+                if (length >= SCALED_EPSILON && after_vertex < polyline.size()) {
+                    const Vec3d ramp_end = lerp(line.a, line.b, (length - accumulated_length) / line.length()).cast<double>();
+                    const Vec3d next = polyline.points[after_vertex].cast<double>();
+                    const Vec3d vertex = line.b.cast<double>();
+                    const Vec3d chord = next - ramp_end;
+                    const double chord_length_squared = chord.squaredNorm();
+                    const double projection = chord_length_squared > 0.
+                        ? std::clamp((vertex - ramp_end).dot(chord) / chord_length_squared, 0., 1.) : 0.;
+                    if ((vertex - ramp_end - projection * chord).norm() <= seam_path_tolerance) {
+                        Polyline3 rest;
+                        polyline.split_at_length(length, &slope, &rest);
+                        polyline.split_at_index(after_vertex, &rest, &flat);
+                        flat.append_before(slope.last_point());
+                        return;
+                    }
+                }
+                polyline.split_at_index(line_index + 1, &slope, &flat);
+                return;
+            }
+            break;
+        }
+        accumulated_length = end_length;
+        ++line_index;
+    }
+    polyline.split_at_length(length, &slope, &flat);
+}
 
 void ExtrusionPath::intersect_expolygons(const ExPolygons &collection, ExtrusionEntityCollection* retval) const
 {
@@ -487,7 +530,7 @@ ExtrusionLoopSloped::ExtrusionLoopSloped(ExtrusionPaths&   original_paths,
             // Split current path into slope and non-slope part
             Polyline3 slope_path;
             Polyline3 flat_path;
-            path->polyline.split_at_length(scale_(remaining_length), &slope_path, &flat_path);
+            split_at_slope_end(path->polyline, scale_(remaining_length), slope_max_segment_length, slope_path, flat_path);
 
             add_slop(*path, slope_path, start_ratio, 1);
             start_ratio = 1;

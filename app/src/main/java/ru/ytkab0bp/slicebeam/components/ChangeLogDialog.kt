@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ class ChangeLogDialog(private val context: Context) {
 
     @Composable
     fun Content(onDismiss: () -> Unit) {
+        BackHandler(onBack = onDismiss)
         DisposableEffect(this) {
             SliceBeam.EVENT_BUS.registerListener(this@ChangeLogDialog)
             onDispose { SliceBeam.EVENT_BUS.unregisterListener(this@ChangeLogDialog) }
