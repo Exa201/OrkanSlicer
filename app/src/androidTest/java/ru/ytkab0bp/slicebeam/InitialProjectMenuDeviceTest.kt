@@ -6345,7 +6345,13 @@ class InitialProjectMenuDeviceTest {
             openModelMenu(activity)
             selectAllObjectsScope()
             compose.onNodeWithText(activity.getString(R.string.ModelMenuArrangeShort))
-                .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+                .performScrollTo().assertIsDisplayed().assertIsEnabled()
+            val beforeExplicitArrange = readTranslationOnGl(glView, 0)
+            assertEquals("opening the model menu must not auto-arrange a manually moved object",
+                before.x, beforeExplicitArrange.x, 0.01)
+            assertEquals("only the explicit Arrange action may replace the user's placement",
+                before.y, beforeExplicitArrange.y, 0.01)
+            compose.onNodeWithText(activity.getString(R.string.ModelMenuArrangeShort)).performClick()
             compose.waitUntil(timeoutMillis = 15_000) {
                 val after = readTranslationOnGl(glView, 0)
                 kotlin.math.abs(after.x - before.x) > 10.0 || kotlin.math.abs(after.y - before.y) > 10.0
