@@ -81,9 +81,10 @@ fun AcePhysicalSlotsBar(gates: List<MmuFilamentSync.Companion.PhysicalGate>, mod
                                 when {
                                     !gate.occupied -> stringResource(R.string.AcePhysicalSlotEmpty)
                                     gate.filament == null -> stringResource(R.string.AcePhysicalSlotIncomplete)
+                                    gate.filament.unknownLoadedSpool -> stringResource(R.string.MmuUnknownLoadedSpool)
                                     else -> gate.filament.type.orEmpty()
                                 },
-                                color = if (gate.occupied && gate.filament == null) MaterialTheme.colorScheme.error
+                                color = if (gate.occupied && (gate.filament == null || gate.filament.unknownLoadedSpool)) MaterialTheme.colorScheme.error
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
                                 maxLines = 1,

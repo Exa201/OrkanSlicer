@@ -132,7 +132,8 @@ class MmuFilamentSyncDeviceTest {
         val result = MmuFilamentSync.fromMoonraker(payload)
         assertNotNull(result[0])
         assertNull(result[1])
-        assertEquals("Generic PLA", result[2]?.type)
+        assertNull(result[2]?.type)
+        assertTrue(result[2]?.unknownLoadedSpool == true)
         assertEquals(0xFF778899.toInt(), result[2]?.color)
         assertNull(result[3])
     }
@@ -199,20 +200,29 @@ class MmuFilamentSyncDeviceTest {
     }
 
     @Test fun loadedUnknownMaterialKeepsItsColorAndPhysicalGateIndex() {
+        val configured = listOf("PLA", "PETG", "ABS", "TPU").mapIndexed { index, type ->
+            FilamentSlot(0xFF102030.toInt() + index, type)
+        }
+        Prefs.setFilamentSlots(configured)
         val payload = response(intArrayOf(0, 1, 2, 3), intArrayOf(1, 1, 1, 1))
         val mmu = payload.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
         mmu.getJSONArray("gate_material").put(1, "unknown")
         // Creality-compatible 0RRGGBB form: the leading zero is not part of the RGB value.
         mmu.getJSONArray("gate_color").put(1, "#0123456")
 
-        assertEquals(4 to null, sync(payload))
-        assertEquals(listOf("PLA", "Generic PLA", "PETG", "TPU"), Prefs.getFilamentSlots().map { it.type })
+        assertEquals(4 to null, sync(payload, full = false))
+        assertEquals(listOf("PLA", "PETG", "PETG", "TPU"), Prefs.getFilamentSlots().map { it.type })
+        assertEquals(4 to null, sync(payload, full = true))
+        assertEquals(listOf("PLA", "PETG", "PETG", "TPU"), Prefs.getFilamentSlots().map { it.type })
         assertEquals(0xFF123456.toInt(), MmuFilamentSync.gateSlot(title, 1)?.color)
+        assertNull(MmuFilamentSync.gateSlot(title, 1)?.type)
+        assertTrue(MmuFilamentSync.gateSlot(title, 1)?.unknownLoadedSpool == true)
         assertArrayEquals(intArrayOf(0, 1, 2, 3), MmuFilamentAssignments.availableGates(title, false))
-        assertEquals("ACE 2 · Generic PLA · #123456", MmuFilamentSync.gateLabel(title, 1))
-        assertTrue(ru.ytkab0bp.slicebeam.components.MmuColorAssignmentPolicy.materialMismatch(
-            "PLA", MmuFilamentSync.gateSlot(title, 1)?.type,
-        ))
+        assertEquals("ACE 2 · ${SliceBeam.requireInstance().getString(R.string.MmuUnknownLoadedSpool)} · #123456",
+            MmuFilamentSync.gateLabel(title, 1))
+        val assigned = MmuFilamentSync.assignedGates(title, intArrayOf(1))
+        assertEquals(1, assigned?.single()?.gate)
+        assertNull(assigned?.single()?.material)
     }
 
     @Test fun unknownLoadedGateWithoutValidColorRemainsUnavailable() {

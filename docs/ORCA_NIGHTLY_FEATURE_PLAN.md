@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 9 — Punkt 1/10 verifiziert (2026-11-02)
+
+### Unbekannte, aber belegte Spulenmaterialien bei ACE/CFS
+
+Ein belegter Drucker-Slot mit RFID-Farbe, aber unbekanntem Material wird nicht länger fälschlich als `Generic PLA` dargestellt. Der physische Slot behält Farbe und Gate-Index, wird sichtbar als „Material unbekannt“ markiert und überschreibt bei automatischer oder expliziter Synchronisierung keinen bereits konfigurierten Projektwerkstoff. Ein leerer oder nicht parsebarer Slot bleibt weiterhin nicht auswählbar. Der bestehende Java-Konstruktor von `FilamentSlot(int, String)` bleibt erhalten.
+
+Verifikation: `MmuFilamentSyncDeviceTest` 18/18 auf API 36; Debug-Unit und Slice-Unit zusammen 739/739 je Variante, ohne Fehler, Ausnahmen oder Skips; `git diff --check` sauber. Geprüft wurden beide Synchronisierungsarten, Farbparse `0RRGGBB`, Slotzuordnung, sichtbares Label, Unknown-Zustand und der erhaltene Projektwerkstoff. Kein physischer Druckertest.
+
+Batch 9: **1/10**. Noch neun unabhängig verifizierte Portierungspunkte bis zur gebündelten Regression und dem nächsten APK-/Nightly-Release-Gate. Der Catan-Anordnungsfixture-Nachweis ist separat und zählt nicht als Orca-Funktionspunkt.
+
 ## Nightly Batch 8 — 10/10 verifiziert (2026-11-02)
 
 ### Punkt 10/10 — Raft-Schichten pro Objekt

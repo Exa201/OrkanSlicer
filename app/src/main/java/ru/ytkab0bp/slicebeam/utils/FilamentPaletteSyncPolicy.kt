@@ -9,6 +9,7 @@ object FilamentPaletteSyncPolicy {
     fun replaceFromPrinter(
         printerGates: List<FilamentSlot?>,
         toolToGate: IntArray,
+        configuredSlots: List<FilamentSlot> = emptyList(),
     ): SyncedPalette {
         val mappings = toolToGate.take(Prefs.MAX_FILAMENT_COLORS)
         require(mappings.isNotEmpty()) { "No printer tool-to-slot mappings are available" }
@@ -16,14 +17,24 @@ object FilamentPaletteSyncPolicy {
             "Printer maps tools to different ACE slots; OrkanSlicer keeps T0→slot 1, T1→slot 2, and so on"
         }
         val slotCount = minOf(printerGates.size, mappings.size)
-        require((0 until slotCount).any { printerGates[it] != null }) {
+        require((0 until slotCount).any { gate ->
+            val printer = printerGates[gate]
+            printer != null && (!printer.unknownLoadedSpool || configuredSlots.getOrNull(gate)?.type?.isNotBlank() == true)
+        }) {
             "No occupied filament slots with material and color are available"
         }
 
         // Keep empty physical positions in the list. A placeholder carries no material and is
         // rejected by the existing upload preflight if its matching T tool is used.
         val slots = List(slotCount) { gate ->
-            printerGates[gate] ?: FilamentSlot(EMPTY_SLOT_COLOR, null)
+            val printer = printerGates[gate]
+            when {
+                printer == null -> FilamentSlot(EMPTY_SLOT_COLOR, null)
+                printer.unknownLoadedSpool -> configuredSlots.getOrNull(gate)
+                    ?.takeIf { !it.type.isNullOrBlank() }
+                    ?: FilamentSlot(printer.color, null)
+                else -> printer
+            }
         }
         return SyncedPalette(slots, IntArray(slotCount) { it })
     }
@@ -37,7 +48,7 @@ object FilamentPaletteSyncPolicy {
         val count = minOf(result.size, printerTools.size)
         for (tool in 0 until count) {
             val live = printerTools[tool]
-            if (live != null) result[tool] = live
+            if (live != null && !live.unknownLoadedSpool) result[tool] = live
         }
         return result
     }

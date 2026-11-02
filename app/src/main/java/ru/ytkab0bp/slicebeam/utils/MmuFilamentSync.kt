@@ -29,7 +29,6 @@ class MmuFilamentSync private constructor() {
         private const val CHOICE_GATES = "mmu_choice_gates"
         private const val PALETTE_PRINTER = "mmu_palette_printer"
         private const val PALETTE_GATES = "mmu_palette_gates"
-        private const val UNKNOWN_LOADED_FILAMENT = "Generic PLA"
 
         @JvmStatic
         fun synchronize(printer: ConfigObject, callback: Callback) {
@@ -89,7 +88,7 @@ class MmuFilamentSync private constructor() {
                                 if (toolToGate.none { printerGates.getOrNull(it) != null }) {
                                     throw JSONException(message(R.string.MmuAssignmentNoLoadedSlots))
                                 }
-                                val synced = FilamentPaletteSyncPolicy.replaceFromPrinter(printerGates, toolToGate)
+                                val synced = FilamentPaletteSyncPolicy.replaceFromPrinter(printerGates, toolToGate, current)
                                 updatedSlots = synced.slots
                                 count = updatedSlots.count { !it.type.isNullOrBlank() }
                                 setSelectedGates(printer.title.orEmpty(), synced.gates)
@@ -278,7 +277,7 @@ class MmuFilamentSync private constructor() {
                 val gate = gates[index]
                 val filament = gateSlot(printerTitle, gate)
                 AssignedGate(tool, gate, toolForGate(printerTitle, gate),
-                    filament?.type, filament?.color)
+                    filament?.takeUnless { it.unknownLoadedSpool }?.type, filament?.color)
             }
         }
 
@@ -293,6 +292,11 @@ class MmuFilamentSync private constructor() {
             }
             if (statuses.optInt(gate, 0) <= 0) return "ACE ${gate + 1} · leer"
             val filament = gateSlots(mmu).getOrNull(gate)
+            if (filament?.unknownLoadedSpool == true) {
+                val color = String.format(java.util.Locale.ROOT, "#%06X", filament.color and 0xFFFFFF)
+                val unknown = SliceBeam.requireInstance().getString(R.string.MmuUnknownLoadedSpool)
+                return "ACE ${gate + 1} · $unknown · $color"
+            }
             val material = filament?.type ?: materials.optString(gate, "Filament")
             val rawColor = filament?.let { String.format(java.util.Locale.ROOT, "#%06X", it.color and 0xFFFFFF) }.orEmpty()
             return "ACE ${gate + 1} · $material" +
@@ -333,12 +337,11 @@ class MmuFilamentSync private constructor() {
                 val material = rawMaterial.takeUnless {
                     it.isEmpty() || it.equals("unknown", ignoreCase = true) || it.equals("null", ignoreCase = true)
                 }
-                // Some printer firmware reports a loaded RFID spool's color but cannot identify
-                // its material. Keep the physical gate at its original index and expose it with
-                // Orca's generic PLA fallback; a later material mismatch remains visible to the
-                // normal assignment confirmation flow.
+                // Keep an unidentified loaded spool distinct from a real Generic PLA spool.
+                // Sync preserves the configured project filament for that tool, while the
+                // physical-slot UI and print-preparation check still show the spool as unknown.
                 if (material == null && color != null) {
-                    slots.add(FilamentSlot(color, UNKNOWN_LOADED_FILAMENT))
+                    slots.add(FilamentSlot(color, null, unknownLoadedSpool = true))
                     continue
                 }
                 if (material == null || color == null) {

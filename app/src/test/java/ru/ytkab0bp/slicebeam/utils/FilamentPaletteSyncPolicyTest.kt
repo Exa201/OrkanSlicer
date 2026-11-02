@@ -14,6 +14,23 @@ class FilamentPaletteSyncPolicyTest {
         assertArrayEquals(intArrayOf(0, 1, 2, 3), result.gates)
     }
 
+    @Test fun unidentifiedLoadedSpoolKeepsConfiguredPaletteEntryDuringBothSyncModes() {
+        val configured = listOf(slot("PETG", 0x123456), slot("PLA", 0x654321))
+        val unknown = FilamentSlot(0xFF112233.toInt(), null, unknownLoadedSpool = true)
+        val known = slot("ABS", 0xABCDEF)
+
+        val explicit = FilamentPaletteSyncPolicy.replaceFromPrinter(
+            listOf(unknown, known), intArrayOf(0, 1), configured,
+        )
+        assertSame("do not replace a project material with an invented generic type", configured[0], explicit.slots[0])
+        assertEquals("ABS", explicit.slots[1].type)
+        assertEquals(0xFF112233.toInt(), unknown.color)
+
+        val automatic = FilamentPaletteSyncPolicy.updateExisting(configured, listOf(unknown, known))
+        assertSame(configured[0], automatic[0])
+        assertEquals("ABS", automatic[1].type)
+    }
+
     @Test fun explicitSyncRetainsEmptySlotsBeforeTheOnlyOccupiedSlot() {
         val result = FilamentPaletteSyncPolicy.replaceFromPrinter(listOf(null, null, slot("PETG", 0xFF0000), null), intArrayOf(0, 1, 2, 3))
         assertEquals(4, result.slots.size)

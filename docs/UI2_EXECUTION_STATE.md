@@ -1,4 +1,11 @@
-# Nightly continuation — Orca Batch 8 — 2026-11-02
+# Nightly continuation — Orca Batch 9 — 2026-11-02
+
+## Latest verified status — Batch 9 at 1/10
+
+- Unknown but occupied ACE/CFS gates now retain their physical color/index and display an explicit unknown-material status; sync no longer substitutes `Generic PLA` or overwrites the configured project material. Targeted API-36 device suite: 18/18. Debug JVM and Slice JVM: 739/739 each, zero failures/errors/skips. `git diff --check` clean.
+- The attached Settlers archive was already run via Nightly's production import/arrange flow: 109/109 models oriented and within bounds, overflow expanded to 60 plates, and 139 same-plate pairs were non-overlapping. API-36 instrumentation passed. ZIP SHA-256: `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`. Higher-facet packing experiments caused reproducible Clipper crashes and were fully reverted; 60 plates is a conservative known limitation.
+- Last published Nightly remains `v0.8.427-nightly.1` (Batch 8). Batch 9 has no APK/release yet; 9 more verified feature points are required before the next grouped release gate.
+- Next task: inspect a fresh Orca upstream Android-reachable behavior gap, implement one isolated point and add focused native/UI tests.
 
 ## Latest verified status — Batch 8 at 10/10
 

@@ -1197,6 +1197,7 @@
     <string name="AcePhysicalSlotOnly">ACE %1$d</string>
     <string name="AcePhysicalSlotEmpty">Leer</string>
     <string name="AcePhysicalSlotIncomplete">Daten fehlen</string>
+    <string name="MmuUnknownLoadedSpool">Material unbekannt</string>
     <string name="AcePaletteAssignment">→ ACE %1$d</string>
     <string name="MmuAssignmentTool">Farbe T%1$d</string>
     <string name="MmuAssignmentRow">Modellfarbe T%1$d · %2$s · %3$s\n→ %4$s</string>

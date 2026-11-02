@@ -14,7 +14,8 @@ class FilamentSlotTest {
         assertEquals("PLA", slot.type)
         assertEquals(Int::class.javaPrimitiveType, FilamentSlot::class.java.getField("color").type)
         assertEquals(String::class.java, FilamentSlot::class.java.getField("type").type)
-        assertEquals(2, FilamentSlot::class.java.constructors.single().parameterCount)
+        assertTrue(FilamentSlot::class.java.constructors.any { it.parameterCount == 2 })
+        assertTrue(FilamentSlot::class.java.constructors.any { it.parameterCount == 3 })
     }
 
     @Test
