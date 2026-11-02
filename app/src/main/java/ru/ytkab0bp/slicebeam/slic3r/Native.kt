@@ -68,6 +68,9 @@ class Native {
     /** Exercises exact default object-tour ordering against a six-object fixture. */
     @JvmStatic
     external fun shortest_path_exact_object_tour_regression(): IntArray
+    /** Exercises sparse-infill line joining, loop avoidance, and crossing rejection. */
+    @JvmStatic
+    external fun joined_infill_regression(): IntArray
     /** Verifies that opened Lightning overhang samples are included in the update-grid bounds. */
     @JvmStatic
     external fun lightning_distance_field_bounds_probe(): IntArray

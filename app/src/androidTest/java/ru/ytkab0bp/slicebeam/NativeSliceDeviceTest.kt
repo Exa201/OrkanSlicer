@@ -44,6 +44,12 @@ import java.util.zip.CRC32
 /** Runs an ARM64 native slice in an isolated app id, away from production app data. */
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
+    @Test
+    fun sparseInfillJoiningAvoidsLoopsAndCrossings() {
+        assertArrayEquals("Orca sparse-infill joining must connect nearby lines, avoid closed loops, and reject crossings",
+            intArrayOf(1, 1, 1, 1), Native.joined_infill_regression())
+    }
+
     @Test(timeout = 120_000)
     fun orcaPrimitiveModelsHaveExpectedBoundsAndProduceExtrusion() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -1636,7 +1642,7 @@ class NativeSliceDeviceTest {
     }
 
     @Test
-    fun multilineGridInfillUsesMiterJoinsAndSlices() = withKobraProfile {
+    fun multilineGridInfillUsesMiterJoinsAndPreservesGeometry() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val config = requireNotNull(SliceBeam.CONFIG)
         val process = requireNotNull(config.findPrint("0.16mm Standard"))
@@ -1664,6 +1670,8 @@ class NativeSliceDeviceTest {
                 if (sparseInfill && line.startsWith("G1 ") && line.contains('E') && (line.contains(" X") || line.contains(" Y")))
                     moves += line
             }
+            // Grid crossings intentionally prevent some joins; this fixture guards multiline geometry, while
+            // sparseInfillJoiningAvoidsLoopsAndCrossings verifies the exact endpoint-joining behavior separately.
             assertEquals("Miter joins should preserve the measured multiline Grid infill geometry", 7461, moves.size)
         } finally {
             result?.release()

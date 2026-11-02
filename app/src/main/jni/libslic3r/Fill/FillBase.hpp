@@ -233,6 +233,8 @@ public:
 };
    //Fill  Multiline 
    void multiline_fill(Polylines& polylines, const FillParams& params, float spacing);
+   // Joins nearby sparse-infill polyline ends without closing loops or crossing existing lines.
+   void join_close_ends(Polylines& polylines, double max_gap, bool can_reverse);
 } // namespace Slic3r
 
 #endif // slic3r_FillBase_hpp_

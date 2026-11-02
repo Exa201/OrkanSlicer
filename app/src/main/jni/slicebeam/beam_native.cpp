@@ -24,6 +24,7 @@
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PlaceholderParser.hpp"
 #include "libslic3r/FilamentGroup.hpp"
@@ -5488,6 +5489,64 @@ extern "C" {
         jintArray result = env->NewIntArray(static_cast<jsize>(values.size()));
         if (result != nullptr && !values.empty())
             env->SetIntArrayRegion(result, 0, static_cast<jsize>(values.size()), values.data());
+        return result;
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_joined_1infill_1regression(JNIEnv* env, jclass) {
+        using namespace Slic3r;
+        jint checks[4] = { 0, 0, 0, 0 };
+        {
+            Polylines paths {
+                Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)),
+                Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                Polyline(Point::new_scale(0., 20.), Point::new_scale(10., 20.))
+            };
+            join_close_ends(paths, scale_(1.5), true);
+            checks[0] = paths.size() == 2;
+            auto joined = std::find_if(paths.begin(), paths.end(), [](const Polyline& path) { return path.size() == 4; });
+            if (joined != paths.end())
+                checks[0] = checks[0] && std::abs(unscale<double>(joined->length()) - 21.) < 1e-6 &&
+                    joined->first_point() != joined->last_point();
+        }
+        {
+            Polylines paths {
+                Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)),
+                Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                Polyline(Point::new_scale(10., -1.), Point::new_scale(0., -1.))
+            };
+            join_close_ends(paths, scale_(1.5), true);
+            checks[1] = paths.size() == 1 && paths.front().size() == 6 &&
+                std::abs(unscale<double>(paths.front().length()) - 32.) < 1e-6;
+        }
+        {
+            Polylines paths {
+                Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)),
+                Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                Polyline(Point::new_scale(-5., 0.5), Point::new_scale(5., 0.5))
+            };
+            join_close_ends(paths, scale_(1.5), true);
+            auto joined = std::find_if(paths.begin(), paths.end(), [](const Polyline& path) { return path.size() == 4; });
+            checks[2] = paths.size() == 2 && joined != paths.end() &&
+                joined->first_point().x() == 0 && joined->last_point().x() == 0;
+        }
+        {
+            const Point a = Point::new_scale(0., 0.), b = Point::new_scale(10., 0.);
+            const Point c = Point::new_scale(10., 1.), d = Point::new_scale(0., 1.);
+            Polylines fixedDirection { Polyline(a, b), Polyline(d, c) };
+            join_close_ends(fixedDirection, scale_(1.5), false);
+            Polylines orderedJoin { Polyline(c, d), Polyline(a, b) };
+            join_close_ends(orderedJoin, scale_(1.5), false);
+            if (orderedJoin.size() == 1) {
+                const Points& points = orderedJoin.front().points;
+                const auto position = [&points](const Point& point) {
+                    return std::find(points.begin(), points.end(), point) - points.begin();
+                };
+                checks[3] = fixedDirection.size() == 2 && position(c) < position(d) && position(a) < position(b);
+            }
+        }
+        jintArray result = env->NewIntArray(4);
+        if (result != nullptr)
+            env->SetIntArrayRegion(result, 0, 4, checks);
         return result;
     }
 

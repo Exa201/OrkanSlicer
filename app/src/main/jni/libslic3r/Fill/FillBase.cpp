@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <numeric>
 #include <limits>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <cmath>
 #include "../ClipperUtils.hpp"
@@ -8,6 +11,7 @@
 
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
+#include "../AABBTreeLines.hpp"
 #include "../Geometry/Circle.hpp"
 #include "../Point.hpp"
 #include "../PrintConfig.hpp"
@@ -177,6 +181,9 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
             thick_polylines.clear();
         }
         else {
+            // Join neighboring sparse-infill lines into one extrusion path to avoid travel moves.
+            if (params.extrusion_role == erInternalInfill && !eec->no_sort)
+                join_close_ends(polylines, scale_(2. * this->spacing), params.can_reverse);
             extrusion_entities_append_paths(
                 eec->entities, std::move(polylines),
                 params.extrusion_role,
@@ -2850,6 +2857,129 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
     }
 
     polylines = std::move(all_polylines);
+}
+
+// Based on OrcaSlicer's join_close_ends implementation (Optimize travel, #16492).
+// Nearby sparse-infill endpoints are greedily paired shortest-first. A join is rejected
+// when it would cross another extrusion segment, and union-find prevents closed loops.
+void join_close_ends(Polylines& polylines, double max_gap, bool can_reverse)
+{
+    const size_t n = polylines.size();
+    if (n < 2 || max_gap <= 0.)
+        return;
+    static constexpr size_t npos = size_t(-1);
+    auto end_point = [&polylines](size_t end) -> const Point& {
+        return (end & 1) ? polylines[end >> 1].points.back() : polylines[end >> 1].points.front();
+    };
+    auto cell_of = [max_gap](const Point& point) {
+        return Vec2i64(int64_t(std::floor(point.x() / max_gap)), int64_t(std::floor(point.y() / max_gap)));
+    };
+    auto key = [](const Vec2i64& cell) { return (uint64_t(cell.x()) << 32) ^ uint64_t(uint32_t(cell.y())); };
+    std::unordered_map<uint64_t, std::vector<size_t>> grid;
+    for (size_t end = 0; end < 2 * n; ++end)
+        if (polylines[end >> 1].size() >= 2)
+            grid[key(cell_of(end_point(end)))].push_back(end);
+
+    // Prefer leading ends so parallel multiline tracks form one continuous serpentine path.
+    std::vector<char> backwards(n, 0);
+    for (size_t i = 0; i < n; ++i)
+        if (polylines[i].size() >= 2) {
+            const Vec2d direction = (polylines[i].points.back() - polylines[i].points.front()).cast<double>();
+            backwards[i] = std::abs(direction.x()) >= std::abs(direction.y()) ? direction.x() < 0. : direction.y() < 0.;
+        }
+    auto trailing = [&backwards](size_t end) { return bool(end & 1) != bool(backwards[end >> 1]); };
+    std::vector<std::tuple<bool, bool, double, size_t, size_t>> gaps;
+    for (const auto& [cellKey, ends] : grid) {
+        const Vec2i64 cell = cell_of(end_point(ends.front()));
+        for (int64_t dx = -1; dx <= 1; ++dx)
+            for (int64_t dy = -1; dy <= 1; ++dy)
+                if (auto it = grid.find(key(cell + Vec2i64(dx, dy))); it != grid.end())
+                    for (size_t a : ends)
+                        for (size_t b : it->second)
+                            if (a < b && (a >> 1) != (b >> 1) && (can_reverse || (a & 1) != (b & 1)))
+                                if (const double distance = (end_point(a) - end_point(b)).cast<double>().norm(); distance <= max_gap)
+                                    gaps.emplace_back(distance > SCALED_EPSILON,
+                                        distance > SCALED_EPSILON && (trailing(a) || trailing(b)), distance, a, b);
+    }
+    if (gaps.empty())
+        return;
+    std::sort(gaps.begin(), gaps.end());
+
+    std::vector<size_t> partner(2 * n, npos), parent(n);
+    std::iota(parent.begin(), parent.end(), 0);
+    auto find = [&parent](size_t i) {
+        while (parent[i] != i)
+            i = parent[i] = parent[parent[i]];
+        return i;
+    };
+
+    // Build a local line index; only segments near candidate joins need intersection checks.
+    std::unordered_set<uint64_t> nearbyCells;
+    for (const auto& [apart, trail, distance, a, b] : gaps)
+        for (size_t end : { a, b })
+            for (int64_t dx = -1; dx <= 1; ++dx)
+                for (int64_t dy = -1; dy <= 1; ++dy)
+                    nearbyCells.insert(key(cell_of(end_point(end)) + Vec2i64(dx, dy)));
+    Lines nearbyLines;
+    for (const Polyline& polyline : polylines)
+        for (size_t i = 1; i < polyline.size(); ++i) {
+            const Vec2i64 c0 = cell_of(polyline.points[i - 1]), c1 = cell_of(polyline.points[i]);
+            const Vec2i64 lo = c0.cwiseMin(c1), hi = c0.cwiseMax(c1);
+            bool near = (hi - lo).maxCoeff() > 3;
+            for (int64_t x = lo.x(); x <= hi.x() && !near; ++x)
+                for (int64_t y = lo.y(); y <= hi.y() && !near; ++y)
+                    near = nearbyCells.count(key(Vec2i64(x, y))) > 0;
+            if (near)
+                nearbyLines.emplace_back(polyline.points[i - 1], polyline.points[i]);
+        }
+    const AABBTreeLines::LinesDistancer<Line> lines(std::move(nearbyLines));
+    auto crosses = [&](size_t a, size_t b) {
+        const Vec2d p = end_point(a).cast<double>(), q = end_point(b).cast<double>();
+        const double length = (q - p).norm();
+        if (length <= 2. * SCALED_EPSILON)
+            return false;
+        const Vec2d direction = (q - p) / length;
+        const Line join(Point((p + SCALED_EPSILON * direction).cast<coord_t>()),
+                        Point((q - SCALED_EPSILON * direction).cast<coord_t>()));
+        if (!lines.get_lines().empty() && !lines.intersections_with_line<false>(join).empty())
+            return true;
+        const Vec2i64 cell = cell_of(end_point(a));
+        for (int64_t dx = -3; dx <= 3; ++dx)
+            for (int64_t dy = -3; dy <= 3; ++dy)
+                if (auto it = grid.find(key(cell + Vec2i64(dx, dy))); it != grid.end())
+                    for (size_t end : it->second)
+                        if (partner[end] != npos && Geometry::segments_intersect(join.a, join.b, end_point(end), end_point(partner[end])))
+                            return true;
+        return false;
+    };
+    for (const auto& [apart, trail, distance, a, b] : gaps)
+        if (partner[a] == npos && partner[b] == npos && find(a >> 1) != find(b >> 1) && !crosses(a, b)) {
+            partner[a] = b;
+            partner[b] = a;
+            parent[find(a >> 1)] = find(b >> 1);
+        }
+
+    Polylines joined;
+    std::vector<char> done(n, 0);
+    auto walk = [&](size_t firstEnd) {
+        Polyline path;
+        for (size_t end = firstEnd; end != npos;) {
+            Polyline& polyline = polylines[end >> 1];
+            done[end >> 1] = 1;
+            if (end & 1)
+                polyline.reverse();
+            path.points.insert(path.points.end(), polyline.points.begin() + (!path.empty() && path.points.back() == polyline.points.front()), polyline.points.end());
+            end = partner[end ^ 1];
+        }
+        joined.emplace_back(std::move(path));
+    };
+    for (size_t i = 0; i < n; ++i)
+        if (!done[i] && partner[2 * i] == npos)
+            walk(2 * i);
+    for (size_t i = 0; i < n; ++i)
+        if (!done[i] && partner[2 * i + 1] == npos)
+            walk(2 * i + 1);
+    polylines = std::move(joined);
 }
 
 } // namespace Slic3r

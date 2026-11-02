@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 9 — Punkt 6/10 verifiziert (2026-11-02)
+
+### Benachbarte Sparse-Infill-Bahnen ohne Leerfahrt verbinden
+
+Portiert Orcas `join_close_ends` aus `69193d5681fddf8ed3d63bf510bb307c21f5a0d` in den nativen `Fill::fill_surface_extrusion`-Pfad. Nur sortierbare Innenfüllung wird angepasst; Endpunkte werden kürzeste zuerst verbunden. Eine lokale Linienprüfung verwirft Verbindungen, die vorhandene Bahnen kreuzen würden; Union-Find verhindert geschlossene Schleifen. Bei nicht umkehrbaren Bahnen werden nur End-zu-Anfang-Verbindungen zugelassen. Wandungen, massive Füllung, unsortierte Muster und Arachne-Breitenpfade bleiben unberührt.
+
+`NativeSliceDeviceTest#sparseInfillJoiningAvoidsLoopsAndCrossings` bestand 1/1 auf API 36 und prüft Verbindungsabstand, offene Pfadenden, eine dreiteilige Kette ohne Verlust der Originallinien, Kreuzungsvermeidung sowie feste Extrusionsrichtung. `multilineGridInfillUsesMiterJoinsAndPreservesGeometry` bestand 1/1 mit dem bestehenden 7.461-Bewegungen-Geometrie-Fingerprint. Eine anfängliche Versuchsmessung zählte Extrusionssegmente statt Leerfahrten und wurde verworfen: eine Verbindung fügt selbst ein kurzes Extrusionssegment hinzu, sodass diese Kennzahl den Optimierungsnutzen nicht misst. ARM64-Nativ-/Instrumentation-Paket erfolgreich gebaut. Keine physische Druckerprüfung.
+
+Batch 9: **6/10**. Noch vier unabhängig verifizierte Punkte sowie gebündelte Regression und APK-/Nightly-Release-Gate.
+
 ## Nightly Batch 9 — Punkt 5/10 verifiziert (2026-11-02)
 
 ### Slicing-Status-Callbacks thread-safe austauschen
