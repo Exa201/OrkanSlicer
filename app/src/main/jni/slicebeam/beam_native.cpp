@@ -4816,14 +4816,68 @@ extern "C" {
                 unscale<double>(flat.last_point().x()),
             };
         };
+        auto probe_bent = []() {
+            using namespace Slic3r;
+            ExtrusionPaths source;
+            source.emplace_back(erExternalPerimeter, 1., 0.45f, 0.2f);
+            const std::array<Point3, 7> points{
+                Point3::new_scale(0., 0., 0.), Point3::new_scale(5., 0., 0.),
+                Point3::new_scale(10., 0., 0.), Point3::new_scale(15., 0., 0.),
+                Point3::new_scale(20.3, 0., 0.), Point3::new_scale(25.28, 0.436, 0.),
+                Point3::new_scale(30.26, 0.872, 0.)};
+            for (const Point3& point : points) source.front().polyline.append(point);
+            ExtrusionLoopSloped loop(source, 0., 20., scale_(2.), 0.);
+            const auto &flat = loop.paths.front().polyline;
+            return std::array<jdouble, 3>{
+                unscale<double>(loop.starts.front().polyline.last_point().x()),
+                unscale<double>(flat.lines().front().length()),
+                double(flat.size())};
+        };
+        auto probe_z_contour = []() {
+            using namespace Slic3r;
+            ExtrusionPaths source;
+            source.emplace_back(erExternalPerimeter, 1., 0.45f, 0.2f);
+            const std::array<Point3, 7> points{
+                Point3::new_scale(0., 0., 0.), Point3::new_scale(5., 0., 0.),
+                Point3::new_scale(10., 0., 0.), Point3::new_scale(15., 0., 0.),
+                Point3::new_scale(20.3, 0., 0.3), Point3::new_scale(25., 0., -1.),
+                Point3::new_scale(30., 0., -1.)};
+            for (const Point3& point : points) source.front().polyline.append(point);
+            ExtrusionLoopSloped loop(source, 0., 20., scale_(2.), 0.);
+            const auto &flat = loop.paths.front().polyline;
+            return std::array<jdouble, 3>{
+                unscale<double>(loop.starts.front().polyline.last_point().x()),
+                unscale<double>(flat.first_point().z()),
+                unscale<double>(flat.last_point().z())};
+        };
+        auto probe_multi_path = []() {
+            using namespace Slic3r;
+            ExtrusionPaths source;
+            source.emplace_back(erExternalPerimeter, 1., 0.45f, 0.2f);
+            for (double x : {0., 5., 12.}) source.front().polyline.append(Point3::new_scale(x, 0., 0.));
+            source.emplace_back(erExternalPerimeter, 1., 0.45f, 0.2f);
+            for (double x : {12., 15., 20.2, 25., 30.}) source.back().polyline.append(Point3::new_scale(x, 0., 0.));
+            ExtrusionLoopSloped loop(source, 0., 20., scale_(2.), 0.);
+            const auto &flat = loop.paths.front().polyline;
+            return std::array<jdouble, 3>{
+                unscale<double>(loop.starts.back().polyline.last_point().x()),
+                unscale<double>(flat.lines().front().length()),
+                unscale<double>(flat.last_point().x())};
+        };
         const auto first = probe(20.1, false);
         const auto second = probe(20.4, false);
         const auto corner = probe(20.3, true);
+        const auto bent = probe_bent();
+        const auto z_contour = probe_z_contour();
+        const auto multi_path = probe_multi_path();
         const jdouble values[] = {first[0], first[1], first[2], first[3],
                                   second[0], second[1], second[2], second[3],
-                                  corner[0], corner[1], corner[2], corner[3]};
-        jdoubleArray result = env->NewDoubleArray(12);
-        if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 12, values);
+                                  corner[0], corner[1], corner[2], corner[3],
+                                  bent[0], bent[1], bent[2],
+                                  z_contour[0], z_contour[1], z_contour[2],
+                                  multi_path[0], multi_path[1], multi_path[2]};
+        jdoubleArray result = env->NewDoubleArray(21);
+        if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 21, values);
         return result;
     }
 

@@ -870,7 +870,14 @@ class NativeSliceDeviceTest {
     @Test
     fun scarfRampRemainsStableAcrossLayerVertexShiftsAndCorners() {
         assertArrayEquals(
-            doubleArrayOf(20.0, 20.0, 5.0, 30.0, 20.0, 20.0, 5.0, 30.0, 20.3, 20.3, 5.0, 28.96),
+            doubleArrayOf(
+                20.0, 20.0, 5.0, 30.0,
+                20.0, 20.0, 5.0, 30.0,
+                20.3, 20.3, 5.0, 28.96,
+                20.0, 5.29797, 3.0,
+                20.3, 0.3, -1.0,
+                20.0, 5.0, 30.0,
+            ),
             Native.scarf_ramp_regression(),
             0.001,
         )
