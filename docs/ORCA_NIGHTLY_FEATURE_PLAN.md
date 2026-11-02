@@ -1,5 +1,15 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
+## Nightly Batch 9 — Punkt 3/10 verifiziert (2026-11-02)
+
+### Z-/Düsenbewusste Hindernisse bei Arrange
+
+Portiert den Android-relevanten Orca-Teil für feste Werkzeugkopf-Kollisionsvolumen in die automatische Anordnung: gemeinsame, düsenversetzte und düsenindividuelle Profileinstellungen bleiben im Druckerprofil erhalten; optionale Z-Bereiche und die physische Düsenauflösung filtern Kollisionen vor der NFP-Erzeugung. Ein Hindernis bleibt bettfest, abschließendes Zentrieren wird bei festen Kollisionsvolumen deaktiviert. `bed_exclude_area` behält seine historische, bettfeste Bedeutung. Dies ist ausdrücklich nur die Anordnungsintegration, keine vollständige Portierung von Orcas Vorschau-, G-Code-Prüfungs- und Travel-Rerouting-Pipeline.
+
+Verifikation: Parser-/Düsenraum- und echte Arrange-Regressionsinstrumentierung auf API 36 bestanden; Profil-Rundlauf und Drucker-Einstellungsrouten in Debug- und Slice-Unit-Tests bestanden. Die vorhandene `short_object_arrangement_regression` besteht ebenfalls. Mit dem mitgelieferten Catan-ZIP wurden alle 109 STLs frisch geladen und automatisch ausgerichtet: 60 Platten, sämtliche Objekte innerhalb der Bettgrenzen und auf der Druckfläche, 139 gleichplatten Mesh-Paare ohne Überschneidung. Der Catan-Lauf dauerte 4:10 auf dem API-36-Emulator. Das Packen ist korrekt, aber mit 60 Platten konservativ und nicht optimal dicht. Kein physischer Druckertest.
+
+Batch 9: **3/10**. Der Catan-Fixturetest ist ein separater Anordnungsnachweis und zählt nicht als weiterer Orca-Funktionspunkt.
+
 ## Nightly Batch 9 — Punkt 2/10 verifiziert (2026-11-02)
 
 ### Unbekannte, aber belegte Spulenmaterialien bei ACE/CFS

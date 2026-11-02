@@ -338,6 +338,9 @@ open class Slic3rConfigWrapper {
         @JvmField
         val PRINTER_CONFIG_KEYS: List<String> = Arrays.asList("printer_technology",
                 "bed_shape",
+                "bed_exclude_volumes",
+                "bed_exclude_volume_mode",
+                "extruder_bed_exclude_volumes",
                 "bed_custom_texture",
                 "bed_custom_model",
                 "z_offset",

@@ -9,6 +9,7 @@ object OrcaPrinterSettingsCatalog {
         OrcaSettingsCategory(
             "General", R.drawable.printer_outline_28, listOf(
                 section("Size and coordinates", "printable_area", "printable_height", "z_offset"),
+                section("Toolhead collision volumes", "bed_exclude_volumes", "bed_exclude_volume_mode"),
                 section("Bed surface", "curr_bed_type"),
                 section("Capabilities", "single_extruder_multi_material", "high_current_on_filament_swap", "support_chamber_temp_control", "support_air_filtration"),
                 section("Multi-material routing", "physical_extruder_map"),
@@ -43,6 +44,7 @@ object OrcaPrinterSettingsCatalog {
     @JvmStatic
     fun extruderSections(): List<OrcaSettingsSection> = listOf(
         section("Size", "nozzle_diameter"),
+        section("Toolhead collision volume for this nozzle", "extruder_bed_exclude_volumes"),
         section("Preview", "extruder_colour"),
         section("Layer height limits", "min_layer_height", "max_layer_height"),
         section("Position (for multi-extruder printers)", "extruder_offset"),

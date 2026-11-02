@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
+import ru.ytkab0bp.slicebeam.ui.settings.OrcaPrinterSettingsCatalog
 
 class ConfigObjectLegacyKeyMigrationTest {
     @Test
@@ -70,5 +71,27 @@ class ConfigObjectLegacyKeyMigrationTest {
         assertEquals("2", process?.get("sparse_infill_filament_id"))
         assertEquals("0", process?.get("internal_solid_filament_id"))
         assertEquals("1", process?.get("only_one_wall_top"))
+    }
+
+    @Test
+    fun collisionVolumePrinterSettingsSurviveProfileRoundTripAndAreExposed() {
+        val original = Slic3rConfigWrapper().apply {
+            importPrinter(ConfigObject("Collision printer").apply {
+                put("bed_exclude_volumes", "0..35;10x10,20x10,20x20,10x20")
+                put("bed_exclude_volume_mode", "per_extruder")
+                put("extruder_bed_exclude_volumes", "|30..;40x40,50x40,50x50,40x50")
+            })
+        }
+
+        val reloaded = Slic3rConfigWrapper(original.serialize().byteInputStream())
+        val profile = reloaded.findPrinter("Collision printer")
+
+        assertEquals("0..35;10x10,20x10,20x20,10x20", profile?.get("bed_exclude_volumes"))
+        assertEquals("per_extruder", profile?.get("bed_exclude_volume_mode"))
+        assertEquals("|30..;40x40,50x40,50x50,40x50", profile?.get("extruder_bed_exclude_volumes"))
+        assertTrue(OrcaPrinterSettingsCatalog.fixedKeys().containsAll(
+            listOf("bed_exclude_volumes", "bed_exclude_volume_mode")))
+        assertTrue(OrcaPrinterSettingsCatalog.extruderSections().flatMap { it.keys }
+            .contains("extruder_bed_exclude_volumes"))
     }
 }

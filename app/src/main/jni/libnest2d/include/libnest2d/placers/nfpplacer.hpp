@@ -126,6 +126,10 @@ struct NfpPConfig {
 
     std::function<void(const ItemGroup &, NfpPConfig &config)> on_preload;
 
+    // Return false when a packed item does not constrain this candidate.
+    // By default every pair participates in the 2D collision calculation.
+    std::function<bool(const _Item<RawShape>&, const _Item<RawShape>&)> should_check_collision;
+
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
         alignment(Alignment::CENTER), starting_point(Alignment::CENTER) {}
 };
@@ -561,7 +565,13 @@ private:
     {
         using namespace nfp;
 
-        Shapes nfps(items_.size());
+        std::vector<Item *> collision_items;
+        collision_items.reserve(items_.size());
+        for (Item &item : items_) {
+            if (!config_.should_check_collision || config_.should_check_collision(trsh, item))
+                collision_items.emplace_back(&item);
+        }
+        Shapes nfps(collision_items.size());
 
         // /////////////////////////////////////////////////////////////////////
         // TODO: this is a workaround and should be solved in Item with mutexes
@@ -572,21 +582,21 @@ private:
         trsh.rightmostTopVertex();
         trsh.leftmostBottomVertex();
 
-        for(Item& itm : items_) {
-            itm.transformedShape();
-            itm.referenceVertex();
-            itm.rightmostTopVertex();
-            itm.leftmostBottomVertex();
+        for (Item *item : collision_items) {
+            item->transformedShape();
+            item->referenceVertex();
+            item->rightmostTopVertex();
+            item->leftmostBottomVertex();
         }
         // /////////////////////////////////////////////////////////////////////
 
-        __parallel::enumerate(items_.begin(), items_.end(),
-                              [&nfps, &trsh](const Item& sh, size_t n)
+        __parallel::enumerate(collision_items.begin(), collision_items.end(),
+                              [&nfps, &trsh](Item *const &sh, size_t n)
         {
-            auto& fixedp = sh.transformedShape();
+            auto& fixedp = sh->transformedShape();
             auto& orbp = trsh.transformedShape();
             auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp, orbp);
-            correctNfpPosition(subnfp_r, sh, trsh);
+            correctNfpPosition(subnfp_r, *sh, trsh);
             nfps[n] = subnfp_r.first;
         });
 
@@ -728,6 +738,25 @@ public:
                 placeOutsideOfBin(item);
 
                 nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
+
+                // A candidate can have no 2D collision partners when all packed
+                // items are height-disjoint or belong to another physical nozzle.
+                // In that case there is no NFP boundary to optimize along; place it
+                // at the normal initial position if its footprint fits the bin.
+                if (nfps.empty()) {
+                    item.translation(initial_tr);
+                    item.rotation(initial_rot + rot);
+                    setInitialPosition(item);
+                    const double miss = overfit(item.transformedShape(), bin_);
+                    best_overfit = std::min(best_overfit, miss);
+                    if (miss <= 0. && global_score > -1.) {
+                        final_tr = item.translation();
+                        final_rot = item.rotation();
+                        can_pack = true;
+                        global_score = -1.;
+                    }
+                    continue;
+                }
 
                 auto iv = item.referenceVertex();
 

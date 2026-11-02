@@ -73,6 +73,12 @@ struct ArrangePolygon {
     int       itemid{ 0 };         // item id in the vector, used for accessing all possible params like extrude_id
     int       is_applied{ 0 };     // transform has been applied
     double    height{ 0 };         // item height
+    double    z_min{ 0 };          // lowest occupied Z coordinate
+    double    z_max{ 0 };          // highest occupied Z coordinate
+    bool      has_z_range{ false };
+    bool      is_bed_exclusion{ false };
+    std::vector<int> bed_exclusion_extruder_ids{}; // zero-based physical nozzle ids; empty means unresolved
+    int       bed_exclusion_extruder_id{ -1 };     // -1 means shared
     double    brim_width{ 0 };     // brim width
     std::string name;
 
@@ -185,6 +191,9 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
+bool has_bed_exclusion_regions(const ArrangePolygons& polygons);
+bool bed_exclusion_applies(const ArrangePolygon& item, const ArrangePolygon& fixed_item);
 
 Points get_shrink_bedpts(const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 

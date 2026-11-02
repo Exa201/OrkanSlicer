@@ -884,6 +884,22 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun bedCollisionVolumesParseHeightRangesAndResolveEachNozzleSpace() {
+        assertArrayEquals(
+            doubleArrayOf(2.0, 0.0, 10.0, 20.0, 30.0, 100.0, 1.0, 0.0, 30.0, 1.0, 1.0, 1.0, 11.0, 1.0),
+            Native.bed_exclude_volumes_regression(),
+            0.001,
+        )
+    }
+
+    @Test
+    fun bedCollisionVolumesConstrainArrangementOnlyForIntersectingHeightAndNozzle() {
+        val actual = Native.bed_exclude_arrangement_regression()
+        assertArrayEquals("blocked, Z-disjoint, nozzle-disjoint, nozzle-match: ${actual.contentToString()}",
+            doubleArrayOf(0.0, 0.0, 0.0, 0.0), actual, 0.01)
+    }
+
+    @Test
     fun byObjectArrangementKeepsShortObjectsInsideBedAndSeparated() {
         val result = Native.short_object_arrangement_regression()
         assertEquals("a short object filling the bed must stay within its physical bounds: ${result.contentToString()}",

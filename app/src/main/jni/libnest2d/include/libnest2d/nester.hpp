@@ -88,6 +88,12 @@ public:
     int vitrify_temp = 0;
     std::vector<int> extrude_ids{0};
     std::string name;
+    double z_min{0};
+    double z_max{0};
+    bool has_z_range{false};
+    bool is_bed_exclusion{false};
+    std::vector<int> bed_exclusion_extruder_ids;
+    int bed_exclusion_extruder_id{-1};
 
     /**
      * \brief Iterator type for the outer vertices.

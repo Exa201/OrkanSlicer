@@ -3983,6 +3983,59 @@ extern "C" {
                 input = get_arrange_polys(mRef->model, instances);
             }
 
+            // Collision volumes are physical fixed obstacles. Resolve their Z range and
+            // nozzle ownership before packing; unknown object-to-nozzle mappings remain
+            // conservative in the packer's collision predicate.
+            PrintConfig exclusion_config;
+            exclusion_config.apply(config, true);
+            const auto exclusions_by_extruder = get_bed_excluded_regions_by_extruder(exclusion_config);
+            const BedExcludeVolumeMode exclusion_mode = active_bed_exclude_volume_mode(exclusion_config);
+            for (size_t extruder = 0; extruder < exclusions_by_extruder.size(); ++extruder) {
+                for (const BedExcludeRegion &region : exclusions_by_extruder[extruder]) {
+                    if (!region.is_collision_volume()) continue;
+                    if (exclusion_mode == BedExcludeVolumeMode::Shared && extruder > 0) continue;
+                    if (exclusion_mode == BedExcludeVolumeMode::PerExtruder && region.extruder_id < 0 && extruder > 0) continue;
+                    ArrangePolygon obstacle;
+                    obstacle.poly = ExPolygon{region.polygon};
+                    obstacle.bed_idx = 0;
+                    obstacle.is_bed_exclusion = true;
+                    obstacle.has_z_range = region.has_z_range;
+                    obstacle.z_min = region.z_min;
+                    obstacle.z_max = region.z_max;
+                    obstacle.bed_exclusion_extruder_id = region.extruder_id;
+                    arrange_cfg.excluded_regions.emplace_back(std::move(obstacle));
+                }
+            }
+            if (!arrange_cfg.excluded_regions.empty())
+                arrange_cfg.do_final_align = false; // keep fixed physical obstacles in bed coordinates
+
+            const ConfigOptionInts *physical_map = config.option<ConfigOptionInts>("physical_extruder_map");
+            for (size_t i = 0; i < input.size(); ++i) {
+                ArrangePolygon &item = input[i];
+                if (i < instances.size()) {
+                    const ModelInstance *instance = instances[i];
+                    const BoundingBoxf3 bounds = instance->get_object()->instance_convex_hull_bounding_box(instance);
+                    item.height = std::max(0.0, bounds.size().z());
+                }
+                item.z_min = 0.;
+                item.z_max = item.height;
+                item.has_z_range = true;
+                item.bed_exclusion_extruder_ids.clear();
+                for (int logical_extruder : item.extrude_ids) {
+                    const int logical_index = logical_extruder - 1;
+                    if (logical_index < 0) continue;
+                    const int physical_extruder = physical_map != nullptr &&
+                        static_cast<size_t>(logical_index) < physical_map->size()
+                            ? physical_map->get_at(static_cast<size_t>(logical_index)) : logical_index;
+                    if (physical_extruder >= 0)
+                        item.bed_exclusion_extruder_ids.push_back(physical_extruder);
+                }
+                std::sort(item.bed_exclusion_extruder_ids.begin(), item.bed_exclusion_extruder_ids.end());
+                item.bed_exclusion_extruder_ids.erase(
+                    std::unique(item.bed_exclusion_extruder_ids.begin(), item.bed_exclusion_extruder_ids.end()),
+                    item.bed_exclusion_extruder_ids.end());
+            }
+
             if (sequential_print) {
                 arrange_cfg.is_seq_print = true;
                 arrange_cfg.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
@@ -4024,7 +4077,9 @@ extern "C" {
                     if (!ap.is_virt_object)
                         ap.inflation = inflation;
             }
-            arrangement::arrange(input, bed, arrange_cfg);
+            // The exclusions argument is what preloads fixed geometry into libnest2d.
+            // ArrangeParams::excluded_regions alone only informs its alignment scoring.
+            arrangement::arrange(input, arrange_cfg.excluded_regions, bed, arrange_cfg);
             if (!sequential_print)
                 fill_compound_arrange_gaps(input, bed);
             return apply_arrange_polys(input, instances, throw_if_out_of_bed);
@@ -4879,6 +4934,118 @@ extern "C" {
         jdoubleArray result = env->NewDoubleArray(21);
         if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 21, values);
         return result;
+    }
+
+    // Exercises Orca's height-aware collision-volume parser and nozzle-space resolution.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1exclude_1volumes_1regression(JNIEnv* env, jclass)
+    {
+        try {
+            using namespace Slic3r;
+            auto make_config = [](BedExcludeVolumeMode mode, const std::string &shared,
+                                  std::vector<std::string> per_extruder = {},
+                                  Pointfs offsets = {}, Pointfs legacy_bed_area = {}) {
+                DynamicPrintConfig dynamic = DynamicPrintConfig::full_print_config();
+                dynamic.set_deserialize_strict({
+                    {"printable_height", "100"}, {"nozzle_diameter", "0.4,0.4"},
+                    {"master_extruder_id", "1"}});
+                dynamic.set_key_value("bed_exclude_volume_mode", new ConfigOptionEnum<BedExcludeVolumeMode>(mode));
+                dynamic.set_key_value("bed_exclude_volumes", new ConfigOptionString(shared));
+                dynamic.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings(std::move(per_extruder)));
+                dynamic.set_key_value("extruder_offset", new ConfigOptionPoints(std::move(offsets)));
+                dynamic.set_key_value("bed_exclude_area", new ConfigOptionPoints(std::move(legacy_bed_area)));
+                PrintConfig config;
+                config.apply(dynamic, true);
+                return config;
+            };
+            auto min_x_mm = [](const BedExcludeRegion &region) {
+                coord_t min_x = std::numeric_limits<coord_t>::max();
+                for (const Point &point : region.polygon.points) min_x = std::min(min_x, point.x());
+                return unscale<double>(min_x);
+            };
+
+            const std::string shared = "..10;20x20,40x20,40x40,20x40|30..;5x5,8x5,8x8,5x8";
+            const PrintConfig shared_config = make_config(BedExcludeVolumeMode::Shared, shared);
+            const auto shared_regions = get_bed_excluded_regions(shared_config, 0);
+            const auto offset_config = make_config(BedExcludeVolumeMode::ToolheadOffset, "20x20,40x20,40x40,20x40", {},
+                                                   {Vec2d(0., 0.), Vec2d(10., 0.)},
+                                                   {Vec2d(1., 1.), Vec2d(2., 1.), Vec2d(2., 2.), Vec2d(1., 2.)});
+            const auto offset_regions = get_bed_excluded_regions(offset_config, 1);
+            const auto per_config = make_config(BedExcludeVolumeMode::PerExtruder, {},
+                                                {"1x1,2x1,2x2,1x2", "11x1,12x1,12x2,11x2"});
+            const auto first_per = get_bed_excluded_regions(per_config, 0);
+            const auto second_per = get_bed_excluded_regions(per_config, 1);
+            const jdouble values[] = {
+                double(shared_regions.size()), shared_regions.at(0).z_min, shared_regions.at(0).z_max,
+                min_x_mm(shared_regions.at(0)), shared_regions.at(1).z_min, shared_regions.at(1).z_max,
+                is_valid_bed_exclude_volumes_string(shared, 100.) ? 1. : 0.,
+                is_valid_bed_exclude_volumes_string("0x0,10x0,NaNx10", 100.) ? 1. : 0.,
+                min_x_mm(offset_regions.at(1)), double(first_per.size()), min_x_mm(first_per.at(0)),
+                double(second_per.size()), min_x_mm(second_per.at(0)), min_x_mm(offset_regions.at(0))};
+            jdoubleArray result = env->NewDoubleArray(14);
+            if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 14, values);
+            return result;
+        } catch (const std::exception &error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
+    // Confirms fixed collision volumes participate in real libnest2d packing and
+    // that height/nozzle filtering is applied before generating no-fit polygons.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1exclude_1arrangement_1regression(JNIEnv* env, jclass)
+    {
+        try {
+            using namespace Slic3r;
+            const Points bed{Point(0, 0), Point(scaled(100.), 0), Point(scaled(100.), scaled(100.)), Point(0, scaled(100.))};
+            auto can_place = [&](double item_height, double volume_min_z, double volume_max_z,
+                                 int item_nozzle, int volume_nozzle) {
+                arrangement::ArrangePolygon item;
+                item.poly = ExPolygon(Polygon({Point(0, 0), Point(scaled(20.), 0),
+                    Point(scaled(20.), scaled(20.)), Point(0, scaled(20.))}));
+                item.height = item_height;
+                item.z_min = 0.; item.z_max = item_height; item.has_z_range = true;
+                item.bed_exclusion_extruder_ids = {item_nozzle};
+
+                arrangement::ArrangePolygon volume;
+                volume.poly = ExPolygon(Polygon({Point(scaled(40.), scaled(40.)), Point(scaled(60.), scaled(40.)),
+                    Point(scaled(60.), scaled(60.)), Point(scaled(40.), scaled(60.))}));
+                volume.bed_idx = 0;
+                volume.is_virt_object = true;
+                volume.is_bed_exclusion = true;
+                volume.has_z_range = true;
+                volume.z_min = volume_min_z; volume.z_max = volume_max_z;
+                volume.bed_exclusion_extruder_id = volume_nozzle;
+
+                arrangement::ArrangeParams params;
+                params.parallel = false;
+                params.do_final_align = false;
+                params.progressind = [](unsigned, std::string) {};
+                params.excluded_regions.push_back(std::move(volume));
+                arrangement::ArrangePolygons items{std::move(item)};
+                arrangement::arrange(items, params.excluded_regions, bed, params);
+                if (items.front().bed_idx != 0) return -1.;
+                const auto overlaps = intersection_ex(ExPolygons{items.front().transformed_poly()},
+                    ExPolygons{params.excluded_regions.front().poly});
+                const double area_scale = double(scale_(1.)) * scale_(1.);
+                double overlap_area = 0.;
+                for (const ExPolygon &overlap : overlaps) overlap_area += overlap.area();
+                return overlap_area / area_scale;
+            };
+            const jdouble values[] = {
+                can_place(5., 0., 10., 0, -1),       // collision blocks matching Z
+                can_place(5., 10., 20., 0, -1),     // no Z overlap: placeable
+                can_place(5., 0., 10., 0, 1),       // different physical nozzle: placeable
+                can_place(5., 0., 10., 0, 0)        // matching physical nozzle: blocked
+            };
+            jdoubleArray result = env->NewDoubleArray(4);
+            if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 4, values);
+            return result;
+        } catch (const std::exception &error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
     }
 
     // Exercises Orca's sequential-arrangement edge cases on a deterministic 200 mm bed.

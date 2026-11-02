@@ -227,6 +227,13 @@ enum class ArcFittingMode {
     SparseInfill,
 };
 
+// Orca: resolution mode for height-aware printer toolhead collision volumes.
+enum class BedExcludeVolumeMode {
+    Shared,
+    ToolheadOffset,
+    PerExtruder,
+};
+
 // Orca
 enum EnsureVerticalShellThickness {
     evstNone,
@@ -560,6 +567,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ArcFittingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BedExcludeVolumeMode)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1514,6 +1522,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionStrings,            parallel_printheads_bed_exclude_areas))
     //BBS: add bed_exclude_area
     ((ConfigOptionPoints,             bed_exclude_area))
+    ((ConfigOptionString,             bed_exclude_volumes))
+    ((ConfigOptionEnum<BedExcludeVolumeMode>, bed_exclude_volume_mode))
+    ((ConfigOptionStrings,            extruder_bed_exclude_volumes))
     ((ConfigOptionPoints,             head_wrap_detect_zone))
     // BBS
     ((ConfigOptionString,             bed_custom_texture))
@@ -2045,6 +2056,22 @@ Polygon get_shared_poly(const std::vector<Pointfs>& extruder_polys);
 Points get_bed_shape(const DynamicPrintConfig &cfg, bool use_share = true);
 Points get_bed_shape(const PrintConfig &cfg, bool use_share = false);
 Points get_bed_shape(const SLAPrinterConfig &cfg);
+struct BedExcludeRegion {
+    enum class Purpose { MaterialKeepout, CollisionVolume };
+    Polygon polygon;
+    double z_min { 0.0 };
+    double z_max { 0.0 };
+    Purpose purpose { Purpose::MaterialKeepout };
+    bool has_z_range { false };
+    int extruder_id { -1 }; // zero-based physical nozzle; -1 means shared
+    bool is_collision_volume() const { return purpose == Purpose::CollisionVolume; }
+};
+std::vector<std::vector<BedExcludeRegion>> get_bed_excluded_regions_by_extruder(const PrintConfig &cfg);
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig &cfg, size_t extruder_id);
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig &cfg);
+bool is_valid_bed_exclude_volumes_string(const std::string &value, double printable_height);
+bool has_bed_exclude_volumes(const PrintConfig &cfg);
+BedExcludeVolumeMode active_bed_exclude_volume_mode(const PrintConfig &cfg);
 Slic3r::Polygons get_bed_excluded_area(const PrintConfig& cfg);
 Slic3r::Polygon get_bed_shape_with_excluded_area(const PrintConfig& cfg, bool use_share = false);
 bool has_skirt(const DynamicPrintConfig& cfg);
