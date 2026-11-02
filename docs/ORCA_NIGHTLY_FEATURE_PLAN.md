@@ -1,6 +1,6 @@
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
-## Nightly Batch 9 — Punkt 1/10 verifiziert (2026-11-02)
+## Nightly Batch 9 — Punkt 2/10 verifiziert (2026-11-02)
 
 ### Unbekannte, aber belegte Spulenmaterialien bei ACE/CFS
 
@@ -8,7 +8,13 @@ Ein belegter Drucker-Slot mit RFID-Farbe, aber unbekanntem Material wird nicht l
 
 Verifikation: `MmuFilamentSyncDeviceTest` 18/18 auf API 36; Debug-Unit und Slice-Unit zusammen 739/739 je Variante, ohne Fehler, Ausnahmen oder Skips; `git diff --check` sauber. Geprüft wurden beide Synchronisierungsarten, Farbparse `0RRGGBB`, Slotzuordnung, sichtbares Label, Unknown-Zustand und der erhaltene Projektwerkstoff. Kein physischer Druckertest.
 
-Batch 9: **1/10**. Noch neun unabhängig verifizierte Portierungspunkte bis zur gebündelten Regression und dem nächsten APK-/Nightly-Release-Gate. Der Catan-Anordnungsfixture-Nachweis ist separat und zählt nicht als Orca-Funktionspunkt.
+### Creality CFS über Moonraker `box`
+
+Die Filamentsynchronisierung fragt nun nach dem generischen `?mmu`-Status bei leerer MMU-Antwort die Creality-CFS-Daten über `?box` ab. T1–T4 werden auf 16 physische Gate-Indizes abgebildet; getrennte oder leere Trays verschieben dadurch keine ACE-Fächer. Generische und in `same_material` aufgelöste Material-IDs sowie Creality-Farbwerte bleiben erhalten. Eine belegte Spule mit unbekanntem Material und lesbarer Farbe wird als unbekannt gekennzeichnet statt einem falschen Material zugeordnet.
+
+Verifikation: Parser-Gerätetests 3/3 auf API 36; echter `MmuFilamentSync`-Fallbacktest 1/1 auf API 36 (simulierte Moonraker-Antworten für `?mmu` und `?box`, physische Gate-Indizes, unbekannte Spule, Auswahl und Snapshot). `git diff --check` sauber. Keine physische Creality-Hardware getestet; Debug-Unit und Slice-Unit bestanden nach der Änderung jeweils 739/739, ohne Fehler, Ausnahmen oder Skips.
+
+Batch 9: **2/10**. Noch acht unabhängig verifizierte Punkte bis zur gebündelten Regression und dem APK-/Nightly-Release-Gate. Der Catan-Anordnungsnachweis ist separat und zählt nicht als Orca-Funktionspunkt.
 
 ## Nightly Batch 8 — 10/10 verifiziert (2026-11-02)
 

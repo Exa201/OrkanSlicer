@@ -107,6 +107,27 @@ class MmuFilamentSyncDeviceTest {
         }
     }
 
+    @Test fun crealityCfsSyncFallsBackToMoonrakerBoxAndPreservesPhysicalGateIndices() {
+        Prefs.setFilamentSlots(listOf("PLA", "PETG", "ABS", "TPU").mapIndexed { index, type ->
+            FilamentSlot(0xFF102030.toInt() + index, type)
+        })
+        val result = syncCrealityBox()
+
+        assertEquals(3 to null, result)
+        val palette = Prefs.getFilamentSlots()
+        assertEquals(16, palette.size)
+        assertNull(palette[0].type)
+        assertEquals("PETG", palette[1].type)
+        assertEquals("ABS", palette[2].type)
+        assertEquals("PLA", palette[3].type)
+        assertTrue(MmuFilamentSync.gateSlot(title, 2)?.unknownLoadedSpool == true)
+        assertEquals("ACE 3 · ${SliceBeam.requireInstance().getString(R.string.MmuUnknownLoadedSpool)} · #AABBCC",
+            MmuFilamentSync.gateLabel(title, 2))
+        assertArrayEquals(IntArray(16) { it }, MmuFilamentSync.getSelectedGates(title, 16))
+        assertArrayEquals(intArrayOf(1, 2, 3), MmuFilamentAssignments.availableGates(title, false))
+        assertEquals(16, MmuFilamentSync.getSnapshot(title)?.getJSONArray("ttg_map")?.length())
+    }
+
     @Test fun realPreferencesRoundTripLargeFilamentListsAndEnforceSixteenSlotLimit() {
         for (requestedCount in listOf(1, 4, 8, 16, 24)) {
             val requested = List(requestedCount) { index ->
@@ -374,6 +395,52 @@ class MmuFilamentSyncDeviceTest {
             assertTrue("Filament sync callback timed out", completed.await(20, TimeUnit.SECONDS))
             worker.join(2_000)
             failure.get()?.let { throw AssertionError("Test printer failed", it) }
+            return requireNotNull(result.get())
+        }
+    }
+
+    private fun syncCrealityBox(): Pair<Int, String?> {
+        val responses = listOf(
+            """{"result":{"status":{}}}""",
+            """{"result":{"status":{"box":{
+                "T1":{"state":"connect","material_type":["-1","000003","999999","000001"],"color_value":["-1","0FF1E1E","0AABBCC","000FF00"]},
+                "T2":{"state":"None","material_type":["000002","-1","-1","-1"],"color_value":["0FFFFFF","-1","-1","-1"]}
+            }}}}""",
+        )
+        val failure = AtomicReference<Throwable?>()
+        ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { server ->
+            server.soTimeout = 10_000
+            val worker = Thread {
+                try {
+                    for ((index, response) in responses.withIndex()) {
+                        server.accept().use { socket ->
+                        socket.soTimeout = 10_000
+                        val reader = socket.getInputStream().bufferedReader()
+                            val expectedPath = if (index == 0) "?mmu" else "?box"
+                            assertTrue(reader.readLine().startsWith("GET /printer/objects/query$expectedPath "))
+                            while (!reader.readLine().isNullOrEmpty()) { }
+                            val body = response.toByteArray(Charsets.UTF_8)
+                            socket.getOutputStream().apply {
+                                write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${body.size}\r\nConnection: close\r\n\r\n".toByteArray())
+                                write(body)
+                                flush()
+                            }
+                        }
+                    }
+                } catch (error: Throwable) { failure.set(error) }
+            }.apply { start() }
+            val completed = CountDownLatch(1)
+            val result = AtomicReference<Pair<Int, String?>>()
+            val printer = ConfigObject(title).apply { put("print_host", "http://127.0.0.1:${server.localPort}") }
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                MmuFilamentSync.synchronizeAll(printer, MmuFilamentSync.Callback { updated, error ->
+                    result.set(updated to error)
+                    completed.countDown()
+                })
+            }
+            assertTrue("Creality CFS sync callback timed out", completed.await(30, TimeUnit.SECONDS))
+            worker.join(2_000)
+            failure.get()?.let { throw AssertionError("Test Creality Moonraker host failed", it) }
             return requireNotNull(result.get())
         }
     }

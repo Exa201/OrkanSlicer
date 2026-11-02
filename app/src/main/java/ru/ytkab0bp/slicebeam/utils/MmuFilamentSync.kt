@@ -56,63 +56,39 @@ class MmuFilamentSync private constructor() {
                 else arrayOf(BasicHeader("X-Api-Key", apiKey))
 
             val client = AsyncHttpClient().apply { setTimeout(15_000) }
+            fun applyBody(body: ByteArray?) {
+                try {
+                    if (body == null || body.isEmpty()) throw JSONException(message(R.string.MmuSyncEmptyResponse))
+                    val count = applySyncResponse(printer, replacePalette, String(body, Charsets.UTF_8))
+                    callback.onResult(count, null)
+                } catch (error: Exception) {
+                    callback.onResult(0, error.message ?: message(R.string.MmuSyncFailed))
+                }
+            }
+            fun requestCrealityBox() {
+                client.get(SliceBeam.requireInstance(), "$host/printer/objects/query?box", headers, null,
+                    object : AsyncHttpResponseHandler() {
+                        override fun onSuccess(statusCode: Int, responseHeaders: Array<Header>?, body: ByteArray?) = applyBody(body)
+
+                        override fun onFailure(
+                            statusCode: Int,
+                            responseHeaders: Array<Header>?,
+                            body: ByteArray?,
+                            error: Throwable?,
+                        ) {
+                            callback.onResult(0, error?.message?.takeIf { it.isNotBlank() }
+                                ?: message(R.string.MmuSyncNotAvailable))
+                        }
+                    })
+            }
             client.get(SliceBeam.requireInstance(), "$host/printer/objects/query?mmu", headers, null,
                 object : AsyncHttpResponseHandler() {
                     override fun onSuccess(statusCode: Int, responseHeaders: Array<Header>?, body: ByteArray?) {
-                        val updated = try {
-                            if (body == null || body.isEmpty()) throw JSONException(message(R.string.MmuSyncEmptyResponse))
-                            val responseText = String(body, Charsets.UTF_8)
-                            val response = JSONObject(responseText)
-                            val mmu = response.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
-                            if (!mmu.optBoolean("enabled", false)) throw JSONException(message(R.string.MmuSyncNotAvailable))
-                            val remote = fromMoonraker(response)
-                            val printerGates = gateSlots(mmu)
-                            val prefs = Prefs.getPrefs()
-                                ?: throw IllegalStateException("Preferences are not initialized")
-                            val current = Prefs.getFilamentSlots()
-                            val updatedSlots: List<FilamentSlot>
-                            val count: Int
-                            if (replacePalette) {
-                                val mapping = mmu.getJSONArray("ttg_map")
-                                val toolToGate = IntArray(minOf(mapping.length(), Prefs.MAX_FILAMENT_COLORS)) {
-                                    mapping.optInt(it, -1)
-                                }
-                                val status = mmu.optJSONArray("gate_status")
-                                val incompleteGate = toolToGate.firstOrNull { gate ->
-                                    gate >= 0 && status != null && status.optInt(gate, 0) > 0
-                                        && printerGates.getOrNull(gate) == null
-                                }
-                                if (incompleteGate != null) throw JSONException(
-                                    SliceBeam.requireInstance().getString(R.string.MmuSyncIncompleteSlot, incompleteGate + 1),
-                                )
-                                if (toolToGate.none { printerGates.getOrNull(it) != null }) {
-                                    throw JSONException(message(R.string.MmuAssignmentNoLoadedSlots))
-                                }
-                                val synced = FilamentPaletteSyncPolicy.replaceFromPrinter(printerGates, toolToGate, current)
-                                updatedSlots = synced.slots
-                                count = updatedSlots.count { !it.type.isNullOrBlank() }
-                                setSelectedGates(printer.title.orEmpty(), synced.gates)
-                                if (!TemporaryProjectSettings.active) setPaletteGates(printer.title.orEmpty(), synced.gates)
-                            } else {
-                                // Once assigned, logical T1 may refer to physical gate 3 rather than gate 2.
-                                val choices = getSelectedGates(printer.title.orEmpty(), current.size)
-                                val liveTools = choices?.map { printerGates.getOrNull(it) } ?: remote
-                                updatedSlots = FilamentPaletteSyncPolicy.updateExisting(current, liveTools)
-                                count = liveTools.take(current.size).count { it != null }
-                            }
-                            if (replacePalette || !TemporaryProjectSettings.active) Prefs.setFilamentSlots(updatedSlots)
-                            Prefs.setMmuSyncedPrinter(printer.title)
-                            prefs.edit()
-                                .putString(MmuPrinterPreferenceKeys.forPrinter("snapshot", printer.title.orEmpty()), responseText)
-                                .putString(SNAPSHOT_PRINTER, printer.title)
-                                .putString(SNAPSHOT, responseText)
-                                .apply()
-                            count
-                        } catch (error: Exception) {
-                            callback.onResult(0, error.message ?: message(R.string.MmuSyncFailed))
-                            return
-                        }
-                        callback.onResult(updated, null)
+                        val hasMmu = try {
+                            body != null && JSONObject(String(body, Charsets.UTF_8))
+                                .optJSONObject("result")?.optJSONObject("status")?.has("mmu") == true
+                        } catch (_: Exception) { false }
+                        if (hasMmu) applyBody(body) else requestCrealityBox()
                     }
 
                     override fun onFailure(
@@ -121,6 +97,10 @@ class MmuFilamentSync private constructor() {
                         body: ByteArray?,
                         error: Throwable?,
                     ) {
+                        if (statusCode == 400 || statusCode == 404) {
+                            requestCrealityBox()
+                            return
+                        }
                         val detail = if (body != null && body.isNotEmpty()) {
                             String(body, Charsets.UTF_8)
                         } else {
@@ -129,6 +109,55 @@ class MmuFilamentSync private constructor() {
                         callback.onResult(0, detail)
                     }
                 })
+        }
+
+        private fun applySyncResponse(printer: ConfigObject, replacePalette: Boolean, responseText: String): Int {
+            val rawResponse = JSONObject(responseText)
+            val rawMmu = rawResponse.optJSONObject("result")?.optJSONObject("status")?.optJSONObject("mmu")
+            val response = if (rawMmu != null) rawResponse else CrealityCfsParser.toMmuResponse(rawResponse)
+                ?: throw JSONException(message(R.string.MmuSyncNotAvailable))
+            val normalizedResponseText = response.toString()
+            val mmu = response.getJSONObject("result").getJSONObject("status").getJSONObject("mmu")
+            if (!mmu.optBoolean("enabled", false)) throw JSONException(message(R.string.MmuSyncNotAvailable))
+            val remote = fromMoonraker(response)
+            val printerGates = gateSlots(mmu)
+            val prefs = Prefs.getPrefs() ?: throw IllegalStateException("Preferences are not initialized")
+            val current = Prefs.getFilamentSlots()
+            val updatedSlots: List<FilamentSlot>
+            val count: Int
+            if (replacePalette) {
+                val mapping = mmu.getJSONArray("ttg_map")
+                val toolToGate = IntArray(minOf(mapping.length(), Prefs.MAX_FILAMENT_COLORS)) { mapping.optInt(it, -1) }
+                val status = mmu.optJSONArray("gate_status")
+                val incompleteGate = toolToGate.firstOrNull { gate ->
+                    gate >= 0 && status != null && status.optInt(gate, 0) > 0 && printerGates.getOrNull(gate) == null
+                }
+                if (incompleteGate != null) throw JSONException(
+                    SliceBeam.requireInstance().getString(R.string.MmuSyncIncompleteSlot, incompleteGate + 1),
+                )
+                if (toolToGate.none { printerGates.getOrNull(it) != null }) {
+                    throw JSONException(message(R.string.MmuAssignmentNoLoadedSlots))
+                }
+                val synced = FilamentPaletteSyncPolicy.replaceFromPrinter(printerGates, toolToGate, current)
+                updatedSlots = synced.slots
+                count = updatedSlots.count { !it.type.isNullOrBlank() }
+                setSelectedGates(printer.title.orEmpty(), synced.gates)
+                if (!TemporaryProjectSettings.active) setPaletteGates(printer.title.orEmpty(), synced.gates)
+            } else {
+                // Once assigned, logical T1 may refer to physical gate 3 rather than gate 2.
+                val choices = getSelectedGates(printer.title.orEmpty(), current.size)
+                val liveTools = choices?.map { printerGates.getOrNull(it) } ?: remote
+                updatedSlots = FilamentPaletteSyncPolicy.updateExisting(current, liveTools)
+                count = liveTools.take(current.size).count { it != null }
+            }
+            if (replacePalette || !TemporaryProjectSettings.active) Prefs.setFilamentSlots(updatedSlots)
+            Prefs.setMmuSyncedPrinter(printer.title)
+            prefs.edit()
+                .putString(MmuPrinterPreferenceKeys.forPrinter("snapshot", printer.title.orEmpty()), normalizedResponseText)
+                .putString(SNAPSHOT_PRINTER, printer.title)
+                .putString(SNAPSHOT, normalizedResponseText)
+                .apply()
+            return count
         }
 
         private fun message(resource: Int): String = SliceBeam.requireInstance().getString(resource)
