@@ -2706,39 +2706,43 @@ private fun loadModelInternal(
             val automaticallyCreated = ArrayList<Model>()
             var objectsTooLargeForBed = 0
 
-            // Most imports fit on the current plate. Arrange that common case once instead
-            // of re-running the full packer after every new object (quadratic work on large 3MFs).
-            repeat(sourceCount) { target.addObject(imported, it) }
-            if (bed.arrange(target)) {
+            // Arrange on a staging model. The native packer can report success while returning
+            // a placement whose exact mesh bounds are outside the build volume. Never commit it.
+            val packedImport = copyModelForArrangement(target)
+            repeat(sourceCount) { packedImport.addObject(imported, it) }
+            if (bed.arrange(packedImport) && isModelInsideBuildVolume(packedImport, bed)) {
+                target.replaceContentsFrom(packedImport)
+                packedImport.release()
                 finalTarget = target
                 finalFirstNew = originalTargetObjectCount
                 finalAddedCount = sourceCount
             } else {
-                // Arrange is atomic: restore the existing plate before trying a deterministic
-                // per-object overflow fallback. This slower path runs only when the whole import
-                // does not fit on the current plate.
-                while (target.objectsCount > originalTargetObjectCount)
-                    target.deleteObject(target.objectsCount - 1)
+                packedImport.release()
 
                 for (sourceIndex in 0 until sourceCount) {
-                    target.addObject(imported, sourceIndex)
-                    var destinationIndex = target.objectsCount - 1
-                    if (!bed.arrange(target)) {
-                        target.deleteObject(destinationIndex)
+                    val candidate = copyModelForArrangement(target)
+                    val destinationIndex = candidate.objectsCount
+                    candidate.addObject(imported, sourceIndex)
+                    var placedOnNewPlate = false
+                    if (bed.arrange(candidate) && isModelInsideBuildVolume(candidate, bed)) {
+                        target.replaceContentsFrom(candidate)
+                        candidate.release()
+                    } else {
+                        candidate.release()
                         val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
-                        if (!bed.arrange(nextPlate)) {
+                        if (!bed.arrange(nextPlate) || !isModelInsideBuildVolume(nextPlate, bed)) {
                             centerObjectOnBed(nextPlate, 0, bed)
-                            objectsTooLargeForBed++
+                            if (!isModelInsideBuildVolume(nextPlate, bed)) objectsTooLargeForBed++
                         }
                         automaticallyCreated.add(nextPlate)
                         target = nextPlate
                         targetIsNew = true
-                        destinationIndex = 0
+                        placedOnNewPlate = true
                     }
 
                     if (finalTarget !== target) {
                         finalTarget = target
-                        finalFirstNew = destinationIndex
+                        finalFirstNew = if (placedOnNewPlate) 0 else destinationIndex
                         finalAddedCount = 1
                     } else {
                         finalAddedCount++
@@ -2803,6 +2807,25 @@ private fun centerObjectOnBed(model: Model, objectIndex: Int, bed: Bed3D) {
         (bedMin.x + bedMax.x - objectMin.x - objectMax.x) / 2.0,
         (bedMin.y + bedMax.y - objectMin.y - objectMax.y) / 2.0,
         0.0)
+}
+
+private fun copyModelForArrangement(source: Model): Model = Model().also { copy ->
+    repeat(source.objectsCount) { copy.addObject(source, it) }
+}
+
+private fun isModelInsideBuildVolume(model: Model, bed: Bed3D, tolerance: Double = 0.2): Boolean {
+    val bedMin = bed.getVolumeMin() ?: return false
+    val bedMax = bed.getVolumeMax() ?: return false
+    val objectMin = Vec3d()
+    val objectMax = Vec3d()
+    repeat(model.objectsCount) { index ->
+        model.getBoundingBoxExact(index, objectMin, objectMax)
+        if (objectMin.x < bedMin.x - tolerance || objectMin.y < bedMin.y - tolerance ||
+            objectMin.z < bedMin.z - tolerance || objectMax.x > bedMax.x + tolerance ||
+            objectMax.y > bedMax.y + tolerance || objectMax.z > bedMax.z + tolerance
+        ) return false
+    }
+    return model.objectsCount > 0
 }
 override fun onApplyTheme() {
 super.onApplyTheme()

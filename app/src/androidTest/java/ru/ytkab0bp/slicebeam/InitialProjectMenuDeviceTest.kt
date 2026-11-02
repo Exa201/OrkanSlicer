@@ -75,6 +75,7 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
+import java.util.zip.ZipInputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
@@ -114,6 +115,146 @@ class InitialProjectMenuDeviceTest {
     @get:Rule
     val compose = createInitializedActivityRule()
     private var previousRequestedOrientation: Int? = null
+
+    @Test(timeout = 900_000)
+    fun settlersArchiveModelsAreOrientedPackedAndMovedToOverflowPlates() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) { glView.renderer.bed?.isValid() == true }
+
+        val archive = File(activity.cacheDir, "settlers-arrangement-fixture.zip")
+        if (!archive.isFile) {
+            runCatching {
+                File(requireNotNull(activity.getExternalFilesDir(null)), "settlers-arrangement-fixture.zip")
+                    .inputStream().buffered().use { source ->
+                        archive.outputStream().buffered().use(source::copyTo)
+                    }
+            }
+        }
+        assumeTrue("Push the supplied Settlers archive into the Nightly test app external files", archive.isFile)
+        val fixtureDir = File(activity.cacheDir, "settlers-arrangement-${System.nanoTime()}").apply { mkdirs() }
+        val modelFiles = mutableListOf<File>()
+        try {
+            ZipInputStream(archive.inputStream().buffered()).use { input ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    val name = File(entry.name).name
+                    if (!entry.isDirectory && name.endsWith(".stl", ignoreCase = true)) {
+                        val destination = File(fixtureDir, name)
+                        destination.outputStream().buffered().use(input::copyTo)
+                        modelFiles += destination
+                    }
+                    input.closeEntry()
+                }
+            }
+            val selected = modelFiles.sortedBy {
+                Regex("^obj_(\\d+)_").find(it.name)?.groupValues?.get(1)?.toIntOrNull() ?: Int.MAX_VALUE
+            }
+            assertEquals("Every STL model from the supplied archive must be present", 109, selected.size)
+            assertEquals("Test starts with an empty plate", 0, requireNotNull(bed.currentModel).objectsCount)
+            assertEquals("Test starts on one plate", 1, bed.plateCount)
+
+            selected.forEachIndexed { ordinal, file ->
+                android.util.Log.i("SettlersArrangeTest", "Import ${ordinal + 1}/${selected.size}: ${file.name}")
+                val completed = CountDownLatch(1)
+                val error = AtomicReference<Exception?>()
+                val loaded = AtomicReference<Model?>()
+                val addedRange = AtomicReference<Pair<Int, Int>?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            android.util.Log.i("SettlersArrangeTest", "Loaded ${file.name}; plates=${bed.plateCount}")
+                            loaded.set(loadedModel)
+                            addedRange.set(firstNewObject to addedObjects)
+                            completed.countDown()
+                        }
+                        override fun onFailed(failure: Exception) {
+                            error.set(failure)
+                            completed.countDown()
+                        }
+                    }, autoOrientImportedModels = true)
+                assertTrue("Import ${ordinal + 1}/${selected.size} timed out: ${file.name}",
+                    completed.await(90, TimeUnit.SECONDS))
+                error.get()?.let { throw AssertionError("Could not import ${file.name}", it) }
+                val loadedModel = requireNotNull(loaded.get())
+                val range = requireNotNull(addedRange.get())
+                val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+                val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+                repeat(range.second) { relativeIndex ->
+                    val objectIndex = range.first + relativeIndex
+                    val bounds = readExactBoundsOnGl(glView, loadedModel, objectIndex)
+                    assertTrue("${file.name} object $objectIndex was arranged outside the bed: " +
+                        "${bounds.toList()}, bed=${bedMin.x},${bedMin.y}..${bedMax.x},${bedMax.y}",
+                        bounds[0] >= bedMin.x - 0.2 && bounds[1] >= bedMin.y - 0.2 &&
+                            bounds[3] <= bedMax.x + 0.2 && bounds[4] <= bedMax.y + 0.2)
+                }
+            }
+
+            compose.waitUntil(timeoutMillis = 20_000) { bed.plateCount > 1 }
+            val plates = readPlateModels(bed)
+            assertEquals("All imported STL models remain independent objects", selected.size,
+                plates.sumOf { it.objectsCount })
+            assertTrue("Overflow models must be assigned to new plates", plates.size > 1)
+            assertTrue("Arrangement must pack multiple archive models instead of using one plate per model; " +
+                "plates=${plates.size}, objectsPerPlate=${plates.map { it.objectsCount }}", plates.size < selected.size)
+
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            plates.forEachIndexed { plateIndex, model ->
+                repeat(model.objectsCount) { objectIndex ->
+                    val bounds = readExactBoundsOnGl(glView, model, objectIndex)
+                    assertTrue("Plate $plateIndex object $objectIndex (${model.getObjectName(objectIndex)}) " +
+                        "is outside the bed: ${bounds.toList()}, bed=${bedMin.x},${bedMin.y}..${bedMax.x},${bedMax.y}",
+                        bounds[0] >= bedMin.x - 0.2 && bounds[1] >= bedMin.y - 0.2 &&
+                            bounds[3] <= bedMax.x + 0.2 && bounds[4] <= bedMax.y + 0.2)
+                    assertTrue("Imported object must rest on the build surface", bounds[2] >= bedMin.z - 0.2)
+                }
+            }
+
+            val checkedPairs = AtomicReference(0)
+            val overlap = AtomicReference<String?>()
+            val collisionCheck = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    plates.forEachIndexed { plateIndex, plate ->
+                        for (first in 0 until plate.objectsCount) {
+                            for (second in first + 1 until plate.objectsCount) {
+                                val probe = Model()
+                                try {
+                                    probe.addObject(plate, first)
+                                    probe.addObject(plate, second)
+                                    val intersection = probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION)
+                                    checkedPairs.set(checkedPairs.get() + 1)
+                                    if (intersection >= 0) {
+                                        overlap.compareAndSet(null,
+                                            "plate $plateIndex objects $first (${plate.getObjectName(first)}) " +
+                                                "and $second (${plate.getObjectName(second)}) intersect")
+                                        return@queueEvent
+                                    }
+                                } finally {
+                                    probe.release()
+                                }
+                            }
+                        }
+                    }
+                } catch (failure: Throwable) {
+                    overlap.compareAndSet(null, "mesh collision check failed: ${failure.message}")
+                } finally {
+                    collisionCheck.countDown()
+                }
+            }
+            assertTrue("GL thread must complete mesh-collision validation", collisionCheck.await(5, TimeUnit.MINUTES))
+            assertEquals("Every same-plate model pair must have disjoint meshes", null, overlap.get())
+            android.util.Log.i("SettlersArrangeTest", "Nightly verified ${selected.size} models across ${plates.size} plates " +
+                "(objectsPerPlate=${plates.map { it.objectsCount }}); " +
+                "${checkedPairs.get()} same-plate mesh pairs are disjoint")
+        } finally {
+            modelFiles.forEach(File::delete)
+            fixtureDir.deleteRecursively()
+            archive.delete()
+        }
+    }
 
     /** Allows a true Activity configuration change for the full menu class on real devices. */
     @Before

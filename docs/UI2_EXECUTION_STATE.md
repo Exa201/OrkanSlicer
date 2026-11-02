@@ -1,3 +1,11 @@
+# Nightly continuation — Settlers archive arrangement regression — 2026-11-02
+
+- Added an API-36 device regression for all 109 STL files in the supplied Settlers of Catan archive. The production import path placed all 109 inside printable bed bounds across 60 plates; all 139 pairs sharing a plate passed native mesh-intersection checks.
+- The fixture exposed a false-success case where the native arranger returned an out-of-bed placement. Imports now arrange against a staging model and commit only after exact 3D bounds validation; rejected placements are retried on overflow plates without mutating the existing plate.
+- A 50,000-facet projection experiment crashed Clipper `ProcessHorizontal` at `obj_24_Settlement_1.stl`. It was reverted to the 1,000-facet safety cap; the full archive test then passed again. Conservative hull fallback can use extra plates, so 60 plates is a known packing-efficiency limitation.
+- `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` succeeded; `git diff --check` is clean. No production APK/release was created. The Catan fix and test remain local pending the next grouped Nightly batch.
+- Nightly Batch 7 remains 10/10 and published as `v0.8.426-nightly.1`. Next: start Batch 8 by auditing fresh Orca upstream commits for app-reachable gaps and defining ten separately testable items.
+
 # Nightly Orca Batch 7 — 10/10 Feature-Punkte verifiziert; Release-Kandidat wird geprüft — 2026-11-02
 
 ## Release-Gate-Stand — Nightly 0.8.426 (Code 461)

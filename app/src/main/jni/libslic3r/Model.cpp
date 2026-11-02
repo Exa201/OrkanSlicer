@@ -1719,16 +1719,10 @@ Polygon ModelObject::convex_hull_2d(const Transform3d& trafo_instance) const
 
 ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, ExPolygons *exact_parts) const
 {
-    // Mesh projection gives the arrange packer a tighter silhouette than the convex hull for
-    // concave parts. Arrange currently runs on the renderer thread, so keep projection bounded
-    // to avoid blocking camera interaction on dense meshes. Open/non-manifold but valid triangle
-    // surfaces still have a meaningful projected footprint and should not fall back to a hull.
-    // STL imports may legitimately contain tens of thousands of triangles while still having
-    // a simple, compact XY footprint. Falling back to the convex hull at 20k made those models
-    // reserve empty concave regions as if they were solid, causing automatic arrangement to
-    // spill otherwise fitting objects onto another plate. Keep projection bounded for renderer
-    // responsiveness, but allow common detailed models to retain their real footprint.
-    constexpr size_t MAX_PROJECTION_FACETS = 50000;
+    // Clipper's projection union runs synchronously from the GL renderer and is unsafe for
+    // complex imported meshes. Keep exact concave footprints only for simple, clean models;
+    // use the conservative convex-hull fallback for detailed or repaired geometry.
+    constexpr size_t MAX_PROJECTION_FACETS = 1000;
     size_t facet_count = 0;
     Polygons projected;
     for (const ModelVolume *volume : this->volumes) {
@@ -1737,6 +1731,14 @@ ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, E
         const TriangleMesh &mesh = volume->mesh();
         if (mesh.empty())
             return {};
+        // Clipper's union of projected triangles can crash on open, repaired, or otherwise
+        // non-manifold imported STLs (reproduced with Catan settlement meshes). Keep the
+        // accurate concave footprint for clean closed meshes; use the caller's conservative
+        // convex-hull fallback for geometry that cannot safely be unioned.
+        if (mesh.stats().open_edges > 0 || mesh.stats().repaired() ||
+            its_num_open_edges(mesh.its) > 0)
+            return {};
+
         facet_count += mesh.facets_count();
         if (facet_count > MAX_PROJECTION_FACETS)
             return {};
