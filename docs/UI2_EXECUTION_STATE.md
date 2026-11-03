@@ -1,5 +1,11 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## Catan Nesting — current production-path rerun — 2026-11-03
+
+- Re-tested the supplied 109-STL archive on the current Nightly commit `297d6b175d7380da5410ffc701dd915fdcc63470` using the production import/arrange path on the API-36 emulator. The run passed 1/1 with 0 failures, 0 errors, and 0 skips (instrumentation time 219.296 s; XML suite time 220.943 s).
+- Result: all 109 models were imported/oriented across 9 plates (`[46, 22, 5, 5, 7, 6, 6, 6, 6]` objects per plate). Every object stayed within the bed bounds/on the bed, and all 1,367 same-plate mesh pairs were checked and disjoint. Archive SHA-256: `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`.
+- This confirms safe placement and a repeatable 9-plate result on this emulator/current code, not a proof of globally optimal packing. The temporary 37-MB test asset was removed after the run. No APK or release was produced for this test-only verification. The import-only automatic arrangement policy and free post-import movement remain unchanged.
+
 ## Batch 9 release complete — 2026-11-03
 
 - Batch 9 reached 10/10 verified implementation points and was released as [v0.8.428-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.428-nightly.1). Release targets app/code commit `d9cceb9a40d36dd4b9015c30e2614aec0e98600f`; APK size 240,257,661 bytes; SHA-256 `A882C3AD35C80759324E2B3B77F356FABBD06DFB88A2EC1AA8ADE22732702F7C`.
