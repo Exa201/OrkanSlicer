@@ -1,4 +1,4 @@
-# Nightly 2.5 Fortsetzung — Batch 10, Punkt 1/10 — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 0/10 verifizierte Punkte — 2026-11-03
 
 ## Nightly-Zielprüfung — App-Isolation und schwache GPU
 
@@ -8,6 +8,7 @@
 
 ## STEP-Körpernamen — Implementierung wartet auf ARM64-Laufzeittest
 
+- Kandidaten-Commit `d0bc5fdafc` ist auf `nightly-2.5` gepusht. Er zählt ausdrücklich noch nicht zu den zehn verifizierten Punkten.
 - OrcaSlicer `fa5f7e3db4` wird für den Android-erreichbaren STEP-Namenspfad adaptiert: benannte BREP-Körper bleiben an ihren importierten Mesh-Volumes, die Modellteileliste zeigt diesen Namen und fällt ohne Namen weiter auf „Teil N“ zurück. Zwei kleine upstream-Fixtures decken mehrere benannte Körper inklusive UTF-8 sowie einen einzelnen benannten Körper ab; deren Herkunft ist im Asset-README vermerkt.
 - Der erste ARM64-Linklauf deckte fehlende direkte OCCT-Abhängigkeiten auf. `TKSTEP`, `TKSTEP209`, `TKSTEPAttr`, `TKSTEPBase` und `TKXSBase` sind jetzt in der Android-Linkliste und der OCCT-Bibliotheksbereinigung berücksichtigt. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` und `:app:assembleDebug` bestehen; das Debug-APK enthält die sechs benötigten STEP/XS-Bibliotheken.
 - `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743 bestanden, keine Fehler/Skips. Neue Native-/Compose-Gerätetests kompilieren.
