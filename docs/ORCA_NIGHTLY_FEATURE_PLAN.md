@@ -16,7 +16,12 @@ Grundkörperauflösung abhängig von ihrer Größe anpassen; sowie die gemeinsam
 PLA-Materialbibliothek ohne Druckerprofil laden und slicen.
 
 Die zehn Punkte sind fokussiert verifiziert. Vor einem Batch-Release bleibt das gebündelte
-Regressionstor erforderlich.
+Regressionstor erforderlich. Batch-Gate bestanden: Debug 743/743, Slice 743/743 und fünf
+fokussierte API-36-Gerätetests. Debug-APK 0.8.432 / Code 467 wurde auf einem API-36-AVD
+installiert und gestartet; frisches Logcat ohne Crash, ANR, OOM oder Fatal Signal. APK:
+`OrkanSlicerNightly25_86b89bde81.apk`, 240.359.789 Bytes, SHA-256
+`0EA04F2617545FFE11FCEFCC3D62F82DACA5AFEACEA1A54B9BA7D6C1A5963AB5`. Xiaomi nicht
+angeschlossen; der physische Xiaomi-Test bleibt offen.
 
 ### Punkt 10/10 — PrintaLot-PLA-Materialbibliothek
 
