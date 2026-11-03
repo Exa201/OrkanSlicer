@@ -32,4 +32,15 @@ internal object HorizontalPlaneDrag {
         ) return null
         return Vec3d(current.x - start.x, current.y - start.y, 0.0)
     }
+
+    /** Uses the pointer's ACTION_UP location, falling back to the last rendered preview if invalid. */
+    fun finalTranslation(start: Vec3d, releasePoint: Vec3d?, lastValid: Vec3d): Vec3d {
+        val releaseDelta = releasePoint?.let { translation(start, it) }
+        if (releaseDelta != null) return releaseDelta
+        return if (lastValid.x.isFinite() && lastValid.y.isFinite()) {
+            Vec3d(lastValid.x, lastValid.y, 0.0)
+        } else {
+            Vec3d()
+        }
+    }
 }

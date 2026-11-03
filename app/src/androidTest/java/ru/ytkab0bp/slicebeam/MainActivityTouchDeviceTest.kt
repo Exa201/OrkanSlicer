@@ -694,7 +694,9 @@ class MainActivityTouchDeviceTest {
             scenario.onActivity {
                 val now = SystemClock.uptimeMillis()
                 dispatch(glView, MotionEvent.ACTION_MOVE, dragPoint.first + 25f, dragPoint.second + 20f, downTime, now)
-                dispatch(glView, MotionEvent.ACTION_MOVE, dragPoint.first + 45f, dragPoint.second + 35f,
+                // Keep the last MOVE behind the eventual release. The committed object and
+                // selection tile must follow ACTION_UP's final coordinate, not the prior frame.
+                dispatch(glView, MotionEvent.ACTION_MOVE, dragPoint.first + 40f, dragPoint.second + 30f,
                     downTime, now + 40L)
             }
             SystemClock.sleep(80L)

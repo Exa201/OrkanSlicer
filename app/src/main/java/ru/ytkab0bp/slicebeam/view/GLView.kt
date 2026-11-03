@@ -946,11 +946,40 @@ if (longClickGesture)
 tapGestureGate.invalidate()
 if (longClickMoved)
 {
-queueEvent({
-// Commit the drag to the whole selection (group move when multiple are selected).
- renderer.translateSelectedObjects(longClickTranslation.x, longClickTranslation.y, (0).toDouble())
-requestRender()
-SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, false)) })
+    if (action == MotionEvent.ACTION_UP) {
+        // ACTION_UP can carry a newer pointer location than the last ACTION_MOVE. Resolve that
+        // final point on the GL thread before committing, otherwise the rendered bounds can stop
+        // at the last move while the user has already released the mesh somewhere else.
+        val releaseX = surfaceTouchX(e.getX(0))
+        val releaseY = surfaceTouchY(e.getY(0))
+        queueEvent {
+            val finalPoint = if (longClickUsesCameraPlane) {
+                renderer.raycastCameraPlane(releaseX, releaseY, longClickDragPlanePoint)
+            } else {
+                renderer.raycastHorizontalPlane(releaseX, releaseY, longClickPlaneZ)
+            }
+            val finalDelta = HorizontalPlaneDrag.finalTranslation(
+                longClickStartOnPlane,
+                finalPoint,
+                longClickTranslation,
+            )
+            longClickTranslation.set(finalDelta)
+            // Commit the same world-space delta that was last shown by the live preview.
+            // If the release ray is invalid, retain the last valid preview position.
+            renderer.translateSelectedObjects(longClickTranslation.x, longClickTranslation.y, 0.0)
+            requestRender()
+            SliceBeam.EVENT_BUS.fireEvent(
+                LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, false),
+            )
+        }
+    } else {
+        // A cancelled gesture must discard the preview rather than silently committing it.
+        queueEvent {
+            renderer.setSelectionTranslation(0.0, 0.0, 0.0)
+            requestRender()
+            SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(0.0, 0.0, false))
+        }
+    }
 }
 // A long press is reserved for picking up and moving a model. Opening a dialog here
 // makes ordinary touches on the build plate feel like repeated taps. Model actions

@@ -24,6 +24,31 @@ class HorizontalPlaneRayTest {
     }
 
     @Test
+    fun dragCommitUsesTheFinalReleasePointInsteadOfTheLastMovePoint() {
+        val grabbedPoint = Vec3d(10.0, 20.0, 6.0)
+        val lastMovePoint = Vec3d(24.0, 31.0, 6.0)
+        val releasePoint = Vec3d(28.0, 35.0, 6.0)
+        val lastPreview = requireNotNull(HorizontalPlaneDrag.translation(grabbedPoint, lastMovePoint))
+
+        val committed = HorizontalPlaneDrag.finalTranslation(grabbedPoint, releasePoint, lastPreview)
+
+        assertEquals(18.0, committed.x, 1e-9)
+        assertEquals(15.0, committed.y, 1e-9)
+        assertEquals(0.0, committed.z, 1e-9)
+    }
+
+    @Test
+    fun dragCommitKeepsLastValidPreviewWhenReleaseRayCannotBeResolved() {
+        val lastPreview = Vec3d(14.0, -9.0, 0.0)
+
+        val committed = HorizontalPlaneDrag.finalTranslation(Vec3d(3.0, 4.0, 0.0), null, lastPreview)
+
+        assertEquals(14.0, committed.x, 1e-9)
+        assertEquals(-9.0, committed.y, 1e-9)
+        assertEquals(0.0, committed.z, 1e-9)
+    }
+
+    @Test
     fun intersectsThePickedSurfacePlaneRatherThanTheBedPlane() {
         val origin = Vec3d(0.0, 0.0, 100.0)
         val direction = Vec3d(1.0, 2.0, -4.0)
