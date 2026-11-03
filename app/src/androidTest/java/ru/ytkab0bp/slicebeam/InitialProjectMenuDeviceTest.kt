@@ -102,10 +102,12 @@ import ru.ytkab0bp.slicebeam.slic3r.SliceListener
 import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import ru.ytkab0bp.slicebeam.utils.ModelImportPackingOrder
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.ui.navigation.WorkspaceDestination
 import ru.ytkab0bp.slicebeam.ui.navigation.AdaptiveNavigationPolicy
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.StlImportPreflight
 import ru.ytkab0bp.slicebeam.utils.Vec3d
 import java.util.concurrent.atomic.AtomicReference
 
@@ -148,9 +150,8 @@ class InitialProjectMenuDeviceTest {
                     input.closeEntry()
                 }
             }
-            val selected = modelFiles.sortedBy {
-                Regex("^obj_(\\d+)_").find(it.name)?.groupValues?.get(1)?.toIntOrNull() ?: Int.MAX_VALUE
-            }
+            val areas = modelFiles.map { StlImportPreflight.largestOrientedFootprintArea(it) ?: 0.0 }
+            val selected = ModelImportPackingOrder.largestFirst(areas).map(modelFiles::get)
             assertEquals("Every STL model from the supplied archive must be present", 109, selected.size)
             assertEquals("Test starts with an empty plate", 0, requireNotNull(bed.currentModel).objectsCount)
             assertEquals("Test starts on one plate", 1, bed.plateCount)

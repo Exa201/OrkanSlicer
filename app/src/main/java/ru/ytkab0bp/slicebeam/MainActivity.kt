@@ -103,7 +103,9 @@ import ru.ytkab0bp.slicebeam.theme.ThemesRepo
 import ru.ytkab0bp.slicebeam.utils.IOUtils
 import ru.ytkab0bp.slicebeam.utils.ImageDecodePolicy
 import ru.ytkab0bp.slicebeam.utils.FilamentSlot
+import ru.ytkab0bp.slicebeam.utils.ModelImportPackingOrder
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import ru.ytkab0bp.slicebeam.utils.StlImportPreflight
 import ru.ytkab0bp.slicebeam.utils.ViewUtils
 import ru.ytkab0bp.slicebeam.view.SnackbarsLayout
 import ru.ytkab0bp.slicebeam.ui.workspace.WorkspaceMessageDialog
@@ -2064,7 +2066,27 @@ if (files.isEmpty()) return
 val tag = UUID.randomUUID().toString()
 SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
 getString(R.string.MenuFileOpenMultipleStlProgress, 1, files.size)).tag(tag))
-loadMultipleStlFileAt(files, 0, 0, 0, tag)
+// Pack larger footprints first so early small files do not force large parts onto overflow
+// plates. Unknown/ASCII STL inputs retain their relative selection order after known binaries.
+IOUtils.IO_POOL.submit {
+    val areas = files.map { uri ->
+        runCatching {
+            getContentResolver().openAssetFileDescriptor(uri, "r")?.use { descriptor ->
+                descriptor.createInputStream().use { input ->
+                    StlImportPreflight.largestOrientedFootprintArea(input, descriptor.length)
+                }
+            }
+        }.getOrNull() ?: 0.0
+    }
+    val orderedFiles = ModelImportPackingOrder.largestFirst(areas).map(files::get)
+    ViewUtils.postOnMainThread {
+        if (isFinishing || isDestroyed) {
+            SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+        } else {
+            loadMultipleStlFileAt(orderedFiles, 0, 0, 0, tag)
+        }
+    }
+}
 }
 /** Copies and imports one STL at a time so native model loading never overlaps. */
  private fun loadMultipleStlFileAt(files:List<Uri>, index:Int, loaded:Int, failed:Int, tag:String) {
