@@ -32,15 +32,15 @@ class StepImportOptionsDialogDeviceTest {
             }
         }
 
-        compose.onNodeWithTag("step-split-compound").performScrollTo().assertIsOff().performClick()
-        compose.onNodeWithTag("step-split-compound").assertIsOn()
+        compose.onNodeWithTag("step-split-compound").performScrollTo().assertIsOn().performClick()
+        compose.onNodeWithTag("step-split-compound").assertIsOff()
         compose.onNodeWithTag("step-save-defaults").performScrollTo().assertIsOff().performClick()
         compose.onNodeWithTag("step-save-defaults").assertIsOn()
         assertEquals(null, applied.get())
         compose.onNodeWithTag("step-import-confirm").performClick()
 
         val result = requireNotNull(applied.get())
-        assertEquals(StepImportOptions(0.003, 0.5, splitCompound = true), result.first)
+        assertEquals(StepImportOptions(0.003, 0.5, splitCompound = false), result.first)
         assertEquals(true, result.second)
     }
 

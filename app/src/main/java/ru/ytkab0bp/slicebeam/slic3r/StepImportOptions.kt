@@ -6,7 +6,8 @@ import ru.ytkab0bp.slicebeam.utils.Prefs
 data class StepImportOptions(
     val linearDeflection: Double = DEFAULT_LINEAR_DEFLECTION,
     val angularDeflection: Double = DEFAULT_ANGULAR_DEFLECTION,
-    val splitCompound: Boolean = false,
+    // OrcaSlicer keeps assembly bodies independently selectable by default.
+    val splitCompound: Boolean = true,
 ) {
     fun validate(): String? = when {
         !linearDeflection.isFinite() || linearDeflection !in MIN_LINEAR_DEFLECTION..MAX_LINEAR_DEFLECTION ->
@@ -40,7 +41,7 @@ data class StepImportOptions(
             val candidate = StepImportOptions(
                 prefs?.getString(PREF_LINEAR, null)?.replace(',', '.')?.toDoubleOrNull() ?: DEFAULT_LINEAR_DEFLECTION,
                 prefs?.getString(PREF_ANGULAR, null)?.replace(',', '.')?.toDoubleOrNull() ?: DEFAULT_ANGULAR_DEFLECTION,
-                prefs?.getBoolean(PREF_SPLIT, false) ?: false,
+                prefs?.getBoolean(PREF_SPLIT, true) ?: true,
             )
             return if (candidate.validate() == null) candidate else StepImportOptions()
         }

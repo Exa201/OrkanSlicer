@@ -1,4 +1,10 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 6/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 7/10 verifizierte Punkte — 2026-11-03
+
+## Orca Batch 10 Punkt 7 — STEP-Baugruppen standardmäßig in benannte Körper aufteilen
+
+- Android-Port des Orca-2.5-Importverhaltens aus `fa5f7e3db41d`: STEP/STP-Baugruppen werden beim Import standardmäßig in einzeln bearbeitbare, benannte Körper aufgeteilt. Die bestehende Importoption kann dies weiterhin abschalten; eine explizit gespeicherte Benutzerauswahl bleibt maßgeblich.
+- `StepImportOptionsTest#defaultMeshingOptionsMatchOrcaDefaultsAndAreValid` bestanden. `StepModelImportDeviceTest` 3/3 auf Android 16/API 36 bestanden; der Mehrkörper-Fixturetest verwendet jetzt die Produktionsdefaults und bestätigt drei benannte Teile inklusive UTF-8. `StepImportOptionsDialogDeviceTest` 2/2 bestätigt aktivierten Startwert, Umschalten, Bestätigen und Abbrechen.
+- Noch kein APK/Release für diesen Einzelpunkt. Batch 10: **7/10**; vor dem Release-Gate verbleiben drei unabhängig zu verifizierende Orca-Punkte.
 
 ## Objekt-Drag bleibt am Finger — 2026-11-03
 
@@ -6,7 +12,7 @@
 - Korrektur: Beim Aufnehmen wird der tatsächliche Mesh-Treffer verwendet. Der Drag schneidet den Bildschirmstrahl auf der konstanten Z-Höhe dieses Treffers und setzt die Objekttranslation auf die Differenz zwischen Start- und aktuellem Ebenenpunkt. Nur wenn der Strahl nahezu parallel zur Trefferebene verläuft, bleibt der bisherige Bett-Ebenen-Fallback aktiv.
 - `MainActivityTouchDeviceTest#tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed`: vollständig auf Android 16/API 36 bestanden. Der neue Geräteassert vergleicht die gespeicherte Meshtranslation mit der aus Start-/Release-Pixel und tatsächlicher Trefferhöhe berechneten Verschiebung. Die Testaktion für Flächenplatzierung prüft außerdem unabhängige Objekte und getrennte Filamentzuweisungen.
 - Debug-Unit und Slice-Unit jeweils 743/743; Debug-Build erfolgreich. Verifikation auf API-36-AVD, kein Xiaomi-Hardwaretest in diesem Schritt.
-- Nächster Schritt: Änderungen committen/pushen; danach Nightly Batch 10 Punkt 7 evaluieren. Die Fehlerkorrektur zählt nicht als Orca-Portierungspunkt.
+- Der Drag-Fix wurde unabhängig vom Orca-Feature-Batch committed und gepusht; er zählt nicht als Orca-Portierungspunkt.
 
 ## Verifizierter Pre-Release 0.8.430 — 2026-11-03
 

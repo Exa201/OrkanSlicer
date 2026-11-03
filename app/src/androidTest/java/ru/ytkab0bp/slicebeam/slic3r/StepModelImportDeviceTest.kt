@@ -87,7 +87,8 @@ class StepModelImportDeviceTest {
             single.outputStream().use(input::copyTo)
         }
         try {
-            val split = Model(compound, 0, StepImportOptions(0.003, 0.5, splitCompound = true))
+            // Orca's default import keeps assembly bodies separate and independently editable.
+            val split = Model(compound, 0, StepImportOptions())
             try {
                 assertEquals(1, split.objectsCount)
                 assertEquals(3, split.getObjectPartCount(0))

@@ -18,7 +18,7 @@ class StepImportOptionsTest {
         val options = StepImportOptions()
         assertEquals(0.003, options.linearDeflection, 0.0)
         assertEquals(0.5, options.angularDeflection, 0.0)
-        assertFalse(options.splitCompound)
+        assertTrue(options.splitCompound)
         assertNull(options.validate())
     }
 
