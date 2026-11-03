@@ -1,4 +1,4 @@
-## Nightly Batch 10 — 8/10 Punkte verifiziert (Stand 2026-11-03)
+## Nightly Batch 10 — 9/10 Punkte verifiziert (Stand 2026-11-03)
 
 Der gültige Zähler steht auch in `docs/UI2_EXECUTION_STATE.md`. Die erste Fassung dieser
 Roadmap blieb bei 6/10 stehen, obwohl danach die STEP-Importoption und die isolierte
@@ -6,17 +6,30 @@ CGAL-Vertex-Prüfung separat implementiert und verifiziert wurden. Nicht als neu
 gezählt werden die Bridge-Speed-Regression (Batch 9) und die Z-Schrumpfung über
 Höhenbereiche (Batch 7), obwohl sie im selben 3/3-Testlauf erneut mitliefen.
 
-Die acht gezählten, voneinander abgrenzbaren Verhaltensänderungen sind: STEP-Körpernamen
+Die neun gezählten, voneinander abgrenzbaren Verhaltensänderungen sind: STEP-Körpernamen
 erhalten; organische Tree-Support-Spitzen deterministisch sortieren; Temperaturen des
 tatsächlich zuerst verwendeten Werkzeugs in den G-Code-Header schreiben; Arrange bei
 nahezu bettgroßen Teilen; bemalte Facetten nach Mesh-Glättung erhalten; Variantenwerte
 bei Filament-Slot-Änderungen bewahren; STEP-Baugruppen standardmäßig in benannte
-Körper teilen; und CGAL-Volumenprüfungen gegen isolierte Vertices absichern.
+Körper teilen; CGAL-Volumenprüfungen gegen isolierte Vertices absichern; und die
+Grundkörperauflösung abhängig von ihrer Größe anpassen.
 
-Noch offen sind zwei neu portierbare Android-Funktionen. Die folgenden Kandidaten müssen
+Noch offen ist ein neu portierbarer Android-Punkt. Der folgende Kandidat muss
 vor dem Zählen einen aktiven Produktionspfad und einen zielgerichteten Regressionstest
 erhalten. Kein neuer Batch-Release vor zehn unabhängig belegten Punkten und dem
 gebündelten Regressionstor.
+
+### Punkt 9/10 — Größenabhängige Grundkörperauflösung
+
+Orca `0ef9015904` führte beim Erzeugen bemaßbarer Grundkörper eine an den Radius
+angepasste Winkelauflösung ein. Der Android-Dialog für Quader, Zylinder, Kegel, Kugel,
+Torus und Scheibe war bereits vorhanden, der JNI-Meshgenerator verwendete jedoch feste
+Winkel. Zylinder/Kegel/Scheiben/Kugeln/Tori nutzen nun eine 0,002-mm-Sehnenabweichung
+mit 16 bis 360 Segmenten. Die 360er-Obergrenze ist die mobile Speicher-/Geometriegrenze;
+der native Gerätetest bestätigt minimale Detailauflösung, höhere Auflösung für große
+Formen und die Facettenobergrenze. `primitiveCircularMeshResolutionAdaptsToSizeWithinMobileFacetBound`
+und der bestehende Ende-zu-Ende-Test `orcaPrimitiveModelsHaveExpectedBoundsAndProduceExtrusion`
+bestanden auf Android 16/API 36. Noch kein APK/Release für diesen Teilbatch.
 
 ### Punkt 7/10 — STEP-Baugruppen standardmäßig in benannte Körper teilen
 

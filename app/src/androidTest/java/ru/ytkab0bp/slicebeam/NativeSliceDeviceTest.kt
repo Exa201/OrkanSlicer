@@ -139,6 +139,34 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun primitiveCircularMeshResolutionAdaptsToSizeWithinMobileFacetBound() {
+        val model = Model()
+        try {
+            val smallCylinder = model.createPrimitive(1, 0.2, 0.0, 10.0, "Small cylinder")
+            assertEquals(0, smallCylinder)
+            val smallTriangles = model.getTriangleCount(smallCylinder)
+            assertEquals("minimum circular detail is retained", 64, smallTriangles)
+
+            val largeCylinder = model.createPrimitive(1, 500.0, 0.0, 10.0, "Large cylinder")
+            assertEquals(1, largeCylinder)
+            val largeTriangles = model.getTriangleCount(largeCylinder)
+            assertTrue("large circular primitives gain detail", largeTriangles > smallTriangles)
+            assertEquals("360-segment mobile ceiling bounds the cylinder mesh", 1440, largeTriangles)
+
+            val smallSphere = model.createPrimitive(3, 2.0, 0.0, 0.0, "Small sphere")
+            assertEquals(2, smallSphere)
+            val largeSphere = model.createPrimitive(3, 500.0, 0.0, 0.0, "Large sphere")
+            assertEquals(3, largeSphere)
+            assertTrue("sphere tessellation follows requested size",
+                model.getTriangleCount(largeSphere) > model.getTriangleCount(smallSphere))
+            assertTrue("large sphere stays within the 360-by-180 mobile angular budget",
+                model.getTriangleCount(largeSphere) <= 360 * 180 * 2)
+        } finally {
+            model.release()
+        }
+    }
+
+    @Test
     fun cgalBooleanVolumeChecksIgnoreUnreferencedVertices() {
         val result = Native.mesh_boolean_isolated_vertices_probe()
         assertEquals("the converted closed cube must bound a volume", 1.0, result[0], 0.0)

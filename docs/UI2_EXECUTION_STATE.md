@@ -1,4 +1,4 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 8/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 9/10 verifizierte Punkte — 2026-11-03
 
 ## Batch 10 — aktueller Stand und Test-Snapshot
 
@@ -10,8 +10,9 @@
 - Version 0.8.431 / Code 466, Paket `com.exa201.orkanslicer.nightly25`. Code-Commit `f5a8de4378592f95639ea4b64af3791e0bbc69a9`.
 - Neuester Nightly-Code-Commit nach dem Drag-Versatzfix: `d870862a3add27b7eeca6bee8df8ad9bc529ebd4` (Version bleibt 0.8.431/Code 466; kein Release-Build).
 - Debug-APK `OrkanSlicerNightly25_f5a8de4378.apk`, 240.358.528 Bytes, SHA-256 `15931F4681B742C1D154920DBC6831B13E29B4AC35ED8CA4A903552E01B727D7`. Auf Android-16/API-36-AVD installiert und gestartet; frischer Logcat ohne Crash, ANR, OOM oder Fatal Signal. Xiaomi war nicht verbunden.
-- **Batch 10: 8/10.** Batch-APK v0.8.431 ist ein getesteter Zwischenstand; der Release-Eintrag darf nicht als abgeschlossener 10-Punkte-Batch gelten. Zwei weitere unabhängige, nicht bereits in früheren Batches gezählte Orca-Punkte mit gezielten Android-Regressionen fehlen.
-- Batch-Status bleibt 8/10: Der Drag-Stabilitätsfix zählt ausdrücklich nicht als Orca-Portierung. Nächster konkreter Schritt: zwei Android-relevante Orca-2.5-Fixes auswählen, die im Nightly-Produktionspfad fehlen, integrieren und einzeln mit belastbaren Regressionsprüfungen abdecken.
+- **Batch 10: 9/10.** Batch-APK v0.8.431 ist ein getesteter Zwischenstand; der Release-Eintrag darf nicht als abgeschlossener 10-Punkte-Batch gelten. Ein weiterer unabhängiger, nicht bereits in früheren Batches gezählter Orca-Punkt mit gezielter Android-Regression fehlt. Der Drag-Stabilitätsfix zählt ausdrücklich nicht als Orca-Portierung.
+- Orca-Punkt 9/10: Grundkörper-Meshauflösung folgt jetzt der Größe (0,002-mm-Sehnenabweichung, mobile Obergrenze 360 Segmente). Die gezielten API-36-Instrumentierungstests `primitiveCircularMeshResolutionAdaptsToSizeWithinMobileFacetBound` und `orcaPrimitiveModelsHaveExpectedBoundsAndProduceExtrusion` bestanden; kleine/große Zylinder und Kugeln sowie alle sieben Grundkörper einschließlich 3MF-Rundlauf/Slice wurden abgedeckt. Kein APK/Release für den Teilbatch.
+- **Aktueller Batchstand: 9/10.** Nächster Schritt: genau einen weiteren, bislang nicht gezählten Orca-Punkt mit Android-Produktionspfad auswählen und fokussiert verifizieren; danach erst gebündelte Regression, APK und Nightly-Prerelease.
 
 ## Nightly-Drag-Versatz bei transformierten Modellen — 2026-11-03
 

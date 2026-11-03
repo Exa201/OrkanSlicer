@@ -2489,14 +2489,25 @@ extern "C" {
             env->ReleaseStringUTFChars(nameStr, chars);
             if (name.empty() || name.size() > 240) return -1;
 
+            // Match Orca's size-aware primitive tessellation while keeping the mobile mesh
+            // bounded. Small primitives should not carry desktop-sized fixed detail, while
+            // large primitives need more facets to avoid visibly coarse circular outlines.
+            auto primitive_angle_step = [](double radius) {
+                constexpr double chord_error_mm = 0.002;
+                constexpr double max_segments = 360.0;
+                const double desired_step = 2.0 * std::acos(
+                    1.0 - std::min(1.0, chord_error_mm / std::max(radius, 1e-9)));
+                return std::clamp(desired_step, 2.0 * PI / max_segments, 2.0 * PI / 16.0);
+            };
+
             indexed_triangle_set mesh;
             switch (type) {
                 case 0: mesh = its_make_cube(a, b, c); break;                 // Cube / slab
-                case 1: mesh = its_make_cylinder(a / 2.0, c, PI / 45.0); break;
-                case 2: mesh = its_make_cone(a / 2.0, c, PI / 45.0); break;
-                case 3: mesh = its_make_sphere(a / 2.0, PI / 30.0); break;
-                case 4: mesh = its_make_torus((a - b) / 2.0, b / 2.0, PI / 30.0); break;
-                case 5: mesh = its_make_cylinder(a / 2.0, c, PI / 45.0); break; // Disc
+                case 1: mesh = its_make_cylinder(a / 2.0, c, primitive_angle_step(a / 2.0)); break;
+                case 2: mesh = its_make_cone(a / 2.0, c, primitive_angle_step(a / 2.0)); break;
+                case 3: mesh = its_make_sphere(a / 2.0, primitive_angle_step(a / 2.0)); break;
+                case 4: mesh = its_make_torus((a - b) / 2.0, b / 2.0, primitive_angle_step(a / 2.0)); break;
+                case 5: mesh = its_make_cylinder(a / 2.0, c, primitive_angle_step(a / 2.0)); break; // Disc
                 case 6: mesh = its_make_cube(a, b, c); break;                 // Slab
             }
             if (mesh.vertices.empty() || mesh.indices.empty()) return -1;
