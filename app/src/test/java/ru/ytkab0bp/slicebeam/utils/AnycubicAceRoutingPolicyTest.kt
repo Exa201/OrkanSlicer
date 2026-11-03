@@ -48,6 +48,41 @@ class AnycubicAceRoutingPolicyTest {
         assertArrayEquals(intArrayOf(1, 3, 2, 0), routing.gates)
     }
 
+    @Test fun singleSlicerToolCanRouteToSecondAceGateAsPrinterToolT1() {
+        val routing = AnycubicAceRoutingPolicy.resolve(
+            toolCount = 1,
+            usedTools = intArrayOf(0),
+            loadedGates = IntArray(16) { it },
+            // This is the full firmware map, even though this job only uses logical T0.
+            toolToGate = IntArray(16) { it },
+            selectedGates = intArrayOf(1),
+        )
+
+        assertNull(routing.unavailableTool)
+        assertArrayEquals("logical T0 assigned to ACE slot 2 must emit printer T1",
+            intArrayOf(1), routing.toolCommands)
+        assertArrayEquals(intArrayOf(1), routing.gates)
+    }
+
+    @Test fun everySlicerPaletteSizePreservesSelectedAceCommandIndicesFromOneToSixteen() {
+        val firmwareMap = IntArray(16) { it }
+        val loaded = IntArray(16) { it }
+        for (count in 1..16) {
+            val selectedGates = IntArray(count) { index -> 15 - index }
+            val routing = AnycubicAceRoutingPolicy.resolve(
+                toolCount = count,
+                usedTools = IntArray(count) { it },
+                loadedGates = loaded,
+                toolToGate = firmwareMap,
+                selectedGates = selectedGates,
+            )
+            assertNull("$count slicer filaments must remain routable", routing.unavailableTool)
+            assertArrayEquals("$count slicer filaments must preserve each selected ACE slot",
+                selectedGates, routing.toolCommands)
+            assertArrayEquals(selectedGates, routing.gates)
+        }
+    }
+
     @Test fun rejectsDistinctActiveToolsAssignedToTheSamePhysicalGate() {
         val routing = AnycubicAceRoutingPolicy.resolve(
             toolCount = 2,

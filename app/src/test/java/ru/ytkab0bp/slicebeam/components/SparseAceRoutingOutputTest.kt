@@ -7,6 +7,45 @@ import ru.ytkab0bp.slicebeam.utils.AnycubicGCodeProcessor
 
 /** Empty ACE slots keep their index; later tools are never shifted onto a different gate. */
 class SparseAceRoutingOutputTest {
+    @Test fun slicedGcodeUsesTheSelectedAceToolForOneThroughSixteenLogicalFilaments() {
+        val source = File.createTempFile("ace-count-source", ".gcode")
+        val output = File.createTempFile("ace-count-output", ".gcode")
+        try {
+            for (count in 1..16) {
+                val body = (0 until count).joinToString("") { tool -> "T$tool\nG1 X${tool + 1} E1\n" }
+                source.writeText(
+                    "; HEADER_BLOCK_START\n; filament: ${IntArray(count) { it + 1 }.joinToString(",")}\n" +
+                        "; filament_colour = ${List(count) { "#123456" }.joinToString(";")}\n" +
+                        "; filament_type = ${List(count) { "PLA" }.joinToString(";")}\n" +
+                        "; HEADER_BLOCK_END\n$body M400\n",
+                )
+                val scan = AnycubicGCodeProcessor.scan(source)
+                val selectedGates = IntArray(count) { 15 - it }
+                val routing = ru.ytkab0bp.slicebeam.utils.AnycubicAceRoutingPolicy.resolve(
+                    toolCount = count,
+                    usedTools = scan.usedTools,
+                    loadedGates = IntArray(16) { it },
+                    // Use the complete printer map, not just tools present in this slice.
+                    toolToGate = IntArray(16) { it },
+                    selectedGates = selectedGates,
+                )
+                assertNull("$count slicer filaments should route", routing.unavailableTool)
+                assertTrue("$count slicer filaments should rewrite successfully",
+                    AnycubicGCodeProcessor.rewrite(source, output, scan,
+                        AnycubicGCodeProcessor.Options().apply {
+                            remappedTools = routing.toolCommands
+                            gates = routing.gates
+                        }))
+                assertEquals("every source tool must call its selected ACE printer tool for count=$count",
+                    selectedGates.map { "T$it" },
+                    output.readLines().filter { it.matches(Regex("T[0-9]+")) })
+            }
+        } finally {
+            source.delete()
+            output.delete()
+        }
+    }
+
     @Test fun laterToolKeepsItsSlotAfterAnEmptyGateAndKeepsAllLayers() {
         val source = File.createTempFile("ace-gap-source", ".gcode")
         val output = File.createTempFile("ace-gap-output", ".gcode")
