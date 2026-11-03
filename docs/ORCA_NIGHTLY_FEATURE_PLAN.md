@@ -4,7 +4,7 @@
 
 Portiert Orca `45a29d391b8d`: `DynamicPrintConfig::set_num_filaments()` darf Optionen aus `filament_options_with_variant` nicht auf die Anzahl logischer Filamentslots verkürzen. Ein JNI-Regressionstest ließ einen Slot mit zwei Varianten durch den echten Resize-Aufruf laufen und bestätigte beide Variantennamen und `volumetric_speed_coefficients` danach unverändert.
 
-API-36 Instrumentierung 1/1; ARM64-Nativbuild, Debug-APK-Build und SliceTest-Instrumentierungsbuild erfolgreich. Debug-/Slice-JVM-Suiten jeweils 743/743 ohne Fehler oder Skips. Der Punkt ist in `20fb536a` committed und noch nicht in einem APK enthalten. Vier weitere verifizierte Punkte sind vor dem vollständigen Batch-10-Release erforderlich.
+API-36 Instrumentierung 1/1; ARM64-Nativbuild, Debug-APK-Build und SliceTest-Instrumentierungsbuild erfolgreich. Debug-/Slice-JVM-Suiten jeweils 743/743 ohne Fehler oder Skips. Der Punkt ist in `20fb536a` committed und in 0.8.430 enthalten; [Pre-Release v0.8.430-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.430-nightly.1). Vier weitere verifizierte Punkte stehen vor dem vollständigen Batch-10-Abschluss aus.
 
 ### Punkt 4/10 — Arrange nutzt die verfügbare Bettfläche für nahezu bettgroße Modelle
 

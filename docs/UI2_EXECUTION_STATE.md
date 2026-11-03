@@ -1,11 +1,19 @@
 # Nightly 2.5 Fortsetzung — Batch 10, 6/10 verifizierte Punkte — 2026-11-03
 
+## Verifizierter Pre-Release 0.8.430 — 2026-11-03
+
+- Release: [v0.8.430-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.430-nightly.1), APK `OrkanSlicerNightly25_151ab5682b.apk` (240,358,552 Bytes), SHA-256 `BB5C4E531A2703B99267B4774C05056CE40A044C0784B5AE127370FF46BFB681`.
+- App-Version 0.8.430 / Code 465; Paket `com.exa201.orkanslicer.nightly25`. APK-Signaturprüfung erfolgreich.
+- Code-Commit am Release-Tag: `151ab5682b931679cfd0502a7e6aeba26f0b765f`; Branch `nightly-2.5` gepusht.
+- Verifikation: Debug-Unit 743/743, Slice-Unit 743/743, gezielter Android-16-Test für Variantenwerte 1/1. APK auf API-36-AVD installiert und gestartet; Logcat-Stichprobe ohne Crash/ANR/OOM. Xiaomi-Hardware war für diesen Durchgang nicht verbunden.
+- Batch 10 bleibt bei **6/10**; nächster Arbeitsschritt ist ein siebter eigenständiger, Android-tauglicher Orca-2.5-Punkt, danach dessen gezielte Regressionstests.
+
 ## Orca Batch 10 Punkt 6 — Filament-Varianten beim Ändern der Slotzahl erhalten
 
 - Portiert Orca `45a29d391b8d`: `DynamicPrintConfig::set_num_filaments()` skaliert jetzt keine variantenspezifischen Filamentwerte anhand der Slotzahl. So bleiben mehrdimensionale Werte wie `volumetric_speed_coefficients` und die Düsenversionen beim Profil-/Slotwechsel erhalten, statt auf den ersten Eintrag gekürzt zu werden.
 - `NativeSliceDeviceTest#changingFilamentCountPreservesEveryNozzleVariantValue` prüft den Produktionspfad über JNI: ein Slot mit zwei Variantennamen und zwei Volumenstromwerten behält beide Werte nach `set_num_filaments(1)`.
 - ARM64-Native-/Debug- und SliceTest-Instrumentierungsbuild erfolgreich. API-36-Test: 1/1 bestanden. Debug-Unit und Slice-Unit: jeweils 743/743 bestanden, 0 Fehler/Skips. `git diff --check` sauber.
-- Quelländerung ist in `20fb536a` committed. Für diesen Verifikationsdurchgang wird App-Version 0.8.430 / Code 465 gebaut und als eigenes Pre-Release veröffentlicht; Batch 10 steht bei **6/10**, vier weitere unabhängige Android-taugliche Orca-Punkte bleiben für den vollständigen Batch offen.
+- Quelländerung ist in `20fb536a` committed und in 0.8.430 enthalten. Das verifizierte APK wurde als [Pre-Release v0.8.430-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.430-nightly.1) veröffentlicht. Batch 10 steht bei **6/10**, vier weitere unabhängige Android-taugliche Orca-Punkte bleiben für den vollständigen Batch offen.
 
 ## Orca Batch 10 Punkt 5 — Facettenmalerei nach Loop-Unterteilung erhalten
 
