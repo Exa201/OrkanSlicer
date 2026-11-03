@@ -1075,6 +1075,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_load_model = false;
         bool m_load_aux = false;
         bool m_load_config = false;
+        bool m_keep_original_names = false;
         // backup & restore
         bool m_load_restore = false;
         std::string m_backup_path;
@@ -1375,6 +1376,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_load_aux = strategy & LoadStrategy::LoadAuxiliary;
         m_load_restore = strategy & LoadStrategy::Restore;
         m_load_config = strategy & LoadStrategy::LoadConfig;
+        m_keep_original_names = (strategy & LoadStrategy::KeepOriginalNames) && !m_load_config;
         m_model = &model;
         m_unit_factor = 1.0f;
         m_curr_object = nullptr;
@@ -5125,6 +5127,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     volume->config.set_deserialize(metadata.key, metadata.value, config_substitutions);
             }
 
+            // Generic geometry imports can combine named 3MF bodies into one model object.
+            // Preserve the source body label only when project volume metadata did not name it.
+            if (volume->name.empty() && m_keep_original_names)
+                volume->name = sub_object->name;
             // this may happen for 3mf saved by 3rd part softwares
             if (volume->name.empty()) {
                 volume->name = object.name;

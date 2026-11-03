@@ -21,11 +21,71 @@ import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaFilamentSettingsCatalog
 import ru.ytkab0bp.slicebeam.ui.settings.OrcaProcessSettingsCatalog
 import ru.ytkab0bp.slicebeam.utils.Prefs
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 /** A generated 3MF fixture keeps this import regression runnable without a user's model. */
 @RunWith(AndroidJUnit4::class)
 class TwoColorProjectDeviceTest {
+    @Test fun genericThreeMfAssemblyImportKeepsOriginalPartNames() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = File(context.cacheDir, "named-three-mf-assembly-${System.nanoTime()}.3mf")
+        val source = InstrumentationRegistry.getInstrumentation().context.assets
+            .open("models/two-color-project.3mf").use { it.readBytes() }
+        val rewritten = ByteArrayOutputStream()
+        ZipInputStream(ByteArrayInputStream(source)).use { input ->
+            ZipOutputStream(rewritten).use { output ->
+                var entry = input.nextEntry
+                while (entry != null) {
+                    var bytes = input.readBytes()
+                    if (entry.name == "3D/3dmodel.model") {
+                        var xml = bytes.toString(Charsets.UTF_8)
+                        val resourcesClose = "</resources>"
+                        check(resourcesClose in xml) { "3MF fixture resources section was not found" }
+                        xml = xml.replace(
+                            resourcesClose,
+                            "<object id=\"3\" name=\"Imported Assembly\" type=\"model\"><components>" +
+                                "<component objectid=\"1\"/><component objectid=\"2\"/>" +
+                                "</components></object>$resourcesClose",
+                        )
+                        val buildStart = xml.indexOf("<build>")
+                        val buildClose = xml.indexOf("</build>", buildStart)
+                        check(buildStart >= 0 && buildClose >= 0) { "3MF fixture build section was not found" }
+                        xml = xml.substring(0, buildStart) +
+                            "<build><item objectid=\"3\" transform=\"1 0 0 0 1 0 0 0 1 0 0 0\"/></build>" +
+                            xml.substring(buildClose + "</build>".length)
+                        bytes = xml.toByteArray(Charsets.UTF_8)
+                    } else if (entry.name == "Metadata/model_settings.config") {
+                        bytes = ("<config><object id=\"3\"><metadata key=\"name\" value=\"Assembly Parent\"/>" +
+                            "</object></config>").toByteArray(Charsets.UTF_8)
+                    }
+                    output.putNextEntry(ZipEntry(entry.name))
+                    output.write(bytes)
+                    output.closeEntry()
+                    input.closeEntry()
+                    entry = input.nextEntry
+                }
+            }
+        }
+        file.writeBytes(rewritten.toByteArray())
+        var model: Model? = null
+        try {
+            model = Model(file, 1)
+            assertEquals("one composite build item should load as one object", 1, model.objectsCount)
+            assertEquals("the assembly-level project name remains authoritative", "Assembly Parent", model.getObjectName(0))
+            assertEquals("the assembly should retain both independently named bodies", 2, model.getObjectPartCount(0))
+            assertEquals("Testwuerfel 1", model.getObjectPartName(0, 0))
+            assertEquals("Testwuerfel 2", model.getObjectPartName(0, 1))
+        } finally {
+            model?.release()
+            file.delete()
+        }
+    }
+
     @Test fun livePaintPreviewKeepsImportedColorsAcrossAllPartsOfACombinedObject() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "two-color-live-paint-parts.3mf")

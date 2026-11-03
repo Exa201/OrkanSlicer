@@ -1,4 +1,10 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 2/10 verifiziert — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 3/10 verifiziert — 2026-11-03
+
+## Batch 11 — Punkt 3/10: Originale 3MF-Körpernamen in importierten Baugruppen
+
+- Teilportierung von Orca `fa5f7e3db`: Beim generischen 3MF-Modellimport übernehmen unbenannte Volumes den Namen ihres eingebetteten Geometriekörpers. Vorhandene Volume-Metadaten bleiben vorrangig; gespeicherte Projektkonfigurationen aktivieren diese Importoption nicht.
+- `TwoColorProjectDeviceTest#genericThreeMfAssemblyImportKeepsOriginalPartNames` baut aus dem 3MF-Testmodell eine Assembly mit zwei benannten Körpern. API 36: gesamte Zwei-Farben-Geräteklasse 7/7 bestanden; getestet werden ein einzelner Assembly-Listeneintrag, erhaltener übergeordneter Projektname und beide ursprünglichen Teilnamen.
+- Android-ARM64-Native-Build und Instrumentierungskompilierung erfolgreich; `git diff --check` sauber. Batch 11: 3/10; Gesamtregression, APK und Nightly-Release bleiben bis 10/10 offen.
 
 ## Batch 11 — Punkt 2/10: Spiral-Vase über Höhenbereiche
 
@@ -10,7 +16,7 @@
 
 - Der separate native Auswahlrahmen wird nach dem Commit einer Objektbewegung explizit invalidiert und mit exakten statt approximierten Modell-Bounds aufgebaut.
 - `MainActivityTouchDeviceTest#tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed` prüft die nativen Bounds des tatsächlich gezeichneten Rahmens gegen das bewegte Mesh; Android 16/API 36: 1/1 bestanden, 0 Fehler/Skips. `git diff --check` sauber.
-- Dies ist ein Stabilitätsfix, kein Orca-Nightly-Funktionspunkt. Batch 11 bleibt 1/10; APK/Release-Gate unverändert.
+- Dies ist ein Stabilitätsfix, kein Orca-Nightly-Funktionspunkt. Batch 11 wird separat nach Orca-Verhalten gezählt; APK/Release-Gate unverändert.
 
 ## Batch 11 — aktueller Stand
 
@@ -36,7 +42,7 @@
 - **Batch 10: 10/10 fokussiert verifiziert.** Die Batch-Regressions- und APK-Prüfungen stehen im Folgeeintrag unten. Der Drag-Fix zählt nicht als Orca-Punkt.
 - Batch-Gate abgeschlossen: Debug 743/743 und Slice 743/743; fünf fokussierte API-36-Gerätetests bestanden (PrintaLot echter Slice, primitive Auflösung, transformierter Drag, CGAL-Boolean, manuelles Bewegen/Arrange). Version 0.8.432 / Code 467, Paket `com.exa201.orkanslicer.nightly25`; APK `OrkanSlicerNightly25_86b89bde81.apk`, 240.359.789 Bytes, SHA-256 `0EA04F2617545FFE11FCEFCC3D62F82DACA5AFEACEA1A54B9BA7D6C1A5963AB5`. Signaturprüfung erfolgreich. Installation/Start auf API-36-AVD erfolgreich, Prozess aktiv; frisches Logcat ohne Crash, ANR, OOM oder Fatal Signal. Xiaomi nicht angeschlossen.
 - Code-Commit für diese APK: `86b89bde81685add10d22a536cb9dfc5dba2adf2`; Batch-10-Funktionstest commit: `a20cffe18` (PrintaLot-Profil und Slice-Regressionsfall). Nightly-Prerelease `v0.8.432-nightly.1` ist auf diesen Code-Commit veröffentlicht: https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.432-nightly.1 . Nachgelagerte Dokumentationsänderungen ändern den APK-Code-Commit nicht.
-- Nächste konkrete Arbeit: Orca-2.5-Nightly-Upstream gegen die aktuelle Android-Produktion systematisch auf bislang ungeprüfte, tatsächlich nutzbare Änderungen vergleichen. Zum Stand `nightly-builds` / `26a39377713c774d52ca7d7ff7242188df4de63e` sind die jüngsten Scarf-Ramp-Anpassung (`6c96e4116`) und Bridge-Speed-Korrektur (`533d4c3e9`) im Nightly-Code bereits vorhanden; keine davon erneut als Batch-Punkt zählen. Batch 11 erst mit einem fehlenden Android-Pfad und eigenständigem Verhaltenstest beginnen.
+- Nächste konkrete Arbeit: einen weiteren noch fehlenden Android-erreichbaren Orca-Punkt am Upstream-Stand `26a39377713c774d52ca7d7ff7242188df4de63e` auswählen und mit einem eigenständigen Verhaltenstest portieren. Batch 11 steht jetzt bei 3/10; die APK-/Release-Prüfung folgt erst nach 10/10.
 
 ## Nightly-Drag-Versatz bei transformierten Modellen — 2026-11-03
 

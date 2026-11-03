@@ -819,7 +819,8 @@ extern "C" {
             ref = std::make_unique<ModelRef>();
             LoadStrategy load_strategy = LoadStrategy::AddDefaultInstances;
             if (boost::algorithm::iends_with(std::string(chars), ".3mf")) {
-                load_strategy = LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel;
+                load_strategy = LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel |
+                    LoadStrategy::KeepOriginalNames;
             }
             const std::string inputPath(chars);
             if (boost::algorithm::iends_with(inputPath, ".step") || boost::algorithm::iends_with(inputPath, ".stp")) {

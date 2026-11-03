@@ -1,4 +1,18 @@
-## Nightly Batch 11 — Punkt 2/10 (Stand 2026-11-03)
+## Nightly Batch 11 — Punkt 3/10 (Stand 2026-11-03)
+
+### Punkt 3/10 — Originale 3MF-Körpernamen in importierten Baugruppen
+
+Teilportierung von Orca `fa5f7e3db`. Beim generischen Modellimport werden Namen aus den
+eingebetteten 3MF-Geometriekörpern als Volume-Namen verwendet, falls die Importdaten für das
+Volume keinen eigenen Namen enthalten. Bereits gespeicherte Volume-Metadaten bleiben maßgeblich;
+Projektkonfigurationen schalten die Importoption nicht ein.
+
+`TwoColorProjectDeviceTest#genericThreeMfAssemblyImportKeepsOriginalPartNames` erzeugt aus dem
+zwei-farbigen 3MF-Fixture eine einzelne Assembly, die zwei separat benannte Geometriekörper
+referenziert. Android 16/API 36 bestand die vollständige Geräteklasse 7/7: ein Assembly-Eintrag,
+der Projektname „Assembly Parent“ sowie die ursprünglichen Teilnamen „Testwuerfel 1“ und
+„Testwuerfel 2“ bleiben erhalten. ARM64-Native-Build, Android-Testkompilierung und
+`git diff --check` bestanden. Keine APK/Release vor Batch 11 10/10.
 
 ### Punkt 2/10 — Spiral-Vase-Slicing bei Höhenbereichs-Overrides
 
