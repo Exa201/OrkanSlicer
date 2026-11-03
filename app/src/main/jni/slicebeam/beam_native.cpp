@@ -3802,7 +3802,7 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* modelRef = (ModelRef*) (intptr_t) modelPtr;
 
-        const BoundingBoxf3& box = modelRef->model.objects[i]->bounding_box_approx();
+        const BoundingBoxf3& box = modelRef->model.objects[i]->bounding_box_exact();
         const BoundingBoxf3& curr_box = ref->model.get_bounding_box();
         if (!ref->model.is_initialized() || !is_approx(box.min, curr_box.min) || !is_approx(box.max, curr_box.max)) {
             ref->model.reset();
@@ -3880,6 +3880,19 @@ extern "C" {
 
             ref->model.init_from(std::move(init_data));
         }
+    }
+
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1get_1bounding_1box(JNIEnv* env, jclass, jlong ptr) {
+        GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
+        jdouble values[6] = {};
+        if (ref != nullptr && ref->model.is_initialized()) {
+            const BoundingBoxf3& box = ref->model.get_bounding_box();
+            values[0] = box.min.x(); values[1] = box.min.y(); values[2] = box.min.z();
+            values[3] = box.max.x(); values[4] = box.max.y(); values[5] = box.max.z();
+        }
+        jdoubleArray result = env->NewDoubleArray(6);
+        if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 6, values);
+        return result;
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_glmodel_1render(JNIEnv* env, jclass, jlong ptr) {

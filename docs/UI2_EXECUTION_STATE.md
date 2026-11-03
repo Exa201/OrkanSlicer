@@ -1,5 +1,11 @@
 # Nightly 2.5 Fortsetzung — Batch 11, Punkt 1/10 verifiziert — 2026-11-03
 
+## Stabilitäts-Folgefix: Auswahlrahmen nach Objektverschiebung
+
+- Der separate native Auswahlrahmen wird nach dem Commit einer Objektbewegung explizit invalidiert und mit exakten statt approximierten Modell-Bounds aufgebaut.
+- `MainActivityTouchDeviceTest#tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed` prüft die nativen Bounds des tatsächlich gezeichneten Rahmens gegen das bewegte Mesh; Android 16/API 36: 1/1 bestanden, 0 Fehler/Skips. `git diff --check` sauber.
+- Dies ist ein Stabilitätsfix, kein Orca-Nightly-Funktionspunkt. Batch 11 bleibt 1/10; APK/Release-Gate unverändert.
+
 ## Batch 11 — aktueller Stand
 
 - Punkt 1/10 portiert aus Orca `2cb2f0d2e710931b835d1b31282479686d961b47`: vor dem Slicen wird nun gewarnt, wenn Adaptive Pressure Advance für ein tatsächlich verwendetes Filament aktiviert ist, das Modell aber leer ist oder nur Null-Platzhalter enthält. Variantenspalten und verwendete Filament-IDs werden berücksichtigt; die Warnung bleibt eine sichere Fortsetzungsentscheidung und blockiert den Slice nicht.
