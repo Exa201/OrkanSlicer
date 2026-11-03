@@ -1,4 +1,4 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 2/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 3/10 verifizierte Punkte — 2026-11-03
 
 ## Nightly-Zielprüfung — App-Isolation und schwache GPU
 
@@ -25,6 +25,14 @@
 - Bestehender `NativeSliceDeviceTest#buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance`: 1/1 bestanden; eine Änderung des Objektabstands verändert weiterhin die Supportpfade.
 - `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743, 0 failures, 0 errors, 0 skipped. ARM64-SliceTest-Nativebuild und Instrumentierung erfolgreich; `git diff --check` sauber.
 - Kein Release-Artefakt für diesen Einzelpunkt. Batch 10 steht bei **2/10**; nächster Schritt ist die Upstream-Auswahl und Verifikation des dritten Android-relevanten Punkts.
+
+## Mehrwerkzeug-Kompatibilitätstemperaturen im G-Code-Header — Orca-Punkt 3/10
+
+- Adaptiert Orca-Upstream `5e94368863`: `first_layer_temperature` und `first_layer_bed_temperature` werden aus dem Filament berechnet, das im erzeugten Job tatsächlich zuerst druckt, statt pauschal aus T0.
+- Die Ermittlung berücksichtigt normale Tool-Reihenfolge, By-Object-Druck und den geordneten Wipe-Tower-Sonderfall. Die Werte stehen einmal im G-Code-Header; veraltete, doppelte T0-Zeilen aus den nachfolgenden Kompatibilitätsblöcken sind entfernt. Sonstige Header-Metadaten bleiben erhalten.
+- Geräteverifikation auf API 36: Qidi Q2 mit gezielt gesetzten Betttemperaturen 67 °C und Düsentemperatur 223 °C bestanden (1/1); Mehrwerkzeugprofil mit T1 als Startwerkzeug und T1-Temperatur 237 °C bestanden (1/1). Beide Tests prüfen, dass die Düsentemperatur genau einmal im erzeugten G-Code steht.
+- `:app:testSliceTestUnitTest` erfolgreich; ARM64-Nativebuild und Android-Instrumentierung erfolgreich. Ein zunächst auf die Android-Geräteklasse angewandter JVM-Filter fand erwartungsgemäß keine JVM-Tests; die vollständige Slice-Unit-Suite wurde danach ohne Filter erfolgreich ausgeführt.
+- Batch 10 steht bei **3/10**. Noch kein Produktions-APK oder Release; nächster Schritt ist ein weiterer unabhängiger Orca-2.5-Kernpunkt mit echtem Android-Verhaltensnachweis.
 
 ## Nesting-Priorität — gemeinsames Packen kleiner Importpakete — 2026-11-03
 

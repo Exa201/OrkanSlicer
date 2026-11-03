@@ -5467,6 +5467,7 @@ class NativeSliceDeviceTest {
             val config = requireNotNull(SliceBeam.CONFIG)
             val filament = requireNotNull(config.presets?.get("filament")?.let(config::findFilament))
             filament.put("first_layer_bed_temperature", "67")
+            filament.put("nozzle_temperature_initial_layer", "223")
             val gcode = sliceToGcode(context, model, "qidi-q2-start-gcode.gcode")
             assertTrue("Qidi start sequence should pass the selected filament bed temperature to PRINT_START",
                 gcode.contains("PRINT_START BED=67"))
@@ -5479,9 +5480,56 @@ class NativeSliceDeviceTest {
             assertFalse("Executable Qidi start G-code must not retain an unresolved initial-tool placeholder",
                 gcode.lineSequence().filterNot { it.trimStart().startsWith(";") }
                     .any { it.contains("T[initial_tool]") })
+            assertTrue("G-code header should report the selected first-layer bed temperature",
+                Regex("(?m)^; first_layer_bed_temperature = 67\\s*$").containsMatchIn(gcode))
+            assertTrue("G-code header should report the selected filament's first-layer nozzle temperature",
+                Regex("(?m)^; first_layer_temperature = 223\\s*$").containsMatchIn(gcode))
+            assertEquals("first-layer nozzle temperature should be emitted only once",
+                1, gcode.lineSequence().count { it.startsWith("; first_layer_temperature =") })
         } finally {
             model.release()
             source.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun compatibilityHeaderUsesTheInitialToolTemperatureForMultitoolPrints() = withToolChangerProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = copyCube(context, "initial-tool-temperature-source.stl")
+        val model = Model(source)
+        val gcodeFile = File(context.cacheDir, "initial-tool-temperature.gcode")
+        var result: GCodeProcessorResult? = null
+        try {
+            model.setUniformFilament(0, 2)
+            SliceBeam.genCurrentConfig(model)
+            val generatedConfig = SliceBeam.getCurrentConfigFile()
+            val configText = generatedConfig.readText()
+            val temperatureLine = Regex("(?m)^nozzle_temperature_initial_layer\\s*=\\s*([^\\r\\n]+)")
+                .find(configText)
+            assertNotNull("tool-changer slice config should contain initial nozzle temperatures", temperatureLine)
+            val temperatures = requireNotNull(temperatureLine).groupValues[1].split(',').map(String::trim)
+            assertTrue("test needs distinct entries for both physical tools: $temperatures", temperatures.size >= 2)
+            val updatedTemperatures = temperatures.toMutableList().apply { this[1] = "237" }.joinToString(",")
+            val updatedConfig = configText.replaceRange(
+                temperatureLine.range,
+                "nozzle_temperature_initial_layer = $updatedTemperatures",
+            )
+            generatedConfig.writeText(updatedConfig)
+
+            result = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+            val gcode = gcodeFile.readText()
+            assertHasExtrusion(gcode)
+            assertTrue("the model's initial filament must be T1", Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode))
+            assertTrue("the compatibility header must read T1's value, not the T0 value",
+                Regex("(?m)^; first_layer_temperature = 237\\s*$").containsMatchIn(gcode))
+            assertEquals("the compatibility value must not be duplicated later in the file",
+                1, gcode.lineSequence().count { it.startsWith("; first_layer_temperature =") })
+        } finally {
+            result?.release()
+            model.release()
+            source.delete()
+            gcodeFile.delete()
             SliceBeam.getCurrentConfigFile().delete()
         }
     }

@@ -2574,6 +2574,37 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     if (m_config.small_area_infill_flow_compensation.value && !m_config.small_area_infill_flow_compensation_model.empty())
         m_small_area_infill_flow_compensator = make_unique<SmallAreaInfillFlowCompensator>(print.config());
+
+    // Compatibility headers need the filament that actually prints first. Resolve it before
+    // writing the header, especially for by-object jobs where the active tool can later change.
+    unsigned int compat_initial_extruder_id = (unsigned int)-1;
+    if (print.config().print_sequence == PrintSequence::ByObject) {
+        const auto ordered_instances = sort_object_instances_by_model_order(print);
+        for (const PrintInstance *instance : ordered_instances) {
+            ToolOrdering ordering(*instance->print_object, compat_initial_extruder_id);
+            ordering.sort_and_build_data(*instance->print_object, compat_initial_extruder_id);
+            if (ordering.first_extruder() != (unsigned int)-1) {
+                compat_initial_extruder_id = ordering.first_extruder();
+                break;
+            }
+        }
+    } else {
+        ToolOrdering ordering = print.tool_ordering();
+        ordering.assign_custom_gcodes(print);
+        if (!ordering.all_extruders().empty()) {
+            const bool has_ordered_wipe_tower = print.has_wipe_tower() && ordering.has_wipe_tower();
+            compat_initial_extruder_id = (wipe_tower_type == WipeTowerType::Type2 && has_ordered_wipe_tower &&
+                !print.config().single_extruder_multi_material_priming) ?
+                ordering.all_extruders().back() : ordering.first_extruder();
+        }
+    }
+    if (compat_initial_extruder_id == (unsigned int)-1)
+        compat_initial_extruder_id = 0;
+    const int compat_first_layer_bed_temp = m_config.bed_temperature_formula == BedTempFormula::btfHighestTemp ?
+        get_highest_bed_temperature(true, print) :
+        get_bed_temperature(compat_initial_extruder_id, true, print.config().curr_bed_type);
+    const int compat_first_layer_nozzle_temp = print.config().nozzle_temperature_initial_layer.get_at(
+        compat_initial_extruder_id);
     
     // Process file_start_gcode - written at the very top of the file, before any header
     {
@@ -2605,6 +2636,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder).c_str());
         //BBS: total layer number
         file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Total_Layer_Number_Placeholder).c_str());
+        file.write_format("; first_layer_bed_temperature = %d\n", compat_first_layer_bed_temp);
+        file.write_format("; first_layer_temperature = %d\n", compat_first_layer_nozzle_temp);
         //Orca: extra check for bbl printer
         if (is_bbl_printers) {
             if (print.calib_params().mode == CalibMode::Calib_None) { // Don't support skipping in cali mode
@@ -2675,13 +2708,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             if (!full_config.empty())
                 file.write(full_config);
 
-            // SoftFever: write compatiple image
-            int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
-            file.write_format("; first_layer_bed_temperature = %d\n",
-                                first_layer_bed_temperature);
-            file.write_format(
-                "; first_layer_temperature = %d\n",
-                print.config().nozzle_temperature_initial_layer.get_at(0));
             file.write("; CONFIG_BLOCK_END\n\n");
         } else if (thumbnail_cb != nullptr) {
             // generate the thumbnails
@@ -3605,10 +3631,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         file.write(full_config);
 
       // SoftFever: write compatiple info
-      int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
-      file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
       file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
-      file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
       file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
         
         //SF TODO
