@@ -77,6 +77,9 @@ import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenu
 import ru.ytkab0bp.slicebeam.components.bed_menu.FileMenuObjectActions
 import ru.ytkab0bp.slicebeam.components.bed_menu.ListBedMenu
@@ -151,6 +154,329 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 compose.activity.resources.configuration.orientation == expected
             }
+        }
+    }
+
+    @Test
+    fun settlersArchiveModelsAreOrientedPackedAndMovedToOverflowPlates() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
+
+        // The archive is supplied to the test app's external files directory, then copied into
+        // private cache. Keep the large fixture out of the APK and source tree.
+        val archive = File(activity.cacheDir, "settlers-arrangement-fixture.zip")
+        if (!archive.isFile) {
+            runCatching {
+                InstrumentationRegistry.getInstrumentation().context.assets
+                    .open("settlers-arrangement-fixture.zip").use { source ->
+                        archive.outputStream().buffered().use(source::copyTo)
+                    }
+            }
+        }
+        if (!archive.isFile) {
+            runCatching {
+                File(requireNotNull(activity.getExternalFilesDir(null)), "settlers-arrangement-fixture.zip")
+                    .inputStream().buffered().use { source ->
+                        archive.outputStream().buffered().use(source::copyTo)
+                    }
+            }
+        }
+        assumeTrue("Push the supplied Settlers archive into the slice-test app cache", archive.isFile)
+        val fixtureDir = File(activity.cacheDir, "settlers-arrangement-${System.nanoTime()}").apply { mkdirs() }
+        val modelFiles = mutableListOf<File>()
+        try {
+            ZipInputStream(archive.inputStream().buffered()).use { input ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    val name = File(entry.name).name
+                    if (!entry.isDirectory && name.endsWith(".stl", ignoreCase = true)) {
+                        val destination = File(fixtureDir, name)
+                        destination.outputStream().buffered().use(input::copyTo)
+                        modelFiles += destination
+                    }
+                    input.closeEntry()
+                }
+            }
+            val selected = modelFiles.sortedBy {
+                Regex("^obj_(\\d+)_").find(it.name)?.groupValues?.get(1)?.toIntOrNull() ?: Int.MAX_VALUE
+            }
+            assertEquals("Every STL model from the supplied archive must be present", 109, selected.size)
+
+            assertEquals("Test starts with an empty plate", 0, requireNotNull(bed.currentModel).objectsCount)
+            assertEquals("Test starts on one plate", 1, bed.plateCount)
+
+            selected.forEachIndexed { ordinal, file ->
+                android.util.Log.i("SettlersArrangeTest", "Starting ${ordinal + 1}/${selected.size}: ${file.name}")
+                val completed = CountDownLatch(1)
+                val error = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            android.util.Log.i("SettlersArrangeTest", "Loaded ${file.name}, plates=${bed.plateCount}")
+                            completed.countDown()
+                        }
+                        override fun onFailed(failure: Exception) {
+                            error.set(failure)
+                            completed.countDown()
+                        }
+                    })
+                assertTrue("Import ${ordinal + 1}/${selected.size} timed out: ${file.name}",
+                    completed.await(90, TimeUnit.SECONDS))
+                error.get()?.let { throw AssertionError("Could not import ${file.name}", it) }
+            }
+
+            compose.waitUntil(timeoutMillis = 20_000) { bed.plateCount > 1 }
+            val plates = readPlateModels(bed)
+            assertEquals("A plate model must be owned by exactly one plate index", plates.size,
+                plates.map { it.key }.distinct().size)
+            assertEquals("All imported STL models remain independent objects", selected.size,
+                plates.sumOf { it.objectsCount })
+            assertTrue("Objects that do not fit must be assigned to newly created plates", plates.size > 1)
+            assertTrue("nesting should reuse earlier plate capacity instead of stranding it; got ${plates.size}",
+                plates.size <= 20)
+
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            plates.forEachIndexed { plateIndex, model ->
+                repeat(model.objectsCount) { objectIndex ->
+                    val bounds = readExactBoundsOnGl(glView, model, objectIndex)
+                    assertTrue("Plate $plateIndex object $objectIndex (${model.getObjectName(objectIndex)}) " +
+                        "is outside the bed: ${bounds.toList()}, bed=${bedMin.x},${bedMin.y}..${bedMax.x},${bedMax.y}",
+                        bounds[0] >= bedMin.x - 0.2 && bounds[1] >= bedMin.y - 0.2 &&
+                            bounds[3] <= bedMax.x + 0.2 && bounds[4] <= bedMax.y + 0.2)
+                    assertTrue("Imported object $objectIndex should be placed on the build surface",
+                        bounds[2] >= bedMin.z - 0.2)
+                }
+            }
+
+            val checkedPairs = AtomicReference(0)
+            val overlap = AtomicReference<String?>()
+            val collisionCheck = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    plates.forEachIndexed { plateIndex, plate ->
+                        for (first in 0 until plate.objectsCount) {
+                            for (second in first + 1 until plate.objectsCount) {
+                                val probe = Model()
+                                try {
+                                    probe.addObject(plate, first)
+                                    probe.addObject(plate, second)
+                                    val intersection = probe.booleanObjects(
+                                        0, 1, BooleanOperation.INTERSECTION
+                                    )
+                                    checkedPairs.set(checkedPairs.get() + 1)
+                                    if (intersection >= 0) {
+                                        val firstMin = Vec3d(); val firstMax = Vec3d()
+                                        val secondMin = Vec3d(); val secondMax = Vec3d()
+                                        plate.getBoundingBoxExact(first, firstMin, firstMax)
+                                        plate.getBoundingBoxExact(second, secondMin, secondMax)
+                                        val intersectionVolume = probe.getObjectVolume(intersection)
+                                        overlap.compareAndSet(null,
+                                            "plate $plateIndex objects $first (${plate.getObjectName(first)}) " +
+                                                "and $second (${plate.getObjectName(second)}) intersect; " +
+                                                "boolean result=$intersection, volume=$intersectionVolume, " +
+                                                "bounds=${firstMin.x},${firstMin.y},${firstMin.z}.." +
+                                                "${firstMax.x},${firstMax.y},${firstMax.z} / " +
+                                                "${secondMin.x},${secondMin.y},${secondMin.z}.." +
+                                                "${secondMax.x},${secondMax.y},${secondMax.z}")
+                                        return@queueEvent
+                                    }
+                                } finally {
+                                    probe.release()
+                                }
+                            }
+                        }
+                    }
+                } catch (failure: Throwable) {
+                    overlap.compareAndSet(null, "mesh collision check failed: ${failure.message}")
+                } finally {
+                    collisionCheck.countDown()
+                }
+            }
+            assertTrue("mesh collision validation should complete on the GL thread",
+                collisionCheck.await(5, TimeUnit.MINUTES))
+            assertEquals("Every same-plate model pair must have disjoint meshes", null, overlap.get())
+            android.util.Log.i("SettlersArrangeTest",
+                "Verified ${selected.size} models across ${plates.size} plates; " +
+                    "${checkedPairs.get()} same-plate mesh pairs are disjoint")
+        } finally {
+            modelFiles.forEach(File::delete)
+            fixtureDir.deleteRecursively()
+            archive.delete()
+        }
+    }
+
+    @Test
+    fun settlersHarborPartsReusePlateWhenAnImportRequiresRepacking() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
+        val archive = File(requireNotNull(activity.getExternalFilesDir(null)), "settlers-arrangement-fixture.zip")
+        assumeTrue("Push the supplied Settlers archive into the slice-test app external files directory", archive.isFile)
+        val fixtureDir = File(activity.cacheDir, "settlers-harbor-pair-${System.nanoTime()}").apply { mkdirs() }
+        val names = setOf("obj_1_harbor_ore.stl", "obj_2_harbor_wool.stl")
+        val files = mutableMapOf<String, File>()
+        try {
+            ZipInputStream(archive.inputStream().buffered()).use { input ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    val name = File(entry.name).name
+                    if (!entry.isDirectory && name in names) {
+                        val file = File(fixtureDir, name)
+                        file.outputStream().buffered().use(input::copyTo)
+                        files[name] = file
+                    }
+                    input.closeEntry()
+                }
+            }
+            assertEquals("both real harbor fixtures must be present", names, files.keys)
+            for (name in names.sorted()) {
+                val file = requireNotNull(files[name])
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            completed.countDown()
+                        }
+                        override fun onFailed(error: Exception) {
+                            failure.set(error)
+                            completed.countDown()
+                        }
+                    })
+                assertTrue("${file.name} should import", completed.await(45, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("${file.name} import failed", it) }
+                compose.waitUntil(timeoutMillis = 15_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+            assertEquals("the two real harbor models should reuse one plate", 1, bed.plateCount)
+            assertEquals("imports remain independent objects", 2, requireNotNull(bed.currentModel).objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            val overlapX = minOf(bounds[0][3], bounds[1][3]) - maxOf(bounds[0][0], bounds[1][0])
+            val overlapY = minOf(bounds[0][4], bounds[1][4]) - maxOf(bounds[0][1], bounds[1][1])
+            assertTrue("the imported harbor models must not overlap", overlapX <= 0.1 || overlapY <= 0.1)
+        } finally {
+            fixtureDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun settlersRoadPairCanShareOnePlate() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) { glView.renderer.bed?.isValid() == true }
+        val archive = File(requireNotNull(activity.getExternalFilesDir(null)), "settlers-arrangement-fixture.zip")
+        assumeTrue("Push the supplied Settlers archive into the slice-test app external files", archive.isFile)
+        val dir = File(activity.cacheDir, "settlers-road-pair-${System.nanoTime()}").apply { mkdirs() }
+        val files = mutableMapOf<String, File>()
+        try {
+            ZipInputStream(archive.inputStream().buffered()).use { input ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    val name = File(entry.name).name
+                    if (name == "obj_41_road_-_1.stl" || name == "obj_42_road_-_1.stl") {
+                        val destination = File(dir, name)
+                        destination.outputStream().buffered().use(input::copyTo)
+                        files[name] = destination
+                    }
+                    input.closeEntry()
+                }
+            }
+            assertEquals("both road fixtures are available", 2, files.size)
+            android.util.Log.i("SettlersArrangeTest", "Before production road imports: " +
+                "plates=${bed.plateCount}, active=${bed.currentPlateIndex}, " +
+                "objects=${bed.currentModel?.objectsCount}")
+            val first = Model(requireNotNull(files["obj_41_road_-_1.stl"]))
+            val second = Model(requireNotNull(files["obj_42_road_-_1.stl"]))
+            val pair = Model()
+            try {
+                fun prepareAsWorkspaceImport(model: Model) {
+                    model.autoOrient(0)
+                    val translation = Vec3d()
+                    val min = Vec3d(); val max = Vec3d()
+                    model.getTranslation(0, translation)
+                    model.getBoundingBoxExact(0, min, max)
+                    model.translate(0, -translation.x, -translation.y,
+                        -translation.z + (max.z - min.z) / 2.0)
+                }
+                prepareAsWorkspaceImport(first)
+                prepareAsWorkspaceImport(second)
+                pair.addObject(first, 0)
+                pair.addObject(second, 0)
+                val completed = CountDownLatch(1)
+                val arranged = AtomicReference<Boolean>()
+                val bounds = AtomicReference<List<DoubleArray>>()
+                glView.queueEvent {
+                    arranged.set(bed.glView?.renderer?.bed?.arrangeCompact(pair) == true)
+                    bounds.set((0 until pair.objectsCount).map { index ->
+                        val min = Vec3d(); val max = Vec3d()
+                        pair.getBoundingBoxExact(index, min, max)
+                        doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                    })
+                    completed.countDown()
+                }
+                assertTrue("native arrangement should complete", completed.await(30, TimeUnit.SECONDS))
+                android.util.Log.i("SettlersArrangeTest", "Two roads fit=${arranged.get()}, " +
+                    "bounds=${bounds.get().orEmpty().joinToString { it.toList().toString() }}")
+                assertTrue("two 9 x 31 mm roads must fit together on the Kobra bed", arranged.get() == true)
+
+                fun importRoad(file: File) {
+                    val loaded = CountDownLatch(1)
+                    val failure = AtomicReference<Exception?>()
+                    bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                        callback = object : BedFragment.ModelLoadCallback {
+                            override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                                loaded.countDown()
+                            }
+                            override fun onFailed(error: Exception) {
+                                failure.set(error)
+                                loaded.countDown()
+                            }
+                        }, autoOrientImportedModels = true)
+                    assertTrue("road import should complete", loaded.await(30, TimeUnit.SECONDS))
+                    failure.get()?.let { throw AssertionError("road import failed", it) }
+                    compose.waitUntil(timeoutMillis = 10_000) {
+                        !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                            .apply { isAccessible = true }.getBoolean(bed)
+                    }
+                }
+                importRoad(requireNotNull(files["obj_41_road_-_1.stl"]))
+                android.util.Log.i("SettlersArrangeTest", "After first production road import: " +
+                    "plates=${bed.plateCount}, active=${bed.currentPlateIndex}, " +
+                    "objects=${bed.currentModel?.objectsCount}")
+                val productionProbe = Model()
+                try {
+                    val activeModel = requireNotNull(bed.currentModel)
+                    repeat(activeModel.objectsCount) { productionProbe.addObject(activeModel, it) }
+                    productionProbe.addObject(second, 0)
+                    val probeDone = CountDownLatch(1)
+                    val probeResult = AtomicReference<Boolean>()
+                    glView.queueEvent {
+                        probeResult.set(bed.glView?.renderer?.bed?.arrangeCompact(productionProbe) == true)
+                        probeDone.countDown()
+                    }
+                    assertTrue("production-state pair probe should complete", probeDone.await(30, TimeUnit.SECONDS))
+                    android.util.Log.i("SettlersArrangeTest", "Current production plate plus next road fits=" +
+                        probeResult.get() + ", objects=${productionProbe.objectsCount}")
+                } finally {
+                    productionProbe.release()
+                }
+                importRoad(requireNotNull(files["obj_42_road_-_1.stl"]))
+                android.util.Log.i("SettlersArrangeTest", "Production import placed two roads on " +
+                    "${bed.plateCount} plates; active objects=${bed.currentModel?.objectsCount}")
+                assertEquals("the production import path should reuse a plate that fits both roads", 1,
+                    bed.plateCount)
+            } finally {
+                pair.release(); first.release(); second.release()
+            }
+        } finally {
+            dir.deleteRecursively()
         }
     }
 
@@ -2704,7 +3030,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun failedGroupDuplicateRestoresAllObjectsAndFilamentAssignments() {
+    fun groupDuplicateDoesNotRearrangeExistingObjectsOrFilamentAssignments() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -2745,8 +3071,8 @@ class InitialProjectMenuDeviceTest {
                 done.countDown()
             }
             assertTrue("group duplicate should return from GL thread", done.await(15, TimeUnit.SECONDS))
-            assertEquals("an unarrangeable group batch must create no partial copies", 0, copies.get())
-            assertEquals(2, readObjectCountOnGl(glView))
+            assertEquals("the direct group copy should add the requested copies", 2, copies.get())
+            assertEquals(6, readObjectCountOnGl(glView))
             (0..1).forEach { index ->
                 assertArrayEquals("group rollback must restore object $index", beforeBounds[index],
                     readExactBoundsOnGl(glView, index).single(), 0.03)
@@ -2759,7 +3085,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
-    fun duplicateBatchDoesNotKeepPartialCopiesWhenArrangeCannotFitTheModel() {
+    fun duplicateBatchDoesNotRearrangeAnOversizedSourceObject() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
@@ -2792,7 +3118,7 @@ class InitialProjectMenuDeviceTest {
             compose.onNodeWithTag("duplicate-model-confirm").performClick()
 
             instrumentationWaitForGlIdle()
-            assertEquals("a failed batch must roll back every requested copy", 1, readObjectCountOnGl(glView))
+            assertEquals("direct duplication must not invoke full-plate arrange", 4, readObjectCountOnGl(glView))
             assertArrayEquals("the failed operation must preserve the source geometry and position",
                 before, readExactBoundsOnGl(glView, 0).single(), 0.03)
         } finally {
@@ -3107,10 +3433,254 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun singlePlateThreeMfIsPlacedOnBedAndKeepsItsColorAssignments() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) { glView.renderer.bed?.isValid() == true }
+        val projectFile = File(activity.cacheDir, "single-plate-off-bed-${System.nanoTime()}.3mf")
+        try {
+            assertEquals("test starts with an empty workspace", 0, bed.currentModel?.objectsCount ?: 0)
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("models/two-color-project.3mf").use { source ->
+                ZipInputStream(source).use { zipIn ->
+                    ZipOutputStream(projectFile.outputStream()).use { zipOut ->
+                        while (true) {
+                            val entry = zipIn.nextEntry ?: break
+                            zipOut.putNextEntry(ZipEntry(entry.name))
+                            var bytes = zipIn.readBytes()
+                            if (entry.name == "3D/3dmodel.model") {
+                                val modelXml = String(bytes, Charsets.UTF_8)
+                                    .replace(" 1 40 40 0\"/>", " 1 500 500 0\"/>")
+                                    .replace(" 1 55 40 0\"/>", " 1 520 500 0\"/>")
+                                assertTrue("fixture objects should be deliberately shifted off-bed",
+                                    modelXml.contains(" 1 500 500 0\"/>") && modelXml.contains(" 1 520 500 0\"/>"))
+                                bytes = modelXml.toByteArray(Charsets.UTF_8)
+                            }
+                            zipOut.write(bytes)
+                            zipOut.closeEntry()
+                            zipIn.closeEntry()
+                        }
+                    }
+                }
+            }
+
+            val completed = CountDownLatch(1)
+            val failure = AtomicReference<Exception?>()
+            bed.loadModel(projectFile, preserveProjectLayout = true, plateCount = 1,
+                callback = object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                })
+            assertTrue("3MF import should complete", completed.await(45, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("3MF import failed", it) }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                    .apply { isAccessible = true }.getBoolean(bed)
+            }
+
+            val loaded = requireNotNull(bed.currentModel)
+            assertEquals("single plate import must keep both independent objects", 2, loaded.objectsCount)
+            assertTrue("color/material assignments must survive automatic placement",
+                (0 until loaded.objectsCount).all { loaded.getUsedFilaments(it).isNotEmpty() })
+            assertEquals("a single plate model should not create unnecessary plates", 1, bed.plateCount)
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            bounds.forEachIndexed { index, box ->
+                assertTrue("3MF object $index must be moved into the active bed",
+                    box[0] >= bedMin.x - 0.1 && box[1] >= bedMin.y - 0.1 &&
+                        box[3] <= bedMax.x + 0.1 && box[4] <= bedMax.y + 0.1)
+            }
+            val overlapX = minOf(bounds[0][3], bounds[1][3]) - maxOf(bounds[0][0], bounds[1][0])
+            val overlapY = minOf(bounds[0][4], bounds[1][4]) - maxOf(bounds[0][1], bounds[1][1])
+            assertTrue("3MF objects must be arranged without overlapping", overlapX <= 0.1 || overlapY <= 0.1)
+        } finally {
+            projectFile.delete()
+        }
+    }
+
+    @Test
+    fun importRetriesCompactPackingBeforeCreatingAnotherPlate() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) { glView.renderer.bed?.isValid() == true }
+        val blockerFile = File(activity.cacheDir, "compact-pack-blocker-${System.nanoTime()}.stl")
+        val smallFile = File(activity.cacheDir, "compact-pack-small-${System.nanoTime()}.stl")
+        try {
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            val bedSide = minOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y)
+            writeScaledCubeStl(activity, blockerFile, (bedSide * 0.96 / 20.0).toFloat())
+            writeScaledCubeStl(activity, smallFile, 0.3f) // 6 mm cube.
+
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            completed.countDown()
+                        }
+
+                        override fun onFailed(error: Exception) {
+                            failure.set(error)
+                            completed.countDown()
+                        }
+                    })
+                assertTrue("model import should complete", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(blockerFile)
+            importAndWait(smallFile)
+            assertEquals("compact spacing should use remaining plate space before overflow", 1, bed.plateCount)
+            assertEquals("both objects should remain independent on the same plate", 2,
+                requireNotNull(bed.currentModel).objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            val overlapX = minOf(bounds[0][3], bounds[1][3]) - maxOf(bounds[0][0], bounds[1][0])
+            val overlapY = minOf(bounds[0][4], bounds[1][4]) - maxOf(bounds[0][1], bounds[1][1])
+            assertTrue("compact placement must still keep the objects separate", overlapX <= 0.1 || overlapY <= 0.1)
+            val gap = maxOf(
+                maxOf(bounds[0][0] - bounds[1][3], bounds[1][0] - bounds[0][3]),
+                maxOf(bounds[0][1] - bounds[1][4], bounds[1][1] - bounds[0][4]),
+            )
+            assertTrue("fallback should use a compact, positive clearance instead of the 6 mm default; gap=$gap",
+                gap in 1.5..5.9)
+        } finally {
+            blockerFile.delete()
+            smallFile.delete()
+        }
+    }
+
+    @Test
+    fun importPrefersCompactSpacingEvenWhenStandardSpacingWouldAlsoFit() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) { glView.renderer.bed?.isValid() == true }
+        val firstFile = File(activity.cacheDir, "compact-first-${System.nanoTime()}.stl")
+        val secondFile = File(activity.cacheDir, "compact-second-${System.nanoTime()}.stl")
+        try {
+            writeScaledCubeStl(activity, firstFile, 0.6f) // 12 mm cube.
+            writeScaledCubeStl(activity, secondFile, 0.6f)
+
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            completed.countDown()
+                        }
+                        override fun onFailed(error: Exception) {
+                            failure.set(error)
+                            completed.countDown()
+                        }
+                    })
+                assertTrue("model import should complete", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(firstFile)
+            importAndWait(secondFile)
+            assertEquals("both models should use the active plate", 1, bed.plateCount)
+            assertEquals("both models should remain separate objects", 2,
+                requireNotNull(bed.currentModel).objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            val overlapX = minOf(bounds[0][3], bounds[1][3]) - maxOf(bounds[0][0], bounds[1][0])
+            val overlapY = minOf(bounds[0][4], bounds[1][4]) - maxOf(bounds[0][1], bounds[1][1])
+            assertTrue("compact packing must keep the objects from overlapping", overlapX <= 0.1 || overlapY <= 0.1)
+            val gap = maxOf(
+                maxOf(bounds[0][0] - bounds[1][3], bounds[1][0] - bounds[0][3]),
+                maxOf(bounds[0][1] - bounds[1][4], bounds[1][1] - bounds[0][4]),
+            )
+            assertTrue("the normal 6 mm gap wastes space when compact packing succeeds; actual gap=$gap mm",
+                gap in 1.5..3.0)
+        } finally {
+            firstFile.delete()
+            secondFile.delete()
+        }
+    }
+
+    @Test
+    fun importingAnotherModelPreservesExistingManualPlacement() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
+        val firstFile = File(activity.cacheDir, "manual-position-first-${System.nanoTime()}.stl")
+        val secondFile = File(activity.cacheDir, "manual-position-second-${System.nanoTime()}.stl")
+        try {
+            writeScaledCubeStl(activity, firstFile, 0.6f)
+            writeScaledCubeStl(activity, secondFile, 0.6f)
+
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            completed.countDown()
+                        }
+                        override fun onFailed(error: Exception) {
+                            failure.set(error)
+                            completed.countDown()
+                        }
+                    })
+                assertTrue("model import should complete", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(firstFile)
+            val original = readExactBoundsOnGl(glView, 0).single()
+            val moved = CountDownLatch(1)
+            glView.queueEvent {
+                requireNotNull(bed.currentModel).translate(0, 18.0, 11.0, 0.0)
+                moved.countDown()
+            }
+            assertTrue("manual move should complete on the GL thread", moved.await(15, TimeUnit.SECONDS))
+            val manuallyMoved = readExactBoundsOnGl(glView, 0).single()
+            assertTrue("the test must establish a visible manual move",
+                kotlin.math.abs(manuallyMoved[0] - original[0]) > 10.0)
+
+            importAndWait(secondFile)
+            val afterSecondImport = readExactBoundsOnGl(glView, 0).single()
+            assertArrayEquals("loading another model must leave the existing manual placement unchanged",
+                manuallyMoved, afterSecondImport, 0.03)
+            assertEquals("both independently movable models should remain on the active plate", 2,
+                requireNotNull(bed.currentModel).objectsCount)
+        } finally {
+            firstFile.delete()
+            secondFile.delete()
+        }
+    }
+
+    @Test
     fun importingSinglePlateThreeMfIntoOccupiedWorkspaceArrangesAndAddsOverflowPlate() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
         val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 60_000) { glView.renderer.bed?.isValid() == true }
         val blockerFile = File(activity.cacheDir, "three-mf-overflow-blocker.stl")
         val projectFile = File(activity.cacheDir, "three-mf-overflow-import.3mf")
         try {
@@ -3120,7 +3690,8 @@ class InitialProjectMenuDeviceTest {
             val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
             val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
             val bedSide = minOf(bedMax.x - bedMin.x, bedMax.y - bedMin.y)
-            writeScaledCubeStl(activity, blockerFile, (bedSide * 0.96 / 20.0).toFloat())
+            // Leave less than the imported 3MF objects' footprint, even at compact spacing.
+            writeScaledCubeStl(activity, blockerFile, (bedSide * 0.98 / 20.0).toFloat())
             InstrumentationRegistry.getInstrumentation().context.assets
                 .open("models/two-color-project.3mf").use { source ->
                 projectFile.outputStream().use(source::copyTo)
@@ -3238,6 +3809,154 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun detailedConcaveImportKeepsFreeBedAreaAboveTwentyThousandFacets() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val lShapeFile = File(activity.cacheDir, "auto-arrange-detailed-concave-l.stl")
+        val insertFile = File(activity.cacheDir, "auto-arrange-detailed-concave-insert.stl")
+        try {
+            // The silhouette stays the same while the fixture crosses the old 20k facet limit.
+            // A 110 mm insert fits in the 125 mm opening with the configured object clearance.
+            writeConcavePrismStl(lShapeFile, subdivisionLevels = 5)
+            // A cube fixture keeps auto-orientation from changing its XY footprint in this
+            // test, so the assertion isolates packing accuracy rather than face selection.
+            writeScaledBoxStl(activity, insertFile, 5.5f, 5.5f, 5.5f)
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, false, 1, object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        completed.countDown()
+                    }
+
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                }, autoOrientImportedModels = true)
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(lShapeFile)
+            val platesAfterL = readPlateModels(bed)
+            assertEquals("detailed L should be on the active plate", 1, platesAfterL.size)
+            assertTrue("the fixture must exceed the previous 20k facet limit",
+                platesAfterL.single().getTriangleCount(0) > 20_000)
+
+            importAndWait(insertFile)
+            val plates = readPlateModels(bed)
+            assertEquals("the insert should use the L's actual open footprint", 1, plates.size)
+            assertEquals("the two models stay independent", 2, plates.single().objectsCount)
+            val bounds = readExactBoundsOnGl(glView, 0, 1)
+            val lModel = bounds.maxBy { (it[3] - it[0]) * (it[4] - it[1]) }
+            val insert = bounds.minBy { (it[3] - it[0]) * (it[4] - it[1]) }
+            val openingClearance = 3.0
+            val insertUsesOpening = listOf(
+                insert[0] >= lModel[0] + 25.0 + openingClearance &&
+                    insert[1] >= lModel[1] + 25.0 + openingClearance,
+                insert[0] >= lModel[0] + 25.0 + openingClearance &&
+                    insert[4] <= lModel[4] - 25.0 - openingClearance,
+                insert[3] <= lModel[3] - 25.0 - openingClearance &&
+                    insert[1] >= lModel[1] + 25.0 + openingClearance,
+                insert[3] <= lModel[3] - 25.0 - openingClearance &&
+                    insert[4] <= lModel[4] - 25.0 - openingClearance,
+            ).any { it }
+            assertTrue("the insert should occupy free concave space rather than a convex-hull gap; " +
+                "L=${lModel.contentToString()}, insert=${insert.contentToString()}", insertUsesOpening)
+        } finally {
+            lShapeFile.delete()
+            insertFile.delete()
+        }
+    }
+
+    @Test
+    fun disconnectedCompoundKeepsRigidPartsAndPacksAnotherModelIntoFreeArea() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val compoundFile = File(activity.cacheDir, "arrange-compound-gap-${System.nanoTime()}.stl")
+        val insertFile = File(activity.cacheDir, "arrange-compound-gap-insert-${System.nanoTime()}.stl")
+        var insertSource: Model? = null
+        var overlapProbe: Model? = null
+        try {
+            // The grouped STL has two 20 mm cubes 50 mm apart. A separate 2 mm cube
+            // can fit in their 30 mm opening with the usual 6 mm arrangement clearance.
+            writeTwoDisconnectedCubesStl(activity, compoundFile, separationMm = 50f, scaleY = 1.8f)
+            writeScaledCubeStl(activity, insertFile, 0.1f)
+            val grouped = loadSingleTestModel(bed, compoundFile)
+            assertEquals("disconnected solids must remain one selectable model", 1, grouped.objectsCount)
+            insertSource = Model(insertFile)
+
+            val glView = requireNotNull(bed.glView)
+            val arranged = AtomicReference<Boolean>()
+            val groupBounds = DoubleArray(6)
+            val insertBounds = DoubleArray(6)
+            val complete = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    val model = requireNotNull(glView.renderer.model)
+                    model.addObject(requireNotNull(insertSource), 0)
+                    arranged.set(requireNotNull(glView.renderer.bed).arrange(model))
+                    if (arranged.get() == true) {
+                        val min = Vec3d()
+                        val max = Vec3d()
+                        model.getBoundingBoxExact(0, min, max)
+                        groupBounds[0] = min.x; groupBounds[1] = min.y
+                        groupBounds[2] = max.x; groupBounds[3] = max.y
+                        model.getBoundingBoxExact(1, min, max)
+                        insertBounds[0] = min.x; insertBounds[1] = min.y
+                        insertBounds[2] = max.x; insertBounds[3] = max.y
+                    }
+                    model.resetBoundingBox()
+                    glView.requestRender()
+                } finally {
+                    complete.countDown()
+                }
+            }
+            assertTrue("grouped-model arrangement should finish on the GL thread",
+                complete.await(15, TimeUnit.SECONDS))
+            assertEquals("the insert should fit on the same plate without splitting the group",
+                true, arranged.get())
+            assertTrue("the insert should occupy free space inside the compound's otherwise reserved bounds; " +
+                "group=${groupBounds.contentToString()}, insert=${insertBounds.contentToString()}",
+                insertBounds[0] >= groupBounds[0] - 0.1 && insertBounds[1] >= groupBounds[1] - 0.1 &&
+                    insertBounds[2] <= groupBounds[2] + 0.1 && insertBounds[3] <= groupBounds[3] + 0.1)
+
+            // Auto-orientation may rotate the compound, so its free opening is not guaranteed
+            // to remain between the two cubes along X. Verify the actual mesh intersection
+            // instead of assuming which side of the bounding box contains the opening.
+            val probe = Model()
+            overlapProbe = probe
+            val overlapResult = AtomicReference<Int>()
+            val overlapChecked = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    val arrangedModel = requireNotNull(glView.renderer.model)
+                    probe.addObject(arrangedModel, 0)
+                    probe.addObject(arrangedModel, 1)
+                    overlapResult.set(probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION))
+                } finally {
+                    overlapChecked.countDown()
+                }
+            }
+            assertTrue("exact mesh overlap validation should finish on the GL thread",
+                overlapChecked.await(20, TimeUnit.SECONDS))
+            assertTrue("the model packed into the compound's free area must not intersect its solids",
+                requireNotNull(overlapResult.get()) < 0)
+        } finally {
+            compoundFile.delete()
+            insertFile.delete()
+            insertSource?.release()
+            overlapProbe?.release()
+        }
+    }
+
+    @Test
     fun importedObjectsRotateInPlaneToUseAvailableBedSpace() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
@@ -3285,7 +4004,8 @@ class InitialProjectMenuDeviceTest {
             bounds.forEachIndexed { index, box ->
                 val width = box[3] - box[0]
                 val depth = box[4] - box[1]
-                assertTrue("arranged object $index should use the compact rotated footprint, got ${width}x${depth}",
+                assertTrue("arranged object $index should use the compact rotated footprint, " +
+                    "got ${width}x${depth}x${box[5] - box[2]}, expected ${longSide}x${shortSide}x20",
                     kotlin.math.abs(width - longSide) < 0.2 && kotlin.math.abs(depth - shortSide) < 0.2)
                 assertTrue("object $index must remain inside the bed",
                     box[0] >= bedMin.x - 0.1 && box[1] >= bedMin.y - 0.1 &&
@@ -9490,7 +10210,12 @@ class InitialProjectMenuDeviceTest {
     }
 
     /** Creates a standard binary STL containing two closed copies separated by 30 mm on X. */
-    private fun writeTwoDisconnectedCubesStl(activity: MainActivity, destination: File) {
+    private fun writeTwoDisconnectedCubesStl(
+        activity: MainActivity,
+        destination: File,
+        separationMm: Float = 30f,
+        scaleY: Float = 1f,
+    ) {
         val source = activity.assets.open("models/xyz_cube.stl").use { it.readBytes() }
         assertTrue("bundled STL must have a binary STL header", source.size >= 84)
         val triangleCount = ByteBuffer.wrap(source, 80, 4).order(ByteOrder.LITTLE_ENDIAN).int
@@ -9506,7 +10231,8 @@ class InitialProjectMenuDeviceTest {
             val translated = source.copyOfRange(triangleOffset, triangleOffset + 50)
             val record = ByteBuffer.wrap(translated).order(ByteOrder.LITTLE_ENDIAN)
             listOf(12, 24, 36).forEach { vertexXOffset ->
-                record.putFloat(vertexXOffset, record.getFloat(vertexXOffset) + 30f)
+                record.putFloat(vertexXOffset, record.getFloat(vertexXOffset) + separationMm)
+                record.putFloat(vertexXOffset + 4, record.getFloat(vertexXOffset + 4) * scaleY)
             }
             output.put(translated)
         }
@@ -9555,7 +10281,7 @@ class InitialProjectMenuDeviceTest {
     }
 
     /** Writes a watertight 150 x 150 x 20 mm L-shaped prism as binary STL. */
-    private fun writeConcavePrismStl(destination: File) {
+    private fun writeConcavePrismStl(destination: File, subdivisionLevels: Int = 0) {
         val points = listOf(
             0f to 0f, 150f to 0f, 150f to 25f,
             25f to 25f, 25f to 150f, 0f to 150f,
@@ -9609,10 +10335,26 @@ class InitialProjectMenuDeviceTest {
             triangles += Triple(bottomA, topB, topA)
         }
 
-        val output = ByteBuffer.allocate(84 + triangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
+        fun midpoint(a: Point3, b: Point3) = Point3(
+            (a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f, (a.z + b.z) * 0.5f,
+        )
+        var detailedTriangles: List<Triple<Point3, Point3, Point3>> = triangles
+        repeat(subdivisionLevels.coerceIn(0, 6)) {
+            detailedTriangles = detailedTriangles.flatMap { (a, b, c) ->
+                val ab = midpoint(a, b)
+                val bc = midpoint(b, c)
+                val ca = midpoint(c, a)
+                listOf(
+                    Triple(a, ab, ca), Triple(ab, b, bc),
+                    Triple(ca, bc, c), Triple(ab, bc, ca),
+                )
+            }
+        }
+
+        val output = ByteBuffer.allocate(84 + detailedTriangles.size * 50).order(ByteOrder.LITTLE_ENDIAN)
         output.put("Orkan concave footprint test".toByteArray().copyOf(80))
-        output.putInt(triangles.size)
-        triangles.forEach { (a, b, c) ->
+        output.putInt(detailedTriangles.size)
+        detailedTriangles.forEach { (a, b, c) ->
             repeat(3) { output.putFloat(0f) }
             listOf(a, b, c).forEach { p ->
                 output.putFloat(p.x)

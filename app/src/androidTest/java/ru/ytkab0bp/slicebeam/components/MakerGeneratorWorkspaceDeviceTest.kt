@@ -246,7 +246,7 @@ class MakerGeneratorWorkspaceDeviceTest {
 
         val output = java.io.File(activity.cacheDir, "isolated-generated-save.stl")
         output.writeBytes(validTetrahedronStl())
-        val destination = Uri.parse("content://ru.ytkab0bp.slicebeam.test.save-destination/roundtrip")
+        val destination = Uri.parse("content://${activity.packageName}.test.save-destination/roundtrip")
         try {
             activity.contentResolver.openOutputStream(destination, "wt")!!.use { it.write(byteArrayOf(1, 2, 3)) }
             assertTrue("The isolated test SAF provider must be writable before exercising the save callback",

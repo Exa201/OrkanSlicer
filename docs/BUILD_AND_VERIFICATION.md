@@ -6,6 +6,15 @@
 - The preceding app code commit `b1c0236d8c390e7f1bec88e4d45ef7a4e467659e` passed 33 focused unit tests covering upload preparation, G-code integrity, and Qidi packaging. No full unit suite, printer transfer, Xiaomi test, or physical printer test was run for this version-metadata release build.
 - The APK is debug-signed. It was not installed on a physical phone or printer; no print was started.
 
+## Kobra 3 V2 Pressure Advance guard — 2026-11-02
+
+- Ursache: ältere gespeicherte Kobra-3-V2-Druckerprofile konnten weiterhin `M900 K0.051` im Start-G-Code enthalten. Das Start-up-Migrationsverfahren versucht, solche Profile dauerhaft zu bereinigen; ein fehlgeschlagener Speichervorgang oder ein während der Sitzung veralteter Profilzustand durfte den Slice aber nicht mit dem festen Wert überschreiben.
+- `SliceBeam.buildCurrentConfigObject` entfernt den bekannten veralteten Befehl jetzt zusätzlich aus der temporären Slice-Konfiguration für erkannte Kobra-3-V2-Profile. Gespeicherte Profile werden dabei nicht verändert. Andere PA-Werte und Druckermodelle bleiben unberührt.
+- `NativeSliceDeviceTest#kobraLegacyStartPressureAdvanceDoesNotOverrideFilamentSetting` besteht auf Android-16-Emulator 1/1: realer Slice mit aktiviertem Filament-PA enthält `0.075` und kein festes `0.051`; bei deaktiviertem Filament-PA enthält der G-Code keinen ausführbaren PA-Befehl. Debug- und Slice-JVM-Suiten bestanden jeweils 689/689 ohne Fehler/Errors/Skips.
+- `:app:assembleDebug` erfolgreich: `OrkanSlicer_35c8ce8cd9.apk`, 240.480.771 Bytes, SHA-256 `16BB636493190D251E1D9925CD001F7AD55D87C975D9718E8529028BAFED0E28`; `versionCode=447`, `versionName=0.8.412`, ARM64-APK. Finaler APK-Build auf dem Android-16-Emulator installiert und gestartet; der anschließende Logcat-Ausschnitt enthielt keinen Crash, ANR, Fatal Signal oder OOM. Xiaomi war in dieser Sitzung nicht mit ADB verbunden. Kein Upload, Release oder Druckstart.
+
+# Kameraeingabe: Raycast erst nach echtem Langdruck — Android 16 — 2026-10-29
+
 # Kameraeingabe: Raycast erst nach echtem Langdruck — Android 16 — 2026-10-29
 
 - Der Xiaomi-Stacktrace passt zum produktiven `GLView.onTouchEvent`-Pfad: Bei jedem `ACTION_DOWN` wurde sofort `GLRenderer.raycastObjectIndex()` auf der GL-Warteschlange ausgeführt. Das konnte erstmals für ein Mesh `glmodel_init_raycast_data()` und den nativen Face-Neighbor-Aufbau auslösen; Kamera-Orbit-Frames standen dann hinter dieser Mesh-Arbeit an. Die Diagnose ist durch den Quellcodepfad und den vom Nutzer gelieferten Stacktrace belegt.
@@ -2430,3 +2439,28 @@ Eight focused connected tests passed on `small_phone (AVD) - 16`:
 - `NativeSliceDeviceTest.standaloneTextCanBePlacedJoinedAndSlicedAsItsOwnFilamentPart` — standalone text placement, joining, and slicing.
 
 All eight tests passed 1/1 with no skips or failures. These results are from the Android 16 emulator only; Xiaomi rendering remains unverified because no Xiaomi device was attached. No production code was changed in this verification sweep, no full unit suite was run, and no printer was started.
+
+## Automatic model placement and compact footprint follow-up — Android 16 — 2026-11-02
+
+Four focused `:app:connectedSliceTestAndroidTest` runs passed individually on `solidcraft_port_test_clean_20261101 (AVD) - 16`:
+
+- `InitialProjectMenuDeviceTest.importPrefersCompactSpacingEvenWhenStandardSpacingWouldAlsoFit` — 1/1; imported objects use the compact positive gap instead of reserving unnecessary 6 mm spacing.
+- `InitialProjectMenuDeviceTest.importedConcaveModelUsesItsOpenFootprintForAdditionalObjects` — 1/1; a separate object fits in the L-shaped model's real open footprint without merging or overlapping either model.
+- `InitialProjectMenuDeviceTest.importingSinglePlateThreeMfIntoOccupiedWorkspaceArrangesAndAddsOverflowPlate` — 1/1; a full active plate creates and selects an overflow plate while keeping the existing model and imported filament assignments intact.
+- `InitialProjectMenuDeviceTest.importRetriesCompactPackingBeforeCreatingAnotherPlate` — 1/1; compact packing is retried before adding another plate.
+
+The emulator build and all four targeted instrumentation cases succeeded. No physical Xiaomi was attached, no APK was built for delivery, and no GitHub release was published in this verification pass. The visible selection outline can still be larger than the occupied concave XY footprint; placement now uses the projected geometry rather than treating that outline as occupied space.
+
+## Settlers of Catan STL archive arrangement — 2026-11-02
+
+The complete user-provided archive (109 STL files, about 87 MB unpacked) was imported through the app's normal model-import/auto-orient path on the Android 16 emulator. `InitialProjectMenuDeviceTest.settlersArchiveModelsAreOrientedPackedAndMovedToOverflowPlates` passed 1/1 in a direct instrumentation run (~98 seconds). All 109 models were placed on the bed across 76 plates. The test checked all 50 same-plate model pairs using native mesh intersection and found no collisions. A prior run identified a real collision between `obj_97_base_adapter_interlocking_tiles.stl` and `obj_99_base_adapter_interlocking_tiles.stl`; the final arrangement validation now rejects unsafe placements and retries them on overflow plates, also enforcing the bed boundary.
+
+This validates import placement and mesh separation for this archive, not optimal plate utilization, slicing, G-code correctness, or a physical printer. The conservative footprint fallback for complex meshes can increase plate count. The test ran on an Android 16 emulator; Xiaomi hardware was not connected. `git diff --check` passed. No APK, full suite, commit, or GitHub upload was produced in this verification pass.
+
+## Import nesting, automatic orientation and free movement — Android 16 — 2026-11-03
+
+- Import now tries every existing plate with remaining capacity before creating another overflow plate. A failed attempt rolls back only the candidate object, and placing onto an existing plate no longer adds a duplicate reference to the plate list.
+- Automatic orientation is now enabled by default for normal single-model imports. Multi-plate 3MF projects retain their authored layout. After import, objects remain freely movable; full re-arrangement remains an explicit user action.
+- The supplied Settlers archive (109 STL files) passed `settlersArchiveModelsAreOrientedPackedAndMovedToOverflowPlates` on the Android 16 emulator: 109 unique objects on 15 plates, all within bed boundaries and without detected same-plate mesh intersections. The previous measured result was 30 plates. This is a packing-quality improvement, not proof of a globally minimal number of plates. The full archive device test took about 15 minutes 37 seconds.
+- `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace` and `positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo` passed together (2/2), verifying explicit re-arrange and continued XYZ movement/undo/redo after placement.
+- No Xiaomi device was connected. No full unit suite, release APK, commit, or GitHub upload was produced in this pass.

@@ -24,6 +24,9 @@ using VirtualBedFn = std::function<void(arrangement::ArrangePolygon&)>;
 
 ArrangePolygons get_arrange_polys(const Model &model, ModelInstancePtrs &instances);
 ArrangePolygon  get_arrange_poly(const Model &model);
+void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed, size_t movable_from = 0);
+bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, size_t movable_from = 0);
+bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params);
 bool apply_arrange_polys(ArrangePolygons &polys, ModelInstancePtrs &instances, VirtualBedFn);
 
 void duplicate(Model &model, ArrangePolygons &copies, VirtualBedFn);
@@ -38,6 +41,10 @@ bool arrange_objects(Model &              model,
     ModelInstancePtrs instances;
     auto&& input = get_arrange_polys(model, instances);
     arrangement::arrange(input, bed, params);
+    if constexpr (std::is_same_v<std::decay_t<TBed>, Points>) {
+        fill_compound_arrange_gaps(input, bed);
+        if (!validate_arrange_placements(input, bed)) return false;
+    }
     
     return apply_arrange_polys(input, instances, vfn);
 }

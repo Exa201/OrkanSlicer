@@ -1,8 +1,10 @@
 #include "ModelArrange.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Geometry/ConvexHull.hpp>
+#include <libslic3r/ClipperUtils.hpp>
 #include <libslic3r/Print.hpp>
 #include "MTUtils.hpp"
 
@@ -25,6 +27,288 @@ arrangement::ArrangePolygons get_arrange_polys(const Model &model, ModelInstance
         }
 
     return input;
+}
+
+void fill_compound_arrange_gaps(ArrangePolygons &polygons, const Points &bed, size_t movable_from)
+{
+    // The arrange packer treats each model as one rigid polygon. For concave and multipart
+    // models, its nominal placement can leave usable regions or overlap projected islands.
+    // Reposition only whole instances, using exact projected geometry for each collision check.
+    if (bed.size() < 3 || polygons.size() < 2)
+        return;
+
+    struct PartGeometry { ExPolygons parts; ExPolygons clearance; BoundingBox bounds; };
+    std::vector<PartGeometry> geometry(polygons.size());
+    std::vector<size_t> hosts;
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        ArrangePolygon &item = polygons[i];
+        if (item.bed_idx != 0 || item.physical_parts.empty())
+            continue;
+        geometry[i].parts = item.physical_parts;
+        Points points;
+        double exact_area = 0.0;
+        for (ExPolygon &part : geometry[i].parts) {
+            part.rotate(item.rotation);
+            part.translate(item.translation.x(), item.translation.y());
+            geometry[i].bounds.merge(part.contour.bounding_box());
+            exact_area += part.area();
+            points.insert(points.end(), part.contour.points.begin(), part.contour.points.end());
+        }
+        geometry[i].clearance = offset_ex(geometry[i].parts, float(item.inflation), ClipperLib::jtSquare);
+        const Polygon convex = Geometry::convex_hull(std::move(points));
+        if (geometry[i].parts.size() > 1 ||
+            (exact_area > 0.0 && convex.area() > exact_area * 1.05))
+            hosts.push_back(i);
+    }
+    if (hosts.empty())
+        return;
+
+    std::stable_sort(hosts.begin(), hosts.end(), [&](size_t lhs, size_t rhs) {
+        const Vec2crd a = geometry[lhs].bounds.size(), b = geometry[rhs].bounds.size();
+        return double(a.x()) * a.y() > double(b.x()) * b.y();
+    });
+    std::vector<size_t> candidates(polygons.size());
+    std::iota(candidates.begin(), candidates.end(), size_t(0));
+    std::stable_sort(candidates.begin(), candidates.end(), [&](size_t lhs, size_t rhs) {
+        const Vec2crd a = geometry[lhs].bounds.size(), b = geometry[rhs].bounds.size();
+        return double(a.x()) * a.y() < double(b.x()) * b.y();
+    });
+
+    const Polygon bed_polygon(bed);
+    const BoundingBox bed_bounds(bed);
+    const coord_t search_step = scaled(2.0);
+    constexpr size_t MAX_SEARCH_POSITIONS = 12000;
+    for (size_t candidate_idx : candidates) {
+        if (candidate_idx < movable_from)
+            continue;
+        ArrangePolygon &candidate = polygons[candidate_idx];
+        if (candidate.bed_idx != 0 || geometry[candidate_idx].parts.empty())
+            continue;
+        ExPolygons local_parts = candidate.physical_parts;
+        for (ExPolygon &part : local_parts) part.rotate(candidate.rotation);
+        ExPolygons local_clearance = offset_ex(local_parts, float(candidate.inflation), ClipperLib::jtSquare);
+        BoundingBox local_bounds;
+        for (const ExPolygon &part : local_parts) local_bounds.merge(part.contour.bounding_box());
+        if (!local_bounds.defined) continue;
+
+        size_t visited = 0;
+        bool placed = false;
+        bool has_unsafe_overlap = false;
+        for (size_t host_idx : hosts) {
+            if (host_idx == candidate_idx || !geometry[host_idx].bounds.defined) continue;
+            const BoundingBox &host_bounds = geometry[host_idx].bounds;
+            if (geometry[host_idx].clearance.empty() || geometry[candidate_idx].clearance.empty() ||
+                local_bounds.size().x() + 2 * candidate.inflation >= host_bounds.size().x() ||
+                local_bounds.size().y() + 2 * candidate.inflation >= host_bounds.size().y()) continue;
+
+            // Repack a nearby item into a real opening even when the first-pass polygon
+            // packer placed it just outside the compound bounds. Far-away objects remain
+            // untouched, and a failed optional gap search never invalidates a safe placement.
+            const BoundingBox &current_bounds = geometry[candidate_idx].bounds;
+            const coord_t gap_x = std::max<coord_t>(0, std::max(
+                host_bounds.min.x() - current_bounds.max.x(),
+                current_bounds.min.x() - host_bounds.max.x()));
+            const coord_t gap_y = std::max<coord_t>(0, std::max(
+                host_bounds.min.y() - current_bounds.max.y(),
+                current_bounds.min.y() - host_bounds.max.y()));
+            const coord_t nearby_x = local_bounds.size().x() + 2 * candidate.inflation;
+            const coord_t nearby_y = local_bounds.size().y() + 2 * candidate.inflation;
+            const bool nearby = gap_x <= nearby_x && gap_y <= nearby_y;
+            const bool overlaps_clearance = host_bounds.overlap(current_bounds) &&
+                !intersection_ex(geometry[host_idx].clearance,
+                                geometry[candidate_idx].clearance).empty();
+            if (!nearby && !overlaps_clearance) continue;
+            has_unsafe_overlap |= overlaps_clearance;
+
+            for (coord_t y = host_bounds.min.y();
+                 y + local_bounds.size().y() <= host_bounds.max.y() && !placed; y += search_step) {
+                for (coord_t x = host_bounds.min.x();
+                     x + local_bounds.size().x() <= host_bounds.max.x(); x += search_step) {
+                    if (++visited > MAX_SEARCH_POSITIONS) break;
+                    const Vec2crd delta{x - local_bounds.min.x(), y - local_bounds.min.y()};
+                    ExPolygons proposed = local_clearance;
+                    for (ExPolygon &part : proposed) part.translate(delta.x(), delta.y());
+                    BoundingBox proposed_bounds;
+                    bool inside_bed = true;
+                    for (const ExPolygon &part : proposed) {
+                        proposed_bounds.merge(part.contour.bounding_box());
+                        for (const Point &point : part.contour.points)
+                            if (!bed_polygon.contains(point)) { inside_bed = false; break; }
+                        if (!inside_bed) break;
+                    }
+                    if (!inside_bed || proposed_bounds.min.x() < bed_bounds.min.x() ||
+                        proposed_bounds.min.y() < bed_bounds.min.y() ||
+                        proposed_bounds.max.x() > bed_bounds.max.x() ||
+                        proposed_bounds.max.y() > bed_bounds.max.y()) continue;
+
+                    bool collision = false;
+                    for (size_t other_idx = 0; other_idx < geometry.size() && !collision; ++other_idx) {
+                        if (other_idx == candidate_idx || polygons[other_idx].bed_idx != 0 ||
+                            geometry[other_idx].clearance.empty()) continue;
+                        BoundingBox other_bounds;
+                        for (const ExPolygon &part : geometry[other_idx].clearance)
+                            other_bounds.merge(part.contour.bounding_box());
+                        if (proposed_bounds.overlap(other_bounds))
+                            collision = !intersection_ex(proposed, geometry[other_idx].clearance).empty();
+                    }
+                    if (collision) continue;
+
+                    candidate.translation = delta;
+                    geometry[candidate_idx].parts = local_parts;
+                    geometry[candidate_idx].bounds.reset();
+                    for (ExPolygon &part : geometry[candidate_idx].parts) {
+                        part.translate(delta.x(), delta.y());
+                        geometry[candidate_idx].bounds.merge(part.contour.bounding_box());
+                    }
+                    geometry[candidate_idx].clearance = std::move(proposed);
+                    placed = true;
+                    break;
+                }
+                if (visited > MAX_SEARCH_POSITIONS) break;
+            }
+            if (placed || visited > MAX_SEARCH_POSITIONS) break;
+        }
+        // Never report a successful one-bed arrangement while retaining a known collision.
+        // The import caller will retry the model on an automatically created overflow plate.
+        if (has_unsafe_overlap && !placed)
+            candidate.bed_idx = arrangement::UNARRANGED;
+    }
+}
+
+bool validate_arrange_placements(ArrangePolygons &polygons, const Points &bed, size_t movable_from)
+{
+    // Validate final bed containment and packed outlines before applying transforms to instances.
+    // This is a last safety net for imported meshes whose projection is approximated by a
+    // hull or whose exact-outline gap-fill changed a placement after the main NFP pass.
+    std::vector<ExPolygons> clearances(polygons.size());
+    std::vector<BoundingBox> bounds(polygons.size());
+    const Polygon bed_polygon(bed);
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        ArrangePolygon &item = polygons[i];
+        if (item.bed_idx != 0)
+            continue;
+
+        ExPolygons parts = item.physical_parts;
+        if (parts.empty() && !item.poly.contour.empty())
+            parts.emplace_back(item.poly);
+        for (ExPolygon &part : parts) {
+            part.rotate(item.rotation);
+            part.translate(item.translation.x(), item.translation.y());
+            for (const Point &point : part.contour.points) {
+                if (i >= movable_from && !bed_polygon.contains(point)) {
+                    item.bed_idx = arrangement::UNARRANGED;
+                    return false;
+                }
+            }
+            bounds[i].merge(part.contour.bounding_box());
+        }
+        if (parts.empty())
+            continue;
+        clearances[i] = item.inflation > 0
+            ? offset_ex(parts, float(item.inflation), ClipperLib::jtSquare)
+            : std::move(parts);
+    }
+
+    for (size_t first = 0; first < polygons.size(); ++first) {
+        if (polygons[first].bed_idx != 0 || clearances[first].empty())
+            continue;
+        for (size_t second = first + 1; second < polygons.size(); ++second) {
+            if (polygons[second].bed_idx != 0 || clearances[second].empty() ||
+                (first < movable_from && second < movable_from) ||
+                !bounds[first].overlap(bounds[second]))
+                continue;
+            if (!intersection_ex(clearances[first], clearances[second]).empty()) {
+                // Keep already-arranged objects in place and let the importer retry this
+                // later object on the current or a new plate. No partial transforms commit.
+                polygons[second].bed_idx = arrangement::UNARRANGED;
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool arrange_new_objects(Model &model, size_t first_object, const Points &bed, const ArrangeParams &params)
+{
+    if (first_object >= model.objects.size())
+        return false;
+
+    ArrangePolygons movable, fixed;
+    ModelInstancePtrs instances;
+    for (size_t object_idx = 0; object_idx < model.objects.size(); ++object_idx) {
+        ModelObject *object = model.objects[object_idx];
+        if (object == nullptr)
+            continue;
+        for (ModelInstance *instance : object->instances) {
+            ArrangePolygon polygon;
+            instance->get_arrange_polygon(&polygon);
+            if (object_idx >= first_object) {
+                movable.emplace_back(std::move(polygon));
+                instances.emplace_back(instance);
+            } else {
+                fixed.emplace_back(std::move(polygon));
+            }
+        }
+    }
+    if (movable.empty())
+        return false;
+
+    // The first choice is a non-disruptive import: nest only the incoming objects against the
+    // current layout. If that cannot use the bed, fall back to a fresh pack of the whole plate.
+    // This fallback happens only inside the model-load operation; subsequent user transforms
+    // remain untouched until another import or an explicit Arrange command.
+    const auto rearrange_whole_plate = [&]() {
+        ArrangePolygons all;
+        ModelInstancePtrs all_instances;
+        size_t instance_count = 0;
+        for (const ModelObject *object : model.objects)
+            if (object != nullptr) instance_count += object->instances.size();
+        all.reserve(instance_count);
+        all_instances.reserve(instance_count);
+        for (ModelObject *object : model.objects) {
+            if (object == nullptr) continue;
+            for (ModelInstance *instance : object->instances) {
+                ArrangePolygon polygon;
+                instance->get_arrange_polygon(&polygon);
+                if (!polygon.is_virt_object) polygon.inflation = params.min_obj_distance / 2;
+                all.emplace_back(std::move(polygon));
+                all_instances.emplace_back(instance);
+            }
+        }
+        if (all.empty()) return false;
+        arrangement::arrange(all, bed, params);
+        fill_compound_arrange_gaps(all, bed);
+        if (!validate_arrange_placements(all, bed)) return false;
+        if (std::any_of(all.begin(), all.end(), [](const ArrangePolygon &polygon) {
+                return polygon.bed_idx != 0;
+            }))
+            return false;
+        return apply_arrange_polys(all, all_instances, {});
+    };
+
+    // Existing objects are exclusions and retain their current transforms. Reuse the native
+    // libnest2d exclusion path so an imported object can use free plate area without moving
+    // anything the user has already arranged manually.
+    const coord_t inflation = params.min_obj_distance / 2;
+    for (ArrangePolygon &polygon : movable)
+        if (!polygon.is_virt_object) polygon.inflation = inflation;
+    for (ArrangePolygon &polygon : fixed) {
+        polygon.bed_idx = 0;
+        if (!polygon.is_virt_object) polygon.inflation = inflation;
+    }
+
+    arrangement::arrange(movable, fixed, bed, params);
+    if (std::any_of(movable.begin(), movable.end(), [](const ArrangePolygon &polygon) {
+            return polygon.bed_idx != 0;
+        }))
+        return rearrange_whole_plate();
+
+    ArrangePolygons combined = fixed;
+    const size_t movable_from = combined.size();
+    combined.insert(combined.end(), movable.begin(), movable.end());
+    if (!validate_arrange_placements(combined, bed, movable_from))
+        return rearrange_whole_plate();
+    return apply_arrange_polys(movable, instances, throw_if_out_of_bed);
 }
 
 bool apply_arrange_polys(ArrangePolygons &input, ModelInstancePtrs &instances, VirtualBedFn vfn)

@@ -539,6 +539,13 @@ open class Model private constructor(@JvmField var pointer: Long) {
         resetBoundingBox()
     }
 
+    /** Import-time orientation for low, bed-stable nesting; explicit auto-orient remains support-aware. */
+    open fun orientForImport(i: Int) {
+        if (!hasObject(i)) return
+        Native.model_orient_for_import(pointer, i)
+        resetBoundingBox()
+    }
+
     open fun isBigObject(i: Int): Boolean = Native.model_is_big_object(pointer, i)
 
     @Throws(Slic3rRuntimeError::class)

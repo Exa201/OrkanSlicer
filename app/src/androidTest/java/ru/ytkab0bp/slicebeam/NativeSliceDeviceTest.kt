@@ -14,7 +14,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
-import ru.ytkab0bp.slicebeam.config.Kobra3V2ProfileMigration
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
@@ -2851,6 +2850,7 @@ class NativeSliceDeviceTest {
         val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
         val filament = requireNotNull(config.findFilament("Anycubic Generic PLA"))
         val originalStart = printer.get("machine_start_gcode")
+        val originalPrinterModel = printer.get("printer_model")
         val originalEnabled = filament.get("enable_pressure_advance")
         val originalAdvance = filament.get("pressure_advance")
         val modelFile = copyAsset(context, "models/box.stl", "kobra-pa-migration-device-test.stl")
@@ -2859,13 +2859,15 @@ class NativeSliceDeviceTest {
             // Recreate the stale stock profile that shipped the fixed value shown in the report.
             val staleStart = "G9111 bedTemp=[first_layer_bed_temperature] extruderTemp=[first_layer_temperature[initial_tool]]\nM117\nM900 K0.051"
             printer.put("machine_start_gcode", staleStart)
+            printer.put("printer_model", "Anycubic Kobra 3 V2")
             filament.put("enable_pressure_advance", "1")
             filament.put("pressure_advance", "0.075")
-            val migratedStart = Kobra3V2ProfileMigration.removeLegacyPressureAdvance(
-                printer.get("machine_start_gcode").orEmpty(),
+
+            val effectiveConfig = SliceBeam.buildCurrentConfigObject()
+            assertFalse(
+                "The generated Kobra 3 V2 slice config must strip the stale fixed PA command",
+                effectiveConfig["machine_start_gcode"].orEmpty().contains("M900 K0.051"),
             )
-            printer.put("machine_start_gcode", migratedStart)
-            assertFalse("The legacy printer start code must no longer force K0.051", migratedStart.contains("M900 K0.051"))
 
             model = Model(modelFile)
             val enabledGcode = sliceToGcode(context, model, "kobra-pa-enabled-device-test.gcode")
@@ -2882,6 +2884,7 @@ class NativeSliceDeviceTest {
             model?.release()
             modelFile.delete()
             if (originalStart == null) printer.values.remove("machine_start_gcode") else printer.put("machine_start_gcode", originalStart)
+            if (originalPrinterModel == null) printer.values.remove("printer_model") else printer.put("printer_model", originalPrinterModel)
             if (originalEnabled == null) filament.values.remove("enable_pressure_advance") else filament.put("enable_pressure_advance", originalEnabled)
             if (originalAdvance == null) filament.values.remove("pressure_advance") else filament.put("pressure_advance", originalAdvance)
             SliceBeam.getCurrentConfigFile().delete()

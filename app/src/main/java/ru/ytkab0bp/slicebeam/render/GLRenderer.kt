@@ -2066,33 +2066,15 @@ val activeModel = model ?: return 0
 val activeBed = bed ?: return 0
 val sourceIndex = selectedObject
 if (!activeBed.isValid() || isViewerEnabled || sourceIndex !in 0 until activeModel.objectsCount) return 0
-val originalCount = activeModel.objectsCount
-val originalTranslations = ArrayList<Vec3d>(originalCount)
-for (index in 0 until originalCount) {
-    val translation = Vec3d()
-    activeModel.getTranslation(index, translation)
-    originalTranslations.add(translation)
-}
 val sourceModel = Model()
 try
 {
 sourceModel.addObject(activeModel, sourceIndex)
 activeModel.addObject(sourceModel, 0)
 activeModel.resetBoundingBox()
-if (!activeBed.arrange(activeModel)) {
-    // Arrange may have moved existing objects before reporting that the full plate cannot fit.
-    // Roll back both the new copy and every original placement so a failed action is atomic.
-    activeModel.deleteObject(activeModel.objectsCount - 1)
-    originalTranslations.forEachIndexed { index, before ->
-        val after = Vec3d()
-        activeModel.getTranslation(index, after)
-        activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
-    }
-    activeModel.resetBoundingBox()
-    resetGlModels()
-    return 0
-}
-activeModel.resetBoundingBox()
+// Duplication is a direct edit, not an implicit plate-wide arrange action. Keep every
+// existing object exactly where the user placed it; the new copy starts at its source
+// position and can then be moved freely or included in an explicit Arrange command.
 resetGlModels()
 SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
 return 1
@@ -2102,7 +2084,7 @@ finally
 sourceModel.release()
 }
 }
-/** Duplicates the current multi-selection as complete groups and arranges once. */
+/** Duplicates the current multi-selection as complete groups without rearranging the plate. */
 fun duplicateSelectedObjects(copies: Int): Int {
     return duplicateSelectedObjects(copies, null)
 }
@@ -2117,31 +2099,15 @@ internal fun duplicateSelectedObjects(copies: Int, expectedSelection: ModelSelec
     val sourceIndices = selectedObjectIndices().filter { it in 0 until activeModel.objectsCount }
     if (sourceIndices.isEmpty()) return 0
     val groupCopies = copies.coerceIn(1, 50)
-    val originalCount = activeModel.objectsCount
-    val originalTranslations = ArrayList<Vec3d>(originalCount)
-    for (index in 0 until originalCount) {
-        val translation = Vec3d()
-        activeModel.getTranslation(index, translation)
-        originalTranslations.add(translation)
-    }
     val sourceGroup = Model()
     try {
         sourceIndices.forEach { sourceGroup.addObject(activeModel, it) }
         repeat(groupCopies) {
             for (index in 0 until sourceGroup.objectsCount) activeModel.addObject(sourceGroup, index)
         }
-        activeModel.resetBoundingBox()
-        if (!activeBed.arrange(activeModel)) {
-            while (activeModel.objectsCount > originalCount) activeModel.deleteObject(activeModel.objectsCount - 1)
-            originalTranslations.forEachIndexed { index, before ->
-                val after = Vec3d()
-                activeModel.getTranslation(index, after)
-                activeModel.translate(index, before.x - after.x, before.y - after.y, before.z - after.z)
-            }
-            activeModel.resetBoundingBox()
-            resetGlModels()
-            return 0
-        }
+        // Leave both the selected group and all other objects untouched. Duplicates begin
+        // coincident with their source, as in a direct copy operation; users can reposition
+        // them manually or run the explicit plate arrangement afterwards.
         activeModel.resetBoundingBox()
         resetGlModels()
         SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())

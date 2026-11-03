@@ -1716,22 +1716,32 @@ Polygon ModelObject::convex_hull_2d(const Transform3d& trafo_instance) const
 #endif
 }
 
-ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance) const
+ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance, ExPolygons *exact_parts) const
 {
     // Use the projected mesh outline for ordinary closed parts so concave openings are not
     // incorrectly treated as occupied by the convex hull. Keep this bounded because imports
     // arrange synchronously on Android's GL thread; unusual meshes fall back to the safe hull.
-    constexpr size_t MAX_PROJECTION_FACETS = 20000;
+    // Projection unions are both expensive and fragile for detailed imported STLs. Keep the
+    // exact outline for low-complexity parts (where it yields reliable packing gains) and use
+    // the safe convex hull for larger meshes.
+    constexpr size_t MAX_PROJECTION_FACETS = 1000;
     size_t facet_count = 0;
     Polygons projected;
     for (const ModelVolume *volume : this->volumes) {
         if (!volume->is_model_part())
             continue;
         const TriangleMesh &mesh = volume->mesh();
-        if (mesh.empty() || !mesh.stats().manifold())
+        if (mesh.empty())
             return {};
         facet_count += mesh.facets_count();
         if (facet_count > MAX_PROJECTION_FACETS)
+            return {};
+        // Clipper's union of projected triangles is unsafe for open/non-manifold STL meshes:
+        // malformed or coincident edge loops can crash native code during arrange. The caller
+        // falls back to a conservative convex hull for these exceptional meshes; keep exact
+        // concave projections for repaired, manifold meshes.
+        if (mesh.stats().open_edges > 0 || mesh.stats().repaired() ||
+            its_num_open_edges(mesh.its) > 0)
             return {};
 
         Polygons volume_projection = project_mesh(
@@ -1744,11 +1754,18 @@ ExPolygon ModelObject::arrange_footprint_2d(const Transform3d& trafo_instance) c
     if (projected.empty())
         return {};
     ExPolygons islands = union_ex(projected);
-    // The arrange API takes one rigid item. Do not split disjoint model parts or guess at
-    // their relative placement; retain the conservative hull for those compound models.
-    if (islands.size() != 1 || islands.front().contour.empty())
+    if (islands.empty())
         return {};
-    return std::move(islands.front());
+    if (exact_parts)
+        *exact_parts = islands;
+    if (islands.size() == 1)
+        return std::move(islands.front());
+    // A synthetic polygon joining disconnected solids is not guaranteed to have a robust
+    // offset contour. libnest2d offsets every item while packing, and malformed STL islands
+    // can make Clipper crash there. Keep the exact islands in exact_parts so the bounded
+    // post-pack gap-fill can still use the real geometry; let the main packer use the safe
+    // convex hull for a compound item.
+    return {};
 }
 
 void ModelObject::center_around_origin(bool include_modifiers)
@@ -3422,7 +3439,8 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
     Geometry::Transformation t(m_transformation);
     t.set_offset(get_offset().z() * Vec3d::UnitZ());
     t.set_rotation(rotation);
-    ExPolygon footprint = get_object()->arrange_footprint_2d(t.get_matrix());
+    ExPolygons physical_parts;
+    ExPolygon footprint = get_object()->arrange_footprint_2d(t.get_matrix(), &physical_parts);
     if (footprint.contour.empty())
         footprint = ExPolygon{get_object()->convex_hull_2d(t.get_matrix())};
 
@@ -3434,6 +3452,7 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
 
     arrangement::ArrangePolygon& ret = *(arrangement::ArrangePolygon*)ap;
     ret.poly = std::move(footprint);
+    ret.physical_parts = std::move(physical_parts);
     ret.translation  = Vec2crd{scaled(get_offset(X)), scaled(get_offset(Y))};
     ret.rotation     = get_rotation(Z);
 

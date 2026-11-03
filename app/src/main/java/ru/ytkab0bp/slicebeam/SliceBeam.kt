@@ -469,6 +469,22 @@ open class SliceBeam : Application() {
                 )
             }
             ru.ytkab0bp.slicebeam.config.SliceTemperatureNormalizer.fillMissingBedSurfaceTemperatures(singleObject)
+
+            // A persisted Kobra 3 V2 profile may predate the startup migration (or fail to save it).
+            // Sanitize the final temporary slice config so staged profile values cannot reintroduce
+            // its legacy fixed K command and override the selected filament's Pressure Advance.
+            if (ru.ytkab0bp.slicebeam.config.Kobra3V2ProfileMigration.isKobra3V2Profile(
+                    printer.title,
+                    printer["printer_model"],
+                )
+            ) {
+                val startGcode = singleObject["machine_start_gcode"].orEmpty()
+                val sanitizedStartGcode = ru.ytkab0bp.slicebeam.config.Kobra3V2ProfileMigration
+                    .removeLegacyPressureAdvance(startGcode)
+                if (sanitizedStartGcode != startGcode) {
+                    singleObject.put("machine_start_gcode", sanitizedStartGcode)
+                }
+            }
             return singleObject
         }
 

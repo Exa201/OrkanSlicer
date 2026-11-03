@@ -653,6 +653,79 @@ namespace Slic3r {
             obj->ensure_on_bed(false);
         }
 
+        void orient_for_import(ModelObject *obj) {
+            if (obj == nullptr || obj->volumes.empty()) return;
+            const TriangleMesh mesh = obj->mesh();
+            if (mesh.empty()) return;
+
+            // Support-cost auto-orient can make a long, thin object stand upright.
+            // For import nesting, choose the dominant face directions that yield
+            // the smallest Z extent. XY rotation remains the packer's job.
+            const auto normals = its_face_normals(mesh.its);
+            std::unordered_map<uint64_t, std::pair<Vec3f, float>> direction_map;
+            direction_map.reserve(std::min<size_t>(normals.size(), 4096));
+            for (size_t i = 0; i < normals.size(); ++i) {
+                const auto& face = mesh.its.indices[i];
+                const Vec3f edge_a = mesh.its.vertices[face[1]] - mesh.its.vertices[face[0]];
+                const Vec3f edge_b = mesh.its.vertices[face[2]] - mesh.its.vertices[face[0]];
+                const float area = edge_a.cross(edge_b).norm() * 0.5f;
+                if (!(area > 0.f)) continue;
+                Vec3f normal = normals[i].normalized();
+                if (normal.z() < 0.f || (normal.z() == 0.f &&
+                    (normal.y() < 0.f || (normal.y() == 0.f && normal.x() < 0.f)))) normal = -normal;
+                const uint64_t x = static_cast<uint64_t>(std::lround((normal.x() + 1.f) * 1000.f));
+                const uint64_t y = static_cast<uint64_t>(std::lround((normal.y() + 1.f) * 1000.f));
+                const uint64_t z = static_cast<uint64_t>(std::lround((normal.z() + 1.f) * 1000.f));
+                const uint64_t key = x * 2001ULL * 2001ULL + y * 2001ULL + z;
+                auto [entry, inserted] = direction_map.try_emplace(key, normal, 0.f);
+                entry->second.second += area;
+            }
+            if (direction_map.empty()) {
+                orient(obj);
+                return;
+            }
+            std::vector<std::pair<Vec3f, float>> directions;
+            directions.reserve(direction_map.size());
+            for (auto& [key, direction] : direction_map) directions.push_back(direction);
+            std::sort(directions.begin(), directions.end(), [](const auto& lhs, const auto& rhs) {
+                return lhs.second > rhs.second;
+            });
+            if (directions.size() > 8) directions.resize(8);
+
+            double best_height = std::numeric_limits<double>::infinity();
+            double best_footprint = std::numeric_limits<double>::infinity();
+            Vec3d best_normal = Vec3d::UnitZ();
+            for (const auto& [candidate, area] : directions) {
+                (void)area;
+                const Vec3d normal = candidate.cast<double>();
+                const Matrix3d rotation = Eigen::Quaterniond().setFromTwoVectors(normal, Vec3d::UnitZ()).toRotationMatrix();
+                Vec3d min = Vec3d::Constant(std::numeric_limits<double>::infinity());
+                Vec3d max = Vec3d::Constant(-std::numeric_limits<double>::infinity());
+                for (const auto& vertex : mesh.its.vertices) {
+                    const Vec3d point = rotation * vertex.cast<double>();
+                    min = min.cwiseMin(point);
+                    max = max.cwiseMax(point);
+                }
+                const double height = max.z() - min.z();
+                const double footprint = (max.x() - min.x()) * (max.y() - min.y());
+                const double tolerance = std::isfinite(best_height) ? std::max(0.01, best_height * 1e-5) : 0.0;
+                if (!std::isfinite(best_height) || height < best_height - tolerance ||
+                    (std::abs(height - best_height) <= tolerance && footprint < best_footprint)) {
+                    best_height = height;
+                    best_footprint = footprint;
+                    best_normal = normal;
+                }
+            }
+
+            const Transform3d rotation(Eigen::Quaterniond().setFromTwoVectors(best_normal, Vec3d::UnitZ()));
+            for (ModelVolume *volume : obj->volumes) {
+                const Geometry::Transformation& old_transform = volume->get_transformation();
+                volume->set_transformation(old_transform.get_offset_matrix() * rotation * old_transform.get_matrix_no_offset());
+            }
+            obj->invalidate_bounding_box();
+            obj->ensure_on_bed(false);
+        }
+
         void orient(ModelInstance *instance) {
             auto m = instance->get_object()->mesh();
             AutoOrienter orienter(&m);

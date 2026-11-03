@@ -66,6 +66,17 @@ open class Bed3D {
     @Synchronized
     open fun arrange(model: Model): Boolean = Native.bed_arrange(pointer, model.pointer)
 
+    /** Retry dense imports with a small object gap after the normal Orca-style spacing fails. */
+    @Synchronized
+    open fun arrangeCompact(model: Model): Boolean =
+        Native.bed_arrange_with_distance(pointer, model.pointer, 2.0)
+
+    /** Arrange only newly imported objects while keeping existing plate transforms fixed. */
+    @Synchronized
+    open fun arrangeNewObjects(model: Model, firstObject: Int, minDistanceMm: Double = 2.0): Boolean =
+        Native.bed_arrange_new_objects(pointer, model.pointer, firstObject, minDistanceMm)
+
+
     @Synchronized
     open fun getVolumeMin(): Vec3d? {
         if (min == null && boundingVolume != null) {

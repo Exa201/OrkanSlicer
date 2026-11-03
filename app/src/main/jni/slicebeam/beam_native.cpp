@@ -1591,6 +1591,16 @@ extern "C" {
         orientation::orient(obj);
     }
 
+    JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1orient_1for_1import(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = (ModelRef*) (intptr_t) ptr;
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return;
+        ModelObject* obj = model->model.objects[i];
+        if (obj == nullptr || obj->volumes.empty() ||
+            std::any_of(obj->volumes.begin(), obj->volumes.end(),
+                [](const ModelVolume* volume) { return volume == nullptr; })) return;
+        orientation::orient_for_import(obj);
+    }
+
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1is_1big_1object(JNIEnv* env, jclass, jlong ptr, jint i) {
         ModelRef* model = (ModelRef*) (intptr_t) ptr;
         ModelObject* obj = model->model.objects[i];
@@ -3242,7 +3252,7 @@ extern "C" {
         bed_util_init_triangles_its(contour, &tRef->mesh.its);
     }
 
-    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange(JNIEnv* env, jclass, jlong ptr, jlong model) {
+    static jboolean bed_arrange_with_distance(JNIEnv* env, jlong ptr, jlong model, jdouble min_distance_mm) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
 
@@ -3252,7 +3262,7 @@ extern "C" {
             DynamicPrintConfig config = ref->config;
             Points bed = get_bed_shape(config);
             ArrangeParams arrange_cfg;
-            arrange_cfg.min_obj_distance = scaled(6.0);
+            arrange_cfg.min_obj_distance = scaled(std::max(0.0, min_distance_mm));
             // Permit quarter-turn rotations in the bed plane to use otherwise wasted space.
             // This does not change the model's Z orientation.
             arrange_cfg.allow_rotations = true;
@@ -3261,7 +3271,7 @@ extern "C" {
             // that the packer uses for spacing — _arrange() zeroes min_obj_distance and expects every item
             // to be pre-inflated (the desktop does this via update_selected_items_inflation()). Without it,
             // parts pack edge-to-edge. Inflate each real object by half the min distance so neighbouring
-            // parts end up a full min_obj_distance (6mm) apart, which keeps them separable/printable.
+            // parts end up a full min_obj_distance apart.
             ModelInstancePtrs instances;
             ArrangePolygons input = get_arrange_polys(mRef->model, instances);
             const coord_t inflation = arrange_cfg.min_obj_distance / 2;
@@ -3269,6 +3279,8 @@ extern "C" {
                 if (!ap.is_virt_object)
                     ap.inflation = inflation;
             arrangement::arrange(input, bed, arrange_cfg);
+            fill_compound_arrange_gaps(input, bed);
+            validate_arrange_placements(input, bed);
             return apply_arrange_polys(input, instances, throw_if_out_of_bed);
         } catch (const std::exception& e) {
             // If the model cannot fit the bed, it throws "Objects could not fit on the bed".
@@ -3276,6 +3288,36 @@ extern "C" {
             return false;
         }
     }
+
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange(JNIEnv* env, jclass, jlong ptr, jlong model) {
+        return bed_arrange_with_distance(env, ptr, model, 6.0);
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange_1with_1distance(
+            JNIEnv* env, jclass, jlong ptr, jlong model, jdouble min_distance_mm) {
+        return bed_arrange_with_distance(env, ptr, model, min_distance_mm);
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange_1new_1objects(
+            JNIEnv* env, jclass, jlong ptr, jlong model, jint first_object, jdouble min_distance_mm) {
+        BedRef* ref = reinterpret_cast<BedRef*>(static_cast<intptr_t>(ptr));
+        ModelRef* mRef = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(model));
+        if (ref == nullptr || mRef == nullptr || first_object < 0 ||
+            static_cast<size_t>(first_object) >= mRef->model.objects.size() || !std::isfinite(min_distance_mm))
+            return JNI_FALSE;
+        try {
+            const Points bed = get_bed_shape(ref->config);
+            ArrangeParams params;
+            params.min_obj_distance = scaled(std::max(0.0, min_distance_mm));
+            params.allow_rotations = true;
+            return arrange_new_objects(mRef->model, static_cast<size_t>(first_object), bed, params);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(warning) << "Could not arrange newly imported objects: " << e.what();
+            return JNI_FALSE;
+        }
+    }
+
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1get_1bounding_1volume(JNIEnv* env, jclass, jlong ptr) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;

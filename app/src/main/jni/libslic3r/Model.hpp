@@ -490,7 +490,7 @@ public:
 
     // A tighter outline for safe, ordinary closed meshes. Returns empty when a conservative
     // convex hull should be used instead (open, complex, or disconnected geometry).
-    ExPolygon     arrange_footprint_2d(const Transform3d &trafo_instance) const;
+    ExPolygon     arrange_footprint_2d(const Transform3d &trafo_instance, ExPolygons *exact_parts = nullptr) const;
 
     void center_around_origin(bool include_modifiers = true);
     void ensure_on_bed(bool allow_negative_z = false);

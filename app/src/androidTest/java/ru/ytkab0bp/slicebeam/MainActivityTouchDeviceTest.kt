@@ -882,8 +882,8 @@ class MainActivityTouchDeviceTest {
             )
 
             // Dense objects still support safe object-to-object placement without asking the
-            // native surface raycaster for its exact triangle tree. The placement
-            // uses exact object bounds, then combines the assembly as printable multipart data.
+            // native surface raycaster for its exact triangle tree. Placement moves the selected
+            // object onto the target but keeps both objects independently editable.
             val cubeFile = File(context.cacheDir, "touch-test-placement-cube.stl")
             val cubeSourceFile = File(context.cacheDir, "touch-test-placement-cube-source.stl")
             var cubeSource: Model? = null
@@ -897,8 +897,9 @@ class MainActivityTouchDeviceTest {
                 val selectionAccepted = AtomicReference<Boolean>()
                 val targetBefore = AtomicReference<DoubleArray>()
                 val movingHeight = AtomicReference<Double>()
-                val assemblyAfter = AtomicReference<DoubleArray>()
-                val assignedFilaments = AtomicReference<IntArray>()
+                val movingAfter = AtomicReference<DoubleArray>()
+                val targetFilaments = AtomicReference<IntArray>()
+                val movingFilaments = AtomicReference<IntArray>()
                 val glView = requireNotNull(bed).glView!!
                 glView.queueEvent {
                     val renderer = glView.renderer
@@ -916,10 +917,11 @@ class MainActivityTouchDeviceTest {
                     selectionAccepted.set(renderer.setSelectedObject(movingIndex))
                     placementResult.set(renderer.placeSelectedObjectsOnObject(0))
                     val resultMin = Vec3d(); val resultMax = Vec3d()
-                    activeModel.getBoundingBoxExact(0, resultMin, resultMax)
-                    assemblyAfter.set(doubleArrayOf(resultMin.x, resultMin.y, resultMin.z,
+                    activeModel.getBoundingBoxExact(movingIndex, resultMin, resultMax)
+                    movingAfter.set(doubleArrayOf(resultMin.x, resultMin.y, resultMin.z,
                         resultMax.x, resultMax.y, resultMax.z))
-                    assignedFilaments.set(activeModel.getUsedFilaments(0))
+                    targetFilaments.set(activeModel.getUsedFilaments(0))
+                    movingFilaments.set(activeModel.getUsedFilaments(movingIndex))
                     glView.requestRender()
                     placementReady.countDown()
                 }
@@ -927,15 +929,20 @@ class MainActivityTouchDeviceTest {
                     placementReady.await(20, TimeUnit.SECONDS))
                 assertTrue("the generated object should become the selected moving object",
                     requireNotNull(selectionAccepted.get()))
-                assertEquals("the M12 and selected cube should combine into one object", 0,
+                assertEquals("surface placement should succeed without combining the objects", 1,
                     requireNotNull(placementResult.get()))
                 val before = requireNotNull(targetBefore.get())
-                val after = requireNotNull(assemblyAfter.get())
-                assertEquals("the placed cube must sit on the M12 bounding top without overlap",
+                val after = requireNotNull(movingAfter.get())
+                assertEquals("the moving cube must sit on the M12 bounding top without overlap",
+                    before[5], after[2], 0.03)
+                assertEquals("the moving cube must retain its original height",
                     before[5] + requireNotNull(movingHeight.get()), after[5], 0.03)
-                assertEquals("the assembly must retain the M12 bottom", before[2], after[2], 0.03)
-                assertArrayEquals("the printable multipart assembly must retain assigned materials",
-                    intArrayOf(1, 2), requireNotNull(assignedFilaments.get()))
+                assertEquals("surface placement must keep the M12 and cube independently editable", 2,
+                    requireNotNull(bed).currentModel?.objectsCount)
+                assertArrayEquals("surface placement must preserve the target material", intArrayOf(1),
+                    requireNotNull(targetFilaments.get()))
+                assertArrayEquals("surface placement must preserve the moving object's material", intArrayOf(2),
+                    requireNotNull(movingFilaments.get()))
                 scenario.onActivity { requireNotNull(bed).updateModel() }
             } finally {
                 cubeSource?.release()

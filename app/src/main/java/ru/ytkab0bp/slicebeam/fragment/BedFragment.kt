@@ -2425,7 +2425,7 @@ private fun refreshPlateThumbnails() {
     }
 }
 @Throws(Slic3rRuntimeError::class)
-@JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null, stepOptions:StepImportOptions? = null, autoOrientImportedModels:Boolean = false) {
+@JvmOverloads fun loadModel(f:File, preserveProjectLayout:Boolean = false, plateCount:Int = 1, callback:ModelLoadCallback? = null, stepOptions:StepImportOptions? = null, autoOrientImportedModels:Boolean = true) {
 if (destroyed || modelLoadInProgress)
 {
 if (callback != null)
@@ -2605,24 +2605,22 @@ private fun loadModelInternal(
             }
 
             val existing = platesModels.getOrNull(currentPlateIndex)
-            // Keep a newly opened project's stored 3MF coordinates intact. If a project is
-            // imported into an already populated plate, however, it is an additional model
-            // load: run it through the normal packer so objects are placed on the bed and
-            // overflow is moved to automatically created plates instead of preserving stale
-            // coordinates on top of the existing workspace.
-            if (preserveProjectLayout && (existing == null || existing.objectsCount == 0)) {
+            // Keep the authored layout only for a real multi-plate project. A single-plate
+            // 3MF is an imported model and follows the packer, just like STL and STEP files.
+            // Keep an actual multi-plate project's authored plate layout. A single-plate 3MF
+            // opened as a model must use the same orient/drop/arrange path as STL and STEP;
+            // otherwise saved coordinates can leave objects off-bed and bypass overflow plates.
+            if (preserveProjectLayout && totalPlates > 1 && (existing == null || existing.objectsCount == 0)) {
                 if (existing != null && existing !== imported) existing.release()
-                if (totalPlates > 1) {
-                    val fileBed = DoubleArray(2)
-                    val haveProjectBed = readProjectBedSize(f, fileBed)
-                    val bedW = if (haveProjectBed) fileBed[0] else bed.getVolumeMax()!!.x - bed.getVolumeMin()!!.x
-                    val bedD = if (haveProjectBed) fileBed[1] else bed.getVolumeMax()!!.y - bed.getVolumeMin()!!.y
-                    val origin = DoubleArray(2)
-                    computePlateOrigin(currentPlateIndex, computePlateCols(totalPlates), bedW, bedD, origin)
-                    if (origin[0] != 0.0 || origin[1] != 0.0)
-                        repeat(imported.objectsCount) { imported.translate(it, -origin[0], -origin[1], 0.0) }
-                    imported.resetBoundingBox()
-                }
+                val fileBed = DoubleArray(2)
+                val haveProjectBed = readProjectBedSize(f, fileBed)
+                val bedW = if (haveProjectBed) fileBed[0] else bed.getVolumeMax()!!.x - bed.getVolumeMin()!!.x
+                val bedD = if (haveProjectBed) fileBed[1] else bed.getVolumeMax()!!.y - bed.getVolumeMin()!!.y
+                val origin = DoubleArray(2)
+                computePlateOrigin(currentPlateIndex, computePlateCols(totalPlates), bedW, bedD, origin)
+                if (origin[0] != 0.0 || origin[1] != 0.0)
+                    repeat(imported.objectsCount) { imported.translate(it, -origin[0], -origin[1], 0.0) }
+                imported.resetBoundingBox()
                 platesModels.set(currentPlateIndex, imported)
                 viewport.renderer.model = imported
                 viewport.renderer.resetGlModels()
@@ -2645,18 +2643,25 @@ private fun loadModelInternal(
                 // A 3MF opened into an empty workspace keeps its saved orientation and
                 // placement. When it is added to a populated workspace, orient its new
                 // objects too, then calculate their packed footprint from that orientation.
-                if (autoOrientImportedModels || preserveProjectLayout) imported.autoOrient(index)
+                if (autoOrientImportedModels || preserveProjectLayout) imported.orientForImport(index)
                 imported.getTranslation(index, translation)
                 imported.getBoundingBoxExact(index, min, max)
-                imported.translate(index, translation.x, translation.y, -translation.z + (max.z - min.z) / 2.0)
+                // STL vertices may retain a distant world-space origin from the source CAD
+                // assembly. getTranslation() is the exact geometry center, not the instance
+                // offset, so adding it again doubles that offset and makes Arrange believe even
+                // a small part cannot fit. Normalize the imported object's center to XY zero;
+                // the packer then places it on the bed and the Z delta seats its bottom at zero.
+                imported.translate(index, -translation.x, -translation.y,
+                    -translation.z + (max.z - min.z) / 2.0)
             }
 
             var target = existing ?: Model()
-            var targetIsNew = existing == null
             if (existing == null) platesModels.set(currentPlateIndex, target)
+            val initialTarget = target
             var finalFirstNew = target.objectsCount
             var finalAddedCount = 0
             var finalTarget: Model? = null
+            var finalDestinationPlate = currentPlateIndex
             val automaticallyCreated = ArrayList<Model>()
             var objectsTooLargeForBed = 0
 
@@ -2664,30 +2669,65 @@ private fun loadModelInternal(
             // Most imports fit on the current plate. Arrange that common case once instead
             // of running the full packer after every object (quadratic work on large 3MFs).
             repeat(sourceCount) { target.addObject(imported, it) }
-            if (bed.arrange(target)) {
+            // Prefer compact packing so the 6 mm safety gap does not waste usable bed
+            // area when the smaller, still-positive 2 mm object separation is sufficient.
+            // Retain the normal Orca spacing as a fallback for geometry/configurations
+            // that cannot be arranged with the compact gap. Native arrangement first tries to
+            // leave existing placements fixed, then repacks the plate only as part of this
+            // explicit import operation if the incoming objects otherwise cannot fit.
+            val importedArranged = bed.arrangeNewObjects(target, originalTargetObjectCount, 2.0) ||
+                bed.arrangeNewObjects(target, originalTargetObjectCount, 6.0)
+            if (importedArranged) {
                 finalTarget = target
                 finalFirstNew = originalTargetObjectCount
                 finalAddedCount = sourceCount
             } else {
                 // ModelArrange commits only complete one-bed arrangements. Remove the failed
-                // batch and retry object-by-object only for the uncommon overflow case.
+                // batch and retry object-by-object only for the uncommon overflow case. During
+                // import, revisit every already populated plate before creating an overflow
+                // plate; otherwise a part that misses the most recently selected plate can leave
+                // large free areas stranded on earlier plates.
                 while (target.objectsCount > originalTargetObjectCount)
                     target.deleteObject(target.objectsCount - 1)
 
                 for (sourceIndex in 0 until sourceCount) {
-                    target.addObject(imported, sourceIndex)
-                    var destinationIndex = target.objectsCount - 1
-                    if (!bed.arrange(target)) {
-                        target.deleteObject(destinationIndex)
+                    val plateCandidates = buildList {
+                        add(currentPlateIndex to initialTarget.takeIf { currentPlateIndex < platesModels.size })
+                        platesModels.forEachIndexed { index, model ->
+                            if (index != currentPlateIndex && model != null) add(index to model)
+                        }
+                        automaticallyCreated.forEachIndexed { index, model ->
+                            add((platesModels.size + index) to model)
+                        }
+                    }.distinctBy { it.second }
+                    var placed = false
+                    var destinationIndex = 0
+                    var destinationPlate = -1
+                    for ((plateIndex, plateModel) in plateCandidates) {
+                        val candidatePlate = plateModel ?: continue
+                        destinationIndex = candidatePlate.objectsCount
+                        candidatePlate.addObject(imported, sourceIndex)
+                        if (bed.arrangeNewObjects(candidatePlate, destinationIndex, 2.0) ||
+                            bed.arrangeNewObjects(candidatePlate, destinationIndex, 6.0)) {
+                            target = candidatePlate
+                            destinationPlate = plateIndex
+                            placed = true
+                            break
+                        }
+                        candidatePlate.deleteObject(candidatePlate.objectsCount - 1)
+                    }
+
+                    if (!placed) {
                         val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
-                        if (!bed.arrange(nextPlate)) {
+                        if (!bed.arrangeNewObjects(nextPlate, 0, 2.0) &&
+                            !bed.arrangeNewObjects(nextPlate, 0, 6.0)) {
                             centerObjectOnBed(nextPlate, 0, bed)
                             objectsTooLargeForBed++
                         }
                         automaticallyCreated.add(nextPlate)
                         target = nextPlate
-                        targetIsNew = true
                         destinationIndex = 0
+                        destinationPlate = platesModels.size + automaticallyCreated.lastIndex
                     }
 
                     if (finalTarget !== target) {
@@ -2697,6 +2737,7 @@ private fun loadModelInternal(
                     } else {
                         finalAddedCount++
                     }
+                    finalDestinationPlate = destinationPlate
                 }
             }
             imported.release()
@@ -2705,6 +2746,7 @@ private fun loadModelInternal(
             val completedFirstNew = finalFirstNew
             val completedAddedCount = finalAddedCount
             val completedTooLargeCount = objectsTooLargeForBed
+            val completedDestinationPlate = finalDestinationPlate
 
             fun finishOnGlThread() {
                 viewport.renderer.setCurrentPlateIndex(currentPlateIndex)
@@ -2721,8 +2763,17 @@ private fun loadModelInternal(
             }
 
             if (automaticallyCreated.isEmpty()) {
-                if (!targetIsNew) platesModels.set(currentPlateIndex, completedTarget)
-                finishOnGlThread()
+                if (completedDestinationPlate != currentPlateIndex) {
+                    ViewUtils.postOnMainThread {
+                        if (destroyed || viewport !== glView) return@postOnMainThread
+                        currentPlateIndex = completedDestinationPlate
+                        updatePlateIndicator()
+                        pushPlatesToRenderer()
+                        viewport.queueEvent { finishOnGlThread() }
+                    }
+                } else {
+                    finishOnGlThread()
+                }
             } else {
                 ViewUtils.postOnMainThread {
                     if (destroyed || viewport !== glView) {
@@ -2734,7 +2785,7 @@ private fun loadModelInternal(
                         projectPlateIds.add(0)
                     }
                     totalPlates = platesModels.size
-                    currentPlateIndex = platesModels.lastIndex
+                    currentPlateIndex = completedDestinationPlate.coerceIn(0, platesModels.lastIndex)
                     platePreviewRevision++
                     updatePlateIndicator()
                     SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.INFO,

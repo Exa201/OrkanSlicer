@@ -527,6 +527,91 @@ void orient(ModelObject* obj)
     obj->ensure_on_bed();
 }
 
+void orient_for_import(ModelObject* obj)
+{
+    if (obj == nullptr || obj->volumes.empty())
+        return;
+
+    // AutoOrienter's support-cost model may prefer a vertical face even when that
+    // makes a long, thin part stand upright. For import-time nesting select a
+    // dominant planar face direction that produces the lowest bounding height;
+    // the XY packer then rotates the footprint to fit the bed.
+    const TriangleMesh mesh = obj->mesh();
+    if (mesh.empty())
+        return;
+
+    const auto normals = its_face_normals(mesh.its);
+    const auto& areas = mesh.its;
+    std::vector<std::pair<Vec3f, float>> directions;
+    constexpr float normal_cluster_dot = 0.9995f;
+    for (size_t i = 0; i < normals.size(); ++i) {
+        const float area = areas.facet_area(i);
+        if (!(area > 0.f)) continue;
+        Vec3f normal = normals[i].normalized();
+        if (normal.z() < 0.f || (normal.z() == 0.f &&
+            (normal.y() < 0.f || (normal.y() == 0.f && normal.x() < 0.f)))) normal = -normal;
+        auto found = std::find_if(directions.begin(), directions.end(), [&](const auto& direction) {
+            return std::abs(direction.first.dot(normal)) >= normal_cluster_dot;
+        });
+        if (found == directions.end()) directions.emplace_back(normal, area);
+        else found->second += area;
+    }
+
+    if (directions.empty()) {
+        // Curved/no-planar-base models still benefit from Orca's support-aware
+        // orientation; retain that fallback for geometries without a flat face.
+        orient(obj);
+        return;
+    }
+
+    // Keep only the strongest face directions. A mesh with many curved triangles
+    // may otherwise produce thousands of nearly unique candidates.
+    std::sort(directions.begin(), directions.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.second > rhs.second;
+    });
+    if (directions.size() > 24) directions.resize(24);
+
+    const auto& vertices = mesh.its.vertices;
+    double best_height = std::numeric_limits<double>::infinity();
+    double best_footprint = std::numeric_limits<double>::infinity();
+    Vec3d best_normal(0.0, 0.0, 1.0);
+    for (const auto& [candidate, area] : directions) {
+        (void)area;
+        const Vec3d normal = candidate.cast<double>();
+        Vec3d axis;
+        double angle;
+        Matrix3d rotation;
+        Geometry::rotation_from_two_vectors(normal, Vec3d(0.0, 0.0, 1.0), axis, angle, &rotation);
+        double min_x = std::numeric_limits<double>::infinity();
+        double min_y = std::numeric_limits<double>::infinity();
+        double min_z = std::numeric_limits<double>::infinity();
+        double max_x = -min_x, max_y = -min_y, max_z = -min_z;
+        for (const auto& vertex : vertices) {
+            const Vec3d point = rotation * vertex.cast<double>();
+            min_x = std::min(min_x, point.x()); max_x = std::max(max_x, point.x());
+            min_y = std::min(min_y, point.y()); max_y = std::max(max_y, point.y());
+            min_z = std::min(min_z, point.z()); max_z = std::max(max_z, point.z());
+        }
+        const double height = max_z - min_z;
+        const double footprint = (max_x - min_x) * (max_y - min_y);
+        const double height_tolerance = std::isfinite(best_height) ? std::max(0.01, best_height * 1e-5) : 0.0;
+        if (!std::isfinite(best_height) || height < best_height - height_tolerance ||
+            (std::abs(height - best_height) <= height_tolerance && footprint < best_footprint)) {
+            best_height = height;
+            best_footprint = footprint;
+            best_normal = normal;
+        }
+    }
+
+    const Vec3d target_normal(0.0, 0.0, 1.0);
+    Vec3d axis;
+    double angle;
+    Geometry::rotation_from_two_vectors(best_normal, target_normal, axis, angle);
+    if (std::abs(angle) > EPSILON)
+        obj->rotate(angle, axis);
+    obj->ensure_on_bed();
+}
+
 void orient(ModelInstance* instance)
 {
     auto m = instance->get_object()->mesh();

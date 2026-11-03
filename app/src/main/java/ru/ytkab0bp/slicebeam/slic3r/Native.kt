@@ -88,6 +88,10 @@ class Native {
     @JvmStatic
     external fun bed_arrange(ptr: Long, modelPtr: Long): Boolean
     @JvmStatic
+    external fun bed_arrange_with_distance(ptr: Long, modelPtr: Long, minDistanceMm: Double): Boolean
+    @JvmStatic
+    external fun bed_arrange_new_objects(ptr: Long, modelPtr: Long, firstObject: Int, minDistanceMm: Double): Boolean
+    @JvmStatic
     external fun bed_release(ptr: Long): Unit
     @JvmStatic
     external fun models_merge(vararg ptrs: Long): Long
@@ -193,6 +197,8 @@ class Native {
     external fun model_get_cut_connector_count(ptr: Long, objIdx: Int): Int
     @JvmStatic
     external fun model_auto_orient(ptr: Long, i: Int): Unit
+    @JvmStatic
+    external fun model_orient_for_import(ptr: Long, i: Int): Unit
     @JvmStatic
     external fun model_is_big_object(ptr: Long, i: Int): Boolean
     @JvmStatic
