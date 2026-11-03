@@ -2948,7 +2948,7 @@ extern "C" {
         GLModelRef* ref = (GLModelRef*) (intptr_t) ptr;
         ModelRef* modelRef = (ModelRef*) (intptr_t) modelPtr;
 
-        const BoundingBoxf3& box = modelRef->model.objects[i]->bounding_box_approx();
+        const BoundingBoxf3& box = modelRef->model.objects[i]->bounding_box_exact();
         const BoundingBoxf3& curr_box = ref->model.get_bounding_box();
         if (!ref->model.is_initialized() || !is_approx(box.min, curr_box.min) || !is_approx(box.max, curr_box.max)) {
             ref->model.reset();
