@@ -6,7 +6,7 @@
 - Settlers archive API-36 production import test passed: 109/109 models, 15 plates (previous stable-order baseline: 16), every object within bed bounds, all 622 same-plate mesh pairs collision-free. Test XML: 1 test, 0 failures/errors/skips; Gradle task successful (7m 1s). ZIP SHA-256 remains `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`.
 - Experimental fullest-plate-first selection was rejected: the partial Settlers run was already at 15 plates by model 74/109 versus 14 at 79/109 with the retained policy, while incurring more arrangement trials. The experiment was stopped and fully reverted; do not count it as a passing test or shipped change.
 - `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: each 743 tests, 0 failures, 0 errors, 0 skipped. `git diff --check` clean. Separate free movement/undo and explicit Arrange verification remains unchanged from the prior entry.
-- The feature and tests are currently local changes; no APK or release was created for this nesting follow-up. Orca Batch 9 remains 9/10.
+- Implemented and pushed as `674e8d05e6` on `nightly-2.5`; no APK or release was created for this nesting follow-up. Orca Batch 9 remains 9/10.
 
 ## Import-nesting priority follow-up — verified 2026-11-03
 
