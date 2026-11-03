@@ -462,6 +462,32 @@ extern "C" {
         return output;
     }
 
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_filament_1variant_1resize_1regression_1probe(
+            JNIEnv *env, jclass) {
+        using namespace Slic3r;
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {
+            "Direct Drive Standard", "High Flow"};
+        config.option<ConfigOptionStrings>("volumetric_speed_coefficients", true)->values = {"10", "20"};
+
+        // One filament slot with two nozzle variants must retain both values.
+        config.set_num_filaments(1);
+        const auto &variants = config.option<ConfigOptionStrings>("filament_extruder_variant")->values;
+        const auto &coefficients = config.option<ConfigOptionStrings>("volumetric_speed_coefficients")->values;
+        const bool preserved = variants == std::vector<std::string>{"Direct Drive Standard", "High Flow"} &&
+                              coefficients == std::vector<std::string>{"10", "20"};
+        const std::array<jint, 4> values{
+            preserved ? 1 : 0,
+            static_cast<jint>(variants.size()),
+            static_cast<jint>(coefficients.size()),
+            static_cast<jint>(config.option<ConfigOptionStrings>("filament_type")->size()),
+        };
+        jintArray output = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (output != nullptr)
+            env->SetIntArrayRegion(output, 0, static_cast<jsize>(values.size()), values.data());
+        return output;
+    }
+
     JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_painted_1segmentation_1state_1count_1probe(
             JNIEnv *env, jclass, jint filamentCount, jint colorCount) {
         const std::array<jint, 3> values{

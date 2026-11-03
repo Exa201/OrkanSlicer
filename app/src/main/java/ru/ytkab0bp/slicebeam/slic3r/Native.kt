@@ -86,6 +86,9 @@ class Native {
     /** Regression probe for CGAL conversion of meshes with isolated vertex indices. */
     @JvmStatic
     external fun mesh_boolean_isolated_vertices_probe(): DoubleArray
+    /** Verifies changing the filament count does not truncate per-nozzle variant values. */
+    @JvmStatic
+    external fun filament_variant_resize_regression_probe(): IntArray
     /** Checks the production gate for the optional curled-extrusion estimation pass. */
     @JvmStatic
     external fun curled_extrusion_estimation_policy_probe(): IntArray

@@ -1,4 +1,11 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 5/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 6/10 verifizierte Punkte — 2026-11-03
+
+## Orca Batch 10 Punkt 6 — Filament-Varianten beim Ändern der Slotzahl erhalten
+
+- Portiert Orca `45a29d391b8d`: `DynamicPrintConfig::set_num_filaments()` skaliert jetzt keine variantenspezifischen Filamentwerte anhand der Slotzahl. So bleiben mehrdimensionale Werte wie `volumetric_speed_coefficients` und die Düsenversionen beim Profil-/Slotwechsel erhalten, statt auf den ersten Eintrag gekürzt zu werden.
+- `NativeSliceDeviceTest#changingFilamentCountPreservesEveryNozzleVariantValue` prüft den Produktionspfad über JNI: ein Slot mit zwei Variantennamen und zwei Volumenstromwerten behält beide Werte nach `set_num_filaments(1)`.
+- ARM64-Native-/Debug- und SliceTest-Instrumentierungsbuild erfolgreich. API-36-Test: 1/1 bestanden. Debug-Unit und Slice-Unit: jeweils 743/743 bestanden, 0 Fehler/Skips. `git diff --check` sauber.
+- Quelländerung ist noch nicht committed oder veröffentlicht. Batch 10 steht jetzt bei **6/10**; vier weitere unabhängige Android-taugliche Orca-Punkte sind vor dem Batch-APK/Pre-Release zu verifizieren.
 
 ## Orca Batch 10 Punkt 5 — Facettenmalerei nach Loop-Unterteilung erhalten
 
@@ -7,7 +14,7 @@
 - `TwoColorProjectDeviceTest#paintedFilamentAssignmentsSurviveSmoothMeshMultipartJoinThreeMfRoundTripAndSlice`: 1/1 auf API 36 bestanden. Nach Glättung bleiben Filamentzuweisungen und Farb-Overlay vorhanden; 3MF-Export/Import bewahrt die Malerei und nativer Slice enthält weiterhin den T1-Werkzeugwechsel.
 - `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743 bestanden. Das APK wurde nach dem Quellcommit `59313276b9a70c50e1faeb46590b9fafead04d60` als Version 0.8.429/Code 464 gebaut, auf API 36 installiert und gestartet.
 - APK `OrkanSlicerNightly25_59313276b9.apk`, 240.355.984 Bytes, SHA-256 `3792bfb109c9afd2bacbba007d9fa8e81990742c8fc17add6419baab4b79d0f1`; veröffentlicht mit Sidecar als [Prerelease v0.8.429-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.429-nightly.1). Es gab in den geprüften Startlogs keinen Crash, ANR, OOM oder Fatal Signal. Ein physisches Xiaomi/Honor wurde in diesem Durchgang nicht getestet.
-- Nächster konkreter Schritt: Batch 10 mit einem sechsten unabhängigen, Android-erreichbaren Orca-Punkt fortsetzen; erst nach 10/10 den vollständigen Batch-Regressionstest ausführen.
+- Nächster konkreter Schritt: Batch 10 mit einem siebten unabhängigen, Android-erreichbaren Orca-Punkt fortsetzen; erst nach 10/10 den vollständigen Batch-Regressionstest ausführen.
 
 ## Verifizierter APK-Refresh (2026-11-03)
 

@@ -106,6 +106,16 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun changingFilamentCountPreservesEveryNozzleVariantValue() {
+        val result = Native.filament_variant_resize_regression_probe()
+        assertArrayEquals(
+            "variant-bearing values are sized by the preset's slot/variant layout, not slot count",
+            intArrayOf(1, 2, 2, 1),
+            result,
+        )
+    }
+
+    @Test
     fun curledExtrusionEstimationIsSkippedUnlessBothFeaturesAreEnabled() {
         assertArrayEquals(
             "curl estimation is only needed when overhang speed and curled-perimeter slowdown are both active",

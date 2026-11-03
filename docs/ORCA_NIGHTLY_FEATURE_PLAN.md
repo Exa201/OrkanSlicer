@@ -1,4 +1,10 @@
-## Nightly Batch 10 — 4/10 Punkte verifiziert (Stand 2026-11-03)
+## Nightly Batch 10 — 6/10 Punkte verifiziert (Stand 2026-11-03)
+
+### Punkt 6/10 — Variantenspezifische Filamentwerte bei Slotänderungen erhalten
+
+Portiert Orca `45a29d391b8d`: `DynamicPrintConfig::set_num_filaments()` darf Optionen aus `filament_options_with_variant` nicht auf die Anzahl logischer Filamentslots verkürzen. Ein JNI-Regressionstest ließ einen Slot mit zwei Varianten durch den echten Resize-Aufruf laufen und bestätigte beide Variantennamen und `volumetric_speed_coefficients` danach unverändert.
+
+API-36 Instrumentierung 1/1; ARM64-Nativbuild, Debug-APK-Build und SliceTest-Instrumentierungsbuild erfolgreich. Debug-/Slice-JVM-Suiten jeweils 743/743 ohne Fehler oder Skips. Der Punkt ist noch nicht committed oder ausgeliefert. Vier weitere verifizierte Punkte sind vor dem Batch-APK/Pre-Release erforderlich.
 
 ### Punkt 4/10 — Arrange nutzt die verfügbare Bettfläche für nahezu bettgroße Modelle
 

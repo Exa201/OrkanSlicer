@@ -8885,6 +8885,11 @@ void DynamicPrintConfig::set_num_filaments(unsigned int num_filaments)
             // Don't resize this field, as it is presented to the user at the "Dependencies" page of the Printer profile and we don't want to present
             // empty fields there, if not defined by the system profile.
             continue;
+        // Variant-bearing filament values are indexed by (slot, variant), not by slot alone.
+        // Resizing them to the slot count silently discards the other nozzle variants when a
+        // multi-variant preset is loaded or its filament count changes.
+        if (filament_options_with_variant.count(key) != 0)
+            continue;
         auto* opt = this->option(key, false);
         assert(opt != nullptr);
         assert(opt->is_vector());
