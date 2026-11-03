@@ -1,4 +1,18 @@
-## Nightly Batch 11 — Punkt 1/10 (Stand 2026-11-03)
+## Nightly Batch 11 — Punkt 2/10 (Stand 2026-11-03)
+
+### Punkt 2/10 — Spiral-Vase-Slicing bei Höhenbereichs-Overrides
+
+Android-Port von Orca `896557bce`. Die Auswahl des größten Außenkontur-Schnitts und die
+Schwelle für reguläre Bodenschichten werden nun auch bei mehreren Slice-Regionen aus
+`layer_ranges` ermittelt. Damit bleibt die Vase-Geometrie korrekt, wenn ein Objekt lokale
+Höhenbereichs-Overrides besitzt.
+
+`NativeSliceDeviceTest#spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode`
+bestand auf Android 16/API 36 (1/1, 0 Fehler/Skips): tatsächlicher G-Code enthält Extrusionen
+und mehrere Layer, aber keine inneren Wände oberhalb der Vase-Bodenschicht. Der bisherige
+Android-Pfad setzte den Vase-Schnittmodus nur bei genau einer Slice-Region.
+
+### Punkt 1/10 — Adaptive Pressure Advance ohne Messwerte
 
 Orca `2cb2f0d2e710931b835d1b31282479686d961b47` trennt bei Adaptive Pressure Advance
 den Fall eines leeren beziehungsweise ausschließlich aus Nullwerten bestehenden Modells

@@ -162,26 +162,31 @@ static std::vector<VolumeSlices> slice_volumes_inner(
             MeshSlicingParamsEx params { params_base };
             if (! model_volume->is_negative_volume())
                 params.extra_offset = extra_offset;
+            if (model_volume->is_model_part() && print_config.spiral_vase) {
+                if (const auto layer_range_it = std::find_if(layer_ranges.begin(), layer_ranges.end(),
+                        [model_volume](const auto &layer_range) { return layer_range.has_volume(model_volume->id()); });
+                    layer_range_it != layer_ranges.end()) {
+                    if (const auto volume_region_it = std::find_if(layer_range_it->volume_regions.begin(), layer_range_it->volume_regions.end(),
+                            [model_volume](const auto &slice) { return model_volume == slice.model_volume; });
+                        volume_region_it != layer_range_it->volume_regions.end()) {
+                        params.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
+                        // Keep this threshold aligned with the vase-mode wall handling in LayerRegion.
+                        const PrintRegionConfig &region_config = volume_region_it->region->config();
+                        params.slicing_mode_normal_below_layer = size_t(region_config.bottom_solid_layers.value);
+                        for (; params.slicing_mode_normal_below_layer < zs.size() &&
+                               zs[params.slicing_mode_normal_below_layer] < region_config.bottom_solid_min_thickness - EPSILON;
+                             ++params.slicing_mode_normal_below_layer);
+                    }
+                }
+            }
             if (layer_ranges.size() == 1) {
                 if (const PrintObjectRegions::LayerRangeRegions &layer_range = layer_ranges.front(); layer_range.has_volume(model_volume->id())) {
-                    if (model_volume->is_model_part() && print_config.spiral_vase) {
-                        auto it = std::find_if(layer_range.volume_regions.begin(), layer_range.volume_regions.end(), 
-                            [model_volume](const auto &slice){ return model_volume == slice.model_volume; });
-                        params.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
-                        // Slice the bottom layers with SlicingMode::Regular.
-                        // This needs to be in sync with LayerRegion::make_perimeters() spiral_vase!
-                        const PrintRegionConfig &region_config = it->region->config();
-                        params.slicing_mode_normal_below_layer = size_t(region_config.bottom_solid_layers.value);
-                        for (; params.slicing_mode_normal_below_layer < zs.size() && zs[params.slicing_mode_normal_below_layer] < region_config.bottom_solid_min_thickness - EPSILON;
-                            ++ params.slicing_mode_normal_below_layer);
-                    }
                     out.push_back({
                         model_volume->id(), 
                         slice_volume(*model_volume, zs, params, throw_on_cancel_callback)
                     });
                 }
             } else {
-                assert(! print_config.spiral_vase);
                 slicing_ranges.clear();
                 for (const PrintObjectRegions::LayerRangeRegions &layer_range : layer_ranges)
                     if (layer_range.has_volume(model_volume->id()))

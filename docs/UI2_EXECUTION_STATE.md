@@ -1,4 +1,10 @@
-# Nightly 2.5 Fortsetzung — Batch 11, Punkt 1/10 verifiziert — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 2/10 verifiziert — 2026-11-03
+
+## Batch 11 — Punkt 2/10: Spiral-Vase über Höhenbereiche
+
+- Android-Port von Orca `896557bce`: Vase-Modus bestimmt jetzt auch dann den größten Außenkontur-Schnitt und die regulären unteren Bodenschichten, wenn ein Modell in mehrere Slice-Regionen/Höhenbereiche zerfällt. Der frühere Android-Pfad ließ den Spezialmodus bei mehreren Regionen aus und enthielt nur eine deaktivierte Assert-Schranke.
+- Verhaltenstest `NativeSliceDeviceTest#spiralVaseAcceptsSingleFilamentHeightRangeOverrideAndProducesGcode`: API 36 bestanden (1/1, 0 Fehler/Skips); der Slice erzeugt Extrusionen, mehrere Layer und keine inneren Wände oberhalb der konfigurierten unteren Vase-Schicht.
+- `git diff --check` sauber. Punkt 2/10; Batch-Regression, APK und Nightly-Release sind bis 10/10 offen.
 
 ## Stabilitäts-Folgefix: Auswahlrahmen nach Objektverschiebung
 
