@@ -732,6 +732,18 @@ class MainActivityTouchDeviceTest {
             assertEquals("Dragging must not offset the selection tile away from the mesh on Y",
                 boundsMaxAfterLongPressDrag.y - boundsMinAfterLongPressDrag.y,
                 boundsMaxBeforeLongPressDrag.y - boundsMinBeforeLongPressDrag.y, 0.01)
+            val releasePick = AtomicInteger(-2)
+            val releasePickReady = CountDownLatch(1)
+            glView.queueEvent {
+                val surfaceX = (dragPoint.first + 45f) * glView.renderer.viewportWidth / glView.width
+                val surfaceY = (dragPoint.second + 35f) * glView.renderer.viewportHeight / glView.height
+                releasePick.set(glView.renderer.raycastObjectIndex(surfaceX, surfaceY))
+                releasePickReady.countDown()
+            }
+            assertTrue("The GL thread should verify the object beneath the released pointer",
+                releasePickReady.await(5, TimeUnit.SECONDS))
+            assertEquals("The rendered object must remain beneath the final drag point after commit",
+                0, releasePick.get())
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
