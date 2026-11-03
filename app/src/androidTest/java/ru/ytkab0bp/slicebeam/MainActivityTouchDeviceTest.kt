@@ -638,12 +638,27 @@ class MainActivityTouchDeviceTest {
             }
             SystemClock.sleep(350L)
 
+            val transformedModel = CountDownLatch(1)
+            glView.queueEvent {
+                // Exercise the user-visible drag path with a transform that makes local-space
+                // translation differ from build-plate/world-space translation.
+                model.rotate(0, 0.0, 0.0, Math.toRadians(37.0))
+                model.scale(0, 1.7, 0.65, 1.25)
+                glView.renderer.invalidateGlModel(0)
+                glView.requestRender()
+                transformedModel.countDown()
+            }
+            assertTrue("The transformed model must be ready before the drag", transformedModel.await(5, TimeUnit.SECONDS))
+
             val downTime = SystemClock.uptimeMillis()
             val translationBeforeLongPressDrag = Vec3d()
+            val boundsMinBeforeLongPressDrag = Vec3d()
+            val boundsMaxBeforeLongPressDrag = Vec3d()
             val expectedDragDelta = Vec3d()
             val translationReady = CountDownLatch(1)
             glView.queueEvent {
                 model.getTranslation(0, translationBeforeLongPressDrag)
+                model.getBoundingBoxExact(0, boundsMinBeforeLongPressDrag, boundsMaxBeforeLongPressDrag)
                 val sx = glView.renderer.viewportWidth.toFloat() / glView.width
                 val sy = glView.renderer.viewportHeight.toFloat() / glView.height
                 val startX = hit.first * sx
@@ -684,9 +699,12 @@ class MainActivityTouchDeviceTest {
             }
             awaitRendererQueue(glView)
             val translationAfterLongPressDrag = Vec3d()
+            val boundsMinAfterLongPressDrag = Vec3d()
+            val boundsMaxAfterLongPressDrag = Vec3d()
             val moved = CountDownLatch(1)
             glView.queueEvent {
                 model.getTranslation(0, translationAfterLongPressDrag)
+                model.getBoundingBoxExact(0, boundsMinAfterLongPressDrag, boundsMaxAfterLongPressDrag)
                 moved.countDown()
             }
             assertTrue("Long-press drag should commit the moved model on GL", moved.await(5, TimeUnit.SECONDS))
@@ -697,6 +715,16 @@ class MainActivityTouchDeviceTest {
                 translationBeforeLongPressDrag.x + expectedDragDelta.x, translationAfterLongPressDrag.x, 0.05)
             assertEquals("Dragged mesh Y must follow the released screen point at the picked surface height",
                 translationBeforeLongPressDrag.y + expectedDragDelta.y, translationAfterLongPressDrag.y, 0.05)
+            assertEquals("The object's displayed bounds must follow the released point on X",
+                expectedDragDelta.x, boundsMinAfterLongPressDrag.x - boundsMinBeforeLongPressDrag.x, 0.05)
+            assertEquals("The object's displayed bounds must follow the released point on Y",
+                expectedDragDelta.y, boundsMinAfterLongPressDrag.y - boundsMinBeforeLongPressDrag.y, 0.05)
+            assertEquals("Dragging must not change the transformed object's X footprint",
+                boundsMaxBeforeLongPressDrag.x - boundsMinBeforeLongPressDrag.x,
+                boundsMaxAfterLongPressDrag.x - boundsMinAfterLongPressDrag.x, 0.01)
+            assertEquals("Dragging must not change the transformed object's Y footprint",
+                boundsMaxBeforeLongPressDrag.y - boundsMinBeforeLongPressDrag.y,
+                boundsMaxAfterLongPressDrag.y - boundsMinAfterLongPressDrag.y, 0.01)
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)

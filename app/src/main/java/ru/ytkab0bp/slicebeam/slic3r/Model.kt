@@ -157,6 +157,7 @@ open class Model private constructor(@JvmField var pointer: Long) {
         stateRevisionValue++
     }
 
+    /** Move an object in build-plate/world coordinates, independent of its rotation or scale. */
     open fun translate(i: Int, x: Double, y: Double, z: Double) {
         if (!hasObject(i) || !x.isFinite() || !y.isFinite() || !z.isFinite()) return
         Native.model_translate(pointer, i, x, y, z)

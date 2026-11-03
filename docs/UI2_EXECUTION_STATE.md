@@ -2,12 +2,22 @@
 
 ## Batch 10 — aktueller Stand und Test-Snapshot
 
+- Separater Stabilitätsfix (kein Orca-Punkt): Nightly verwendete für `Model.translate(i, …)` noch `ModelObject::translate`, wodurch Weltkoordinaten-Deltas nach Rotation/Skalierung im lokalen Objekt-Raum landeten. JNI nutzt jetzt `translate_instances(Vec3d)`; Preview und gespeicherte Position verwenden denselben Weltkoordinaten-Delta.
+- Verifikation dieses Fixes: `NativeSliceDeviceTest#worldTranslationKeepsRotatedAndScaledObjectBoundsAlignedWithDragDelta` 1/1 und `MainActivityTouchDeviceTest#tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed` 1/1 auf Android 16/API 36. Der echte GL-Dragtest rotiert und skaliert das Modell, kontrolliert Bounds und X/Y-Position gegen den Touch-Delta und bestätigt unveränderte Footprintgröße.
+- Nach dem Port: Debug-JVM 743/743 und Slice-JVM 743/743, jeweils 0 Fehler, Ausnahmen oder Skips. Nicht auf physischem Xiaomi geprüft; kein APK für diesen Zwischenfix erstellt.
 - Orca-Punkt 8: CGAL-Boolean-Volumenprüfung entfernt isolierte Mesh-Vertices, bevor CGAL ein geschlossenes Volumen prüft. Der JNI-Regressionstest `cgalBooleanVolumeChecksIgnoreUnreferencedVertices` besteht; die beiden anderen zugleich ausgeführten Tests betreffen bereits abgeschlossene ältere Batches und werden hier nicht erneut gezählt.
 - Gezielte Instrumentierung: 3/3 bestanden, 0 Skips/Fehler. Vollständige JVM-Suiten: Debug 743/743 und Slice 743/743, beide ohne Fehler/Skips.
 - Version 0.8.431 / Code 466, Paket `com.exa201.orkanslicer.nightly25`. Code-Commit `f5a8de4378592f95639ea4b64af3791e0bbc69a9`.
 - Debug-APK `OrkanSlicerNightly25_f5a8de4378.apk`, 240.358.528 Bytes, SHA-256 `15931F4681B742C1D154920DBC6831B13E29B4AC35ED8CA4A903552E01B727D7`. Auf Android-16/API-36-AVD installiert und gestartet; frischer Logcat ohne Crash, ANR, OOM oder Fatal Signal. Xiaomi war nicht verbunden.
 - **Batch 10: 8/10.** Batch-APK v0.8.431 ist ein getesteter Zwischenstand; der Release-Eintrag darf nicht als abgeschlossener 10-Punkte-Batch gelten. Zwei weitere unabhängige, nicht bereits in früheren Batches gezählte Orca-Punkte mit gezielten Android-Regressionen fehlen.
-- Branch `nightly-2.5` ist mit `origin` synchron. Nächster konkreter Schritt: zwei Android-relevante Orca-2.5-Fixes auswählen, die im Nightly-Produktionspfad fehlen, integrieren und einzeln mit belastbaren Regressionsprüfungen abdecken.
+- Batch-Status bleibt 8/10: Der Drag-Stabilitätsfix zählt ausdrücklich nicht als Orca-Portierung. Nächster konkreter Schritt: zwei Android-relevante Orca-2.5-Fixes auswählen, die im Nightly-Produktionspfad fehlen, integrieren und einzeln mit belastbaren Regressionsprüfungen abdecken.
+
+## Nightly-Drag-Versatz bei transformierten Modellen — 2026-11-03
+
+- Der Stable-Checkout enthielt bereits die Weltkoordinatenkorrektur; Nightly hatte sie noch nicht übernommen. `Native.model_translate` rief dort `ModelObject::translate` auf. Dieser Pfad verändert Volumes lokal und kann den Delta mit Objektrotation/-skalierung transformieren, obwohl die UI Drag-Deltas in Druckplattenkoordinaten übergibt.
+- Die JNI-Funktion ruft jetzt `ModelObject::translate_instances(Vec3d)` auf. Das abgelegte Mesh verschiebt sich damit um denselben Weltvektor wie die GL-Preview; Bounds und Positionsanzeige folgen mit.
+- Regressionen: natives Modell gedreht um 37° und skaliert mit 1.7/0.65/1.25 bestätigt X/Y/Z-Bounds und Positionszentrum gegen denselben Delta. Der Ende-zu-Ende-Long-Press-Test prüft zusätzlich den GL-Drag nach Loslassen und unveränderte Footprintgröße.
+- Beide Tests bestanden auf Android 16/API 36; Debug- und Slice-JVM-Suiten jeweils 743/743 ohne Fehler oder Skips. Stable-Branch wurde in diesem Nightly-Durchgang nicht geändert.
 
 ## Stable Drag-Bug (separat vom Nightly-Batch)
 

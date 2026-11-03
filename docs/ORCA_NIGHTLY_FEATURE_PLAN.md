@@ -1,4 +1,44 @@
-## Nightly Batch 10 — 6/10 Punkte verifiziert (Stand 2026-11-03)
+## Nightly Batch 10 — 8/10 Punkte verifiziert (Stand 2026-11-03)
+
+Der gültige Zähler steht auch in `docs/UI2_EXECUTION_STATE.md`. Die erste Fassung dieser
+Roadmap blieb bei 6/10 stehen, obwohl danach die STEP-Importoption und die isolierte
+CGAL-Vertex-Prüfung separat implementiert und verifiziert wurden. Nicht als neue Punkte
+gezählt werden die Bridge-Speed-Regression (Batch 9) und die Z-Schrumpfung über
+Höhenbereiche (Batch 7), obwohl sie im selben 3/3-Testlauf erneut mitliefen.
+
+Die acht gezählten, voneinander abgrenzbaren Verhaltensänderungen sind: STEP-Körpernamen
+erhalten; organische Tree-Support-Spitzen deterministisch sortieren; Temperaturen des
+tatsächlich zuerst verwendeten Werkzeugs in den G-Code-Header schreiben; Arrange bei
+nahezu bettgroßen Teilen; bemalte Facetten nach Mesh-Glättung erhalten; Variantenwerte
+bei Filament-Slot-Änderungen bewahren; STEP-Baugruppen standardmäßig in benannte
+Körper teilen; und CGAL-Volumenprüfungen gegen isolierte Vertices absichern.
+
+Noch offen sind zwei neu portierbare Android-Funktionen. Die folgenden Kandidaten müssen
+vor dem Zählen einen aktiven Produktionspfad und einen zielgerichteten Regressionstest
+erhalten. Kein neuer Batch-Release vor zehn unabhängig belegten Punkten und dem
+gebündelten Regressionstor.
+
+### Punkt 7/10 — STEP-Baugruppen standardmäßig in benannte Körper teilen
+
+Portiert das Android-relevante Importverhalten aus Orca `fa5f7e3db4`. STEP/STP-Baugruppen
+werden standardmäßig zu separat bearbeitbaren, benannten Modellteilen. Persistierte
+Benutzerauswahl kann die Option weiterhin abschalten. `StepImportOptionsTest` 1/1,
+`StepModelImportDeviceTest` 3/3 und `StepImportOptionsDialogDeviceTest` 2/2 bestanden auf
+API 36.
+
+### Punkt 8/10 — CGAL-Boolean ignoriert isolierte Mesh-Vertices
+
+Portiert Orca `b3f8d0af15`: nicht referenzierte Mesh-Vertices dürfen die geschlossene
+Volumenprüfung vor einer Boolean-Operation nicht scheitern lassen. Der Android-JNI-Test
+`NativeSliceDeviceTest#cgalBooleanVolumeChecksIgnoreUnreferencedVertices` wurde im
+3/3-Lauf auf API 36 gezielt bestanden. Die übrigen beiden Tests dieses Laufs gehören zu
+älteren Batches und zählen nicht für Batch 10.
+
+Hinweis zur Nummerierung: Die Punkte werden hier in Implementierungsreihenfolge benannt.
+Die Ausführungsstatusdatei listet sie chronologisch; beide Dateien bezeichnen denselben
+8/10-Stand. Die STEP-Körpernamen und das Aufteilen von Baugruppen sind getrennte
+Nutzerverhalten aus demselben Upstream-Commit und müssen auch künftig getrennt getestet
+bleiben.
 
 ### Punkt 6/10 — Variantenspezifische Filamentwerte bei Slotänderungen erhalten
 

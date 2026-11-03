@@ -1758,7 +1758,10 @@ extern "C" {
         if (model == nullptr || i < 0 || i >= static_cast<jint>(model->model.objects.size()) ||
             model->model.objects[i] == nullptr || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
             return;
-        model->model.objects[i]->translate(x, y, z);
+        // UI movement deltas are expressed in build-plate/world coordinates. Moving the
+        // object's volumes instead would apply the instance rotation/scale to the delta,
+        // so the rendered mesh could land away from the position shown by its bounds.
+        model->model.objects[i]->translate_instances(Vec3d(x, y, z));
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1ensure_1on_1bed(JNIEnv* env, jclass, jlong ptr, jint i) {

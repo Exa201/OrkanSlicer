@@ -45,6 +45,49 @@ import java.util.zip.CRC32
 @RunWith(AndroidJUnit4::class)
 class NativeSliceDeviceTest {
     @Test
+    fun worldTranslationKeepsRotatedAndScaledObjectBoundsAlignedWithDragDelta() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "nightly-world-translation-transform.stl")
+        val model = Model(modelFile)
+        try {
+            model.rotate(0, 0.0, 0.0, Math.toRadians(37.0))
+            model.scale(0, 1.7, 0.65, 1.25)
+            val beforeMin = Vec3d()
+            val beforeMax = Vec3d()
+            model.getBoundingBoxExact(0, beforeMin, beforeMax)
+            val beforeCenter = Vec3d(
+                (beforeMin.x + beforeMax.x) / 2.0,
+                (beforeMin.y + beforeMax.y) / 2.0,
+                (beforeMin.z + beforeMax.z) / 2.0,
+            )
+
+            val delta = Vec3d(18.25, -9.5, 4.0)
+            model.translate(0, delta.x, delta.y, delta.z)
+
+            val afterMin = Vec3d()
+            val afterMax = Vec3d()
+            model.getBoundingBoxExact(0, afterMin, afterMax)
+            val reportedPosition = Vec3d()
+            model.getTranslation(0, reportedPosition)
+            assertEquals("translated model bounds follow the world-space X drag", delta.x,
+                (afterMin.x + afterMax.x) / 2.0 - beforeCenter.x, 0.01)
+            assertEquals("translated model bounds follow the world-space Y drag", delta.y,
+                (afterMin.y + afterMax.y) / 2.0 - beforeCenter.y, 0.01)
+            assertEquals("translated model bounds follow the world-space Z drag", delta.z,
+                (afterMin.z + afterMax.z) / 2.0 - beforeCenter.z, 0.01)
+            assertEquals("object-list X position matches the rendered bounds", beforeCenter.x + delta.x,
+                reportedPosition.x, 0.01)
+            assertEquals("object-list Y position matches the rendered bounds", beforeCenter.y + delta.y,
+                reportedPosition.y, 0.01)
+            assertEquals("object-list Z position matches the rendered bounds", beforeCenter.z + delta.z,
+                reportedPosition.z, 0.01)
+        } finally {
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun sparseInfillJoiningAvoidsLoopsAndCrossings() {
         assertArrayEquals("Orca sparse-infill joining must connect nearby lines, avoid closed loops, and reject crossings",
             intArrayOf(1, 1, 1, 1), Native.joined_infill_regression())
