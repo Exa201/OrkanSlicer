@@ -3490,6 +3490,90 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun importedObjectsStayFreelyMovableUntilUserRequestsArrange() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) {
+            glView.isAttachedToWindow && glView.width > 0 && glView.height > 0 &&
+                glView.renderer.bed != null
+        }
+        val firstFile = File(activity.cacheDir, "free-move-import-a-${System.nanoTime()}.stl")
+        val secondFile = File(activity.cacheDir, "free-move-import-b-${System.nanoTime()}.stl")
+        try {
+            writeScaledCubeStl(activity, firstFile, 0.5f)
+            writeScaledCubeStl(activity, secondFile, 0.5f)
+
+            fun importAndWait(file: File) {
+                val completed = CountDownLatch(1)
+                val failure = AtomicReference<Exception?>()
+                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
+                    callback = object : BedFragment.ModelLoadCallback {
+                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                            completed.countDown()
+                        }
+
+                        override fun onFailed(error: Exception) {
+                            failure.set(error)
+                            completed.countDown()
+                        }
+                    }, autoOrientImportedModels = true)
+                assertTrue("model import should finish", completed.await(30, TimeUnit.SECONDS))
+                failure.get()?.let { throw AssertionError("model import failed", it) }
+                compose.waitUntil(timeoutMillis = 10_000) {
+                    !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                        .apply { isAccessible = true }.getBoolean(bed)
+                }
+            }
+
+            importAndWait(firstFile)
+            importAndWait(secondFile)
+            val model = requireNotNull(bed.currentModel)
+            assertEquals("both small models should fit on the same plate", 2, model.objectsCount)
+            val beforeMove = readExactBoundsOnGl(glView, 0, 1)
+
+            val moveCompleted = CountDownLatch(1)
+            glView.queueEvent {
+                model.translate(0, 80.0, 40.0, 0.0)
+                model.resetBoundingBox()
+                glView.requestRender()
+                moveCompleted.countDown()
+            }
+            assertTrue("manual object move should finish on the GL thread",
+                moveCompleted.await(10, TimeUnit.SECONDS))
+            val afterMove = readExactBoundsOnGl(glView, 0, 1)
+            assertFalse("the selected object should keep its manually moved position",
+                beforeMove[0].contentEquals(afterMove[0]))
+            assertArrayEquals("moving one object must not automatically repack its neighbor",
+                beforeMove[1], afterMove[1], 0.03)
+
+            val arrangeCompleted = CountDownLatch(1)
+            val arrangeResult = AtomicReference<Boolean>()
+            glView.arrange { arranged ->
+                arrangeResult.set(arranged)
+                arrangeCompleted.countDown()
+            }
+            assertTrue("explicit Arrange action should complete", arrangeCompleted.await(15, TimeUnit.SECONDS))
+            assertTrue("explicit Arrange action should bring the pair back into the active bed",
+                arrangeResult.get() == true)
+            val arranged = readExactBoundsOnGl(glView, 0, 1)
+            assertFalse("explicit Arrange should separate the two model bounds",
+                arranged[0][0] < arranged[1][3] && arranged[0][3] > arranged[1][0] &&
+                    arranged[0][1] < arranged[1][4] && arranged[0][4] > arranged[1][1])
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            arranged.forEachIndexed { index, bounds ->
+                assertTrue("explicit Arrange should place object $index inside the bed",
+                    bounds[0] >= bedMin.x - 0.1 && bounds[1] >= bedMin.y - 0.1 &&
+                        bounds[3] <= bedMax.x + 0.1 && bounds[4] <= bedMax.y + 0.1)
+            }
+        } finally {
+            firstFile.delete()
+            secondFile.delete()
+        }
+    }
+
+    @Test
     fun multiFileImportCreatesPlatesAndPreservesExistingModelsWhenBedFills() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
