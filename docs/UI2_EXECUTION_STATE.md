@@ -8,7 +8,7 @@
 - Supplied Settlers archive, SHA-256 `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`: production import test passed on API 36, 109/109 parts across 16 plates, all within bed bounds, 458 same-plate mesh pairs disjoint. This confirms the existing sequential-import result; no reduction from the prior documented 16-plate baseline is claimed for this change.
 - `positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo`: passed 1/1; `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace`: passed 1/1, confirming manual movement/undo and the explicit Arrange path.
 - Full `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: each 741 tests, 0 failures, 0 errors, 0 skips. `git diff --check` clean. No release APK or physical-printer test was made for this nesting-only follow-up.
-- Current Git base: `4534194e9c1029574ae72711cc3b8f67f7620d2e`; these changes are local and not committed yet. Orca Batch 9 remains 9/10; this Android import-nesting work is a separate user-priority fix and does not count as an Orca feature point. Next: complete one verified upstream feature point, then perform the 10/10 regression and APK/release gate.
+- Current code commit: `14bcf4a39957f2e0a85981124f3a2af320a13a4f`, pushed to `nightly25/nightly-2.5`. Orca Batch 9 remains 9/10; this Android import-nesting work is a separate user-priority fix and does not count as an Orca feature point. No APK/release for this nesting-only follow-up. Next: complete one verified upstream feature point, then perform the 10/10 regression and APK/release gate.
 
 ## Current continuation state — 2026-11-03 (Batch 9 point 9)
 
