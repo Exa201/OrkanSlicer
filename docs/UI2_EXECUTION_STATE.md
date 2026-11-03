@@ -1,5 +1,15 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## Import-nesting priority follow-up — verified 2026-11-03
+
+- User rule preserved: auto-orient and auto-arrange happen during import only. Normal XYZ transforms remain free; later repacking remains behind the explicit Arrange command. Authored 3MF project layouts still use their preserved-layout path.
+- Multi-object imports that overflow now process larger XY footprints first, then try placing later objects on previously existing non-project plates and on earlier overflow plates created during the same import before allocating another plate. Every trial uses a temporary model and is committed only after bed-bound and mesh-intersection validation.
+- Added `ModelImportPackingOrderTest` for stable largest-first ordering (including zero/invalid footprints) and `InitialProjectMenuDeviceTest#multiObjectImportReusesEarlierOverflowPlatesForRemainingParts`. API-36 device test passed: six independent large/small objects packed onto two plates, an early plate reused by a small object, all parts in bounds, no mesh intersections. (The initial test assertion incorrectly expected the per-destination callback to report all six objects; it was corrected to validate the callback's actual contract and the test then passed.)
+- Supplied Settlers archive, SHA-256 `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`: production import test passed on API 36, 109/109 parts across 16 plates, all within bed bounds, 458 same-plate mesh pairs disjoint. This confirms the existing sequential-import result; no reduction from the prior documented 16-plate baseline is claimed for this change.
+- `positionEditorMovesEverySelectedObjectTogetherOnXYZAndKeepsUndoRedo`: passed 1/1; `modelMenuArrangeBringsOffBedObjectBackIntoWorkspace`: passed 1/1, confirming manual movement/undo and the explicit Arrange path.
+- Full `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: each 741 tests, 0 failures, 0 errors, 0 skips. `git diff --check` clean. No release APK or physical-printer test was made for this nesting-only follow-up.
+- Current Git base: `4534194e9c1029574ae72711cc3b8f67f7620d2e`; these changes are local and not committed yet. Orca Batch 9 remains 9/10; this Android import-nesting work is a separate user-priority fix and does not count as an Orca feature point. Next: complete one verified upstream feature point, then perform the 10/10 regression and APK/release gate.
+
 ## Current continuation state — 2026-11-03 (Batch 9 point 9)
 
 - Current implementation is based on `72a75da3fcbcfb0fa6081ac0806bad83ee1b5664`. Batch 9 point 9 ports Orca `21d2856429`: painted multi-material segmentation now allocates states from filament count rather than the potentially shorter color-palette vector.

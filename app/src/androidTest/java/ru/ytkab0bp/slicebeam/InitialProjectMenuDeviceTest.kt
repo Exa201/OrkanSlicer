@@ -258,6 +258,134 @@ class InitialProjectMenuDeviceTest {
         }
     }
 
+    @Test(timeout = 240_000)
+    fun multiObjectImportReusesEarlierOverflowPlatesForRemainingParts() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) { glView.renderer.bed?.isValid() == true }
+        assertEquals("Test starts with an empty plate", 0, requireNotNull(bed.currentModel).objectsCount)
+
+        val previousConfig = SliceBeam.CONFIG
+        val previousInstance = SliceBeam.INSTANCE
+        val sourceFile = File(activity.cacheDir, "batch-overflow-cube.stl")
+        val projectFile = File(activity.cacheDir, "batch-overflow-parts.3mf")
+        var batch: Model? = null
+        var generatedConfig: File? = null
+        try {
+            SliceBeam.INSTANCE = activity.application as SliceBeam
+            Prefs.init(activity.application)
+            activity.assets.open("models/xyz_cube.stl").use { source ->
+                sourceFile.outputStream().use(source::copyTo)
+            }
+            activity.assets.open("orca_profiles/Anycubic.ini").use { SliceBeam.CONFIG = Slic3rConfigWrapper(it) }
+            SliceBeam.requireConfig().presets = ConfigObject("presets").apply {
+                put("printer", "Anycubic Kobra 3 0.4 nozzle")
+                put("print", "0.16mm Standard")
+                put("filament", "Anycubic Generic PLA")
+            }
+
+            batch = Model(sourceFile)
+            repeat(5) { batch!!.addObject(batch!!, 0) }
+            val baseMin = Vec3d(); val baseMax = Vec3d()
+            batch!!.getBoundingBoxExact(0, baseMin, baseMax)
+            val baseWidth = baseMax.x - baseMin.x
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            val bedWidth = bedMax.x - bedMin.x
+            val bedDepth = bedMax.y - bedMin.y
+            val largeScale = minOf(bedWidth, bedDepth) * 0.60 / baseWidth
+            val smallScale = minOf(bedWidth, bedDepth) * 0.28 / baseWidth
+            repeat(3) { batch!!.scale(it, largeScale, largeScale, 1.0) }
+            repeat(3) { batch!!.scale(it + 3, smallScale, smallScale, 1.0) }
+            SliceBeam.genCurrentConfig(batch!!)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            batch!!.export3mf(generatedConfig!!.absolutePath, projectFile.absolutePath)
+            generatedConfig!!.delete()
+            generatedConfig = null
+            assertTrue("Multi-object fixture must export as a 3MF", projectFile.isFile && projectFile.length() > 0L)
+
+            val completed = CountDownLatch(1)
+            val failure = AtomicReference<Exception?>()
+            val callbackRange = AtomicReference<Pair<Int, Int>?>()
+            val callbackModelObjectCount = AtomicReference(0)
+            bed.loadModel(projectFile, preserveProjectLayout = false, plateCount = 1,
+                callback = object : BedFragment.ModelLoadCallback {
+                    override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                        callbackRange.set(firstNewObject to addedObjects)
+                        callbackModelObjectCount.set(loadedModel.objectsCount)
+                        completed.countDown()
+                    }
+                    override fun onFailed(error: Exception) {
+                        failure.set(error)
+                        completed.countDown()
+                    }
+                }, autoOrientImportedModels = true)
+            assertTrue("Multi-object import should finish", completed.await(180, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("Multi-object import failed", it) }
+
+            val plates = readPlateModels(bed)
+            assertEquals("All imported objects must be retained", 6, plates.sumOf { it.objectsCount })
+            val (callbackFirstObject, callbackAddedObjects) = requireNotNull(callbackRange.get())
+            assertTrue("The callback range must describe only objects on its reported destination plate",
+                callbackFirstObject >= 0 && callbackAddedObjects > 0 &&
+                    callbackFirstObject + callbackAddedObjects <= callbackModelObjectCount.get())
+            assertTrue("Large parts must force overflow, while smaller parts reuse earlier plate space; " +
+                "objectsPerPlate=${plates.map { it.objectsCount }}", plates.size in 2..3)
+            val outOfBounds = AtomicReference<String?>()
+            val collision = AtomicReference<String?>()
+            val smallPartOnEarlierPlate = AtomicReference(false)
+            val verified = CountDownLatch(1)
+            glView.queueEvent {
+                try {
+                    plates.forEachIndexed { plateIndex, model ->
+                        repeat(model.objectsCount) { objectIndex ->
+                            val min = Vec3d(); val max = Vec3d()
+                            model.getBoundingBoxExact(objectIndex, min, max)
+                            val bounds = doubleArrayOf(min.x, min.y, min.z, max.x, max.y, max.z)
+                            val maxFootprintSide = maxOf(bounds[3] - bounds[0], bounds[4] - bounds[1])
+                            if (plateIndex < plates.lastIndex && maxFootprintSide < minOf(bedWidth, bedDepth) * 0.45) {
+                                smallPartOnEarlierPlate.set(true)
+                            }
+                            if (bounds[0] < bedMin.x - 0.2 || bounds[1] < bedMin.y - 0.2 ||
+                                bounds[3] > bedMax.x + 0.2 || bounds[4] > bedMax.y + 0.2 ||
+                                bounds[2] < bedMin.z - 0.2) {
+                                outOfBounds.compareAndSet(null, "plate $plateIndex object $objectIndex: ${bounds.toList()}")
+                            }
+                        }
+                        for (first in 0 until model.objectsCount) for (second in first + 1 until model.objectsCount) {
+                            val probe = Model()
+                            try {
+                                probe.addObject(model, first)
+                                probe.addObject(model, second)
+                                if (probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION) >= 0)
+                                    collision.compareAndSet(null, "plate $plateIndex objects $first and $second intersect")
+                            } finally {
+                                probe.release()
+                            }
+                        }
+                    }
+                } catch (error: Throwable) {
+                    collision.compareAndSet(null, "mesh intersection check failed: ${error.message}")
+                } finally {
+                    verified.countDown()
+                }
+            }
+            assertTrue("GL thread should verify placements", verified.await(90, TimeUnit.SECONDS))
+            assertEquals("All parts should remain on the build surface", null, outOfBounds.get())
+            assertEquals("Parts on each reused plate must remain collision-free", null, collision.get())
+            assertTrue("A smaller imported part should reuse free space on a plate created earlier in this batch",
+                smallPartOnEarlierPlate.get())
+        } finally {
+            generatedConfig?.delete()
+            batch?.release()
+            sourceFile.delete()
+            projectFile.delete()
+            SliceBeam.CONFIG = previousConfig
+            SliceBeam.INSTANCE = previousInstance
+        }
+    }
+
     @Test(timeout = 300_000)
     fun settlersBaseAdapterTilesArrangeWithoutMeshOverlaps() {
         val activity = compose.activity

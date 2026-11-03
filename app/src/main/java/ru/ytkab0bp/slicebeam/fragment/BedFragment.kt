@@ -110,6 +110,7 @@ import ru.ytkab0bp.slicebeam.ui.workspace.PaintModePanel
 import ru.ytkab0bp.slicebeam.ui.workspace.VariableLayerHeightPanel
 import ru.ytkab0bp.slicebeam.ui.workspace.EmbossModePanel
 import ru.ytkab0bp.slicebeam.utils.Vec3d
+import ru.ytkab0bp.slicebeam.utils.ModelImportPackingOrder
 import ru.ytkab0bp.slicebeam.utils.Prefs
 import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.events.TemporaryProjectSettingsChangedEvent
@@ -2690,10 +2691,12 @@ private fun loadModelInternal(
             val min = Vec3d()
             val max = Vec3d()
             val translation = Vec3d()
+            val footprintAreas = DoubleArray(sourceCount)
             for (index in 0 until sourceCount) {
                 if (autoOrientImportedModels || preserveProjectLayout) imported.autoOrient(index)
                 imported.getTranslation(index, translation)
                 imported.getBoundingBoxExact(index, min, max)
+                footprintAreas[index] = (max.x - min.x) * (max.y - min.y)
                 // Imported STL vertices may keep a distant source-CAD origin. Normalize the
                 // geometry center before packing so that translation is not applied twice.
                 imported.translate(index, -translation.x, -translation.y,
@@ -2705,6 +2708,7 @@ private fun loadModelInternal(
             var targetPlateIndex: Int? = currentPlateIndex
             if (existing == null) platesModels.set(currentPlateIndex, target)
             val originalTargetObjectCount = target.objectsCount
+            val importPlacementOrder = ModelImportPackingOrder.largestFirst(footprintAreas.toList())
             var finalFirstNew = originalTargetObjectCount
             var finalAddedCount = 0
             var finalTarget: Model? = null
@@ -2727,7 +2731,7 @@ private fun loadModelInternal(
             } else {
                 packedImport.release()
 
-                for (sourceIndex in 0 until sourceCount) {
+                for (sourceIndex in importPlacementOrder) {
                     val candidate = copyModelForArrangement(target)
                     val destinationIndex = candidate.objectsCount
                     candidate.addObject(imported, sourceIndex)
@@ -2743,26 +2747,45 @@ private fun loadModelInternal(
                     } else {
                         candidate.release()
 
-                        // A sequence of individual STL imports can overflow several plates.
-                        // Before creating another one, try already-created non-project plates
-                        // from newest to oldest. This lets later, differently-shaped parts use
-                        // free space left behind by earlier imports without moving anything on
-                        // plates that are not being considered for this import.
-                        if (sourceCount == 1) {
-                            for (plateIndex in platesModels.indices.reversed()) {
-                                if (plateIndex == targetPlateIndex || getProjectPlateId(plateIndex) > 0) continue
-                                val existingPlate = platesModels.getOrNull(plateIndex) ?: continue
-                                val alternate = copyModelForArrangement(existingPlate)
+                        // Reuse free space on both established overflow plates and earlier plates
+                        // created during this same batch import. This search is part of loading;
+                        // later manual moves remain free and never trigger automatic repacking.
+                        for (plateIndex in platesModels.indices.reversed()) {
+                            if (plateIndex == targetPlateIndex || getProjectPlateId(plateIndex) > 0) continue
+                            val existingPlate = platesModels.getOrNull(plateIndex) ?: continue
+                            val alternate = copyModelForArrangement(existingPlate)
+                            val destinationIndex = alternate.objectsCount
+                            alternate.addObject(imported, sourceIndex)
+                            if ((bed.arrangeCompact(alternate) || bed.arrange(alternate)) &&
+                                isModelInsideBuildVolume(alternate, bed) &&
+                                !hasMeshIntersections(alternate)
+                            ) {
+                                existingPlate.replaceContentsFrom(alternate)
+                                alternate.release()
+                                target = existingPlate
+                                targetPlateIndex = plateIndex
+                                placedDestinationIndex = destinationIndex
+                                placedOnExistingPlate = true
+                                break
+                            }
+                            alternate.release()
+                        }
+
+                        if (!placedOnExistingPlate) {
+                            for (pendingIndex in automaticallyCreated.indices.reversed()) {
+                                val pendingPlate = automaticallyCreated[pendingIndex]
+                                if (pendingPlate === target) continue
+                                val alternate = copyModelForArrangement(pendingPlate)
                                 val destinationIndex = alternate.objectsCount
                                 alternate.addObject(imported, sourceIndex)
                                 if ((bed.arrangeCompact(alternate) || bed.arrange(alternate)) &&
                                     isModelInsideBuildVolume(alternate, bed) &&
                                     !hasMeshIntersections(alternate)
                                 ) {
-                                    existingPlate.replaceContentsFrom(alternate)
+                                    pendingPlate.replaceContentsFrom(alternate)
                                     alternate.release()
-                                    target = existingPlate
-                                    targetPlateIndex = plateIndex
+                                    target = pendingPlate
+                                    targetPlateIndex = originalPlateCount + pendingIndex
                                     placedDestinationIndex = destinationIndex
                                     placedOnExistingPlate = true
                                     break
