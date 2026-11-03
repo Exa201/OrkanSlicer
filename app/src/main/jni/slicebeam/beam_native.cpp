@@ -23,6 +23,7 @@
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/CurledExtrusionUtils.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Preset.hpp"
@@ -421,6 +422,40 @@ extern "C" {
         jdoubleArray output = env->NewDoubleArray(static_cast<jsize>(values.size()));
         if (output != nullptr)
             env->SetDoubleArrayRegion(output, 0, static_cast<jsize>(values.size()), values.data());
+        return output;
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_curled_1extrusion_1estimation_1policy_1probe(
+            JNIEnv *env, jclass) {
+        using namespace Slic3r;
+        PrintRegionConfig overhangConfig;
+        overhangConfig.enable_overhang_speed.value = true;
+        overhangConfig.slowdown_for_curled_perimeters.value = false;
+        PrintRegionConfig slowdownConfig;
+        slowdownConfig.enable_overhang_speed.value = false;
+        slowdownConfig.slowdown_for_curled_perimeters.value = true;
+        PrintRegionConfig bothConfig;
+        bothConfig.enable_overhang_speed.value = true;
+        bothConfig.slowdown_for_curled_perimeters.value = true;
+
+        PrintRegion overhangRegion(overhangConfig);
+        PrintRegion slowdownRegion(slowdownConfig);
+        PrintRegion bothRegion(bothConfig);
+        const std::vector<PrintRegion*> none;
+        const std::vector<PrintRegion*> overhangOnly{&overhangRegion};
+        const std::vector<PrintRegion*> slowdownOnly{&slowdownRegion};
+        const std::vector<PrintRegion*> bothSameRegion{&bothRegion};
+        const std::vector<PrintRegion*> bothAcrossRegions{&overhangRegion, &slowdownRegion};
+        const std::array<jint, 5> values{
+            should_estimate_curled_extrusions(none) ? 1 : 0,
+            should_estimate_curled_extrusions(overhangOnly) ? 1 : 0,
+            should_estimate_curled_extrusions(slowdownOnly) ? 1 : 0,
+            should_estimate_curled_extrusions(bothSameRegion) ? 1 : 0,
+            should_estimate_curled_extrusions(bothAcrossRegions) ? 1 : 0,
+        };
+        jintArray output = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (output != nullptr)
+            env->SetIntArrayRegion(output, 0, static_cast<jsize>(values.size()), values.data());
         return output;
     }
 

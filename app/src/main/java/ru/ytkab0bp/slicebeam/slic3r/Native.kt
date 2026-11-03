@@ -80,6 +80,9 @@ class Native {
     /** Regression probe for CGAL conversion of meshes with isolated vertex indices. */
     @JvmStatic
     external fun mesh_boolean_isolated_vertices_probe(): DoubleArray
+    /** Checks the production gate for the optional curled-extrusion estimation pass. */
+    @JvmStatic
+    external fun curled_extrusion_estimation_policy_probe(): IntArray
     @JvmStatic
     external fun set_svg_path_prefix(prefix: String): Unit
     @JvmStatic

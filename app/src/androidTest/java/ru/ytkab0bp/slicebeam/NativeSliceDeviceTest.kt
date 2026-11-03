@@ -105,6 +105,15 @@ class NativeSliceDeviceTest {
         assertEquals("all twelve cube triangles must survive conversion", 12.0, result[4], 0.0)
     }
 
+    @Test
+    fun curledExtrusionEstimationIsSkippedUnlessBothFeaturesAreEnabled() {
+        assertArrayEquals(
+            "curl estimation is only needed when overhang speed and curled-perimeter slowdown are both active",
+            intArrayOf(0, 0, 0, 1, 1),
+            Native.curled_extrusion_estimation_policy_probe(),
+        )
+    }
+
     @Test(timeout = 120_000)
     fun bridgeInfillKeepsBridgeSpeedWithCurledPerimeterSlowdown() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

@@ -10,6 +10,11 @@
 - Upstream audit at `orcaslicer-upstream/main` (`896557bce5`): recent shared-core candidates already present in Nightly include bridge-speed handling, isolated-vertex cleanup for Boolean conversion, scarf-ramp behavior, and Z shrinkage across height ranges. The newer preset-cache change has no Android preset-cache call path; the AMS settings ordering and Windows object-list changes target Orca desktop UI. Texture displacement remains a substantial mesh/RAM/persistence candidate requiring a bounded Android design before implementation.
 - Next: select and verify two additional Android-reachable Orca features to complete Batch 9. Preserve the existing isolated Nightly identity and do not publish the APK/release before point 10/10.
 
+## Orca Batch 9 point 8 — gate curled-extrusion estimation on both features
+
+- Based on current branch base `57be79b850293c9d98cfa75a458eb2b631376dfc`, ported Orca `90ac58d3cd`. Curled/malformation geometry estimation is skipped unless at least one print region enables both overhang speed and curled-perimeter slowdown; the two options can be enabled in different regions. When skipped, reused layer `curled_lines` are cleared to prevent stale geometry.
+- Added the narrow shared policy header, production gate and JNI probe. API-36 `NativeSliceDeviceTest#curledExtrusionEstimationIsSkippedUnlessBothFeaturesAreEnabled` passed 1/1; existing `bridgeInfillKeepsBridgeSpeedWithCurledPerimeterSlowdown` passed 1/1. Full Debug and Slice JVM suites passed; precise counts are recorded from XML reports. `git diff --check` passed. No physical printer run or distribution APK/release.
+- Batch 9 is now **8/10**. Next: select two Android-reachable upstream features absent from this branch; then run the batch regression and produce its isolated Nightly APK/release only after 10/10.
 ## Orca Batch 9 point 7 — flush grouping respects loaded printer slots
 
 - Ported the candidate-pool rule from Orca `aa66e41e64`: retain flush groupings within five palette-specific typical filament changes of the least-flush solution, with absolute and relative floors. The matcher can now select an alternative grouping that uses already loaded AMS slots when its extra flushing cost is modest.

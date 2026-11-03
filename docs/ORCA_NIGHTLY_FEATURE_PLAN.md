@@ -1,3 +1,13 @@
+## Nightly Batch 9 — Punkt 8/10 verifiziert (2026-11-03)
+
+### Gekräuselte Extrusionen nur bei aktivem Bedarf schätzen
+
+Portiert Orca `90ac58d3cd`: die aufwendige Abschätzung von Support-Kräuselungen läuft nur, wenn sowohl Überhanggeschwindigkeit als auch die Verlangsamung gekräuselter Wandungen aktiviert sind. Die Prüfung fasst Regionen gemeinsam auf, sodass die beiden Einstellungen auch in unterschiedlichen Materialregionen erkannt werden. Wird die Abschätzung übersprungen, werden alte `curled_lines` in wiederverwendeten Layern geleert, damit keine Ergebnisse einer vorherigen Konfiguration stehen bleiben.
+
+`NativeSliceDeviceTest#curledExtrusionEstimationIsSkippedUnlessBothFeaturesAreEnabled` bestand auf API 36; es prüft beide Einzeloptionen, keine Option und beide Optionen in derselben oder in verschiedenen Regionen. Die bestehende produktive G-Code-Regression `bridgeInfillKeepsBridgeSpeedWithCurledPerimeterSlowdown` bestand ebenfalls. Debug-Unit- und Slice-Unit-Suiten bestanden; Ergebnisse aus den XML-Berichten werden im Fortsetzungsstatus festgehalten. Keine physische Druckerprüfung.
+
+Batch 9: **8/10**. Noch zwei verifizierte Android-taugliche Orca-Punkte, danach gebündelte Regression und APK-/Nightly-Release-Gate.
+
 # OrkanSlicer Nightly 2.5 — Portierungsplan
 
 ## Nightly Batch 9 — Punkt 6/10 verifiziert (2026-11-02)

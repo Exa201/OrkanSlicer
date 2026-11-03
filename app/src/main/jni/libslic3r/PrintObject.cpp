@@ -4,6 +4,7 @@
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "CurledExtrusionUtils.hpp"
 #include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
@@ -895,11 +896,26 @@ void PrintObject::generate_support_material()
     }
 }
 
+bool should_estimate_curled_extrusions(const std::vector<PrintRegion*> &regions)
+{
+    bool overhang_speed_enabled = false;
+    bool curled_slowdown_enabled = false;
+    for (const PrintRegion *region : regions) {
+        if (region == nullptr)
+            continue;
+        const PrintRegionConfig &config = region->config();
+        overhang_speed_enabled |= config.enable_overhang_speed.value;
+        curled_slowdown_enabled |= config.slowdown_for_curled_perimeters.value;
+        if (overhang_speed_enabled && curled_slowdown_enabled)
+            return true;
+    }
+    return false;
+}
+
 void PrintObject::estimate_curled_extrusions()
 {
     if (this->set_started(posEstimateCurledExtrusions)) {
-        if ( std::any_of(this->print()->m_print_regions.begin(), this->print()->m_print_regions.end(),
-                        [](const PrintRegion *region) { return region->config().enable_overhang_speed.getBool(); })) {
+        if (should_estimate_curled_extrusions(this->print()->m_print_regions)) {
 
             // Estimate curling of support material and add it to the malformaition lines of each layer
             float support_flow_width = support_material_flow(this, this->config().layer_height).width();
@@ -909,6 +925,10 @@ void PrintObject::estimate_curled_extrusions()
                                                  float(this->config().brim_width.getFloat())};
             SupportSpotsGenerator::estimate_malformations(this->layers(), params);
             m_print->throw_if_canceled();
+        } else {
+            // A reused Print may still carry curled geometry from a previous configuration.
+            for (Layer *layer : m_layers)
+                layer->curled_lines.clear();
         }
         //this->set_done(posEstimateCurledExtrusions);
     }
