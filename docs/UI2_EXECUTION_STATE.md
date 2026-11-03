@@ -1,5 +1,13 @@
 # Nightly 2.5 Fortsetzung — Batch 10, 6/10 verifizierte Punkte — 2026-11-03
 
+## Objekt-Drag bleibt am Finger — 2026-11-03
+
+- Ursache: Der lange Modell-Drag bestimmte seine XY-Bewegung aus Schnittpunkten mit der Druckbett-Ebene. Bei perspektivischer Ansicht weicht die Projektion dieser Ebene von der tatsächlich berührten Modelloberfläche ab; der sichtbare Mesh konnte daher neben dem Ablagepunkt landen.
+- Korrektur: Beim Aufnehmen wird der tatsächliche Mesh-Treffer verwendet. Der Drag schneidet den Bildschirmstrahl auf der konstanten Z-Höhe dieses Treffers und setzt die Objekttranslation auf die Differenz zwischen Start- und aktuellem Ebenenpunkt. Nur wenn der Strahl nahezu parallel zur Trefferebene verläuft, bleibt der bisherige Bett-Ebenen-Fallback aktiv.
+- `MainActivityTouchDeviceTest#tappingGeneratedM12AndEmptyPlateDoesNotCrashAndLongPressKeepsActionsCollapsed`: vollständig auf Android 16/API 36 bestanden. Der neue Geräteassert vergleicht die gespeicherte Meshtranslation mit der aus Start-/Release-Pixel und tatsächlicher Trefferhöhe berechneten Verschiebung. Die Testaktion für Flächenplatzierung prüft außerdem unabhängige Objekte und getrennte Filamentzuweisungen.
+- Debug-Unit und Slice-Unit jeweils 743/743; Debug-Build erfolgreich. Verifikation auf API-36-AVD, kein Xiaomi-Hardwaretest in diesem Schritt.
+- Nächster Schritt: Änderungen committen/pushen; danach Nightly Batch 10 Punkt 7 evaluieren. Die Fehlerkorrektur zählt nicht als Orca-Portierungspunkt.
+
 ## Verifizierter Pre-Release 0.8.430 — 2026-11-03
 
 - Release: [v0.8.430-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.430-nightly.1), APK `OrkanSlicerNightly25_151ab5682b.apk` (240,358,552 Bytes), SHA-256 `BB5C4E531A2703B99267B4774C05056CE40A044C0784B5AE127370FF46BFB681`.

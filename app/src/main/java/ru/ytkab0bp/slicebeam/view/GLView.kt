@@ -80,6 +80,10 @@ private var primeTowerDownX:Float = 0f
 private var primeTowerDownY:Float = 0f
 var onPrimeTowerTap:(()->Unit)? = null
 private var longClickTargetObject = -1
+private var longClickStartX = 0.0
+private var longClickStartY = 0.0
+private var longClickPlaneZ = Double.NaN
+private var longClickUsesSurfacePlane = false
 private val tapGestureGate = TapGestureGate()
 // When true and the renderer is in paint mode, a single finger paints instead of orbiting.
  var isPaintBrushActive:Boolean = false
@@ -111,14 +115,33 @@ private val longClick = Runnable {
             if (renderer.gcodeResult == null && activeModel != null && bed != null) {
                 target = renderer.raycastObjectIndex(x, y)
                 if (target in 0 until activeModel.objectsCount) {
-                    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
-                    val hit = longClickHitResults.firstOrNull()
-                    if (hit != null) {
-                        activeModel.getTranslation(target, tempVec)
-                        longClickOffset.x = hit.position.x - tempVec.x
-                        longClickOffset.y = hit.position.y - tempVec.y
+                    val objectHit = renderer.raycastObjectHit(target, x, y)
+                    val surfacePoint = objectHit?.let {
+                        renderer.intersectHorizontalPlane(x, y, it.position.z)
+                    }
+                    if (surfacePoint != null) {
+                        longClickStartX = surfacePoint.x
+                        longClickStartY = surfacePoint.y
+                        longClickPlaneZ = surfacePoint.z
+                        longClickUsesSurfacePlane = true
                         if (renderer.focusForDrag(target)) requestRender()
                         hitFound = true
+                    } else {
+                        // Near-horizontal camera angles can make the picked-height plane
+                        // parallel to the view ray. Preserve the bed-plane fallback then.
+                        bed.raycaster.raycast(renderer, longClickHitResults, x, y)
+                        val bedHit = longClickHitResults.firstOrNull()
+                        if (bedHit != null) {
+                            longClickStartX = bedHit.position.x
+                            longClickStartY = bedHit.position.y
+                            longClickPlaneZ = bedHit.position.z
+                            longClickUsesSurfacePlane = false
+                            activeModel.getTranslation(target, tempVec)
+                            longClickOffset.x = bedHit.position.x - tempVec.x
+                            longClickOffset.y = bedHit.position.y - tempVec.y
+                            if (renderer.focusForDrag(target)) requestRender()
+                            hitFound = true
+                        }
                     }
                 }
             }
@@ -1167,10 +1190,16 @@ queueEvent {
     val bed = renderer.bed ?: return@queueEvent
     if (selected !in 0 until activeModel.objectsCount) return@queueEvent
     activeModel.getTranslation(selected, tempVec)
-    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
-    val result = longClickHitResults.firstOrNull() ?: return@queueEvent
-    longClickTranslation.x = result.position.x - tempVec.x - longClickOffset.x
-    longClickTranslation.y = result.position.y - tempVec.y - longClickOffset.y
+    if (longClickUsesSurfacePlane) {
+        val point = renderer.intersectHorizontalPlane(x, y, longClickPlaneZ) ?: return@queueEvent
+        longClickTranslation.x = point.x - longClickStartX
+        longClickTranslation.y = point.y - longClickStartY
+    } else {
+        bed.raycaster.raycast(renderer, longClickHitResults, x, y)
+        val result = longClickHitResults.firstOrNull() ?: return@queueEvent
+        longClickTranslation.x = result.position.x - tempVec.x - longClickOffset.x
+        longClickTranslation.y = result.position.y - tempVec.y - longClickOffset.y
+    }
     renderer.setSelectionTranslation(longClickTranslation.x, longClickTranslation.y, 0.0)
     SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, true))
     requestRender()

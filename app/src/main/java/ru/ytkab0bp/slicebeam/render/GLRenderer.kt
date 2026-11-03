@@ -2595,6 +2595,31 @@ i++
 }
 return j
 }
+/** Return the closest hit for one rendered object, using the same mesh used by viewport picking. */
+fun raycastObjectHit(objectIndex: Int, x: Float, y: Float): GLModel.HitResult? {
+    if (model == null || objectIndex !in 0 until model!!.objectsCount) return null
+    val mesh = glModels.getOrNull(objectIndex) ?: return null
+    mesh.raycaster.raycast(this, raycastHits, x, y)
+    return raycastHits.firstOrNull()
+}
+
+/** Intersect the screen ray with a horizontal world-space plane. Used to drag at the picked surface Z. */
+fun intersectHorizontalPlane(screenX: Float, screenY: Float, planeZ: Double): Vec3d? {
+    if (viewportWidth <= 0 || viewportHeight <= 0 || !planeZ.isFinite()) return null
+    val point = Slic3rUtils.unproject(
+        camera.getViewModelMatrix(), projectionMatrix, viewportWidth, viewportHeight,
+        screenX.toDouble(), screenY.toDouble(),
+    )
+    val direction = if (Prefs.isOrthoProjectionEnabled()) {
+        camera.getDirForward().clone()
+    } else {
+        point.clone().add(camera.position.clone().negate()).normalize()
+    }
+    if (!direction.z.isFinite() || kotlin.math.abs(direction.z) < 1e-8) return null
+    val distance = (planeZ - point.z) / direction.z
+    if (!distance.isFinite() || distance < 0.0) return null
+    return Vec3d(point.x + direction.x * distance, point.y + direction.y * distance, planeZ)
+}
 fun onClick(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false
 val placementTarget = surfacePlacementTargetObject

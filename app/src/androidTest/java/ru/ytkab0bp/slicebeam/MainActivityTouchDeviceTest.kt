@@ -640,9 +640,21 @@ class MainActivityTouchDeviceTest {
 
             val downTime = SystemClock.uptimeMillis()
             val translationBeforeLongPressDrag = Vec3d()
+            val expectedDragDelta = Vec3d()
             val translationReady = CountDownLatch(1)
             glView.queueEvent {
                 model.getTranslation(0, translationBeforeLongPressDrag)
+                val sx = glView.renderer.viewportWidth.toFloat() / glView.width
+                val sy = glView.renderer.viewportHeight.toFloat() / glView.height
+                val startX = hit.first * sx
+                val startY = hit.second * sy
+                val dragEndX = (hit.first + 45f) * sx
+                val dragEndY = (hit.second + 35f) * sy
+                val surfaceHit = glView.renderer.raycastObjectHit(0, startX, startY)
+                val surfaceZ = requireNotNull(surfaceHit).position.z
+                val startPoint = requireNotNull(glView.renderer.intersectHorizontalPlane(startX, startY, surfaceZ))
+                val endPoint = requireNotNull(glView.renderer.intersectHorizontalPlane(dragEndX, dragEndY, surfaceZ))
+                expectedDragDelta.set(endPoint.x - startPoint.x, endPoint.y - startPoint.y, 0.0)
                 translationReady.countDown()
             }
             assertTrue("Model translation should be readable before long-press drag",
@@ -681,6 +693,10 @@ class MainActivityTouchDeviceTest {
             assertTrue("Long-press dragging should change the model position",
                 kotlin.math.abs(translationBeforeLongPressDrag.x - translationAfterLongPressDrag.x) > 1e-4 ||
                     kotlin.math.abs(translationBeforeLongPressDrag.y - translationAfterLongPressDrag.y) > 1e-4)
+            assertEquals("Dragged mesh X must follow the released screen point at the picked surface height",
+                translationBeforeLongPressDrag.x + expectedDragDelta.x, translationAfterLongPressDrag.x, 0.05)
+            assertEquals("Dragged mesh Y must follow the released screen point at the picked surface height",
+                translationBeforeLongPressDrag.y + expectedDragDelta.y, translationAfterLongPressDrag.y, 0.05)
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
@@ -921,9 +937,11 @@ class MainActivityTouchDeviceTest {
                 val placementResult = AtomicReference<Int>()
                 val selectionAccepted = AtomicReference<Boolean>()
                 val targetBefore = AtomicReference<DoubleArray>()
+                val targetAfter = AtomicReference<DoubleArray>()
                 val movingHeight = AtomicReference<Double>()
-                val assemblyAfter = AtomicReference<DoubleArray>()
-                val assignedFilaments = AtomicReference<IntArray>()
+                val placedBounds = AtomicReference<DoubleArray>()
+                val assignedFilaments = AtomicReference<Pair<IntArray, IntArray>>()
+                val objectCountAfterPlacement = AtomicInteger(-1)
                 val glView = requireNotNull(bed).glView!!
                 glView.queueEvent {
                     val renderer = glView.renderer
@@ -942,9 +960,13 @@ class MainActivityTouchDeviceTest {
                     placementResult.set(renderer.placeSelectedObjectsOnObject(0))
                     val resultMin = Vec3d(); val resultMax = Vec3d()
                     activeModel.getBoundingBoxExact(0, resultMin, resultMax)
-                    assemblyAfter.set(doubleArrayOf(resultMin.x, resultMin.y, resultMin.z,
+                    targetAfter.set(doubleArrayOf(resultMin.x, resultMin.y, resultMin.z,
                         resultMax.x, resultMax.y, resultMax.z))
-                    assignedFilaments.set(activeModel.getUsedFilaments(0))
+                    activeModel.getBoundingBoxExact(movingIndex, resultMin, resultMax)
+                    placedBounds.set(doubleArrayOf(resultMin.x, resultMin.y, resultMin.z,
+                        resultMax.x, resultMax.y, resultMax.z))
+                    assignedFilaments.set(activeModel.getUsedFilaments(0) to activeModel.getUsedFilaments(movingIndex))
+                    objectCountAfterPlacement.set(activeModel.objectsCount)
                     glView.requestRender()
                     placementReady.countDown()
                 }
@@ -952,15 +974,20 @@ class MainActivityTouchDeviceTest {
                     placementReady.await(20, TimeUnit.SECONDS))
                 assertTrue("the generated object should become the selected moving object",
                     requireNotNull(selectionAccepted.get()))
-                assertEquals("the M12 and selected cube should combine into one object", 0,
+                assertEquals("placing the selected cube on the M12 should succeed", 1,
                     requireNotNull(placementResult.get()))
+                assertEquals("surface placement must leave the models independently selectable", 2,
+                    objectCountAfterPlacement.get())
                 val before = requireNotNull(targetBefore.get())
-                val after = requireNotNull(assemblyAfter.get())
-                assertEquals("the placed cube must sit on the M12 bounding top without overlap",
+                val unchangedTarget = requireNotNull(targetAfter.get())
+                val after = requireNotNull(placedBounds.get())
+                assertArrayEquals("surface placement must not alter the target M12", before, unchangedTarget, 0.03)
+                assertEquals("the cube bottom must touch the M12 top", before[5], after[2], 0.03)
+                assertEquals("the cube must retain its full height on top of the M12",
                     before[5] + requireNotNull(movingHeight.get()), after[5], 0.03)
-                assertEquals("the assembly must retain the M12 bottom", before[2], after[2], 0.03)
-                assertArrayEquals("the printable multipart assembly must retain assigned materials",
-                    intArrayOf(1, 2), requireNotNull(assignedFilaments.get()))
+                val materials = requireNotNull(assignedFilaments.get())
+                assertArrayEquals("the target keeps its original filament", intArrayOf(1), materials.first)
+                assertArrayEquals("the placed cube keeps its own filament", intArrayOf(2), materials.second)
                 scenario.onActivity { requireNotNull(bed).updateModel() }
             } finally {
                 cubeSource?.release()
