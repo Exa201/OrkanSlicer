@@ -1,5 +1,13 @@
 # Nightly 2.5 Fortsetzung — Batch 10, 4/10 verifizierte Punkte — 2026-11-03
 
+## Verifizierter APK-Refresh (2026-11-03)
+
+- Checkout `e98da4aa974050d0993d228819359a69bc1f050b`; der App-Code entspricht `9e4f4da68bc1776ebd483ee5fde1015ea170ecc9` (HEAD enthält nur Statusdokumentation zusätzlich).
+- Debug-Unit und Slice-Unit: jeweils 743/743 bestanden. Debug-APK `OrkanSlicerNightly25_9e4f4da68b.apk`, 240.304.836 Bytes, SHA-256 `e3409ddaa88caf4b4aaf2c7c7f1e96bde92a45683ebd01ba7b0769aede6a0f9a`.
+- Auf API 36 installiert und gestartet; frischer Logcat ohne Crash, ANR, OOM oder Fatal Signal.
+- Das bestehende Prerelease [v0.8.428-nightly.2](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.428-nightly.2) wurde mit dieser APK und passender SHA-256-Datei aktualisiert. Produktversion bleibt 0.8.428/Code 463; kein neuer Orca-Punkt wurde dadurch gezählt.
+- Nächster Schritt: einen neuen Android-erreichbaren Orca-2.5-Punkt auswählen, implementieren und unabhängig verifizieren; Batch 10 steht weiterhin bei 4/10.
+
 ## Nightly-Zielprüfung — App-Isolation und schwache GPU
 
 - Paket-/Installationsisolation ist im aktuellen Debug-Artefakt nachgewiesen: `aapt dump badging` meldet `com.exa201.orkanslicer.nightly25` und den Launcher-Namen `OrkanSlicer Nightly 2.5`. Der FileProvider verwendet dieselbe eindeutige Paketkennung; `SliceBeam.getConfigFile()` speichert unter app-internem `filesDir`, Modellcache unter app-internem `cacheDir/model`. Damit sind Preferences und private Dateien von Stable mit anderer Application ID getrennt.
