@@ -5,7 +5,7 @@
 - Portiert Orca `45a29d391b8d`: `DynamicPrintConfig::set_num_filaments()` skaliert jetzt keine variantenspezifischen Filamentwerte anhand der Slotzahl. So bleiben mehrdimensionale Werte wie `volumetric_speed_coefficients` und die Düsenversionen beim Profil-/Slotwechsel erhalten, statt auf den ersten Eintrag gekürzt zu werden.
 - `NativeSliceDeviceTest#changingFilamentCountPreservesEveryNozzleVariantValue` prüft den Produktionspfad über JNI: ein Slot mit zwei Variantennamen und zwei Volumenstromwerten behält beide Werte nach `set_num_filaments(1)`.
 - ARM64-Native-/Debug- und SliceTest-Instrumentierungsbuild erfolgreich. API-36-Test: 1/1 bestanden. Debug-Unit und Slice-Unit: jeweils 743/743 bestanden, 0 Fehler/Skips. `git diff --check` sauber.
-- Quelländerung ist noch nicht committed oder veröffentlicht. Batch 10 steht jetzt bei **6/10**; vier weitere unabhängige Android-taugliche Orca-Punkte sind vor dem Batch-APK/Pre-Release zu verifizieren.
+- Quelländerung ist in `20fb536a` committed. Für diesen Verifikationsdurchgang wird App-Version 0.8.430 / Code 465 gebaut und als eigenes Pre-Release veröffentlicht; Batch 10 steht bei **6/10**, vier weitere unabhängige Android-taugliche Orca-Punkte bleiben für den vollständigen Batch offen.
 
 ## Orca Batch 10 Punkt 5 — Facettenmalerei nach Loop-Unterteilung erhalten
 
