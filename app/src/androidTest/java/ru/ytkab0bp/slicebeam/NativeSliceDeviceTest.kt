@@ -1389,6 +1389,58 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun orcaPrintaLotPlaLibraryLoadsIndependentlyAndSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val library = context.assets.open("orca_profiles/PrintaLot.ini").use { Slic3rConfigWrapper(it) }
+        assertEquals("PrintaLot", library.vendor?.get("name"))
+        assertEquals("1", library.vendor?.get("filament_library"))
+        assertTrue("A material library must not add a placeholder printer", library.printerModels.isEmpty())
+        assertEquals(1, library.filamentConfigs.size)
+        assertTrue("PrintaLot's profile must parse without unsupported settings: ${library.loadWarnings}", library.loadWarnings.isEmpty())
+        config.filamentConfigs.addAll(library.filamentConfigs)
+
+        val filament = requireNotNull(config.findFilament("PrintaLot PLA"))
+        assertEquals("PrintaLot", filament["filament_vendor"])
+        assertEquals("PLA", filament["filament_type"])
+        assertEquals("220", filament["first_layer_temperature"])
+        assertEquals("19", filament["filament_max_volumetric_speed"])
+        val printer = requireNotNull(config.findPrinter("Anycubic Kobra 3 0.4 nozzle"))
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        config.presets = ConfigObject("presets").apply {
+            put("printer", printer.title)
+            put("print", process.title)
+            put("filament", filament.title)
+        }
+
+        val source = copyCube(context, "printalot-pla-library-cube.stl")
+        val output = File(context.cacheDir, "printalot-pla-library-cube.gcode")
+        var model: Model? = null
+        try {
+            val activeModel = Model(source)
+            model = activeModel
+            activeModel.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(activeModel)
+            val sliceResult = activeModel.slice(
+                SliceBeam.getCurrentConfigFile().absolutePath, output.absolutePath, null
+            )
+            try {
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                assertTrue("PrintaLot PLA's 220 C first-layer temperature reaches the printer start macro",
+                    Regex("G9111 .*extruderTemp=220(?:\\.0+)?(?:\\s|$)").containsMatchIn(gcode))
+            } finally {
+                sliceResult.release()
+            }
+        } finally {
+            model?.release()
+            source.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
     fun orcaBlocksRf50SixTenthNozzleKeepsPressureAdvanceAsExecutableGcode() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application

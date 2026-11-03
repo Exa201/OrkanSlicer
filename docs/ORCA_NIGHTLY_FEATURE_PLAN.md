@@ -1,4 +1,4 @@
-## Nightly Batch 10 — 9/10 Punkte verifiziert (Stand 2026-11-03)
+## Nightly Batch 10 — 10/10 fokussiert verifizierte Punkte (Stand 2026-11-03)
 
 Der gültige Zähler steht auch in `docs/UI2_EXECUTION_STATE.md`. Die erste Fassung dieser
 Roadmap blieb bei 6/10 stehen, obwohl danach die STEP-Importoption und die isolierte
@@ -6,18 +6,27 @@ CGAL-Vertex-Prüfung separat implementiert und verifiziert wurden. Nicht als neu
 gezählt werden die Bridge-Speed-Regression (Batch 9) und die Z-Schrumpfung über
 Höhenbereiche (Batch 7), obwohl sie im selben 3/3-Testlauf erneut mitliefen.
 
-Die neun gezählten, voneinander abgrenzbaren Verhaltensänderungen sind: STEP-Körpernamen
+Die zehn gezählten, voneinander abgrenzbaren Verhaltensänderungen sind: STEP-Körpernamen
 erhalten; organische Tree-Support-Spitzen deterministisch sortieren; Temperaturen des
 tatsächlich zuerst verwendeten Werkzeugs in den G-Code-Header schreiben; Arrange bei
 nahezu bettgroßen Teilen; bemalte Facetten nach Mesh-Glättung erhalten; Variantenwerte
 bei Filament-Slot-Änderungen bewahren; STEP-Baugruppen standardmäßig in benannte
 Körper teilen; CGAL-Volumenprüfungen gegen isolierte Vertices absichern; und die
-Grundkörperauflösung abhängig von ihrer Größe anpassen.
+Grundkörperauflösung abhängig von ihrer Größe anpassen; sowie die gemeinsame PrintaLot-
+PLA-Materialbibliothek ohne Druckerprofil laden und slicen.
 
-Noch offen ist ein neu portierbarer Android-Punkt. Der folgende Kandidat muss
-vor dem Zählen einen aktiven Produktionspfad und einen zielgerichteten Regressionstest
-erhalten. Kein neuer Batch-Release vor zehn unabhängig belegten Punkten und dem
-gebündelten Regressionstor.
+Die zehn Punkte sind fokussiert verifiziert. Vor einem Batch-Release bleibt das gebündelte
+Regressionstor erforderlich.
+
+### Punkt 10/10 — PrintaLot-PLA-Materialbibliothek
+
+Das gemeinsame Orca-Profil aus `PrintaLot.ini` wird im Android-Profilordner als
+`filament_library` geladen, ohne Druckerprofile hinzuzufügen. Der Test prüft warnungsfreien
+Import, die materialbezogenen Werte und einen nativen Slice auf einem Kobra-3-Profil; die
+PLA-Temperatur erreicht dabei dessen `G9111`-Startmakro mit 220 °C. Der erste Testlauf
+zeigte nicht unterstützte Profiloptionen, die danach auf die vom Android-Importer
+unterstützten Schlüssel korrigiert wurden. `NativeSliceDeviceTest#orcaPrintaLotPlaLibraryLoadsIndependentlyAndSlices`
+bestand auf Android 16/API 36 (1/1). APK/Release noch ausstehend bis zum Batch-Regressionstor.
 
 ### Punkt 9/10 — Größenabhängige Grundkörperauflösung
 
