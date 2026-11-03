@@ -615,9 +615,12 @@ class MainActivityTouchDeviceTest {
 
             val downTime = SystemClock.uptimeMillis()
             val translationBeforeLongPressDrag = Vec3d()
+            val boundsMinBeforeLongPressDrag = Vec3d()
+            val boundsMaxBeforeLongPressDrag = Vec3d()
             val translationReady = CountDownLatch(1)
             glView.queueEvent {
                 model.getTranslation(0, translationBeforeLongPressDrag)
+                model.getBoundingBoxExact(0, boundsMinBeforeLongPressDrag, boundsMaxBeforeLongPressDrag)
                 translationReady.countDown()
             }
             assertTrue("Model translation should be readable before long-press drag",
@@ -701,9 +704,12 @@ class MainActivityTouchDeviceTest {
             }
             awaitRendererQueue(glView)
             val translationAfterLongPressDrag = Vec3d()
+            val boundsMinAfterLongPressDrag = Vec3d()
+            val boundsMaxAfterLongPressDrag = Vec3d()
             val moved = CountDownLatch(1)
             glView.queueEvent {
                 model.getTranslation(0, translationAfterLongPressDrag)
+                model.getBoundingBoxExact(0, boundsMinAfterLongPressDrag, boundsMaxAfterLongPressDrag)
                 moved.countDown()
             }
             assertTrue("Long-press drag should commit the moved model on GL", moved.await(5, TimeUnit.SECONDS))
@@ -714,6 +720,16 @@ class MainActivityTouchDeviceTest {
                 expectedDragDelta[0], translationAfterLongPressDrag.x - translationBeforeLongPressDrag.x, 0.25)
             assertEquals("The committed mesh must not drift away from the drag preview on Y",
                 expectedDragDelta[1], translationAfterLongPressDrag.y - translationBeforeLongPressDrag.y, 0.25)
+            assertEquals("The object's selection tile must follow the committed mesh on X",
+                expectedDragDelta[0], boundsMinAfterLongPressDrag.x - boundsMinBeforeLongPressDrag.x, 0.25)
+            assertEquals("The object's selection tile must follow the committed mesh on Y",
+                expectedDragDelta[1], boundsMinAfterLongPressDrag.y - boundsMinBeforeLongPressDrag.y, 0.25)
+            assertEquals("Dragging must not offset the selection tile away from the mesh on X",
+                boundsMaxAfterLongPressDrag.x - boundsMinAfterLongPressDrag.x,
+                boundsMaxBeforeLongPressDrag.x - boundsMinBeforeLongPressDrag.x, 0.01)
+            assertEquals("Dragging must not offset the selection tile away from the mesh on Y",
+                boundsMaxAfterLongPressDrag.y - boundsMinAfterLongPressDrag.y,
+                boundsMaxBeforeLongPressDrag.y - boundsMinBeforeLongPressDrag.y, 0.01)
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)

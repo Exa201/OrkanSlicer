@@ -1188,7 +1188,11 @@ selScaleX = selScaleY
 if (changed) SliceBeam.EVENT_BUS.fireEvent(SelectedObjectChangedEvent(showActionBar = false))
 return true
 }
-return setSelectedObject(i, showActionBar = false)
+// Drag activation needs to know whether the target is valid, not whether selection changed.
+// Returning setSelectedObject's changed result rejected a long-press on an already-selected
+// object, leaving the gesture in a half-started state.
+setSelectedObject(i, showActionBar = false)
+return true
 }
 /** Select every object on the bed. The first object becomes the primary (gizmo) selection. */
  fun selectAllObjects():Boolean {
@@ -2443,6 +2447,34 @@ fun raycastHorizontalPlane(x: Float, y: Float, planeZ: Double): Vec3d? {
     // jump away from its drag location. Perspective rays share the camera origin.
     val origin = if (orthographic) point else camera.position
     return HorizontalPlaneRay.intersect(origin, direction, planeZ)
+}
+/** Screen-space fallback plane for camera angles where a horizontal drag plane is parallel to the ray. */
+fun raycastCameraPlane(x: Float, y: Float, planePoint: Vec3d): Vec3d? {
+    if (viewportWidth <= 0 || viewportHeight <= 0) return null
+    val unprojected = Slic3rUtils.unproject(
+        camera.getViewModelMatrix(), projectionMatrix, viewportWidth, viewportHeight,
+        x.toDouble(), y.toDouble(),
+    )
+    val orthographic = Prefs.isOrthoProjectionEnabled()
+    val direction = if (orthographic) camera.getDirForward().clone()
+        else unprojected.add(camera.position.clone().negate()).normalize()
+    val origin = if (orthographic) unprojected else camera.position
+    val normal = camera.getDirForward().clone()
+    val denominator = normal.x * direction.x + normal.y * direction.y + normal.z * direction.z
+    if (!denominator.isFinite() || kotlin.math.abs(denominator) < 1e-9) return null
+    val distance = (
+        (planePoint.x - origin.x) * normal.x +
+            (planePoint.y - origin.y) * normal.y +
+            (planePoint.z - origin.z) * normal.z
+        ) / denominator
+    // For orthographic rays `unproject` may start beyond the requested plane; the ray is a
+    // parallel line and its screen point remains valid in either direction from that endpoint.
+    if (!distance.isFinite() || (!orthographic && distance < 0.0)) return null
+    return Vec3d(
+        origin.x + direction.x * distance,
+        origin.y + direction.y * distance,
+        origin.z + direction.z * distance,
+    ).takeIf { it.x.isFinite() && it.y.isFinite() && it.z.isFinite() }
 }
 fun onClick(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false

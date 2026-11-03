@@ -7,6 +7,23 @@ import ru.ytkab0bp.slicebeam.utils.Vec3d
 
 class HorizontalPlaneRayTest {
     @Test
+    fun dragTranslationUsesPointerAnchorInsteadOfMeshOrObjectOrigin() {
+        val grabbedPoint = Vec3d(124.5, 63.0, 18.0)
+        val movedPointer = Vec3d(141.0, 54.5, 18.0)
+
+        val delta = requireNotNull(HorizontalPlaneDrag.translation(grabbedPoint, movedPointer))
+
+        assertEquals(16.5, delta.x, 1e-9)
+        assertEquals(-8.5, delta.y, 1e-9)
+        assertEquals(0.0, delta.z, 1e-9)
+    }
+
+    @Test
+    fun dragTranslationRejectsNonFinitePointerCoordinates() {
+        assertNull(HorizontalPlaneDrag.translation(Vec3d(), Vec3d(Double.NaN, 1.0, 0.0)))
+    }
+
+    @Test
     fun intersectsThePickedSurfacePlaneRatherThanTheBedPlane() {
         val origin = Vec3d(0.0, 0.0, 100.0)
         val direction = Vec3d(1.0, 2.0, -4.0)
@@ -27,5 +44,16 @@ class HorizontalPlaneRayTest {
     fun ignoresRaysThatCannotReachTheRequestedPlane() {
         assertNull(HorizontalPlaneRay.intersect(Vec3d(0.0, 0.0, 10.0), Vec3d(1.0, 0.0, 0.0), 0.0))
         assertNull(HorizontalPlaneRay.intersect(Vec3d(0.0, 0.0, 10.0), Vec3d(1.0, 0.0, 1.0), 0.0))
+    }
+
+    @Test
+    fun rejectsNearParallelDragRaySoCallerCanUseStableFallbackPlane() {
+        val unstable = HorizontalPlaneRay.intersect(
+            origin = Vec3d(0.0, 0.0, 100.0),
+            direction = Vec3d(0.99995, 0.0, -0.01),
+            planeZ = 0.0,
+        )
+
+        assertNull(unstable)
     }
 }

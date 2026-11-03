@@ -31,13 +31,13 @@ import ru.ytkab0bp.slicebeam.SliceBeam
 import ru.ytkab0bp.slicebeam.events.LongClickTranslationEvent
 import ru.ytkab0bp.slicebeam.render.DevicePerformancePolicy
 import ru.ytkab0bp.slicebeam.render.GLRenderer
+import ru.ytkab0bp.slicebeam.render.HorizontalPlaneDrag
 import ru.ytkab0bp.slicebeam.render.MODEL_EDIT_STALE_SELECTION
 import ru.ytkab0bp.slicebeam.render.ModelAlignmentAxis
 import ru.ytkab0bp.slicebeam.render.ModelSelectionSnapshot
 import ru.ytkab0bp.slicebeam.slic3r.Bed3D
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.ObjectDistributionAxis
-import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.events.ObjectsListChangedEvent
 import ru.ytkab0bp.slicebeam.theme.IThemeView
@@ -74,11 +74,13 @@ private val tapGestureGate = TapGestureGate()
 private var paintStrokeActive = false
 private val paintInputCoalescer = PaintInputCoalescer()
 private var lastPaintPoint: PaintInputCoalescer.Point? = null
-private var tempVec = Vec3d()
-private var longClickOffset = Vec3d()
+private var longClickStartOnPlane = Vec3d()
+private var longClickDragPlanePoint = Vec3d()
+private var longClickBoundsMin = Vec3d()
+private var longClickBoundsMax = Vec3d()
 private var longClickTranslation = Vec3d()
 private var longClickPlaneZ = 0.0
-private var longClickHitResults = ArrayList<GLModel.HitResult>()
+private var longClickUsesCameraPlane = false
 private var lastActionTime = System.currentTimeMillis()
 // A few devices report a very short accessibility long-press threshold; keep ordinary presses from opening actions.
 private val longPressTimeoutMs = maxOf(ViewConfiguration.getLongPressTimeout(), 500).toLong()
@@ -102,13 +104,31 @@ private val longClick = Runnable {
                 val hit = if (target in 0 until activeModel.objectsCount) {
                     renderer.raycastObjectSurface(target, x, y)
                 } else null
-                if (hit != null) {
-                    longClickPlaneZ = hit.position.z
-                    activeModel.getTranslation(target, tempVec)
-                    longClickOffset.x = hit.position.x - tempVec.x
-                    longClickOffset.y = hit.position.y - tempVec.y
-                    if (renderer.focusForDrag(target)) requestRender()
-                    hitFound = true
+                // Exact surface picking can be unavailable for simplified/large meshes. Keep
+                // dragging available using the object's world bounds as a stable fallback.
+                val planePoint = if (hit != null) {
+                    hit.position
+                } else if (target in 0 until activeModel.objectsCount) {
+                    activeModel.getBoundingBoxExact(target, longClickBoundsMin, longClickBoundsMax)
+                    Vec3d(
+                        (longClickBoundsMin.x + longClickBoundsMax.x) * 0.5,
+                        (longClickBoundsMin.y + longClickBoundsMax.y) * 0.5,
+                        (longClickBoundsMin.z + longClickBoundsMax.z) * 0.5,
+                    )
+                } else null
+                if (planePoint != null) {
+                    longClickPlaneZ = planePoint.z
+                    val horizontalStart = renderer.raycastHorizontalPlane(x, y, longClickPlaneZ)
+                    val start = horizontalStart ?: renderer.raycastCameraPlane(x, y, planePoint)
+                    longClickUsesCameraPlane = horizontalStart == null
+                    val focused = renderer.focusForDrag(target)
+                    if (start != null && focused) {
+                        // Anchor to the pointer's world location rather than the object's origin.
+                        longClickDragPlanePoint.set(planePoint)
+                        longClickStartOnPlane.set(start)
+                        requestRender()
+                        hitFound = true
+                    }
                 }
             }
         }
@@ -1098,10 +1118,14 @@ queueEvent {
     val activeModel = renderer.model ?: return@queueEvent
     val selected = renderer.selectedObject
     if (selected !in 0 until activeModel.objectsCount) return@queueEvent
-    activeModel.getTranslation(selected, tempVec)
-    val result = renderer.raycastHorizontalPlane(x, y, longClickPlaneZ) ?: return@queueEvent
-    longClickTranslation.x = result.x - tempVec.x - longClickOffset.x
-    longClickTranslation.y = result.y - tempVec.y - longClickOffset.y
+    val result = if (longClickUsesCameraPlane) {
+        renderer.raycastCameraPlane(x, y, longClickDragPlanePoint)
+    } else {
+        renderer.raycastHorizontalPlane(x, y, longClickPlaneZ)
+    } ?: return@queueEvent
+    val delta = HorizontalPlaneDrag.translation(longClickStartOnPlane, result) ?: return@queueEvent
+    longClickTranslation.x = delta.x
+    longClickTranslation.y = delta.y
     renderer.setSelectionTranslation(longClickTranslation.x, longClickTranslation.y, 0.0)
     SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, true))
     requestRender()
