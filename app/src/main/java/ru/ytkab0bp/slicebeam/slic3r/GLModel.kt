@@ -117,6 +117,9 @@ open class GLModel internal constructor(
 
     open fun isInitialized(): Boolean = Native.glmodel_is_initialized(pointer)
 
+    /** Current native geometry bounds, used to verify cached overlays stay aligned with a moved mesh. */
+    open fun getBoundingBox(): DoubleArray = Native.glmodel_get_bounding_box(pointer)
+
     open fun isEmpty(): Boolean = Native.glmodel_is_empty(pointer)
 
     open fun render() {

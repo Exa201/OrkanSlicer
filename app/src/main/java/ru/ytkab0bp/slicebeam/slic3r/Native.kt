@@ -65,6 +65,9 @@ class Native {
     external fun glmodel_init_box(ptr: Long, width: Float, depth: Float, height: Float): Unit
     @JvmStatic
     external fun glmodel_init_bounding_box(ptr: Long, modelPtr: Long, i: Int): Unit
+
+    @JvmStatic
+    external fun glmodel_get_bounding_box(ptr: Long): DoubleArray
     @JvmStatic
     external fun glmodel_is_initialized(ptr: Long): Boolean
     @JvmStatic

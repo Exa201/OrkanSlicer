@@ -2812,6 +2812,10 @@ this.model!!.translate(idx, dx, dy, dz)
 invalidateGlModel(idx)
 }
 }
+// The selection outline owns separate native geometry from the rendered mesh. Rebuild it
+// after committing a drag so it cannot remain at its pre-drag position if its cached bounds
+// compare equal within the native float tolerance.
+invalidateSelectionObject()
 selZ = 0.0
 selY = selZ
 selX = selY

@@ -35,6 +35,7 @@ import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.navigation.Fragment
 import ru.ytkab0bp.slicebeam.slic3r.Model
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
+import ru.ytkab0bp.slicebeam.render.GLRenderer
 import ru.ytkab0bp.slicebeam.slic3r.LargeModelPick
 import ru.ytkab0bp.slicebeam.slic3r.Slic3rConfigWrapper
 import ru.ytkab0bp.slicebeam.utils.Prefs
@@ -732,6 +733,31 @@ class MainActivityTouchDeviceTest {
             assertEquals("Dragging must not offset the selection tile away from the mesh on Y",
                 boundsMaxAfterLongPressDrag.y - boundsMinAfterLongPressDrag.y,
                 boundsMaxBeforeLongPressDrag.y - boundsMinBeforeLongPressDrag.y, 0.01)
+            // Check the native geometry actually drawn as the selection tile, not just the
+            // model's own calculated bounds. The outline has a separate cache from the mesh.
+            val selectionOutlineField = GLRenderer::class.java.getDeclaredField("selectionModel")
+                .apply { isAccessible = true }
+            glView.requestRender()
+            SystemClock.sleep(200L)
+            val outlineBounds = DoubleArray(6)
+            val outlineReady = CountDownLatch(1)
+            glView.queueEvent {
+                val outline = selectionOutlineField.get(glView.renderer) as? GLModel
+                if (outline != null && outline.isInitialized()) {
+                    outline.getBoundingBox().copyInto(outlineBounds)
+                }
+                outlineReady.countDown()
+            }
+            assertTrue("The moved selection outline should be rebuilt on the GL thread",
+                outlineReady.await(5, TimeUnit.SECONDS))
+            assertEquals("The selection tile's minimum X must align with the moved mesh",
+                boundsMinAfterLongPressDrag.x, outlineBounds[0], 0.01)
+            assertEquals("The selection tile's minimum Y must align with the moved mesh",
+                boundsMinAfterLongPressDrag.y, outlineBounds[1], 0.01)
+            assertEquals("The selection tile's maximum X must align with the moved mesh",
+                boundsMaxAfterLongPressDrag.x, outlineBounds[3], 0.01)
+            assertEquals("The selection tile's maximum Y must align with the moved mesh",
+                boundsMaxAfterLongPressDrag.y, outlineBounds[4], 0.01)
             val releasePick = AtomicInteger(-2)
             val releasePickReady = CountDownLatch(1)
             glView.queueEvent {
