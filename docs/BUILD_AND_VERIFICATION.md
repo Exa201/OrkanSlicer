@@ -1,3 +1,13 @@
+# OrkanSlicer Nightly 2.5 — Batch 9 Abschluss und Preset-Listen-Transfer — 2026-11-03
+
+- Code commit `d9cceb9a40d36dd4b9015c30e2614aec0e98600f`; Nightly branch `nightly-2.5`; package `com.exa201.orkanslicer.nightly25`; app version 0.8.428 / code 463; native engine identity unchanged.
+- Batch-9 Orca feature point 10 ports the Android-reachable core of Orca `5ca36251a23d2ecb051f5398225711bdb3382b52`: an indexed serialized-list transfer safely initializes an empty target, and an empty source replaces/clears the complete target list. Desktop-only preset comparison UI changes were not included.
+- `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest`: 743/743 each, 0 failures/errors/skips. API-36 `NativeSliceDeviceTest#presetTransferCanCreateAndClearSerializedPostProcessLists`: 1/1, 0 failures/errors/skips. `git diff --check` passed.
+- `:app:assembleDebug` succeeded. APK `OrkanSlicerNightly25_d9cceb9a40.apk`, 240,257,661 bytes, SHA-256 `A882C3AD35C80759324E2B3B77F356FABBD06DFB88A2EC1AA8ADE22732702F7C`; package metadata confirmed application ID, version, versionCode, and `arm64-v8a` ABI. Debug-signed.
+- Installed and launched on API-36 emulator `emulator-5554`; Android reported package version 0.8.428/code 463 with `SetupActivity` resumed. The sampled logcat contained no fatal exception, native fatal signal, ANR, or OOM marker. This was an emulator smoke check, not a Xiaomi or printer test.
+- Published Nightly prerelease [v0.8.428-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.428-nightly.1), targeting the code commit. The uploaded APK digest matches the local SHA-256; a `.sha256` sidecar is attached. The release includes the previously documented import-only orientation/packing and free post-import movement behavior. The supplied 109-model Settlers archive was verified on API 36 across 16 plates with all objects on-bed and no intersections among 487 checked same-plate mesh pairs; plate-count minimization is not claimed.
+- This is a selective OrcaSlicer 2.5 backport, not a full upstream engine replacement. No physical printer was connected and no print was started.
+
 # OrkanSlicer Nightly 2.5 — tree-support XY-clearance correction — 2026-10-30
 
 - Code commit `7ec32de2c5677cd63ed10368992165f944eeeb6f`; app 0.8.415/code 450; native engine identity 0.8.411/build 446.

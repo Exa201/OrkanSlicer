@@ -1,5 +1,11 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## Batch 9 release complete — 2026-11-03
+
+- Batch 9 reached 10/10 verified implementation points and was released as [v0.8.428-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.428-nightly.1). Release targets app/code commit `d9cceb9a40d36dd4b9015c30e2614aec0e98600f`; APK size 240,257,661 bytes; SHA-256 `A882C3AD35C80759324E2B3B77F356FABBD06DFB88A2EC1AA8ADE22732702F7C`.
+- Debug and Slice JVM suites passed 743/743 each. The new serialized-list transfer regression passed 1/1 on API 36. APK installed and launched on `emulator-5554`; no fatal exception, ANR, OOM, or native fatal signal appeared in the sampled logcat. No physical-printer test or print was performed.
+- Nesting policy verified in the release: import is the only automatic orient/pack stage; later object movement remains free; explicit Arrange is required for subsequent repacking. Settlers archive evidence is detailed below. Continue with Orca Batch 10; do not repeat Batch 9 points.
+
 ## Batch 9 point 10 — serialized preset-list transfer safety — 2026-11-03
 
 - Ported the Android-reachable core of Orca `5ca36251a23d2ecb051f5398225711bdb3382b52`: indexed transfer of a serialized vector now safely seeds an empty destination before `set_at()`, and an empty source list replaces/clears the destination as a whole. Orca's desktop-only deep-diff presentation changes are not included or counted.
