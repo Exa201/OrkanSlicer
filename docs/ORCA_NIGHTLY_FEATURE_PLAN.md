@@ -15,13 +15,21 @@ Körper teilen; CGAL-Volumenprüfungen gegen isolierte Vertices absichern; und d
 Grundkörperauflösung abhängig von ihrer Größe anpassen; sowie die gemeinsame PrintaLot-
 PLA-Materialbibliothek ohne Druckerprofil laden und slicen.
 
-Die zehn Punkte sind fokussiert verifiziert. Vor einem Batch-Release bleibt das gebündelte
-Regressionstor erforderlich. Batch-Gate bestanden: Debug 743/743, Slice 743/743 und fünf
+Die zehn Punkte sind fokussiert verifiziert. Das gebündelte Regressionstor ist bestanden,
+und der Nightly-Prerelease `v0.8.432-nightly.1` wurde veröffentlicht:
+https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.432-nightly.1 . Debug
+743/743, Slice 743/743 und fünf
 fokussierte API-36-Gerätetests. Debug-APK 0.8.432 / Code 467 wurde auf einem API-36-AVD
 installiert und gestartet; frisches Logcat ohne Crash, ANR, OOM oder Fatal Signal. APK:
 `OrkanSlicerNightly25_86b89bde81.apk`, 240.359.789 Bytes, SHA-256
 `0EA04F2617545FFE11FCEFCC3D62F82DACA5AFEACEA1A54B9BA7D6C1A5963AB5`. Xiaomi nicht
 angeschlossen; der physische Xiaomi-Test bleibt offen.
+
+Als nächster Schritt wird Orca `nightly-builds` am Upstream-Stand
+`26a39377713c774d52ca7d7ff7242188df4de63e` systematisch gegen Android-Aufrufpfade geprüft.
+Die bereits enthaltenen Änderungen `6c96e4116` (Scarf-Ramp-Ende) und `533d4c3e9`
+(Bridge-Speed bei Curl-Slowdown) werden nicht als neue Punkte gezählt. Batch 11 beginnt erst
+mit einem noch fehlenden Android-Pfad und einem eigenständigen Verhaltenstest.
 
 ### Punkt 10/10 — PrintaLot-PLA-Materialbibliothek
 
@@ -31,7 +39,7 @@ Import, die materialbezogenen Werte und einen nativen Slice auf einem Kobra-3-Pr
 PLA-Temperatur erreicht dabei dessen `G9111`-Startmakro mit 220 °C. Der erste Testlauf
 zeigte nicht unterstützte Profiloptionen, die danach auf die vom Android-Importer
 unterstützten Schlüssel korrigiert wurden. `NativeSliceDeviceTest#orcaPrintaLotPlaLibraryLoadsIndependentlyAndSlices`
-bestand auf Android 16/API 36 (1/1). APK/Release noch ausstehend bis zum Batch-Regressionstor.
+bestand auf Android 16/API 36 (1/1). APK/Release-Gate: Batch 10 wurde mit `v0.8.432-nightly.1` veröffentlicht.
 
 ### Punkt 9/10 — Größenabhängige Grundkörperauflösung
 
