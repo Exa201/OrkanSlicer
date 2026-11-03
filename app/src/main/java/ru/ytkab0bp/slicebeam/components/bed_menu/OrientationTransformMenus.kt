@@ -254,6 +254,9 @@ open class OrientationPositionMenu(fragment: BedFragment) : OrientationTransform
                     snapshot.model.translate(selectedIndex, dx, dy, dz)
                     renderer.invalidateGlModel(selectedIndex)
                 }
+                // The selection box is cached separately from the rendered object mesh.
+                // Rebuild it after committing the move so it cannot stay at the old position.
+                renderer.invalidateSelectionObject()
                 renderer.setSelectionTranslation(0.0, 0.0, 0.0)
                 glView.requestRender()
                 bed.updateModelOnGlThread()

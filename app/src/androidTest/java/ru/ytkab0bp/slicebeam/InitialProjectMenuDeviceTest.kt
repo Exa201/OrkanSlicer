@@ -7777,6 +7777,7 @@ class InitialProjectMenuDeviceTest {
             val moved = readTranslationOnGl(glView, 0)
             assertEquals("confirming position X should move the native object", 12.5, moved.x, 0.01)
             assertEquals("position editing should preserve Y", original.y, moved.y, 0.01)
+            assertSelectionOutlineMatchesObject(glView, 0, "single-object X move")
 
             compose.runOnUiThread { bed.undoModelEdit() }
             val afterUndo = readTranslationOnGl(glView, 0)
@@ -7903,10 +7904,13 @@ class InitialProjectMenuDeviceTest {
                 before[1].x, readTranslationOnGl(glView, 1).x, 0.01)
 
             enterAxisValue("X", before[0].x + 11.0, confirm = true)
+            assertSelectionOutlineMatchesObject(glView, 1, "group X move")
             val afterX = (0..1).map { readTranslationOnGl(glView, it) }
             enterAxisValue("Y", before[0].y + 13.0, confirm = true)
+            assertSelectionOutlineMatchesObject(glView, 1, "group Y move")
             val afterY = (0..1).map { readTranslationOnGl(glView, it) }
             enterAxisValue("Z", before[0].z + 17.0, confirm = true)
+            assertSelectionOutlineMatchesObject(glView, 1, "group Z move")
             val after = (0..1).map { readTranslationOnGl(glView, it) }
             for (index in 0..1) {
                 assertEquals("X entry should apply the same group delta to object $index",
@@ -10835,6 +10839,54 @@ class InitialProjectMenuDeviceTest {
 
     private fun readTranslationOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Vec3d =
         readVectorOnGl(glView, index) { model, vector -> model.getTranslation(index, vector) }
+
+    private fun assertSelectionOutlineMatchesObject(
+        glView: ru.ytkab0bp.slicebeam.view.GLView,
+        objectIndex: Int,
+        action: String,
+    ) {
+        glView.requestRender()
+        SystemClock.sleep(120L)
+        val modelBounds = DoubleArray(6)
+        val meshBounds = DoubleArray(6)
+        val outlineBounds = DoubleArray(6)
+        val ready = CountDownLatch(1)
+        glView.queueEvent {
+            val activeModel = requireNotNull(glView.renderer.model)
+            val min = Vec3d()
+            val max = Vec3d()
+            activeModel.getBoundingBoxExact(objectIndex, min, max)
+            modelBounds[0] = min.x
+            modelBounds[1] = min.y
+            modelBounds[2] = min.z
+            modelBounds[3] = max.x
+            modelBounds[4] = max.y
+            modelBounds[5] = max.z
+            val meshesField = GLRenderer::class.java.getDeclaredField("glModels")
+                .apply { isAccessible = true }
+            @Suppress("UNCHECKED_CAST")
+            val meshes = meshesField.get(glView.renderer) as List<GLModel>
+            val mesh = meshes.getOrNull(objectIndex)
+            if (mesh != null && mesh.isInitialized()) mesh.getBoundingBox().copyInto(meshBounds)
+            val field = GLRenderer::class.java.getDeclaredField("selectionModel")
+                .apply { isAccessible = true }
+            val outline = field.get(glView.renderer) as? GLModel
+            if (outline != null && outline.isInitialized())
+                outline.getBoundingBox().copyInto(outlineBounds)
+            ready.countDown()
+        }
+        assertTrue("$action should finish rebuilding the selection outline", ready.await(5, TimeUnit.SECONDS))
+        for (axis in 0..2) {
+            assertEquals("$action rendered mesh must align with the native model on axis $axis",
+                modelBounds[axis], meshBounds[axis], 0.01)
+            assertEquals("$action rendered mesh maximum must align with the native model on axis $axis",
+                modelBounds[axis + 3], meshBounds[axis + 3], 0.01)
+            assertEquals("$action selection outline must align with the moved mesh on axis $axis",
+                modelBounds[axis], outlineBounds[axis], 0.01)
+            assertEquals("$action selection outline maximum must align with the moved mesh on axis $axis",
+                modelBounds[axis + 3], outlineBounds[axis + 3], 0.01)
+        }
+    }
 
     private fun readRotationOnGl(glView: ru.ytkab0bp.slicebeam.view.GLView, index: Int): Vec3d =
         readVectorOnGl(glView, index) { model, vector -> model.getRotation(index, vector) }
