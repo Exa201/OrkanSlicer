@@ -1,4 +1,4 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 1/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 2/10 verifizierte Punkte — 2026-11-03
 
 ## Nightly-Zielprüfung — App-Isolation und schwache GPU
 
@@ -16,6 +16,15 @@
 - Emulator `solidcraft_port_test_clean_20261101`, Android 16/API 36, x86_64 mit `libndk_translation.so` und ARM64-ABI-Unterstützung; damit ist der ARM64-Native-Pfad tatsächlich ausgeführt worden.
 - `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743, 0 failures, 0 errors, 0 skipped. Kandidat ist auf `nightly-2.5` noch nicht mit einem neuen Produktions-APK/Release veröffentlicht.
 - Nächster konkreter Schritt: den nächsten noch fehlenden, Android-relevanten Orca-2.5-Kernpunkt anhand Upstream-Diff und aktuellem Android-Code auswählen; Batch 10 erst nach zehn unabhängig verifizierten Punkten veröffentlichen.
+
+## Organische Tree-Support-Spitzen deterministisch übernehmen — Orca-Punkt 2/10
+
+- Portiert den Android-relevanten Kern des Orca-Upstream-Commits `e9fbe672bf` („Place Organic Tree Support Tips in a Fixed Order“). Der Upstream-Commit liegt derzeit auf `hanif/tree-support-tip-order`, nicht auf `main`.
+- Während `generate_initial_areas()` Überhänge parallel verarbeitet, sammelt jetzt jede Überhangschicht Tree-Spitzen und Roof-Polygone in einem eigenen Puffer. Nach Abschluss der TBB-Arbeit werden die Puffer in stabiler Schichtreihenfolge übernommen; nahe Spitzen werden erst dabei dedupliziert. So bestimmt die Laufzeit-Reihenfolge konkurrierender Threads nicht mehr, welche von zwei benachbarten Spitzen im Support-Ergebnis bleibt.
+- `NativeSliceDeviceTest#organicTreeSupportPathsAreStableAcrossRepeatedSlices`: 1/1 auf Android-16-AVD bestanden. Drei Slices desselben Bunny-Modells erzeugten identische geordnete Tree-Support-Extrusionspfade (jeweils 6.894 Bewegungen).
+- Bestehender `NativeSliceDeviceTest#buildPlateOnlyTreeSupportsSliceWithConfiguredObjectClearance`: 1/1 bestanden; eine Änderung des Objektabstands verändert weiterhin die Supportpfade.
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743, 0 failures, 0 errors, 0 skipped. ARM64-SliceTest-Nativebuild und Instrumentierung erfolgreich; `git diff --check` sauber.
+- Kein Release-Artefakt für diesen Einzelpunkt. Batch 10 steht bei **2/10**; nächster Schritt ist die Upstream-Auswahl und Verifikation des dritten Android-relevanten Punkts.
 
 ## Nesting-Priorität — gemeinsames Packen kleiner Importpakete — 2026-11-03
 

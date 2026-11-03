@@ -1813,6 +1813,64 @@ class NativeSliceDeviceTest {
         }
     }
 
+    @Test(timeout = 180_000)
+    fun organicTreeSupportPathsAreStableAcrossRepeatedSlices() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val config = requireNotNull(SliceBeam.CONFIG)
+        val process = requireNotNull(config.findPrint("0.16mm Standard"))
+        process.put("enable_support", "1")
+        process.put("support_type", "tree(auto)")
+        process.put("support_on_build_plate_only", "1")
+        process.put("support_object_xy_distance", "0.2")
+
+        val modelFile = copyAsset(context, "models/bunny.stl", "orca25-tree-order-bunny.stl")
+        val output = File(context.cacheDir, "orca25-tree-order-bunny.gcode")
+        val model = Model(modelFile)
+        var result: GCodeProcessorResult? = null
+        try {
+            model.ensureOnBed(0)
+            val supportPaths = (1..3).map { run ->
+                SliceBeam.genCurrentConfig(model)
+                val configFile = SliceBeam.getCurrentConfigFile()
+                result = model.slice(configFile.absolutePath, output.absolutePath, null)
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                val paths = mutableListOf<String>()
+                var readingSupport = false
+                for (line in gcode.lineSequence()) {
+                    if (line.startsWith(";TYPE:", ignoreCase = true)) {
+                        readingSupport = line.contains("support", ignoreCase = true)
+                    } else if (readingSupport && line.startsWith("G1 ") && line.contains(" E") &&
+                        (line.contains(" X") || line.contains(" Y"))
+                    ) {
+                        paths += line.substringBefore(';').trim()
+                    }
+                }
+                assertTrue("tree support must produce extrusion paths on run $run", paths.isNotEmpty())
+                result?.release()
+                result = null
+                output.delete()
+                configFile.delete()
+                paths
+            }
+            assertEquals(
+                "parallel organic-tree tip collection must produce the same ordered support paths on repeated slices",
+                supportPaths.first(), supportPaths[1],
+            )
+            assertEquals(
+                "the deterministic support result must remain stable on a third slice",
+                supportPaths.first(), supportPaths[2],
+            )
+            Log.i("NativeSliceDeviceTest", "PASS repeatable organic tree-support paths moves=${supportPaths.first().size}")
+        } finally {
+            result?.release()
+            model.release()
+            modelFile.delete()
+            output.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
     @Test
     fun brimCanFollowElephantFootCompensatedFirstLayerOutline() = withKobraProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
