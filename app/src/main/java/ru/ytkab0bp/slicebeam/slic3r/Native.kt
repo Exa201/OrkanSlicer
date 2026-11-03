@@ -83,6 +83,9 @@ class Native {
     /** Checks the production gate for the optional curled-extrusion estimation pass. */
     @JvmStatic
     external fun curled_extrusion_estimation_policy_probe(): IntArray
+    /** Confirms painted facet states follow filament count even if the color palette is shorter. */
+    @JvmStatic
+    external fun painted_segmentation_state_count_probe(filamentCount: Int, colorCount: Int): IntArray
     @JvmStatic
     external fun set_svg_path_prefix(prefix: String): Unit
     @JvmStatic

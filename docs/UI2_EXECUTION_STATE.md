@@ -1,5 +1,13 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## Current continuation state — 2026-11-03 (Batch 9 point 9)
+
+- Current implementation is based on `72a75da3fcbcfb0fa6081ac0806bad83ee1b5664`. Batch 9 point 9 ports Orca `21d2856429`: painted multi-material segmentation now allocates states from filament count rather than the potentially shorter color-palette vector.
+- API-36 `NativeSliceDeviceTest#paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter` passed 1/1. Its native policy probe confirms two filaments plus one palette color require three facet states; the end-to-end slice paints filament 2, shortens the serialized palette, slices natively, and verifies T1 plus deposited extrusion. The JNI bridge normalizes/pads the palette before entering Orca, so the policy probe independently covers the upstream edge that Android's wrapper otherwise masks.
+- Batch 9 stands at **9/10**; there is no APK or release for this point. Next: choose one absent upstream feature with a real Android path, implement and verify it, then run the batch regression and release gate.
+- Nesting policy remains: arrange/orient automatically only on import; saved 3MF layouts and post-load free movement are preserved; explicit Arrange button is the only later repacking action. The supplied Settlers ZIP (SHA-256 `1741BBF0E6D4188493634B7137F2F3A85029B931438A5C7AF8DD3FBC6AF3A4AE`) was re-tested on API 36 from the current HEAD: 109 STLs across 16 plates, all on-bed, and 458 same-plate mesh pairs disjoint; test passed 1/1 in 616.772 seconds. Separate XYZ movement/undo and explicit Arrange tests each passed 1/1.
+- The touched production change and regression test are currently in the worktree and not yet committed. Last committed code before point 9 is `72a75da3fc`; no physical printer test has been run.
+
 ## Current verified continuation state — 2026-11-03
 
 - Batch 9 point 7 was implemented against base commit `7173591319f7eeb2e1f6a271f31366ec640eb795` on `nightly-2.5`; its implementation, regression and verification record are committed together after the checks below.

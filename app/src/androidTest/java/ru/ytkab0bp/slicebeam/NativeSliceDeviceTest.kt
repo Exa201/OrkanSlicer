@@ -4332,6 +4332,72 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter() = withToolChangerProfile {
+        assertArrayEquals("Two filaments and a one-color palette still require three facet states",
+            intArrayOf(2, 1, 3), Native.painted_segmentation_state_count_probe(2, 1))
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val modelFile = copyCube(context, "short-color-palette-painted-cube.stl")
+        val model = Model(modelFile)
+        var generatedConfig: File? = null
+        try {
+            model.setUniformFilament(0, 1)
+            model.ensureOnBed(0)
+            val min = Vec3d()
+            val max = Vec3d()
+            model.getBoundingBoxExact(0, min, max)
+            val paint = PaintSession(model, 0, GLRenderer.PAINT_MODE_COLOR)
+            try {
+                assertTrue("The fixture must support facet painting", paint.isValid())
+                paint.height(min.z + (max.z - min.z) * 0.25, min.z + (max.z - min.z) * 0.75, 2)
+                paint.commit()
+            } finally {
+                paint.end()
+            }
+            assertTrue("Paint must reference filament 2", model.getUsedFilaments(0).contains(2))
+
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            val configText = generatedConfig!!.readText()
+            assertTrue("The test profile must configure two filament diameters",
+                Regex("(?m)^filament_diameter\\s*=\\s*[^,]+,[^,]+\\s*$").containsMatchIn(configText))
+            val shortPalette = configText.replace(
+                Regex("(?m)^filament_colour\\s*=.*$"),
+                "filament_colour = #FF0000",
+            )
+            assertNotEquals("The generated config must contain a color palette to shorten", configText, shortPalette)
+            assertTrue("The test must leave the two-filament configuration intact",
+                Regex("(?m)^filament_diameter\\s*=\\s*[^,]+,[^,]+\\s*$").containsMatchIn(shortPalette))
+            generatedConfig!!.writeText(shortPalette)
+
+            val output = File(context.cacheDir, "short-color-palette-painted-cube.gcode")
+            var result: GCodeProcessorResult? = null
+            try {
+                result = model.slice(generatedConfig!!.absolutePath, output.absolutePath, null)
+                val gcode = output.readText()
+                assertHasExtrusion(gcode)
+                assertTrue(
+                    "The painted second filament must survive slicing when the color palette is shorter than the filament list",
+                    Regex("(?m)^T1(?:\\s|$)").containsMatchIn(gcode),
+                )
+                var activeTool = 0
+                val secondToolExtrudes = gcode.lineSequence().any { line ->
+                    Regex("^T(\\d+)(?:\\s|$)").find(line)?.let { activeTool = it.groupValues[1].toInt() }
+                    activeTool == 1 && line.startsWith("G1 ") &&
+                        Regex("\\bE[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)").containsMatchIn(line)
+                }
+                assertTrue("The second filament must receive deposited toolpath", secondToolExtrudes)
+            } finally {
+                result?.release()
+                output.delete()
+            }
+        } finally {
+            generatedConfig?.delete()
+            model.release()
+            modelFile.delete()
+        }
+    }
+
+    @Test
     fun paintedTopAndBottomColorPenetrationChangesTheActualSlicedToolpathDepth() = withToolChangerProfile {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val process = requireNotNull(SliceBeam.CONFIG?.findPrint("0.20mm Standard"))

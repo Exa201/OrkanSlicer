@@ -24,6 +24,7 @@
 #include "libslic3r/NSVGUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/CurledExtrusionUtils.hpp"
+#include "libslic3r/PaintedSegmentationPolicy.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Preset.hpp"
@@ -452,6 +453,19 @@ extern "C" {
             should_estimate_curled_extrusions(slowdownOnly) ? 1 : 0,
             should_estimate_curled_extrusions(bothSameRegion) ? 1 : 0,
             should_estimate_curled_extrusions(bothAcrossRegions) ? 1 : 0,
+        };
+        jintArray output = env->NewIntArray(static_cast<jsize>(values.size()));
+        if (output != nullptr)
+            env->SetIntArrayRegion(output, 0, static_cast<jsize>(values.size()), values.data());
+        return output;
+    }
+
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_painted_1segmentation_1state_1count_1probe(
+            JNIEnv *env, jclass, jint filamentCount, jint colorCount) {
+        const std::array<jint, 3> values{
+            filamentCount,
+            colorCount,
+            static_cast<jint>(painted_segmentation_state_count(static_cast<size_t>(std::max(0, filamentCount)))),
         };
         jintArray output = env->NewIntArray(static_cast<jsize>(values.size()));
         if (output != nullptr)

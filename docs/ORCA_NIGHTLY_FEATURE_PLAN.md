@@ -1,3 +1,13 @@
+## Nightly Batch 9 — Punkt 9/10 verifiziert (2026-11-03)
+
+### Mehrfarben-Segmentierung nach Filamentanzahl statt Farblistenlänge
+
+Portiert Orca `21d2856429`: die Facettenzustände der gemalten Mehrmaterial-Segmentierung werden anhand der konfigurierten Filamentanzahl dimensioniert, nicht anhand der Farbliste. Importierte/angepasste Profile können eine kürzere oder unvollständige `filament_colour`-Liste besitzen, obwohl mehrere Filamente samt Durchmesser konfiguriert sind. In diesem Fall bleibt gemalte Segmentierung für alle Filamente verfügbar.
+
+`NativeSliceDeviceTest#paintedSegmentationUsesFilamentCountWhenColorPaletteIsShorter` bestand auf API 36: der native Policy-Probe bestätigt für zwei Filamente und eine Farbe drei Facettenzustände; zusätzlich wurde ein Modell mit dem zweiten Filament bemalt, die Palette für den Slice auf eine Farbe gekürzt und der G-Code auf Werkzeug `T1` samt tatsächlicher Extrusion geprüft. Orkans JNI-Slice normalisiert die Farbpalette vor dem Engine-Aufruf; der Policy-Probe prüft deshalb separat die Orca-Kernregel, die der Ende-zu-Ende-Pfad maskieren würde. Keine physische Druckerprüfung.
+
+Batch 9: **9/10**. Noch ein verifiziertes Android-taugliches Orca-Feature und die gebündelte Regression bis zum APK-/Nightly-Release-Gate.
+
 ## Nightly Batch 9 — Punkt 8/10 verifiziert (2026-11-03)
 
 ### Gekräuselte Extrusionen nur bei aktivem Bedarf schätzen

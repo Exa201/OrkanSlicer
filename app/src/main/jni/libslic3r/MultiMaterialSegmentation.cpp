@@ -6,6 +6,7 @@
 #include "Geometry/VoronoiVisualUtils.hpp"
 #include "Geometry/VoronoiUtils.hpp"
 #include "MutablePolygon.hpp"
+#include "PaintedSegmentationPolicy.hpp"
 #include "format.hpp"
 
 #include <utility>
@@ -2211,7 +2212,9 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 
 // Returns multi-material segmentation based on painting in multi-material segmentation gizmo
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback) {
-    const size_t num_facets_states  = print_object.print()->config().filament_colour.size() + 1;
+    // The painted-state array uses one entry per filament plus the unpainted state.
+    // filament_colour can be shorter than filament_diameter for imported or edited profiles.
+    const size_t num_facets_states  = painted_segmentation_state_count(print_object.print()->config().filament_diameter.size());
     const float  max_width          = float(print_object.config().mmu_segmented_region_max_width.value);
     const float  interlocking_depth = float(print_object.config().mmu_segmented_region_interlocking_depth.value);
     const bool   interlocking_beam  = print_object.config().interlocking_beam.value;
