@@ -1132,6 +1132,24 @@ extern "C" {
         return count;
     }
 
+    JNIEXPORT jstring JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1get_1object_1part_1name(
+        JNIEnv* env, jclass, jlong ptr, jint object_index, jint part_index) {
+        ModelRef* model = (ModelRef *) (intptr_t) ptr;
+        if (model == nullptr || object_index < 0 || static_cast<size_t>(object_index) >= model->model.objects.size() || part_index < 0)
+            return nullptr;
+        const ModelObject* object = model->model.objects[object_index];
+        if (object == nullptr) return nullptr;
+        jint current_part = 0;
+        for (const ModelVolume* volume : object->volumes) {
+            if (volume == nullptr || volume->type() != ModelVolumeType::MODEL_PART || volume->mesh().facets_count() < 3)
+                continue;
+            if (current_part++ != part_index) continue;
+            if (volume->name.empty()) return nullptr;
+            return env->NewStringUTF(volume->name.c_str());
+        }
+        return nullptr;
+    }
+
     JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1modifier_1box(
         JNIEnv*, jclass, jlong ptr, jint object_index, jint type, jdouble x, jdouble y, jdouble z,
         jdouble width, jdouble depth, jdouble height) {

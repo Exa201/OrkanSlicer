@@ -223,6 +223,14 @@ open class Model private constructor(@JvmField var pointer: Long) {
     open fun getObjectPartCount(i: Int): Int =
         if (!hasObject(i)) 0 else Native.model_get_object_part_count(pointer, i)
 
+    /** Returns the source/import name of a printable mesh part, or null when it has no name. */
+    open fun getObjectPartName(objectIndex: Int, partIndex: Int): String? {
+        if (!hasObject(objectIndex) || partIndex !in 0 until getObjectPartCount(objectIndex)) return null
+        return Native.model_get_object_part_name(pointer, objectIndex, partIndex)
+            ?.trim { it <= ' ' }
+            ?.takeIf { it.isNotEmpty() }
+    }
+
     /** Returns a serialized, explicitly overridden Orca object setting, or null to inherit. */
     open fun getObjectConfigOption(objectIndex: Int, key: String): String? =
         if (!hasObject(objectIndex) || key !in OBJECT_OVERRIDE_KEYS) null

@@ -75,4 +75,41 @@ class StepModelImportDeviceTest {
             source.delete()
         }
     }
+
+    @Test fun splitStepBodiesKeepTheirOriginalNamesAndObjectListNames() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val compound = File(context.cacheDir, "named-compound-bodies-${System.nanoTime()}.step")
+        val single = File(context.cacheDir, "named-single-body-${System.nanoTime()}.step")
+        InstrumentationRegistry.getInstrumentation().context.assets.open("named_compound_bodies.step").use { input ->
+            compound.outputStream().use(input::copyTo)
+        }
+        InstrumentationRegistry.getInstrumentation().context.assets.open("named_single_body.step").use { input ->
+            single.outputStream().use(input::copyTo)
+        }
+        try {
+            val split = Model(compound, 0, StepImportOptions(0.003, 0.5, splitCompound = true))
+            try {
+                assertEquals(1, split.objectsCount)
+                assertEquals(3, split.getObjectPartCount(0))
+                assertEquals("Part10", split.getObjectPartName(0, 0))
+                assertEquals("Part2", split.getObjectPartName(0, 1))
+                assertEquals("Тело & shell", split.getObjectPartName(0, 2))
+                assertTrue((0 until split.getObjectPartCount(0)).all { split.getTriangleCount(0) > 0 })
+            } finally {
+                split.release()
+            }
+
+            val oneBody = Model(single, 0, StepImportOptions(0.003, 0.5, splitCompound = false))
+            try {
+                assertEquals(1, oneBody.objectsCount)
+                assertEquals("Body name", oneBody.getObjectName(0))
+                assertEquals(1, oneBody.getObjectPartCount(0))
+            } finally {
+                oneBody.release()
+            }
+        } finally {
+            compound.delete()
+            single.delete()
+        }
+    }
 }

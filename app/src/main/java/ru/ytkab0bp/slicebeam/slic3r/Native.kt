@@ -190,6 +190,8 @@ class Native {
     @JvmStatic
     external fun model_get_object_part_count(ptr: Long, i: Int): Int
     @JvmStatic
+    external fun model_get_object_part_name(ptr: Long, objectIndex: Int, partIndex: Int): String?
+    @JvmStatic
     external fun model_get_object_config_option(ptr: Long, objectIndex: Int, key: String): String?
     @JvmStatic
     external fun model_set_object_config_options(ptr: Long, objectIndex: Int, keys: Array<String>, values: Array<String>): Boolean

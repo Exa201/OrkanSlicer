@@ -1,5 +1,19 @@
 # Nightly 2.5 Fortsetzung — Batch 10, Punkt 1/10 — 2026-11-03
 
+## Nightly-Zielprüfung — App-Isolation und schwache GPU
+
+- Paket-/Installationsisolation ist im aktuellen Debug-Artefakt nachgewiesen: `aapt dump badging` meldet `com.exa201.orkanslicer.nightly25` und den Launcher-Namen `OrkanSlicer Nightly 2.5`. Der FileProvider verwendet dieselbe eindeutige Paketkennung; `SliceBeam.getConfigFile()` speichert unter app-internem `filesDir`, Modellcache unter app-internem `cacheDir/model`. Damit sind Preferences und private Dateien von Stable mit anderer Application ID getrennt.
+- Adaptive schwache-GPU-Vorschau ist bereits implementiert: GL_RENDERER/Low-RAM-Erkennung, automatischer Render-Scale, konfigurierbare Viewport-FPS-Grenze und begrenzte bzw. vereinfachte Preview-Meshes. Die Einstellungen gelten nur für den GL-Viewport; Slice-Geometrie bleibt im gespeicherten Modell unverändert. Bestehende `DevicePerformancePolicyTest`- und GL-Touch-/Picking-Gerätetests sind dokumentiert; ein physischer GPU-Leistungstest ist noch nicht belegt.
+- Kein zusätzlicher Orca-Batchpunkt wird für bereits vorhandene Isolation oder Preview-Policy gezählt. Batch 10 bleibt bis zu zehn neu portierten und verifizierten Featurepunkten offen.
+
+## STEP-Körpernamen — Implementierung wartet auf ARM64-Laufzeittest
+
+- OrcaSlicer `fa5f7e3db4` wird für den Android-erreichbaren STEP-Namenspfad adaptiert: benannte BREP-Körper bleiben an ihren importierten Mesh-Volumes, die Modellteileliste zeigt diesen Namen und fällt ohne Namen weiter auf „Teil N“ zurück. Zwei kleine upstream-Fixtures decken mehrere benannte Körper inklusive UTF-8 sowie einen einzelnen benannten Körper ab; deren Herkunft ist im Asset-README vermerkt.
+- Der erste ARM64-Linklauf deckte fehlende direkte OCCT-Abhängigkeiten auf. `TKSTEP`, `TKSTEP209`, `TKSTEPAttr`, `TKSTEPBase` und `TKXSBase` sind jetzt in der Android-Linkliste und der OCCT-Bibliotheksbereinigung berücksichtigt. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` und `:app:assembleDebug` bestehen; das Debug-APK enthält die sechs benötigten STEP/XS-Bibliotheken.
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743 bestanden, keine Fehler/Skips. Neue Native-/Compose-Gerätetests kompilieren.
+- Laufzeittest noch offen: ADB sieht nur `emulator-5554` (x86_64); die App und OCCT sind ARM64-only. Das vorhandene API-36 ARM64-AVD kann auf diesem x86_64-Host nicht gestartet werden. Daher wird dieser Kandidat noch nicht als Batch-10-Punkt gezählt.
+- Nächster konkreter Schritt: sobald ein ARM64-Gerät per ADB erreichbar ist, `StepModelImportDeviceTest#splitStepBodiesKeepTheirOriginalNamesAndObjectListNames` und `InitialProjectMenuDeviceTest#objectListShowsOriginalNamesForSplitStepBodies` ausführen, Laufzeit-/JNI-/Textdarstellung korrigieren falls nötig; erst danach Batch-Zähler aktualisieren.
+
 ## Nesting-Priorität — gemeinsames Packen kleiner Importpakete — 2026-11-03
 
 - Beim Import auf einer leeren Platte versucht OrkanSlicer für kleine, leichte Dateipakete zuerst, alle eingehenden Modelle gemeinsam auf der temporären Kandidatenplatte zu packen. Der Versuch ist auf 24 Teile und 100.000 Dreiecke begrenzt und wird nur bei niedriger summierter XY-Fußabdruckfläche gestartet. Bei Überlauf oder Kollisions-/Bettgrenzenfehler wird die Kandidatenplatte verworfen und der bisherige geprüfte Mehrplattenpfad verwendet. Bereits vorhandene Modelle werden nie in diesen Versuch einbezogen oder verschoben.

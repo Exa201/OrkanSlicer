@@ -3,10 +3,12 @@
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFApp_Application.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
+#include <NCollection_DataMap.hxx>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
 #include <Message_ProgressIndicator.hxx>
 #include <atomic>
+#include <TopTools_ShapeMapHasher.hxx>
 
 namespace fs = boost::filesystem;
 
@@ -28,10 +30,12 @@ typedef std::function<void(bool isUtf8)> StepIsUtf8Fn;
 struct NamedSolid
 {
     NamedSolid(const TopoDS_Shape& s,
-               const std::string& n) : solid{ s }, name{ n } {
+               const std::string& n,
+               bool original = false) : solid{ s }, name{ n }, original_name{ original } {
     }
     const TopoDS_Shape solid;
     const std::string  name;
+    const bool         original_name;
     int tri_face_cout = 0;
 };
 
@@ -117,6 +121,7 @@ private:
     Handle(TDocStd_Document) m_doc;
     Handle(XCAFDoc_ShapeTool) m_shape_tool;
     std::vector<NamedSolid> m_name_solids;
+    NCollection_DataMap<TopoDS_Shape, std::string, TopTools_ShapeMapHasher> m_body_names;
 };
 
 }; // namespace Slic3r

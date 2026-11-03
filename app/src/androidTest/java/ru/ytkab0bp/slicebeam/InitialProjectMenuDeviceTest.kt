@@ -93,6 +93,7 @@ import ru.ytkab0bp.slicebeam.config.TemporaryProjectSettings
 import ru.ytkab0bp.slicebeam.fragment.BedFragment
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
 import ru.ytkab0bp.slicebeam.slic3r.Model
+import ru.ytkab0bp.slicebeam.slic3r.StepImportOptions
 import ru.ytkab0bp.slicebeam.slic3r.GLModel
 import ru.ytkab0bp.slicebeam.slic3r.PaintSession
 import ru.ytkab0bp.slicebeam.slic3r.ObjectBounds3D
@@ -1418,6 +1419,49 @@ class InitialProjectMenuDeviceTest {
             }
         } finally {
             modelFile.delete()
+        }
+    }
+
+    @Test
+    fun objectListShowsOriginalNamesForSplitStepBodies() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        val stepFile = File(activity.cacheDir, "named-step-object-list-${System.nanoTime()}.step")
+        try {
+            InstrumentationRegistry.getInstrumentation().context.assets
+                .open("named_compound_bodies.step").use { input ->
+                    stepFile.outputStream().use(input::copyTo)
+                }
+            val loaded = CountDownLatch(1)
+            val failure = AtomicReference<Exception?>()
+            bed.loadModel(stepFile, false, 1, object : BedFragment.ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    loaded.countDown()
+                }
+
+                override fun onFailed(error: Exception) {
+                    failure.set(error)
+                    loaded.countDown()
+                }
+            }, StepImportOptions(0.003, 0.5, splitCompound = true))
+            assertTrue("named STEP import should finish", loaded.await(90, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("named STEP import failed", it) }
+            instrumentationWaitForGlIdle()
+
+            compose.runOnUiThread { FileMenuObjectActions(bed).showObjectsDialog(glView) }
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.onAllNodesWithTag("model-object-row-0").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("model-object-group-toggle-0").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-object-part-row-0-0").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
+            compose.onNodeWithTag("model-object-part-row-0-2").assertIsDisplayed()
+            compose.onNodeWithText("Part10").assertIsDisplayed()
+            compose.onNodeWithText("Part2").assertIsDisplayed()
+            compose.onNodeWithText("Тело & shell").assertIsDisplayed()
+        } finally {
+            stepFile.delete()
         }
     }
 

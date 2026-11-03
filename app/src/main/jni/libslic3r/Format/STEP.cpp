@@ -37,6 +37,18 @@
 #include "BRep_Tool.hxx"
 #include "BRepTools.hxx"
 #include <IMeshTools_Parameters.hxx>
+#include <Standard_Type.hxx>
+#include <StepData_StepModel.hxx>
+#include <StepRepr_RepresentationItem.hxx>
+#include <StepShape_ConnectedFaceSet.hxx>
+#include <StepShape_ManifoldSolidBrep.hxx>
+#include <StepShape_ShellBasedSurfaceModel.hxx>
+#include <TCollection_HAsciiString.hxx>
+#include <TransferBRep.hxx>
+#include <Transfer_TransientProcess.hxx>
+#include <XSControl_TransferReader.hxx>
+#include <XSControl_WorkSession.hxx>
+#include <algorithm>
 
 
 namespace Slic3r {
@@ -167,13 +179,42 @@ int StepPreProcessor::preNum(const unsigned char byte) {
     return num;
 }
 
+using StepBodyNames = NCollection_DataMap<TopoDS_Shape, std::string, TopTools_ShapeMapHasher>;
+
+static void add_named_solid(std::vector<NamedSolid>& namedSolids,
+                            const TopoDS_Shape& mesh_shape,
+                            const TopoDS_Shape& source,
+                            const StepBodyNames* body_names,
+                            const std::string& fallback)
+{
+    if (body_names != nullptr && body_names->IsBound(source))
+        namedSolids.emplace_back(mesh_shape, body_names->Find(source), true);
+    else
+        namedSolids.emplace_back(mesh_shape, fallback);
+}
+
+// A compound with exactly one solid/shell can retain that body's source name without splitting it.
+static TopoDS_Shape single_body(const TopoDS_Shape& compound)
+{
+    TopoDS_Shape body;
+    int bodies = 0;
+    TopExp_Explorer explorer;
+    for (explorer.Init(compound, TopAbs_SOLID); explorer.More(); explorer.Next(), ++bodies)
+        body = explorer.Current();
+    for (explorer.Init(compound, TopAbs_SHELL, TopAbs_SOLID); explorer.More(); explorer.Next(), ++bodies)
+        body = explorer.Current();
+    explorer.Init(compound, TopAbs_FACE, TopAbs_SHELL);
+    return bodies == 1 && !explorer.More() ? body : TopoDS_Shape();
+}
+
 static void getNamedSolids(const TopLoc_Location& location,
                            const std::string& prefix,
                            unsigned int& id,
                            const Handle(XCAFDoc_ShapeTool) shapeTool,
                            const TDF_Label label,
                            std::vector<NamedSolid>& namedSolids,
-                           bool isSplitCompound = false) {
+                           bool isSplitCompound = false,
+                           const StepBodyNames* body_names = nullptr) {
     TDF_Label referredLabel{label};
     if (shapeTool->IsReference(label))
         shapeTool->GetReferredShape(label, referredLabel);
@@ -192,7 +233,8 @@ static void getNamedSolids(const TopLoc_Location& location,
     TDF_LabelSequence components;
     if (shapeTool->GetComponents(referredLabel, components)) {
         for (Standard_Integer compIndex = 1; compIndex <= components.Length(); ++compIndex) {
-            getNamedSolids(localLocation, fullName, id, shapeTool, components.Value(compIndex), namedSolids, isSplitCompound);
+            getNamedSolids(localLocation, fullName, id, shapeTool, components.Value(compIndex), namedSolids,
+                           isSplitCompound, body_names);
         }
     } else {
         TopoDS_Shape shape;
@@ -203,26 +245,41 @@ static void getNamedSolids(const TopLoc_Location& location,
         int                      i = 0;
         switch (shape_type) {
         case TopAbs_COMPOUND:
-            if (!isSplitCompound) {
-                namedSolids.emplace_back(TopoDS::Compound(transform.Shape()), fullName);
-                break;
-            }
         case TopAbs_COMPSOLID:
             if (!isSplitCompound) {
-                namedSolids.emplace_back(TopoDS::CompSolid(transform.Shape()), fullName);
+                const TopoDS_Shape body = single_body(shape);
+                if (body.IsNull())
+                    namedSolids.emplace_back(transform.Shape(), fullName);
+                else
+                    add_named_solid(namedSolids, transform.Shape(), body, body_names, fullName);
             } else {
-                for (explorer.Init(transform.Shape(), TopAbs_SOLID); explorer.More(); explorer.Next()) {
+                for (explorer.Init(shape, TopAbs_SOLID); explorer.More(); explorer.Next()) {
                     i++;
                     const TopoDS_Shape& currentShape = explorer.Current();
-                    namedSolids.emplace_back(TopoDS::Solid(currentShape), fullName + "-SOLID-" + std::to_string(i));
+                    add_named_solid(namedSolids, transform.ModifiedShape(currentShape), currentShape,
+                                    body_names, fullName + "-SOLID-" + std::to_string(i));
                 }
+                i = 0;
+                for (explorer.Init(shape, TopAbs_SHELL, TopAbs_SOLID); explorer.More(); explorer.Next())
+                    add_named_solid(namedSolids, transform.ModifiedShape(explorer.Current()), explorer.Current(),
+                                    body_names, fullName + "-SHELL-" + std::to_string(++i));
+                TopoDS_Compound loose_faces;
+                TopoDS_Builder builder;
+                builder.MakeCompound(loose_faces);
+                bool has_loose_faces = false;
+                for (explorer.Init(shape, TopAbs_FACE, TopAbs_SHELL); explorer.More(); explorer.Next()) {
+                    builder.Add(loose_faces, transform.ModifiedShape(explorer.Current()));
+                    has_loose_faces = true;
+                }
+                if (has_loose_faces)
+                    namedSolids.emplace_back(loose_faces, fullName + "-FACES");
             }
             break;
         case TopAbs_SOLID:
-            namedSolids.emplace_back(TopoDS::Solid(transform.Shape()), fullName);
+            add_named_solid(namedSolids, TopoDS::Solid(transform.Shape()), shape, body_names, fullName);
             break;
         case TopAbs_SHELL:
-            namedSolids.emplace_back(TopoDS::Shell(transform.Shape()), fullName);
+            add_named_solid(namedSolids, TopoDS::Shell(transform.Shape()), shape, body_names, fullName);
             break;
         default:
             break;
@@ -444,6 +501,8 @@ void Step::update_process(int load_stage, int current, int total, bool& cancel)
 
 Step::Step_Status Step::load()
 {
+    m_body_names.Clear();
+    m_name_solids.clear();
     if (!StepPreProcessor::isUtf8File(m_path.c_str()) && m_utf8Fn) {
         m_utf8Fn(false);
         return Step_Status::LOAD_ERROR;
@@ -473,6 +532,26 @@ Step::Step_Status Step::load()
                 return;
             }
             progress.store(6, std::memory_order_relaxed);
+            // STEP BREP names are not necessarily the enclosing XCAF product label.
+            // Resolve each body entity to the transferred OCCT shape before meshing copies it.
+            const auto step_model = reader.Reader().StepModel();
+            const auto transfer = reader.Reader().WS()->TransferReader()->TransientProcess();
+            for (Standard_Integer entity_index = 1; entity_index <= step_model->NbEntities(); ++entity_index) {
+                const auto entity = step_model->Value(entity_index);
+                if (!entity->IsKind(STANDARD_TYPE(StepShape_ManifoldSolidBrep)) &&
+                    !entity->IsKind(STANDARD_TYPE(StepShape_ConnectedFaceSet)) &&
+                    !entity->IsKind(STANDARD_TYPE(StepShape_ShellBasedSurfaceModel)))
+                    continue;
+                const Handle(StepRepr_RepresentationItem) item = Handle(StepRepr_RepresentationItem)::DownCast(entity);
+                if (item.IsNull() || item->Name().IsNull() || item->Name()->IsEmpty())
+                    continue;
+                const std::string body_name = item->Name()->ToCString();
+                if (!StepPreProcessor::isUtf8(body_name))
+                    continue;
+                const TopoDS_Shape source_shape = TransferBRep::ShapeResult(transfer, entity);
+                if (!source_shape.IsNull() && !m_body_names.IsBound(source_shape))
+                    m_body_names.Bind(source_shape, body_name);
+            }
             m_shape_tool = XCAFDoc_DocumentTool::ShapeTool(m_doc->Main());
             TDF_LabelSequence topLevelShapes;
             m_shape_tool->GetFreeShapes(topLevelShapes);
@@ -483,7 +562,8 @@ Step::Step_Status Step::load()
                     task_result.store(true, std::memory_order_release);
                     return;
                 }
-                getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), m_name_solids);
+                getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel),
+                               m_name_solids, false, &m_body_names);
             }
             progress.store(10, std::memory_order_relaxed);
             load_result = true;
@@ -557,8 +637,13 @@ Step::Step_Status Step::mesh(Model* model,
                 task_result.store(true, std::memory_order_release);
                 return;
             }
-            getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), namedSolids, isSplitCompound);
+            getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel),
+                           namedSolids, isSplitCompound, &m_body_names);
         }
+
+        // When there is a single printable body, its original CAD name is the useful object label.
+        if (namedSolids.size() == 1 && namedSolids.front().original_name)
+            new_object->name = namedSolids.front().name;
 
         named_solid_count.store(namedSolids.size(), std::memory_order_relaxed);
         std::vector<stl_file> stl;

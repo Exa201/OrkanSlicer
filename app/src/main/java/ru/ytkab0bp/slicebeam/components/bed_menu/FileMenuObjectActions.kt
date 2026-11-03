@@ -80,7 +80,8 @@ class FileMenuObjectActions(private val fragment: BedFragment) {
                     val partTool = (snapshot.model.getObjectPartExtruder(index, partIndex) - 1).coerceAtLeast(0)
                     val partSlot = filamentSlots.getOrNull(partTool)
                     ModelObjectPartRow(
-                        label = context.getString(R.string.ModelObjectPartNumber, partIndex + 1),
+                        label = snapshot.model.getObjectPartName(index, partIndex)
+                            ?: context.getString(R.string.ModelObjectPartNumber, partIndex + 1),
                         tool = partTool,
                         material = partSlot?.type?.takeIf(String::isNotBlank) ?: context.getString(R.string.FilamentType),
                         color = partSlot?.color ?: 0xFF888888.toInt(),
