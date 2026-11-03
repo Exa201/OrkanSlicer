@@ -1,5 +1,14 @@
 # OrcaSlicer 2.5 Android-core integration
 
+## Nightly app validation — 2026-11-03 — 0.8.428
+
+- Built from code commit `9e4f4da68bc1776ebd483ee5fde1015ea170ecc9`; app 0.8.428 / code 463; isolated package `com.exa201.orkanslicer.nightly25`.
+- Debug and Slice JVM suites passed 743/743 each (0 failures, 0 errors, 0 skips). `SettingsMenuActionDeviceTest` passed 10/10 and `NativeSliceDeviceTest#arrangementUsesAvailableBedAreaForNearBedSizeObjects` passed 1/1 on the Android 16/API 36 emulator.
+- Debug APK `OrkanSlicerNightly25_9e4f4da68b.apk`, 240,304,840 bytes, SHA-256 `3617a436d3e1b9cc60de39870d90fbd6d047d8ecd4000495cf72008532e1248d`.
+- The APK installed and launched on the API 36 emulator; the inspected logcat window had no matching fatal exception, ANR, or OOM. This does not claim physical Xiaomi/Honor or printer acceptance.
+- [Nightly prerelease v0.8.428-nightly.2](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.428-nightly.2); APK and SHA-256 file are attached there.
+- Orca 2.5 remains a selective Android port, not a full desktop-engine replacement. Feature-batch completion is not claimed by this artifact release.
+
 ## Nightly app validation — 2026-10-31 — 0.8.421
 
 - Batch 2 completed 10/10 focused Android adaptations. Orca `efd65b733` filename-template parity is extended by `f273fe8ac`'s `{printing_filament_types}` placeholder, which lists distinct materials used by a plate in tool order. OpenEYE's 13 process profiles use the multi-material placeholder.
