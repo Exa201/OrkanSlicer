@@ -123,21 +123,38 @@ bool StepPreProcessor::isUtf8File(const char* path)
 
 bool StepPreProcessor::isUtf8(const std::string str)
 {
-    size_t num = 0;
-    int i = 0;
-    while (i < str.length()) {
-        if ((str[i] & 0x80) == 0x00) {
-            i++;
-        } else if ((num = preNum(str[i])) > 2) {
-            i++;
-            for (int j = 0; j < num - 1; j++) {
-                if ((str[i] & 0xc0) != 0x80)
-                    return false;
-                i++;
-            }
-        } else {
-            return false;
+    size_t index = 0;
+    while (index < str.size()) {
+        const auto first = static_cast<unsigned char>(str[index]);
+        if (first <= 0x7f) {
+            ++index;
+            continue;
         }
+
+        size_t continuation_count;
+        if (first >= 0xc2 && first <= 0xdf)
+            continuation_count = 1;
+        else if (first >= 0xe0 && first <= 0xef)
+            continuation_count = 2;
+        else if (first >= 0xf0 && first <= 0xf4)
+            continuation_count = 3;
+        else
+            return false;
+
+        if (str.size() - index - 1 < continuation_count)
+            return false;
+        const auto second = static_cast<unsigned char>(str[index + 1]);
+        if ((second & 0xc0) != 0x80 ||
+            (first == 0xe0 && second < 0xa0) || // Reject overlong 3-byte encodings.
+            (first == 0xed && second > 0x9f) || // Reject UTF-16 surrogate code points.
+            (first == 0xf0 && second < 0x90) || // Reject overlong 4-byte encodings.
+            (first == 0xf4 && second > 0x8f))   // Restrict to U+10FFFF.
+            return false;
+        for (size_t offset = 2; offset <= continuation_count; ++offset) {
+            if ((static_cast<unsigned char>(str[index + offset]) & 0xc0) != 0x80)
+                return false;
+        }
+        index += continuation_count + 1;
     }
     return true;
 }
@@ -163,20 +180,6 @@ bool StepPreProcessor::isGBK(const std::string str) {
         }
     }
     return true;
-}
-
-int StepPreProcessor::preNum(const unsigned char byte) {
-    unsigned char mask = 0x80;
-    int num = 0;
-    for (int i = 0; i < 8; i++) {
-        if ((byte & mask) == mask) {
-            mask = mask >> 1;
-            num++;
-        } else {
-            break;
-        }
-    }
-    return num;
 }
 
 using StepBodyNames = NCollection_DataMap<TopoDS_Shape, std::string, TopTools_ShapeMapHasher>;

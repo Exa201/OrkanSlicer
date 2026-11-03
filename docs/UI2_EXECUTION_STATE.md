@@ -1,4 +1,4 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 0/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 1/10 verifizierte Punkte — 2026-11-03
 
 ## Nightly-Zielprüfung — App-Isolation und schwache GPU
 
@@ -6,15 +6,16 @@
 - Adaptive schwache-GPU-Vorschau ist bereits implementiert: GL_RENDERER/Low-RAM-Erkennung, automatischer Render-Scale, konfigurierbare Viewport-FPS-Grenze und begrenzte bzw. vereinfachte Preview-Meshes. Die Einstellungen gelten nur für den GL-Viewport; Slice-Geometrie bleibt im gespeicherten Modell unverändert. Bestehende `DevicePerformancePolicyTest`- und GL-Touch-/Picking-Gerätetests sind dokumentiert; ein physischer GPU-Leistungstest ist noch nicht belegt.
 - Kein zusätzlicher Orca-Batchpunkt wird für bereits vorhandene Isolation oder Preview-Policy gezählt. Batch 10 bleibt bis zu zehn neu portierten und verifizierten Featurepunkten offen.
 
-## STEP-Körpernamen — Implementierung wartet auf ARM64-Laufzeittest
+## STEP-Körpernamen — Orca-Punkt 1/10, Laufzeit verifiziert
 
-- Kandidaten-Commit `d0bc5fdafc` ist auf `nightly-2.5` gepusht. Er zählt ausdrücklich noch nicht zu den zehn verifizierten Punkten.
+- Kandidaten-Commit `d0bc5fdafc` erhielt einen echten Laufzeittest und zählt jetzt als erster verifizierter Punkt des Nightly-Batch 10.
 - OrcaSlicer `fa5f7e3db4` wird für den Android-erreichbaren STEP-Namenspfad adaptiert: benannte BREP-Körper bleiben an ihren importierten Mesh-Volumes, die Modellteileliste zeigt diesen Namen und fällt ohne Namen weiter auf „Teil N“ zurück. Zwei kleine upstream-Fixtures decken mehrere benannte Körper inklusive UTF-8 sowie einen einzelnen benannten Körper ab; deren Herkunft ist im Asset-README vermerkt.
 - Der erste ARM64-Linklauf deckte fehlende direkte OCCT-Abhängigkeiten auf. `TKSTEP`, `TKSTEP209`, `TKSTEPAttr`, `TKSTEPBase` und `TKXSBase` sind jetzt in der Android-Linkliste und der OCCT-Bibliotheksbereinigung berücksichtigt. `:app:assembleSliceTest :app:assembleSliceTestAndroidTest` und `:app:assembleDebug` bestehen; das Debug-APK enthält die sechs benötigten STEP/XS-Bibliotheken.
-- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743 bestanden, keine Fehler/Skips. Neue Native-/Compose-Gerätetests kompilieren.
-- Nach Push erneut auf HEAD `693e7cd437` ausgeführt: Debug- und Slice-JVM-Suiten jeweils 743/743, 0 Fehler, 0 Errors, 0 Skips. Der Quellcode entspricht dem getesteten Kandidatencommit `d0bc5fdafc`; zwischen diesen Commits wurde nur dieser Statusnachweis ergänzt.
-- Laufzeittest noch offen: ADB sieht nur `emulator-5554` (x86_64); die App und OCCT sind ARM64-only. Das vorhandene API-36 ARM64-AVD kann auf diesem x86_64-Host nicht gestartet werden. Daher wird dieser Kandidat noch nicht als Batch-10-Punkt gezählt.
-- Nächster konkreter Schritt: sobald ein ARM64-Gerät per ADB erreichbar ist, `StepModelImportDeviceTest#splitStepBodiesKeepTheirOriginalNamesAndObjectListNames` und `InitialProjectMenuDeviceTest#objectListShowsOriginalNamesForSplitStepBodies` ausführen, Laufzeit-/JNI-/Textdarstellung korrigieren falls nötig; erst danach Batch-Zähler aktualisieren.
+- Der reale Emulator-STEP-Test fand einen UTF-8-Validatorfehler: gültige 2-Byte-Zeichen wurden verworfen, sodass etwa `Тело & shell` auf `Body collection-SOLID-3` zurückfiel. `StepPreProcessor::isUtf8` prüft jetzt gültige 2/3/4-Byte-Sequenzen, Trunkierungen, Überlängen, Surrogate und U+10FFFF-Grenze.
+- Nach der Korrektur: `StepModelImportDeviceTest` 3/3 bestanden; `InitialProjectMenuDeviceTest#objectListShowsOriginalNamesForSplitStepBodies` 1/1 bestanden. Der Test prüft native Part-Namen und sichtbare/scrollbare Objektlistenzeilen einschließlich UTF-8. Der UI-Test wurde so korrigiert, dass die anfangs aufgeklappte Gruppe nicht versehentlich per Test-Klick geschlossen wird.
+- Emulator `solidcraft_port_test_clean_20261101`, Android 16/API 36, x86_64 mit `libndk_translation.so` und ARM64-ABI-Unterstützung; damit ist der ARM64-Native-Pfad tatsächlich ausgeführt worden.
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743, 0 failures, 0 errors, 0 skipped. Kandidat ist auf `nightly-2.5` noch nicht mit einem neuen Produktions-APK/Release veröffentlicht.
+- Nächster konkreter Schritt: den nächsten noch fehlenden, Android-relevanten Orca-2.5-Kernpunkt anhand Upstream-Diff und aktuellem Android-Code auswählen; Batch 10 erst nach zehn unabhängig verifizierten Punkten veröffentlichen.
 
 ## Nesting-Priorität — gemeinsames Packen kleiner Importpakete — 2026-11-03
 

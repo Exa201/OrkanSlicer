@@ -69,7 +69,6 @@ public:
     static bool isUtf8(const std::string str);
 private:
     static bool isGBK(const std::string str);
-    static int preNum(const unsigned char byte);
     //BBS: default is UTF8 for most step file.
     EncodedType m_encode_type = EncodedType::UTF8;
 };

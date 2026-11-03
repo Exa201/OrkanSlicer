@@ -1453,12 +1453,19 @@ class InitialProjectMenuDeviceTest {
             compose.waitUntil(timeoutMillis = 10_000) {
                 compose.onAllNodesWithTag("model-object-row-0").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag("model-object-group-toggle-0").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("model-object-group-toggle-0").assertIsDisplayed()
+            val objectRows = compose.onNodeWithTag("model-objects-dialog-rows")
+            objectRows.performScrollToNode(hasTestTag("model-object-part-row-0-0"))
             compose.onNodeWithTag("model-object-part-row-0-0").assertIsDisplayed()
-            compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
-            compose.onNodeWithTag("model-object-part-row-0-2").assertIsDisplayed()
+            objectRows.performScrollToNode(hasText("Part10"))
             compose.onNodeWithText("Part10").assertIsDisplayed()
+            objectRows.performScrollToNode(hasTestTag("model-object-part-row-0-1"))
+            compose.onNodeWithTag("model-object-part-row-0-1").assertIsDisplayed()
+            objectRows.performScrollToNode(hasText("Part2"))
             compose.onNodeWithText("Part2").assertIsDisplayed()
+            objectRows.performScrollToNode(hasTestTag("model-object-part-row-0-2"))
+            compose.onNodeWithTag("model-object-part-row-0-2").assertIsDisplayed()
+            objectRows.performScrollToNode(hasText("Тело & shell"))
             compose.onNodeWithText("Тело & shell").assertIsDisplayed()
         } finally {
             stepFile.delete()
