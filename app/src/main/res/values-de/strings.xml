@@ -1694,6 +1694,8 @@
     <string name="AdaptivePAModelFlowTooLow">Der Durchfluss muss größer als PA sein.</string>
     <string name="AdaptivePAModelAccelerationTooLow">Die Beschleunigung muss größer als der Durchfluss sein.</string>
     <string name="AdaptivePAModelSliceWarningTitle">Warnung zum adaptiven Pressure-Advance-Modell</string>
-    <string name="AdaptivePAModelSliceWarningBody">Das Slicing ist abgeschlossen, aber einige Messwerte für Adaptive Pressure Advance sind möglicherweise ungültig. Prüfe das Filamentmodell vor dem Drucken:\n%1$s</string>
+    <string name="AdaptivePAModelSliceWarningBody">Das Slicing ist abgeschlossen, aber Messwerte für Adaptive Pressure Advance fehlen möglicherweise oder sind ungültig. Prüfe das Filamentmodell vor dem Drucken:\n%1$s</string>
+    <string name="AdaptivePAModelNoMeasurements">Für Filament %1$d fehlen Adaptive-Pressure-Advance-Messwerte. Gib vor dem Drucken Kalibrierungsdaten ein.</string>
+    <string name="AdaptivePAModelNoMeasurementsShort">Keine Kalibrierungsmesswerte eingegeben.</string>
     <string name="AdaptivePAModelSliceWarningContinue">Fortfahren</string>
 </resources>

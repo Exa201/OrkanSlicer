@@ -15,6 +15,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import ru.ytkab0bp.slicebeam.config.ConfigObject
+import ru.ytkab0bp.slicebeam.config.AdaptivePAModelValidator
 import ru.ytkab0bp.slicebeam.config.Kobra3V2ProfileMigration
 import ru.ytkab0bp.slicebeam.slic3r.GCodeProcessorResult
 import ru.ytkab0bp.slicebeam.slic3r.BooleanOperation
@@ -2741,6 +2742,46 @@ class NativeSliceDeviceTest {
             assertTrue("fixture must contain an outer-wall extrusion inheriting the travel feedrate", inheritedWallSpeeds.isNotEmpty())
             assertTrue("adaptive PA speed must match the inherited 150 mm/s travel feedrate: $inheritedWallSpeeds",
                 inheritedWallSpeeds.all { kotlin.math.abs(it - 150.0) < 0.01 })
+        } finally {
+            result?.release()
+            model?.release()
+            modelFile.delete()
+            generatedConfig?.delete()
+            gcodeFile.delete()
+            SliceBeam.getCurrentConfigFile().delete()
+        }
+    }
+
+    @Test
+    fun adaptivePressureAdvanceSliceWarnsWhenEnabledFilamentHasNoMeasurements() = withKobraProfile {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val filament = requireNotNull(SliceBeam.CONFIG?.findFilament("Anycubic Generic PLA"))
+        filament.put("enable_pressure_advance", "1")
+        filament.put("adaptive_pressure_advance", "1")
+        filament.put("adaptive_pressure_advance_model", "")
+
+        val modelFile = copyCube(context, "adaptive-pa-empty-measurements.stl")
+        val gcodeFile = File(context.cacheDir, "adaptive-pa-empty-measurements.gcode")
+        var model: Model? = null
+        var result: GCodeProcessorResult? = null
+        var generatedConfig: File? = null
+        try {
+            model = Model(modelFile)
+            model.ensureOnBed(0)
+            SliceBeam.genCurrentConfig(model)
+            generatedConfig = SliceBeam.getCurrentConfigFile()
+            result = model.slice(generatedConfig.absolutePath, gcodeFile.absolutePath, null)
+
+            assertEquals(
+                listOf(AdaptivePAModelValidator.SliceWarning(
+                    filamentNumber = 1,
+                    lineNumber = null,
+                    problem = AdaptivePAModelValidator.Problem.NO_MEASUREMENTS,
+                )),
+                result.adaptivePAModelWarnings,
+            )
+            assertTrue("missing calibration data remains advisory; slicing still produces G-code",
+                gcodeFile.isFile && gcodeFile.length() > 0L)
         } finally {
             result?.release()
             model?.release()

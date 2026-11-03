@@ -1597,6 +1597,8 @@
     <string name="AdaptivePAModelFlowTooLow">Flow must be greater than PA.</string>
     <string name="AdaptivePAModelAccelerationTooLow">Acceleration must be greater than flow.</string>
     <string name="AdaptivePAModelSliceWarningTitle">Adaptive pressure advance model warning</string>
-    <string name="AdaptivePAModelSliceWarningBody">Slicing completed, but some adaptive pressure advance measurements may be invalid. Check the filament model before printing:\n%1$s</string>
+    <string name="AdaptivePAModelSliceWarningBody">Slicing completed, but adaptive pressure advance measurements may be missing or invalid. Check the filament model before printing:\n%1$s</string>
+    <string name="AdaptivePAModelNoMeasurements">Filament %1$d has no adaptive pressure advance measurements. Enter calibration data before printing.</string>
+    <string name="AdaptivePAModelNoMeasurementsShort">No calibration measurements entered.</string>
     <string name="AdaptivePAModelSliceWarningContinue">Continue</string>
 </resources>

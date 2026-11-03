@@ -285,6 +285,7 @@ private fun StringVectorOptionRow(
                             AdaptivePAModelValidator.Problem.PA_TOO_HIGH -> R.string.AdaptivePAModelPaTooHigh
                             AdaptivePAModelValidator.Problem.FLOW_NOT_GREATER_THAN_PA -> R.string.AdaptivePAModelFlowTooLow
                             AdaptivePAModelValidator.Problem.ACCELERATION_NOT_GREATER_THAN_FLOW -> R.string.AdaptivePAModelAccelerationTooLow
+                            AdaptivePAModelValidator.Problem.NO_MEASUREMENTS -> R.string.AdaptivePAModelNoMeasurementsShort
                         }
                         Text(
                             stringResource(R.string.AdaptivePAModelValidationLine,

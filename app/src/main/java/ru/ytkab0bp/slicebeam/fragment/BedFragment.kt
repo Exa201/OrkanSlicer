@@ -538,6 +538,9 @@ val portrait = usesCompactPortraitLayout(ctx)
 val warnings = produced.adaptivePAModelWarnings
 if (warnings.isNotEmpty()) {
     val messages = warnings.map { warning ->
+        if (warning.problem == AdaptivePAModelValidator.Problem.NO_MEASUREMENTS) {
+            return@map ctx.getString(R.string.AdaptivePAModelNoMeasurements, warning.filamentNumber)
+        }
         val problem = when (warning.problem) {
             AdaptivePAModelValidator.Problem.INVALID_CHARACTERS -> R.string.AdaptivePAModelInvalidCharacters
             AdaptivePAModelValidator.Problem.VALUE_COUNT -> R.string.AdaptivePAModelValueCount
@@ -545,8 +548,14 @@ if (warnings.isNotEmpty()) {
             AdaptivePAModelValidator.Problem.PA_TOO_HIGH -> R.string.AdaptivePAModelPaTooHigh
             AdaptivePAModelValidator.Problem.FLOW_NOT_GREATER_THAN_PA -> R.string.AdaptivePAModelFlowTooLow
             AdaptivePAModelValidator.Problem.ACCELERATION_NOT_GREATER_THAN_FLOW -> R.string.AdaptivePAModelAccelerationTooLow
+            AdaptivePAModelValidator.Problem.NO_MEASUREMENTS -> R.string.AdaptivePAModelNoMeasurements
         }
-        ctx.getString(R.string.AdaptivePAModelValidationLine, warning.filamentNumber, warning.lineNumber, ctx.getString(problem))
+        ctx.getString(
+            R.string.AdaptivePAModelValidationLine,
+            warning.filamentNumber,
+            requireNotNull(warning.lineNumber),
+            ctx.getString(problem),
+        )
     }.distinct().joinToString("\n")
     showWorkspaceMessageDialog(
         ctx.getString(R.string.AdaptivePAModelSliceWarningTitle),

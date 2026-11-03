@@ -11,12 +11,13 @@ object AdaptivePAModelValidator {
         PA_TOO_HIGH,
         FLOW_NOT_GREATER_THAN_PA,
         ACCELERATION_NOT_GREATER_THAN_FLOW,
+        NO_MEASUREMENTS,
     }
 
     data class Issue(val variantIndex: Int, val lineNumber: Int, val problem: Problem)
 
     /** Slice-time warning, indexed by the logical filament identity shown to the user. */
-    data class SliceWarning(val filamentNumber: Int, val lineNumber: Int, val problem: Problem)
+    data class SliceWarning(val filamentNumber: Int, val lineNumber: Int?, val problem: Problem)
 
     /** Only rows changed in the editor are validated; untouched variants may keep Orca defaults. */
     @JvmStatic
@@ -37,25 +38,37 @@ object AdaptivePAModelValidator {
     @JvmStatic
     fun sliceWarnings(config: Map<String, String>, usedFilamentIds: Set<Int>): List<SliceWarning> {
         if (usedFilamentIds.isEmpty()) return emptyList()
-        val models = ProfileStringVectorCodec.parse(config["adaptive_pressure_advance_model"].orEmpty())
-            ?: return emptyList()
-        val adaptive = ProfileStringVectorCodec.parse(config["adaptive_pressure_advance"].orEmpty())
-            ?: return emptyList()
-        val pressureAdvance = ProfileStringVectorCodec.parse(config["enable_pressure_advance"].orEmpty())
-            ?: return emptyList()
+        val models = ProfileStringVectorCodec.parse(config["adaptive_pressure_advance_model"].orEmpty()).orEmpty()
+        val adaptive = ProfileStringVectorCodec.parse(config["adaptive_pressure_advance"].orEmpty()).orEmpty()
+        val pressureAdvance = ProfileStringVectorCodec.parse(config["enable_pressure_advance"].orEmpty()).orEmpty()
         val selfIndices = ProfileStringVectorCodec.parse(config["filament_self_index"].orEmpty())
-        val hasSelfIndexMap = selfIndices?.size == models.size
+        // A variant-sized self-index vector already maps the model columns to logical
+        // filaments. Only expand to the highest used filament ID for non-variant configs.
+        val mappedVariantColumns = selfIndices?.size == models.size && models.isNotEmpty()
+        val columnCount = if (mappedVariantColumns) models.size else
+            maxOf(models.size, (usedFilamentIds.maxOrNull() ?: -1) + 1)
+        val hasSelfIndexMap = selfIndices?.size == columnCount
 
-        return models.mapIndexedNotNull { variantIndex, model ->
+        return (0 until columnCount).mapNotNull { variantIndex ->
             val filamentId = if (hasSelfIndexMap) {
-                selfIndices?.get(variantIndex)?.toIntOrNull()?.minus(1) ?: return@mapIndexedNotNull null
+                selfIndices[variantIndex].toIntOrNull()?.minus(1) ?: return@mapNotNull null
             } else variantIndex
             if (filamentId !in usedFilamentIds || adaptive.getOrNull(variantIndex).isNotEnabled() ||
-                pressureAdvance.getOrNull(variantIndex).isNotEnabled()) return@mapIndexedNotNull null
-            val (lineNumber, problem) = firstLineIssue(model) ?: return@mapIndexedNotNull null
-            SliceWarning(filamentNumber = filamentId + 1, lineNumber = lineNumber, problem = problem)
+                pressureAdvance.getOrNull(variantIndex).isNotEnabled()) return@mapNotNull null
+            val model = models.getOrNull(variantIndex).orEmpty()
+            if (!hasMeasurements(model)) {
+                SliceWarning(filamentNumber = filamentId + 1, lineNumber = null, problem = Problem.NO_MEASUREMENTS)
+            } else {
+                val (lineNumber, problem) = firstLineIssue(model) ?: return@mapNotNull null
+                SliceWarning(filamentNumber = filamentId + 1, lineNumber = lineNumber, problem = problem)
+            }
         }
     }
+
+    /** Mirrors Orca: a PA model with only zeroes or no rows has no calibration measurements. */
+    private fun hasMeasurements(model: String): Boolean = model
+        .split(',', '\n', '\r')
+        .any { field -> field.trim().toDoubleOrNull()?.let { it != 0.0 } == true }
 
     private fun String?.isNotEnabled(): Boolean = this != "1" && !equals("true", ignoreCase = true)
 

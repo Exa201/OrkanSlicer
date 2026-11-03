@@ -1,3 +1,11 @@
+# Nightly 2.5 Fortsetzung — Batch 11, Punkt 1/10 verifiziert — 2026-11-03
+
+## Batch 11 — aktueller Stand
+
+- Punkt 1/10 portiert aus Orca `2cb2f0d2e710931b835d1b31282479686d961b47`: vor dem Slicen wird nun gewarnt, wenn Adaptive Pressure Advance für ein tatsächlich verwendetes Filament aktiviert ist, das Modell aber leer ist oder nur Null-Platzhalter enthält. Variantenspalten und verwendete Filament-IDs werden berücksichtigt; die Warnung bleibt eine sichere Fortsetzungsentscheidung und blockiert den Slice nicht.
+- Verifikation: `AdaptivePAModelValidatorTest` 8/8; echter Slice-Gerätetest `NativeSliceDeviceTest#adaptivePressureAdvanceSliceWarnsWhenEnabledFilamentHasNoMeasurements` 1/1 auf Android 16/API 36. Der Slice erzeugt weiterhin G-Code und liefert die erwartete filamentbezogene Warnung. `git diff --check` sauber.
+- Noch kein vollständiger Batch-11-Regressionslauf, keine neue APK und kein Release; diese stehen nach 10/10 Punkten aus. Nächster Schritt: nächsten fehlenden Android-erreichbaren Orca-Punkt aus dem aktuellen Upstream-Diff auswählen und mit eigenständigem Verhaltenstest portieren.
+
 # Nightly 2.5 Fortsetzung — Batch 10, 10/10 fokussiert verifizierte Punkte — 2026-11-03
 
 ## Batch 10 — aktueller Stand und Test-Snapshot

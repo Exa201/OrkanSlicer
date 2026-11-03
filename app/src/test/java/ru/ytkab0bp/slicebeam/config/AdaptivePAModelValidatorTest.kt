@@ -38,6 +38,53 @@ class AdaptivePAModelValidatorTest {
     }
 
     @Test
+    fun warnsWhenAnEnabledUsedFilamentHasNoAdaptivePressureAdvanceMeasurements() {
+        val emptyModel = mapOf(
+            "adaptive_pressure_advance_model" to ProfileStringVectorCodec.serialize(listOf("")),
+            "adaptive_pressure_advance" to "1",
+            "enable_pressure_advance" to "1",
+        )
+        val defaultPlaceholder = emptyModel + ("adaptive_pressure_advance_model" to "0,0,0")
+
+        assertEquals(
+            listOf(AdaptivePAModelValidator.SliceWarning(
+                filamentNumber = 1,
+                lineNumber = null,
+                problem = AdaptivePAModelValidator.Problem.NO_MEASUREMENTS,
+            )),
+            AdaptivePAModelValidator.sliceWarnings(emptyModel, setOf(0)),
+        )
+        assertEquals(
+            listOf(AdaptivePAModelValidator.SliceWarning(
+                filamentNumber = 1,
+                lineNumber = null,
+                problem = AdaptivePAModelValidator.Problem.NO_MEASUREMENTS,
+            )),
+            AdaptivePAModelValidator.sliceWarnings(defaultPlaceholder, setOf(0)),
+        )
+    }
+
+    @Test
+    fun warnsForMissingVariantColumnOnlyWhenThatUsedFilamentEnablesAdaptivePressureAdvance() {
+        val config = mapOf(
+            "adaptive_pressure_advance_model" to ProfileStringVectorCodec.serialize(listOf("0.04,10,3000")),
+            "adaptive_pressure_advance" to "1;1",
+            "enable_pressure_advance" to "1;1",
+        )
+
+        assertEquals(
+            listOf(AdaptivePAModelValidator.SliceWarning(
+                filamentNumber = 2,
+                lineNumber = null,
+                problem = AdaptivePAModelValidator.Problem.NO_MEASUREMENTS,
+            )),
+            AdaptivePAModelValidator.sliceWarnings(config, setOf(1)),
+        )
+        assertEquals(emptyList<AdaptivePAModelValidator.SliceWarning>(),
+            AdaptivePAModelValidator.sliceWarnings(config, setOf(0)))
+    }
+
+    @Test
     fun acceptsWhitespaceAroundMeasurementValues() {
         assertNull(AdaptivePAModelValidator.firstEditedVariantIssue(
             listOf("0,0,0"), listOf(" 0.027 , 8.1416 , 2000.0 \n 0.025, 12, 5000 "),

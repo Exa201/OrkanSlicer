@@ -1,3 +1,13 @@
+## Nightly Batch 11 — Punkt 1/10 (Stand 2026-11-03)
+
+Orca `2cb2f0d2e710931b835d1b31282479686d961b47` trennt bei Adaptive Pressure Advance
+den Fall eines leeren beziehungsweise ausschließlich aus Nullwerten bestehenden Modells
+als fehlende Messungen ab. Android prüft jetzt vor dem Slice die tatsächlich verwendeten
+Filamente und die zugehörigen Variantenspalten und zeigt dafür eine filamentbezogene
+Fortsetzungswarnung. Ein echter Slice-Test auf API 36 bestätigt sowohl die Warnung als auch
+die weiterhin erzeugte G-Code-Datei; Unit-Tests: 8/8, Instrumentierung: 1/1. Das ist Punkt
+1/10. Batch-APK und Nightly-Release bleiben bis zum vollständigen 10/10-Regressionsgate offen.
+
 ## Nightly Batch 10 — 10/10 fokussiert verifizierte Punkte (Stand 2026-11-03)
 
 Der gültige Zähler steht auch in `docs/UI2_EXECUTION_STATE.md`. Die erste Fassung dieser
