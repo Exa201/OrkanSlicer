@@ -655,6 +655,7 @@ class MainActivityTouchDeviceTest {
             val boundsMinBeforeLongPressDrag = Vec3d()
             val boundsMaxBeforeLongPressDrag = Vec3d()
             val expectedDragDelta = Vec3d()
+            val dragEndScreen = FloatArray(2)
             val translationReady = CountDownLatch(1)
             glView.queueEvent {
                 model.getTranslation(0, translationBeforeLongPressDrag)
@@ -665,6 +666,8 @@ class MainActivityTouchDeviceTest {
                 val startY = hit.second * sy
                 val dragEndX = (hit.first + 45f) * sx
                 val dragEndY = (hit.second + 35f) * sy
+                dragEndScreen[0] = dragEndX
+                dragEndScreen[1] = dragEndY
                 val surfaceHit = glView.renderer.raycastObjectHit(0, startX, startY)
                 val surfaceZ = requireNotNull(surfaceHit).position.z
                 val startPoint = requireNotNull(glView.renderer.intersectHorizontalPlane(startX, startY, surfaceZ))
@@ -725,6 +728,17 @@ class MainActivityTouchDeviceTest {
             assertEquals("Dragging must not change the transformed object's Y footprint",
                 boundsMaxBeforeLongPressDrag.y - boundsMinBeforeLongPressDrag.y,
                 boundsMaxAfterLongPressDrag.y - boundsMinAfterLongPressDrag.y, 0.01)
+            val releasePick = AtomicInteger(-2)
+            val releasePickReady = CountDownLatch(1)
+            glView.queueEvent {
+                // Verify the renderer's rebuilt picking mesh follows the committed model, not just
+                // the native bounding box and the temporary selection-translation preview.
+                releasePick.set(glView.renderer.raycastObjectIndex(dragEndScreen[0], dragEndScreen[1]))
+                releasePickReady.countDown()
+            }
+            assertTrue("The committed mesh should be pickable at the released finger position",
+                releasePickReady.await(5, TimeUnit.SECONDS))
+            assertEquals("The rendered/pickable object must land under the released finger", 0, releasePick.get())
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)
