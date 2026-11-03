@@ -1,3 +1,9 @@
+# Nightly 2.5 Fortsetzung — Batch 10, Punkt 1/10 — 2026-11-03
+
+- Orca `664f734e22` adaptiert: Arrange verkleinert den ungenutzten Standard-Bettrand nur für nahezu bettgroße Teile; konfigurierte Brim-/Skirt-Abstände bleiben gewahrt, sequentielles Arrange bleibt unverändert.
+- API-36 `NativeSliceDeviceTest#arrangementUsesAvailableBedAreaForNearBedSizeObjects`: 1/1 bestanden. Android-Testkompilierung und `git diff --check` erfolgreich.
+- Release-Baseline bleibt `v0.8.428-nightly.1` (Version 0.8.428, Code 463); kein APK-Build für einen Einzelpunkt. Nächster Schritt: zweiten nicht bereits portierten Android-relevanten Orca-Kandidaten implementieren und gezielt testen; Nightly-Batchrelease erst nach 10/10.
+
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
 ## Catan Nesting — current production-path rerun — 2026-11-03

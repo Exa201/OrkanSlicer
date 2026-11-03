@@ -1,3 +1,13 @@
+## Nightly Batch 10 — Punkt 1/10 verifiziert (2026-11-03)
+
+### Arrange nutzt die verfügbare Bettfläche für nahezu bettgroße Modelle
+
+Android-Port des relevanten Orca-Fixes `664f734e22`: für nicht-sequenzielles Arrange wird die standardmäßige Bettinnenmarge nur so weit reduziert, wie es die größte ausgewählte Kontur samt Inflation erfordert. Konfigurierte Skirt-/Brim-Abstände bleiben erhalten; sequentieller Druck bleibt unverändert.
+
+`NativeSliceDeviceTest#arrangementUsesAvailableBedAreaForNearBedSizeObjects` bestand auf API 36 (1/1): ein 197-mm-Objekt samt 1-mm-Brim passt auf eine 200-mm-Platte, bleibt innerhalb der physischen Platte und erhält die erforderliche 0,5-mm-Restmarge. Keine Behauptung über global optimales Nesting oder physische Drucker.
+
+Batch 10: **1/10**. Die Batch-APK und Nightly-Veröffentlichung bleiben bis 10/10 offen.
+
 ## Nightly Batch 9 — Punkt 9/10 verifiziert (2026-11-03)
 
 ### Mehrfarben-Segmentierung nach Filamentanzahl statt Farblistenlänge

@@ -935,6 +935,17 @@ class NativeSliceDeviceTest {
             0.0, result[14], 0.0)
     }
 
+    @Test
+    fun arrangementUsesAvailableBedAreaForNearBedSizeObjects() {
+        val result = Native.near_bed_size_arrangement_regression()
+        assertEquals("a 197 mm object with a 1 mm brim must fit on a 200 mm bed: ${result.contentToString()}",
+            1.0, result[0], 0.0)
+        assertEquals("the object must be placed on the physical bed", 0.0, result[1], 0.0)
+        assertEquals("the packer should reduce only the unused default margin", 0.5, result[2], 0.01)
+        assertEquals("the square footprint remains intact", 197.0, result[4], 0.01)
+        assertEquals("the square footprint remains intact", 197.0, result[5], 0.01)
+    }
+
     @Test(timeout = 30_000)
     fun printStatusCallbacksCanBeReplacedFromCallbackAndConcurrently() {
         val result = Native.print_status_callback_regression()

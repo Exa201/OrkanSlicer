@@ -42,6 +42,9 @@ class Native {
     /** Verifies Orca sequential placement keeps short objects inside the bed and clear. */
     @JvmStatic
     external fun short_object_arrangement_regression(): DoubleArray
+    /** Verifies an almost bed-filling object is not rejected by the default arrange margin. */
+    @JvmStatic
+    external fun near_bed_size_arrangement_regression(): DoubleArray
     /** Exercises status-callback replacement from callbacks and concurrent slice progress. */
     @JvmStatic
     external fun print_status_callback_regression(): IntArray

@@ -5315,6 +5315,51 @@ extern "C" {
         return result;
     }
 
+    // Orca arrange should use the printable area efficiently for an item that nearly fills it,
+    // while retaining the configured skirt clearance and brim inflation.
+    JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_near_1bed_1size_1arrangement_1regression(JNIEnv* env, jclass) {
+        try {
+            using namespace Slic3r;
+            DynamicPrintConfig config;
+            config.set_key_value("printable_area", new ConfigOptionPoints({
+                Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.)
+            }));
+            config.set_key_value("skirt_distance", new ConfigOptionFloat(0.));
+            config.set_key_value("skirt_loops", new ConfigOptionInt(0));
+
+            Polygon footprint({Point(0, 0), Point(scaled(197.), 0),
+                Point(scaled(197.), scaled(197.)), Point(0, scaled(197.))});
+            arrangement::ArrangePolygon item;
+            item.poly = ExPolygon(std::move(footprint));
+            item.brim_width = 1.;
+            item.height = 10.;
+            item.extrude_ids = {1};
+            arrangement::ArrangePolygons items{std::move(item)};
+
+            arrangement::ArrangeParams params;
+            params.parallel = false;
+            params.progressind = [](unsigned, std::string) {};
+            arrangement::update_arrange_params(params, &config, items);
+            arrangement::update_selected_items_inflation(items, &config, params);
+            const Points arrange_bed = arrangement::get_shrink_bedpts(&config, params);
+            arrangement::arrange(items, arrange_bed, params);
+
+            const BoundingBox physical_bounds(get_bed_shape(config));
+            const BoundingBox packed_bounds = items.front().transformed_poly().contour.bounding_box();
+            const bool inside = items.front().bed_idx == 0 && physical_bounds.contains(packed_bounds);
+            const jdouble values[] = {inside ? 1. : 0., static_cast<double>(items.front().bed_idx),
+                params.bed_shrink_x, params.bed_shrink_y,
+                unscale<double>(packed_bounds.size().x()), unscale<double>(packed_bounds.size().y())};
+            jdoubleArray result = env->NewDoubleArray(6);
+            if (result != nullptr) env->SetDoubleArrayRegion(result, 0, 6, values);
+            return result;
+        } catch (const std::exception &error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
     // A status callback may be replaced from a UI callback while a slice worker is
     // reporting progress. Verify callbacks run outside the registration lock and that
     // concurrent replacement/reporting does not race on std::function storage.

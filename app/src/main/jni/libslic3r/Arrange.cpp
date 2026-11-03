@@ -159,6 +159,26 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         ap.inflation = std::max<coord_t>(0, std::min({ ap.inflation, diffx / 2, diffy / 2 }));
         });
 
+    // Keep as much of the printable area as possible for the largest selected item.
+    // The default 1 mm safety margin can otherwise make a near-bed-sized part fail even
+    // though its outline and brim fit. Preserve the configured skirt clearance.
+    if (!params.is_seq_print && !selected.empty()) {
+        coord_t max_width = 0, max_height = 0;
+        for (const ArrangePolygon& ap : selected) {
+            BoundingBox outline = ap.poly.contour.bounding_box();
+            outline.rotate(ap.rotation);
+            max_width = std::max(max_width, outline.size().x() + 2 * ap.inflation);
+            max_height = std::max(max_height, outline.size().y() + 2 * ap.inflation);
+        }
+        auto margin = [](coord_t bed, coord_t item) {
+            return std::max(0., unscale<double>(bed - item) / 2.);
+        };
+        params.bed_shrink_x = std::min<double>(params.bed_shrink_x,
+            std::max<double>(params.brim_skirt_distance, margin(bedbb.size().x(), max_width)));
+        params.bed_shrink_y = std::min<double>(params.bed_shrink_y,
+            std::max<double>(params.brim_skirt_distance, margin(bedbb.size().y(), max_height)));
+    }
+
     // For sequential printing, inflation separates objects and may extend beyond the bed edge.
     // Measure the rotated inflated outline, then grow the arrange bed by half the spacing so the
     // objects themselves retain the edge margin. This avoids rejecting short objects unnecessarily.
