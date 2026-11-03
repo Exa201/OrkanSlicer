@@ -1164,6 +1164,8 @@ add_library(slic3r
         src/main/jni/libslic3r/Timer.hpp
         src/main/jni/libslic3r/TriangleMesh.cpp
         src/main/jni/libslic3r/TriangleMesh.hpp
+        src/main/jni/libslic3r/TriangleMeshDeal.cpp
+        src/main/jni/libslic3r/TriangleMeshDeal.hpp
         src/main/jni/libslic3r/TriangleMeshSlicer.cpp
         src/main/jni/libslic3r/TriangleMeshSlicer.hpp
         src/main/jni/libslic3r/TriangleSelector.cpp

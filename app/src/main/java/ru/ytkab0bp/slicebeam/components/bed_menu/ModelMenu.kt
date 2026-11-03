@@ -133,6 +133,7 @@ internal object ModelMenuActionScope {
         R.string.MenuToolbarRotate,
         R.string.MenuTransformScale,
         R.string.ModelSimplify,
+        R.string.ModelSmoothMesh,
         R.string.MenuTransformCut,
         R.string.MenuToolbarVariableLayerHeight,
         R.string.MenuToolbarSupportPaint,

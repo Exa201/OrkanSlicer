@@ -55,6 +55,7 @@ internal class TransformMenuItems(
                 showScaleMenu.accept(it)
             },
             selectionAction(R.string.ModelSimplify, R.drawable.sliders_outline_28, availability, ::showSimplifyDialog),
+            selectionAction(R.string.ModelSmoothMesh, R.drawable.sliders_outline_28, availability, ::showSmoothMeshDialog),
             selectionAction(R.string.MenuTransformCut, R.drawable.menu_transform_cut_or_mirror_28, availability) {
                 showCutMenu.accept(it)
             },
@@ -143,6 +144,30 @@ internal class TransformMenuItems(
                     fragment.simplifySelectedObject(snapshot, target.toFloat() / triangles.toFloat())
                 },
             )
+        }
+    }
+
+    private fun showSmoothMeshDialog(view: View) {
+        val context = view.context
+        fragment.captureSelectedObjectForSimplification { snapshot, triangles ->
+            if (triangles <= 0 || triangles > 80_000) {
+                fragment.showWorkspaceMessageDialog(
+                    context.getString(R.string.ModelSmoothMesh),
+                    context.getString(R.string.ModelSmoothMeshTooLarge),
+                    context.getString(android.R.string.ok),
+                )
+                return@captureSelectedObjectForSimplification
+            }
+            fragment.showWorkspaceComposeDialog { dismiss ->
+                ModelSmoothMeshDialog(
+                    triangleCount = triangles,
+                    onDismiss = dismiss,
+                    onStart = {
+                        dismiss()
+                        fragment.smoothSelectedObject(snapshot)
+                    },
+                )
+            }
         }
     }
 }

@@ -348,6 +348,14 @@ open class Model private constructor(@JvmField var pointer: Long) {
         return result
     }
 
+    /** Loop-subdivides and smooths a model object while preserving painted facet assignments. */
+    open fun smoothMesh(i: Int): Int {
+        if (!hasObject(i)) return 0
+        val result = Native.model_smooth_mesh(pointer, i)
+        if (result > 0) resetBoundingBox()
+        return result
+    }
+
     open fun addObject(from: Model, i: Int) {
         if (pointer == 0L || from.pointer == 0L || i !in 0 until from.objectsCount) {
             android.util.Log.w(

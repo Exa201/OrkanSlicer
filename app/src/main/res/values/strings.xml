@@ -965,6 +965,14 @@
     <string name="ModelSimplifyStart">Simplify</string>
     <string name="ModelSimplifyRunning">Simplifying model…</string>
     <string name="ModelSimplifyFailed">The model could not be simplified.</string>
+    <string name="ModelSmoothMesh">Smooth mesh</string>
+    <string name="ModelSmoothMeshShort">Smooth mesh</string>
+    <string name="ModelSmoothMeshHint">Loop subdivision creates four triangles per input triangle and rounds sharp edges. Painted colors, supports, seams, and fuzzy-skin areas are preserved. This is an irreversible geometry edit; simplify models above 80,000 triangles first.</string>
+    <string name="ModelSmoothMeshStart">Smooth</string>
+    <string name="ModelSmoothMeshRunning">Smoothing mesh…</string>
+    <string name="ModelSmoothMeshFailed">The mesh could not be smoothed. It may be too large or invalid.</string>
+    <string name="ModelSmoothMeshTooLarge">Smoothing is limited to models with at most 80,000 triangles to protect device memory and preserve Undo. Simplify the model first.</string>
+    <plurals name="ModelSmoothMeshDone"><item quantity="one">Smoothed mesh contains %1$d triangle.</item><item quantity="other">Smoothed mesh contains %1$d triangles.</item></plurals>
     <string name="MenuTransformScaleLink">Save aspect ratio</string>
     <string name="MenuTransformScaleXValue">X = %1$.2f %% | %2$.2f mm</string>
     <string name="MenuTransformScaleYValue">Y = %1$.2f %% | %2$.2f mm</string>

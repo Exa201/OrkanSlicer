@@ -105,3 +105,35 @@ internal fun ModelSimplifyCustomDialog(
         dismissButton = { TextButton(onClick = onDismiss, Modifier.heightIn(min = 48.dp)) { Text(cancelLabel) } },
     )
 }
+
+@Composable
+internal fun ModelSmoothMeshDialog(
+    triangleCount: Int,
+    onDismiss: () -> Unit,
+    onStart: () -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(context.getString(ru.ytkab0bp.slicebeam.R.string.ModelSmoothMesh)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(context.getString(ru.ytkab0bp.slicebeam.R.string.ModelSmoothMeshHint))
+                Text(context.resources.getQuantityString(
+                    ru.ytkab0bp.slicebeam.R.plurals.ModelSimplifyCurrent, triangleCount, triangleCount))
+                Text(context.resources.getQuantityString(
+                    ru.ytkab0bp.slicebeam.R.plurals.ModelSmoothMeshDone, triangleCount * 4, triangleCount * 4))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onStart, Modifier.heightIn(min = 48.dp)) {
+                Text(context.getString(ru.ytkab0bp.slicebeam.R.string.ModelSmoothMeshStart))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, Modifier.heightIn(min = 48.dp)) {
+                Text(context.getString(android.R.string.cancel))
+            }
+        },
+    )
+}

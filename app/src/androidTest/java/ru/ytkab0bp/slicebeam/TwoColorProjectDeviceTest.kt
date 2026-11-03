@@ -227,7 +227,7 @@ class TwoColorProjectDeviceTest {
         }
     }
 
-    @Test fun paintedFilamentAssignmentsSurviveMultipartJoinThreeMfRoundTripAndSlice() {
+    @Test fun paintedFilamentAssignmentsSurviveSmoothMeshMultipartJoinThreeMfRoundTripAndSlice() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         SliceBeam.INSTANCE = context.applicationContext as SliceBeam
         val previousConfig = SliceBeam.CONFIG
@@ -264,6 +264,20 @@ class TwoColorProjectDeviceTest {
                 session.end()
             }
             assertTrue("painting should be stored in the model", original.hasPaint(0))
+            val trianglesBeforeSmoothing = original.getTriangleCount(0)
+            val trianglesAfterSmoothing = original.smoothMesh(0)
+            assertEquals("Loop subdivision should create four output facets per input facet",
+                trianglesBeforeSmoothing * 4, trianglesAfterSmoothing)
+            assertTrue("painted facets should survive smoothing", original.hasPaint(0))
+            assertTrue("painted filament assignments should survive smoothing",
+                original.getUsedFilaments(0).contains(2))
+            val smoothedPaintOverlay = GLModel()
+            try {
+                assertTrue("paint should still render on the smoothed mesh",
+                    original.buildPaintOverlay(0, smoothedPaintOverlay, 2) > 0)
+            } finally {
+                smoothedPaintOverlay.release()
+            }
             val usedFilaments = original.getUsedFilaments(0)
             assertTrue("painting should assign filament 2", usedFilaments.contains(2))
             val paintedFacets = original.paintMaxFilament(0)

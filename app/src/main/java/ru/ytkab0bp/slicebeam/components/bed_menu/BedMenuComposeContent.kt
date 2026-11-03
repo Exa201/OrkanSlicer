@@ -427,6 +427,7 @@ private fun BedMenuActionTile(
         R.string.MenuCameraOrtho -> R.string.MenuCameraOrthoShort
         R.string.MenuOrientationAutoOrient -> R.string.MenuActionAutoOrientShort
         R.string.ModelSimplify -> R.string.MenuActionSimplifyShort
+        R.string.ModelSmoothMesh -> R.string.ModelSmoothMeshShort
         R.string.MenuOrientationFlatten -> R.string.MenuActionLayFlatShort
         R.string.MenuToolbarSupportPaint -> R.string.MenuActionSupportShort
         R.string.MenuToolbarSeamPaint -> R.string.MenuActionSeamShort

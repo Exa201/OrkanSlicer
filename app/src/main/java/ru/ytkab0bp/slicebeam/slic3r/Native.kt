@@ -233,6 +233,8 @@ class Native {
     @JvmStatic
     external fun model_simplify(ptr: Long, i: Int, keepRatio: Float): Int
     @JvmStatic
+    external fun model_smooth_mesh(ptr: Long, i: Int): Int
+    @JvmStatic
     external fun model_add_object_from_another(ptr: Long, from: Long, i: Int): Unit
     @JvmStatic
     external fun model_duplicate_instance(ptr: Long, objectIndex: Int, sourceInstanceIndex: Int, dx: Double, dy: Double, dz: Double): Int

@@ -947,6 +947,17 @@
     <string name="ModelSimplifyStart">Vereinfachen</string>
     <string name="ModelSimplifyRunning">Modell wird vereinfacht …</string>
     <string name="ModelSimplifyFailed">Das Modell konnte nicht vereinfacht werden.</string>
+    <string name="ModelSmoothMesh">Netz glätten</string>
+    <string name="ModelSmoothMeshShort">Netz glätten</string>
+    <string name="ModelSmoothMeshHint">Loop-Unterteilung erzeugt vier Dreiecke pro Ausgangsdreieck und rundet scharfe Kanten ab. Aufgetragene Farben, Stützen, Nähte und Fuzzy-Skin-Bereiche bleiben erhalten. Die Geometrieänderung ist endgültig; vereinfache Modelle mit mehr als 80.000 Dreiecken zuerst.</string>
+    <string name="ModelSmoothMeshStart">Glätten</string>
+    <string name="ModelSmoothMeshRunning">Netz wird geglättet …</string>
+    <string name="ModelSmoothMeshFailed">Das Netz konnte nicht geglättet werden. Es ist möglicherweise zu groß oder ungültig.</string>
+    <string name="ModelSmoothMeshTooLarge">Zum Schutz des Gerätespeichers und zum Erhalt von Rückgängig ist das Glätten auf Modelle mit höchstens 80.000 Dreiecken begrenzt. Vereinfache das Modell zuerst.</string>
+    <plurals name="ModelSmoothMeshDone">
+        <item quantity="one">Geglättetes Netz enthält %1$d Dreieck.</item>
+        <item quantity="other">Geglättetes Netz enthält %1$d Dreiecke.</item>
+    </plurals>
     <string name="MenuTransformScaleLink">Seitenverhältnis beibehalten</string>
     <string name="MenuTransformScaleXValue">X = %1$.2f %% | %2$.2f mm</string>
     <string name="MenuTransformScaleYValue">Y = %1$.2f %% | %2$.2f mm</string>

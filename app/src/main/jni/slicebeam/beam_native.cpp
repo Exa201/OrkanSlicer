@@ -1,5 +1,6 @@
 #include <android/log.h>
 #include <array>
+#include <limits>
 #include <typeinfo>
 #include <set>
 #include <algorithm>
@@ -19,6 +20,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
+#include "libslic3r/TriangleMeshDeal.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/NSVGUtils.hpp"
@@ -1390,6 +1392,75 @@ extern "C" {
         }
         object->invalidate_bounding_box();
         return static_cast<jint>(std::min(result, static_cast<size_t>(INT32_MAX)));
+    }
+
+    JNIEXPORT jint JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1smooth_1mesh(JNIEnv* env, jclass, jlong ptr, jint i) {
+        ModelRef* model = reinterpret_cast<ModelRef*>(static_cast<intptr_t>(ptr));
+        if (model == nullptr || i < 0 || static_cast<size_t>(i) >= model->model.objects.size()) return 0;
+        ModelObject* object = model->model.objects[i];
+        if (object == nullptr) return 0;
+
+        struct PreparedVolume {
+            ModelVolume* volume;
+            TriangleMesh smoothed;
+            TriangleMesh unsmoothed;
+            std::optional<TriangleSelector::SavedPainting> painting;
+        };
+        std::vector<PreparedVolume> prepared;
+        try {
+            constexpr size_t maxInputTrianglesPerObject = 80000;
+            constexpr size_t maxModelTrianglesForUndo = (128ULL * 1024ULL * 1024ULL) / (64ULL * 6ULL);
+            size_t inputTriangleCount = 0;
+            size_t modelTriangleCount = 0;
+            for (const ModelObject* modelObject : model->model.objects) {
+                if (modelObject == nullptr) continue;
+                size_t objectTriangles = 0;
+                for (const ModelVolume* volume : modelObject->volumes) {
+                    if (volume == nullptr || !volume->is_model_part()) continue;
+                    const size_t count = volume->mesh().its.indices.size();
+                    if (count == 0 || count > std::numeric_limits<size_t>::max() - objectTriangles) return 0;
+                    objectTriangles += count;
+                }
+                if (modelTriangleCount > std::numeric_limits<size_t>::max() - objectTriangles) return 0;
+                modelTriangleCount += objectTriangles;
+                if (modelObject == object) inputTriangleCount = objectTriangles;
+            }
+            if (inputTriangleCount == 0 || inputTriangleCount > maxInputTrianglesPerObject ||
+                modelTriangleCount > maxModelTrianglesForUndo ||
+                inputTriangleCount > (maxModelTrianglesForUndo - modelTriangleCount) / 3) return 0;
+            prepared.reserve(object->volumes.size());
+            for (ModelVolume* volume : object->volumes) {
+                if (volume == nullptr || !volume->is_model_part()) continue;
+                auto painting = volume->save_painting();
+                TriangleMesh unsmoothed;
+                bool ok = false;
+                TriangleMesh smoothed = TriangleMeshDeal::smooth_triangle_mesh(
+                    volume->mesh(), ok, painting ? &unsmoothed : nullptr);
+                if (!ok || smoothed.empty() || (painting && unsmoothed.empty())) return 0;
+                prepared.push_back({volume, std::move(smoothed), std::move(unsmoothed), std::move(painting)});
+            }
+            if (prepared.empty()) return 0;
+
+            size_t result = 0;
+            for (PreparedVolume& item : prepared) {
+                if (item.painting) {
+                    item.volume->set_mesh(std::move(item.unsmoothed));
+                    item.volume->restore_painting(item.painting);
+                }
+                item.volume->set_mesh(std::move(item.smoothed));
+                item.volume->calculate_convex_hull();
+                item.volume->set_new_unique_id();
+                result += item.volume->mesh().facets_count();
+            }
+            object->invalidate_bounding_box();
+            return static_cast<jint>(std::min(result, static_cast<size_t>(INT32_MAX)));
+        } catch (const std::exception& error) {
+            __android_log_print(ANDROID_LOG_ERROR, "SB_Native", "Mesh smoothing failed: %s", error.what());
+            return 0;
+        } catch (...) {
+            __android_log_print(ANDROID_LOG_ERROR, "SB_Native", "Mesh smoothing failed with an unknown native error");
+            return 0;
+        }
     }
 
     JNIEXPORT void JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_model_1add_1object_1from_1another(JNIEnv* env, jclass, jlong ptr, jlong fromPtr, jint i) {

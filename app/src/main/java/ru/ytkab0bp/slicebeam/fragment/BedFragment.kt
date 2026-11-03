@@ -588,6 +588,49 @@ internal fun captureSelectedObjectForSimplification(onCaptured: (ModelSelectionS
     }
 }
 
+internal fun smoothSelectedObject(expectedSelection: ModelSelectionSnapshot) {
+    val viewport = glView ?: return
+    viewport.queueEvent {
+        if (!viewport.renderer.isSelectionSnapshotCurrent(expectedSelection)) {
+            ViewUtils.postOnMainThread {
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSelectionChanged))
+            }
+            return@queueEvent
+        }
+        val view = viewport
+        val snapshot = expectedSelection
+        val tag = "model-smooth-mesh"
+        if (destroyed || view !== glView) return@queueEvent
+        SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+            SnackbarsLayout.Type.LOADING, R.string.ModelSmoothMeshRunning).tag(tag))
+        try {
+            val smoothedTriangles = snapshot.model.smoothMesh(snapshot.primaryObject)
+            if (smoothedTriangles <= 0) {
+                ViewUtils.postOnMainThread {
+                    SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSmoothMeshFailed))
+                }
+                return@queueEvent
+            }
+            view.renderer.invalidateGlModel(snapshot.primaryObject)
+            view.requestRender()
+            ViewUtils.postOnMainThread {
+                updateModel()
+                SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                    SliceBeam.INSTANCE!!.getResources().getQuantityString(
+                        R.plurals.ModelSmoothMeshDone, smoothedTriangles, smoothedTriangles)))
+            }
+        } catch (error: Exception) {
+            Log.e("BedFragment", "Could not smooth selected model", error)
+            ViewUtils.postOnMainThread {
+                SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+                SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(R.string.ModelSmoothMeshFailed))
+            }
+        }
+    }
+}
+
 fun simplifySelectedObject(keepRatio:Float, maxTriangles:Int? = null) {
     val viewport = glView ?: return
     viewport.queueEvent {
