@@ -1,4 +1,4 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 3/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 4/10 verifizierte Punkte — 2026-11-03
 
 ## Nightly-Zielprüfung — App-Isolation und schwache GPU
 
@@ -32,7 +32,7 @@
 - Die Ermittlung berücksichtigt normale Tool-Reihenfolge, By-Object-Druck und den geordneten Wipe-Tower-Sonderfall. Die Werte stehen einmal im G-Code-Header; veraltete, doppelte T0-Zeilen aus den nachfolgenden Kompatibilitätsblöcken sind entfernt. Sonstige Header-Metadaten bleiben erhalten.
 - Geräteverifikation auf API 36: Qidi Q2 mit gezielt gesetzten Betttemperaturen 67 °C und Düsentemperatur 223 °C bestanden (1/1); Mehrwerkzeugprofil mit T1 als Startwerkzeug und T1-Temperatur 237 °C bestanden (1/1). Beide Tests prüfen, dass die Düsentemperatur genau einmal im erzeugten G-Code steht.
 - `:app:testSliceTestUnitTest` erfolgreich; ARM64-Nativebuild und Android-Instrumentierung erfolgreich. Ein zunächst auf die Android-Geräteklasse angewandter JVM-Filter fand erwartungsgemäß keine JVM-Tests; die vollständige Slice-Unit-Suite wurde danach ohne Filter erfolgreich ausgeführt.
-- Batch 10 steht bei **3/10**. Noch kein Produktions-APK oder Release; nächster Schritt ist ein weiterer unabhängiger Orca-2.5-Kernpunkt mit echtem Android-Verhaltensnachweis.
+- Batch 10 steht mit dem unten dokumentierten Arrange-Punkt bei **4/10**. Der aktuelle Stand ist als `v0.8.428-nightly.2` veröffentlicht; das nächste Batch-Release folgt nach zehn verifizierten Punkten.
 
 ## Nesting-Priorität — gemeinsames Packen kleiner Importpakete — 2026-11-03
 
@@ -47,9 +47,9 @@
 - Vereinbarte Bedienregel bleibt erhalten: Import führt die automatische Ausrichtung/Anordnung aus; Objekte sind danach frei beweglich; erneutes Nesting geschieht nur über den Arrange-Button. Das 109-STL-Settlers-Paket überschreitet absichtlich die Batch-Grenzen und bleibt auf dem bereits verifizierten inkrementellen Importpfad.
 - Kein APK, Commit oder Release für diesen lokalen gezielten Arrange-Fix. Nächster Schritt: gegen die bestehenden freien Bewegungs-/Undo- und expliziten Arrange-Regressionen prüfen, danach mit dem Orca-Nightly-Backlog fortfahren.
 
-- Orca `664f734e22` adaptiert: Arrange verkleinert den ungenutzten Standard-Bettrand nur für nahezu bettgroße Teile; konfigurierte Brim-/Skirt-Abstände bleiben gewahrt, sequentielles Arrange bleibt unverändert.
+- **Batch-10-Punkt 4/10 — Orca `664f734e22`:** Arrange verkleinert den ungenutzten Standard-Bettrand nur für nahezu bettgroße Teile; konfigurierte Brim-/Skirt-Abstände bleiben gewahrt, sequentielles Arrange bleibt unverändert.
 - API-36 `NativeSliceDeviceTest#arrangementUsesAvailableBedAreaForNearBedSizeObjects`: 1/1 bestanden. Android-Testkompilierung und `git diff --check` erfolgreich.
-- Release-Baseline bleibt `v0.8.428-nightly.1` (Version 0.8.428, Code 463); kein APK-Build für einen Einzelpunkt. Nächster Schritt: zweiten nicht bereits portierten Android-relevanten Orca-Kandidaten implementieren und gezielt testen; Nightly-Batchrelease erst nach 10/10.
+- Der Produktcode und der Gerätetest sind im veröffentlichten Nightly-Stand `v0.8.428-nightly.2` enthalten. Nächster Schritt: einen fünften unabhängigen, noch nicht portierten und tatsächlich Android-erreichbaren Orca-Punkt implementieren und mit Verhaltenstest belegen.
 
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 

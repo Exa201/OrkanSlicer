@@ -3,7 +3,7 @@
 - Source: `https://github.com/OrcaSlicer/OrcaSlicer.git`
 - Branch: `main`
 - Current app engine baseline: `f114ef7cc991a2069b00519ae45524a7ab0fdae2` (previously recorded; exact Android-port ancestry still needs verification)
-- Reviewed upstream `main` head: `a4a51008798934b55ae766aa7cc41d61c40d11e6` (2026-10-30)
+- Reviewed upstream `main` head: `26a39377713c774d52ca7d7ff7242188df4de63e` (2026-11-03)
 - Reviewed upstream beta: `v2.5.0-beta`, published 2026-10-27
 - First 2.5 fixes ported: `59f0cc3806ab6424d081978fde331088c55d9f0f` (empty-layer crash guards), `5ea64864ef5f409c3422237263894e8ba1ea165e` (64-bit filament/extruder masks)
 - Additional selective ports: `23fe91393658b7908ea42db1d0a4f2a65d643eef` (preserve compatible AMS filament presets), `9f39b8347f7492b11fdb905b220323001db96e6a` (Qidi active-tool output filename), `98b539c3e6b44e87bbde950e26d1b23c66691a0a` (per-filament retraction threshold and Z-hop enforcement; adapted to this port's filament-ID indexing), `7125a546b` (avoid invalidating G-code for unchanged derived automatic filament mapping), and `a4a510087` (tree supports use the XY collision-clearance region for build-plate-only continuation).
@@ -22,3 +22,13 @@ Do not mark the full engine lock as advanced until the Android C++ port compiles
 its pinned dependencies, slices fixed fixtures, preserves multi-material assignments,
 and its G-code and preview are verified. The desktop 2.5.0-beta binary is not an Android
 engine and cannot be copied into the APK.
+
+The 2026-11-03 review found that the newest upstream commit (`26a3937`, spelling of
+“RepRapFirmware”) changes localization and desktop calibration-dialog text only. The
+intervening Android-relevant fixes were compared against the current port: STEP body
+names, height-range slicing, scarf ramps, bridge speed, Boolean isolated-vertex cleanup,
+and near-bed Arrange have Android paths and regression evidence; preset-cache handling,
+desktop post-processing retry, belt-brim behavior, and desktop device-manager persistence
+do not provide an equivalent active Android path or supported printer contract. The engine
+baseline therefore remains unchanged; this is a selective-port review, not a 2.5 engine
+upgrade.
