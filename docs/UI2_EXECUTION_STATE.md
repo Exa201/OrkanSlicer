@@ -1,4 +1,17 @@
-# Nightly 2.5 Fortsetzung — Batch 10, 7/10 verifizierte Punkte — 2026-11-03
+# Nightly 2.5 Fortsetzung — Batch 10, 10/10 verifizierte Punkte — 2026-11-03
+
+## Batch 10 abgeschlossen und als Pre-Release veröffentlicht
+
+- Orca-Punkte 8–10 waren im Android-Port bereits vorhanden, wurden jetzt aber separat auf Android 16/API 36 verifiziert: CGAL-Boolean-Volumenprüfung mit isolierten Netzpunkten, Bridge-Geschwindigkeit bei Curl-Slowdown und Höhenbereich-Ausrichtung bei Z-Schrumpfung.
+- Gezielte Instrumentierung: 3/3 bestanden, 0 Skips/Fehler. Vollständige JVM-Suiten: Debug 743/743 und Slice 743/743, beide ohne Fehler/Skips.
+- Version 0.8.431 / Code 466, Paket `com.exa201.orkanslicer.nightly25`. Code-Commit `f5a8de4378592f95639ea4b64af3791e0bbc69a9`.
+- Debug-APK `OrkanSlicerNightly25_f5a8de4378.apk`, 240.358.528 Bytes, SHA-256 `15931F4681B742C1D154920DBC6831B13E29B4AC35ED8CA4A903552E01B727D7`. Auf Android-16/API-36-AVD installiert und gestartet; frischer Logcat ohne Crash, ANR, OOM oder Fatal Signal. Xiaomi war nicht verbunden.
+- Pre-Release: [v0.8.431-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.431-nightly.1), APK und SHA-256-Sidecar sind hochgeladen; SHA-256 des GitHub-Assets entspricht lokalem APK.
+- Branch `nightly-2.5` ist mit `origin` synchron. Nächste konkrete Aufgabe: Batch 11 beginnen, Upstream-Orca-2.5-Fixes gegen Android-Code vergleichen und für jeden Kandidaten Produktionspfad, Nutzen und gezielten Regressionstest belegen; keine bereits vorhandenen Punkte doppelt zählen.
+
+## Stable Drag-Bug (separat vom Nightly-Batch)
+
+- Der zuvor gemeldete Versatz beim Ziehen wurde im Stable-Checkout durch Drag-Anker am tatsächlichen Mesh-Treffer behoben und auf Android 16/API 36 mit einem Pixel-zu-Welt-Positionsassert verifiziert. Codeänderung und Test sind im Stable-Branch; sie zählen nicht als Orca-Nightly-Punkt.
 
 ## Orca Batch 10 Punkt 7 — STEP-Baugruppen standardmäßig in benannte Körper aufteilen
 
