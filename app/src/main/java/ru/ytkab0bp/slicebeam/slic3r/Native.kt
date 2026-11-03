@@ -160,6 +160,8 @@ class Native {
     @JvmStatic
     external fun bed_arrange_with_distance(ptr: Long, modelPtr: Long, arrangeConfig: String, minDistanceMm: Double): Boolean
     @JvmStatic
+    external fun bed_arrange_object_with_distance(ptr: Long, modelPtr: Long, objectIndex: Int, arrangeConfig: String, minDistanceMm: Double): Boolean
+    @JvmStatic
     external fun bed_release(ptr: Long): Unit
     @JvmStatic
     external fun models_merge(vararg ptrs: Long): Long

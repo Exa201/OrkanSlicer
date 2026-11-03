@@ -2075,6 +2075,7 @@ fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int)
 fun onFailed(error:Exception) {}
 fun onCancelled() {}
 fun onProgress(fraction:Float):Boolean = true
+fun onPartialFailures(failedFiles:Int) {}
 }
 private class ImportCancelledException : Exception()
 
@@ -2631,6 +2632,90 @@ private fun loadModelInternal(
         Model(f, currentPlateIndex + 1, ImportProgressCallback { fraction -> callback.onProgress(fraction) })
     else Model(f, currentPlateIndex + 1)
     val reduction = try { simplifyImportedModel(imported) } catch (e: Exception) { imported.release(); throw e }
+    loadImportedModelOnRenderer(imported, reduction, preserveProjectLayout, callback, autoOrientImportedModels, f)
+}
+
+/** Import a multi-file STL selection as one model batch so the native nest runs once. */
+@JvmOverloads
+fun loadModelBatch(files:List<File>, callback:ModelLoadCallback? = null, autoOrientImportedModels:Boolean = true) {
+    if (files.isEmpty()) {
+        callback?.onFailed(IllegalArgumentException("No STL files selected"))
+        return
+    }
+    if (destroyed || modelLoadInProgress) {
+        callback?.onFailed(IllegalStateException("Ein anderes Modell wird gerade geladen."))
+        return
+    }
+    modelLoadInProgress = true
+    val importGeneration = ++modelImportGeneration
+    platePreviewRevision++
+    importSimplifyDecision = null
+    plateLoadGeneration++
+    Thread({
+        val batch = Model()
+        var failedFiles = 0
+        var reducedBefore = 0L
+        var reducedAfter = 0L
+        try {
+            files.forEachIndexed { fileIndex, file ->
+                if (destroyed || importGeneration != modelImportGeneration) throw ImportCancelledException()
+                StlImportPreflight.largeTriangleCount(file, IMPORT_TRIANGLE_LIMIT.toLong())?.let {
+                    if (!confirmLargeStlImport(it)) throw ImportCancelledException()
+                }
+                var source:Model? = null
+                try {
+                    source = Model(file, currentPlateIndex + 1, ImportProgressCallback { fraction ->
+                        callback?.onProgress((fileIndex + fraction.coerceIn(0f, 1f)) / files.size)
+                            ?: true
+                    })
+                    val reduction = simplifyImportedModel(source)
+                    if (reduction != null) {
+                        reducedBefore += reduction.before
+                        reducedAfter += reduction.after
+                    }
+                    repeat(source.objectsCount) { batch.addObject(source, it) }
+                } catch (error:Exception) {
+                    if (error is ImportCancelledException || error is java.util.concurrent.CancellationException) throw error
+                    failedFiles++
+                    Log.e("BedFragment", "Could not import STL batch item ${file.name}", error)
+                } finally {
+                    source?.release()
+                }
+            }
+            if (batch.objectsCount == 0) throw IllegalStateException("No STL file in the selection could be imported.")
+            if (destroyed || importGeneration != modelImportGeneration) throw ImportCancelledException()
+            val reduction = if (reducedBefore > 0L) ImportReduction(reducedBefore, reducedAfter) else null
+            loadImportedModelOnRenderer(batch, reduction, false, object:ModelLoadCallback {
+                override fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int) {
+                    callback?.onPartialFailures(failedFiles)
+                    callback?.onLoaded(loadedModel, firstNewObject, addedObjects)
+                }
+                override fun onFailed(error:Exception) = callback?.onFailed(error) ?: Unit
+                override fun onCancelled() = callback?.onCancelled() ?: Unit
+                override fun onProgress(fraction:Float):Boolean = callback?.onProgress(fraction) ?: true
+            }, autoOrientImportedModels, null)
+        } catch (error:Exception) {
+            batch.release()
+            if (error is ImportCancelledException || error is java.util.concurrent.CancellationException) {
+                ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onCancelled() }
+            } else {
+                Log.e("BedFragment", "Could not load STL batch", error)
+                ViewUtils.postOnMainThread { if (!destroyed && importGeneration == modelImportGeneration) callback?.onFailed(error) }
+            }
+        } finally {
+            modelLoadInProgress = false
+        }
+    }, "OrcaStlBatchLoader").start()
+}
+
+private fun loadImportedModelOnRenderer(
+    imported:Model,
+    reduction:ImportReduction?,
+    preserveProjectLayout:Boolean,
+    callback:ModelLoadCallback?,
+    autoOrientImportedModels:Boolean,
+    sourceFile:File?,
+) {
 
     glView!!.queueEvent(object : Runnable {
         override fun run() {
@@ -2663,7 +2748,7 @@ private fun loadModelInternal(
                     if (existing != null && existing !== imported) existing.release()
                     if (totalPlates > 1) {
                         val fileBed = DoubleArray(2)
-                        val haveProjectBed = readProjectBedSize(f, fileBed)
+                        val haveProjectBed = sourceFile?.let { readProjectBedSize(it, fileBed) } ?: false
                         val bedW = if (haveProjectBed) fileBed[0] else bed.getVolumeMax()!!.x - bed.getVolumeMin()!!.x
                         val bedD = if (haveProjectBed) fileBed[1] else bed.getVolumeMax()!!.y - bed.getVolumeMin()!!.y
                         val origin = DoubleArray(2)
@@ -2715,110 +2800,67 @@ private fun loadModelInternal(
             val automaticallyCreated = ArrayList<Model>()
             var objectsTooLargeForBed = 0
 
-            // Arrange on a staging model. The native packer can report success while returning
-            // a placement whose exact mesh bounds are outside the build volume. Never commit it.
-            val packedImport = copyModelForArrangement(target)
-            repeat(sourceCount) { packedImport.addObject(imported, it) }
-            if ((bed.arrangeCompact(packedImport) || bed.arrange(packedImport)) &&
-                isModelInsideBuildVolume(packedImport, bed) &&
-                (sourceCount != 1 || !hasMeshIntersections(packedImport))
-            ) {
-                target.replaceContentsFrom(packedImport)
-                packedImport.release()
-                finalTarget = target
-                finalFirstNew = originalTargetObjectCount
-                finalAddedCount = sourceCount
-            } else {
-                packedImport.release()
+            // Place the largest incoming parts first. Existing objects are passed to libnest2d
+            // as fixed obstacles so each placement is O(n), does not copy/repack the full plate,
+            // and never shifts a model the user already positioned.
+            for (sourceIndex in importPlacementOrder) {
+                var destinationIndex = -1
+                var destinationPlateIndex: Int? = null
+                var destinationPlate: Model? = null
 
-                for (sourceIndex in importPlacementOrder) {
-                    val candidate = copyModelForArrangement(target)
-                    val destinationIndex = candidate.objectsCount
-                    candidate.addObject(imported, sourceIndex)
-                    var placedOnNewPlate = false
-                    var placedOnExistingPlate = false
-                    var placedDestinationIndex = destinationIndex
-                    if ((bed.arrangeCompact(candidate) || bed.arrange(candidate)) &&
-                        isModelInsideBuildVolume(candidate, bed) &&
-                        (sourceCount != 1 || !hasMeshIntersections(candidate))
-                    ) {
-                        target.replaceContentsFrom(candidate)
-                        candidate.release()
-                    } else {
-                        candidate.release()
-
-                        // Reuse free space on both established overflow plates and earlier plates
-                        // created during this same batch import. This search is part of loading;
-                        // later manual moves remain free and never trigger automatic repacking.
-                        for (plateIndex in platesModels.indices.reversed()) {
-                            if (plateIndex == targetPlateIndex || getProjectPlateId(plateIndex) > 0) continue
-                            val existingPlate = platesModels.getOrNull(plateIndex) ?: continue
-                            val alternate = copyModelForArrangement(existingPlate)
-                            val destinationIndex = alternate.objectsCount
-                            alternate.addObject(imported, sourceIndex)
-                            if ((bed.arrangeCompact(alternate) || bed.arrange(alternate)) &&
-                                isModelInsideBuildVolume(alternate, bed) &&
-                                !hasMeshIntersections(alternate)
-                            ) {
-                                existingPlate.replaceContentsFrom(alternate)
-                                alternate.release()
-                                target = existingPlate
-                                targetPlateIndex = plateIndex
-                                placedDestinationIndex = destinationIndex
-                                placedOnExistingPlate = true
-                                break
-                            }
-                            alternate.release()
-                        }
-
-                        if (!placedOnExistingPlate) {
-                            for (pendingIndex in automaticallyCreated.indices.reversed()) {
-                                val pendingPlate = automaticallyCreated[pendingIndex]
-                                if (pendingPlate === target) continue
-                                val alternate = copyModelForArrangement(pendingPlate)
-                                val destinationIndex = alternate.objectsCount
-                                alternate.addObject(imported, sourceIndex)
-                                if ((bed.arrangeCompact(alternate) || bed.arrange(alternate)) &&
-                                    isModelInsideBuildVolume(alternate, bed) &&
-                                    !hasMeshIntersections(alternate)
-                                ) {
-                                    pendingPlate.replaceContentsFrom(alternate)
-                                    alternate.release()
-                                    target = pendingPlate
-                                    targetPlateIndex = originalPlateCount + pendingIndex
-                                    placedDestinationIndex = destinationIndex
-                                    placedOnExistingPlate = true
-                                    break
-                                }
-                                alternate.release()
-                            }
-                        }
-
-                        if (!placedOnExistingPlate) {
-                            val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
-                            if ((!bed.arrangeCompact(nextPlate) && !bed.arrange(nextPlate)) ||
-                                !isModelInsideBuildVolume(nextPlate, bed)) {
-                                centerObjectOnBed(nextPlate, 0, bed)
-                                if (!isModelInsideBuildVolume(nextPlate, bed)) objectsTooLargeForBed++
-                            }
-                            automaticallyCreated.add(nextPlate)
-                            target = nextPlate
-                            targetPlateIndex = null
-                            placedOnNewPlate = true
-                        }
+                fun tryPlaceOn(plate:Model, plateIndex:Int?):Boolean {
+                    val objectIndex = plate.objectsCount
+                    plate.addObject(imported, sourceIndex)
+                    val placed = plate.objectsCount == objectIndex + 1 &&
+                        bed.arrangeImportedObject(plate, objectIndex, 2.0) &&
+                        isObjectInsideBuildVolume(plate, objectIndex, bed) &&
+                        !hasMeshIntersectionForObject(plate, objectIndex)
+                    if (!placed) {
+                        if (plate.objectsCount > objectIndex) plate.deleteObject(objectIndex)
+                        return false
                     }
+                    destinationIndex = objectIndex
+                    destinationPlateIndex = plateIndex
+                    destinationPlate = plate
+                    return true
+                }
 
-                    if (finalTarget !== target) {
-                        finalTarget = target
-                        finalFirstNew = when {
-                            placedOnNewPlate -> 0
-                            placedOnExistingPlate -> placedDestinationIndex
-                            else -> destinationIndex
-                        }
-                        finalAddedCount = 1
-                    } else {
-                        finalAddedCount++
+                var placed = tryPlaceOn(target, targetPlateIndex)
+                if (!placed) {
+                    // Keep project-owned plates fixed, but reuse free room on prior import plates.
+                    for (plateIndex in platesModels.indices.reversed()) {
+                        if (plateIndex == targetPlateIndex || getProjectPlateId(plateIndex) > 0) continue
+                        val plate = platesModels.getOrNull(plateIndex) ?: continue
+                        if (tryPlaceOn(plate, plateIndex)) { placed = true; break }
                     }
+                }
+                if (!placed) {
+                    for (pendingIndex in automaticallyCreated.indices.reversed()) {
+                        val plate = automaticallyCreated[pendingIndex]
+                        if (tryPlaceOn(plate, originalPlateCount + pendingIndex)) { placed = true; break }
+                    }
+                }
+                if (!placed) {
+                    val nextPlate = Model().also { it.addObject(imported, sourceIndex) }
+                    if (!bed.arrangeCompact(nextPlate) ||
+                        !isModelInsideBuildVolume(nextPlate, bed)) {
+                        centerObjectOnBed(nextPlate, 0, bed)
+                        if (!isObjectInsideBuildVolume(nextPlate, 0, bed)) objectsTooLargeForBed++
+                    }
+                    automaticallyCreated.add(nextPlate)
+                    destinationPlate = nextPlate
+                    destinationPlateIndex = null
+                    destinationIndex = 0
+                }
+
+                target = requireNotNull(destinationPlate)
+                targetPlateIndex = destinationPlateIndex
+                if (finalTarget !== target) {
+                    finalTarget = target
+                    finalFirstNew = destinationIndex
+                    finalAddedCount = 1
+                } else {
+                    finalAddedCount++
                 }
             }
             imported.release()
@@ -2894,35 +2936,48 @@ private fun centerObjectOnBed(model: Model, objectIndex: Int, bed: Bed3D) {
         0.0)
 }
 
-private fun copyModelForArrangement(source: Model): Model = Model().also { copy ->
-    repeat(source.objectsCount) { copy.addObject(source, it) }
-}
-
-/** Exact mesh pair check before committing an arrangement, with an AABB broad phase. */
-private fun hasMeshIntersections(model: Model): Boolean {
-    val firstMin = Vec3d()
-    val firstMax = Vec3d()
-    val secondMin = Vec3d()
-    val secondMax = Vec3d()
-    for (first in 0 until model.objectsCount) {
-        model.getBoundingBoxExact(first, firstMin, firstMax)
-        for (second in first + 1 until model.objectsCount) {
-            model.getBoundingBoxExact(second, secondMin, secondMax)
-            val aabbOverlaps = firstMin.x < secondMax.x - 0.001 && firstMax.x > secondMin.x + 0.001 &&
-                firstMin.y < secondMax.y - 0.001 && firstMax.y > secondMin.y + 0.001 &&
-                firstMin.z < secondMax.z - 0.001 && firstMax.z > secondMin.z + 0.001
-            if (!aabbOverlaps) continue
-            val probe = Model()
-            try {
-                probe.addObject(model, first)
-                probe.addObject(model, second)
-                if (probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION) >= 0) return true
-            } finally {
-                probe.release()
-            }
+/** Exact mesh check for only the newly imported object, with an AABB broad phase. */
+private fun hasMeshIntersectionForObject(model:Model, objectIndex:Int):Boolean {
+    if (objectIndex !in 0 until model.objectsCount) return true
+    val objectMin = Vec3d()
+    val objectMax = Vec3d()
+    val otherMin = Vec3d()
+    val otherMax = Vec3d()
+    model.getBoundingBoxExact(objectIndex, objectMin, objectMax)
+    for (otherIndex in 0 until model.objectsCount) {
+        if (otherIndex == objectIndex) continue
+        model.getBoundingBoxExact(otherIndex, otherMin, otherMax)
+        val aabbOverlaps = objectMin.x < otherMax.x - 0.001 && objectMax.x > otherMin.x + 0.001 &&
+            objectMin.y < otherMax.y - 0.001 && objectMax.y > otherMin.y + 0.001 &&
+            objectMin.z < otherMax.z - 0.001 && objectMax.z > otherMin.z + 0.001
+        if (!aabbOverlaps) continue
+        val probe = Model()
+        try {
+            probe.addObject(model, objectIndex)
+            probe.addObject(model, otherIndex)
+            if (probe.booleanObjects(0, 1, BooleanOperation.INTERSECTION) >= 0) return true
+        } finally {
+            probe.release()
         }
     }
     return false
+}
+
+private fun isObjectInsideBuildVolume(
+    model:Model,
+    objectIndex:Int,
+    bed:Bed3D,
+    tolerance:Double = 0.2,
+):Boolean {
+    if (objectIndex !in 0 until model.objectsCount) return false
+    val bedMin = bed.getVolumeMin() ?: return false
+    val bedMax = bed.getVolumeMax() ?: return false
+    val objectMin = Vec3d()
+    val objectMax = Vec3d()
+    model.getBoundingBoxExact(objectIndex, objectMin, objectMax)
+    return objectMin.x >= bedMin.x - tolerance && objectMin.y >= bedMin.y - tolerance &&
+        objectMin.z >= bedMin.z - tolerance && objectMax.x <= bedMax.x + tolerance &&
+        objectMax.y <= bedMax.y + tolerance && objectMax.z <= bedMax.z + tolerance
 }
 
 private fun isModelInsideBuildVolume(model: Model, bed: Bed3D, tolerance: Double = 0.2): Boolean {

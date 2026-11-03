@@ -2083,94 +2083,104 @@ IOUtils.IO_POOL.submit {
         if (isFinishing || isDestroyed) {
             SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
         } else {
-            loadMultipleStlFileAt(orderedFiles, 0, 0, 0, tag)
+            stageMultipleStlFiles(orderedFiles, 0, ArrayList(), 0, tag)
         }
     }
 }
 }
-/** Copies and imports one STL at a time so native model loading never overlaps. */
- private fun loadMultipleStlFileAt(files:List<Uri>, index:Int, loaded:Int, failed:Int, tag:String) {
-if (isFinishing() || isDestroyed())
-{
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-return
-}
-if (index >= files.size)
-{
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-if (loaded > 0)
-{
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(getString(
-R.string.MenuFileOpenMultipleStlComplete, loaded, files.size)))
-}
-if (failed > 0 || loaded == 0)
-{
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.ERROR,
-getString(R.string.MenuFileOpenMultipleStlFailed, failed, files.size)))
-}
-return
-}
-val uri = files.get(index)
-val fileName = IOUtils.getDisplayName(uri)
-if (fileName == null)
-{
-loadMultipleStlFileAt(files, index + 1, loaded, failed + 1, tag)
-return
-}
-val cachedFile = getSafeCachedModelFile(fileName)
-SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
-getString(R.string.MenuFileOpenMultipleStlProgress, index + 1, files.size)).tag(tag))
-IOUtils.IO_POOL.submit({ try
-{
-getContentResolver().openInputStream(uri).use({ `in`-> FileOutputStream(cachedFile).use({ out->
-if (`in` == null) throw FileNotFoundException(java.lang.String.valueOf(uri))
-val buffer = ByteArray(64 * 1024)
-var read:Int
-while (true) { val read = `in`.read(buffer); if (read == -1) break; out.write(buffer, 0, read) }
-val current = navigationDelegate.getCurrentFragment()
-if (!(current is BedFragment)) throw IOException("Die Druckplattenansicht ist nicht verfÃ¼gbar.")
-val bed = current
-bed.loadModel(cachedFile, false, 1, object:BedFragment.ModelLoadCallback {
-private var lastReadStep = -1
-private val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
-override fun onProgress(fraction: Float): Boolean {
-    if (cancelled.get()) return false
-    val step = if (fraction >= 0.5f) 10 else ((fraction.coerceAtLeast(0f) * 20f).toInt()).coerceIn(0, 9)
-    if (step != lastReadStep) {
-        lastReadStep = step
-        showStlImportProgress(tag, step, cancelled)
+/** Stage the selection, then hand the entire batch to one native packing transaction. */
+private fun stageMultipleStlFiles(files:List<Uri>, index:Int, cachedFiles:ArrayList<File>, failed:Int, tag:String) {
+    if (isFinishing || isDestroyed) {
+        cachedFiles.forEach(File::delete)
+        SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+        return
     }
-    return !cancelled.get()
-}
-override fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int) {
-ViewUtils.postOnMainThread({ cachedFile.delete()
-if (addedObjects > 0)
-{
-SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
-loadMultipleStlFileAt(files, index + 1, loaded + 1, failed, tag)
-}
-else
-{
-loadMultipleStlFileAt(files, index + 1, loaded, failed + 1, tag)
-} })
-}
-override fun onFailed(error:Exception) {
-cachedFile.delete()
-loadMultipleStlFileAt(files, index + 1, loaded, failed + 1, tag)
-}
-override fun onCancelled() {
-cachedFile.delete()
-SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
-}
-}, autoOrientImportedModels = true) }) })
-}
-catch (error:Exception) {
-cachedFile.delete()
-Log.e("MainActivity", "Failed to load selected STL: " + fileName, error)
-ViewUtils.postOnMainThread({ loadMultipleStlFileAt(files, index + 1,
-loaded, failed + 1, tag) })
-}
-})
+    if (index >= files.size) {
+        val bed = navigationDelegate.getCurrentFragment() as? BedFragment
+        if (bed == null || cachedFiles.isEmpty()) {
+            cachedFiles.forEach(File::delete)
+            SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+            SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.ERROR,
+                getString(R.string.MenuFileOpenMultipleStlFailed, failed + cachedFiles.size, files.size)))
+            return
+        }
+        bed.loadModelBatch(cachedFiles, object:BedFragment.ModelLoadCallback {
+            private val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
+            private var lastStep = -1
+            private var failedInBatch = 0
+            override fun onProgress(fraction:Float):Boolean {
+                if (cancelled.get()) return false
+                val step = (fraction.coerceIn(0f, 1f) * 20f).toInt().coerceIn(0, 20)
+                if (step != lastStep) {
+                    lastStep = step
+                    showStlImportProgress(tag, step, cancelled)
+                }
+                return !cancelled.get()
+            }
+            override fun onPartialFailures(failedFiles:Int) { failedInBatch = failedFiles }
+            override fun onLoaded(loadedModel:Model, firstNewObject:Int, addedObjects:Int) {
+                ViewUtils.postOnMainThread {
+                    cachedFiles.forEach(File::delete)
+                    SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+                    if (addedObjects > 0) SliceBeam.EVENT_BUS.fireEvent(ObjectsListChangedEvent())
+                    val totalFailed = failed + failedInBatch
+                    val loaded = files.size - totalFailed
+                    if (loaded > 0) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(getString(
+                        R.string.MenuFileOpenMultipleStlComplete, loaded, files.size)))
+                    if (totalFailed > 0) SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(
+                        SnackbarsLayout.Type.ERROR,
+                        getString(R.string.MenuFileOpenMultipleStlFailed, totalFailed, files.size)))
+                }
+            }
+            override fun onFailed(error:Exception) {
+                cachedFiles.forEach(File::delete)
+                Log.e("MainActivity", "Failed to load selected STL batch", error)
+                ViewUtils.postOnMainThread {
+                    SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+                    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.ERROR,
+                        getString(R.string.MenuFileOpenMultipleStlFailed, files.size, files.size)))
+                }
+            }
+            override fun onCancelled() {
+                cachedFiles.forEach(File::delete)
+                SliceBeam.EVENT_BUS.fireEvent(NeedDismissSnackbarEvent(tag))
+            }
+        }, autoOrientImportedModels = true)
+        return
+    }
+
+    val uri = files[index]
+    val displayName = IOUtils.getDisplayName(uri)
+    if (displayName == null) {
+        stageMultipleStlFiles(files, index + 1, cachedFiles, failed + 1, tag)
+        return
+    }
+    val extension = displayName.substringAfterLast('.', "stl")
+    val baseName = displayName.substringBeforeLast('.', displayName)
+    val cachedFile = getSafeCachedModelFile("${baseName}-${index + 1}.$extension")
+    SliceBeam.EVENT_BUS.fireEvent(NeedSnackbarEvent(SnackbarsLayout.Type.LOADING,
+        getString(R.string.MenuFileOpenMultipleStlProgress, index + 1, files.size)).tag(tag))
+    IOUtils.IO_POOL.submit {
+        try {
+            val input = contentResolver.openInputStream(uri) ?: throw FileNotFoundException(uri.toString())
+            input.use { source -> FileOutputStream(cachedFile).use { output ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val read = source.read(buffer)
+                    if (read < 0) break
+                    output.write(buffer, 0, read)
+                }
+            } }
+            ViewUtils.postOnMainThread {
+                cachedFiles.add(cachedFile)
+                stageMultipleStlFiles(files, index + 1, cachedFiles, failed, tag)
+            }
+        } catch (error:Exception) {
+            cachedFile.delete()
+            Log.e("MainActivity", "Failed to stage selected STL: $displayName", error)
+            ViewUtils.postOnMainThread { stageMultipleStlFiles(files, index + 1, cachedFiles, failed + 1, tag) }
+        }
+    }
 }
 override fun onConfigurationChanged(@NonNull newConfig:Configuration) {
 super.onConfigurationChanged(newConfig)

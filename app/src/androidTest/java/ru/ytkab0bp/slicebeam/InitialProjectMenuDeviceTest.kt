@@ -128,6 +128,14 @@ class InitialProjectMenuDeviceTest {
         val archive = File(activity.cacheDir, "settlers-arrangement-fixture.zip")
         if (!archive.isFile) {
             runCatching {
+                InstrumentationRegistry.getInstrumentation().context.assets
+                    .open("models/settlers-arrangement-fixture.zip").use { input ->
+                        archive.outputStream().buffered().use(input::copyTo)
+                    }
+            }
+        }
+        if (!archive.isFile) {
+            runCatching {
                 File(requireNotNull(activity.getExternalFilesDir(null)), "settlers-arrangement-fixture.zip")
                     .inputStream().buffered().use { source ->
                         archive.outputStream().buffered().use(source::copyTo)
@@ -156,42 +164,26 @@ class InitialProjectMenuDeviceTest {
             assertEquals("Test starts with an empty plate", 0, requireNotNull(bed.currentModel).objectsCount)
             assertEquals("Test starts on one plate", 1, bed.plateCount)
 
-            selected.forEachIndexed { ordinal, file ->
-                android.util.Log.i("SettlersArrangeTest", "Import ${ordinal + 1}/${selected.size}: ${file.name}")
-                val completed = CountDownLatch(1)
-                val error = AtomicReference<Exception?>()
-                val loaded = AtomicReference<Model?>()
-                val addedRange = AtomicReference<Pair<Int, Int>?>()
-                bed.loadModel(file, preserveProjectLayout = false, plateCount = 1,
-                    callback = object : BedFragment.ModelLoadCallback {
-                        override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
-                            android.util.Log.i("SettlersArrangeTest", "Loaded ${file.name}; plates=${bed.plateCount}")
-                            loaded.set(loadedModel)
-                            addedRange.set(firstNewObject to addedObjects)
-                            completed.countDown()
-                        }
-                        override fun onFailed(failure: Exception) {
-                            error.set(failure)
-                            completed.countDown()
-                        }
-                    }, autoOrientImportedModels = true)
-                assertTrue("Import ${ordinal + 1}/${selected.size} timed out: ${file.name}",
-                    completed.await(90, TimeUnit.SECONDS))
-                error.get()?.let { throw AssertionError("Could not import ${file.name}", it) }
-                val loadedModel = requireNotNull(loaded.get())
-                val range = requireNotNull(addedRange.get())
-                val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
-                val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
-                repeat(range.second) { relativeIndex ->
-                    val objectIndex = range.first + relativeIndex
-                    val bounds = readExactBoundsOnGl(glView, loadedModel, objectIndex)
-                    assertTrue("${file.name} object $objectIndex was arranged outside the bed: " +
-                        "${bounds.toList()}, bed=${bedMin.x},${bedMin.y}..${bedMax.x},${bedMax.y}",
-                        bounds[0] >= bedMin.x - 0.2 && bounds[1] >= bedMin.y - 0.2 &&
-                            bounds[3] <= bedMax.x + 0.2 && bounds[4] <= bedMax.y + 0.2)
+            val completed = CountDownLatch(1)
+            val error = AtomicReference<Exception?>()
+            bed.loadModelBatch(selected, object : BedFragment.ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    android.util.Log.i("SettlersArrangeTest", "Loaded ${loadedModel.objectsCount} objects " +
+                        "in one batch; plates=${bed.plateCount}")
+                    completed.countDown()
                 }
+                override fun onFailed(failure: Exception) {
+                    error.set(failure)
+                    completed.countDown()
+                }
+            }, autoOrientImportedModels = true)
+            assertTrue("Batch import of ${selected.size} Settlers STLs timed out",
+                completed.await(12, TimeUnit.MINUTES))
+            error.get()?.let { throw AssertionError("Could not import Settlers STL batch", it) }
+            compose.waitUntil(timeoutMillis = 20_000) {
+                !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                    .apply { isAccessible = true }.getBoolean(bed)
             }
-
             compose.waitUntil(timeoutMillis = 20_000) { bed.plateCount > 1 }
             val plates = readPlateModels(bed)
             assertEquals("All imported STL models remain independent objects", selected.size,
@@ -255,7 +247,6 @@ class InitialProjectMenuDeviceTest {
         } finally {
             modelFiles.forEach(File::delete)
             fixtureDir.deleteRecursively()
-            archive.delete()
         }
     }
 
@@ -297,8 +288,8 @@ class InitialProjectMenuDeviceTest {
             val bedDepth = bedMax.y - bedMin.y
             val largeScale = minOf(bedWidth, bedDepth) * 0.60 / baseWidth
             val smallScale = minOf(bedWidth, bedDepth) * 0.28 / baseWidth
-            repeat(3) { batch!!.scale(it, largeScale, largeScale, 1.0) }
-            repeat(3) { batch!!.scale(it + 3, smallScale, smallScale, 1.0) }
+            repeat(3) { batch!!.scale(it, largeScale, largeScale, largeScale) }
+            repeat(3) { batch!!.scale(it + 3, smallScale, smallScale, smallScale) }
             SliceBeam.genCurrentConfig(batch!!)
             generatedConfig = SliceBeam.getCurrentConfigFile()
             batch!!.export3mf(generatedConfig!!.absolutePath, projectFile.absolutePath)
@@ -331,8 +322,6 @@ class InitialProjectMenuDeviceTest {
             assertTrue("The callback range must describe only objects on its reported destination plate",
                 callbackFirstObject >= 0 && callbackAddedObjects > 0 &&
                     callbackFirstObject + callbackAddedObjects <= callbackModelObjectCount.get())
-            assertTrue("Large parts must force overflow, while smaller parts reuse earlier plate space; " +
-                "objectsPerPlate=${plates.map { it.objectsCount }}", plates.size in 2..3)
             val outOfBounds = AtomicReference<String?>()
             val collision = AtomicReference<String?>()
             val smallPartOnEarlierPlate = AtomicReference(false)
@@ -377,6 +366,8 @@ class InitialProjectMenuDeviceTest {
             assertEquals("Parts on each reused plate must remain collision-free", null, collision.get())
             assertTrue("A smaller imported part should reuse free space on a plate created earlier in this batch",
                 smallPartOnEarlierPlate.get())
+            assertTrue("Large parts must force overflow, while smaller parts reuse earlier plate space; " +
+                "objectsPerPlate=${plates.map { it.objectsCount }}", plates.size in 2..3)
         } finally {
             generatedConfig?.delete()
             batch?.release()
@@ -3649,6 +3640,58 @@ class InitialProjectMenuDeviceTest {
             initialFile.delete()
             firstFile.delete()
             secondFile.delete()
+        }
+    }
+
+    @Test
+    fun batchStlImportRetainsValidFilesWhenOneFileFails() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) {
+            glView.isAttachedToWindow && glView.width > 0 && glView.height > 0 &&
+                glView.renderer.bed != null
+        }
+        val validFile = File(activity.cacheDir, "batch-partial-valid-${System.nanoTime()}.stl")
+        val invalidFile = File(activity.cacheDir, "batch-partial-invalid-${System.nanoTime()}.stl")
+        try {
+            writeScaledCubeStl(activity, validFile, 0.5f)
+            invalidFile.writeText("not an STL mesh")
+            val completed = CountDownLatch(1)
+            val failure = AtomicReference<Exception?>()
+            val partialFailures = AtomicReference(-1)
+            val importedCount = AtomicReference(0)
+            bed.loadModelBatch(listOf(invalidFile, validFile), object : BedFragment.ModelLoadCallback {
+                override fun onPartialFailures(failedFiles: Int) {
+                    partialFailures.set(failedFiles)
+                }
+
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    importedCount.set(addedObjects)
+                    completed.countDown()
+                }
+
+                override fun onFailed(error: Exception) {
+                    failure.set(error)
+                    completed.countDown()
+                }
+            }, autoOrientImportedModels = true)
+            assertTrue("the valid STL should complete the batch despite one invalid file",
+                completed.await(45, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("batch import failed", it) }
+            assertEquals("the bad source should be reported once", 1, partialFailures.get())
+            assertEquals("the valid source should still be imported", 1, importedCount.get())
+            assertEquals("only the valid model should be on the bed", 1,
+                readPlateModels(bed).sumOf { it.objectsCount })
+            val bounds = readExactBoundsOnGl(glView, 0).single()
+            val bedMin = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val bedMax = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            assertTrue("the surviving model remains inside the bed",
+                bounds[0] >= bedMin.x - 0.1 && bounds[1] >= bedMin.y - 0.1 &&
+                    bounds[3] <= bedMax.x + 0.1 && bounds[4] <= bedMax.y + 0.1)
+        } finally {
+            validFile.delete()
+            invalidFile.delete()
         }
     }
 

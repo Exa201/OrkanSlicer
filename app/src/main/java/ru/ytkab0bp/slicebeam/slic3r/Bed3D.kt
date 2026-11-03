@@ -85,6 +85,17 @@ open class Bed3D {
         2.0,
     )
 
+    /** Place only a newly imported object while treating all existing plate objects as fixed. */
+    @Synchronized
+    open fun arrangeImportedObject(model: Model, objectIndex: Int, minDistanceMm: Double = 2.0): Boolean =
+        Native.bed_arrange_object_with_distance(
+            pointer,
+            model.pointer,
+            objectIndex,
+            ru.ytkab0bp.slicebeam.SliceBeam.buildCurrentConfigObjectOrNull()?.serialize().orEmpty(),
+            minDistanceMm,
+        )
+
     @Synchronized
     open fun getVolumeMin(): Vec3d? {
         if (min == null && boundingVolume != null) {

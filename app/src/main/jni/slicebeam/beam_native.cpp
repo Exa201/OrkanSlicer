@@ -3981,7 +3981,7 @@ extern "C" {
     }
 
     static jboolean bed_arrange_with_distance(JNIEnv* env, jlong ptr, jlong model,
-            jstring arrange_config, jdouble min_distance_mm) {
+            jstring arrange_config, jdouble min_distance_mm, jint selected_object_index = -1) {
         BedRef* ref = (BedRef*) (intptr_t) ptr;
         ModelRef* mRef = (ModelRef*) (intptr_t) model;
 
@@ -4022,7 +4022,28 @@ extern "C" {
 
             ModelInstancePtrs instances;
             ArrangePolygons input;
-            if (sequential_print) {
+            ArrangePolygons fixed_objects;
+            if (selected_object_index >= 0) {
+                if (static_cast<size_t>(selected_object_index) >= mRef->model.objects.size()) return JNI_FALSE;
+                for (size_t object_index = 0; object_index < mRef->model.objects.size(); ++object_index) {
+                    ModelObject* object = mRef->model.objects[object_index];
+                    for (ModelInstance* instance : object->instances) {
+                        ArrangePolygon item = sequential_print
+                            ? get_instance_arrange_poly(instance, config)
+                            : get_arrange_poly(instance, config);
+                        if (object_index == static_cast<size_t>(selected_object_index)) {
+                            input.emplace_back(std::move(item));
+                            instances.emplace_back(instance);
+                        } else {
+                            fixed_objects.emplace_back(std::move(item));
+                        }
+                    }
+                }
+                if (input.empty()) return JNI_FALSE;
+                // Existing models stay exactly where the user put them. Only the new object
+                // is fed to libnest2d as movable input; the old objects are fixed obstacles.
+                arrange_cfg.do_final_align = false;
+            } else if (sequential_print) {
                 // By-Object clearance depends on each instance's real height and print settings.
                 // The generic UI helper omits those values, unlike Orca's plater helper.
                 for (ModelObject* object : mRef->model.objects) {
@@ -4062,10 +4083,8 @@ extern "C" {
                 arrange_cfg.do_final_align = false; // keep fixed physical obstacles in bed coordinates
 
             const ConfigOptionInts *physical_map = config.option<ConfigOptionInts>("physical_extruder_map");
-            for (size_t i = 0; i < input.size(); ++i) {
-                ArrangePolygon &item = input[i];
-                if (i < instances.size()) {
-                    const ModelInstance *instance = instances[i];
+            auto configure_item = [&](ArrangePolygon &item, const ModelInstance *instance) {
+                if (instance != nullptr) {
                     const BoundingBoxf3 bounds = instance->get_object()->instance_convex_hull_bounding_box(instance);
                     item.height = std::max(0.0, bounds.size().z());
                 }
@@ -4086,6 +4105,20 @@ extern "C" {
                 item.bed_exclusion_extruder_ids.erase(
                     std::unique(item.bed_exclusion_extruder_ids.begin(), item.bed_exclusion_extruder_ids.end()),
                     item.bed_exclusion_extruder_ids.end());
+            };
+            for (size_t i = 0; i < input.size(); ++i) {
+                configure_item(input[i], i < instances.size() ? instances[i] : nullptr);
+            }
+            if (selected_object_index >= 0) {
+                size_t fixed_index = 0;
+                for (size_t object_index = 0; object_index < mRef->model.objects.size(); ++object_index) {
+                    if (object_index == static_cast<size_t>(selected_object_index)) continue;
+                    ModelObject* object = mRef->model.objects[object_index];
+                    for (ModelInstance* instance : object->instances) {
+                        if (fixed_index < fixed_objects.size())
+                            configure_item(fixed_objects[fixed_index++], instance);
+                    }
+                }
             }
 
             if (sequential_print) {
@@ -4122,17 +4155,25 @@ extern "C" {
 
                 arrangement::update_arrange_params(arrange_cfg, &config, input);
                 arrangement::update_selected_items_inflation(input, &config, arrange_cfg);
+                if (selected_object_index >= 0)
+                    arrangement::update_unselected_items_inflation(fixed_objects, &config, arrange_cfg);
                 bed = arrangement::get_shrink_bedpts(&config, arrange_cfg);
             } else {
                 const coord_t inflation = arrange_cfg.min_obj_distance / 2;
                 for (ArrangePolygon& ap : input)
                     if (!ap.is_virt_object)
                         ap.inflation = inflation;
+                for (ArrangePolygon& ap : fixed_objects)
+                    if (!ap.is_virt_object)
+                        ap.inflation = inflation;
             }
-            // The exclusions argument is what preloads fixed geometry into libnest2d.
+            // The exclusions argument preloads fixed models and physical geometry into libnest2d.
             // ArrangeParams::excluded_regions alone only informs its alignment scoring.
-            arrangement::arrange(input, arrange_cfg.excluded_regions, bed, arrange_cfg);
-            if (!sequential_print) {
+            ArrangePolygons fixed_geometry = std::move(fixed_objects);
+            fixed_geometry.insert(fixed_geometry.end(), arrange_cfg.excluded_regions.begin(),
+                arrange_cfg.excluded_regions.end());
+            arrangement::arrange(input, fixed_geometry, bed, arrange_cfg);
+            if (!sequential_print && selected_object_index < 0) {
                 fill_compound_arrange_gaps(input, bed);
                 validate_arrange_placements(input, bed);
             }
@@ -4152,6 +4193,12 @@ extern "C" {
     JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange_1with_1distance(
             JNIEnv* env, jclass, jlong ptr, jlong model, jstring arrange_config, jdouble min_distance_mm) {
         return bed_arrange_with_distance(env, ptr, model, arrange_config, min_distance_mm);
+    }
+
+    JNIEXPORT jboolean JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1arrange_1object_1with_1distance(
+            JNIEnv* env, jclass, jlong ptr, jlong model, jint object_index,
+            jstring arrange_config, jdouble min_distance_mm) {
+        return bed_arrange_with_distance(env, ptr, model, arrange_config, min_distance_mm, object_index);
     }
 
     JNIEXPORT jdoubleArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_bed_1get_1bounding_1volume(JNIEnv* env, jclass, jlong ptr) {
