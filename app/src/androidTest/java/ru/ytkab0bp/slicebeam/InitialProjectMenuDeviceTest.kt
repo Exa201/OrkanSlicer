@@ -3758,6 +3758,69 @@ class InitialProjectMenuDeviceTest {
     }
 
     @Test
+    fun smallMultiFileImportIsNestedTogetherOnAnEmptyPlate() {
+        val activity = compose.activity
+        val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment
+        val glView = requireNotNull(bed.glView)
+        compose.waitUntil(timeoutMillis = 15_000) { glView.renderer.bed?.isValid() == true }
+        assertEquals("test starts with one empty plate", 1, bed.plateCount)
+        assertEquals("test starts with no models", 0, requireNotNull(bed.currentModel).objectsCount)
+
+        val files = listOf(
+            File(activity.cacheDir, "joint-nest-0.stl"),
+            File(activity.cacheDir, "joint-nest-1.stl"),
+            File(activity.cacheDir, "joint-nest-2.stl"),
+            File(activity.cacheDir, "joint-nest-3.stl"),
+        )
+        try {
+            writeScaledBoxStl(activity, files[0], 0.75f, 0.50f, 0.20f)
+            writeScaledBoxStl(activity, files[1], 0.50f, 0.75f, 0.20f)
+            writeScaledBoxStl(activity, files[2], 0.40f, 0.35f, 0.20f)
+            writeScaledBoxStl(activity, files[3], 0.35f, 0.40f, 0.20f)
+
+            val completed = CountDownLatch(1)
+            val failure = AtomicReference<Exception?>()
+            bed.loadModelBatch(files, object : BedFragment.ModelLoadCallback {
+                override fun onLoaded(loadedModel: Model, firstNewObject: Int, addedObjects: Int) {
+                    completed.countDown()
+                }
+
+                override fun onFailed(error: Exception) {
+                    failure.set(error)
+                    completed.countDown()
+                }
+            }, autoOrientImportedModels = false)
+            assertTrue("the compact multi-file batch should finish", completed.await(60, TimeUnit.SECONDS))
+            failure.get()?.let { throw AssertionError("joint import nesting failed", it) }
+            compose.waitUntil(timeoutMillis = 15_000) {
+                !BedFragment::class.java.getDeclaredField("modelLoadInProgress")
+                    .apply { isAccessible = true }.getBoolean(bed)
+            }
+
+            val plates = readPlateModels(bed)
+            assertEquals("the four compact incoming models should fit together on one plate", 1, plates.size)
+            assertEquals("each source remains a separate movable object", files.size, plates.single().objectsCount)
+            val bounds = readExactBoundsOnGl(glView, *IntArray(files.size) { it })
+            val min = requireNotNull(glView.renderer.bed?.getVolumeMin())
+            val max = requireNotNull(glView.renderer.bed?.getVolumeMax())
+            bounds.forEachIndexed { index, box ->
+                assertTrue("object $index must remain inside the bed", box[0] >= min.x - 0.1 &&
+                    box[1] >= min.y - 0.1 && box[3] <= max.x + 0.1 && box[4] <= max.y + 0.1)
+            }
+            for (first in bounds.indices) for (second in first + 1 until bounds.size) {
+                val separated = bounds[first][3] <= bounds[second][0] - 1.7 ||
+                    bounds[second][3] <= bounds[first][0] - 1.7 ||
+                    bounds[first][4] <= bounds[second][1] - 1.7 ||
+                    bounds[second][4] <= bounds[first][1] - 1.7
+                assertTrue("jointly nested objects $first and $second must keep their clearance",
+                    separated)
+            }
+        } finally {
+            files.forEach(File::delete)
+        }
+    }
+
+    @Test
     fun importedObjectsRotateInPlaneToUseAvailableBedSpace() {
         val activity = compose.activity
         val bed = activity.navigationDelegate.getCurrentFragment() as BedFragment

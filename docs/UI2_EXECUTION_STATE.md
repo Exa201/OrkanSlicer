@@ -1,5 +1,14 @@
 # Nightly 2.5 Fortsetzung — Batch 10, Punkt 1/10 — 2026-11-03
 
+## Nesting-Priorität — gemeinsames Packen kleiner Importpakete — 2026-11-03
+
+- Beim Import auf einer leeren Platte versucht OrkanSlicer für kleine, leichte Dateipakete zuerst, alle eingehenden Modelle gemeinsam auf der temporären Kandidatenplatte zu packen. Der Versuch ist auf 24 Teile und 100.000 Dreiecke begrenzt und wird nur bei niedriger summierter XY-Fußabdruckfläche gestartet. Bei Überlauf oder Kollisions-/Bettgrenzenfehler wird die Kandidatenplatte verworfen und der bisherige geprüfte Mehrplattenpfad verwendet. Bereits vorhandene Modelle werden nie in diesen Versuch einbezogen oder verschoben.
+- `InitialProjectMenuDeviceTest#smallMultiFileImportIsNestedTogetherOnAnEmptyPlate`: API-36 bestanden, 1/1, vier einzelne STL-Objekte auf einer Platte, alle im Bett und mit mindestens 1,7 mm gemessener AABB-Trennung.
+- `InitialProjectMenuDeviceTest#multiObjectImportReusesEarlierOverflowPlatesForRemainingParts`: API-36 bestanden, 1/1; der Überlaufpfad bleibt funktionsfähig. Beide Änderungen kompilieren (`:app:compileDebugKotlin :app:compileSliceTestAndroidTestKotlin`), `git diff --check` sauber.
+- `InitialProjectMenuDeviceTest#importedObjectsStayFreelyMovableUntilUserRequestsArrange`: API-36 bestanden, 1/1; ein Objekt lässt sich manuell verschieben, der Nachbar bleibt stehen, und erst der ausdrückliche Arrange-Aufruf packt beide erneut auf das Bett. `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743 bestanden.
+- Vereinbarte Bedienregel bleibt erhalten: Import führt die automatische Ausrichtung/Anordnung aus; Objekte sind danach frei beweglich; erneutes Nesting geschieht nur über den Arrange-Button. Das 109-STL-Settlers-Paket überschreitet absichtlich die Batch-Grenzen und bleibt auf dem bereits verifizierten inkrementellen Importpfad.
+- Kein APK, Commit oder Release für diesen lokalen gezielten Arrange-Fix. Nächster Schritt: gegen die bestehenden freien Bewegungs-/Undo- und expliziten Arrange-Regressionen prüfen, danach mit dem Orca-Nightly-Backlog fortfahren.
+
 - Orca `664f734e22` adaptiert: Arrange verkleinert den ungenutzten Standard-Bettrand nur für nahezu bettgroße Teile; konfigurierte Brim-/Skirt-Abstände bleiben gewahrt, sequentielles Arrange bleibt unverändert.
 - API-36 `NativeSliceDeviceTest#arrangementUsesAvailableBedAreaForNearBedSizeObjects`: 1/1 bestanden. Android-Testkompilierung und `git diff --check` erfolgreich.
 - Release-Baseline bleibt `v0.8.428-nightly.1` (Version 0.8.428, Code 463); kein APK-Build für einen Einzelpunkt. Nächster Schritt: zweiten nicht bereits portierten Android-relevanten Orca-Kandidaten implementieren und gezielt testen; Nightly-Batchrelease erst nach 10/10.

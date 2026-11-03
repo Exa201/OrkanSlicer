@@ -2788,6 +2788,48 @@ private fun loadImportedModelOnRenderer(
                     -translation.z + (max.z - min.z) / 2.0)
             }
 
+            // A sequence of one-object placements can lock an early greedy choice even when
+            // the complete incoming set would fit more cleanly as a group. On an empty plate,
+            // first try a bounded batch nest on a temporary model so failure cannot change the
+            // fallback import transforms. Keep this attempt small in both object and triangle
+            // count; large imports retain the predictable incremental overflow path below.
+            val currentPlateIsEmpty = existing == null || existing.objectsCount == 0
+            val batchTriangleCount = (0 until sourceCount).sumOf { imported.getTriangleCount(it).toLong() }
+            val bedMin = bed.getVolumeMin()
+            val bedMax = bed.getVolumeMax()
+            val bedBoundsArea = if (bedMin != null && bedMax != null)
+                (bedMax.x - bedMin.x) * (bedMax.y - bedMin.y) else 0.0
+            val batchFootprintArea = footprintAreas.sum()
+            val shouldTryJointBatch = currentPlateIsEmpty && sourceCount in 2..24 &&
+                batchTriangleCount in 1..100_000 && bedBoundsArea > 0.0 &&
+                batchFootprintArea <= bedBoundsArea * 0.70
+            if (shouldTryJointBatch) {
+                val jointCandidate = Model()
+                var accepted = false
+                try {
+                    repeat(sourceCount) { jointCandidate.addObject(imported, it) }
+                    accepted = jointCandidate.objectsCount == sourceCount &&
+                        bed.arrangeCompact(jointCandidate) &&
+                        isModelInsideBuildVolume(jointCandidate, bed) &&
+                        (0 until sourceCount).none { hasMeshIntersectionForObject(jointCandidate, it) }
+                    if (accepted) {
+                        jointCandidate.resetBoundingBox()
+                        existing?.takeIf { it !== jointCandidate }?.release()
+                        platesModels.set(currentPlateIndex, jointCandidate)
+                        imported.release()
+                        viewport.renderer.model = jointCandidate
+                        viewport.renderer.resetGlModels()
+                        onModelImportCommitted()
+                        callback?.onLoaded(jointCandidate, 0, sourceCount)
+                        reportImportReduction(reduction)
+                        viewport.requestRender()
+                        return
+                    }
+                } finally {
+                    if (!accepted) jointCandidate.release()
+                }
+            }
+
             val originalPlateCount = platesModels.size
             var target = existing ?: Model()
             var targetPlateIndex: Int? = currentPlateIndex
