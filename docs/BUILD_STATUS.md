@@ -1,5 +1,12 @@
 # Build Status
 
+## Nightly 2.5 verified prerelease — 2026-11-03 — 0.8.429
+
+- Code commit `59313276b9a70c50e1faeb46590b9fafead04d60`; app 0.8.429/code 464; package `com.exa201.orkanslicer.nightly25`.
+- Debug and Slice JVM suites: 743/743 each, 0 failures, 0 errors, 0 skipped. API-36 targeted instrumentation: painted-mesh smoothing, 3MF round-trip and slice/G-code tool assignment 1/1 passed.
+- Debug APK `OrkanSlicerNightly25_59313276b9.apk`, 240,355,984 bytes, SHA-256 `3792bfb109c9afd2bacbba007d9fa8e81990742c8fc17add6419baab4b79d0f1`. Installed and launched on the API-36 emulator; no crash/ANR/OOM/fatal signal in the inspected startup log.
+- Published with checksum sidecar as [Nightly prerelease v0.8.429-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.429-nightly.1). No physical-device or printer test is claimed.
+
 ## Nightly 2.5 verified prerelease — 2026-11-03 — 0.8.428
 
 - Code commit `9e4f4da68bc1776ebd483ee5fde1015ea170ecc9`; app 0.8.428/code 463; package `com.exa201.orkanslicer.nightly25`.

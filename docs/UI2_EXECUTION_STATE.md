@@ -5,8 +5,9 @@
 - Android-Port von Orca `d709eb251c432ff7521ff3d12ab5fd1e0ec191ee`: neue Aktion „Netz glätten“ im ausgewählten Modell-Menü. Die native Loop-Unterteilung erzeugt vier Dreiecke je Ausgangsdreieck. Farb-, Stütz-, Naht- und Fuzzy-Skin-Malerei wird zunächst auf die Zwischenmesh mit gleicher Topologie zurückgeführt und bleibt anschließend auf der geglätteten Mesh erhalten.
 - UI und JNI verwenden den vorhandenen Compose-Workspace bzw. GL-Thread. Die Aktion ist auf 80.000 Eingangs-Dreiecke begrenzt, damit das Ergebnis mit maximal 320.000 Dreiecken unter dem bestehenden Undo-Speicherbudget bleibt; größere Meshes müssen vorher vereinfacht werden.
 - `TwoColorProjectDeviceTest#paintedFilamentAssignmentsSurviveSmoothMeshMultipartJoinThreeMfRoundTripAndSlice`: 1/1 auf API 36 bestanden. Nach Glättung bleiben Filamentzuweisungen und Farb-Overlay vorhanden; 3MF-Export/Import bewahrt die Malerei und nativer Slice enthält weiterhin den T1-Werkzeugwechsel.
-- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743 bestanden. Debug-APK-Build erfolgreich; die veröffentlichungsfertige APK wird nach dem Quellcommit mit Version 0.8.429/Code 464 erneut gebaut.
-- Nächster konkreter Schritt: Quelländerungen committen, APK samt SHA-256 erstellen und als `v0.8.429-nightly.1` prerelease veröffentlichen; danach Batch 10 mit Punkt 6 fortsetzen.
+- `:app:testDebugUnitTest` und `:app:testSliceTestUnitTest`: jeweils 743/743 bestanden. Das APK wurde nach dem Quellcommit `59313276b9a70c50e1faeb46590b9fafead04d60` als Version 0.8.429/Code 464 gebaut, auf API 36 installiert und gestartet.
+- APK `OrkanSlicerNightly25_59313276b9.apk`, 240.355.984 Bytes, SHA-256 `3792bfb109c9afd2bacbba007d9fa8e81990742c8fc17add6419baab4b79d0f1`; veröffentlicht mit Sidecar als [Prerelease v0.8.429-nightly.1](https://github.com/Exa201/OrkanSlicer-Nightly-2.5/releases/tag/v0.8.429-nightly.1). Es gab in den geprüften Startlogs keinen Crash, ANR, OOM oder Fatal Signal. Ein physisches Xiaomi/Honor wurde in diesem Durchgang nicht getestet.
+- Nächster konkreter Schritt: Batch 10 mit einem sechsten unabhängigen, Android-erreichbaren Orca-Punkt fortsetzen; erst nach 10/10 den vollständigen Batch-Regressionstest ausführen.
 
 ## Verifizierter APK-Refresh (2026-11-03)
 
