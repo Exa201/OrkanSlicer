@@ -622,7 +622,61 @@ class MainActivityTouchDeviceTest {
             }
             assertTrue("Model translation should be readable before long-press drag",
                 translationReady.await(5, TimeUnit.SECONDS))
-            scenario.onActivity { dispatch(glView, MotionEvent.ACTION_DOWN, hit.first, hit.second, downTime, downTime) }
+            val expectedDragDelta = DoubleArray(2)
+            val dragPointRef = AtomicReference<Pair<Float, Float>?>()
+            val dragRayDiagnostics = AtomicReference("not resolved")
+            val dragRayReady = CountDownLatch(1)
+            glView.queueEvent {
+                val surfaceScaleX = glView.renderer.viewportWidth / glView.width.toFloat()
+                val surfaceScaleY = glView.renderer.viewportHeight / glView.height.toFloat()
+                for (row in 1..63 step 2) {
+                    for (column in 1..63 step 2) {
+                        val candidateX = glView.width * column / 64f
+                        val candidateY = glView.height * row / 64f
+                        if (glView.renderer.raycastObjectIndex(candidateX * surfaceScaleX, candidateY * surfaceScaleY) == 0) {
+                            dragPointRef.set(candidateX to candidateY)
+                            break
+                        }
+                    }
+                    if (dragPointRef.get() != null) break
+                }
+                val dragPoint = dragPointRef.get()
+                if (dragPoint == null) {
+                    dragRayReady.countDown()
+                    return@queueEvent
+                }
+                val startX = dragPoint.first * surfaceScaleX
+                val startY = dragPoint.second * surfaceScaleY
+                val endX = (dragPoint.first + 45f) * surfaceScaleX
+                val endY = (dragPoint.second + 35f) * surfaceScaleY
+                val surfaceHit = glView.renderer.raycastObjectSurface(0, startX, startY)
+                val startOnGrabPlane = surfaceHit?.let {
+                    glView.renderer.raycastHorizontalPlane(startX, startY, it.position.z)
+                }
+                val endOnGrabPlane = surfaceHit?.let {
+                    glView.renderer.raycastHorizontalPlane(endX, endY, it.position.z)
+                }
+                if (startOnGrabPlane != null && endOnGrabPlane != null) {
+                    expectedDragDelta[0] = endOnGrabPlane.x - startOnGrabPlane.x
+                    expectedDragDelta[1] = endOnGrabPlane.y - startOnGrabPlane.y
+                }
+                dragRayDiagnostics.set(
+                    "viewport=${glView.renderer.viewportWidth}x${glView.renderer.viewportHeight}, " +
+                        "surface=${glView.width}x${glView.height}, scale=$surfaceScaleX/$surfaceScaleY, " +
+                        "point=$dragPoint, meshHit=${surfaceHit?.position?.let { "${it.x},${it.y},${it.z}" }}, " +
+                        "start=${startOnGrabPlane?.let { "${it.x},${it.y},${it.z}" }}, " +
+                        "end=${endOnGrabPlane?.let { "${it.x},${it.y},${it.z}" }}",
+                )
+                dragRayReady.countDown()
+            }
+            assertTrue("The GL thread should resolve the drag ray on the picked mesh height",
+                dragRayReady.await(5, TimeUnit.SECONDS))
+            val dragPoint = requireNotNull(dragPointRef.get()) { "The test must find the model after the camera was moved" }
+            assertTrue(
+                "The test drag should have a measurable world-space displacement: ${dragRayDiagnostics.get()}",
+                kotlin.math.abs(expectedDragDelta[0]) + kotlin.math.abs(expectedDragDelta[1]) > 1e-4,
+            )
+            scenario.onActivity { dispatch(glView, MotionEvent.ACTION_DOWN, dragPoint.first, dragPoint.second, downTime, downTime) }
             // The model raycast is deferred until this deliberate long press, then drag it.
             SystemClock.sleep(650L)
             val longClickGestureField = GLView::class.java.getDeclaredField("longClickGesture")
@@ -636,14 +690,14 @@ class MainActivityTouchDeviceTest {
                 longClickGestureField.getBoolean(glView))
             scenario.onActivity {
                 val now = SystemClock.uptimeMillis()
-                dispatch(glView, MotionEvent.ACTION_MOVE, hit.first + 25f, hit.second + 20f, downTime, now)
-                dispatch(glView, MotionEvent.ACTION_MOVE, hit.first + 45f, hit.second + 35f,
+                dispatch(glView, MotionEvent.ACTION_MOVE, dragPoint.first + 25f, dragPoint.second + 20f, downTime, now)
+                dispatch(glView, MotionEvent.ACTION_MOVE, dragPoint.first + 45f, dragPoint.second + 35f,
                     downTime, now + 40L)
             }
             SystemClock.sleep(80L)
             scenario.onActivity {
                 val now = SystemClock.uptimeMillis()
-                dispatch(glView, MotionEvent.ACTION_UP, hit.first + 45f, hit.second + 35f, downTime, now)
+                dispatch(glView, MotionEvent.ACTION_UP, dragPoint.first + 45f, dragPoint.second + 35f, downTime, now)
             }
             awaitRendererQueue(glView)
             val translationAfterLongPressDrag = Vec3d()
@@ -656,6 +710,10 @@ class MainActivityTouchDeviceTest {
             assertTrue("Long-press dragging should change the model position",
                 kotlin.math.abs(translationBeforeLongPressDrag.x - translationAfterLongPressDrag.x) > 1e-4 ||
                     kotlin.math.abs(translationBeforeLongPressDrag.y - translationAfterLongPressDrag.y) > 1e-4)
+            assertEquals("The committed mesh must land at the position represented by the drag preview on its grab plane",
+                expectedDragDelta[0], translationAfterLongPressDrag.x - translationBeforeLongPressDrag.x, 0.25)
+            assertEquals("The committed mesh must not drift away from the drag preview on Y",
+                expectedDragDelta[1], translationAfterLongPressDrag.y - translationBeforeLongPressDrag.y, 0.25)
             instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 assertSameModelSelection(bed, model)

@@ -77,6 +77,7 @@ private var lastPaintPoint: PaintInputCoalescer.Point? = null
 private var tempVec = Vec3d()
 private var longClickOffset = Vec3d()
 private var longClickTranslation = Vec3d()
+private var longClickPlaneZ = 0.0
 private var longClickHitResults = ArrayList<GLModel.HitResult>()
 private var lastActionTime = System.currentTimeMillis()
 // A few devices report a very short accessibility long-press threshold; keep ordinary presses from opening actions.
@@ -98,16 +99,16 @@ private val longClick = Runnable {
             val bed = renderer.bed
             if (renderer.gcodeResult == null && activeModel != null && bed != null) {
                 target = renderer.raycastObjectIndex(x, y)
-                if (target in 0 until activeModel.objectsCount) {
-                    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
-                    val hit = longClickHitResults.firstOrNull()
-                    if (hit != null) {
-                        activeModel.getTranslation(target, tempVec)
-                        longClickOffset.x = hit.position.x - tempVec.x
-                        longClickOffset.y = hit.position.y - tempVec.y
-                        if (renderer.focusForDrag(target)) requestRender()
-                        hitFound = true
-                    }
+                val hit = if (target in 0 until activeModel.objectsCount) {
+                    renderer.raycastObjectSurface(target, x, y)
+                } else null
+                if (hit != null) {
+                    longClickPlaneZ = hit.position.z
+                    activeModel.getTranslation(target, tempVec)
+                    longClickOffset.x = hit.position.x - tempVec.x
+                    longClickOffset.y = hit.position.y - tempVec.y
+                    if (renderer.focusForDrag(target)) requestRender()
+                    hitFound = true
                 }
             }
         }
@@ -1096,13 +1097,11 @@ val y = surfaceTouchY(e.getY())
 queueEvent {
     val activeModel = renderer.model ?: return@queueEvent
     val selected = renderer.selectedObject
-    val bed = renderer.bed ?: return@queueEvent
     if (selected !in 0 until activeModel.objectsCount) return@queueEvent
     activeModel.getTranslation(selected, tempVec)
-    bed.raycaster.raycast(renderer, longClickHitResults, x, y)
-    val result = longClickHitResults.firstOrNull() ?: return@queueEvent
-    longClickTranslation.x = result.position.x - tempVec.x - longClickOffset.x
-    longClickTranslation.y = result.position.y - tempVec.y - longClickOffset.y
+    val result = renderer.raycastHorizontalPlane(x, y, longClickPlaneZ) ?: return@queueEvent
+    longClickTranslation.x = result.x - tempVec.x - longClickOffset.x
+    longClickTranslation.y = result.y - tempVec.y - longClickOffset.y
     renderer.setSelectionTranslation(longClickTranslation.x, longClickTranslation.y, 0.0)
     SliceBeam.EVENT_BUS.fireEvent(LongClickTranslationEvent(longClickTranslation.x, longClickTranslation.y, true))
     requestRender()

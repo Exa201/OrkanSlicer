@@ -2419,6 +2419,31 @@ i++
 }
 return j
 }
+/** Precise world-space hit on one object, kept behind the renderer's GL-owned mesh list. */
+fun raycastObjectSurface(index: Int, x: Float, y: Float): GLModel.HitResult? {
+    if (index !in glModels.indices) return null
+    glModels[index].raycaster.raycast(this, raycastHits, x, y)
+    return raycastHits.firstOrNull()
+}
+/** Resolve a screen point on the horizontal plane through the grabbed mesh surface. */
+fun raycastHorizontalPlane(x: Float, y: Float, planeZ: Double): Vec3d? {
+    if (viewportWidth <= 0 || viewportHeight <= 0 || !planeZ.isFinite()) return null
+    val point = Slic3rUtils.unproject(
+        camera.getViewModelMatrix(), projectionMatrix, viewportWidth, viewportHeight,
+        x.toDouble(), y.toDouble(),
+    )
+    val orthographic = Prefs.isOrthoProjectionEnabled()
+    val direction = if (orthographic) {
+        camera.getDirForward().clone()
+    } else {
+        point.add(camera.position.clone().negate()).normalize()
+    }
+    // Orthographic rays are parallel but have distinct screen-space origins. Starting every
+    // ray at camera.position collapses all touches to the same XY point and makes an object
+    // jump away from its drag location. Perspective rays share the camera origin.
+    val origin = if (orthographic) point else camera.position
+    return HorizontalPlaneRay.intersect(origin, direction, planeZ)
+}
 fun onClick(x:Float, y:Float):Boolean {
 if (this.model == null || isViewerEnabled) return false
 val placementTarget = surfacePlacementTargetObject
