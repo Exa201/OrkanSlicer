@@ -1,5 +1,12 @@
 # Nightly continuation — Orca Batch 9 — 2026-11-02
 
+## Batch 9 point 10 — serialized preset-list transfer safety — 2026-11-03
+
+- Ported the Android-reachable core of Orca `5ca36251a23d2ecb051f5398225711bdb3382b52`: indexed transfer of a serialized vector now safely seeds an empty destination before `set_at()`, and an empty source list replaces/clears the destination as a whole. Orca's desktop-only deep-diff presentation changes are not included or counted.
+- Added `NativeSliceDeviceTest#presetTransferCanCreateAndClearSerializedPostProcessLists`; API-36 instrumentation passed 1/1 with 0 failures, errors, or skips. The regression covers importing a script into an empty `post_process` list and clearing an existing script list. The first probe attempt used a bare `DynamicConfig` without the print-option definition and failed before exercising production behavior; the fixture was corrected to use `DynamicPrintConfig::full_print_config()`, after which the test passed.
+- `:app:testDebugUnitTest` and `:app:testSliceTestUnitTest` both passed 743/743 with 0 failures, errors, or skips. `git diff --check` passed. Batch 9 is **10/10 implementation points**, but its final batch regression, debug APK build/metadata, device start check, and Nightly GitHub prerelease are still pending; do not treat the batch as released yet.
+- Nesting remains as user specified: import performs orientation/packing, models remain freely movable afterward, and additional repacking occurs only on the explicit Arrange action. Its Settlers archive and manual-movement evidence are recorded in the sections below.
+
 ## Nesting priority — multi-STL import order verified 2026-11-03
 
 - Multi-file STL selection now preflights readable binary STL meshes off the UI thread and imports them largest oriented XY-footprint first. Unknown/ASCII/malformed STL files safely receive no size hint and retain stable relative order. The native orient/arrange path remains responsible for each final placement; authored project layouts are untouched, and user transforms stay free after import. Repacking still occurs only through the explicit Arrange action.

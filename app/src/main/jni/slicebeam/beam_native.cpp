@@ -5315,6 +5315,37 @@ extern "C" {
         }
     }
 
+    // Orca preset transfers may diff a serialized list as post_process#0. An empty
+    // source must clear the target list; set_at() cannot read an element that does not exist.
+    JNIEXPORT jintArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_config_1apply_1empty_1serialized_1list_1regression(JNIEnv* env, jclass) {
+        try {
+            DynamicPrintConfig source_with_script = DynamicPrintConfig::full_print_config();
+            source_with_script.set_key_value("post_process", new ConfigOptionStrings({"script.py"}));
+            DynamicPrintConfig empty_target = DynamicPrintConfig::full_print_config();
+            empty_target.set_key_value("post_process", new ConfigOptionStrings());
+            empty_target.apply_only(source_with_script, {"post_process#0"});
+            const auto* imported = empty_target.option<ConfigOptionStrings>("post_process", false);
+            const bool created = imported != nullptr && imported->values == std::vector<std::string>{"script.py"};
+
+            DynamicPrintConfig empty_source = DynamicPrintConfig::full_print_config();
+            empty_source.set_key_value("post_process", new ConfigOptionStrings());
+            DynamicPrintConfig populated_target = DynamicPrintConfig::full_print_config();
+            populated_target.set_key_value("post_process", new ConfigOptionStrings({"old-script.py"}));
+            populated_target.apply_only(empty_source, {"post_process#0"});
+            const auto* cleared = populated_target.option<ConfigOptionStrings>("post_process", false);
+            const bool emptied = cleared != nullptr && cleared->values.empty();
+
+            const jint values[] = {created ? 1 : 0, emptied ? 1 : 0};
+            jintArray result = env->NewIntArray(2);
+            if (result != nullptr) env->SetIntArrayRegion(result, 0, 2, values);
+            return result;
+        } catch (const std::exception& error) {
+            jclass runtime_error = env->FindClass("ru/ytkab0bp/slicebeam/slic3r/Slic3rRuntimeError");
+            if (runtime_error != nullptr) env->ThrowNew(runtime_error, error.what());
+            return nullptr;
+        }
+    }
+
     // Exercises production G-code placeholder vector resolution for filament IDs that
     // share a physical extruder, plus the unmapped-filament fallback.
     JNIEXPORT jobjectArray JNICALL Java_ru_ytkab0bp_slicebeam_slic3r_Native_placeholder_1filament_1map_1regression(JNIEnv* env, jclass) {

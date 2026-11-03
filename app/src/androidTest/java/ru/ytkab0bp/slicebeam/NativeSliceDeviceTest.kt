@@ -946,6 +946,15 @@ class NativeSliceDeviceTest {
     }
 
     @Test
+    fun presetTransferCanCreateAndClearSerializedPostProcessLists() {
+        assertArrayEquals(
+            "preset transfer must safely create a new script list and clear a target when the source list is empty",
+            intArrayOf(1, 1),
+            Native.config_apply_empty_serialized_list_regression(),
+        )
+    }
+
+    @Test
     fun shortExtrusionChainsUseTheMinimumTravelOrder() {
         val segments = listOf(
             Pair(doubleArrayOf(14.0, 3.0), doubleArrayOf(6.0, 19.0)),

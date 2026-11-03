@@ -473,16 +473,21 @@ void ConfigBase::apply_only(const ConfigBase &other, const t_config_option_keys 
                 auto opt_key2 = opt_key.substr(0, n);
                 auto my_opt2 = dynamic_cast<ConfigOptionVectorBase*>(this->option(opt_key2));
                 auto other_opt = other.option(opt_key2);
-                if (my_opt2 == nullptr && other_opt) {
+                if (my_opt2 == nullptr && other_opt)
                     my_opt2 = dynamic_cast<ConfigOptionVectorBase *>(this->option(opt_key2, true));
-                    if (my_opt2->empty()) {
-                        my_opt2->resize(1, other_opt);
-                    }
-                }   
                 if (my_opt2) {
-                    int index = std::atoi(opt_key.c_str() + n + 1);
-                    if (other_opt)
+                    auto other_vec = dynamic_cast<const ConfigOptionVectorBase *>(other_opt);
+                    if (other_vec && other_vec->empty()) {
+                        // Empty serialized lists are whole-value updates; they have no element
+                        // for set_at() to copy and must clear the target list directly.
+                        my_opt2->set(other_opt);
+                    } else if (other_opt) {
+                        // set_at() pads from the first target value, which an empty list lacks.
+                        if (my_opt2->empty())
+                            my_opt2->resize(1, other_opt);
+                        int index = std::atoi(opt_key.c_str() + n + 1);
                         my_opt2->set_at(other_opt, index, index);
+                    }
                     continue;
                 }
             }

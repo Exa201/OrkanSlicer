@@ -45,6 +45,9 @@ class Native {
     /** Exercises status-callback replacement from callbacks and concurrent slice progress. */
     @JvmStatic
     external fun print_status_callback_regression(): IntArray
+    /** Verifies preset transfers can create or clear an empty serialized post-processing list safely. */
+    @JvmStatic
+    external fun config_apply_empty_serialized_list_regression(): IntArray
     /** Checks per-filament and physical-extruder placeholder vectors under a shared filament map. */
     @JvmStatic
     external fun placeholder_filament_map_regression(): Array<String>
